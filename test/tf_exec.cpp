@@ -352,6 +352,38 @@ TEST(tf_exec, FusedBatchNormGrad_NHWC) {
   AssertTensorEquals(outputs[2], outputs_cpu[2]);
 }
 
+// Test Op :"Op_L2Loss"
+TEST(tf_exec, Op_L2Loss) {
+  tf::Scope root = tf::Scope::NewRootScope();
+  tf::Scope root_ngraph = root.NewSubScope("sub_scope_ngraph");
+  root_ngraph = root_ngraph.WithDevice("/device:NGRAPH:0");
+
+  std::vector< std::vector<tf::int64> > input_sizes;
+  input_sizes.push_back( {2, 3, 4} );
+  input_sizes.push_back( {0} );
+
+  for(auto const& input_size: input_sizes ) {
+    tf::Tensor input_data(tf::DT_FLOAT, tf::TensorShape(input_size));
+    AssignInputValues(input_data);
+
+    tf::ClientSession session(root);
+    std::vector<tf::Tensor> outputs_ngraph;
+    std::vector<tf::Tensor> outputs_cpu;
+
+    auto r_ngraph = tf::ops::L2Loss(
+        root_ngraph.WithOpName("r_NGRAPH"), input_data);
+
+    auto r_cpu = tf::ops::L2Loss(
+        root.WithOpName("r_CPU"), input_data);
+
+    TF_CHECK_OK(session.Run({r_ngraph}, &outputs_ngraph));
+    TF_CHECK_OK(session.Run({r_cpu}, &outputs_cpu));
+    
+    ASSERT_EQ(outputs_ngraph[0].shape(), outputs_cpu[0].shape());
+    AssertTensorEquals(outputs_ngraph[0], outputs_cpu[0]);
+    }
+  }
+
 TEST(tf_exec, Tile) {
   tf::Scope root = tf::Scope::NewRootScope();
   auto dev_scope = root.WithDevice("/device:NGRAPH:0");

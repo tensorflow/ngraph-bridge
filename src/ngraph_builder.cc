@@ -307,11 +307,10 @@ static tf::Status TranslateBinaryOp(
 template <typename T>
 static tf::Status TranslateBinaryOp(const tf::Node* op,
                                     Builder::OpMap& ng_op_map) {
-  return TranslateBinaryOp(
-      op, ng_op_map,
-      [](std::shared_ptr<ng::Node> ng_lhs, std::shared_ptr<ng::Node> ng_rhs) {
-        return make_shared<T>(ng_lhs, ng_rhs);
-      });
+  return TranslateBinaryOp(op, ng_op_map, [](std::shared_ptr<ng::Node> ng_lhs,
+                                             std::shared_ptr<ng::Node> ng_rhs) {
+    return make_shared<T>(ng_lhs, ng_rhs);
+  });
 }
 
 static tf::Status TranslateAvgPoolOp(const tf::Node* op,
@@ -375,15 +374,15 @@ static tf::Status TranslateAvgPoolOp(const tf::Node* op,
   return tf::Status::OK();
 }
 
-static tf::Status TranslateAvgPoolGradOp(const tf::Node* op, 
-                                     Builder::OpMap& ng_op_map) { 
-      
+static tf::Status TranslateAvgPoolGradOp(const tf::Node* op,
+                                         Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_grad;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, nullptr, &ng_grad));
 
   std::vector<tf::int32> tf_orig_input_shape_vec;
-  TF_RETURN_IF_ERROR(tf::GetNodeAttr(
-      op->attrs(), "_ngraph_avgpoolgrad_static_input_shape", &tf_orig_input_shape_vec));
+  TF_RETURN_IF_ERROR(tf::GetNodeAttr(op->attrs(),
+                                     "_ngraph_avgpoolgrad_static_input_shape",
+                                     &tf_orig_input_shape_vec));
 
   std::vector<tf::int32> tf_strides;
   std::vector<tf::int32> tf_ksize;
@@ -391,8 +390,7 @@ static tf::Status TranslateAvgPoolGradOp(const tf::Node* op,
   std::string tf_data_format;
   TF_RETURN_IF_ERROR(tf::GetNodeAttr(op->attrs(), "strides", &tf_strides));
   TF_RETURN_IF_ERROR(tf::GetNodeAttr(op->attrs(), "ksize", &tf_ksize));
-  TF_RETURN_IF_ERROR(
-      tf::GetNodeAttr(op->attrs(), "padding", &tf_padding_type));
+  TF_RETURN_IF_ERROR(tf::GetNodeAttr(op->attrs(), "padding", &tf_padding_type));
   TF_RETURN_IF_ERROR(
       tf::GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
 
@@ -442,9 +440,10 @@ static tf::Status TranslateAvgPoolGradOp(const tf::Node* op,
   NGRAPH_VLOG(3) << "ng_padding_below: " << ng::join(ng_padding_below);
   NGRAPH_VLOG(3) << "ng_padding_above: " << ng::join(ng_padding_above);
 
-  std::shared_ptr<ng::Node> ng_avgpool_backprop = make_shared<ng::op::AvgPoolBackprop>(
-      ng_forward_arg_shape, ng_grad, ng_window_shape, ng_strides, ng_padding_below,
-      ng_padding_above, false);
+  std::shared_ptr<ng::Node> ng_avgpool_backprop =
+      make_shared<ng::op::AvgPoolBackprop>(
+          ng_forward_arg_shape, ng_grad, ng_window_shape, ng_strides,
+          ng_padding_below, ng_padding_above, false);
 
   BatchToTensorflow(is_nhwc, ng_avgpool_backprop);
 
@@ -454,7 +453,7 @@ static tf::Status TranslateAvgPoolGradOp(const tf::Node* op,
   SaveNgOp(ng_op_map, op->name(), ng_avgpool_backprop);
 
   return tf::Status::OK();
-}  
+}
 
 static tf::Status TranslateBatchMatMulOp(const tf::Node* op,
                                          Builder::OpMap& ng_op_map) {
@@ -1116,9 +1115,8 @@ static tf::Status TranslateFillOp(const tf::Node* op,
     ng_output_shape[i] = dims_vec[i];
     ng_axis_set.insert(i);
   }
-  SaveNgOp(
-      ng_op_map, op->name(),
-      make_shared<ng::op::Broadcast>(ng_value, ng_output_shape, ng_axis_set));
+  SaveNgOp(ng_op_map, op->name(), make_shared<ng::op::Broadcast>(
+                                      ng_value, ng_output_shape, ng_axis_set));
   return tf::Status::OK();
 }
 
@@ -1279,6 +1277,30 @@ static tf::Status TranslateIdentityOp(const tf::Node* op,
   shared_ptr<ng::Node> ng_arg;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_arg));
   SaveNgOp(ng_op_map, op->name(), ng_arg);
+  return tf::Status::OK();
+}
+
+static tf::Status TranslateL2LossOp(const tf::Node* op,
+                                    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+
+  auto const_2 = make_shared<ng::op::Constant>(
+      ng_input->get_element_type(), ng::Shape{}, std::vector<std::string>{"2"});
+
+  std::shared_ptr<ng::Node> ng_pow = make_shared<ng::op::Multiply>(
+      ng_input, ng_input);
+
+  size_t input_rank = ng_input->get_shape().size();
+  ng::AxisSet axes;
+  for (auto i = 0; i < input_rank; ++i) {
+    axes.insert(i);
+  }
+
+  std::shared_ptr<ng::Node> ng_sum = make_shared<ng::op::Sum>(ng_pow, axes);
+  std::shared_ptr<ng::Node> ng_l2loss =
+      make_shared<ng::op::Divide>(ng_sum, const_2);
+  SaveNgOp(ng_op_map, op->name(), ng_l2loss);
   return tf::Status::OK();
 }
 
@@ -1861,12 +1883,11 @@ static tf::Status TranslateSquareOp(const tf::Node* op,
 
 static tf::Status TranslateSquaredDifferenceOp(const tf::Node* op,
                                                Builder::OpMap& ng_op_map) {
-  return TranslateBinaryOp(
-      op, ng_op_map,
-      [](std::shared_ptr<ng::Node> input1, std::shared_ptr<ng::Node> input2) {
-        auto ng_diff = std::make_shared<ng::op::Subtract>(input1, input2);
-        return std::make_shared<ng::op::Multiply>(ng_diff, ng_diff);
-      });
+  return TranslateBinaryOp(op, ng_op_map, [](std::shared_ptr<ng::Node> input1,
+                                             std::shared_ptr<ng::Node> input2) {
+    auto ng_diff = std::make_shared<ng::op::Subtract>(input1, input2);
+    return std::make_shared<ng::op::Multiply>(ng_diff, ng_diff);
+  });
 }
 
 static tf::Status TranslateSqueezeOp(const tf::Node* op,
@@ -2173,6 +2194,7 @@ const static std::map<
         {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
         {"GreaterEqual", TranslateBinaryOp<ngraph::op::GreaterEq>},
         {"Identity", TranslateIdentityOp},
+        {"L2Loss", TranslateL2LossOp},
         {"Less", TranslateBinaryOp<ngraph::op::Less>},
         {"LessEqual", TranslateBinaryOp<ngraph::op::LessEq>},
         {"Log", TranslateUnaryOp<ngraph::op::Log>},

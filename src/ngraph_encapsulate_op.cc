@@ -88,7 +88,7 @@ class NGraphEncapsulateOp : public tf::OpKernel {
 
       // TODO(amprocte): We should be able to unref the tracker here, but it
       // seems to screw things up in the C++ unit tests.
-      //m_freshness_tracker->Unref();
+      // m_freshness_tracker->Unref();
     }
   }
 
@@ -96,7 +96,8 @@ class NGraphEncapsulateOp : public tf::OpKernel {
   // our use of the freshness-tracking stuff probably means we can only execute
   // one instance at a time).
   void Compute(tf::OpKernelContext* ctx) override {
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
+                   << m_ngraph_cluster;
 
     // Get the inputs
     std::vector<tf::TensorShape> input_shapes;
@@ -114,7 +115,8 @@ class NGraphEncapsulateOp : public tf::OpKernel {
     std::string signature = signature_ss.str();
     auto it = m_ng_functions.find(signature);
 
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
+                   << m_ngraph_cluster;
 
     // Compile the graph using nGraph.
     //
@@ -141,7 +143,8 @@ class NGraphEncapsulateOp : public tf::OpKernel {
       ng_function = it->second;
     }
 
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
+                   << m_ngraph_cluster;
 
     if (m_freshness_tracker == nullptr) {
       auto creator = [this](ngb::NGraphFreshnessTracker** tracker) {
@@ -155,7 +158,9 @@ class NGraphEncapsulateOp : public tf::OpKernel {
               "ngraph_freshness_tracker", &m_freshness_tracker, creator));
     }
 
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got freshness tracker for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4)
+        << "NGraphEncapsulateOp::Compute got freshness tracker for cluster "
+        << m_ngraph_cluster;
 
     // Allocate tensors for arguments.
     vector<shared_ptr<ng::runtime::TensorView>> ng_inputs;
@@ -192,7 +197,9 @@ class NGraphEncapsulateOp : public tf::OpKernel {
       ng_inputs.push_back(t);
     }
 
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
+                      "for cluster "
+                   << m_ngraph_cluster;
 
     // Allocate tensors for the results.
     vector<shared_ptr<ng::runtime::TensorView>> outputs;
@@ -227,12 +234,16 @@ class NGraphEncapsulateOp : public tf::OpKernel {
       outputs.push_back(t_result);
     }
 
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated result tensors for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4)
+        << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
+        << m_ngraph_cluster;
 
     // Execute the nGraph function.
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "
+                   << m_ngraph_cluster;
     m_ng_backend->call(ng_function, outputs, ng_inputs);
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
+                   << m_ngraph_cluster;
 
     // Mark input tensors as fresh for the next time around.
     for (int i = 0; i < input_shapes.size(); i++) {
@@ -240,7 +251,9 @@ class NGraphEncapsulateOp : public tf::OpKernel {
       m_freshness_tracker->MarkFresh(src_ptr, ng_function);
     }
 
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute done marking fresh for cluster " << m_ngraph_cluster;
+    NGRAPH_VLOG(4)
+        << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
+        << m_ngraph_cluster;
   }
 
  private:

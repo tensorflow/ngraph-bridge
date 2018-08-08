@@ -254,6 +254,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Greater"]["T"] = NGraphDTypes();
         type_constraint_map["GreaterEqual"]["T"] = NGraphDTypes();
+        type_constraint_map["L2Loss"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Less"]["T"] = NGraphDTypes();
         type_constraint_map["LessEqual"]["T"] = NGraphDTypes();
         type_constraint_map["Log"]["T"] = NGraphNumericDTypes();
@@ -325,14 +326,16 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
           TF_RETURN_IF_ERROR(n->input_node(0, &tf_orig_input_shape));
 
           std::vector<tf::int64> tf_orig_input_shape_vec;
-          if (ExtractConstantData(tf_orig_input_shape, &tf_orig_input_shape_vec) !=
+          if (ExtractConstantData(tf_orig_input_shape,
+                                  &tf_orig_input_shape_vec) !=
                   tf::Status::OK() ||
               tf_orig_input_shape_vec.size() != 4) {
             *result = false;
             return tf::Status::OK();
           }
 
-          n->AddAttr("_ngraph_avgpoolgrad_static_input_shape", tf_orig_input_shape_vec);
+          n->AddAttr("_ngraph_avgpoolgrad_static_input_shape",
+                     tf_orig_input_shape_vec);
           *result = true;
           return tf::Status::OK();
         };
@@ -436,6 +439,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         confirmation_functions["FusedBatchNormGrad"] = always;
         confirmation_functions["Greater"] = always;
         confirmation_functions["GreaterEqual"] = always;
+        confirmation_functions["L2Loss"] = always;
         confirmation_functions["Less"] = always;
         confirmation_functions["LessEqual"] = always;
         confirmation_functions["Log"] = always;
