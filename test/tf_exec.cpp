@@ -441,7 +441,7 @@ TEST(tf_exec, Op_L2Loss) {
 
   for(auto const& input_size: input_sizes ) {
     tf::Tensor input_data(tf::DT_FLOAT, tf::TensorShape(input_size));
-    AssignInputValues(input_data);
+    AssignInputValues(input_data, 0.0);
 
     tf::ClientSession session(root);
     std::vector<tf::Tensor> outputs_ngraph;
