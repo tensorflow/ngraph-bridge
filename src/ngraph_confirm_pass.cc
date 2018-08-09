@@ -230,6 +230,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         //
         type_constraint_map["Abs"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Add"]["T"] = NGraphNumericDTypes();
+        type_constraint_map["AddN"]["T"] = NGraphNumericDTypes();
         type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
         type_constraint_map["AvgPoolGrad"]["T"] = NGraphNumericDTypes();
         type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
@@ -321,6 +322,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         //
         confirmation_functions["Abs"] = always;
         confirmation_functions["Add"] = always;
+        confirmation_functions["AddN"] = always;
         confirmation_functions["AvgPool"] = always;
         confirmation_functions["AvgPoolGrad"] = [](tf::Node* n, bool* result) {
           tf::Node* tf_orig_input_shape;

@@ -814,4 +814,39 @@ TEST(tf_exec, Op_FloorMod) {
   AssertTensorEquals(outputs_cpu[1], outputs_ng[1]);
 }
 
+TEST(tf_exec, Op_AddN) {
+  tf::Scope scope_cpu = tf::Scope::NewRootScope();
+  tf::Scope scope_ng = scope_cpu.WithDevice("/device:NGRAPH:0");
+
+  // ngraph execution
+  auto A_ng = tf::ops::Const(scope_ng, {{256.f, 16.f}, {4.f, 64.f}});
+  auto B_ng = tf::ops::Const(scope_ng, {{1.f, 2.f}, {3.f, 4.f}});
+  auto C_ng = tf::ops::Const(scope_ng, {{5.f, 6.f}, {7.f, 8.f}});
+  auto r_ng =
+      tf::ops::AddN(scope_ng.WithOpName("r"), {A_ng, C_ng, B_ng, A_ng, A_ng});
+  // No broadcast test needed since AddN does not support it:
+  // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/ops/math_ops.cc#L355
+
+  std::vector<tf::Tensor> outputs_ng;
+  tf::ClientSession session_ng(scope_ng);
+  TF_CHECK_OK(session_ng.Run({r_ng}, &outputs_ng));
+
+  ASSERT_EQ(outputs_ng[0].shape(), tf::TensorShape({2, 2}));
+
+  // reference CPU execution
+  auto A_cpu = tf::ops::Const(scope_cpu, {{256.f, 16.f}, {4.f, 64.f}});
+  auto B_cpu = tf::ops::Const(scope_cpu, {{1.f, 2.f}, {3.f, 4.f}});
+  auto C_cpu = tf::ops::Const(scope_cpu, {{5.f, 6.f}, {7.f, 8.f}});
+  auto r_cpu = tf::ops::AddN(scope_cpu.WithOpName("r"),
+                             {A_cpu, C_cpu, B_cpu, A_cpu, A_cpu});
+
+  std::vector<tf::Tensor> outputs_cpu;
+  tf::ClientSession session_cpu(scope_cpu);
+  TF_CHECK_OK(session_cpu.Run({r_cpu}, &outputs_cpu));
+
+  ASSERT_EQ(outputs_cpu[0].shape(), tf::TensorShape({2, 2}));
+
+  AssertTensorEquals(outputs_cpu[0], outputs_ng[0]);
+}
+
 }  // namespace ngraph_bridge

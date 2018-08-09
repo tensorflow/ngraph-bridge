@@ -313,6 +313,22 @@ static tf::Status TranslateBinaryOp(const tf::Node* op,
   });
 }
 
+static tf::Status TranslateAddNOp(const tf::Node* op,
+                                  Builder::OpMap& ng_op_map) {
+  std::vector<shared_ptr<ng::Node>> ng_arg_vec(op->num_inputs());
+
+  for (int inp_idx = 0; inp_idx < op->num_inputs(); inp_idx++)
+    TF_RETURN_IF_ERROR(
+        GetInputNode(ng_op_map, op, inp_idx, &ng_arg_vec[inp_idx]));
+
+  SaveNgOp(ng_op_map, op->name(),
+           std::accumulate(std::next(ng_arg_vec.begin()), ng_arg_vec.end(),
+                           ng_arg_vec.at(0)));  // accumulation: start with
+                                                // first element. default op is
+                                                // addition
+  return tf::Status::OK();
+}
+
 static tf::Status TranslateAvgPoolOp(const tf::Node* op,
                                      Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input;
@@ -2218,6 +2234,7 @@ const static std::map<
     TRANSLATE_OP_MAP{
         {"Abs", TranslateUnaryOp<ngraph::op::Abs>},
         {"Add", TranslateBinaryOp<ngraph::op::Add>},
+        {"AddN", TranslateAddNOp},
         {"AvgPool", TranslateAvgPoolOp},
         {"AvgPoolGrad", TranslateAvgPoolGradOp},
         {"BatchMatMul", TranslateBatchMatMulOp},
