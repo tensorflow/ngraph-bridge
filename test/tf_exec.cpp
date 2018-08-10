@@ -461,6 +461,49 @@ TEST(tf_exec, Op_L2Loss) {
     }
   }
 
+// Test Op :"Op_Unpack"
+TEST(tf_exec, Op_Unpack) {
+  tf::Scope root = tf::Scope::NewRootScope();
+  tf::Scope root_ngraph = root.NewSubScope("sub_scope_ngraph");
+  root = root.WithDevice("/device:CPU:0");
+  root_ngraph = root_ngraph.WithDevice("/device:NGRAPH:0");
+
+  std::vector< std::vector<tf::int64> > input_sizes;
+
+  int input_rank = 3; 
+  
+  input_sizes.push_back( {3, 2, 3} );
+  input_sizes.push_back( {4, 3, 6} );
+  input_sizes.push_back( {7, 8, 3} );
+  
+  std::vector< tf::int64> axes({0, 1, 2});
+
+  for(auto i = 0;i < input_sizes.size(); ++i) {
+    tf::Tensor input_data(tf::DT_FLOAT, tf::TensorShape(input_sizes[i]));
+    AssignInputValues(input_data, 0.0);
+
+    tf::ClientSession session(root);
+    std::vector<tf::Tensor>  outputs_ngraph;
+    std::vector<tf::Tensor> outputs_cpu;
+    tf::ops::Unstack::Attrs attrs;
+    attrs.axis_ = axes[i];
+
+    auto r_ngraph = tf::ops::Unstack(
+        root_ngraph.WithOpName("r_NGRAPH"), input_data, input_sizes[i][axes[i]], attrs);
+
+    auto r_cpu = tf::ops::Unstack(
+        root, input_data, input_sizes[i][axes[i]], attrs);
+
+    TF_CHECK_OK(session.Run({r_cpu[0], r_cpu[1], r_cpu[2]}, &outputs_cpu));
+    TF_CHECK_OK(session.Run({r_ngraph[0], r_ngraph[1], r_ngraph[2]}, &outputs_ngraph));
+    for (auto j = 0; j < input_rank;++j) {     
+        ASSERT_EQ(outputs_ngraph[j].shape(), outputs_cpu[j].shape());
+        AssertTensorEquals(outputs_ngraph[j], outputs_cpu[j]);
+      }
+    }
+  }
+
+
 TEST(tf_exec, Tile) {
   tf::Scope root = tf::Scope::NewRootScope();
   auto dev_scope = root.WithDevice("/device:NGRAPH:0");

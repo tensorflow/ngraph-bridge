@@ -2229,6 +2229,60 @@ static tf::Status TranslateTransposeOp(const tf::Node* op,
   return tf::Status::OK();
 }
 
+static tf::Status TranslateUnpackOp(const tf::Node* op,
+                                  Builder::OpMap& ng_op_map) {
+
+  TF_RETURN_IF_ERROR(ValidateInputCount(op, 1));
+
+  shared_ptr<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
+
+  ng::Shape input_shape = ng_input->get_shape();
+  size_t input_rank = input_shape.size();
+
+  tf::int32 tf_axis;
+  TF_RETURN_IF_ERROR(tf::GetNodeAttr(op->attrs(), "axis", &tf_axis));
+  auto unpack_axis = tf_axis;
+  if (unpack_axis == -1) {
+    unpack_axis = input_rank - 1;
+  }
+
+  tf::int32 tf_num;
+  TF_RETURN_IF_ERROR(tf::GetNodeAttr(op->attrs(), "num", &tf_num));
+  int num_outputs = tf_num;
+
+  ng::Shape output_shape;
+  for (size_t i = 0; i < input_rank; ++i) {
+    if (i != unpack_axis) {
+      output_shape.push_back( input_shape[i] );
+    }
+  }
+
+  ng::AxisVector ng_axis_order;
+  for (size_t i = 0; i < input_rank; i++) {
+      ng_axis_order.push_back(i);
+  }
+
+  std::vector<size_t> lower_bound(input_rank, 0);
+  std::vector<size_t> upper_bound(input_rank);
+
+  for (size_t i = 0; i < input_rank; i++) {
+    upper_bound[i] = input_shape[i];
+  }
+
+  for (int i = 0;i < num_outputs; ++i) {
+    lower_bound[unpack_axis] = i;
+    upper_bound[unpack_axis] = i + 1;
+    auto slice =
+        make_shared<ngraph::op::Slice>(ng_input, lower_bound, upper_bound);
+    auto reshaped =
+           make_shared<ng::op::Reshape>(slice, ng_axis_order, output_shape);
+           SaveNgOp(ng_op_map, op->name(), reshaped);  
+  }
+  return tf::Status::OK();
+}
+
+
 const static std::map<
     const string, const function<tf::Status(const tf::Node*, Builder::OpMap&)>>
     TRANSLATE_OP_MAP{
@@ -2304,7 +2358,8 @@ const static std::map<
         {"Sum", TranslateSumOp},
         {"Tanh", TranslateUnaryOp<ngraph::op::Tanh>},
         {"Tile", TranslateTileOp},
-        {"Transpose", TranslateTransposeOp}};
+        {"Transpose", TranslateTransposeOp},
+        {"Unpack", TranslateUnpackOp}};
 /*
 static tf::Status TranslateConstOp(const tf::Node* op, Builder::OpMap&
 ng_op_map) {
