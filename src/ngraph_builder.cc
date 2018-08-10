@@ -2264,6 +2264,7 @@ const static std::map<
         {"LessEqual", TranslateBinaryOp<ngraph::op::LessEq>},
         {"Log", TranslateUnaryOp<ngraph::op::Log>},
         {"LogicalAnd", TranslateBinaryOp<ngraph::op::And>},
+        {"LogicalNot", TranslateUnaryOp<ngraph::op::Not>},
         {"MatMul", TranslateMatMulOp},
         {"Maximum", TranslateBinaryOp<ngraph::op::Maximum>},
         {"MaxPool", TranslateMaxPoolOp},
