@@ -265,6 +265,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         type_constraint_map["MatMul"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Maximum"]["T"] = NGraphNumericDTypes();
         type_constraint_map["MaxPool"]["T"] = NGraphNumericDTypes();
+        type_constraint_map["MaxPoolGrad"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Mean"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Mean"]["Tidx"] = NGraphIndexDTypes();
         type_constraint_map["Minimum"]["T"] = NGraphNumericDTypes();
@@ -454,6 +455,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         confirmation_functions["MatMul"] = always;
         confirmation_functions["Maximum"] = always;
         confirmation_functions["MaxPool"] = always;
+        confirmation_functions["MaxPoolGrad"] = always;
 
         // Constraints: "keep_dims" is not supported, reduction-axes input
         // must be Const.
