@@ -274,6 +274,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         type_constraint_map["Pad"]["T"] = NGraphDTypes();
         type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
         type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
+        type_constraint_map["PreventGradient"]["T"] = NGraphDTypes();
         type_constraint_map["Prod"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Prod"]["Tidx"] = NGraphIndexDTypes();
         type_constraint_map["RealDiv"]["T"] = NGraphNumericDTypes();
@@ -492,6 +493,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         };
 
         confirmation_functions["Pow"] = always;
+        confirmation_functions["PreventGradient"] = always;
 
         // Constraints: "keep_dims" is not supported, reduction-axes input
         // must be Const.

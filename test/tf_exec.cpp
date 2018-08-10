@@ -849,4 +849,31 @@ TEST(tf_exec, Op_AddN) {
   AssertTensorEquals(outputs_cpu[0], outputs_ng[0]);
 }
 
+TEST(tf_exec, Op_PreventGradient) {
+  tf::Scope scope_cpu = tf::Scope::NewRootScope();
+  tf::Scope scope_ng = scope_cpu.WithDevice("/device:NGRAPH:0");
+
+  // ngraph execution
+  auto A_ng = tf::ops::Placeholder(scope_cpu, tf::DataType::DT_FLOAT);
+  auto r_ng = tf::ops::PreventGradient(scope_ng.WithOpName("r"), A_ng);
+
+  std::vector<tf::Tensor> outputs_ng;
+  tf::ClientSession session_ng(scope_ng);
+
+  TF_CHECK_OK(session_ng.Run({{A_ng, {{2.f, 4.f}, {6.f, 8.f}}}}, {r_ng}, &outputs_ng));
+  ASSERT_EQ(outputs_ng[0].shape(), tf::TensorShape({2, 2}));
+
+  // reference CPU execution
+  auto A_cpu = tf::ops::Placeholder(scope_cpu, tf::DataType::DT_FLOAT);
+  auto r_cpu = tf::ops::PreventGradient(scope_cpu.WithOpName("r"), A_cpu);
+
+  std::vector<tf::Tensor> outputs_cpu;
+  tf::ClientSession session_cpu(scope_cpu);
+
+  TF_CHECK_OK(session_cpu.Run({{A_cpu, {{2.f, 4.f}, {6.f, 8.f}}}}, {r_cpu}, &outputs_cpu));
+  ASSERT_EQ(outputs_cpu[0].shape(), tf::TensorShape({2, 2}));
+
+  AssertTensorEquals(outputs_cpu[0], outputs_ng[0]);
+}
+
 }  // namespace ngraph_bridge
