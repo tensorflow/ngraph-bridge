@@ -108,29 +108,27 @@ TEST(tf_exec, axpy) {
 }
 #endif
 
-void AssertTensorEquals(tf::Tensor T1, tf::Tensor T2) {
+void AssertTensorEquals(tf::Tensor& T1, tf::Tensor& T2) {
   auto T_size = T1.flat<float>().size();
-  auto T1_data = T1.flat<float>().data();
-  auto T2_data = T2.flat<float>().data();
   for (int k = 0; k < T_size; k++) {
-    auto a = T1_data[k];
-    auto b = T2_data[k];
+    auto a = T1.flat<float>().data()[k];
+    auto b = T2.flat<float>().data()[k];
     EXPECT_FLOAT_EQ(a, b);
   }
 }
 
-void ValidateTensorData(tf::Tensor T1, tf::Tensor T2, float tol) {
+void ValidateTensorData(tf::Tensor& T1, tf::Tensor& T2, float tol) {
   auto T_size = T1.flat<float>().size();
   auto T1_data = T1.flat<float>().data();
   auto T2_data = T2.flat<float>().data();
   for (int k = 0; k < T_size; k++) {
     auto a = T1_data[k];
     auto b = T2_data[k];
-    if (a == 0) { 
+    if (a == 0) {
       EXPECT_NEAR(a, b, tol);
     } else {
-      auto rel = a-b;
-      auto rel_div = std::abs(rel/a);
+      auto rel = a - b;
+      auto rel_div = std::abs(rel / a);
       EXPECT_TRUE(rel_div < tol);
     }
   }
@@ -141,6 +139,18 @@ void AssignInputValues(tf::Tensor& A, float x) {
   auto A_flat_data = A_flat.data();
   for (int i = 0; i < A_flat.size(); i++) {
     A_flat_data[i] = x * i;
+  }
+}
+
+void AssignInputIntValues(tf::Tensor& A, int maxval) {
+  auto A_flat = A.flat<int>();
+  auto A_flat_data = A_flat.data();
+  int counter = 0;
+  for (int i = 0; i < A_flat.size(); i++) {
+    A_flat_data[i] = counter++;
+    if (counter == maxval) {
+      counter = 0;
+    }
   }
 }
 
@@ -320,9 +330,11 @@ TEST(tf_exec, BiasAddGrad) {
   attrs.data_format_ = "NHWC";
   std::vector<tf::Tensor> outputs_ngraph_nhwc;
   std::vector<tf::Tensor> outputs_CPU_nhwc;
-  auto R_ngraph_nhwc = tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X, attrs);
-  auto R_CPU_nhwc = tf::ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X, attrs);
-  
+  auto R_ngraph_nhwc =
+      tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X, attrs);
+  auto R_CPU_nhwc =
+      tf::ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X, attrs);
+
   tf::ClientSession session(dev_scope);
   tf::ClientSession sess(root);
 
@@ -331,28 +343,31 @@ TEST(tf_exec, BiasAddGrad) {
 
   ASSERT_EQ(outputs_ngraph_nhwc[0].shape(), outputs_CPU_nhwc[0].shape());
   ValidateTensorData(outputs_ngraph_nhwc[0], outputs_CPU_nhwc[0], 1e-6);
-  //Check 2D Tensor
-  R_ngraph_nhwc = tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X2D, attrs);
+  // Check 2D Tensor
+  R_ngraph_nhwc =
+      tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X2D, attrs);
   R_CPU_nhwc = tf::ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X2D, attrs);
-  
+
   TF_CHECK_OK(session.Run({R_ngraph_nhwc}, &outputs_ngraph_nhwc));
   TF_CHECK_OK(sess.Run({R_CPU_nhwc}, &outputs_CPU_nhwc));
 
   ASSERT_EQ(outputs_ngraph_nhwc[0].shape(), outputs_CPU_nhwc[0].shape());
   ValidateTensorData(outputs_ngraph_nhwc[0], outputs_CPU_nhwc[0], 1e-6);
-  //check 3D tensor
-  R_ngraph_nhwc = tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X3D, attrs);
+  // check 3D tensor
+  R_ngraph_nhwc =
+      tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X3D, attrs);
   R_CPU_nhwc = tf::ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X3D, attrs);
-  
+
   TF_CHECK_OK(session.Run({R_ngraph_nhwc}, &outputs_ngraph_nhwc));
   TF_CHECK_OK(sess.Run({R_CPU_nhwc}, &outputs_CPU_nhwc));
 
   ASSERT_EQ(outputs_ngraph_nhwc[0].shape(), outputs_CPU_nhwc[0].shape());
   ValidateTensorData(outputs_ngraph_nhwc[0], outputs_CPU_nhwc[0], 1e-6);
-  //check 5D tensor
-  R_ngraph_nhwc = tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X5D, attrs);
+  // check 5D tensor
+  R_ngraph_nhwc =
+      tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X5D, attrs);
   R_CPU_nhwc = tf::ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X5D, attrs);
-  
+
   TF_CHECK_OK(session.Run({R_ngraph_nhwc}, &outputs_ngraph_nhwc));
   TF_CHECK_OK(sess.Run({R_CPU_nhwc}, &outputs_CPU_nhwc));
 
@@ -362,9 +377,11 @@ TEST(tf_exec, BiasAddGrad) {
   attrs.data_format_ = "NCHW";
   std::vector<tf::Tensor> outputs_ngraph_nchw;
   std::vector<tf::Tensor> outputs_CPU_nchw;
-  
-  auto R_ngraph_nchw = tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nchw"), X, attrs);
-  auto R_CPU_nchw = tf::ops::BiasAddGrad(root.WithOpName("R_CPU_nchw"), X, attrs);
+
+  auto R_ngraph_nchw =
+      tf::ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nchw"), X, attrs);
+  auto R_CPU_nchw =
+      tf::ops::BiasAddGrad(root.WithOpName("R_CPU_nchw"), X, attrs);
   TF_CHECK_OK(session.Run({R_ngraph_nchw}, &outputs_ngraph_nchw));
   TF_CHECK_OK(sess.Run({R_CPU_nchw}, &outputs_CPU_nchw));
 
@@ -435,11 +452,11 @@ TEST(tf_exec, Op_L2Loss) {
   tf::Scope root_ngraph = root.NewSubScope("sub_scope_ngraph");
   root_ngraph = root_ngraph.WithDevice("/device:NGRAPH:0");
 
-  std::vector< std::vector<tf::int64> > input_sizes;
-  input_sizes.push_back( {2, 3, 4} );
-  input_sizes.push_back( {0} );
+  std::vector<std::vector<tf::int64> > input_sizes;
+  input_sizes.push_back({2, 3, 4});
+  input_sizes.push_back({0});
 
-  for(auto const& input_size: input_sizes ) {
+  for (auto const& input_size : input_sizes) {
     tf::Tensor input_data(tf::DT_FLOAT, tf::TensorShape(input_size));
     AssignInputValues(input_data, 0.0);
 
@@ -447,19 +464,18 @@ TEST(tf_exec, Op_L2Loss) {
     std::vector<tf::Tensor> outputs_ngraph;
     std::vector<tf::Tensor> outputs_cpu;
 
-    auto r_ngraph = tf::ops::L2Loss(
-        root_ngraph.WithOpName("r_NGRAPH"), input_data);
+    auto r_ngraph =
+        tf::ops::L2Loss(root_ngraph.WithOpName("r_NGRAPH"), input_data);
 
-    auto r_cpu = tf::ops::L2Loss(
-        root.WithOpName("r_CPU"), input_data);
+    auto r_cpu = tf::ops::L2Loss(root.WithOpName("r_CPU"), input_data);
 
     TF_CHECK_OK(session.Run({r_ngraph}, &outputs_ngraph));
     TF_CHECK_OK(session.Run({r_cpu}, &outputs_cpu));
-    
+
     ASSERT_EQ(outputs_ngraph[0].shape(), outputs_cpu[0].shape());
     AssertTensorEquals(outputs_ngraph[0], outputs_cpu[0]);
-    }
   }
+}
 
 // Test Op :"Op_Unpack"
 TEST(tf_exec, Op_Unpack) {
@@ -468,41 +484,42 @@ TEST(tf_exec, Op_Unpack) {
   root = root.WithDevice("/device:CPU:0");
   root_ngraph = root_ngraph.WithDevice("/device:NGRAPH:0");
 
-  std::vector< std::vector<tf::int64> > input_sizes;
+  std::vector<std::vector<tf::int64> > input_sizes;
 
-  int input_rank = 3; 
-  
-  input_sizes.push_back( {3, 2, 3} );
-  input_sizes.push_back( {4, 3, 6} );
-  input_sizes.push_back( {7, 8, 3} );
-  
-  std::vector< tf::int64> axes({0, 1, 2});
+  int input_rank = 3;
 
-  for(auto i = 0;i < input_sizes.size(); ++i) {
+  input_sizes.push_back({3, 2, 3});
+  input_sizes.push_back({4, 3, 6});
+  input_sizes.push_back({7, 8, 3});
+
+  std::vector<tf::int64> axes({0, 1, 2});
+
+  for (auto i = 0; i < input_sizes.size(); ++i) {
     tf::Tensor input_data(tf::DT_FLOAT, tf::TensorShape(input_sizes[i]));
     AssignInputValues(input_data, 0.0);
 
     tf::ClientSession session(root);
-    std::vector<tf::Tensor>  outputs_ngraph;
+    std::vector<tf::Tensor> outputs_ngraph;
     std::vector<tf::Tensor> outputs_cpu;
     tf::ops::Unstack::Attrs attrs;
     attrs.axis_ = axes[i];
 
-    auto r_ngraph = tf::ops::Unstack(
-        root_ngraph.WithOpName("r_NGRAPH"), input_data, input_sizes[i][axes[i]], attrs);
+    auto r_ngraph =
+        tf::ops::Unstack(root_ngraph.WithOpName("r_NGRAPH"), input_data,
+                         input_sizes[i][axes[i]], attrs);
 
-    auto r_cpu = tf::ops::Unstack(
-        root, input_data, input_sizes[i][axes[i]], attrs);
+    auto r_cpu =
+        tf::ops::Unstack(root, input_data, input_sizes[i][axes[i]], attrs);
 
     TF_CHECK_OK(session.Run({r_cpu[0], r_cpu[1], r_cpu[2]}, &outputs_cpu));
-    TF_CHECK_OK(session.Run({r_ngraph[0], r_ngraph[1], r_ngraph[2]}, &outputs_ngraph));
-    for (auto j = 0; j < input_rank;++j) {     
-        ASSERT_EQ(outputs_ngraph[j].shape(), outputs_cpu[j].shape());
-        AssertTensorEquals(outputs_ngraph[j], outputs_cpu[j]);
-      }
+    TF_CHECK_OK(
+        session.Run({r_ngraph[0], r_ngraph[1], r_ngraph[2]}, &outputs_ngraph));
+    for (auto j = 0; j < input_rank; ++j) {
+      ASSERT_EQ(outputs_ngraph[j].shape(), outputs_cpu[j].shape());
+      AssertTensorEquals(outputs_ngraph[j], outputs_cpu[j]);
     }
   }
-
+}
 
 TEST(tf_exec, Tile) {
   tf::Scope root = tf::Scope::NewRootScope();
@@ -680,6 +697,34 @@ TEST(tf_exec, Op_Reciprocal) {
   EXPECT_FLOAT_EQ(0.2, mat(0, 1));
   EXPECT_FLOAT_EQ(0.5, mat(1, 0));
   EXPECT_FLOAT_EQ(1.0, mat(1, 1));
+}
+
+TEST(tf_exec, Op_SparseSoftmaxCrossEntropyWithLogits) {
+  tf::Scope root = tf::Scope::NewRootScope();
+  tf::Scope root_ngraph = root.NewSubScope("sub_scope_ngraph");
+  root_ngraph = root_ngraph.WithDevice("/device:NGRAPH:0");
+
+  int batch_size = 100;
+  int num_classes = 10;
+  tf::Tensor features(tf::DT_FLOAT, tf::TensorShape({batch_size, num_classes}));
+  tf::Tensor labels(tf::DT_INT32, tf::TensorShape({batch_size}));
+  AssignInputValues(features, -1.1f);
+  AssignInputIntValues(labels, num_classes);
+
+  auto R_ngraph = tf::ops::SparseSoftmaxCrossEntropyWithLogits(
+      root_ngraph.WithOpName("R_ngraph"), features, labels);
+
+  auto R_cpu = tf::ops::SparseSoftmaxCrossEntropyWithLogits(
+      root.WithOpName("R_cpu"), features, labels);
+
+  std::vector<tf::Tensor> outputs_ngraph, outputs_cpu;
+  tf::ClientSession session(root);
+
+  TF_CHECK_OK(session.Run({R_ngraph.loss, R_ngraph.backprop}, &outputs_ngraph));
+  TF_CHECK_OK(session.Run({R_cpu.loss, R_cpu.backprop}, &outputs_cpu));
+
+  ValidateTensorData(outputs_ngraph[0], outputs_cpu[0], 1e-6);
+  ValidateTensorData(outputs_ngraph[1], outputs_cpu[1], 1e-6);
 }
 
 TEST(tf_exec, Op_Square) {
@@ -903,7 +948,8 @@ TEST(tf_exec, Op_PreventGradient) {
   std::vector<tf::Tensor> outputs_ng;
   tf::ClientSession session_ng(scope_ng);
 
-  TF_CHECK_OK(session_ng.Run({{A_ng, {{2.f, 4.f}, {6.f, 8.f}}}}, {r_ng}, &outputs_ng));
+  TF_CHECK_OK(
+      session_ng.Run({{A_ng, {{2.f, 4.f}, {6.f, 8.f}}}}, {r_ng}, &outputs_ng));
   ASSERT_EQ(outputs_ng[0].shape(), tf::TensorShape({2, 2}));
 
   // reference CPU execution
@@ -913,7 +959,8 @@ TEST(tf_exec, Op_PreventGradient) {
   std::vector<tf::Tensor> outputs_cpu;
   tf::ClientSession session_cpu(scope_cpu);
 
-  TF_CHECK_OK(session_cpu.Run({{A_cpu, {{2.f, 4.f}, {6.f, 8.f}}}}, {r_cpu}, &outputs_cpu));
+  TF_CHECK_OK(session_cpu.Run({{A_cpu, {{2.f, 4.f}, {6.f, 8.f}}}}, {r_cpu},
+                              &outputs_cpu));
   ASSERT_EQ(outputs_cpu[0].shape(), tf::TensorShape({2, 2}));
 
   AssertTensorEquals(outputs_cpu[0], outputs_ng[0]);
