@@ -131,10 +131,19 @@ static tf::Status GetInputNode(const Builder::OpMap& ng_op_map,
 
   tf::Node* tf_input;
   TF_RETURN_IF_ERROR(op->input_node(input_idx, &tf_input));
+  const std::vector<shared_ptr<ng::Node>>* ng_op = nullptr;
   try {
-    *result = ng_op_map.at(tf_input->name()).at(src_output_idx);
+    ng_op = &ng_op_map.at(tf_input->name());
   } catch (const out_of_range&) {
-    return tf::Status(tensorflow::error::NOT_FOUND, "Input node not found");
+    return tf::Status(tensorflow::error::NOT_FOUND,
+                      string("Ngraph op not found for ") + tf_input->name());
+  }
+  try {
+    *result = ng_op->at(src_output_idx);
+  } catch (const out_of_range&) {
+    return tf::Status(
+        tensorflow::error::NOT_FOUND,
+        string("Input node not found at index ") + to_string(src_output_idx));
   }
   return tf::Status::OK();
 }
@@ -307,11 +316,10 @@ static tf::Status TranslateBinaryOp(
 template <typename T>
 static tf::Status TranslateBinaryOp(const tf::Node* op,
                                     Builder::OpMap& ng_op_map) {
-  return TranslateBinaryOp(
-      op, ng_op_map,
-      [](std::shared_ptr<ng::Node> ng_lhs, std::shared_ptr<ng::Node> ng_rhs) {
-        return make_shared<T>(ng_lhs, ng_rhs);
-      });
+  return TranslateBinaryOp(op, ng_op_map, [](std::shared_ptr<ng::Node> ng_lhs,
+                                             std::shared_ptr<ng::Node> ng_rhs) {
+    return make_shared<T>(ng_lhs, ng_rhs);
+  });
 }
 
 static tf::Status TranslateAddNOp(const tf::Node* op,
@@ -1177,9 +1185,8 @@ static tf::Status TranslateFillOp(const tf::Node* op,
     ng_output_shape[i] = dims_vec[i];
     ng_axis_set.insert(i);
   }
-  SaveNgOp(
-      ng_op_map, op->name(),
-      make_shared<ng::op::Broadcast>(ng_value, ng_output_shape, ng_axis_set));
+  SaveNgOp(ng_op_map, op->name(), make_shared<ng::op::Broadcast>(
+                                      ng_value, ng_output_shape, ng_axis_set));
   return tf::Status::OK();
 }
 
@@ -1236,8 +1243,9 @@ static tf::Status TranslateFusedBatchNormOp(const tf::Node* op,
   float tf_epsilon;
   if (tf::GetNodeAttr(op->attrs(), "epsilon", &tf_epsilon) !=
       tf::Status::OK()) {
-    NGRAPH_VLOG(3) << "epsilon attribute not present, setting to zero";
-    tf_epsilon = 0;  // FIXME(amprocte): is this the right default?
+    NGRAPH_VLOG(3) << "epsilon attribute not present, setting to 0.0001";
+    // TensorFlow default
+    tf_epsilon = 0.0001;
   }
 
   NGRAPH_VLOG(3) << "epsilon: " << tf_epsilon;
@@ -1246,13 +1254,28 @@ static tf::Status TranslateFusedBatchNormOp(const tf::Node* op,
 
   std::shared_ptr<ng::Node> ng_batch_norm;
 
-  ng_batch_norm =
-      make_shared<ng::op::BatchNorm>(tf_epsilon, ng_scale, ng_offset, ng_input,
-                                     ng_mean, ng_variance, tf_is_training);
+  if (tf_is_training) {
+    ng_batch_norm = make_shared<ng::op::BatchNorm>(tf_epsilon, ng_scale,
+                                                   ng_offset, ng_input);
 
-  BatchToTensorflow(is_nhwc, ng_batch_norm);
+    shared_ptr<ngraph::Node> ng_y, ng_mean, ng_variance;
+    ng_y = make_shared<ng::op::GetOutputElement>(ng_batch_norm, 0);
+    ng_mean = make_shared<ng::op::GetOutputElement>(ng_batch_norm, 1);
+    ng_variance = make_shared<ng::op::GetOutputElement>(ng_batch_norm, 2);
 
-  SaveNgOp(ng_op_map, op->name(), ng_batch_norm);
+    BatchToTensorflow(is_nhwc, ng_y);
+
+    SaveNgOp(ng_op_map, op->name(), ng_y);
+    SaveNgOp(ng_op_map, op->name(), ng_mean);
+    SaveNgOp(ng_op_map, op->name(), ng_variance);
+  } else {
+    ng_batch_norm = make_shared<ng::op::BatchNorm>(tf_epsilon, ng_scale,
+                                                   ng_offset, ng_input, ng_mean,
+                                                   ng_variance, tf_is_training);
+    BatchToTensorflow(is_nhwc, ng_batch_norm);
+    SaveNgOp(ng_op_map, op->name(), ng_batch_norm);
+  }
+
   return tf::Status::OK();
 }
 
@@ -2109,12 +2132,11 @@ static tf::Status TranslateSquareOp(const tf::Node* op,
 
 static tf::Status TranslateSquaredDifferenceOp(const tf::Node* op,
                                                Builder::OpMap& ng_op_map) {
-  return TranslateBinaryOp(
-      op, ng_op_map,
-      [](std::shared_ptr<ng::Node> input1, std::shared_ptr<ng::Node> input2) {
-        auto ng_diff = std::make_shared<ng::op::Subtract>(input1, input2);
-        return std::make_shared<ng::op::Multiply>(ng_diff, ng_diff);
-      });
+  return TranslateBinaryOp(op, ng_op_map, [](std::shared_ptr<ng::Node> input1,
+                                             std::shared_ptr<ng::Node> input2) {
+    auto ng_diff = std::make_shared<ng::op::Subtract>(input1, input2);
+    return std::make_shared<ng::op::Multiply>(ng_diff, ng_diff);
+  });
 }
 
 static tf::Status TranslateSqueezeOp(const tf::Node* op,

@@ -27,10 +27,11 @@ void Reshape(std::shared_ptr<ng::Node>& ng_node) {
   static_assert(a != b && a != c && a != d && b != c && b != d && c != d,
                 "Dimensions indices cannot be equal");
   auto& s = ng_node->get_shape();
-  ng::Shape reshaped_shape{s[a], s[b], s[c], s[d]};
-  NGRAPH_VLOG(3) << "reshaped_shape: " << ng::join(reshaped_shape);
-  ng_node = std::make_shared<ng::op::Reshape>(
-      ng_node, ng::AxisVector{a, b, c, d}, reshaped_shape);
+  ngraph::Shape reshaped_shape{s[a], s[b], s[c], s[d]};
+  NGRAPH_VLOG(3) << "reshaping " << ngraph::join(s) << " to "
+                 << ngraph::join(reshaped_shape);
+  ng_node = std::make_shared<ngraph::op::Reshape>(
+      ng_node, ngraph::AxisVector{a, b, c, d}, reshaped_shape);
 }
 
 namespace detail {
