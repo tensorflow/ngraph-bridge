@@ -260,8 +260,8 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         type_constraint_map["Less"]["T"] = NGraphDTypes();
         type_constraint_map["LessEqual"]["T"] = NGraphDTypes();
         type_constraint_map["Log"]["T"] = NGraphNumericDTypes();
-        // LogicalAnd, LogicalNot has no type attributes, ("T", if it existed, would always
-        // be bool).
+        // LogicalAnd, LogicalNot has no type attributes, ("T", if it existed,
+        // would always be bool).
         type_constraint_map["MatMul"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Maximum"]["T"] = NGraphNumericDTypes();
         type_constraint_map["MaxPool"]["T"] = NGraphNumericDTypes();
@@ -285,7 +285,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         type_constraint_map["ReluGrad"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Reshape"]["T"] = NGraphDTypes();
         type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
-        type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
+        type_constraint_map["Rsqrt"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Slice"]["T"] = NGraphDTypes();
@@ -299,6 +299,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         type_constraint_map["Split"]["T"] = NGraphDTypes();
         type_constraint_map["SplitV"]["T"] = NGraphDTypes();
         type_constraint_map["SplitV"]["Tlen"] = NGraphIndexDTypes();
+        type_constraint_map["Sqrt"]["T"] = NGraphNumericDTypes();
         type_constraint_map["Square"]["T"] = NGraphDTypes();
         type_constraint_map["SquaredDifference"]["T"] = NGraphDTypes();
         type_constraint_map["Squeeze"]["T"] = NGraphDTypes();
@@ -606,6 +607,7 @@ class NGraphConfirmPass : public tensorflow::GraphOptimizationPass {
         };
 
         confirmation_functions["SplitV"] = always;
+        confirmation_functions["Sqrt"] = always;
         confirmation_functions["Square"] = always;
         confirmation_functions["SquaredDifference"] = always;
         confirmation_functions["Squeeze"] = always;

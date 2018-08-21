@@ -2537,6 +2537,7 @@ const static std::map<
          TranslateSparseSoftmaxCrossEntropyWithLogitsOp},
         {"Split", TranslateSplitOp},
         {"SplitV", TranslateSplitVOp},
+        {"Sqrt", TranslateUnaryOp<ngraph::op::Sqrt>},
         {"Square", TranslateSquareOp},
         {"SquaredDifference", TranslateSquaredDifferenceOp},
         {"Squeeze", TranslateSqueezeOp},
