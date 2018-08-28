@@ -29,31 +29,50 @@ import tensorflow as tf
 from tensorflow.python.client import device_lib
 from tensorflow.python import pywrap_tensorflow as py_tf
 from tensorflow.python.framework import errors_impl
+
+TF_VERSION = tf.VERSION
+TF_GIT_VERSION = tf.GIT_VERSION
+TF_VERSION_NEEDED = "${TensorFlow_GIT_VERSION}"
+
+# converting version representations to strings if not already
+try:
+  TF_VERSION = str(TF_VERSION, 'ascii')
+except TypeError:  # will happen for python 2 or if already string
+  pass
+
+try:
+  if TF_GIT_VERSION.startswith("b'"):  # TF version can be a bytes __repr__()
+    TF_GIT_VERSION = eval(TF_GIT_VERSION)
+  TF_GIT_VERSION = str(TF_GIT_VERSION, 'ascii')
+except TypeError:
+  pass
  
-print("TensorFlow version installed: ", tf.VERSION, " (", tf.GIT_VERSION, ")" )
-print("Version needed: ", "${TensorFlow_GIT_VERSION}" ) 
+try:
+  if TF_VERSION_NEEDED.startswith("b'"):
+    TF_VERSION_NEEDED = eval(TF_VERSION_NEEDED)
+  TF_VERSION_NEEDED = str(TF_VERSION_NEEDED, 'ascii')
+except TypeError:
+  pass
+
+print("TensorFlow version installed: {0} ({1})".format(TF_VERSION,
+  TF_GIT_VERSION))
+print("Version needed:", TF_VERSION_NEEDED)
 import ctypes
 
 # if Tensorflow already had nGraph bundled in (the upstream candidate)
 # then just return
-found = False
-tf_devices = device_lib.list_local_devices()
-for dev in tf_devices:
-    if dev.device_type == 'NGRAPH':
-        found = True
-        break
+found = any([dev.device_type == 'NGRAPH' for dev in
+  device_lib.list_local_devices()])
 
 if not found:
     ext = 'dylib' if system() == 'Darwin' else 'so'
  
     # We need to revisit this later. We can automate that using cmake configure command.
-    if tf.GIT_VERSION == "${TensorFlow_GIT_VERSION}":
+    if TF_GIT_VERSION == TF_VERSION_NEEDED:
         libpath = os.path.dirname(__file__)
         lib = ctypes.cdll.LoadLibrary(os.path.join(libpath,'libngraph_device.'+ext))
         print("Module nGraph loaded. Use '/device:NGRAPH:0' as device name")
     else:
         raise ValueError(
-            "Error: Wrong TensorFlow version " + tf.GIT_VERSION +
-            "\nNeeded: ${TensorFlow_GIT_VERSION}"
-        )
-
+            "Error: Wrong TensorFlow version {0}\nNeeded: {1}".format(
+              TF_GIT_VERSION, TF_VERSION_NEEDED))
