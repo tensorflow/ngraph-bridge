@@ -83,7 +83,7 @@ print("Version built with: {0} ({1})".format(TF_VERSION_NEEDED,
 # command.
 if TF_VERSION == TF_VERSION_NEEDED:
     libpath = os.path.dirname(__file__)
-    ngraph = ctypes.cdll.LoadLibrary(os.path.join(
+    ngraph_bridge_lib = ctypes.cdll.LoadLibrary(os.path.join(
       libpath, 'libngraph_bridge.' + ext))
 else:
     raise ValueError("Error: Wrong TensorFlow version {0}\nNeeded: {1}".format(
@@ -95,50 +95,50 @@ def requested():
         {"_ngraph_requested": attr_value_pb2.AttrValue(b=True)})
 
 
-ngraph.ngraph_is_enabled.restype = ctypes.c_bool
-ngraph.ngraph_list_backends.restype = ctypes.c_bool
-ngraph.ngraph_set_backend.restype = ctypes.c_bool
-ngraph.ngraph_is_logging_placement.restype = ctypes.c_bool
-
+ngraph_bridge_lib.ngraph_is_enabled.restype = ctypes.c_bool
+ngraph_bridge_lib.ngraph_list_backends.restype = ctypes.c_bool
+ngraph_bridge_lib.ngraph_set_backend.restype = ctypes.c_bool
+ngraph_bridge_lib.ngraph_is_logging_placement.restype = ctypes.c_bool
+ngraph_bridge_lib.ngraph_tf_version.restype = ctypes.c_char_p
 
 def enable():
-  ngraph.ngraph_enable()
+  ngraph_bridge_lib.ngraph_enable()
 
 
 def disable():
-  ngraph.ngraph_disable()
+  ngraph_bridge_lib.ngraph_disable()
 
 
 def is_enabled():
-  return ngraph.ngraph_is_enabled()
+  return ngraph_bridge_lib.ngraph_is_enabled()
 
 
 def backends_len():
-  return ngraph.ngraph_backends_len()
+  return ngraph_bridge_lib.ngraph_backends_len()
 
 
 def list_backends():
   len_backends = backends_len()
   result = (ctypes.c_char_p * len_backends)()
-  if not ngraph.ngraph_list_backends(result, len_backends):
+  if not ngraph_bridge_lib.ngraph_list_backends(result, len_backends):
     raise Exception("Expected " + str(len_backends) + " backends, but got some  other number of backends")
   return list(result)
 
 
 def set_backend(backend):
-  if not ngraph.ngraph_set_backend(backend):
+  if not ngraph_bridge_lib.ngraph_set_backend(backend):
     raise Exception("Backend " + backend + " unavailable.")
 
 
 def start_logging_placement():
-  ngraph.ngraph_start_logging_placement()
+  ngraph_bridge_lib.ngraph_start_logging_placement()
 
 
 def stop_logging_placement():
-  ngraph.ngraph_stop_logging_placement()
+  ngraph_bridge_lib.ngraph_stop_logging_placement()
 
 
 def is_logging_placement():
-  return ngraph.ngraph_is_logging_placement()
-
-__version__ = '0.7.0'
+  return ngraph_bridge_lib.ngraph_is_logging_placement()
+ 
+__version__ = ngraph_bridge_lib.ngraph_tf_version()
