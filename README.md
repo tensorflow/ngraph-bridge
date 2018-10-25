@@ -119,7 +119,7 @@ The installation prerequisites are the same as described in the TensorFlow
         when bazel option "--config=opt" is specified 
         [Default is -march=native]: -march=broadwell
     
-    This is due to an issue in TensorFlow which is being actively worked on: 
+    This is due to an issue in TensorFlow tracked in this issue: 
     https://github.com/tensorflow/tensorflow/issues/17273
 
 4. Prepare the pip package and the TensorFlow C++ library:
