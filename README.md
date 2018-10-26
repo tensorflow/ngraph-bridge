@@ -175,6 +175,11 @@ above and use the following option for building with nGraph:
         bazel build --config=opt --config=mkl --config=ngraph //tensorflow/tools/pip_package:build_pip_package 
         bazel-bin/tensorflow/tools/pip_package/build_pip_package ./
 
+Once the pip package is built, install replacing the `tensorflow-1.*` with your 
+   version of TensorFlow:
+
+        pip install -U ./tensorflow-1.*whl
+        
 For this final option, there is **no need to separately build `ngraph-tf` or to 
 use `pip` to install the ngraph module**. With this configuration, your TensorFlow 
 model scripts will work without any changes. 
