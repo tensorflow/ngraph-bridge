@@ -162,7 +162,7 @@ Please add the following line to enable nGraph: `import ngraph`
 Note: The actual filename for the pip package may be different as it's version 
 dependent. Please check the `build/python/dist` directory for the actual pip wheel.
 
-## Using the upstreamed version
+## Option 3: Using the upstreamed version
 
 nGraph is being added to the TensorFlow source tree the using pull requests from 
 time to time. 
@@ -173,6 +173,7 @@ above and use the following option for building with nGraph:
         cd tensorflow
         git checkout v1.12.0-rc1
         bazel build --config=opt --config=mkl --config=ngraph //tensorflow/tools/pip_package:build_pip_package 
+        bazel-bin/tensorflow/tools/pip_package/build_pip_package ./
 
 For this final option, there is **no need to separately build `ngraph-tf` or to 
 use `pip` to install the ngraph module**. With this configuration, your TensorFlow 
