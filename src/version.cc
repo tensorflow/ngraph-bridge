@@ -27,7 +27,7 @@
 // The version suffix is used for pre-release version numbers
 // For example before v0.7.0 we may do a pre-release i.e., a release
 // candidate such as v0.7.0-rc0
-#define NG_TF_VERSION_SUFFIX "-rc1"
+#define NG_TF_VERSION_SUFFIX ""
 
 #define VERSION_STR_HELPER(x) #x
 #define VERSION_STR(x) VERSION_STR_HELPER(x)
@@ -40,9 +40,6 @@
 
 namespace tensorflow {
 namespace ngraph_bridge {
-const char* ngraph_tf_version() {
-  std::cout << "VERSION: " << std::string(NG_TF_VERSION_STRING) << std::endl;
-  return (NG_TF_VERSION_STRING);
-}
+const char* ngraph_tf_version() { return (NG_TF_VERSION_STRING); }
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

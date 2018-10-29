@@ -33,7 +33,7 @@ ext = 'dylib' if system() == 'Darwin' else 'so'
 
 setup( 
     name='ngraph',
-    version='0.7.0-rc1',
+    version='0.7.0',
     description='Intel nGraph compiler and runtime',
     url='https://ai.intel.com/intel-ngraph/',
     packages=['ngraph'], 
