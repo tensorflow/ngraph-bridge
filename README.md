@@ -29,7 +29,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
         virtualenv --system-site-packages -p /usr/bin/python2 your_virtualenv  
         source your_virtualenv/bin/activate # bash, sh, ksh, or zsh
     
-2. Install TensorFlow v1.12.0-rc1. Note that this is a pre-release so you need 
+2. Install TensorFlow v1.12.0-rc2. Note that this is a pre-release so you need 
    to use the following steps to install this:
 
         pip install tensorflow==1.12.0rc1
@@ -80,13 +80,13 @@ The installation prerequisites are the same as described in the TensorFlow
 1. Once TensorFlow's dependencies are installed, clone the source of the 
    [tensorflow] repo to your machine. 
 
-     :warning: You need the following version of TensorFlow: `v1.12.0-rc1`
+     :warning: You need the following version of TensorFlow: `v1.12.0-rc2`
 
         git clone https://github.com/tensorflow/tensorflow.git
         cd tensorflow
-        git checkout v1.12.0-rc1
+        git checkout v1.12.0-rc2
         git status
-        HEAD detached at v1.12.0-rc1
+        HEAD detached at v1.12.0-rc2
    
 2. You must instantiate a specific kind of `virtualenv`  to be able to proceed 
    with the `ngraph-tf` bridge installation. For systems with Python 3.n or 
@@ -171,7 +171,7 @@ In order to build that version of nGraph, download the source tree as mentioned
 above and use the following option for building with nGraph:
 
         cd tensorflow
-        git checkout v1.12.0-rc1
+        git checkout v1.12.0-rc2
         bazel build --config=opt --config=mkl --config=ngraph //tensorflow/tools/pip_package:build_pip_package 
         bazel-bin/tensorflow/tools/pip_package/build_pip_package ./
 
