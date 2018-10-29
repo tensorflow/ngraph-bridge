@@ -19,7 +19,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 ## Linux instructions
 
 
-### Option 1: Use an existing TensorFlow installation
+### Option 1: Use a pre-built TensorFlow package
 
 1. You need to instantiate a specific kind of `virtualenv`  to 
    be able to proceed with the `ngraph-tf` bridge installation. For 
@@ -32,7 +32,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 2. Install TensorFlow v1.12.0-rc2. Note that this is a pre-release so you need 
    to use the following steps to install this:
 
-        pip install tensorflow==1.12.0rc1
+        pip install tensorflow==1.12.0rc2
    Note: When TensorFlow release version `v1.12.0` is available, 
    update your version of TensorFlow using the following command:
 
@@ -51,6 +51,9 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
         make install 
         pip install -U python/dist/ngraph-0.7.0-py2.py3-none-linux_x86_64.whl
 
+4. Test the installation by running the following command:
+
+        python -c "import tensorflow as tf; print('TensorFlow version: r',tf.__version__);import ngraph; print(ngraph.__version__)"
 
 ### Option 2: Build nGraph bridge from source using TensorFlow source
 
@@ -154,6 +157,10 @@ The installation prerequisites are the same as described in the TensorFlow
 This final step automatically downloads the necessary version of `ngraph` and 
 the dependencies.
 
+8. Test the installation by running the following command:
+
+        python -c "import tensorflow as tf; print('TensorFlow version: r',tf.__version__);import ngraph; print(ngraph.__version__)"
+
 Once the build and installation steps are complete, you can start using TensorFlow 
 with nGraph backends. 
 
@@ -189,7 +196,7 @@ lags the features and bug fixes available in the `master` branch of this reposit
 
 ### Running tests
 
-To run the C++ unit tests,
+To run the C++ unit tests you need to choose option 2 method to build. 
 
 * Go to the build directory and run the following commands:
 

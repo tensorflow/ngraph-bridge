@@ -75,19 +75,24 @@ except TypeError:
 
 print("TensorFlow version installed: {0} ({1})".format(TF_VERSION,
   TF_GIT_VERSION))
-print("Version built with: {0} ({1})".format(TF_VERSION_NEEDED,
+print("nGraph bridge built with: {0} ({1})".format(TF_VERSION_NEEDED,
   TF_GIT_VERSION_BUILT_WITH))
 
 
 # We need to revisit this later. We can automate that using cmake configure
 # command.
-if TF_VERSION == TF_VERSION_NEEDED:
+TF_INSTALLED_VER = TF_VERSION.split('.')
+TF_NEEDED_VER = TF_VERSION_NEEDED.split('.')
+
+if (TF_INSTALLED_VER[0] == TF_NEEDED_VER[0]) and \
+   (TF_INSTALLED_VER[1] == TF_NEEDED_VER[1]) and \
+   ((TF_INSTALLED_VER[2].split('-'))[0] == (TF_NEEDED_VER[2].split('-'))[0]):
     libpath = os.path.dirname(__file__)
     ngraph_bridge_lib = ctypes.cdll.LoadLibrary(os.path.join(
       libpath, 'libngraph_bridge.' + ext))
 else:
-    raise ValueError("Error: Wrong TensorFlow version {0}\nNeeded: {1}".format(
-      TF_VERSION, TF_VERSION_NEEDED))
+    raise ValueError("Error: Installed TensorFlow version {0}\nnGraph bridge built with: {1}".format(
+      TF_VERSION, TF_VERSION_NEEDED ))
 
 
 def requested():
