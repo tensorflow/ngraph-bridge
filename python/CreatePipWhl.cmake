@@ -80,7 +80,7 @@ if (PYTHON)
         endif()
 
         set(lib_list 
-            libmkldnn.dylib
+            libmkldnn.0.dylib
             libmklml.dylib
             libiomp5.dylib
             libtbb.dylib
