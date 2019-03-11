@@ -46,10 +46,10 @@ timestamps {
         // NOTE: We keep the main job script in github.intel.com because it may
         //       contain references to techn which has not yet been released.
         //
-        echo "Calling ngraph-ci-premerge.groovy"
+        echo "Calling tf-ng-bridge-ci-premerge.groovy"
         def ciPreMerge = load("${JENKINS_DIR}/tf-ng-bridge-ci-premerge.groovy")
         ciPreMerge(PR_URL, PR_COMMIT_AUTHOR)
-        echo "ngraph-ci-premerge.groovy completed"
+        echo "tf-ng-bridge-ci-premerge.groovy completed"
 
     }  // End:  node
 }  // End:  timestamps
