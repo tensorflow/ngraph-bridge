@@ -32,37 +32,41 @@ JENKINS_DIR = 'jenkins'
 
 env.MB_PIPELINE_CHECKOUT = true
 
-timestamps {
-    node("trigger") {
+node("trigger") {
 
-        deleteDir()  // Clear the workspace before starting
+    echo ' '
+    echo "Trigger started with parameters:"
+    echo "    PR_URL: ${PR_URL}"
+    echo "    PR_COMMIT_AUTHOR: ${PR_COMMIT_AUTHOR}"
+    3cho "    JENKINS_BRANCH: ${JENKINS_BRANCH}"
 
-        dir(JENKINS_DIR){
-            // Clone the cje-algo directory which contains our Jenkins groovy script
-            git(branch: JENKINS_BRANCH, changelog: false, poll: false,
-                url: 'https://github.intel.com/AIPG/cje-algo')
-        }
+    deleteDir()  // Clear the workspace before starting
 
-        sh """
-            echo ' '
-            echo "Contents of WORKSPACE:"
-            ls -l
-            echo ' '
-            echo "Contents of WORKSPACE/${JENKINS_DIR}"
-            ls -l ${JENKINS_DIR}
-        """
+    dir(JENKINS_DIR){
+        // Clone the cje-algo directory which contains our Jenkins groovy script
+        git(branch: JENKINS_BRANCH, changelog: false, poll: false,
+            url: 'https://github.intel.com/AIPG/cje-algo')
+    }
 
-        // Call the main job script.
-        //
-        // NOTE: We keep the main job script in github.intel.com because it may
-        //       contain references to techn which has not yet been released.
-        //
-        echo "Calling tf-ng-bridge-ci-premerge.groovy"
-        def ciPreMerge = load("${JENKINS_DIR}/tf-ng-bridge-ci-premerge.groovy")
-        ciPreMerge(PR_URL, PR_COMMIT_AUTHOR, true, "-PARAMETER-NOT-USED-")
-        echo "tf-ng-bridge-ci-premerge.groovy completed"
+    sh """
+        echo ' '
+        echo "Contents of WORKSPACE:"
+        ls -l
+        echo ' '
+        echo "Contents of WORKSPACE/${JENKINS_DIR}"
+        ls -l ${JENKINS_DIR}
+    """
 
-    }  // End:  node
-}  // End:  timestamps
+    // Call the main job script.
+    //
+    // NOTE: We keep the main job script in github.intel.com because it may
+    //       contain references to tech which has not yet been released.
+    //
+    echo "Calling tf-ng-bridge-ci-premerge.groovy"
+    def ciPreMerge = load("${JENKINS_DIR}/tf-ng-bridge-ci-premerge.groovy")
+    ciPreMerge(PR_URL, PR_COMMIT_AUTHOR, true, "-PARAMETER-NOT-USED-")
+    echo "tf-ng-bridge-ci-premerge.groovy completed"
+
+}  // End:  node
 
 echo "Done"
