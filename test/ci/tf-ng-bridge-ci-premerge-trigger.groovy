@@ -38,7 +38,7 @@ node("trigger") {
     echo "Trigger started with parameters:"
     echo "    PR_URL: ${PR_URL}"
     echo "    PR_COMMIT_AUTHOR: ${PR_COMMIT_AUTHOR}"
-    3cho "    JENKINS_BRANCH: ${JENKINS_BRANCH}"
+    echo "    JENKINS_BRANCH: ${JENKINS_BRANCH}"
 
     deleteDir()  // Clear the workspace before starting
 
