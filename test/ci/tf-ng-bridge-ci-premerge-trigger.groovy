@@ -59,7 +59,7 @@ timestamps {
         //
         echo "Calling tf-ng-bridge-ci-premerge.groovy"
         def ciPreMerge = load("${JENKINS_DIR}/tf-ng-bridge-ci-premerge.groovy")
-        ciPreMerge(PR_URL, PR_COMMIT_AUTHOR)
+        ciPreMerge(PR_URL, PR_COMMIT_AUTHOR, true, "-PARAMETER-NOT-USED-")
         echo "tf-ng-bridge-ci-premerge.groovy completed"
 
     }  // End:  node
