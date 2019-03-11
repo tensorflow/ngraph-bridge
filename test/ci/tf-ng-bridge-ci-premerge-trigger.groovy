@@ -24,7 +24,8 @@
 // Parameters which ngraph-unittest uses:
 String  PR_URL = CHANGE_URL
 String  PR_COMMIT_AUTHOR = CHANGE_AUTHOR
-String  JENKINS_BRANCH = "master"
+//ORIG: String  JENKINS_BRANCH = "master"
+String  JENKINS_BRANCH = "chrisl/ngraph-bridge"
 
 // Constants
 JENKINS_DIR = '.'
