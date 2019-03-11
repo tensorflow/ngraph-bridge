@@ -43,6 +43,15 @@ timestamps {
                 url: 'https://github.intel.com/AIPG/cje-algo')
         }
 
+        sh """
+            echo ' '
+            echo "Contents of WORKSPACE:"
+            ls -l
+            echo ' '
+            echo "Contents of WORKSPACE/${JENKINS_DIR}"
+            ls -l ${JENKINS_DIR}
+        """
+
         // Call the main job script.
         //
         // NOTE: We keep the main job script in github.intel.com because it may
