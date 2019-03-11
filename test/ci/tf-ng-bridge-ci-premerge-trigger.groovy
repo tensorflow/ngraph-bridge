@@ -28,7 +28,7 @@ String  PR_COMMIT_AUTHOR = CHANGE_AUTHOR
 String  JENKINS_BRANCH = "chrisl/ngraph-bridge"
 
 // Constants
-JENKINS_DIR = '.'
+JENKINS_DIR = 'jenkins'
 
 env.MB_PIPELINE_CHECKOUT = true
 
@@ -37,9 +37,11 @@ timestamps {
 
         deleteDir()  // Clear the workspace before starting
 
-        // Clone the cje-algo directory which contains our Jenkins groovy script
-        git(branch: JENKINS_BRANCH, changelog: false, poll: false,
-            url: 'https://github.intel.com/AIPG/cje-algo')
+        dir(JENKINS_DIR){
+            // Clone the cje-algo directory which contains our Jenkins groovy script
+            git(branch: JENKINS_BRANCH, changelog: false, poll: false,
+                url: 'https://github.intel.com/AIPG/cje-algo')
+        }
 
         // Call the main job script.
         //
