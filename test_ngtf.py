@@ -24,7 +24,7 @@ import glob
 import platform
 from distutils.sysconfig import get_python_lib
 
-from build_ngtf import load_venv, command_executor
+from tools.build_utils import load_venv, command_executor
 
 
 def run_ngtf_gtests(build_dir, filters):
@@ -268,8 +268,8 @@ def main():
     root_pwd = os.getcwd()
 
     # Constants
-    build_dir = 'build'
-    venv_dir = 'build/venv-tf-py3'
+    build_dir = 'build_cmake'
+    venv_dir = 'build_cmake/venv-tf-py3'
 
     if (platform.system() != 'Darwin'):
         # Run the bazel based buil
