@@ -34,7 +34,7 @@
 #include "tensorflow/core/lib/core/errors.h"
 
 #if defined(NGRAPH_DISTRIBUTED)
-#include <mpi.h>
+#include "ngraph/distributed.hpp"
 #endif
 
 using namespace std;
@@ -3665,6 +3665,43 @@ static Status TranslateTileOp(
   return Status::OK();
 }
 
+// Translate TopKV2 Op using ngraph core op TopK
+static Status TranslateTopKV2Op(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ngraph::Node> ng_input;
+  ValidateInputCount(op, 2);
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
+
+  size_t k_axis = ng_input->get_shape().size() - 1;
+
+  std::vector<int32> ng_k;
+  size_t k;
+  bool sorted = true;
+
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &ng_k));
+  k = ng_k[0];
+
+  // sorted = false is not supported right now, it falls back to TF if set to
+  // false.
+  GetNodeAttr(op->attrs(), "sorted", &sorted);
+
+  // index element type - currently only int32 or int64 are supported by ngraph
+
+  shared_ptr<ngraph::Node> ng_result = ConstructNgNode<ngraph::op::TopK>(
+      op->name(), ng_input, k_axis, ng::element::i32, k, sorted);
+
+  shared_ptr<ngraph::Node> ng_values =
+      ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_result, 1);
+  shared_ptr<ngraph::Node> ng_indices =
+      ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_result, 0);
+
+  SaveNgOp(ng_op_map, op->name(), ng_values);
+  SaveNgOp(ng_op_map, op->name(), ng_indices);
+
+  return Status::OK();
+}
+
 static Status TranslateTransposeOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -3761,6 +3798,26 @@ static Status TranslateUnpackOp(
         op->name(), slice, ng_axis_order, output_shape);
     SaveNgOp(ng_op_map, op->name(), reshaped);
   }
+  return Status::OK();
+}
+
+static Status TranslateSelectOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input1, ng_input2, ng_input3;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &ng_input1, &ng_input2, &ng_input3));
+
+  // broadcast to make all tensors same shape, as required by ngraph select op
+  std::tie(ng_input1, ng_input2) =
+      ng::builder::numpy_broadcast(std::make_pair(ng_input1, ng_input2));
+  std::tie(ng_input2, ng_input3) =
+      ng::builder::numpy_broadcast(std::make_pair(ng_input2, ng_input3));
+
+  auto ng_select = ConstructNgNode<ng::op::Select>(op->name(), ng_input1,
+                                                   ng_input2, ng_input3);
+
+  SaveNgOp(ng_op_map, op->name(), ng_select);
   return Status::OK();
 }
 
@@ -3867,6 +3924,7 @@ const static std::map<
         {"ReluGrad", TranslateReluGradOp},
         {"Reshape", TranslateReshapeOp},
         {"Rsqrt", TranslateRsqrtOp},
+        {"Select", TranslateSelectOp},
         {"Shape", TranslateShapeOp},
         {"Sigmoid", TranslateSigmoidOp},
         {"SigmoidGrad", TranslateSigmoidGradOp},
@@ -3890,6 +3948,7 @@ const static std::map<
         {"Tanh", TranslateUnaryOp<ngraph::op::Tanh>},
         {"TanhGrad", TranslateTanhGradOp},
         {"Tile", TranslateTileOp},
+        {"TopKV2", TranslateTopKV2Op},
         {"Transpose", TranslateTransposeOp},
         {"Unpack", TranslateUnpackOp},
         {"ZerosLike", TranslateZerosLikeOp}};
@@ -3913,18 +3972,6 @@ Status Builder::TranslateGraph(
   vector<const Node*> tf_ret_vals;
   vector<const Node*> tf_ops;
 
-#if defined(NGRAPH_DISTRIBUTED)
-  int flag = 0;
-  int mpi_rank = -1;
-  bool mpi_initialized = false;
-  MPI_Initialized(&flag);
-  if (!flag) {
-    MPI_Init(NULL, NULL);
-    mpi_initialized = true;
-  }
-  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-#endif
-
   for (const auto n : ordered) {
     if (n->IsSink() || n->IsSource()) {
       continue;
@@ -3943,22 +3990,15 @@ Status Builder::TranslateGraph(
     } else {
       tf_ops.push_back(n);
 #if defined(NGRAPH_DISTRIBUTED)
+      ngraph::Distributed dist;
+      int rank_id;
+      rank_id = dist.get_rank();
       if (n->type_string() == "HorovodAllreduce") {
-        NGRAPH_VLOG(1) << "[NGRAPH_TF RANK: " << mpi_rank << "]: " << n->name();
+        NGRAPH_VLOG(1) << "[NGRAPH_TF RANK: " << rank_id << "]: " << n->name();
       }
 #endif
     }
   }
-
-#if defined(NGRAPH_DISTRIBUTED)
-  if (mpi_initialized) {
-    int flag = 0;
-    MPI_Initialized(&flag);
-    if (flag) {
-      MPI_Finalize();
-    }
-  }
-#endif
 
   //
   // The op map holds a mapping from TensorFlow op names (strings) to
@@ -4053,6 +4093,10 @@ Status Builder::TranslateGraph(
   // Create the nGraph function.
   //
   ng_function = make_shared<ng::Function>(ng_result_list, ng_parameter_list);
+
+#if defined NGRAPH_DISTRIBUTED
+  AllreduceOpControlOrder(ng_function);
+#endif
 
   //
   // Request row-major layout on results.
