@@ -1,0 +1,89 @@
+diff --git a/scripts/tf_cnn_benchmarks/benchmark_cnn.py b/scripts/tf_cnn_benchmarks/benchmark_cnn.py
+index 09b118e..4cf9a12 100644
+--- a/scripts/tf_cnn_benchmarks/benchmark_cnn.py
++++ b/scripts/tf_cnn_benchmarks/benchmark_cnn.py
+@@ -34,6 +34,7 @@ import numpy as np
+ import six
+ from six.moves import xrange  # pylint: disable=redefined-builtin
+ import tensorflow as tf
++import ngraph_bridge
+ 
+ from google.protobuf import text_format
+ 
+@@ -2479,6 +2480,7 @@ class BenchmarkCNN(object):
+     fetches = self._build_fetches(global_step, all_logits, losses, device_grads,
+                                   enqueue_ops, update_ops, all_accuracy_ops,
+                                   phase_train)
++
+     if global_input_producer_op:
+       global_input_producer_op = tf.group(*global_input_producer_op)
+     else:
+diff --git a/scripts/tf_cnn_benchmarks/data_utils.py b/scripts/tf_cnn_benchmarks/data_utils.py
+index 0376d0b..992ee75 100644
+--- a/scripts/tf_cnn_benchmarks/data_utils.py
++++ b/scripts/tf_cnn_benchmarks/data_utils.py
+@@ -112,7 +112,10 @@ def create_dataset(batch_size,
+   if not file_names:
+     raise ValueError('Found no files in --data_dir matching: {}'
+                      .format(glob_pattern))
+-  ds = tf.data.TFRecordDataset.list_files(file_names)
++
++ # ds = tf.data.TFRecordDataset.list_files(file_names)
++  ds = tf.data.TFRecordDataset.list_files(file_names, shuffle=False, seed=10)
++
+   ds = ds.apply(
+       interleave_ops.parallel_interleave(
+           tf.data.TFRecordDataset, cycle_length=10))
+@@ -122,8 +125,9 @@ def create_dataset(batch_size,
+   counter = counter.repeat()
+   ds = tf.data.Dataset.zip((ds, counter))
+   ds = ds.prefetch(buffer_size=batch_size)
+-  if train:
+-    ds = ds.shuffle(buffer_size=10000)
++  # Make dataset loader deterministic
++  # if train:
++  #   ds = ds.shuffle(buffer_size=10000)
+   ds = ds.repeat()
+   ds = ds.apply(
+       batching.map_and_batch(
+diff --git a/scripts/tf_cnn_benchmarks/preprocessing.py b/scripts/tf_cnn_benchmarks/preprocessing.py
+index 6a270b0..4e84a1a 100644
+--- a/scripts/tf_cnn_benchmarks/preprocessing.py
++++ b/scripts/tf_cnn_benchmarks/preprocessing.py
+@@ -335,9 +335,11 @@ def train_image(image_buffer,
+     else:
+       image = tf.image.decode_jpeg(image_buffer, channels=3,
+                                    dct_method='INTEGER_FAST')
+-      image = tf.slice(image, bbox_begin, bbox_size)
+ 
+-    distorted_image = tf.image.random_flip_left_right(image)
++      #image = tf.slice(image, bbox_begin, bbox_size)
++
++    #distorted_image = tf.image.random_flip_left_right(image)
++    distorted_image = image
+ 
+     # This resizing operation may distort the images because the aspect
+     # ratio is not respected.
+@@ -361,7 +363,7 @@ def train_image(image_buffer,
+       distorted_image = distort_color(distorted_image, batch_position,
+                                       distort_color_in_yiq=distort_color_in_yiq)
+ 
+-      # Note: This ensures the scaling matches the output of eval_image
++      #Note: This ensures the scaling matches the output of eval_image
+       distorted_image *= 255
+ 
+     if summary_verbosity >= 3:
+@@ -487,10 +489,11 @@ class RecordInputImagePreprocessor(BaseImagePreprocessor):
+     """Preprocessing image_buffer as a function of its batch position."""
+     if self.train:
+       image = train_image(image_buffer, self.height, self.width, bbox,
+-                          batch_position, self.resize_method, self.distortions,
++                          batch_position, self.resize_method, False,
+                           None, summary_verbosity=self.summary_verbosity,
+                           distort_color_in_yiq=self.distort_color_in_yiq,
+-                          fuse_decode_and_crop=self.fuse_decode_and_crop)
++                          #fuse_decode_and_crop=self.fuse_decode_and_crop
++                          fuse_decode_and_crop=False)
+     else:
+       image = tf.image.decode_jpeg(
+           image_buffer, channels=3, dct_method='INTEGER_FAST')

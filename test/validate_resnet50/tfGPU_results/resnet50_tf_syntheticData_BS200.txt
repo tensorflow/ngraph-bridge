@@ -1,0 +1,57 @@
+W0328 16:15:34.093370 140329842439936 tf_logging.py:125] From /localdisk/mingshan/benchmarks/scripts/tf_cnn_benchmarks/benchmark_cnn.py:1842: Supervisor.__init__ (from tensorflow.python.training.supervisor) is deprecated and will be removed in a future version.
+Instructions for updating:
+Please switch to tf.train.MonitoredTrainingSession
+2019-03-28 16:15:34.516200: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+2019-03-28 16:15:36.297633: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1432] Found device 0 with properties: 
+name: TITAN Xp major: 6 minor: 1 memoryClockRate(GHz): 1.582
+pciBusID: 0000:0c:00.0
+totalMemory: 11.91GiB freeMemory: 11.75GiB
+2019-03-28 16:15:36.297676: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+2019-03-28 16:15:36.626773: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+2019-03-28 16:15:36.626811: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+2019-03-28 16:15:36.626818: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+2019-03-28 16:15:36.627131: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11364 MB memory) -> physical GPU (device: 0, name: TITAN Xp, pci bus id: 0000:0c:00.0, compute capability: 6.1)
+I0328 16:15:37.193925 140329842439936 tf_logging.py:115] Running local_init_op.
+I0328 16:15:37.224961 140329842439936 tf_logging.py:115] Done running local_init_op.
+TensorFlow:  1.12
+Model:       resnet50
+Dataset:     imagenet (synthetic)
+Mode:        training
+SingleSess:  False
+Batch size:  32 global
+             32.0 per device
+Num batches: 200
+Num epochs:  0.00
+Devices:     ['/gpu:0']
+Data format: NCHW
+Optimizer:   sgd
+Variables:   parameter_server
+==========
+Generating model
+Running warm up
+Done warm up
+Step	Img/sec	total_loss	top_1_accuracy	top_5_accuracy
+1	images/sec: 219.2 +/- 0.0 (jitter = 0.0)	8.229	0.000	0.000
+10	images/sec: 218.4 +/- 0.3 (jitter = 1.1)	8.305	0.000	0.000
+20	images/sec: 218.8 +/- 0.3 (jitter = 1.2)	7.921	0.000	0.000
+30	images/sec: 218.7 +/- 0.3 (jitter = 1.4)	8.055	0.000	0.000
+40	images/sec: 218.0 +/- 0.3 (jitter = 2.3)	8.293	0.000	0.000
+50	images/sec: 217.9 +/- 0.3 (jitter = 1.9)	8.092	0.000	0.000
+60	images/sec: 218.0 +/- 0.2 (jitter = 1.8)	8.082	0.000	0.000
+70	images/sec: 218.1 +/- 0.2 (jitter = 1.7)	8.270	0.000	0.000
+80	images/sec: 218.2 +/- 0.2 (jitter = 1.5)	8.177	0.000	0.000
+90	images/sec: 218.3 +/- 0.2 (jitter = 1.5)	7.983	0.031	0.031
+100	images/sec: 218.3 +/- 0.2 (jitter = 1.5)	8.488	0.000	0.000
+110	images/sec: 218.1 +/- 0.1 (jitter = 1.6)	8.207	0.000	0.000
+120	images/sec: 218.1 +/- 0.1 (jitter = 1.5)	7.931	0.000	0.000
+130	images/sec: 218.0 +/- 0.1 (jitter = 1.5)	8.370	0.000	0.000
+140	images/sec: 218.0 +/- 0.1 (jitter = 1.3)	8.345	0.000	0.000
+150	images/sec: 217.9 +/- 0.1 (jitter = 1.2)	8.192	0.000	0.031
+160	images/sec: 217.9 +/- 0.1 (jitter = 1.2)	8.313	0.031	0.031
+170	images/sec: 217.9 +/- 0.1 (jitter = 1.1)	8.381	0.000	0.000
+180	images/sec: 217.9 +/- 0.1 (jitter = 1.0)	8.061	0.031	0.031
+190	images/sec: 217.8 +/- 0.1 (jitter = 1.0)	8.239	0.000	0.031
+200	images/sec: 217.8 +/- 0.1 (jitter = 1.0)	8.045	0.000	0.000
+----------------------------------------------------------------
+total images/sec: 217.64
+----------------------------------------------------------------

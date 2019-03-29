@@ -1,0 +1,38 @@
+diff --git a/scripts/tf_cnn_benchmarks/benchmark_cnn.py b/scripts/tf_cnn_benchmarks/benchmark_cnn.py
+index 09b118e..d5a4e29 100644
+--- a/scripts/tf_cnn_benchmarks/benchmark_cnn.py
++++ b/scripts/tf_cnn_benchmarks/benchmark_cnn.py
+@@ -34,6 +34,7 @@ import numpy as np
+ import six
+ from six.moves import xrange  # pylint: disable=redefined-builtin
+ import tensorflow as tf
++import ngraph_bridge
+ 
+ from google.protobuf import text_format
+ 
+@@ -726,13 +727,23 @@ def benchmark_one_step(sess,
+   summary_str = None
+   start_time = time.time()
+   if summary_op is None:
+-    results = sess.run(fetches, options=run_options, run_metadata=run_metadata)
++    # get a new set of fetch operation
++    new_fetches = {}
++    for f in fetches:
++      if f == "average_loss":
++        continue
++      new_fetches[f] = fetches[f]
++    
++    results = sess.run(new_fetches, options=run_options, run_metadata=run_metadata)
++    #results = sess.run(fetches, options=run_options, run_metadata=run_metadata)
+   else:
+     (results, summary_str) = sess.run(
+         [fetches, summary_op], options=run_options, run_metadata=run_metadata)
+ 
+   if not params.forward_only:
+-    lossval = results['average_loss']
++    # the calculation is removed in the operations to be fetched
++    #lossval = results['average_loss']
++    lossval = 0
+   else:
+     lossval = 0.
+   if image_producer is not None:
