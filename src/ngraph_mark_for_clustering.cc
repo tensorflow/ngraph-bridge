@@ -61,6 +61,14 @@ static Status NGraphPlacementRequested(Node* node, bool& placement_ok) {
   return Status::OK();
 }
 
+static Status CheckIfOutputNode(const Node* node,
+                                const std::vector<string> skip_these_nodes,
+                                bool& skip_it) {
+  skip_it = std::find(skip_these_nodes.begin(), skip_these_nodes.end(),
+                      node->name()) != skip_these_nodes.end();
+  return Status::OK();
+}
+
 // Checks if the node's inputs meet all the type constraints
 static Status TypeConstraintOk(Node* node,
                                TypeConstraintMap& type_constraint_map,
@@ -129,7 +137,8 @@ static ConfirmationFunction SimpleConfirmationFunction() {
 //
 // Main entry point for the marking pass.
 //
-Status MarkForClustering(Graph* graph) {
+Status MarkForClustering(Graph* graph,
+                         const std::vector<string> skip_these_nodes) {
   //
   // A map of op types (e.g. "Add") to type constraint maps. For (fake)
   // example:
@@ -257,6 +266,7 @@ Status MarkForClustering(Graph* graph) {
         TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
         return Status::OK();
       };
+      confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
       confirmation_function_map["Greater"] = SimpleConfirmationFunction();
       confirmation_function_map["GreaterEqual"] = SimpleConfirmationFunction();
 #if defined NGRAPH_DISTRIBUTED
@@ -282,6 +292,7 @@ Status MarkForClustering(Graph* graph) {
       confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
       confirmation_function_map["Mul"] = SimpleConfirmationFunction();
       confirmation_function_map["Neg"] = SimpleConfirmationFunction();
+      confirmation_function_map["OneHot"] = SimpleConfirmationFunction();
       confirmation_function_map["Pad"] = SimpleConfirmationFunction();
       confirmation_function_map["Pow"] = SimpleConfirmationFunction();
       confirmation_function_map["PreventGradient"] =
@@ -299,6 +310,12 @@ Status MarkForClustering(Graph* graph) {
         *result = (num_bits == 8) && range_given;
         return Status::OK();
       };
+      confirmation_function_map["QuantizedAvgPool"] =
+          SimpleConfirmationFunction();
+      confirmation_function_map["QuantizedConcat"] =
+          SimpleConfirmationFunction();
+      confirmation_function_map["QuantizedConcatV2"] =
+          SimpleConfirmationFunction();
       confirmation_function_map["QuantizedConv2DWithBiasAndReluAndRequantize"] =
           SimpleConfirmationFunction();
       confirmation_function_map["QuantizedConv2DWithBiasAndRequantize"] =
@@ -413,6 +430,7 @@ Status MarkForClustering(Graph* graph) {
       // DT_FLOAT
       type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
       type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["_FusedConv2D"]["T"] = NGraphRealDTypes();
       type_constraint_map["Greater"]["T"] = NGraphDTypes();
       type_constraint_map["GreaterEqual"]["T"] = NGraphDTypes();
 #if defined NGRAPH_DISTRIBUTED
@@ -439,6 +457,7 @@ Status MarkForClustering(Graph* graph) {
       type_constraint_map["Minimum"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Mul"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Neg"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["OneHot"]["T"] = NGraphDTypes();
       type_constraint_map["Pack"]["T"] = NGraphDTypes();
       type_constraint_map["Pad"]["T"] = NGraphDTypes();
       type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
@@ -447,6 +466,12 @@ Status MarkForClustering(Graph* graph) {
       type_constraint_map["Prod"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Prod"]["Tidx"] = NGraphIndexDTypes();
       type_constraint_map["QuantizeAndDequantizeV2"]["T"] = NGraphRealDTypes();
+      type_constraint_map["QuantizedAvgPool"]["T"] =
+          NGraphSupportedQuantizedDTypes();
+      type_constraint_map["QuantizedConcat"]["T"] =
+          NGraphSupportedQuantizedDTypes();
+      type_constraint_map["QuantizedConcatV2"]["T"] =
+          NGraphSupportedQuantizedDTypes();
       type_constraint_map["QuantizedConv2DWithBiasAndReluAndRequantize"]
                          ["Tinput"] = NGraphSupportedQuantizedDTypes();
       type_constraint_map["QuantizedConv2DWithBiasAndReluAndRequantize"]
@@ -545,9 +570,30 @@ Status MarkForClustering(Graph* graph) {
       set_attributes_map["Max"] = SetStaticInputs({1});
       set_attributes_map["Mean"] = SetStaticInputs({1});
       set_attributes_map["Min"] = SetStaticInputs({1});
+      set_attributes_map["OneHot"] = SetStaticInputs({1});
       set_attributes_map["Pad"] = SetStaticInputs({1});
       set_attributes_map["Prod"] = SetStaticInputs({1});
       set_attributes_map["QuantizeAndDequantizeV2"] = SetStaticInputs({1, 2});
+      set_attributes_map["QuantizedConcat"] = [](Node* n) {
+        SetStaticInputs(n, {0});  // the axis
+        auto num_of_tensors_to_concat = (n->num_inputs() - 1) / 3;
+        // mark all mins and maxes static
+        for (int idx = num_of_tensors_to_concat + 1; idx < n->num_inputs();
+             idx++) {
+          SetStaticInputs(n, {idx});
+        }
+        return Status::OK();
+      };
+      set_attributes_map["QuantizedConcatV2"] = [](Node* n) {
+        auto num_of_tensors_to_concat = (n->num_inputs() - 1) / 3;
+        // mark axis, all mins and maxes static
+        std::vector<int> static_input_vec;
+        for (int idx = num_of_tensors_to_concat; idx < n->num_inputs(); idx++) {
+          static_input_vec.push_back(idx);
+        }
+        SetStaticInputs(n, static_input_vec);
+        return Status::OK();
+      };
       set_attributes_map["Reshape"] = SetStaticInputs({1});
       set_attributes_map["Slice"] = SetStaticInputs({1, 2});
       set_attributes_map["Split"] = SetStaticInputs({0});
@@ -570,6 +616,15 @@ Status MarkForClustering(Graph* graph) {
     bool mark_for_clustering = false;
 
     do {
+      // check if output node
+      bool skip_it = false;
+      TF_RETURN_IF_ERROR(CheckIfOutputNode(node, skip_these_nodes, skip_it));
+      if (skip_it) {
+        NGRAPH_VLOG(5) << "Found Output Node: " << node->name()
+                       << " - skip marking it for clustering";
+        break;
+      }
+
       // check placement
       bool placement_ok = false;
       TF_RETURN_IF_ERROR(NGraphPlacementRequested(node, placement_ok));
