@@ -59,6 +59,7 @@ else
     # it here, then you need to change it in all other scripts, or else
     # the builds could break.
     #
+    #
     DOCK_USER='dockuser'
 
     # We will be su'ing using a non-login shell or command, and preserving
