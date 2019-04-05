@@ -17,7 +17,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 ## Linux instructions
 
 
-### Option 1: Use a pre-built nGraph-TensorFlow bridge 
+### Option 1: Use a pre-built nGraph-TensorFlow bridge    
 
 1. You need to instantiate a specific kind of `virtualenv`  to 
    be able to proceed with the `ngraph-tf` bridge installation. For 
