@@ -211,11 +211,9 @@ improve it:
   modifications are necessary, may provide feedback to guide you. When
   accepted, your pull request will be merged to the repository.
 
-
 ## About Intel(R) nGraph(TM)
 
 See the full documentation here:  <http://ngraph.nervanasys.com/docs/latest>
-
 
 [linux-based install instructions on the TensorFlow website]:https://www.tensorflow.org/install/install_linux
 [tensorflow]:https://github.com/tensorflow/tensorflow.git
