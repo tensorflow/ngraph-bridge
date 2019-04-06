@@ -16,6 +16,8 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 
 ## Linux instructions
 
+### Option 0:
+Test
 
 ### Option 1: Use a pre-built nGraph-TensorFlow bridge 
 
