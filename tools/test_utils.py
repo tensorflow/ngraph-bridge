@@ -204,6 +204,57 @@ def run_tensorflow_pytests(venv_dir, build_dir, ngraph_tf_src_dir, tf_src_dir):
     os.chdir(root_pwd)
 
 
+def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
+                                          xml_output):
+    root_pwd = os.getcwd()
+
+    ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
+
+    patch_file = os.path.abspath(
+        os.path.join(ngraph_tf_src_dir,
+                     "test/python/tensorflow/tf_unittest_ngraph.patch"))
+
+    # Next patch the TensorFlow so that the tests run using ngraph_bridge
+    pwd = os.getcwd()
+
+    # Go to the location of TesorFlow install directory
+    import tensorflow as tf
+    tf_dir = tf.sysconfig.get_lib()
+    os.chdir(os.path.join(tf_dir, '../'))
+    print("CURRENT DIR: " + os.getcwd())
+
+    print("Patching TensorFlow using: %s" % patch_file)
+    result = call(["patch", "-p1", "-N", "-i", patch_file])
+    print("Patch result: %d" % result)
+    os.chdir(pwd)
+
+    # Now run the TensorFlow python tests
+    test_src_dir = os.path.join(ngraph_tf_src_dir, "test/python/tensorflow")
+    test_script = os.path.join(test_src_dir, "tf_unittest_runner.py")
+    test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
+    test_xml_report = './junit_tensorflow_tests.xml'
+
+    import psutil
+    num_cores = int(psutil.cpu_count(logical=False))
+    print("OMP_NUM_THREADS: %s " % str(num_cores))
+    os.environ['OMP_NUM_THREADS'] = str(num_cores)
+    os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
+
+    cmd = [
+        "python",
+        test_script,
+        "--tensorflow_path",
+        tf_src_dir,
+        "--run_tests_from_file",
+        test_manifest_file,
+    ]
+    if xml_output:
+        cmd.extend(["--xml_report", test_xml_report])
+    command_executor(cmd)
+
+    os.chdir(root_pwd)
+
+
 def run_resnet50(build_dir):
 
     root_pwd = os.getcwd()
@@ -260,7 +311,7 @@ def run_resnet50(build_dir):
     os.chdir(root_pwd)
 
 
-def run_resnet50_from_artifacts(artifact_dir):
+def run_resnet50_from_artifacts(artifact_dir, batch_size, iterations):
 
     root_pwd = os.getcwd()
     artifact_dir = os.path.abspath(artifact_dir)
@@ -310,7 +361,8 @@ def run_resnet50_from_artifacts(artifact_dir):
     cmd = [
         'python', 'tf_cnn_benchmarks.py', '--data_format', 'NCHW',
         '--num_inter_threads', '1', '--train_dir=' + model_save_dir,
-        '--num_batches', '10', '--model=resnet50', '--batch_size=128',
+        '--num_batches',
+        str(iterations), '--model=resnet50', '--batch_size=' + str(batch_size),
         '--eval_dir=' + eval_eventlog_dir
     ]
     command_executor(cmd)
@@ -328,8 +380,8 @@ def run_resnet50_from_artifacts(artifact_dir):
     cmd = [
         'python', 'tf_cnn_benchmarks.py', '--data_format', 'NCHW',
         '--num_inter_threads', '1', '--train_dir=' + model_save_dir,
-        '--model=resnet50', '--batch_size=128', '--num_batches', '10', '--eval',
-        '--eval_dir=' + eval_eventlog_dir
+        '--model=resnet50', '--batch_size=' + str(batch_size), '--num_batches',
+        str(iterations), '--eval', '--eval_dir=' + eval_eventlog_dir
     ]
     command_executor(cmd)
 
@@ -380,6 +432,23 @@ def run_bazel_build_test(venv_dir, build_dir):
     # Load the virtual env
     venv_dir_absolute = load_venv(venv_dir)
 
+    # Next patch the TensorFlow so that the tests run using ngraph_bridge
+    root_pwd = os.getcwd()
+
+    # Now run the configure
+    command_executor(['bash', 'configure_bazel.sh'])
+
+    # Build the bridge
+    command_executor(['bazel', 'build', 'libngraph_bridge.so'])
+
+    # Build the backend
+    command_executor(['bazel', 'build', '@ngraph//:libinterpreter_backend.so'])
+
+    # Return to the original directory
+    os.chdir(root_pwd)
+
+
+def run_bazel_build():
     # Next patch the TensorFlow so that the tests run using ngraph_bridge
     root_pwd = os.getcwd()
 
