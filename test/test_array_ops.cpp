@@ -316,6 +316,241 @@ TEST(ArrayOps, ExpandDims) {
 
 }  // end of test op ExpandDims
 
+// Test op: Gather. vector indices
+// Test fails because of this error:
+// Not found: No attr named '_ngraph_backend' in NodeDef:
+// This is because op_executor does not go through mark_for_clustering
+TEST(ArrayOps, DISABLED_GatherV2Vector) {
+  int dim = 5;
+
+  Tensor A(DT_FLOAT, TensorShape({dim}));
+  AssignInputValuesRandom(A);
+
+  Tensor B(DT_INT32, TensorShape({2}));
+  AssignInputValues<int>(B, {2, 1});
+
+  Tensor C(DT_INT32, TensorShape({}));
+  AssignInputValues<int>(C, 0);
+
+  vector<int> static_input_indexes = {1, 2};
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::GatherV2(root, A, B, C);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "GatherV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+
+}  // end of test op GatherV2
+
+// Test op: OneHot
+TEST(ArrayOps, OneHot1dNegAxis) {
+  Scope root = Scope::NewRootScope();
+
+  vector<int> static_input_indexes = {1};
+
+  Tensor indices(DT_INT32, TensorShape({4}));
+
+  AssignInputValues<int>(indices, {0, 2, -1, 1});
+
+  Tensor depth(DT_INT32, TensorShape({}));
+  Tensor on_value(DT_FLOAT, TensorShape({}));
+  Tensor off_value(DT_FLOAT, TensorShape({}));
+
+  AssignInputValues<int>(depth, 3);
+  AssignInputValues<float>(on_value, 5.0);
+  AssignInputValues<float>(off_value, 0.0);
+
+  auto attrs = ops::OneHot::Attrs();
+  attrs.axis_ = -1;
+
+  auto R = ops::OneHot(root, indices, depth, on_value, off_value, attrs);
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "OneHot", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, OneHot1d) {
+  Scope root = Scope::NewRootScope();
+
+  vector<int> static_input_indexes = {1};
+
+  Tensor indices(DT_INT32, TensorShape({4}));
+
+  AssignInputValues<int>(indices, {0, 2, -1, -50});
+
+  Tensor depth(DT_INT32, TensorShape({}));
+  Tensor on_value(DT_FLOAT, TensorShape({}));
+  Tensor off_value(DT_FLOAT, TensorShape({}));
+
+  AssignInputValues<int>(depth, 3);
+  AssignInputValues<float>(on_value, 5.0);
+  AssignInputValues<float>(off_value, 0.0);
+
+  auto attrs = ops::OneHot::Attrs();
+  attrs.axis_ = 0;
+
+  auto R = ops::OneHot(root, indices, depth, on_value, off_value, attrs);
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "OneHot", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, OneHot2dNegAxis) {
+  Scope root = Scope::NewRootScope();
+
+  vector<int> static_input_indexes = {1};
+
+  Tensor indices(DT_INT32, TensorShape({2, 2}));
+
+  AssignInputValues<int>(indices, {0, 2, -1, 1});
+
+  Tensor depth(DT_INT32, TensorShape({}));
+  Tensor on_value(DT_FLOAT, TensorShape({}));
+  Tensor off_value(DT_FLOAT, TensorShape({}));
+
+  AssignInputValues<int>(depth, 3);
+  AssignInputValues<float>(on_value, 5.0);
+  AssignInputValues<float>(off_value, 0.0);
+
+  auto attrs = ops::OneHot::Attrs();
+  attrs.axis_ = -1;
+
+  auto R = ops::OneHot(root, indices, depth, on_value, off_value, attrs);
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "OneHot", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, OneHot2d) {
+  Scope root = Scope::NewRootScope();
+
+  vector<int> static_input_indexes = {1};
+
+  Tensor indices(DT_INT32, TensorShape({2, 2}));
+
+  AssignInputValues<int>(indices, {0, 2, -1, 50});
+
+  Tensor depth(DT_INT32, TensorShape({}));
+  Tensor on_value(DT_FLOAT, TensorShape({}));
+  Tensor off_value(DT_FLOAT, TensorShape({}));
+
+  AssignInputValues<int>(depth, 3);
+  AssignInputValues<float>(on_value, 5.0);
+  AssignInputValues<float>(off_value, 0.0);
+
+  auto attrs = ops::OneHot::Attrs();
+  attrs.axis_ = 1;
+
+  auto R = ops::OneHot(root, indices, depth, on_value, off_value, attrs);
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "OneHot", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, OneHot3d) {
+  Scope root = Scope::NewRootScope();
+
+  vector<int> static_input_indexes = {1};
+
+  Tensor indices(DT_INT32, TensorShape({2, 2, 3}));
+
+  AssignInputValuesRandom<int>(indices, -2, 5);
+
+  Tensor depth(DT_INT32, TensorShape({}));
+  Tensor on_value(DT_FLOAT, TensorShape({}));
+  Tensor off_value(DT_FLOAT, TensorShape({}));
+
+  AssignInputValues<int>(depth, 2);
+  AssignInputValues<float>(on_value, 5.0);
+  AssignInputValues<float>(off_value, 0.0);
+
+  auto attrs = ops::OneHot::Attrs();
+  attrs.axis_ = 2;
+
+  auto R = ops::OneHot(root, indices, depth, on_value, off_value, attrs);
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "OneHot", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, OneHot3dNegAxis) {
+  Scope root = Scope::NewRootScope();
+
+  vector<int> static_input_indexes = {1};
+
+  Tensor indices(DT_INT32, TensorShape({2, 2, 3}));
+
+  AssignInputValuesRandom<int>(indices, -2, 5);
+
+  Tensor depth(DT_INT32, TensorShape({}));
+  Tensor on_value(DT_FLOAT, TensorShape({}));
+  Tensor off_value(DT_FLOAT, TensorShape({}));
+
+  AssignInputValues<int>(depth, 2);
+  AssignInputValues<float>(on_value, 1.0);
+  AssignInputValues<float>(off_value, 0.0);
+
+  auto attrs = ops::OneHot::Attrs();
+  attrs.axis_ = -1;
+
+  auto R = ops::OneHot(root, indices, depth, on_value, off_value, attrs);
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "OneHot", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+
+}  // end of op OneHot
+
+TEST(ArrayOps, Pad) {
+  Scope root = Scope::NewRootScope();
+
+  vector<int> static_input_indexes = {1};
+
+  Tensor input(DT_INT32, TensorShape({2, 3}));
+
+  Tensor paddings(DT_INT32, TensorShape({2, 2}));
+
+  AssignInputValuesRandom<int>(input, 1, 4);
+  AssignInputValuesRandom<int>(paddings, 2, 5);
+
+  auto R = ops::Pad(root, input, paddings);
+  vector<DataType> output_datatypes = {DT_INT32};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "Pad", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+
+}  // end of op Pad
+
 // Test op: PreventGradient
 TEST(ArrayOps, PreventGradient) {
   Scope scope_cpu = Scope::NewRootScope();

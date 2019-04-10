@@ -16,8 +16,10 @@
 
 #include "ngraph_builder.h"
 #include "ngraph/op/util/logical_reduction.hpp"
+#include "ngraph_backend_manager.h"
 #include "ngraph_conversions.h"
 #include "ngraph_log.h"
+#include "ngraph_mark_for_clustering.h"
 #include "ngraph_utils.h"
 
 #include "ngraph/builder/autobroadcast.hpp"
@@ -1914,6 +1916,90 @@ static Status TranslateFusedBatchNormGradOp(
   return Status::OK();
 }
 
+static Status TranslateGatherV2Op(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
+
+  std::vector<int64> tf_indices;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 1, static_input_map, &tf_indices));
+  // It seems indices cannot be negative, so no need to handle that
+  std::vector<size_t> indices(tf_indices.size());
+  std::transform(tf_indices.begin(), tf_indices.end(), indices.begin(),
+                 [](int64 x) { return (size_t)(x); });
+
+  std::vector<int64> tf_axis;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &tf_axis));
+
+  if (tf_axis.size() > 1) {
+    return errors::Internal("Found axis in GatherV2 op (", op->name(),
+                            ") translation to be non scalar, of size ",
+                            tf_axis.size());
+  }
+
+  std::string backend_name;
+  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
+
+  if (backend_name != "NNPI") {
+    return errors::Internal("In translating GatherV2 op ", op->name(),
+                            " found requested backend ", backend_name,
+                            " which is unsupported");
+  }
+
+  ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
+  auto coords = ng::Coordinate(indices);
+  // Negative axis is supported. Accounting for that
+  auto ng_input_shape = ng_input->get_shape();
+  size_t ng_input_rank = ng_input_shape.size();
+  size_t axis;
+  if (tf_axis[0] >= 0) {
+    axis = tf_axis[0];
+  } else {
+    axis = tf_axis[0] + ng_input_rank;
+  }
+  if (axis < 0 || axis >= ng_input_rank) {
+    return errors::InvalidArgument("Expected axis in the range [-",
+                                   ng_input_rank, ", ", ng_input_rank,
+                                   "), but got ", tf_axis[0]);
+  }
+
+  for (size_t indices_idx = 0; indices_idx < indices.size(); indices_idx++) {
+    if (indices[indices_idx] >= ng_input_shape[axis]) {
+      // TODO: this error returnign must be generalized when indices = vector of
+      // vectors is supported
+      return errors::InvalidArgument("indices[0,", indices_idx, "] = ",
+                                     indices[indices_idx], " is not in [0, ",
+                                     ng_input_shape[axis], ")");
+    }
+  }
+
+  vector<size_t> possibly_empty_node_size(ng_input_shape);
+  possibly_empty_node_size[axis] = indices.size();
+
+  if (std::any_of(possibly_empty_node_size.begin(),
+                  possibly_empty_node_size.end(),
+                  [](size_t x) { return x == 0; })) {
+    std::vector<std::string> const_values(
+        ng::shape_size(possibly_empty_node_size), "0");
+    auto ng_empty = ConstructNgNode<ng::op::Constant>(
+        op->name(), ng_input->get_element_type(),
+        ng::Shape(possibly_empty_node_size), const_values);
+    SaveNgOp(ng_op_map, op->name(), ng_empty);
+  } else {
+    shared_ptr<ng::Node> ng_gather =
+        backend->get_backend_op("Gather", &ng_input, &coords, &axis);
+    if (ng_gather == nullptr) {
+      return errors::Internal("In translating GatherV2 op ", op->name(),
+                              " backend could not return valid ngraph node");
+    }
+    SaveNgOp(ng_op_map, op->name(), ng_gather);
+  }
+
+  return Status::OK();
+}
+
 static Status TranslateFusedConv2DOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -2318,6 +2404,80 @@ static Status TranslateMaxPoolGradOp(
   return Status::OK();
 }
 
+static Status TranslateNonMaxSuppressionV4Op(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_boxes, ng_scores;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_boxes, &ng_scores,
+                                   nullptr, nullptr, nullptr));
+
+  std::vector<int> max_output_size;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 2, static_input_map, &max_output_size));
+  std::vector<float> iou_threshold;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 3, static_input_map, &iou_threshold));
+
+  std::vector<float> score_threshold;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 4, static_input_map, &score_threshold));
+
+  bool pad_to_max_output_size;
+  if (GetNodeAttr(op->attrs(), "pad_to_max_output_size",
+                  &pad_to_max_output_size) != Status::OK()) {
+    pad_to_max_output_size = false;
+  }
+  // max_output_size must be scalar
+  if (max_output_size.size() != 1) {
+    return errors::InvalidArgument(
+        "NonMaxSuppressionV4 Op: max_output_size of nms must be scalar ",
+        max_output_size.size());
+  }
+  // iou_threshold must be scalar
+  if (iou_threshold.size() != 1) {
+    return errors::InvalidArgument(
+        "NonMaxSuppressionV4 Op: iou_threshold of nms must be scalar ",
+        iou_threshold.size());
+  }
+
+  // score_threshold must be scalar
+  if (score_threshold.size() != 1) {
+    return errors::InvalidArgument(
+        "NonMaxSuppressionV4 Op: score_threshold of nms must be scalar ",
+        score_threshold.size());
+  }
+
+  std::string backend_name;
+  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
+
+  if (backend_name != "NNPI") {
+    return errors::Internal("In translating NonMaxSuppressionV4 op ",
+                            op->name(), " found requested backend ",
+                            backend_name, " which is unsupported");
+  }
+
+  ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
+
+  shared_ptr<ng::Node> ng_nmsv4 = backend->get_backend_op(
+      "NonMaxSuppressionV4", &ng_boxes, &ng_scores,
+      (size_t)(max_output_size[0]), (float)(iou_threshold[0]),
+      (float)score_threshold[0], (bool)pad_to_max_output_size);
+  if (ng_nmsv4 == nullptr) {
+    return errors::Internal("In translating NonMaxSuppressionV4 op ",
+                            op->name(),
+                            " backend could not return valid ngraph node");
+  }
+  shared_ptr<ngraph::Node> ng_selected_indices =
+      ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_nmsv4, 0);
+  shared_ptr<ngraph::Node> ng_valid_output =
+      ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_nmsv4, 1);
+
+  SaveNgOp(ng_op_map, op->name(), ng_selected_indices);
+  SaveNgOp(ng_op_map, op->name(), ng_valid_output);
+
+  return Status::OK();
+}
+
 static Status TranslateReduceOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map,
@@ -2399,6 +2559,57 @@ static Status TranslateDirectReduceOp(
       });
 }
 
+static Status TranslateOneHotOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_features, ng_on, ng_off;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &ng_features, nullptr, &ng_on, &ng_off));
+
+  auto ng_features_shape = ng_features->get_shape();
+  auto ng_features_rank = ng_features_shape.size();
+
+  std::vector<int> depth;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &depth));
+
+  // Depth must be scalar
+  if (depth.size() != 1) {
+    return errors::InvalidArgument(
+        "OneHot Op: depth of one hot dimension must be scalar ", depth.size());
+  }
+
+  int one_hot_axis;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "axis", &one_hot_axis));
+
+  ng::Shape output_shape(ng_features_shape);
+  auto pos = output_shape.begin();
+  if (one_hot_axis == -1) {
+    one_hot_axis = ng_features_rank;
+    pos = output_shape.end();
+  } else {
+    pos = output_shape.begin() + one_hot_axis;
+  }
+  output_shape.insert(pos, depth[0]);
+
+  auto ng_onehot_labels = ConstructNgNode<ng::op::OneHot>(
+      op->name(), ng_features, output_shape, one_hot_axis);
+
+  shared_ptr<ng::Node> ng_onehot_bool = ConstructNgNode<ng::op::Convert>(
+      op->name(), ng_onehot_labels, ng::element::boolean);
+
+  // broadcast to make all tensors same shape, as required by ngraph select op
+  std::tie(ng_onehot_bool, ng_on) =
+      ng::builder::numpy_broadcast(std::make_pair(ng_onehot_bool, ng_on));
+  std::tie(ng_onehot_bool, ng_off) =
+      ng::builder::numpy_broadcast(std::make_pair(ng_onehot_bool, ng_off));
+
+  auto ng_onehot = ConstructNgNode<ng::op::Select>(op->name(), ng_onehot_bool,
+                                                   ng_on, ng_off);
+
+  SaveNgOp(ng_op_map, op->name(), ng_onehot);
+  return Status::OK();
+}
+
 static Status TranslatePackOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -2471,9 +2682,10 @@ static Status TranslatePadOp(const Node* op,
         "elements");
   }
 
-  ng::Shape padding_below(paddings.size() / 2);
-  ng::Shape padding_above(paddings.size() / 2);
+  ng::CoordinateDiff padding_below(paddings.size() / 2);
+  ng::CoordinateDiff padding_above(paddings.size() / 2);
   ng::Shape padding_interior(paddings.size() / 2);
+  auto pad_mode = ng::op::PadMode::CONSTANT;
 
   for (size_t i = 0; i < paddings.size() / 2; i++) {
     padding_below[i] = paddings[2 * i];
@@ -2488,9 +2700,8 @@ static Status TranslatePadOp(const Node* op,
   auto pad_val_op = ConstructNgNode<ng::op::Constant>(
       op->name(), ng_input->get_element_type(), ng::Shape{},
       std::vector<std::string>{"0"});
-  auto pad_op = ConstructNgNode<ng::op::Pad>(op->name(), ng_input, pad_val_op,
-                                             padding_below, padding_above,
-                                             padding_interior);
+  auto pad_op = ConstructNgNode<ng::op::Pad>(
+      op->name(), ng_input, pad_val_op, padding_below, padding_above, pad_mode);
 
   SaveNgOp(ng_op_map, op->name(), pad_op);
   return Status::OK();
@@ -4201,6 +4412,7 @@ const static std::map<
         {"FusedBatchNorm", TranslateFusedBatchNormOp},
         {"FusedBatchNormV2", TranslateFusedBatchNormOp},
         {"FusedBatchNormGrad", TranslateFusedBatchNormGradOp},
+        {"GatherV2", TranslateGatherV2Op},
         {"_FusedConv2D", TranslateFusedConv2DOp},
         {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
         {"GreaterEqual", TranslateBinaryOp<ngraph::op::GreaterEq>},
@@ -4219,6 +4431,7 @@ const static std::map<
         {"MaxPool", TranslateMaxPoolOp},
         {"MaxPool3D", TranslateMaxPool3DOp},
         {"MaxPoolGrad", TranslateMaxPoolGradOp},
+        {"NonMaxSuppressionV4", TranslateNonMaxSuppressionV4Op},
         {"Mean", TranslateMeanOp},
         {"Min", TranslateDirectReduceOp<ng::op::Min>},
         {"Minimum", TranslateBinaryOp<ngraph::op::Minimum>},
@@ -4228,6 +4441,7 @@ const static std::map<
         // reasons, but they have no data flow inputs or outputs.
         {"NoOp", [](const Node*, const std::vector<const Tensor*>&,
                     Builder::OpMap&) { return Status::OK(); }},
+        {"OneHot", TranslateOneHotOp},
         {"Pack", TranslatePackOp},
         {"Pad", TranslatePadOp},
         {"Pow", TranslateBinaryOp<ngraph::op::Power>},

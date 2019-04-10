@@ -43,19 +43,51 @@ set(SRC
    ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
    ngraph_rewrite_for_tracking.cc
+   ngraph_rewrite_pass.cc
    ngraph_tracked_variable.cc
    ngraph_utils.cc
-   ngraph_timer.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
    version.cc
 )
 
-if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+message(STATUS "NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS: ${NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS}")
+
+if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    # common files
+    list(REMOVE_ITEM SRC ngraph_capture_variables.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_capture_variables.cc)
+
+    list(REMOVE_ITEM SRC ngraph_encapsulate_op.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_encapsulate_op.cc)
+
+    list(REMOVE_ITEM SRC ngraph_rewrite_for_tracking.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_rewrite_for_tracking.cc)
+
+    list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_rewrite_pass.cc)
+
+    list(REMOVE_ITEM SRC ngraph_tracked_variable.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_tracked_variable.cc)
+
+    list(REMOVE_ITEM SRC ngraph_utils.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_utils.cc)
+
+    # new files
+    list(APPEND SRC enable_variable_ops/ngraph_assign_op.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_catalog.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_replace_op_utilities.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_replace_variable_modifiers.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
+
+endif()
+
+
+if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)            
+    list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
     list(APPEND SRC grappler/ngraph_optimizer.cc)
     add_definitions(-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
-else()
-    list(APPEND SRC ngraph_rewrite_pass.cc)
 endif()
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
@@ -114,6 +146,9 @@ endif()
 
 # Now create the Python pip package. The following variables are passed to the 
 # CreatePipWhl.cmake
+# CMake "install" target "CODE" will propagate these variables to the 
+# target "SCRIPT" so that the "SCRIPT" (in ths case CreatePipWhl.cmake)
+# So any variable that we need to propagate needs to be added here
 install(CODE "set(OS_VERSION ${OS_VERSION})")
 install(CODE "set(NGRAPH_INSTALL_DIR \"${NGRAPH_INSTALL_DIR}\")")
 install(CODE "set(NGTF_SRC_DIR \"${CMAKE_CURRENT_SOURCE_DIR}/../\")")
