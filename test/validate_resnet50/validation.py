@@ -1,7 +1,6 @@
 from subprocess import check_output, call, Popen, PIPE
 import numpy as np
 import os
-
 '''
     This script will run resnet50 training validation with synthetic data and real data
 and compare the results with the desired reference run.
@@ -22,8 +21,14 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None):
         tag = 'Running COMMAND: ' if msg is None else msg
         print(tag + cmd)
 
-    p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE,
-              stderr=PIPE, close_fds=True, bufsize=1)
+    p = Popen(
+        cmd,
+        shell=True,
+        stdin=PIPE,
+        stdout=PIPE,
+        stderr=PIPE,
+        close_fds=True,
+        bufsize=1)
     output = p.stdout.read()
     error_output = p.stderr.read()
 
@@ -94,14 +99,17 @@ def check_validation_results(norm_dict, metric):
 
 # Return L1, L2, inf norm of the input arrays
 def calculate_norm_values(result1, result2):
-    l1_norm = np.linalg.norm((np.array(result1, dtype=np.float) -
-                              np.array(result2, dtype=np.float)), 1)
+    l1_norm = np.linalg.norm(
+        (np.array(result1, dtype=np.float) - np.array(result2, dtype=np.float)),
+        1)
 
-    l2_norm = np.linalg.norm((np.array(result1, dtype=np.float) -
-                              np.array(result2, dtype=np.float)), 2)
+    l2_norm = np.linalg.norm(
+        (np.array(result1, dtype=np.float) - np.array(result2, dtype=np.float)),
+        2)
 
-    inf_norm = np.linalg.norm((np.array(result1, dtype=np.float) -
-                               np.array(result2, dtype=np.float)), np.inf)
+    inf_norm = np.linalg.norm(
+        (np.array(result1, dtype=np.float) - np.array(result2, dtype=np.float)),
+        np.inf)
     return {"l1_norm": l1_norm, "l2_norm": l2_norm, "inf_norm": inf_norm}
 
 
@@ -110,17 +118,19 @@ def run_validation(data_format, reference_file_name, batch_size):
     # Assume the current directory already has the required patch
     if os.path.isfile('./datasets_make_deterministic.patch'):
         output, error_output = command_executor(
-            'git apply --check --whitespace=nowarn ' + './datasets_make_deterministic.patch')
+            'git apply --check --whitespace=nowarn ' +
+            './datasets_make_deterministic.patch')
         if error_output:
-            print("Warning: datasets_make_determinitic.patch is already applied")
+            print(
+                "Warning: datasets_make_determinitic.patch is already applied")
         else:
             command_executor('git apply --whitespace=nowarn ' +
                              './datasets_make_deterministic.patch')
 
     # Run the validation command on NGraph
-    if(data_format == "real_data"):
+    if (data_format == "real_data"):
         command_to_run = validate_with_real_data_command_NG + str(batch_size)
-    elif(data_format == "synthetic_data"):
+    elif (data_format == "synthetic_data"):
         command_to_run = validate_with_synthetic_data_command_NG + \
             str(batch_size)
 
@@ -142,8 +152,9 @@ def run_validation(data_format, reference_file_name, batch_size):
     print("ngraph top1 Accuracy ", ngraph_outputs_top1_acc)
     print("ngraph top5 Accuracy ", ngraph_outputs_top5_acc)
 
-    write_to_file("resnet50_validationResult_NG_" + data_format +
-                  "_BS" + str(batch_size) + ".txt", output_string)
+    write_to_file(
+        "resnet50_validationResult_NG_" + data_format + "_BS" + str(batch_size)
+        + ".txt", output_string)
 
     # Get TF output: Either from a reference file or from actual run command
     # check if already has some TF result file
@@ -173,8 +184,9 @@ def run_validation(data_format, reference_file_name, batch_size):
             print(str(error_output, 'utf-8'))
             exit(1)
 
-        write_to_file("resnet50_validaionResultReference" +
-                      str(batch_size) + ".txt", output_string)
+        write_to_file(
+            "resnet50_validaionResultReference" + str(batch_size) + ".txt",
+            output_string)
 
     print("reference total loss ", reference_outputs_total_loss)
     print("reference top1Acc ", reference_outputs_top1_acc)
@@ -190,37 +202,40 @@ def run_validation(data_format, reference_file_name, batch_size):
     assert len(ngraph_outputs_top5_acc) == len(
         reference_outputs_top5_acc), "Number of top5_accuracy values mismatch"
 
-    loss_norms = calculate_norm_values(
-        ngraph_outputs_total_loss, reference_outputs_total_loss)
-    top1Acc_norms = calculate_norm_values(
-        ngraph_outputs_top1_acc, reference_outputs_top1_acc)
-    top5Acc_norms = calculate_norm_values(
-        ngraph_outputs_top5_acc, reference_outputs_top5_acc)
+    loss_norms = calculate_norm_values(ngraph_outputs_total_loss,
+                                       reference_outputs_total_loss)
+    top1Acc_norms = calculate_norm_values(ngraph_outputs_top1_acc,
+                                          reference_outputs_top1_acc)
+    top5Acc_norms = calculate_norm_values(ngraph_outputs_top5_acc,
+                                          reference_outputs_top5_acc)
 
-    print("loss norms are %f %f %f " %
-          (loss_norms["l1_norm"], loss_norms["l2_norm"], loss_norms["inf_norm"]))
-    print("top1Acc norms are %f %f %f " % (
-        top1Acc_norms["l1_norm"], top1Acc_norms["l2_norm"], top1Acc_norms["inf_norm"]))
-    print("top5Acc norms are %f %f %f " % (
-        top5Acc_norms["l1_norm"], top5Acc_norms["l2_norm"], top5Acc_norms["inf_norm"]))
+    print(
+        "loss norms are %f %f %f " %
+        (loss_norms["l1_norm"], loss_norms["l2_norm"], loss_norms["inf_norm"]))
+    print("top1Acc norms are %f %f %f " %
+          (top1Acc_norms["l1_norm"], top1Acc_norms["l2_norm"],
+           top1Acc_norms["inf_norm"]))
+    print("top5Acc norms are %f %f %f " %
+          (top5Acc_norms["l1_norm"], top5Acc_norms["l2_norm"],
+           top5Acc_norms["inf_norm"]))
 
     loss_result = check_validation_results(loss_norms, "total_loss")
     top1Acc_result = check_validation_results(loss_norms, "top1 Accuracy")
     top5Acc_result = check_validation_results(loss_norms, "top5 Accuracy")
 
-    if((loss_result and top1Acc_result and top5Acc_result)):
+    if ((loss_result and top1Acc_result and top5Acc_result)):
         print("Validation test pass")
 
     # reapply the patch
     output, error_output = command_executor(
         'git apply -R ' + './datasets_make_deterministic.patch')
 
-# Validation with synthetic data
 
+# Validation with synthetic data
 
 if __name__ == "__main__":
     batch_size = 100
     run_validation("real_data", reference_file_name_realData, batch_size)
     batch_size = 200
-    run_validation("synthetic_data",
-                   reference_file_name_syntheticData, batch_size)
+    run_validation("synthetic_data", reference_file_name_syntheticData,
+                   batch_size)
