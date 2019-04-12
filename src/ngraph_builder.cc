@@ -1919,16 +1919,9 @@ static Status TranslateFusedBatchNormGradOp(
 static Status TranslateGatherV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
-
-  std::vector<int64> tf_indices;
+  shared_ptr<ng::Node> ng_input, ng_input_coords;
   TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 1, static_input_map, &tf_indices));
-  // It seems indices cannot be negative, so no need to handle that
-  std::vector<size_t> indices(tf_indices.size());
-  std::transform(tf_indices.begin(), tf_indices.end(), indices.begin(),
-                 [](int64 x) { return (size_t)(x); });
+      GetInputNodes(ng_op_map, op, &ng_input, &ng_input_coords, nullptr));
 
   std::vector<int64> tf_axis;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &tf_axis));
@@ -1949,11 +1942,11 @@ static Status TranslateGatherV2Op(
   }
 
   ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
-  auto coords = ng::Coordinate(indices);
+
   // Negative axis is supported. Accounting for that
   auto ng_input_shape = ng_input->get_shape();
   size_t ng_input_rank = ng_input_shape.size();
-  size_t axis;
+  int axis;
   if (tf_axis[0] >= 0) {
     axis = tf_axis[0];
   } else {
@@ -1965,37 +1958,13 @@ static Status TranslateGatherV2Op(
                                    "), but got ", tf_axis[0]);
   }
 
-  for (size_t indices_idx = 0; indices_idx < indices.size(); indices_idx++) {
-    if (indices[indices_idx] >= ng_input_shape[axis]) {
-      // TODO: this error returnign must be generalized when indices = vector of
-      // vectors is supported
-      return errors::InvalidArgument("indices[0,", indices_idx, "] = ",
-                                     indices[indices_idx], " is not in [0, ",
-                                     ng_input_shape[axis], ")");
-    }
+  shared_ptr<ng::Node> ng_gather =
+      backend->get_backend_op("Gather", &ng_input, &ng_input_coords, &axis);
+  if (ng_gather == nullptr) {
+    return errors::Internal("In translating GatherV2 op ", op->name(),
+                            " backend could not return valid ngraph node");
   }
-
-  vector<size_t> possibly_empty_node_size(ng_input_shape);
-  possibly_empty_node_size[axis] = indices.size();
-
-  if (std::any_of(possibly_empty_node_size.begin(),
-                  possibly_empty_node_size.end(),
-                  [](size_t x) { return x == 0; })) {
-    std::vector<std::string> const_values(
-        ng::shape_size(possibly_empty_node_size), "0");
-    auto ng_empty = ConstructNgNode<ng::op::Constant>(
-        op->name(), ng_input->get_element_type(),
-        ng::Shape(possibly_empty_node_size), const_values);
-    SaveNgOp(ng_op_map, op->name(), ng_empty);
-  } else {
-    shared_ptr<ng::Node> ng_gather =
-        backend->get_backend_op("Gather", &ng_input, &coords, &axis);
-    if (ng_gather == nullptr) {
-      return errors::Internal("In translating GatherV2 op ", op->name(),
-                              " backend could not return valid ngraph node");
-    }
-    SaveNgOp(ng_op_map, op->name(), ng_gather);
-  }
+  SaveNgOp(ng_op_map, op->name(), ng_gather);
 
   return Status::OK();
 }
@@ -4347,14 +4316,53 @@ static Status TranslateSelectOp(
   TF_RETURN_IF_ERROR(
       GetInputNodes(ng_op_map, op, &ng_input1, &ng_input2, &ng_input3));
 
-  // broadcast to make all tensors same shape, as required by ngraph select op
-  std::tie(ng_input1, ng_input2) =
-      ng::builder::numpy_broadcast(std::make_pair(ng_input1, ng_input2));
+  if (ng_input2->get_shape() != ng_input3->get_shape()) {
+    return errors::InvalidArgument(
+        "Input tensors 2 and 3 should have same shape");
+  }
+
+  auto ng_input1_shape = ng_input1->get_shape();
+  auto ng_input2_shape = ng_input2->get_shape();
+
+  auto ng_input1_rank = ng_input1->get_shape().size();
+  auto ng_input2_rank = ng_input2->get_shape().size();
+
+  if (!((ng_input1_shape == ng_input2_shape) ||
+        ((ng_input1_rank == 1) && (ng_input2_rank > ng_input1_rank) &&
+         (ng_input2_shape[0] == ng_input1_shape[0])))) {
+    return errors::InvalidArgument(
+        "Input tensor may have the same shape as condition. If condition is "
+        "rank 1, input may have higher rank, but its first dimension must "
+        "match the size of condition.");
+  }
+
+  int length = 0;
+  shared_ptr<ng::Node> ng_input_new, ng_select;
+
+  // If input tensor has higher rank than condiiton, length will be > 0.
+  length = ng_input2_rank - ng_input1_rank;
+
+  if (length != 0) {
+    // Condition tensor will be modified to align the condition tensor
+    // shape with input tensor shape index and fill the rest of the vector with
+    // 1s
+    // Eg: condition tensor [7], input tensor [7, 3, 2, 1]
+    // After Reshape, condition tensor will be [7, 1 ,1 ,1] for auto broadcast.
+
+    std::vector<size_t> tmp_vector((ng_input2_rank), 1);
+    tmp_vector[0] = ng_input1_shape[0];
+
+    ng_input_new = ConstructNgNode<ng::op::Reshape>(
+        op->name(), ng_input1, ng::AxisVector{0}, tmp_vector);
+  }
+
+  std::tie(ng_input1, ng_input2) = ng::builder::numpy_broadcast(
+      std::make_pair(length != 0 ? ng_input_new : ng_input1, ng_input2));
   std::tie(ng_input2, ng_input3) =
       ng::builder::numpy_broadcast(std::make_pair(ng_input2, ng_input3));
 
-  auto ng_select = ConstructNgNode<ng::op::Select>(op->name(), ng_input1,
-                                                   ng_input2, ng_input3);
+  ng_select = ConstructNgNode<ng::op::Select>(op->name(), ng_input1, ng_input2,
+                                              ng_input3);
 
   SaveNgOp(ng_op_map, op->name(), ng_select);
   return Status::OK();
