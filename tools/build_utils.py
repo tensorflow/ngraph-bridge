@@ -71,10 +71,11 @@ def build_ngraph(build_dir, src_location, cmake_flags, verbose):
 
     import psutil
     num_cores = str(psutil.cpu_count(logical=True))
-    cmd = ["make", "-j" + num_cores, "install"]
+    cmd = ["make", "-j" + num_cores]
     if verbose:
         cmd.extend(['VERBOSE=1'])
-
+    command_executor(cmd, verbose=True)
+    cmd = ["make", "install"]
     command_executor(cmd, verbose=True)
 
     os.chdir(pwd)
@@ -147,6 +148,7 @@ def setup_venv(venv_dir):
         "--no-deps",
         "keras_preprocessing==1.0.5",
         "--no-deps",
+        "yapf==0.26.0",
     ]
     command_executor(package_list)
 
