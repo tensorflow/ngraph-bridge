@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2018 Intel Corporation
+#  Copyright 2018-2019 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.18.0-rc.2"
+    ngraph_version = "v0.18.0"
     tf_version = "v1.13.1"
 
     # Command line parser options
@@ -291,13 +291,20 @@ def main():
 
     # Copy the TensorFlow Python code tree to artifacts directory so that they can
     # be used for running TensorFlow Python unit tests
-    command_executor([
-        'cp', '-r', build_dir_abs + '/tensorflow/tensorflow/python',
-        os.path.join(artifacts_location, "tensorflow")
-    ])
+    if not arguments.use_prebuilt_tensorflow:
+        command_executor([
+            'cp', '-r', build_dir_abs + '/tensorflow/tensorflow/python',
+            os.path.join(artifacts_location, "tensorflow")
+        ])
 
     # Run a quick test
     install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
+
+    if arguments.use_grappler_optimizer:
+        import tensorflow as tf
+        import ngraph_bridge
+        if not ngraph_bridge.is_grappler_enabled():
+            raise Exception("Build failed: 'use_grappler_optimizer' specified but not used")
 
     print('\033[1;32mBuild successful\033[0m')
     os.chdir(pwd)

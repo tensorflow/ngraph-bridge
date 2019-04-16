@@ -40,8 +40,8 @@ namespace ngraph_bridge {
 Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                  const tensorflow::grappler::GrapplerItem& item,
                                  GraphDef* output) {
-  NGRAPH_VLOG(5) << "Here at NgraphOptimizer ";
-  NGRAPH_VLOG(5) << "NgraphOptimizer : grappler item id " << item.id;
+  NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
+  NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
 
   // Convert the GraphDef to Graph
   GraphConstructorOptions opts;
@@ -65,18 +65,25 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // passes become a no-op.
   if (config::IsEnabled() == false ||
       std::getenv("NGRAPH_TF_DISABLE") != nullptr) {
-    NGRAPH_VLOG(0) << "Ngraph is disabled ";
+    NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Ngraph is disabled ";
+    graph.ToGraphDef(output);
     return Status::OK();
   }
 
   // Get the nodes to be skipped
-  std::vector<string> fetch_nodes;
+  std::set<string> fetch_nodes;
   for (const string& f : item.fetch) {
-    NGRAPH_VLOG(5) << "Skip fetch node: " << f;
     int pos = f.find(":");
-    fetch_nodes.push_back(f.substr(0, pos));
+    fetch_nodes.insert(f.substr(0, pos));
   }
-  std::vector<string>& skip_these_nodes = fetch_nodes;
+  std::set<string>& skip_these_nodes = fetch_nodes;
+
+  // Rewrite graph to add IdentityN node so the fetch node can be encapsulated
+  // as well
+  // If the fetch node in question has 0 outputs or any of the outputs
+  // has ref type as a data type then don't add IdentityN node, but the fetch
+  // node will be skipped from capturing and marking for clustering.
+  TF_RETURN_IF_ERROR(AddIdentityN(&graph, skip_these_nodes));
 
   //
   // Variable capture: Part that replaces all instances of VariableV2 with the
@@ -138,13 +145,13 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(EncapsulateClusters(&graph));
+  TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
   }
 
   // Rewrite for tracking then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(RewriteForTracking(&graph));
+  TF_RETURN_IF_ERROR(RewriteForTracking(&graph, idx));
   if (DumpTrackedGraphs()) {
     DumpGraphs(graph, idx, "tracked",
                "Graph with Variables Rewritten for Tracking");
@@ -167,10 +174,8 @@ void NgraphOptimizer::DumpGraphs(Graph& graph, int idx,
   // If we have a "main" graph, dump that.
   auto dot_filename = DotFilename(filename_prefix, idx);
   auto pbtxt_filename = PbtxtFilename(filename_prefix, idx);
-  NGRAPH_VLOG(0) << "NGRAPH-TF OPTIMIZER Dumping main graph to "
-                 << dot_filename;
-  NGRAPH_VLOG(0) << "NGRAPH-TF OPTIMIZER Dumping main graph to "
-                 << pbtxt_filename;
+  NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Dumping main graph to " << dot_filename;
+  NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Dumping main graph to " << pbtxt_filename;
 
   GraphToDotFile(&graph, dot_filename, title);
   GraphToPbTextFile(&graph, pbtxt_filename);
