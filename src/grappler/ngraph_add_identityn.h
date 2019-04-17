@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-
 #pragma once
 
+#ifndef NGRAPH_TF_ADD_IDENTITYN_H_
+#define NGRAPH_TF_ADD_IDENTITYN_H_
+
 #include "tensorflow/core/graph/graph.h"
+#include "tensorflow/core/graph/node_builder.h"
+
+#include "ngraph_log.h"
 
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status DeassignClusters(Graph* graph);
+Status AddIdentityN(Graph* graph, std::set<string> skip_these_nodes);
 
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow
+#endif  // NGRAPH_TF_ADD_IDENTITYN_H_
