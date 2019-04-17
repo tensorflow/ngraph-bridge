@@ -258,25 +258,8 @@ class NGraphEncapsulateOp : public OpKernel {
     return Status::OK();
   }
 
-  //---------------------------------------------------------------------------
-  // OpKernel::Compute
-  //---------------------------------------------------------------------------
-  void Compute(OpKernelContext* ctx) override {
-    std::ostringstream oss;
-    oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
-    ngraph::Event event(oss.str(), name(), "");
-
-    Timer compute_time;
-    std::lock_guard<std::mutex> lock(m_compute_lock);
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
-                   << m_ngraph_cluster;
-
-    NGRAPH_VLOG(4) << "Got backend of type: " << m_op_backend_name;
-    ng::runtime::Backend* op_backend =
-        BackendManager::GetBackend(m_op_backend_name);
-
-    ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
-    Timer function_lookup_or_create;
+  std::tuple<string, std::vector<TensorShape>, std::vector<const Tensor*>>
+  ComputeSignature(OpKernelContext* ctx) {
     // Get the inputs
     std::vector<TensorShape> input_shapes;
     std::stringstream signature_ss;
@@ -296,15 +279,45 @@ class NGraphEncapsulateOp : public OpKernel {
       const Tensor& input_tensor = ctx->input(i);
       if (m_input_is_static[i]) {
         static_input_map[i] = &input_tensor;
-        OP_REQUIRES_OK(ctx, TensorToStream(signature_ss, input_tensor));
+        TensorToStream(signature_ss, input_tensor);
         signature_ss << ";";
       }
     }
+    return std::make_tuple(signature_ss.str(), input_shapes, static_input_map);
+  }
+
+  //---------------------------------------------------------------------------
+  // OpKernel::Compute
+  //---------------------------------------------------------------------------
+  void Compute(OpKernelContext* ctx) override {
+    std::ostringstream oss;
+    oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
+    ngraph::Event event(oss.str(), name(), "");
+
+    Timer compute_time;
+    std::lock_guard<std::mutex> lock(m_compute_lock);
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
+                   << m_ngraph_cluster;
+
+    NGRAPH_VLOG(4) << "Got backend of type: " << m_op_backend_name;
+    ng::runtime::Backend* op_backend =
+        BackendManager::GetBackend(m_op_backend_name);
+
+    ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
+    Timer function_lookup_or_create;
+    std::vector<TensorShape> input_shapes;
+    std::vector<const Tensor*> static_input_map;
 
     std::shared_ptr<ngraph::Function> ng_function;
     std::shared_ptr<ngraph::runtime::Executable> ng_exec;
     std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
-    std::string signature = signature_ss.str();
+
+    std::string signature;
+
+    auto compute_sig = ComputeSignature(ctx);
+    signature = std::get<0>(compute_sig);
+    input_shapes = std::get<1>(compute_sig);
+    static_input_map = std::get<2>(compute_sig);
 
     if (NGRAPH_VLOG_IS_ON(5)) {
       NGRAPH_VLOG(5) << "Computed signature: " << signature;
