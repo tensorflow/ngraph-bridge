@@ -7,20 +7,15 @@ import os
 # Assumed this validation.py script is under a tensorflow/benchmarks/ repo
 # with git head at commit ab01ecc.
 # TODO:
-#    1. num_bathces are not set in validate_commands
+#    1. num_bathces set to 100
 #    2. Makes certain assumptions about the reference_file 's name and the batch size
 #    3. Add Arguments to take in the backend, the reference log files, the number of iterations/batches, the data type (real or synthetic)
 #    4. Automate the cloning of benchmarks repo and running the script
 
-validate_with_real_data_command_NG = 'NGRAPH_TF_BACKEND=GPU python tf_cnn_benchmarks.py --num_inter_threads=2 --data_format=NCHW --model=resnet50 --batch_size=32 --num_gpus=1 --data_dir /mnt/data/TF_ImageNet_latest/ --data_name=imagenet --datasets_use_prefetch=False --print_training_accuracy=True --num_learning_rate_warmup_epochs=0 --num_batches='
-validate_with_real_data_command_TF = 'NGRAPH_TF_DISABLE=1 python tf_cnn_benchmarks.py --num_inter_threads=2 --data_format=NHWC --model=resnet50 --batch_size=32 --num_gpus=1 --data_dir /mnt/data/TF_ImageNet_latest/ --data_name=imagenet --datasets_use_prefetch=False --print_training_accuracy=True --num_learning_rate_warmup_epochs=0 --num_batches='
-validate_with_synthetic_data_command_NG = 'NGRAPH_TF_BACKEND=GPU python tf_cnn_benchmarks.py --num_inter_threads=2 --tf_random_seed=1234 --data_format=NCHW --model=resnet50 --batch_size=32 --num_gpus=1 --data_name=imagenet --datasets_use_prefetch=False --print_training_accuracy=True --num_learning_rate_warmup_epochs=0 --num_batches='
-validate_with_synthetic_data_command_TF = 'NGRAPH_TF_DISABLE=1 python tf_cnn_benchmarks.py --num_inter_threads=2 --tf_random_seed=1234 --data_format=NHWC --model=resnet50 --batch_size=32 --num_gpus=1 --data_name=imagenet --datasets_use_prefetch=False --print_training_accuracy=True --num_learning_rate_warmup_epochs=0 --num_batches='
-
-#
-#reference_file_name_realData = "/tfGPU_results/resnet50_tf_realData"
-#reference_file_name_syntheticData = "/tfGPU_results/resnet50_tf_syntheticData"
-
+validate_with_real_data_command_NG = 'NGRAPH_TF_BACKEND=GPU python tf_cnn_benchmarks.py --num_inter_threads=2 --data_format=NCHW --model=resnet50 --batch_size=32 --num_gpus=1 --data_dir /mnt/data/TF_ImageNet_latest/ --data_name=imagenet --datasets_use_prefetch=False --print_training_accuracy=True --num_learning_rate_warmup_epochs=0 --num_batches=100'
+validate_with_real_data_command_TF = 'NGRAPH_TF_DISABLE=1 python tf_cnn_benchmarks.py --num_inter_threads=2 --data_format=NHWC --model=resnet50 --batch_size=32 --num_gpus=1 --data_dir /mnt/data/TF_ImageNet_latest/ --data_name=imagenet --datasets_use_prefetch=False --print_training_accuracy=True --num_learning_rate_warmup_epochs=0 --num_batches=100'
+validate_with_synthetic_data_command_NG = 'NGRAPH_TF_BACKEND=GPU python tf_cnn_benchmarks.py --num_inter_threads=2 --tf_random_seed=1234 --data_format=NCHW --model=resnet50 --batch_size=32 --num_gpus=1 --data_name=imagenet --datasets_use_prefetch=False --print_training_accuracy=True --num_learning_rate_warmup_epochs=0 --num_batches=100'
+validate_with_synthetic_data_command_TF = 'NGRAPH_TF_DISABLE=1 python tf_cnn_benchmarks.py --num_inter_threads=2 --tf_random_seed=1234 --data_format=NHWC --model=resnet50 --batch_size=32 --num_gpus=1 --data_name=imagenet --datasets_use_prefetch=False --print_training_accuracy=True --num_learning_rate_warmup_epochs=0 --num_batches=100'
 
 def command_executor(cmd, verbose=False, msg=None, stdout=None):
     if verbose or msg is not None:
@@ -242,6 +237,6 @@ def run_validation(data_format, reference_file_name, batch_size):
 if __name__ == "__main__":
     batch_size = 100
     run_validation("real_data", reference_file_name_realData, batch_size)
-    batch_size = 200
+    batch_size = 100
     run_validation("synthetic_data", reference_file_name_syntheticData,
                    batch_size)
