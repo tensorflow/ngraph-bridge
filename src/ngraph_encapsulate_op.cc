@@ -258,6 +258,7 @@ class NGraphEncapsulateOp : public OpKernel {
     return Status::OK();
   }
 
+  // std::tuple<string, std::vector<TensorShape>, std::vector<const Tensor*>>
   std::tuple<string, std::vector<TensorShape>, std::vector<const Tensor*>>
   ComputeSignature(OpKernelContext* ctx) {
     // Get the inputs
@@ -286,33 +287,35 @@ class NGraphEncapsulateOp : public OpKernel {
     return std::make_tuple(signature_ss.str(), input_shapes, static_input_map);
   }
 
-  //---------------------------------------------------------------------------
-  // OpKernel::Compute
-  //---------------------------------------------------------------------------
-  void Compute(OpKernelContext* ctx) override {
-    std::ostringstream oss;
-    oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
-    ngraph::Event event(oss.str(), name(), "");
-
-    Timer compute_time;
-    std::lock_guard<std::mutex> lock(m_compute_lock);
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
-                   << m_ngraph_cluster;
-
-    NGRAPH_VLOG(4) << "Got backend of type: " << m_op_backend_name;
-    ng::runtime::Backend* op_backend =
-        BackendManager::GetBackend(m_op_backend_name);
-
-    ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
-    Timer function_lookup_or_create;
+  std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
+             std::shared_ptr<ngraph::Function>,
+             std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
+                                std::shared_ptr<ngraph::Function>>,
+             std::unordered_map<std::string,
+                                std::shared_ptr<ngraph::runtime::Executable>>>
+  get_ng_exec(OpKernelContext* ctx) {
     std::vector<TensorShape> input_shapes;
     std::vector<const Tensor*> static_input_map;
+    string signature;
 
     std::shared_ptr<ngraph::Function> ng_function;
     std::shared_ptr<ngraph::runtime::Executable> ng_exec;
     std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
-    std::string signature;
+    std::unordered_map<std::string,
+                       std::shared_ptr<ngraph::runtime::Executable>>
+        m_ng_exec_map;
+    std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
+                       std::shared_ptr<ngraph::Function>>
+        m_ng_function_map;
+
+    NgFunctionIOCache m_ng_exec_input_cache_map;
+    NgFunctionIOCache m_ng_exec_output_cache_map;
+
+    // string m_op_backend_name;
+
+    NGRAPH_VLOG(4) << "Got backend of type: " << m_op_backend_name;
+    ng::runtime::Backend* op_backend = BackendManager::GetBackend("CPU");
 
     auto compute_sig = ComputeSignature(ctx);
     signature = std::get<0>(compute_sig);
@@ -335,9 +338,8 @@ class NGraphEncapsulateOp : public OpKernel {
       MemoryProfile(vm0, rss0);
 
       NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
-      OP_REQUIRES_OK(
-          ctx, Builder::TranslateGraph(input_shapes, static_input_map, &m_graph,
-                                       ng_function));
+      Builder::TranslateGraph(input_shapes, static_input_map, &m_graph,
+                              ng_function);
       ng_function->set_friendly_name(name());
 
       auto function_size = ng_function->get_graph_size() / 1024;  // kb unit
@@ -412,17 +414,17 @@ class NGraphEncapsulateOp : public OpKernel {
         NgraphSerialize(
             "tf_function_error_" + ctx->op_kernel().name() + ".json",
             ng_function);
-        OP_REQUIRES(
-            ctx, false,
-            errors::Internal("Caught exception while compiling op_backend: ",
-                             exp.what(), "\n"));
+        // OP_REQUIRES(
+        //     ctx, false,
+        //     errors::Internal("Caught exception while compiling op_backend: ",
+        //                      exp.what(), "\n"));
       } catch (...) {
         BackendManager::UnlockBackend(m_op_backend_name);
         NgraphSerialize(
             "tf_function_error_" + ctx->op_kernel().name() + ".json",
             ng_function);
-        OP_REQUIRES(ctx, false,
-                    errors::Internal("Error in compiling op_backend\n"));
+        // OP_REQUIRES(ctx, false,
+        //             errors::Internal("Error in compiling op_backend\n"));
       }
       BackendManager::UnlockBackend(m_op_backend_name);
       event_compile.Stop();
@@ -456,6 +458,43 @@ class NGraphEncapsulateOp : public OpKernel {
       }
       ng_exec = it->second;
     }
+
+    return std::make_tuple(ng_exec, ng_function, m_ng_function_map,
+                           m_ng_exec_map);
+  }
+
+  //---------------------------------------------------------------------------
+  // OpKernel::Compute
+  //---------------------------------------------------------------------------
+  void Compute(OpKernelContext* ctx) override {
+    std::ostringstream oss;
+    oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
+    ngraph::Event event(oss.str(), name(), "");
+
+    Timer compute_time;
+    std::lock_guard<std::mutex> lock(m_compute_lock);
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
+                   << m_ngraph_cluster;
+
+    NGRAPH_VLOG(4) << "Got backend of type: " << m_op_backend_name;
+    ng::runtime::Backend* op_backend =
+        BackendManager::GetBackend(m_op_backend_name);
+
+    ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
+    Timer function_lookup_or_create;
+
+    std::vector<TensorShape> input_shapes;
+    std::vector<const Tensor*> static_input_map;
+
+    auto ng_exec_get = get_ng_exec(ctx);
+
+    std::shared_ptr<ngraph::Function> ng_function;
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec;
+    std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
+
+    ng_exec = std::get<0>(ng_exec_get);
+    ng_function = std::get<1>(ng_exec_get);
+    m_ng_function_map = std::get<2>(ng_exec_get);
 
     int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
     event_func_maybe_create.Stop();
