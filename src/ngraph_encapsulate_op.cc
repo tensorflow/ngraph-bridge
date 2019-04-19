@@ -288,11 +288,7 @@ class NGraphEncapsulateOp : public OpKernel {
   }
 
   std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
-             std::shared_ptr<ngraph::Function>,
-             std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
-                                std::shared_ptr<ngraph::Function>>,
-             std::unordered_map<std::string,
-                                std::shared_ptr<ngraph::runtime::Executable>>>
+             std::shared_ptr<ngraph::Function>>
   get_ng_exec(OpKernelContext* ctx) {
     std::vector<TensorShape> input_shapes;
     std::vector<const Tensor*> static_input_map;
@@ -302,20 +298,9 @@ class NGraphEncapsulateOp : public OpKernel {
     std::shared_ptr<ngraph::runtime::Executable> ng_exec;
     std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
-    std::unordered_map<std::string,
-                       std::shared_ptr<ngraph::runtime::Executable>>
-        m_ng_exec_map;
-    std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
-                       std::shared_ptr<ngraph::Function>>
-        m_ng_function_map;
-
-    NgFunctionIOCache m_ng_exec_input_cache_map;
-    NgFunctionIOCache m_ng_exec_output_cache_map;
-
-    // string m_op_backend_name;
-
     NGRAPH_VLOG(4) << "Got backend of type: " << m_op_backend_name;
-    ng::runtime::Backend* op_backend = BackendManager::GetBackend("CPU");
+    ng::runtime::Backend* op_backend =
+        BackendManager::GetBackend(m_op_backend_name);
 
     auto compute_sig = ComputeSignature(ctx);
     signature = std::get<0>(compute_sig);
@@ -459,8 +444,7 @@ class NGraphEncapsulateOp : public OpKernel {
       ng_exec = it->second;
     }
 
-    return std::make_tuple(ng_exec, ng_function, m_ng_function_map,
-                           m_ng_exec_map);
+    return std::make_tuple(ng_exec, ng_function);
   }
 
   //---------------------------------------------------------------------------
@@ -494,7 +478,6 @@ class NGraphEncapsulateOp : public OpKernel {
 
     ng_exec = std::get<0>(ng_exec_get);
     ng_function = std::get<1>(ng_exec_get);
-    m_ng_function_map = std::get<2>(ng_exec_get);
 
     int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
     event_func_maybe_create.Stop();
