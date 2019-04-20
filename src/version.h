@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2018 Intel Corporation
+ * Copyright 2017-2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,10 @@ int ngraph_tf_cxx11_abi_flag();
 // Returns true when nGraph is using Grappler optimizer APIs for
 // graph rewriting
 bool ngraph_tf_is_grappler_enabled();
+
+// Returns true when nGraph-bridge is built with
+// --enable_variables_and_optimizers flag
+bool ngraph_tf_are_variables_enabled();
 }
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

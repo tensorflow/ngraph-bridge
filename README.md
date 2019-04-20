@@ -1,7 +1,7 @@
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/NervanaSystems/ngraph-tf/blob/master/LICENSE) 
-
-[![Build Status](https://badge.buildkite.com/ae8d39ef4a18eb238b58ab0637fb97e85b86e85822a08b96d1.svg?branch=master)](https://buildkite.com/ngraph/ngtf-cpu-centos)
+<p align="center">
+  <img src="images/ngraph-logo.png">
+</p>
 
 # Intel(R) nGraph(TM) Compiler and runtime for TensorFlow*
 
@@ -11,6 +11,9 @@ inference workloads. The nGraph Library and runtime suite can also be used to
 customize and deploy Deep Learning inference models that will "just work" with 
 a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the 
 [Intel(R) Nervana(TM) NNP](https://itpeernetwork.intel.com/inteldcisummit-artificial-intelligence/).
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/NervanaSystems/ngraph-tf/blob/master/LICENSE) 
+[![Build Status](https://badge.buildkite.com/ae8d39ef4a18eb238b58ab0637fb97e85b86e85822a08b96d1.svg?branch=master)](https://buildkite.com/ngraph/ngtf-cpu-centos)
 
 *   [Build using Linux](#linux-instructions)
 *   [Build using OS X](#using-os-x)
@@ -47,7 +50,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 This will produce something like this:
 
         TensorFlow version:  1.13.1
-        nGraph bridge version: b'0.12.0-rc6'
+        nGraph bridge version: b'0.12.0'
         nGraph version used for this build: b'0.18.0-rc.2+c5d52f1'
         TensorFlow version used for this build: v1.13.1-0-g6612da8951
         CXX11_ABI flag used for this build: 1
@@ -57,7 +60,7 @@ TensorFlow model scripts and running them the usual way:
 
         import ngraph_bridge
 
-Examples on how to use ngraph_bridge is here : https://github.com/NervanaSystems/ngraph-tf/tree/master/examples
+Detailed examples on how to use ngraph_bridge are located in the [examples] directory.
 
 Note: The version of the ngraph-tensorflow-bridge is not going to be exactly the same as when you build from source. This is due to delay in the source release and publishing the corresponding Python wheel. 
 
@@ -92,7 +95,7 @@ The installation prerequisites are the same as described in the TensorFlow
 
         git clone https://github.com/NervanaSystems/ngraph-tf.git
         cd ngraph-tf
-        git checkout v0.12.0-rc6
+        git checkout v0.12.0
 
    
 2. Next run the following Python script to build TensorFlow, nGraph and the bridge. Please use Python 3.5:
@@ -170,6 +173,7 @@ See the full documentation here:  <http://ngraph.nervanasys.com/docs/latest>
 [bazel version 0.21.0]: https://github.com/bazelbuild/bazel/releases/tag/0.21.0
 [prepare environment]: https://www.tensorflow.org/install/install_sources#prepare_environment_for_linux
 [diagnostics]:diagnostics/README.md
+[examples]:examples/README.md
 [ops]:http://ngraph.nervanasys.com/docs/latest/ops/index.html
 [nGraph]:https://github.com/NervanaSystems/ngraph 
 [ngraph-tf bridge]:https://github.com/NervanaSystems/ngraph-tf 
