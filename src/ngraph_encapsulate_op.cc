@@ -287,8 +287,7 @@ class NGraphEncapsulateOp : public OpKernel {
     return std::make_tuple(signature_ss.str(), input_shapes, static_input_map);
   }
 
-  std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
-             std::shared_ptr<ngraph::Function>>
+  std::shared_ptr<ngraph::runtime::Executable>
   get_ng_exec(OpKernelContext* ctx) {
     std::vector<TensorShape> input_shapes;
     std::vector<const Tensor*> static_input_map;
@@ -443,8 +442,7 @@ class NGraphEncapsulateOp : public OpKernel {
       }
       ng_exec = it->second;
     }
-
-    return std::make_tuple(ng_exec, ng_function);
+    return ng_exec;
   }
 
   //---------------------------------------------------------------------------
@@ -470,14 +468,34 @@ class NGraphEncapsulateOp : public OpKernel {
     std::vector<TensorShape> input_shapes;
     std::vector<const Tensor*> static_input_map;
 
-    auto ng_exec_get = get_ng_exec(ctx);
-
     std::shared_ptr<ngraph::Function> ng_function;
     std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-    std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
-    ng_exec = std::get<0>(ng_exec_get);
-    ng_function = std::get<1>(ng_exec_get);
+    BackendManager::LockBackend(m_op_backend_name);
+
+      ngraph::Event event_compile("Compile nGraph", name(), "");
+      try {
+        ng_exec = get_ng_exec(ctx);
+      } catch (const std::exception& exp) {
+        ng_function = m_ng_function_map[ng_exec];
+        BackendManager::UnlockBackend(m_op_backend_name);
+        NgraphSerialize(
+            "tf_function_error_" + ctx->op_kernel().name() + ".json",
+            ng_function);
+        OP_REQUIRES(
+            ctx, false,
+            errors::Internal("Caught exception while compiling op_backend: ",
+                             exp.what(), "\n"));
+      } catch (...) {
+        ng_function = m_ng_function_map[ng_exec];
+        BackendManager::UnlockBackend(m_op_backend_name);
+        NgraphSerialize(
+            "tf_function_error_" + ctx->op_kernel().name() + ".json",
+            ng_function);
+        OP_REQUIRES(ctx, false,
+                    errors::Internal("Error in compiling op_backend\n"));
+      }
+      BackendManager::UnlockBackend(m_op_backend_name);
 
     int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
     event_func_maybe_create.Stop();
