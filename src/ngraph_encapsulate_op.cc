@@ -258,12 +258,10 @@ class NGraphEncapsulateOp : public OpKernel {
     return Status::OK();
   }
 
-  // std::tuple<string, std::vector<TensorShape>, std::vector<const Tensor*>>
-  std::tuple<string, std::vector<TensorShape>, std::vector<const Tensor*>>
-  ComputeSignature(OpKernelContext* ctx) {
+  Status ComputeSignature(OpKernelContext* ctx, std::stringstream& signature_ss,
+                          std::vector<TensorShape>& input_shapes,
+                          std::vector<const Tensor*>& static_input_map) {
     // Get the inputs
-    std::vector<TensorShape> input_shapes;
-    std::stringstream signature_ss;
     for (int i = 0; i < ctx->num_inputs(); i++) {
       const Tensor& input_tensor = ctx->input(i);
       input_shapes.push_back(input_tensor.shape());
@@ -275,7 +273,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
     signature_ss << "/";
 
-    std::vector<const Tensor*> static_input_map(ctx->num_inputs());
+    static_input_map.resize(ctx->num_inputs());
     for (int i = 0; i < ctx->num_inputs(); i++) {
       const Tensor& input_tensor = ctx->input(i);
       if (m_input_is_static[i]) {
@@ -284,13 +282,14 @@ class NGraphEncapsulateOp : public OpKernel {
         signature_ss << ";";
       }
     }
-    return std::make_tuple(signature_ss.str(), input_shapes, static_input_map);
+    return Status::OK();
   }
 
-  std::shared_ptr<ngraph::runtime::Executable>
-  get_ng_exec(OpKernelContext* ctx) {
+  Status get_ng_exec(OpKernelContext* ctx,
+                     std::shared_ptr<ngraph::runtime::Executable>& exec) {
     std::vector<TensorShape> input_shapes;
     std::vector<const Tensor*> static_input_map;
+    std::stringstream signature_ss;
     string signature;
 
     std::shared_ptr<ngraph::Function> ng_function;
@@ -301,10 +300,9 @@ class NGraphEncapsulateOp : public OpKernel {
     ng::runtime::Backend* op_backend =
         BackendManager::GetBackend(m_op_backend_name);
 
-    auto compute_sig = ComputeSignature(ctx);
-    signature = std::get<0>(compute_sig);
-    input_shapes = std::get<1>(compute_sig);
-    static_input_map = std::get<2>(compute_sig);
+    TF_RETURN_IF_ERROR(
+        ComputeSignature(ctx, signature_ss, input_shapes, static_input_map));
+    signature = signature_ss.str();
 
     if (NGRAPH_VLOG_IS_ON(5)) {
       NGRAPH_VLOG(5) << "Computed signature: " << signature;
@@ -442,7 +440,7 @@ class NGraphEncapsulateOp : public OpKernel {
       }
       ng_exec = it->second;
     }
-    return ng_exec;
+    return Status::OK();
   }
 
   //---------------------------------------------------------------------------
@@ -471,31 +469,7 @@ class NGraphEncapsulateOp : public OpKernel {
     std::shared_ptr<ngraph::Function> ng_function;
     std::shared_ptr<ngraph::runtime::Executable> ng_exec;
 
-    BackendManager::LockBackend(m_op_backend_name);
-
-      ngraph::Event event_compile("Compile nGraph", name(), "");
-      try {
-        ng_exec = get_ng_exec(ctx);
-      } catch (const std::exception& exp) {
-        ng_function = m_ng_function_map[ng_exec];
-        BackendManager::UnlockBackend(m_op_backend_name);
-        NgraphSerialize(
-            "tf_function_error_" + ctx->op_kernel().name() + ".json",
-            ng_function);
-        OP_REQUIRES(
-            ctx, false,
-            errors::Internal("Caught exception while compiling op_backend: ",
-                             exp.what(), "\n"));
-      } catch (...) {
-        ng_function = m_ng_function_map[ng_exec];
-        BackendManager::UnlockBackend(m_op_backend_name);
-        NgraphSerialize(
-            "tf_function_error_" + ctx->op_kernel().name() + ".json",
-            ng_function);
-        OP_REQUIRES(ctx, false,
-                    errors::Internal("Error in compiling op_backend\n"));
-      }
-      BackendManager::UnlockBackend(m_op_backend_name);
+    OP_REQUIRES_OK(ctx, get_ng_exec(ctx, ng_exec));
 
     int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
     event_func_maybe_create.Stop();
