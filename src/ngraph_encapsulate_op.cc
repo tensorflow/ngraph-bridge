@@ -299,6 +299,7 @@ class NGraphEncapsulateOp : public OpKernel {
     ng::runtime::Backend* op_backend =
         BackendManager::GetBackend(m_op_backend_name);
 
+    // Compute Signature
     TF_RETURN_IF_ERROR(
         ComputeSignature(ctx, signature_ss, input_shapes, static_input_map));
     signature = signature_ss.str();
@@ -467,6 +468,7 @@ class NGraphEncapsulateOp : public OpKernel {
     std::shared_ptr<ngraph::Function> ng_function;
     std::shared_ptr<ngraph::runtime::Executable> ng_exec;
 
+    // Get ngraph executable
     OP_REQUIRES_OK(ctx,
                    get_ng_exec(ctx, ng_exec, input_shapes, static_input_map));
 
