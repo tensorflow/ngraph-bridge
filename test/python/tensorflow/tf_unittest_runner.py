@@ -59,6 +59,10 @@ def main():
         help=
         "Generates results in xml file for jenkins to populate in the test result \n"
     )
+    optional.add_argument(
+        '--verbose',
+        action="store_true",
+        help="Prints standard out if specified \n")
     parser._action_groups.append(optional)
     arguments = parser.parse_args()
 
@@ -72,7 +76,8 @@ def main():
     if (arguments.run_test):
         test_list = get_test_list(arguments.tensorflow_path, arguments.run_test)
         test_result = run_test(test_list[0], xml_report)
-        status = print_and_check_results(test_result, test_list[1])
+        status = print_and_check_results(test_result, test_list[1],
+                                         arguments.verbose)
         return status
 
     if (arguments.run_tests_from_file):
@@ -88,7 +93,8 @@ def main():
             for test_name in test_list:
                 all_test_list.append(test_name)
         test_result = run_test(all_test_list, xml_report)
-        status = print_and_check_results(test_result, invalid_list)
+        status = print_and_check_results(test_result, invalid_list,
+                                         arguments.verbose)
         return status
 
 
@@ -217,7 +223,7 @@ def read_tests_from_file(filename):
         ]
 
 
-def run_test(test_list, xml_report, verbosity=2):
+def run_test(test_list, xml_report, verbosity=0):
     """
     Runs a specific test suite or test case given with the fully qualified 
     test name and prints stdout.
@@ -240,7 +246,7 @@ def run_test(test_list, xml_report, verbosity=2):
             suite.addTest(names)
         with open(xml_report, 'wb') as output:
             test_result = xmlrunner.XMLTestRunner(
-                verbosity=verbosity, output=output).run(suite)
+                output=output, verbosity=0).run(suite)
         for test in test_list:
             if test_result.wasSuccessful():
                 succeeded.append(test)
@@ -252,7 +258,7 @@ def run_test(test_list, xml_report, verbosity=2):
         return summary
     else:
         for test in test_list:
-            test_result = unittest.TextTestRunner(verbosity=verbosity).run(
+            test_result = unittest.TextTestRunner(verbosity=0).run(
                 loader.loadTestsFromName(test))
             if test_result.wasSuccessful():
                 succeeded.append(test)
@@ -264,7 +270,7 @@ def run_test(test_list, xml_report, verbosity=2):
         return summary
 
 
-def print_and_check_results(test_result, invalid_list):
+def print_and_check_results(test_result, invalid_list, verbose):
     """
     Prints the results of the tests run and the stats.
     Prints the list of invalid tests if any.
@@ -280,20 +286,24 @@ def print_and_check_results(test_result, invalid_list):
     for key in ["PASSED", "ERRORS", "FAILED"]:
         test_name = test_result[key]
         for test in test_name:
-            if key is "PASSED":
+            if verbose and key is "PASSED":
                 print(test + '\033[92m' + ' ..PASS' + '\033[0m')
             if key is "FAILED":
                 print(test[0][0].id() + '\033[91m' + ' ..FAIL' + '\033[0m')
+                print(test[0][1])
             if key is "ERRORS":
                 print(test[0][0].id() + '\033[33m' + ' ..ERROR' + '\033[0m')
+                print(test[0][1])
 
-    if (len(invalid_list) != 0):
+    if verbose and (len(invalid_list) != 0):
         print('\033[1m' + '\nInvalid Tests' + '\033[0m')
         print('\n'.join(' '.join(map(str, test)) for test in invalid_list))
 
-    print('\033[1m' + '\n==STATS==' + '\033[0m')
+    if verbose:
+        print('\033[1m' + '\n==STATS==' + '\033[0m')
     for key in ["PASSED", "ERRORS", "FAILED"]:
         test_class_name = {}
+        test_case_name = {}
         test_name = test_result[key]
         for test in test_name:
             if key is "PASSED":
@@ -301,14 +311,20 @@ def print_and_check_results(test_result, invalid_list):
                 module_classname = module + '.' + classname
                 test_class_name[module_classname] = test_class_name.get(
                     module_classname, 0) + 1
+                test_case_name[test] = test_case_name.get(test, 0) + 1
             if key is "FAILED" or key is "ERRORS":
                 status = False
                 module, classname, testcase = test[0][0].id().split('.')
                 module_classname = module + '.' + classname
                 test_class_name[module_classname] = test_class_name.get(
                     module_classname, 0) + 1
-        for k in test_class_name:
-            print('Number of tests ' + key + ' ' + k, test_class_name[k])
+                test_case_name[test] = test_case_name.get(test, 0) + 1
+        if verbose:
+            for k in test_class_name:
+                print('Number of tests ' + key + ' ' + k, test_class_name[k])
+        else:
+            print('Number of tests ' + key + ' ' +
+                  str(len(test_case_name.keys())))
     return status
 
 
