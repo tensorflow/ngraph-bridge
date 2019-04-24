@@ -288,7 +288,8 @@ class NGraphEncapsulateOp : public OpKernel {
   Status GetNgExec(OpKernelContext* ctx,
                    std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
                    std::vector<TensorShape>& input_shapes,
-                   std::vector<const Tensor*>& static_input_map) {
+                   std::vector<const Tensor*>& static_input_map,
+                   ng::runtime::Backend*& op_backend) {
     std::stringstream signature_ss;
     string signature;
 
@@ -296,8 +297,7 @@ class NGraphEncapsulateOp : public OpKernel {
     std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
     NGRAPH_VLOG(4) << "GetNgExec: Got backend of type: " << m_op_backend_name;
-    ng::runtime::Backend* op_backend =
-        BackendManager::GetBackend(m_op_backend_name);
+    op_backend = BackendManager::GetBackend(m_op_backend_name);
 
     // Compute Signature
     TF_RETURN_IF_ERROR(
@@ -453,10 +453,6 @@ class NGraphEncapsulateOp : public OpKernel {
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
                    << m_ngraph_cluster;
 
-    NGRAPH_VLOG(4) << "Compute: Got backend of type: " << m_op_backend_name;
-    ng::runtime::Backend* op_backend =
-        BackendManager::GetBackend(m_op_backend_name);
-
     ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
     Timer function_lookup_or_create;
 
@@ -464,10 +460,11 @@ class NGraphEncapsulateOp : public OpKernel {
     std::vector<const Tensor*> static_input_map;
     std::shared_ptr<ngraph::Function> ng_function;
     std::shared_ptr<ngraph::runtime::Executable> ng_exec;
+    ng::runtime::Backend* op_backend;
 
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(ctx,
-                   GetNgExec(ctx, ng_exec, input_shapes, static_input_map));
+    OP_REQUIRES_OK(ctx, GetNgExec(ctx, ng_exec, input_shapes, static_input_map,
+                                  op_backend));
 
     int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
     event_func_maybe_create.Stop();
