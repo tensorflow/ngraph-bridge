@@ -48,7 +48,7 @@ def install_ngraph_bridge(artifacts_dir):
 
     # First ensure that we have nGraph installed
     ng_whl = os.path.join(artifacts_dir, ngtf_wheel_files[0])
-    command_executor(["pip", "install", "-U", ng_whl])
+    call([sys.executable, "-m", "pip", "install", "-U", ng_whl])
 
 
 #@depricated
@@ -121,8 +121,8 @@ def run_ngtf_pytests(venv_dir, build_dir):
     load_venv(venv_dir)
 
     # Next run the ngraph-tensorflow python tests
-    command_executor(["pip", "install", "-U", "pytest"])
-    command_executor(["pip", "install", "-U", "psutil"])
+    command_executor([sys.executable, "-m", "pip", "install", "-U", "pytest"])
+    command_executor([sys.executable, "-m", "pip", "install", "-U", "psutil"])
     command_executor([
         "python", "-m", "pytest", ('--junitxml=%s/xunit_pytest.xml' % build_dir)
     ],
@@ -147,10 +147,11 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
     os.chdir(test_dir)
 
     # Next run the ngraph-tensorflow python tests
-    command_executor(["pip", "install", "-U", "pytest"])
-    command_executor(["pip", "install", "-U", "psutil"])
+    command_executor([sys.executable, "-m", "pip", "install", "-U", "pytest"])
+    command_executor([sys.executable, "-m", "pip", "install", "-U", "psutil"])
+
     command_executor([
-        "python", "-m", "pytest",
+        sys.executable, "-m", "pytest",
         ('--junitxml=%s/xunit_pytest.xml' % artifacts_dir)
     ])
 
@@ -204,8 +205,8 @@ def run_tensorflow_pytests(venv_dir, build_dir, ngraph_tf_src_dir, tf_src_dir):
     os.chdir(root_pwd)
 
 
-def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
-                                          xml_output):
+def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
+                                          tf_src_dir, xml_output):
     root_pwd = os.getcwd()
 
     ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
@@ -241,7 +242,11 @@ def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
     # Now run the TensorFlow python tests
     test_src_dir = os.path.join(ngraph_tf_src_dir, "test/python/tensorflow")
     test_script = os.path.join(test_src_dir, "tf_unittest_runner.py")
-    test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
+    if backend is not None and 'GPU' in backend:
+        test_manifest_file = os.path.join(test_src_dir,
+                                          "python_tests_list_gpu.txt")
+    else:
+        test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
     test_xml_report = './junit_tensorflow_tests.xml'
 
     import psutil
@@ -250,6 +255,7 @@ def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
     os.environ['OMP_NUM_THREADS'] = str(num_cores)
     os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
 
+    # should this python be sys.executable?
     cmd = [
         "python",
         test_script,
