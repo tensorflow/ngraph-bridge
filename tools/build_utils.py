@@ -149,6 +149,7 @@ def setup_venv(venv_dir):
         "keras_preprocessing==1.0.5",
         "--no-deps",
         "yapf==0.26.0",
+        "tqdm",
     ]
     command_executor(package_list)
 

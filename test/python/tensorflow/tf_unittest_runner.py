@@ -19,6 +19,7 @@ import argparse
 import os
 import re
 import fnmatch
+from tqdm import tqdm
 
 try:
     import xmlrunner
@@ -241,12 +242,18 @@ def run_test(test_list, xml_report, verbosity=0):
     failures = []
     errors = []
     if xml_report is not None:
-        for test in test_list:
+        for test in tqdm(test_list):
             names = loader.loadTestsFromName(test)
             suite.addTest(names)
         with open(xml_report, 'wb') as output:
+            sys.stdin = open(os.devnull, "w")
+            sys.stdout = open(os.devnull, "w")
+            sys.stderr = open(os.devnull, "w")
             test_result = xmlrunner.XMLTestRunner(
-                output=output, verbosity=0).run(suite)
+                output=output, verbosity=verbosity).run(suite)
+            sys.stderr = sys.__stderr__
+            sys.stdout = sys.__stdout__
+            sys.stdin = sys.__stdin__
         for test in test_list:
             if test_result.wasSuccessful():
                 succeeded.append(test)
@@ -257,9 +264,15 @@ def run_test(test_list, xml_report, verbosity=0):
         summary = {"PASSED": succeeded, "FAILED": failures, "ERRORS": errors}
         return summary
     else:
-        for test in test_list:
-            test_result = unittest.TextTestRunner(verbosity=0).run(
+        for test in tqdm(test_list):
+            sys.stdin = open(os.devnull, "w")
+            sys.stdout = open(os.devnull, "w")
+            sys.stderr = open(os.devnull, "w")
+            test_result = unittest.TextTestRunner(verbosity=verbosity).run(
                 loader.loadTestsFromName(test))
+            sys.stdin = sys.__stdin__
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
             if test_result.wasSuccessful():
                 succeeded.append(test)
             elif test_result.failures:
