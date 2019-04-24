@@ -19,13 +19,18 @@ import argparse
 import os
 import re
 import fnmatch
-from tqdm import tqdm
 
 try:
     import xmlrunner
 except:
     os.system('pip install unittest-xml-reporting')
     import xmlrunner
+
+try:
+    from tqdm import tqdm
+except:
+    os.system('pip install tqdm')
+    from tqdm import tqdm
 """
 tf_unittest_runner is primarily used to run tensorflow python 
 unit tests using ngraph
@@ -331,13 +336,23 @@ def print_and_check_results(test_result, invalid_list, verbose):
                 module_classname = module + '.' + classname
                 test_class_name[module_classname] = test_class_name.get(
                     module_classname, 0) + 1
-                test_case_name[test] = test_case_name.get(test, 0) + 1
+                test_case_name[test[0][0]] = test_case_name.get(test[0][0],
+                                                                0) + 1
         if verbose:
             for k in test_class_name:
                 print('Number of tests ' + key + ' ' + k, test_class_name[k])
         else:
-            print('Number of tests ' + key + ' ' +
-                  str(len(test_case_name.keys())))
+            if len(test_case_name.keys()) > 0:
+                if key is "PASSED":
+                    print('Number of tests ' + key + ' ' +
+                          str(len(test_case_name.keys())))
+                if key is "FAILED":
+                    print('Number of tests ' + '\033[91m' + key + '\033[0m' +
+                          ' ' + str(len(test_case_name.keys())))
+                if key is "ERRORS":
+                    print('Number of tests ' + '\033[33m' + key + '\033[0m' +
+                          ' ' + str(len(test_case_name.keys())))
+
     return status
 
 
