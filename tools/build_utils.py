@@ -379,5 +379,10 @@ def download_repo(target_name, repo, version):
 def apply_patch(patch_file):
     cmd = subprocess.Popen(
         'patch -p1 -N -i ' + patch_file, shell=True, stdout=subprocess.PIPE)
-    assert b'patch detected!  Skipping patch' in (
-        cmd.stdout).readlines()[1], "Error applying the patch."
+    printed_lines = cmd.communicate()
+    # Check if the patch is being applied for the first time, in which case
+    # cmd.returncode will be 0 or if the patch has already been applied, in
+    # which case the string will be found, in all other cases the assertion
+    # will fail
+    assert cmd.returncode == 0 or 'patch detected!  Skipping patch' in str(
+        printed_lines[0]), "Error applying the patch."
