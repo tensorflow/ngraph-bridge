@@ -20,6 +20,7 @@ from argparse import RawTextHelpFormatter
 
 import errno
 import os
+import subprocess
 from subprocess import check_output, call
 import sys
 import shutil
@@ -373,3 +374,10 @@ def download_repo(target_name, repo, version):
     call(["git", "fetch"])
     command_executor(["git", "checkout", version])
     os.chdir(pwd)
+
+
+def apply_patch(patch_file):
+    cmd = subprocess.Popen(
+        'patch -p1 -N -i ' + patch_file, shell=True, stdout=subprocess.PIPE)
+    assert b'patch detected!  Skipping patch' in (
+        cmd.stdout).readlines()[1], "Error applying the patch."
