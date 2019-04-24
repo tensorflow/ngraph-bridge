@@ -285,17 +285,17 @@ class NGraphEncapsulateOp : public OpKernel {
     return Status::OK();
   }
 
-  Status get_ng_exec(OpKernelContext* ctx,
-                     std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-                     std::vector<TensorShape>& input_shapes,
-                     std::vector<const Tensor*>& static_input_map) {
+  Status GetNgExec(OpKernelContext* ctx,
+                   std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+                   std::vector<TensorShape>& input_shapes,
+                   std::vector<const Tensor*>& static_input_map) {
     std::stringstream signature_ss;
     string signature;
 
     std::shared_ptr<ngraph::Function> ng_function;
     std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
-    NGRAPH_VLOG(4) << "get_ng_exec:Got backend of type: " << m_op_backend_name;
+    NGRAPH_VLOG(4) << "GetNgExec: Got backend of type: " << m_op_backend_name;
     ng::runtime::Backend* op_backend =
         BackendManager::GetBackend(m_op_backend_name);
 
@@ -453,7 +453,7 @@ class NGraphEncapsulateOp : public OpKernel {
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
                    << m_ngraph_cluster;
 
-    NGRAPH_VLOG(4) << "Compute:Got backend of type: " << m_op_backend_name;
+    NGRAPH_VLOG(4) << "Compute: Got backend of type: " << m_op_backend_name;
     ng::runtime::Backend* op_backend =
         BackendManager::GetBackend(m_op_backend_name);
 
@@ -465,9 +465,9 @@ class NGraphEncapsulateOp : public OpKernel {
     std::shared_ptr<ngraph::Function> ng_function;
     std::shared_ptr<ngraph::runtime::Executable> ng_exec;
 
-    // Get ngraph executable
+    // Get ngraph executable and inputs information
     OP_REQUIRES_OK(ctx,
-                   get_ng_exec(ctx, ng_exec, input_shapes, static_input_map));
+                   GetNgExec(ctx, ng_exec, input_shapes, static_input_map));
 
     int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
     event_func_maybe_create.Stop();
@@ -540,9 +540,9 @@ class NGraphEncapsulateOp : public OpKernel {
           input_caches[i].second;
       void* current_src_ptr = (void*)DMAHelper::base(&ctx->input(i));
       std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
-          get_current_ng_tensor(current_src_ptr, last_src_ptr, last_ng_tensor,
-                                false, ng_exec, op_backend, ng_element_type,
-                                ng_shape);
+          GetCurrentNgTensor(current_src_ptr, last_src_ptr, last_ng_tensor,
+                             false, ng_exec, op_backend, ng_element_type,
+                             ng_shape);
       bool is_cpu = m_op_backend_name == "CPU";
 
       if (!is_cpu && current_ng_tensor->get_stale()) {
@@ -631,9 +631,9 @@ class NGraphEncapsulateOp : public OpKernel {
 
       void* current_dst_ptr = DMAHelper::base(output_tensor);
       std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
-          get_current_ng_tensor(current_dst_ptr, last_dst_ptr, last_ng_tensor,
-                                true, ng_exec, op_backend, ng_element_type,
-                                ng_shape);
+          GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor,
+                             true, ng_exec, op_backend, ng_element_type,
+                             ng_shape);
 
       current_ng_tensor->set_stale(true);
       output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
@@ -890,7 +890,7 @@ class NGraphEncapsulateOp : public OpKernel {
   std::mutex m_compute_lock;
   string m_op_backend_name;
 
-  std::shared_ptr<ng::runtime::Tensor> get_current_ng_tensor(
+  std::shared_ptr<ng::runtime::Tensor> GetCurrentNgTensor(
       void* current_tf_ptr, void* last_tf_ptr,
       const std::shared_ptr<ng::runtime::Tensor>& last_ng_tensor,
       const bool& output_tensor,
