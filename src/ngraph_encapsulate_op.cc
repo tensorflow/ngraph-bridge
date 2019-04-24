@@ -466,6 +466,10 @@ class NGraphEncapsulateOp : public OpKernel {
     OP_REQUIRES_OK(ctx, GetNgExec(ctx, ng_exec, input_shapes, static_input_map,
                                   op_backend));
 
+    NGRAPH_VLOG(4)
+        << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
+        << m_ngraph_cluster;
+
     int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
     event_func_maybe_create.Stop();
 
