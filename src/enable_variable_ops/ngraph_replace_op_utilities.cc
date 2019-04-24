@@ -216,6 +216,21 @@ Status ReplaceOutputEdges(Graph* graph, Node* node, Node* replacement) {
   return Status::OK();
 }
 
+bool IsInputFromTempVar(Node* node) {
+  if(node->num_inputs()){
+    for (auto edge : node->in_edges()) {
+      Node* src_node = edge->src();
+      if(src_node->type_string() == "TemporaryVariable") {
+        NGRAPH_VLOG(4) << "The input node is a Temporary Variable";
+        return true;
+      } else {
+        return(IsInputFromTempVar(src_node));
+      }
+    }
+  }
+  return false;
+}
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

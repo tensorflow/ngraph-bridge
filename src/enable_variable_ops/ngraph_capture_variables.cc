@@ -61,7 +61,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
   for (auto node : graph->op_nodes()) {
     if (NGraphPlacementRequested(node)) {
       auto itr = CAPTURE_REPLACE_OP_MAP.find(node->type_string());
-      if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
+      if (itr != CAPTURE_REPLACE_OP_MAP.end() && !IsInputFromTempVar(node)) {
         NGRAPH_VLOG(1) << "Capturing: " << node->name();
         Node* replacement;
 
