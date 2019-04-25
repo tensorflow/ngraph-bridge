@@ -29,6 +29,7 @@
 
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
+#include "ngraph_cluster_manager.h"
 #include "ngraph_deassign_clusters.h"
 #include "ngraph_log.h"
 #include "ngraph_mark_for_clustering.h"
@@ -202,7 +203,7 @@ Status DeassignClusters(Graph* graph) {
         node->ClearAttr("_ngraph_cluster");
         // TODO(amprocte): move attr name to a constant
         node->ClearAttr("_ngraph_marked_for_clustering");
-
+        NGraphClusterManager::EvictCluster(cluster_idx);
         deassigned_histogram[node->type_string()]++;
       }
     }

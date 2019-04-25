@@ -21,20 +21,33 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 // Static initializers
-std::vector<GraphDef*> NGraphClusterManager::s_cluster_graphs;
+std::map<int, GraphDef*> NGraphClusterManager::s_cluster_graphs;
 std::mutex NGraphClusterManager::s_cluster_graphs_mutex;
 
 int NGraphClusterManager::NewCluster() {
   std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
 
   int new_idx = s_cluster_graphs.size();
-  s_cluster_graphs.push_back(new GraphDef());
+  s_cluster_graphs[new_idx] = new GraphDef();
   return new_idx;
 }
 
 GraphDef* NGraphClusterManager::GetClusterGraph(int idx) {
   std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
   return idx < s_cluster_graphs.size() ? s_cluster_graphs[idx] : nullptr;
+}
+
+void NGraphClusterManager::EvictCluster(int idx) {
+  std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
+  s_cluster_graphs.erase(idx);
+}
+
+vector<int> NGraphClusterManager::GetClusterIndexes() {
+  std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
+  std::vector<int> cluster_indexes;
+  for (const auto& key_val : s_cluster_graphs)
+    cluster_indexes.push_back(key_val.first);
+  return cluster_indexes;
 }
 
 void NGraphClusterManager::EvictAllClusters() { s_cluster_graphs.clear(); }
