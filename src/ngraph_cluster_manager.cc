@@ -34,7 +34,8 @@ int NGraphClusterManager::NewCluster() {
 
 GraphDef* NGraphClusterManager::GetClusterGraph(int idx) {
   std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
-  return idx < s_cluster_graphs.size() ? s_cluster_graphs[idx] : nullptr;
+  auto itr = s_cluster_graphs.find(idx);
+  return (itr == s_cluster_graphs.end()) ? nullptr : itr->second;
 }
 
 void NGraphClusterManager::EvictCluster(int idx) {
