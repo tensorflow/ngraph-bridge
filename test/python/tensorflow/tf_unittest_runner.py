@@ -97,7 +97,8 @@ def main():
                     invalid_list.append(test_list[1])
             test_list = list(set(test_list[0]))
             for test_name in test_list:
-                all_test_list.append(test_name)
+                if test_name not in all_test_list:
+                    all_test_list.append(test_name)
         test_result = run_test(all_test_list, xml_report)
         status = print_and_check_results(test_result, invalid_list,
                                          arguments.verbose)
