@@ -217,18 +217,39 @@ Status ReplaceOutputEdges(Graph* graph, Node* node, Node* replacement) {
 }
 
 bool IsInputFromTempVar(Node* node) {
-  if(node->num_inputs()){
+  if (node->num_inputs()) {
     for (auto edge : node->in_edges()) {
       Node* src_node = edge->src();
-      if(src_node->type_string() == "TemporaryVariable") {
-        NGRAPH_VLOG(4) << "The input node is a Temporary Variable";
+      if (src_node->type_string() == "TemporaryVariable") {
         return true;
       } else {
-        return(IsInputFromTempVar(src_node));
+        return (IsInputFromTempVar(src_node));
       }
     }
   }
   return false;
+}
+
+bool IsValidateShape(Node* node) {
+  bool validate_shape;
+  GetNodeAttr(node->attrs(), "validate_shape_", &validate_shape);
+  return validate_shape;
+}
+
+Status RemoveNodesFromCaptureList(Node* node,
+                                  std::vector<Node*>* nodes_to_capture) {
+  if (node->num_inputs()) {
+    for (auto edge : node->in_edges()) {
+      Node* src_node = edge->src();
+      auto itr = std::find(nodes_to_capture->begin(), nodes_to_capture->end(),
+                           src_node);
+      if (itr != nodes_to_capture->end()) {
+        nodes_to_capture->erase(itr);
+        RemoveNodesFromCaptureList(src_node, nodes_to_capture);
+      }
+    }
+  }
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge

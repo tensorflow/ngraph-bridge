@@ -57,34 +57,60 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
           {"VariableV2", std::make_pair("NGraphVariable", ReplaceVariable)}};
 
-  std::vector<Node*> replaced_nodes;
+  std::vector<Node*> nodes_to_capture;
   for (auto node : graph->op_nodes()) {
+    bool capture_node = false;
     if (NGraphPlacementRequested(node)) {
       auto itr = CAPTURE_REPLACE_OP_MAP.find(node->type_string());
-      if (itr != CAPTURE_REPLACE_OP_MAP.end() && !IsInputFromTempVar(node)) {
-        NGRAPH_VLOG(1) << "Capturing: " << node->name();
-        Node* replacement;
+      if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
+        do {
+          // Check if the input is a temporary variable
+          if (IsInputFromTempVar(node)) {
+            NGRAPH_VLOG(4) << "The input node is a Temporary Variable";
+            break;
+          }
 
-        // Create the replacement node
-        TF_RETURN_IF_ERROR((itr->second.second)(graph, node, &replacement,
-                                                node->name(), itr->second.first,
-                                                false, false, 0, false));
+          // Check if the node is Assign node and it's attribute
+          // variable_shape_ is false
+          if (node->type_string() == "Assign" && !IsValidateShape(node)) {
+            // Go over all it's inputs and remove them from the capture list
+            NGRAPH_VLOG(4)
+                << "The attribute validate_shape_ for Assign is false";
+            RemoveNodesFromCaptureList(node, &nodes_to_capture);
+            // TODO: Do we need to remove the outputs of such node from the
+            // capture list
+            break;
+          }
 
-        std::vector<const Edge*> edges;
-
-        NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
-                       << replacement->DebugString();
-
-        TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
-        TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
-
-        replaced_nodes.push_back(node);
+          capture_node = true;
+        } while (false);
       }
-
+      if (capture_node) {
+        nodes_to_capture.push_back(node);
+      }
     }  // end of checking NGraphPlacementRequested
   }    // end of looping through nodes in the graph
 
-  for (auto node : replaced_nodes) {
+  for (auto node : nodes_to_capture) {
+    NGRAPH_VLOG(1) << "Capturing: " << node->name();
+    Node* replacement;
+    auto itr = CAPTURE_REPLACE_OP_MAP.find(node->type_string());
+    // Create the replacement node
+    TF_RETURN_IF_ERROR((itr->second.second)(graph, node, &replacement,
+                                            node->name(), itr->second.first,
+                                            false, false, 0, false));
+
+    std::vector<const Edge*> edges;
+
+    NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
+                   << replacement->DebugString();
+
+    TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
+    TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
+
+  }  // end of looping through nodes in the capture list
+
+  for (auto node : nodes_to_capture) {
     NGRAPH_VLOG(4) << "Removing: " << node->name();
     graph->RemoveNode(node);
   }
