@@ -100,8 +100,6 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
                                             node->name(), itr->second.first,
                                             false, false, 0, false));
 
-    std::vector<const Edge*> edges;
-
     NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
                    << replacement->DebugString();
 

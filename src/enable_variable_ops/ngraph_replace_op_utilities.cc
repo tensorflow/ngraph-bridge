@@ -232,7 +232,7 @@ bool IsInputFromTempVar(Node* node) {
 
 bool IsValidateShape(Node* node) {
   bool validate_shape;
-  GetNodeAttr(node->attrs(), "validate_shape_", &validate_shape);
+  GetNodeAttr(node->attrs(), "validate_shape", &validate_shape);
   return validate_shape;
 }
 
