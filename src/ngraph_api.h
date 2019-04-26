@@ -41,8 +41,8 @@ extern void ngraph_start_logging_placement();
 extern void ngraph_stop_logging_placement();
 extern bool ngraph_is_logging_placement();
 
-extern void ngraph_set_disable_ops(const char* op_type_list);
-extern const char* ngraph_get_disable_ops();
+extern void ngraph_set_disabled_ops(const char* op_type_list);
+extern const char* ngraph_get_disabled_ops();
 }
 
 extern void Enable();

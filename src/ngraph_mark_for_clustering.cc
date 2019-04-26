@@ -207,7 +207,7 @@ Status MarkForClustering(Graph* graph,
   static std::unordered_set<string> disabled_ops_set;
 
   auto disabled_ops_list =
-      ng::split(string(config::ngraph_get_disable_ops()), ',');
+      ng::split(string(config::ngraph_get_disabled_ops()), ',');
   auto disabled_ops_set_current =
       unordered_set<string>(disabled_ops_list.begin(), disabled_ops_list.end());
 

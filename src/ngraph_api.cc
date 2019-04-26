@@ -65,12 +65,12 @@ void ngraph_start_logging_placement() { StartLoggingPlacement(); }
 void ngraph_stop_logging_placement() { StopLoggingPlacement(); }
 bool ngraph_is_logging_placement() { return IsLoggingPlacement(); }
 
-extern void ngraph_set_disable_ops(const char* op_type_list) {
+extern void ngraph_set_disabled_ops(const char* op_type_list) {
   disabled_op_types = std::string(op_type_list);
   // TODO unit tests: set "add", "add,subtract", ""
 }
 
-extern const char* ngraph_get_disable_ops() {
+extern const char* ngraph_get_disabled_ops() {
   return disabled_op_types.c_str();
   // TODO: unit tests
 }

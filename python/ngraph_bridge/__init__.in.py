@@ -40,7 +40,7 @@ __all__ = [
     'set_backend', 'is_supported_backend', 'get_currently_set_backend_name',
     'start_logging_placement', 'stop_logging_placement',
     'is_logging_placement', '__version__', 'cxx11_abi_flag'
-    'is_grappler_enabled', 'are_variables_enabled'
+    'is_grappler_enabled', 'are_variables_enabled', 'set_disabled_ops', 'get_disabled_ops'
 ]
 
 ext = 'dylib' if system() == 'Darwin' else 'so'
@@ -118,8 +118,8 @@ ngraph_bridge_lib.ngraph_lib_version.restype = ctypes.c_char_p
 ngraph_bridge_lib.ngraph_tf_cxx11_abi_flag.restype = ctypes.c_int
 ngraph_bridge_lib.ngraph_tf_is_grappler_enabled.restype = ctypes.c_bool
 ngraph_bridge_lib.ngraph_tf_are_variables_enabled.restype = ctypes.c_bool
-ngraph_bridge_lib.ngraph_set_disable_ops.argtypes = ctypes.c_char_p
-ngraph_bridge_lib.ngraph_get_disable_ops.restype = ctypes.c_char_p
+ngraph_bridge_lib.ngraph_set_disabled_ops.argtypes = [ctypes.c_char_p]
+ngraph_bridge_lib.ngraph_get_disabled_ops.restype = ctypes.c_char_p
 
 try:
     importlib.import_module('plaidml.settings')
@@ -198,11 +198,11 @@ def is_grappler_enabled():
 def are_variables_enabled():
     return ngraph_bridge_lib.ngraph_tf_are_variables_enabled()
 
-def set_disable_ops(unsupported_ops):
-    ngraph_bridge_lib.ngraph_set_disable_ops(unsupported_ops)
+def set_disabled_ops(unsupported_ops):
+    ngraph_bridge_lib.ngraph_set_disabled_ops(unsupported_ops)
 
 def get_disabled_ops():
-    return ngraph_bridge_lib.ngraph_get_disable_ops()
+    return ngraph_bridge_lib.ngraph_get_disabled_ops()
 
 __version__ = \
   "nGraph bridge version: " + str(ngraph_bridge_lib.ngraph_tf_version()) + "\n" + \
