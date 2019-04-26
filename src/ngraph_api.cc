@@ -16,15 +16,12 @@
 
 #include "ngraph_api.h"
 
-namespace ng = ngraph;
-
 namespace tensorflow {
 namespace ngraph_bridge {
 namespace config {
 
 static bool _is_enabled = true;
 static bool _is_logging_placement = false;
-static string disabled_op_types = "";
 
 extern "C" {
 void ngraph_enable() { Enable(); }
@@ -64,16 +61,6 @@ extern bool ngraph_get_currently_set_backend_name(char** backend) {
 void ngraph_start_logging_placement() { StartLoggingPlacement(); }
 void ngraph_stop_logging_placement() { StopLoggingPlacement(); }
 bool ngraph_is_logging_placement() { return IsLoggingPlacement(); }
-
-extern void ngraph_set_disable_ops(const char* op_type_list) {
-  disabled_op_types = std::string(op_type_list);
-  // TODO unit tests: set "add", "add,subtract", ""
-}
-
-extern const char* ngraph_get_disable_ops() {
-  return disabled_op_types.c_str();
-  // TODO: unit tests
-}
 }
 
 // note that TensorFlow always uses camel case for the C++ API, but not for
