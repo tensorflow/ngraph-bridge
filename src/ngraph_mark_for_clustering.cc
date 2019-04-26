@@ -204,10 +204,25 @@ Status MarkForClustering(Graph* graph,
   // needed in case the graph is broken up in a later rewrite pass (for example,
   // constant data).
 
+  static std::unordered_set<string> disabled_ops_set;
+
+  auto disabled_ops_list =
+      ng::split(string(config::ngraph_get_disable_ops()), ',');
+  auto disabled_ops_set_current =
+      unordered_set<string>(disabled_ops_list.begin(), disabled_ops_list.end());
+
+  bool op_set_support_has_changed =
+      disabled_ops_set_current != disabled_ops_set;
+  // TODO: check if == work as intended for unordered_set?
+
+  // TODO: unit test: set "add" as disabled, run a neteork, see it is not
+  // clustered. "add" is reenabled. see it being encapsulated now. disable it
+  // again and see it not being placed on ngraph again
+
   {
     mutex_lock l(init_mu);
 
-    if (!initialized) {
+    if (!initialized || op_set_support_has_changed) {
       //
       // Initialize confirmation function map.
       //
@@ -646,6 +661,17 @@ Status MarkForClustering(Graph* graph,
     *result = (current_backend == "NNPI");
     return Status::OK();
   };
+
+  if (op_set_support_has_changed) {
+    for (auto itr : disabled_ops_set) {
+      auto conf_itr = confirmation_function_map.find(itr);
+      if (conf_itr == confirmation_function_map.end()) {
+        // TODO : Error, invalid op passed
+      } else {
+        confirmation_function_map.erase(conf_itr);
+      }
+    }
+  }
 
   std::unordered_map<string, int> no_support_histogram;
   std::unordered_map<string, int> fail_confirmation_histogram;
