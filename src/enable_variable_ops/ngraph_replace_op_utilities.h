@@ -60,6 +60,7 @@ bool IsInputFromTempVar(Node* node);
 bool IsValidateShape(Node* node);
 Status RemoveNodesFromCaptureList(Node* node,
                                   std::vector<Node*>* nodes_to_capture);
+bool IsInputVarCaptured(Node* node, std::vector<Node*>* nodes_to_capture);
 
 }  // namespace ngraph_bridge
 

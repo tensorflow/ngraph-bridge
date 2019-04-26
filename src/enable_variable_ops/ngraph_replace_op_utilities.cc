@@ -244,12 +244,30 @@ Status RemoveNodesFromCaptureList(Node* node,
       auto itr = std::find(nodes_to_capture->begin(), nodes_to_capture->end(),
                            src_node);
       if (itr != nodes_to_capture->end()) {
+        NGRAPH_VLOG(4) << "Removing " << node->name()
+                       << " from the capture list";
         nodes_to_capture->erase(itr);
         RemoveNodesFromCaptureList(src_node, nodes_to_capture);
       }
     }
   }
   return Status::OK();
+}
+
+bool IsInputVarCaptured(Node* node, std::vector<Node*>* nodes_to_capture) {
+  if (node->num_inputs()) {
+    for (auto edge : node->in_edges()) {
+      Node* src_node = edge->src();
+      if (src_node->type_string() == "VariableV2") {
+        auto itr = std::find(nodes_to_capture->begin(), nodes_to_capture->end(),
+                             src_node);
+        if (itr == nodes_to_capture->end()) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 }  // namespace ngraph_bridge

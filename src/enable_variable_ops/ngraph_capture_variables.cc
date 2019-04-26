@@ -71,14 +71,25 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           }
 
           // Check if the node is Assign node and it's attribute
-          // variable_shape_ is false
+          // variable_shape is false
           if (node->type_string() == "Assign" && !IsValidateShape(node)) {
             // Go over all it's inputs and remove them from the capture list
             NGRAPH_VLOG(4)
-                << "The attribute validate_shape_ for Assign is false";
+                << "The attribute validate_shape for Assign is false";
             RemoveNodesFromCaptureList(node, &nodes_to_capture);
             // TODO: Do we need to remove the outputs of such node from the
-            // capture list
+            // capture list?
+            break;
+          }
+
+          // Corner case: 2 Assign* using the same variable
+          // If an Assign has attribute variable_shape=false, then we have to
+          // remove the Variable from the capture list as well but the other
+          // Assign* will still be captured. So we need to make sure that the
+          // other Assign* is not captured as well.
+          if (!IsInputVarCaptured(node, &nodes_to_capture)) {
+            NGRAPH_VLOG(4) << "Input variable " << node->name()
+                           << "not captured";
             break;
           }
 
