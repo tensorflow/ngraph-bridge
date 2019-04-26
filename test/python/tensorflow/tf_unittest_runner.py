@@ -343,16 +343,14 @@ def print_and_check_results(test_result, invalid_list, verbose):
             for k in test_class_name:
                 print('Number of tests ' + key + ' ' + k, test_class_name[k])
         else:
+            color = {
+                'PASSED': '\033[98m',
+                'FAILED': '\033[91m',
+                'ERRORS': '\033[33m'
+            }[key]
             if len(test_case_name.keys()) > 0:
-                if key is "PASSED":
-                    print('Number of tests ' + key + ' ' +
-                          str(len(test_case_name.keys())))
-                if key is "FAILED":
-                    print('Number of tests ' + '\033[91m' + key + '\033[0m' +
-                          ' ' + str(len(test_case_name.keys())))
-                if key is "ERRORS":
-                    print('Number of tests ' + '\033[33m' + key + '\033[0m' +
-                          ' ' + str(len(test_case_name.keys())))
+                print('Number of tests ' + color + key + ' ' + '\033[0m' +
+                      str(len(test_case_name.keys())))
 
     return status
 
