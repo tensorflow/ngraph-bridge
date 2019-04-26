@@ -93,6 +93,13 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
             break;
           }
 
+          // TODO: in continuation of the afore mentioned corner case, there is
+          // another case we would need to deal with where there are 2 Assign
+          // using same variable but one has already been captured before the
+          // other with variable_shape = false is encountered. In this scenario,
+          // the variable is taken care of but the captured Assign remains
+          // captured and should be removed from the capture list.
+
           capture_node = true;
         } while (false);
       }
