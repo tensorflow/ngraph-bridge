@@ -482,10 +482,6 @@ Status EncapsulateClusters(Graph* graph, int graph_id) {
     graph->RemoveNode(node);
   }
 
-  for (auto i : NGraphClusterManager::GetClusterIndexes()){
-    cout << i << "  ==== ";
-  }
-  cout << "\n";
 
   // Pass 7 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and

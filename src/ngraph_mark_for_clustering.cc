@@ -214,7 +214,7 @@ Status MarkForClustering(Graph* graph,
       // Please keep these in alphabetical order by op name.
       //
       confirmation_function_map["Abs"] = SimpleConfirmationFunction();
-      //confirmation_function_map["Add"] = SimpleConfirmationFunction();
+      confirmation_function_map["Add"] = SimpleConfirmationFunction();
       confirmation_function_map["AddN"] = SimpleConfirmationFunction();
       confirmation_function_map["Any"] = SimpleConfirmationFunction();
       confirmation_function_map["All"] = SimpleConfirmationFunction();
