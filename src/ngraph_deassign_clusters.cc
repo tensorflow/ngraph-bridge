@@ -194,10 +194,10 @@ Status DeassignClusters(Graph* graph) {
     }
 
     if (non_trivial_count < MIN_NONTRIVIAL_NODES) {
-      NGRAPH_VLOG(2) << "Busting cluster " << cluster_idx;
+      cout << "Busting cluster " << cluster_idx << "\n";
       for (auto node : nodes) {
-        NGRAPH_VLOG(2) << "Busting node: " << node->name() << " ["
-                       << node->type_string() << "]";
+        cout << "Busting node: " << node->name() << " [" << node->type_string()
+             << "]\n";
 
         // TODO(amprocte): move attr name to a constant
         node->ClearAttr("_ngraph_cluster");
