@@ -203,9 +203,9 @@ Status DeassignClusters(Graph* graph) {
         node->ClearAttr("_ngraph_cluster");
         // TODO(amprocte): move attr name to a constant
         node->ClearAttr("_ngraph_marked_for_clustering");
-        NGraphClusterManager::EvictCluster(cluster_idx);
         deassigned_histogram[node->type_string()]++;
       }
+      NGraphClusterManager::EvictCluster(cluster_idx);
     }
   }
 
