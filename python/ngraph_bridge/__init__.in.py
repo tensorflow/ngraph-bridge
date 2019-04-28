@@ -199,7 +199,7 @@ def are_variables_enabled():
     return ngraph_bridge_lib.ngraph_tf_are_variables_enabled()
 
 def set_disabled_ops(unsupported_ops):
-    ngraph_bridge_lib.ngraph_set_disabled_ops(unsupported_ops)
+    ngraph_bridge_lib.ngraph_set_disabled_ops(unsupported_ops.encode("utf-8"))
 
 def get_disabled_ops():
     return ngraph_bridge_lib.ngraph_get_disabled_ops()

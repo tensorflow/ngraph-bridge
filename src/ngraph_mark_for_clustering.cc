@@ -663,6 +663,7 @@ Status MarkForClustering(Graph* graph,
   };
 
   if (op_set_support_has_changed) {
+    disabled_ops_set = disabled_ops_set_current;
     for (auto itr : disabled_ops_set) {
       auto conf_itr = confirmation_function_map.find(itr);
       if (conf_itr == confirmation_function_map.end()) {
