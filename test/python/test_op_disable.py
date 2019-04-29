@@ -32,6 +32,10 @@ from common import NgraphTest
 
 class TestOpDisableOperations(NgraphTest):
 
+    # Initially nothing is disabled
+    def test_disable_op_1(self, op_list):
+        assert ngraph_bridge.get_disabled_ops() == b''
+
     # Note it is possible to set an invalid op name (as long as mark_for_clustering is not called)
     @pytest.mark.parametrize(("op_list",), (('Add',), ('Add,Sub',), ('',),
                                             ('_InvalidOp',)))
