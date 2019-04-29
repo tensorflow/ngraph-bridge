@@ -111,8 +111,7 @@ bool IsLoggingPlacement() {
 std::set<string> GetDisabledOps() { return disabled_op_types; }
 
 void SetDisabledOps(string disabled_ops_str) {
-  auto disabled_ops_list =
-      ng::split(disabled_ops_str, ',');
+  auto disabled_ops_list = ng::split(disabled_ops_str, ',');
   // In case string is '', then splitting yields ['']. So taking care that ['']
   // corresponds to empty set {}
   if (disabled_ops_list.size() >= 1 && disabled_ops_list[0] != "") {
