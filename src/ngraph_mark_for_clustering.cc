@@ -204,20 +204,26 @@ Status MarkForClustering(Graph* graph,
   // needed in case the graph is broken up in a later rewrite pass (for example,
   // constant data).
 
-  static std::unordered_set<string> disabled_ops_set;
+  static std::set<string> disabled_ops_set = {};
 
   auto disabled_ops_list =
       ng::split(string(config::ngraph_get_disabled_ops()), ',');
-  auto disabled_ops_set_current =
-      unordered_set<string>(disabled_ops_list.begin(), disabled_ops_list.end());
+  // In case string is '', then splitting yields ['']. So taking care that ['']
+  // corresponds to empty set {}
+  set<string> disabled_ops_set_current = {};
+  if (disabled_ops_list.size() >= 1 && disabled_ops_list[0] != "") {
+    disabled_ops_set_current =
+        set<string>(disabled_ops_list.begin(), disabled_ops_list.end());
+  }
 
   bool op_set_support_has_changed =
       disabled_ops_set_current != disabled_ops_set;
-  // TODO: check if == work as intended for unordered_set?
 
-  // TODO: unit test: set "add" as disabled, run a neteork, see it is not
+  // TODO: unit test: set "add" as disabled, run a network, see it is not
   // clustered. "add" is reenabled. see it being encapsulated now. disable it
   // again and see it not being placed on ngraph again
+
+  // TODO: a config string like "Add,Add" should work.
 
   {
     mutex_lock l(init_mu);
