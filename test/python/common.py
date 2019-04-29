@@ -29,11 +29,13 @@ _ext = 'dylib' if platform.system() == 'Darwin' else 'so'
 
 LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
 
+
 # Keeping this test here, as it is supposed to run as soon as ngraph_bridge is loaded, before any other test sets disabled ops
 # When loaded, there are no disabled ops
 # TODO, is this the right way to do this?
 def test_disable_op_0():
     assert ngraph_bridge.get_disabled_ops() == b''
+
 
 class NgraphTest(object):
 

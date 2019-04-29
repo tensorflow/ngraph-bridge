@@ -30,14 +30,13 @@ from common import NgraphTest
 
 class TestOpDisableOperations(NgraphTest):
 
-    @pytest.mark.parametrize(("op_list",),
-                             (('Add',), ('Add,Sub',), ('',), ('_InvalidOp',)))
+    @pytest.mark.parametrize(("op_list",), (('Add',), ('Add,Sub',), ('',),
+                                            ('_InvalidOp',)))
     def test_disable_op_1(self, op_list):
         ngraph_bridge.set_disabled_ops(op_list)
-        assert ngraph_bridge.get_disabled_ops()==op_list.encode("utf-8")
+        assert ngraph_bridge.get_disabled_ops() == op_list.encode("utf-8")
         # Running get_disabled_ops twice to see nothing has changed between 2 consecutive calls
-        assert ngraph_bridge.get_disabled_ops()==op_list.encode("utf-8")
-
+        assert ngraph_bridge.get_disabled_ops() == op_list.encode("utf-8")
 
     # TODO: this test is not working as expected. need to capture NGRAPH_TF_LOG_PLACEMENT
     def test_disable_2(self, capsys):
@@ -54,7 +53,10 @@ class TestOpDisableOperations(NgraphTest):
 
         def run_test(sess):
             return sess.run((e,),
-                            feed_dict={a: np.ones((5,)), d: np.ones((5,))})[0]
+                            feed_dict={
+                                a: np.ones((5,)),
+                                d: np.ones((5,))
+                            })[0]
 
         assert (
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
@@ -64,4 +66,3 @@ class TestOpDisableOperations(NgraphTest):
         os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
         if log_placement is not None:
             os.environ['NGRAPH_TF_LOG_PLACEMENT'] = log_placement
-
