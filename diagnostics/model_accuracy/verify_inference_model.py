@@ -131,7 +131,6 @@ if __name__ == '__main__':
     #TODO(Sindhu): Run multiple or ALL models at once and compare accuracy.
 
     try:
-        print(args.json_file_name)
         model_name, p = run_inference(args.model_name, models_dir,args.json_file_name)
         check_accuracy(model_name, p,args.json_file_name)
         sys.exit(0)
