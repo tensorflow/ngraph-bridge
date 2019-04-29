@@ -33,7 +33,7 @@ from common import NgraphTest
 class TestOpDisableOperations(NgraphTest):
 
     # Initially nothing is disabled
-    def test_disable_op_1(self, op_list):
+    def test_disable_op_0(self, op_list):
         assert ngraph_bridge.get_disabled_ops() == b''
 
     # Note it is possible to set an invalid op name (as long as mark_for_clustering is not called)
@@ -69,7 +69,7 @@ class TestOpDisableOperations(NgraphTest):
             return
         assert False, 'Had expected test to raise error'
 
-    def test_disable_4(self):
+    def test_disable_3(self):
         old_backend = ngraph_bridge.get_currently_set_backend_name()
         ngraph_bridge.set_backend('CPU')
         N = 1
