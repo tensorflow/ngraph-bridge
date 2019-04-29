@@ -55,7 +55,7 @@ class TestOpDisableOperations(NgraphTest):
         # TF continues to run with the unoptimized graph
         # Note, tried setting fail_on_optimizer_errors, but grappler still failed silently
         # TODO: enable this test for grappler as well.
-        if (ngraph_bridge.is_grappler_enabled()):
+        if (not ngraph_bridge.is_grappler_enabled()):
             ngraph_bridge.set_disabled_ops(invalid_op_list)
             a = tf.placeholder(tf.int32, shape=(5,))
             b = tf.constant(np.ones((5,)), dtype=tf.int32)
