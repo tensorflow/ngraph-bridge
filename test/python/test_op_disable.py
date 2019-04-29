@@ -88,8 +88,7 @@ class TestOpDisableOperations(NgraphTest):
             assert (res1 == res2).all()
         sys.stdout = old_stdout
         with open('temp_dump.txt', 'r') as f:
-            import pdb
-            pdb.set_trace()
+            pass
             # TODO: not working. temp_dump is empty
 
         # TODO remove temp_dump
