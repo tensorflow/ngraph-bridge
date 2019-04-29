@@ -33,9 +33,26 @@ namespace testing {
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
-TEST(DisableOps, SimpleSettingAndGetting) {
+TEST(DisableOps, SimpleSettingAndGetting1) {
   char disabled_list[] = "Add,Sub";
   config::ngraph_set_disabled_ops(disabled_list);
+  ASSERT_EQ(string(config::ngraph_get_disabled_ops()), "Add,Sub");
+
+  // Clean up
+  config::ngraph_set_disabled_ops("");
+}
+
+TEST(DisableOps, SimpleSettingAndGetting2) {
+  config::SetDisabledOps("Add,Sub");
+  auto expected = set<string>{"Add", "Sub"};
+  ASSERT_EQ(config::GetDisabledOps(), expected);
+
+  // Clean up
+  config::ngraph_set_disabled_ops("");
+}
+
+TEST(DisableOps, SimpleSettingAndGetting3) {
+  config::SetDisabledOps(std::set<string>{"Add", "Sub"});
   ASSERT_EQ(string(config::ngraph_get_disabled_ops()), "Add,Sub");
 
   // Clean up

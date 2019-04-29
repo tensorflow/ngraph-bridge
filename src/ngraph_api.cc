@@ -70,7 +70,7 @@ extern void ngraph_set_disabled_ops(const char* op_type_list) {
 }
 
 extern const char* ngraph_get_disabled_ops() {
-  return ng::join(GetDisabledOps()).c_str();
+  return ng::join(GetDisabledOps(), ",").c_str();
 }
 }
 
@@ -112,7 +112,7 @@ std::set<string> GetDisabledOps() { return disabled_op_types; }
 
 void SetDisabledOps(string disabled_ops_str) {
   auto disabled_ops_list =
-      ng::split(string(config::ngraph_get_disabled_ops()), ',');
+      ng::split(disabled_ops_str, ',');
   // In case string is '', then splitting yields ['']. So taking care that ['']
   // corresponds to empty set {}
   if (disabled_ops_list.size() >= 1 && disabled_ops_list[0] != "") {
