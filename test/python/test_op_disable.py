@@ -21,6 +21,7 @@ from __future__ import print_function
 import pytest
 
 import tensorflow as tf
+from tensorflow.python.ops import nn_ops
 import os
 import numpy as np
 import ngraph_bridge
@@ -39,6 +40,8 @@ class TestOpDisableOperations(NgraphTest):
         assert ngraph_bridge.get_disabled_ops() == op_list.encode("utf-8")
         # Running get_disabled_ops twice to see nothing has changed between 2 consecutive calls
         assert ngraph_bridge.get_disabled_ops() == op_list.encode("utf-8")
+        # Clean up
+        ngraph_bridge.set_disabled_ops('')
 
     # Test to see that exception is raised if sess.run is called with invalid op types
     @pytest.mark.parametrize(("invalid_op_list",), (('Add,_InvalidOp',),
@@ -57,45 +60,60 @@ class TestOpDisableOperations(NgraphTest):
             # This test is expected to fail, since all the strings passed to set_disabled_ops have invalid ops in them
             res = self.with_ngraph(run_test)
         except:
+            # Clean up
+            ngraph_bridge.set_disabled_ops('')
             return
         assert False, 'Had expected test to raise error'
 
-    def test_disable_3(self):
-        # TODO: make the env var setting and resetting a decorator
-        log_placement = os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
-        os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
-        a = tf.placeholder(tf.int32, shape=(5,))
-        b = tf.constant(np.ones((5,)), dtype=tf.int32)
-        ngraph_bridge.set_disabled_ops('Add')
-        print(ngraph_bridge.get_disabled_ops())
-        c = a + b
-        d = tf.placeholder(tf.int32, shape=(5,))
-        e = d - c
+    def test_disable_4(self):
+        old_backend = ngraph_bridge.get_currently_set_backend_name()
+        ngraph_bridge.set_backend('CPU')
+        N = 1
+        C = 4
+        H = 10
+        W = 10
+        FW = 3
+        FH = 3
+        O = 6
+        inp = tf.placeholder(tf.float32, shape=(N, C, H, W))
+        filt = tf.constant(np.ones((FH, FW, C, O)), dtype=tf.float32)
+        conv = nn_ops.conv2d(
+            inp, filt, strides=[1, 1, 1, 2], padding="SAME", data_format='NCHW')
 
         def run_test(sess):
-            return sess.run((e,),
-                            feed_dict={
-                                a: np.ones((5,)),
-                                d: np.ones((5,))
-                            })[0]
+            return sess.run(conv, feed_dict={inp: np.ones((N, C, H, W))})
 
-        res1 = self.without_ngraph(run_test)
-        old_stdout = sys.stdout
-        # TODO: Generate unique file name so that no existing file is overwritten
-        with open('temp_dump.txt', 'w') as f:
-            sys.stdout = f
-            res2 = self.with_ngraph(run_test)
-            assert (res1 == res2).all()
-        sys.stdout = old_stdout
-        with open('temp_dump.txt', 'r') as f:
-            pass
-            # TODO: not working. temp_dump is empty
+        # Ensure that NCHW does not run on TF CPU backend natively
+        test_passed = True
+        try:
+            self.without_ngraph(run_test)
+        except:
+            test_passed = False
+        if (test_passed):
+            ngraph_bridge.set_backend(old_backend)
+            assert False, 'Had expected test to raise error, since NCHW in conv2d is not supported'
 
-        # TODO remove temp_dump
-        os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
-        if log_placement is not None:
-            os.environ['NGRAPH_TF_LOG_PLACEMENT'] = log_placement
+        # We have asserted the above network would not run on TF natively.
+        # Now ensure it runs with ngraph
+        test_passed = True
+        try:
+            self.with_ngraph(run_test)
+        except:
+            test_passed = False
+        if (not test_passed):
+            ngraph_bridge.set_backend(old_backend)
+            assert False, 'Had expected test to pass, since NCHW in conv2d is supported through ngraph'
 
-    def test_disable_4(self):
-        pass
-        # NCHW conv
+        # Now disabling Conv2D. Expecting the test to fail, even when run through ngraph
+        ngraph_bridge.set_disabled_ops('Conv2D')
+        test_passed = True
+        try:
+            self.with_ngraph(run_test)
+        except:
+            test_passed = False
+        if (test_passed):
+            ngraph_bridge.set_backend(old_backend)
+            assert False, 'Had expected test to raise error, since conv2D is disabled in ngraph'
+
+        # Clean up
+        ngraph_bridge.set_disabled_ops('')
