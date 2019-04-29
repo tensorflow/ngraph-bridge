@@ -663,6 +663,7 @@ Status MarkForClustering(Graph* graph,
   };
 
   if (op_set_support_has_changed) {
+    NGRAPH_VLOG(5) << "Changing op support\n";
     disabled_ops_set = disabled_ops_set_current;
     for (auto itr : disabled_ops_set) {
       auto conf_itr = confirmation_function_map.find(itr);
@@ -672,6 +673,7 @@ Status MarkForClustering(Graph* graph,
         // confirmation_function_map
         return errors::Internal("Tried to disable ngraph unsupported op ", itr);
       } else {
+        NGRAPH_VLOG(5) << "Disabling op: " << (conf_itr->first) << "\n";
         confirmation_function_map.erase(conf_itr);
       }
     }
