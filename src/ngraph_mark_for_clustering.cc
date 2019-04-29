@@ -14,7 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 #include "ngraph_mark_for_clustering.h"
-#include "ngraph_api.h"
+#include "ngraph_api.h"  // TODO: Importing this first causes a compile error
 #include "ngraph_backend_manager.h"
 #include "ngraph_utils.h"
 #include "ngraph_version_utils.h"
@@ -206,15 +206,7 @@ Status MarkForClustering(Graph* graph,
 
   static std::set<string> disabled_ops_set = {};
 
-  auto disabled_ops_list =
-      ng::split(string(config::ngraph_get_disabled_ops()), ',');
-  // In case string is '', then splitting yields ['']. So taking care that ['']
-  // corresponds to empty set {}
-  set<string> disabled_ops_set_current = {};
-  if (disabled_ops_list.size() >= 1 && disabled_ops_list[0] != "") {
-    disabled_ops_set_current =
-        set<string>(disabled_ops_list.begin(), disabled_ops_list.end());
-  }
+  std::set<string> disabled_ops_set_current = GetSetOfDisabledOps();
 
   bool op_set_support_has_changed =
       disabled_ops_set_current != disabled_ops_set;
@@ -664,7 +656,6 @@ Status MarkForClustering(Graph* graph,
 
   if (op_set_support_has_changed) {
     NGRAPH_VLOG(5) << "Changing op support";
-    cout << disabled_ops_set.size() << " " << disabled_ops_set_current.size() << "\n";
     disabled_ops_set = disabled_ops_set_current;
     for (auto itr : disabled_ops_set) {
       auto conf_itr = confirmation_function_map.find(itr);

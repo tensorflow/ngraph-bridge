@@ -38,6 +38,7 @@ class NgraphTest(object):
                 meta_optimizer_iterations=rewriter_config_pb2.RewriterConfig.
                 ONE,
                 min_graph_nodes=-1,
+                #fail_on_optimizer_errors=True,
                 custom_optimizers=[
                     rewriter_config_pb2.RewriterConfig.CustomGraphOptimizer(
                         name="ngraph-optimizer")

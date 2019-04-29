@@ -33,12 +33,14 @@ from common import NgraphTest
 class TestOpDisableOperations(NgraphTest):
 
     # Initially nothing is disabled
+    #@pytest.mark.skip(reason="TODO: reenable")
     def test_disable_op_0(self):
         assert ngraph_bridge.get_disabled_ops() == b''
 
     # Note it is possible to set an invalid op name (as long as mark_for_clustering is not called)
     @pytest.mark.parametrize(("op_list",), (('Add',), ('Add,Sub',), ('',),
                                             ('_InvalidOp',)))
+    #@pytest.mark.skip(reason="TODO: reenable")
     def test_disable_op_1(self, op_list):
         ngraph_bridge.set_disabled_ops(op_list)
         assert ngraph_bridge.get_disabled_ops() == op_list.encode("utf-8")
@@ -60,6 +62,7 @@ class TestOpDisableOperations(NgraphTest):
             return sess.run(c, feed_dict={a: np.ones((5,))})
 
         assert (self.without_ngraph(run_test) == np.ones(5,) * 2).all()
+        #import pdb; pdb.set_trace()
         try:
             # This test is expected to fail, since all the strings passed to set_disabled_ops have invalid ops in them
             res = self.with_ngraph(run_test)
@@ -69,6 +72,7 @@ class TestOpDisableOperations(NgraphTest):
             return
         assert False, 'Had expected test to raise error'
 
+    #@pytest.mark.skip(reason="TODO: reenable")
     def test_disable_3(self):
         old_backend = ngraph_bridge.get_currently_set_backend_name()
         ngraph_bridge.set_backend('CPU')

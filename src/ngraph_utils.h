@@ -266,6 +266,8 @@ bool DumpTrackedGraphs();
 
 // Insert constrol dependency for AllReduce ops to ensure execution order
 void AllreduceOpControlOrder(const std::shared_ptr<ngraph::Function>&);
+
+std::set<string> GetSetOfDisabledOps();
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

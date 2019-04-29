@@ -14,6 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 #include "ngraph_utils.h"
+#include "ngraph_api.h"
 
 #include <fstream>
 #include <iomanip>
@@ -388,6 +389,19 @@ bool IsProcessedByNgraphPass(Graph* g) {
     if (node->type_string() == "NGraphEncapsulate") return true;
   }
   return false;
+}
+
+std::set<string> GetSetOfDisabledOps() {
+  std::set<string> disabled_ops_set_current = {};
+  auto disabled_ops_list =
+      ng::split(string(config::ngraph_get_disabled_ops()), ',');
+  // In case string is '', then splitting yields ['']. So taking care that ['']
+  // corresponds to empty set {}
+  if (disabled_ops_list.size() >= 1 && disabled_ops_list[0] != "") {
+    disabled_ops_set_current =
+        set<string>(disabled_ops_list.begin(), disabled_ops_list.end());
+  }
+  return disabled_ops_set_current;
 }
 
 }  // namespace ngraph_bridge
