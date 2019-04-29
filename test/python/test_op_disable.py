@@ -95,3 +95,7 @@ class TestOpDisableOperations(NgraphTest):
         os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
         if log_placement is not None:
             os.environ['NGRAPH_TF_LOG_PLACEMENT'] = log_placement
+
+    def test_disable_4(self):
+        pass
+        # NCHW conv

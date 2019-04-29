@@ -219,12 +219,6 @@ Status MarkForClustering(Graph* graph,
   bool op_set_support_has_changed =
       disabled_ops_set_current != disabled_ops_set;
 
-  // TODO: unit test: set "add" as disabled, run a network, see it is not
-  // clustered. "add" is reenabled. see it being encapsulated now. disable it
-  // again and see it not being placed on ngraph again
-
-  // TODO: a config string like "Add,Add" should work.
-
   {
     mutex_lock l(init_mu);
 
