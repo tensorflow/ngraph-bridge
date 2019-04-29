@@ -67,12 +67,10 @@ bool ngraph_is_logging_placement() { return IsLoggingPlacement(); }
 
 extern void ngraph_set_disabled_ops(const char* op_type_list) {
   disabled_op_types = std::string(op_type_list);
-  // TODO unit tests: set "add", "add,subtract", ""
 }
 
 extern const char* ngraph_get_disabled_ops() {
   return disabled_op_types.c_str();
-  // TODO: unit tests
 }
 }
 

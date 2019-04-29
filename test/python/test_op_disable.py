@@ -24,6 +24,7 @@ import tensorflow as tf
 import os
 import numpy as np
 import ngraph_bridge
+import sys
 
 from common import NgraphTest
 
@@ -59,11 +60,10 @@ class TestOpDisableOperations(NgraphTest):
             return
         assert False, 'Had expected test to raise error'
 
-    # TODO: this test is not working as expected. need to capture NGRAPH_TF_LOG_PLACEMENT
-    def test_disable_3(self, capsys):
-        # TODO: make the env var settign and resettign a decorator
-        #log_placement = os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
-        #os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
+    def test_disable_3(self):
+        # TODO: make the env var setting and resetting a decorator
+        log_placement = os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
+        os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
         a = tf.placeholder(tf.int32, shape=(5,))
         b = tf.constant(np.ones((5,)), dtype=tf.int32)
         ngraph_bridge.set_disabled_ops('Add')
@@ -79,11 +79,20 @@ class TestOpDisableOperations(NgraphTest):
                                 d: np.ones((5,))
                             })[0]
 
-        assert (
-            self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
+        res1 = self.without_ngraph(run_test)
+        old_stdout = sys.stdout
+        # TODO: Generate unique file name so that no existing file is overwritten
+        with open('temp_dump.txt', 'w') as f:
+            sys.stdout = f
+            res2 = self.with_ngraph(run_test)
+            assert (res1 == res2).all()
+        sys.stdout = old_stdout
+        with open('temp_dump.txt', 'r') as f:
+            import pdb
+            pdb.set_trace()
+            # TODO: not working. temp_dump is empty
 
-        #import pdb; pdb.set_trace()
-        logs = capsys.readouterr()
-        #os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
-        #if log_placement is not None:
-        #    os.environ['NGRAPH_TF_LOG_PLACEMENT'] = log_placement
+        # TODO remove temp_dump
+        os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
+        if log_placement is not None:
+            os.environ['NGRAPH_TF_LOG_PLACEMENT'] = log_placement
