@@ -94,7 +94,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // Find a list of nodes that are of the types that are disabled
   std::set<string> disabled_nodes;
-  std::set<string> disabled_ops_set = GetSetOfDisabledOps();
+  std::set<string> disabled_ops_set = config::GetDisabledOps();
   for (auto itr : graph.nodes()) {
     if (disabled_ops_set.find(itr->type_string()) != disabled_ops_set.end()) {
       disabled_nodes.insert(itr->name());

@@ -206,7 +206,7 @@ Status MarkForClustering(Graph* graph,
 
   static std::set<string> disabled_ops_set = {};
 
-  std::set<string> disabled_ops_set_current = GetSetOfDisabledOps();
+  std::set<string> disabled_ops_set_current = config::GetDisabledOps();
 
   bool op_set_support_has_changed =
       disabled_ops_set_current != disabled_ops_set;
