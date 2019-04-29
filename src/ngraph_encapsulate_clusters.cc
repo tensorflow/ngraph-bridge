@@ -23,6 +23,7 @@
 #include "tensorflow/core/framework/attr_value_util.h"
 #include "tensorflow/core/framework/function.pb.h"
 #include "tensorflow/core/framework/graph.pb.h"
+#include "tensorflow/core/framework/graph_to_functiondef.h"
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/graph/graph.h"
@@ -70,7 +71,8 @@ static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 }
 // ...end code copied and pasted (and modified) from graph.cc
 
-Status EncapsulateClusters(Graph* graph, int graph_id) {
+Status EncapsulateClusters(Graph* graph, int graph_id,
+                           FunctionDefLibrary* fdeflib) {
   // A map from cluster indices to the expected device name for nodes
   // in that cluster.
   std::map<int, std::string> device_name_map;
@@ -482,7 +484,22 @@ Status EncapsulateClusters(Graph* graph, int graph_id) {
     graph->RemoveNode(node);
   }
 
-  // Pass 7 (optional, only run if environment variable
+  // Pass 7: Insert to function library
+  for (const auto& cluster_idx : NGraphClusterManager::GetClusterIndexes()) {
+    // TODO: whats the right flib to use in sgraph's constructor?
+    Graph sgraph(graph->flib_def());
+    // TODO: When this works, NGraphClusterManager can go away
+    TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
+        GraphConstructorOptions(),
+        *(NGraphClusterManager::GetClusterGraph(cluster_idx)), &sgraph));
+    FunctionDef* fdef = fdeflib->add_function();
+    // TODO: if func lib has func with same name etc?
+    TF_RETURN_IF_ERROR(GraphToFunctionDef(
+        sgraph, strings::StrCat("ngraph_cluster_", to_string(cluster_idx)),
+        fdef));
+  }
+
+  // Pass 8 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and
   // make sure we can construct a graph from it.
   if (std::getenv("NGRAPH_TF_DUMP_CLUSTERS")) {
