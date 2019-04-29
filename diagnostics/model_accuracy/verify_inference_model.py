@@ -58,7 +58,7 @@ def run_inference(model_name, models_dir,json_file_name):
                     os.chdir(models_dir + "research/slim")
                 command_executor("export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`")
                 command_executor('git apply ' + pwd +
-                                 '/iage_recognition.patch')
+                                 '/image_recognition.patch')
             p = command_executor(data[i]["cmd"])
             os.chdir(pwd)
             return model_name, p   
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--json_file_name',
          help=
-         'json file to use for run inference and check acucuracy',
+         'json file with model parameters to run inference and accuracy values to verify',
          required=True)
     parser.add_argument(
         '--models_dir',
