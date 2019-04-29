@@ -48,7 +48,6 @@ set(SRC
     graph_rewrites/assign_clusters.cc
     graph_rewrites/deadness_test.cc
     graph_rewrites/backend_manager_test.cc
-    graph_rewrites/capture_variables.cc
     test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
@@ -56,6 +55,10 @@ set(SRC
     test_variable_ops.cpp
     opexecuter.cpp
 )
+
+if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    list(APPEND SRC graph_rewrites/capture_variables.cc)
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
