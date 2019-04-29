@@ -32,8 +32,7 @@ namespace testing {
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 TEST(EncapsulateClusters, PopulateLibrary) {
-
-    Graph g(OpRegistry::Global());
+  Graph g(OpRegistry::Global());
 
   Tensor t_input(DT_FLOAT, TensorShape{2, 3});
   Tensor t_shape(DT_INT32, TensorShape{2});
@@ -71,7 +70,7 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
-  //ASSERT_OK(EncapsulateClusters(&g, 0, g.flib_def()));
+  // ASSERT_OK(EncapsulateClusters(&g, 0, g.flib_def()));
 }
 }
 }

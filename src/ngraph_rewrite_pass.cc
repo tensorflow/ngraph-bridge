@@ -231,8 +231,9 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(EncapsulateClusters(options.graph->get(), idx,
-                                           options.graph->flib_def()));
+    FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+    TF_RETURN_IF_ERROR(
+        EncapsulateClusters(options.graph->get(), idx, fdeflib_new));
     if (DumpEncapsulatedGraphs()) {
       DumpGraphs(options, idx, "encapsulated",
                  "Graph with Clusters Encapsulated");
