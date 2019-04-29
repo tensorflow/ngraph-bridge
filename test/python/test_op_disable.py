@@ -30,6 +30,7 @@ from common import NgraphTest
 
 class TestOpDisableOperations(NgraphTest):
 
+    # Note it is possible to set an invalid op name (as long as mark_for_clustering is not called)
     @pytest.mark.parametrize(("op_list",), (('Add',), ('Add,Sub',), ('',),
                                             ('_InvalidOp',)))
     def test_disable_op_1(self, op_list):
@@ -38,11 +39,31 @@ class TestOpDisableOperations(NgraphTest):
         # Running get_disabled_ops twice to see nothing has changed between 2 consecutive calls
         assert ngraph_bridge.get_disabled_ops() == op_list.encode("utf-8")
 
+    # Test to see that exception is raised if sess.run is called with invalid op types
+    @pytest.mark.parametrize(("invalid_op_list",), (('Add,_InvalidOp',),
+                                                    ('NGraphEncapsulate',)))
+    def test_disable_op_2(self, invalid_op_list):
+        ngraph_bridge.set_disabled_ops(invalid_op_list)
+        a = tf.placeholder(tf.int32, shape=(5,))
+        b = tf.constant(np.ones((5,)), dtype=tf.int32)
+        c = a + b
+
+        def run_test(sess):
+            return sess.run(c, feed_dict={a: np.ones((5,))})
+
+        assert (self.without_ngraph(run_test) == np.ones(5,) * 2).all()
+        try:
+            # This test is expected to fail, since all the strings passed to set_disabled_ops have invalid ops in them
+            res = self.with_ngraph(run_test)
+        except:
+            return
+        assert False, 'Had expected test to raise error'
+
     # TODO: this test is not working as expected. need to capture NGRAPH_TF_LOG_PLACEMENT
-    def test_disable_2(self, capsys):
+    def test_disable_3(self, capsys):
         # TODO: make the env var settign and resettign a decorator
-        log_placement = os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
-        os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
+        #log_placement = os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
+        #os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
         a = tf.placeholder(tf.int32, shape=(5,))
         b = tf.constant(np.ones((5,)), dtype=tf.int32)
         ngraph_bridge.set_disabled_ops('Add')
@@ -63,6 +84,6 @@ class TestOpDisableOperations(NgraphTest):
 
         #import pdb; pdb.set_trace()
         logs = capsys.readouterr()
-        os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
-        if log_placement is not None:
-            os.environ['NGRAPH_TF_LOG_PLACEMENT'] = log_placement
+        #os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
+        #if log_placement is not None:
+        #    os.environ['NGRAPH_TF_LOG_PLACEMENT'] = log_placement

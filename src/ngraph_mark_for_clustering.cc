@@ -667,7 +667,10 @@ Status MarkForClustering(Graph* graph,
     for (auto itr : disabled_ops_set) {
       auto conf_itr = confirmation_function_map.find(itr);
       if (conf_itr == confirmation_function_map.end()) {
-        // TODO : Error, invalid op passed
+        // Note: This error means, we cannot disable NGraphEncapsulate and other
+        // ng ops, because they are expected to never appear in
+        // confirmation_function_map
+        return errors::Internal("Tried to disable ngraph unsupported op ", itr);
       } else {
         confirmation_function_map.erase(conf_itr);
       }
