@@ -14,6 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 #include "ngraph_cluster_manager.h"
+#include <numeric>
 
 using namespace std;
 
