@@ -110,10 +110,10 @@ TEST(CaptureVariables, VariableScope) {
   }
 }
 
-// Test that an Assign with attribute variable_scope = false
-// and also the Variable is shared with another Assign so none
-// of them captured
-TEST(CaptureVariables, SingleVariable) {
+// Test that an Assign (specifically Assign1) with attribute
+// variable_scope = false and also the Variable is shared with
+// another Assign so none of them is captured
+TEST(CaptureVariables, SingleVariable1) {
   Scope root = Scope::NewRootScope();
 
   PartialTensorShape varShape({2, 2});
@@ -125,6 +125,40 @@ TEST(CaptureVariables, SingleVariable) {
                                  attr_validate_shape);
 
   auto var_assign2 = ops::Assign(root.WithOpName("Assign2"), var, init_value);
+
+  std::set<string> skip_these_nodes = {};
+
+  Graph graph(OpRegistry::Global());
+  TF_CHECK_OK(root.ToGraph(&graph));
+
+  ASSERT_OK(CaptureVariables(&graph, skip_these_nodes));
+
+  for (auto node : graph.op_nodes()) {
+    auto node_name = node->name();
+    if (node_name == "Var")
+      ASSERT_NE("NGraphVariable", node->type_string());
+    else if (node_name == "Assign1")
+      ASSERT_NE("NGraphAssign", node->type_string());
+    else if (node_name == "Assign2")
+      ASSERT_NE("NGraphAssign", node->type_string());
+  }
+}
+
+// Test that an Assign (specifically Assign2) with attribute
+// variable_scope = false and also the Variable is shared with
+// another Assign so none of them is captured
+TEST(CaptureVariables, SingleVariable2) {
+  Scope root = Scope::NewRootScope();
+
+  PartialTensorShape varShape({2, 2});
+  auto init_value = ops::Const(root, {{2.f, 3.f}, {4.f, 5.f}});
+
+  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
+  auto var_assign1 = ops::Assign(root.WithOpName("Assign1"), var, init_value);
+
+  auto attr_validate_shape = ops::Assign::Attrs().ValidateShape(false);
+  auto var_assign2 = ops::Assign(root.WithOpName("Assign2"), var, init_value,
+                                 attr_validate_shape);
 
   std::set<string> skip_these_nodes = {};
 

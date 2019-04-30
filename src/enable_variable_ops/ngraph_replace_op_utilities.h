@@ -56,11 +56,8 @@ Status ReplaceInputControlEdges(Graph* graph, Node* node, Node* replacement);
 Status ReplaceOutputEdges(Graph* graph, Node* node, Node* replacement);
 
 // Capture Pass checks
-bool IsInputFromTempVar(Node* node);
 bool IsValidateShape(Node* node);
-Status RemoveNodesFromCaptureList(Node* node,
-                                  std::vector<Node*>* nodes_to_capture);
-bool IsInputVarCaptured(Node* node, std::vector<Node*>* nodes_to_capture);
+Status StoreRefTypeOutputs(Node* node, std::set<Node*>* ref_list);
 
 }  // namespace ngraph_bridge
 

@@ -216,58 +216,42 @@ Status ReplaceOutputEdges(Graph* graph, Node* node, Node* replacement) {
   return Status::OK();
 }
 
-bool IsInputFromTempVar(Node* node) {
-  if (node->num_inputs()) {
-    for (auto edge : node->in_edges()) {
-      Node* src_node = edge->src();
-      if (src_node->type_string() == "TemporaryVariable") {
-        return true;
-      } else {
-        return (IsInputFromTempVar(src_node));
-      }
-    }
-  }
-  return false;
-}
-
 bool IsValidateShape(Node* node) {
   bool validate_shape;
   GetNodeAttr(node->attrs(), "validate_shape", &validate_shape);
   return validate_shape;
 }
 
-Status RemoveNodesFromCaptureList(Node* node,
-                                  std::vector<Node*>* nodes_to_capture) {
-  if (node->num_inputs()) {
-    for (auto edge : node->in_edges()) {
-      Node* src_node = edge->src();
-      auto itr = std::find(nodes_to_capture->begin(), nodes_to_capture->end(),
-                           src_node);
-      if (itr != nodes_to_capture->end()) {
-        NGRAPH_VLOG(4) << "Removing " << node->name()
-                       << " from the capture list";
-        nodes_to_capture->erase(itr);
-        RemoveNodesFromCaptureList(src_node, nodes_to_capture);
+Status StoreRefTypeOutputs(Node* node, std::set<Node*>* ref_list) {
+  for (auto edge : node->out_edges()) {
+    Node* dst = edge->dst();
+    if (IsRefType(dst->input_type(edge->dst_input()))) {
+      NGRAPH_VLOG(4) << "Found a ref type output " << dst->name();
+      // Check if the node is Assign node and it's attribute variable_shape
+      if (dst->type_string() == "Assign" && !IsValidateShape(dst)) {
+        NGRAPH_VLOG(4) << "The attribute validate_shape for Assign is false ";
+        // If the dst node is Assign and attr: variable_shape is false then
+        // we do not want to capture the Assign or any of the ref nodes leading
+        // from it or the variable node or ref nodes that lead to it.
+        // So clear the ref list and return.
+        ref_list->clear();
+        return Status::OK();
+      } else {
+        // In all other cases:
+        // 1. Assign, variable_shape = true
+        // 2. AssignAdd
+        // 3. AssignSub
+        // 4. ApplyGradientDescent
+        // which are all ref types, add to the ref list if not already added
+        // not already added part is taken care of by the list being a set.
+        NGRAPH_VLOG(4) << "Adding " << dst->name() << " to the ref list";
+        ref_list->insert(dst);
       }
     }
+    // Recursively go over the outputs of each node.
+    StoreRefTypeOutputs(dst, ref_list);
   }
   return Status::OK();
-}
-
-bool IsInputVarCaptured(Node* node, std::vector<Node*>* nodes_to_capture) {
-  if (node->num_inputs()) {
-    for (auto edge : node->in_edges()) {
-      Node* src_node = edge->src();
-      if (src_node->type_string() == "VariableV2") {
-        auto itr = std::find(nodes_to_capture->begin(), nodes_to_capture->end(),
-                             src_node);
-        if (itr == nodes_to_capture->end()) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
 }
 
 }  // namespace ngraph_bridge

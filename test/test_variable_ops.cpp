@@ -43,15 +43,15 @@ TEST(VariableTest, SmallGraph1) {
   Scope root = Scope::NewRootScope();
 
   PartialTensorShape varShape({2, 2});
-  auto var = ops::Variable(root, varShape, DT_FLOAT);
+  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
-  auto var_assign = ops::Assign(root, var, init_value);
+  auto var_assign = ops::Assign(root.WithOpName("Var_Assign"), var, init_value);
 
   auto c = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
 
-  auto add = ops::Add(root, var, c);
+  auto add = ops::Add(root.WithOpName("Add"), var, c);
 
-  auto assign = ops::Assign(root, var, add);
+  auto assign = ops::Assign(root.WithOpName("Assign"), var, add);
 
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
@@ -119,11 +119,11 @@ TEST(VariableTest, SmallGraph2) {
 
   auto add = ops::Add(root.WithOpName("Add1"), var, c);
 
-  auto assign = ops::AssignAdd(root, var, add);
+  auto assign_add = ops::AssignAdd(root.WithOpName("AssignAdd"), var, add);
 
-  auto add2 = ops::Add(root.WithOpName("Add2"), assign, c);
+  auto add2 = ops::Add(root.WithOpName("Add2"), assign_add, c);
 
-  auto assign2 = ops::AssignSub(root, var, add2);
+  auto assign_sub = ops::AssignSub(root.WithOpName("AssignSub"), var, add2);
 
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
@@ -144,7 +144,7 @@ TEST(VariableTest, SmallGraph2) {
   ASSERT_OK(ng_session.Run({var_assign}, &ng_outputs1));
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({assign2}, &ng_outputs2));
+    ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs2));
   }
 
   ASSERT_OK(ng_session.Run({var}, &ng_outputs3));
@@ -163,7 +163,7 @@ TEST(VariableTest, SmallGraph2) {
       &tf_outputs1));
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({assign2}, &tf_outputs2));
+    ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs2));
   }
 
   tf_session.Run({var}, &tf_outputs3);
@@ -182,7 +182,7 @@ TEST(VariableTest, SmallGraph3) {
   PartialTensorShape varShape({2, 2});
   auto var = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
-  auto var_assign = ops::Assign(root, var, init_value);
+  auto var_assign = ops::Assign(root.WithOpName("Assign1"), var, init_value);
 
   auto c = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
   auto s = ops::Const(root, 1.f);
@@ -190,9 +190,10 @@ TEST(VariableTest, SmallGraph3) {
 
   auto add = ops::Add(root, var, c);
 
-  auto assign = ops::AssignSub(root, var, add);
+  auto assign_sub = ops::AssignSub(root.WithOpName("AssignSub"), var, add);
 
-  auto apply_gradient_descent = ops::ApplyGradientDescent(root, assign, s, d);
+  auto apply_gradient_descent =
+      ops::ApplyGradientDescent(root.WithOpName("AGD"), assign_sub, s, d);
 
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
@@ -219,7 +220,7 @@ TEST(VariableTest, SmallGraph3) {
       &ng_outputs1));
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({assign}, &ng_outputs2));
+    ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs2));
   }
 
   for (int i = 0; i < 10; i++) {
@@ -227,7 +228,7 @@ TEST(VariableTest, SmallGraph3) {
   }
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({assign}, &ng_outputs4));
+    ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs4));
   }
 
   ASSERT_OK(ng_session.Run({var}, &ng_outputs5));
@@ -248,7 +249,7 @@ TEST(VariableTest, SmallGraph3) {
       &tf_outputs1));
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({assign}, &tf_outputs2));
+    ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs2));
   }
 
   for (int i = 0; i < 10; i++) {
@@ -256,7 +257,7 @@ TEST(VariableTest, SmallGraph3) {
   }
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({assign}, &tf_outputs4));
+    ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs4));
   }
 
   ASSERT_OK(tf_session.Run({var}, &tf_outputs5));
@@ -274,23 +275,26 @@ TEST(VariableTest, SmallGraph4) {
   Scope root = Scope::NewRootScope();
 
   PartialTensorShape varShape({2, 2});
-  auto var1 = ops::Variable(root, varShape, DT_FLOAT);
+  auto var1 = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
-  auto var1_assign = ops::Assign(root, var1, init_value);
+  auto var1_assign =
+      ops::Assign(root.WithOpName("Var1_Assign"), var1, init_value);
 
-  auto var2 = ops::Variable(root, varShape, DT_FLOAT);
+  auto var2 = ops::Variable(root.WithOpName("Var2"), varShape, DT_FLOAT);
   auto init_value2 = ops::Const(root, {{123.f, 34.f}, {0.f, 112121.f}});
-  auto var2_assign = ops::Assign(root, var2, init_value2);
+  auto var2_assign =
+      ops::Assign(root.WithOpName("Var2_Assign"), var2, init_value2);
 
   auto s = ops::Const(root, 1.f);
   auto d = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
 
-  auto add = ops::Add(root, var1, var2);
-  auto assign = ops::Assign(root, var1, add);
-  auto apply_gradient_descent = ops::ApplyGradientDescent(root, var2, s, d);
-  auto mul = ops::Mul(root, var1, var2);
-  auto assign2 = ops::Assign(root, var2, mul);
-  auto mul2 = ops::Mul(root, var1, var2);
+  auto add = ops::Add(root.WithOpName("Add"), var1, var2);
+  auto assign = ops::Assign(root.WithOpName("Assign"), var1, add);
+  auto apply_gradient_descent =
+      ops::ApplyGradientDescent(root.WithOpName("AGD"), var2, s, d);
+  auto mul = ops::Mul(root.WithOpName("Mul"), var1, var2);
+  auto assign2 = ops::Assign(root.WithOpName("Assign2"), var2, mul);
+  auto mul2 = ops::Mul(root.WithOpName("Mul2"), var1, var2);
 
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
@@ -364,15 +368,16 @@ TEST(VariableTest, SmallGraph5) {
   Scope root = Scope::NewRootScope();
 
   PartialTensorShape varShape({2, 2});
-  auto var = ops::Variable(root, varShape, DT_FLOAT);
+  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
 
   auto attr_validate_shape = ops::Assign::Attrs().ValidateShape(false);
-  auto var_assign = ops::Assign(root, var, init_value, attr_validate_shape);
+  auto var_assign = ops::Assign(root.WithOpName("Var_Assign"), var, init_value,
+                                attr_validate_shape);
 
   auto c = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
 
-  auto add = ops::Add(root, var, c);
+  auto add = ops::Add(root.WithOpName("Add"), var, c);
 
   // auto assign = ops::Assign(root, var, add);
 
@@ -435,17 +440,18 @@ TEST(VariableTest, SmallGraph6) {
   Scope root = Scope::NewRootScope();
 
   PartialTensorShape varShape({2, 2});
-  auto var = ops::Variable(root, varShape, DT_FLOAT);
+  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
 
   auto attr_validate_shape = ops::Assign::Attrs().ValidateShape(false);
-  auto var_assign = ops::Assign(root, var, init_value, attr_validate_shape);
+  auto var_assign = ops::Assign(root.WithOpName("Var_Assign"), var, init_value,
+                                attr_validate_shape);
 
   auto c = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
 
-  auto add = ops::Add(root, var, c);
+  auto add = ops::Add(root.WithOpName("Add"), var, c);
 
-  auto assign = ops::Assign(root, var, add);
+  auto assign = ops::Assign(root.WithOpName("Assign"), var, add);
 
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;

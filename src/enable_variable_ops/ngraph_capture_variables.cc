@@ -57,57 +57,26 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
           {"VariableV2", std::make_pair("NGraphVariable", ReplaceVariable)}};
 
+  std::set<Node*> ref_list;
   std::vector<Node*> nodes_to_capture;
   for (auto node : graph->op_nodes()) {
-    bool capture_node = false;
-    if (NGraphPlacementRequested(node)) {
-      auto itr = CAPTURE_REPLACE_OP_MAP.find(node->type_string());
-      if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
-        do {
-          // Check if the input is a temporary variable
-          if (IsInputFromTempVar(node)) {
-            NGRAPH_VLOG(4) << "The input node is a Temporary Variable";
-            break;
-          }
+    // Check if the node is a VariableV2
+    if (node->type_string() == "VariableV2") {
+      NGRAPH_VLOG(4) << "Found Variable: " << node->name();
+      // Add the Variable node to the ref list
+      ref_list.insert(node);
 
-          // Check if the node is Assign node and it's attribute
-          // variable_shape is false
-          if (node->type_string() == "Assign" && !IsValidateShape(node)) {
-            // Go over all it's inputs and remove them from the capture list
-            NGRAPH_VLOG(4)
-                << "The attribute validate_shape for Assign is false";
-            RemoveNodesFromCaptureList(node, &nodes_to_capture);
-            // TODO: Do we need to remove the outputs of such node from the
-            // capture list?
-            break;
-          }
+      // go over all the nodes leading from VariableV2 and store them
+      // in a list if they are ref type
+      StoreRefTypeOutputs(node, &ref_list);
 
-          // Corner case: 2 Assign* using the same variable
-          // If an Assign has attribute variable_shape=false, then we have to
-          // remove the Variable from the capture list as well but the other
-          // Assign* will still be captured. So we need to make sure that the
-          // other Assign* is not captured as well.
-          if (!IsInputVarCaptured(node, &nodes_to_capture)) {
-            NGRAPH_VLOG(4) << "Input variable " << node->name()
-                           << "not captured";
-            break;
-          }
-
-          // TODO: in continuation of the afore mentioned corner case, there is
-          // another case we would need to deal with where there are 2 Assign
-          // using same variable but one has already been captured before the
-          // other with variable_shape = false is encountered. In this scenario,
-          // the variable is taken care of but the captured Assign remains
-          // captured and should be removed from the capture list.
-
-          capture_node = true;
-        } while (false);
+      if (ref_list.size()) {
+        nodes_to_capture.insert(nodes_to_capture.end(), ref_list.begin(),
+                                ref_list.end());
+        ref_list.clear();
       }
-      if (capture_node) {
-        nodes_to_capture.push_back(node);
-      }
-    }  // end of checking NGraphPlacementRequested
-  }    // end of looping through nodes in the graph
+    }
+  }
 
   for (auto node : nodes_to_capture) {
     NGRAPH_VLOG(1) << "Capturing: " << node->name();
