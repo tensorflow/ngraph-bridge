@@ -47,6 +47,7 @@ def run_inference(model_name, models_dir,json_file_name):
        data
     except:
         print("Pass a valid model prameters dictionary")
+        sys.exit(1)
     pwd = os.getcwd()
     for i,d in enumerate(data):
          
@@ -71,13 +72,16 @@ def check_accuracy(model, p,json_file_name, tolerance=0.001):
     for line in p.splitlines():
         print(line.decode())
         if ('eval/Accuracy'.encode() in line):
-            accuracy = re.split("eval/Accuracy", line.decode())[1]
-            top1_accuracy = re.search(r'\[([0-9.]+)]', accuracy).group(1)
+            is_match = re.search(r'eval/Accuracy\[([0-9.]+)]', line.decode())
+            if is_match and len(is_match.groups()) > 0 :
+                top1_accuracy = is_match.group(1)
+
         #for now we just validate top 1 accuracy, but calculating top5 anyway.
         if ('eval/Recall_5'.encode() in line):
-            accuracy = re.split("eval/Recall_5", line.decode())[1]
-            top5_accuracy = re.search(r'\[([0-9.]+)]', accuracy).group(1)
-
+            is_match = re.search(r'.+eval/Recall_5\[([0-9.]+)]', line.decode())
+            if is_match and len(is_match.groups()) > 0 :
+                top5_accuracy = is_match.group(1)
+            
     for i, d in enumerate(data):
         if (model in data[i]["model_name"]):
             # Tolerance check
@@ -133,8 +137,11 @@ if __name__ == '__main__':
     try:
         model_name, p = run_inference(args.model_name, models_dir,args.json_file_name)
         check_accuracy(model_name, p,args.json_file_name)
-        sys.exit(0)
+        if check_accuracy(model_name, p,args.json_file_name):
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
     except Exception as ex:
         print("Model accuracy verification failed. Exception: %s" % str(ex))
         sys.exit(1)
-
