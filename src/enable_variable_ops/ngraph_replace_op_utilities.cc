@@ -224,32 +224,41 @@ bool IsValidateShape(Node* node) {
 
 Status StoreRefTypeOutputs(Node* node, std::set<Node*>* ref_list) {
   for (auto edge : node->out_edges()) {
-    Node* dst = edge->dst();
-    if (IsRefType(dst->input_type(edge->dst_input()))) {
-      NGRAPH_VLOG(4) << "Found a ref type output " << dst->name();
-      // Check if the node is Assign node and it's attribute variable_shape
-      if (dst->type_string() == "Assign" && !IsValidateShape(dst)) {
-        NGRAPH_VLOG(4) << "The attribute validate_shape for Assign is false ";
-        // If the dst node is Assign and attr: variable_shape is false then
-        // we do not want to capture the Assign or any of the ref nodes leading
-        // from it or the variable node or ref nodes that lead to it.
-        // So clear the ref list and return.
-        ref_list->clear();
-        return Status::OK();
-      } else {
-        // In all other cases:
-        // 1. Assign, variable_shape = true
-        // 2. AssignAdd
-        // 3. AssignSub
-        // 4. ApplyGradientDescent
-        // which are all ref types, add to the ref list if not already added
-        // not already added part is taken care of by the list being a set.
-        NGRAPH_VLOG(4) << "Adding " << dst->name() << " to the ref list";
-        ref_list->insert(dst);
+    // no need to go over control edges
+    if (!(edge->IsControlEdge())) {
+      Node* dst = edge->dst();
+      if (IsRefType(dst->input_type(edge->dst_input()))) {
+        NGRAPH_VLOG(4) << "Found a ref type output " << dst->name();
+
+        // Check if the node is Assign node and it's attribute validate_shape
+        if (dst->type_string() == "Assign" && !IsValidateShape(dst)) {
+          NGRAPH_VLOG(4) << "The attribute validate_shape for Assign is false ";
+          // If the dst node is Assign and attr: validate_shape is false then
+          // we do not want to capture the Assign or any of the ref nodes
+          // leading from it or the variable node or ref nodes that lead to it.
+          // So clear the ref list and return.
+          ref_list->clear();
+          break;
+        } else {
+          // In all other cases:
+          // 1. Assign, validate_shape = true
+          // 2. AssignAdd
+          // 3. AssignSub
+          // 4. ApplyGradientDescent
+          // 5. other ref types
+          // which are all ref types, add to the ref list if not already added
+          if (ref_list->find(dst) == ref_list->end()) {
+            NGRAPH_VLOG(4) << "Adding " << dst->name() << " to the ref list";
+            ref_list->insert(dst);
+          } else {
+            NGRAPH_VLOG(4) << "Possible cycle in the graph.";
+          }
+        }
+
+        // Recursively go over the outputs of each ref type output.
+        StoreRefTypeOutputs(dst, ref_list);
       }
     }
-    // Recursively go over the outputs of each node.
-    StoreRefTypeOutputs(dst, ref_list);
   }
   return Status::OK();
 }

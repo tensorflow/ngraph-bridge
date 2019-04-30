@@ -59,27 +59,33 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
 
   std::set<Node*> ref_list;
   std::vector<Node*> nodes_to_capture;
+
   for (auto node : graph->op_nodes()) {
-    // Check if the node is a VariableV2
-    if (node->type_string() == "VariableV2") {
-      NGRAPH_VLOG(4) << "Found Variable: " << node->name();
-      // Add the Variable node to the ref list
-      ref_list.insert(node);
+    if (NGraphPlacementRequested(node)) {
+      // Check if the node is a VariableV2
+      if (node->type_string() == "VariableV2") {
+        NGRAPH_VLOG(4) << "Found Variable: " << node->name();
 
-      // go over all the nodes leading from VariableV2 and store them
-      // in a list if they are ref type
-      StoreRefTypeOutputs(node, &ref_list);
+        // go over all the nodes leading from VariableV2 and store them
+        // in a list if they are ref type
+        StoreRefTypeOutputs(node, &ref_list);
 
-      if (ref_list.size()) {
-        nodes_to_capture.insert(nodes_to_capture.end(), ref_list.begin(),
-                                ref_list.end());
-        ref_list.clear();
+        if (ref_list.size()) {
+          // Add the Variable node to the ref list
+          ref_list.insert(node);
+          for (auto n : ref_list) {
+            auto itr = CAPTURE_REPLACE_OP_MAP.find(n->type_string());
+            if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
+              nodes_to_capture.push_back(n);
+            }
+          }
+          ref_list.clear();
+        }
       }
     }
   }
 
   for (auto node : nodes_to_capture) {
-    NGRAPH_VLOG(1) << "Capturing: " << node->name();
     Node* replacement;
     auto itr = CAPTURE_REPLACE_OP_MAP.find(node->type_string());
     // Create the replacement node
@@ -92,7 +98,6 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
 
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
-
   }  // end of looping through nodes in the capture list
 
   for (auto node : nodes_to_capture) {
