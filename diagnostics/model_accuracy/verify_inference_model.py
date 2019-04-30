@@ -78,7 +78,7 @@ def check_accuracy(model, p, json_file_name, tolerance=0.001):
 
         #for now we just validate top 1 accuracy, but calculating top5 anyway.
         if ('eval/Recall_5'.encode() in line):
-            is_match = re.search(r'.+eval/Recall_5\[([0-9.]+)]', line.decode())
+            is_match = re.search(r'eval/Recall_5\[([0-9.]+)]', line.decode())
             if is_match and len(is_match.groups()) > 0:
                 top5_accuracy = is_match.group(1)
 
