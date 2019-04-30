@@ -39,18 +39,17 @@ def download_repo(repo, target_name=None, version='master'):
     command_executor("git clone " + repo)
 
 
-def run_inference(model_name, models_dir,json_file_name):
+def run_inference(model_name, models_dir, json_file_name):
     data = parse_json(args.json_file_name)
-    
 
     try:
-       data
+        data
     except:
         print("Pass a valid model prameters dictionary")
         sys.exit(1)
     pwd = os.getcwd()
-    for i,d in enumerate(data):
-         
+    for i, d in enumerate(data):
+
         if (model_name in data[i]["model_name"]):
             if (data[i]["model_type"] == "Image Recognition"):
                 if models_dir is None:
@@ -62,9 +61,10 @@ def run_inference(model_name, models_dir,json_file_name):
                                  '/image_recognition.patch')
             p = command_executor(data[i]["cmd"])
             os.chdir(pwd)
-            return model_name, p   
+            return model_name, p
 
-def check_accuracy(model, p,json_file_name, tolerance=0.001):
+
+def check_accuracy(model, p, json_file_name, tolerance=0.001):
     #check if the accuracy of the model inference matches with the published numbers
     #Accuracy values picked up from here https://github.com/tensorflow/models/tree/master/research/slim
 
@@ -73,15 +73,15 @@ def check_accuracy(model, p,json_file_name, tolerance=0.001):
         print(line.decode())
         if ('eval/Accuracy'.encode() in line):
             is_match = re.search(r'eval/Accuracy\[([0-9.]+)]', line.decode())
-            if is_match and len(is_match.groups()) > 0 :
+            if is_match and len(is_match.groups()) > 0:
                 top1_accuracy = is_match.group(1)
 
         #for now we just validate top 1 accuracy, but calculating top5 anyway.
         if ('eval/Recall_5'.encode() in line):
             is_match = re.search(r'.+eval/Recall_5\[([0-9.]+)]', line.decode())
-            if is_match and len(is_match.groups()) > 0 :
+            if is_match and len(is_match.groups()) > 0:
                 top5_accuracy = is_match.group(1)
-            
+
     for i, d in enumerate(data):
         if (model in data[i]["model_name"]):
             # Tolerance check
@@ -112,9 +112,9 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--json_file_name',
-         help=
-         'json file with model parameters to run inference and accuracy values to verify',
-         required=True)
+        help=
+        'json file with model parameters to run inference and accuracy values to verify',
+        required=True)
     parser.add_argument(
         '--models_dir',
         help='Source of the model repository location on disk \
@@ -135,9 +135,10 @@ if __name__ == '__main__':
     #TODO(Sindhu): Run multiple or ALL models at once and compare accuracy.
 
     try:
-        model_name, p = run_inference(args.model_name, models_dir,args.json_file_name)
-        check_accuracy(model_name, p,args.json_file_name)
-        if check_accuracy(model_name, p,args.json_file_name):
+        model_name, p = run_inference(args.model_name, models_dir,
+                                      args.json_file_name)
+        check_accuracy(model_name, p, args.json_file_name)
+        if check_accuracy(model_name, p, args.json_file_name):
             sys.exit(0)
         else:
             sys.exit(1)
