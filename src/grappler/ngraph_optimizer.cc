@@ -183,6 +183,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // Convert the graph back to Graphdef
   graph.ToGraphDef(output);
+  // According to the doc, the message takes ownership of the allocated object
   output->set_allocated_library(fdeflib_new);
   return Status::OK();
 }

@@ -33,6 +33,7 @@ namespace testing {
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 TEST(EncapsulateClusters, PopulateLibrary) {
+  NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
 
   Tensor t_input(DT_FLOAT, TensorShape{2, 3});
@@ -110,6 +111,7 @@ TEST(EncapsulateClusters, PopulateLibrary) {
                                   string(first_func.node_def(2).op())};
   auto expected = multiset<string>{"Const", "Add", "Const"};
   ASSERT_EQ(present, expected);
+  free(fdeflib_new);
 }
 }
 }
