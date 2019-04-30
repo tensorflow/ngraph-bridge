@@ -33,12 +33,12 @@ LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
 class NgraphTest(object):
 
     def with_ngraph(self, l, config=tf.ConfigProto()):
+        # TODO: Stop grappler on failure (Add fail_on_optimizer_errors=True)
         if ngraph_bridge.is_grappler_enabled():
             rewrite_options = rewriter_config_pb2.RewriterConfig(
                 meta_optimizer_iterations=rewriter_config_pb2.RewriterConfig.
                 ONE,
                 min_graph_nodes=-1,
-                #fail_on_optimizer_errors=True,
                 custom_optimizers=[
                     rewriter_config_pb2.RewriterConfig.CustomGraphOptimizer(
                         name="ngraph-optimizer")
