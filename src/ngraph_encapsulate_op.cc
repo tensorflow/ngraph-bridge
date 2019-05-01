@@ -579,11 +579,11 @@ class NGraphEncapsulateOp : public OpKernel {
       ng::element::Type expected_elem_type;
       TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
           ctx->expected_output_dtype(i), &expected_elem_type));
-      // OP_REQUIRES(
-      //     ctx, ng_element_type == expected_elem_type,
-      //     errors::Internal("Element type inferred by nGraph does not match "
-      //                      "the element type expected by TensorFlow"));
-
+      if (ng_element_type != expected_elem_type) {
+        errors::Internal(
+            "Element type inferred by nGraph does not match "
+            "the element type expected by TensorFlow");
+      }
       void* last_dst_ptr = output_caches[i].first;
       std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
           output_caches[i].second;
