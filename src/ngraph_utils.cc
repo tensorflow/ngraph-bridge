@@ -14,6 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 #include "ngraph_utils.h"
+#include "ngraph_api.h"
 
 #include <fstream>
 #include <iomanip>
