@@ -18,7 +18,7 @@
     "model_name": "ResNet50_v1",
     "accuracy" : "0.752",
     "model_type": "Image Recognition",
-    "cmd": "OMP_NUM_THREADS=28 KMP_AFFINITY=granularity=fine,compact,1,0, python eval_image_classifier.py --alsologtostderr --checkpoint_path=/nfs/fm/disks/aipg_trained_dataset/ngraph_tensorflow/fully_trained/resnet50_v1_slim/resnet_v1_50.ckpt --dataset_dir=/mnt/data/TF_ImageNet_latest --dataset_name=imagenet --dataset_split_name=validation --model_name=resnet_v1_50 --labels_offset=1"
+    "cmd": "OMP_NUM_THREADS=28 KMP_AFFINITY=granularity=fine,compact,1,0, python eval_image_classifier.py --alsologtostderr --checkpoint_path=/nfs/fm/disks/aipg_trained_dataset/ngraph_tensorflow/fully_trained/resnet50_v1_slim/resnet_v1_50.ckpt --dataset_dir=/mnt/data/TF_ImageNet_latest --dataset_name=imagenet --dataset_split_name=validation --model_name=resnet_v1_50 --labels_offset=1 --max_num_batches=8"
   },
 
   {
