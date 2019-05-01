@@ -543,7 +543,7 @@ class NGraphEncapsulateOp : public OpKernel {
   Status AllocateTensorOutput(
       OpKernelContext* ctx,
       std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-      ng::runtime::Backend* op_backend,
+      std::vector<TensorShape> input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
           output_caches) {
@@ -730,8 +730,9 @@ class NGraphEncapsulateOp : public OpKernel {
     ngraph::Event event_alloc_output("Output: maybe create", name(), "");
     std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>
         output_caches;
-    OP_REQUIRES_OK(ctx, AllocateTensorOutput(ctx, ng_exec, op_backend,
-                                             ng_outputs, output_caches));
+    OP_REQUIRES_OK(ctx,
+                   AllocateTensorOutput(ctx, ng_exec, input_shapes, op_backend,
+                                        ng_outputs, output_caches));
 
     event_alloc_output.Stop();
     NGRAPH_VLOG(4)
