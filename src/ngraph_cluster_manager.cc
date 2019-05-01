@@ -40,14 +40,6 @@ GraphDef* NGraphClusterManager::GetClusterGraph(int idx) {
 
 void NGraphClusterManager::EvictAllClusters() { s_cluster_graphs.clear(); }
 
-// TODO: Replace vector with map
-vector<int> NGraphClusterManager::GetClusterIndexes() {
-  std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
-  std::vector<int> cluster_indexes(s_cluster_graphs.size());
-  std::iota(std::begin(cluster_indexes), std::end(cluster_indexes), 0);
-  return cluster_indexes;
-}
-
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow
