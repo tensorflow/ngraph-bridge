@@ -184,6 +184,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // Convert the graph back to Graphdef
   graph.ToGraphDef(output);
   // According to the doc, the message takes ownership of the allocated object
+  // https://developers.google.com/protocol-buffers/docs/reference/cpp-generated#proto3_string
   output->set_allocated_library(fdeflib_new);
   return Status::OK();
 }

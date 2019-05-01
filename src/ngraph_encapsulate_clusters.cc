@@ -490,16 +490,19 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
   // Note: We loop over cluster_indices_for_this_rewrite and not all the
   // contents of ClusterManager
   for (const auto& cluster_idx : cluster_indices_for_this_rewrite) {
+    // The transformation happening inside this loop is:
+    // graphdef --> graph --> functiondef
+    // NGraphClusterManager::GetClusterGraph(cluster_idx)-->subgraph-->fdef
     // TODO: whats the right flib to use in sgraph's constructor?
-    Graph sgraph(graph->flib_def());
+    Graph subgraph(graph->flib_def());
     // TODO: When this works, NGraphClusterManager can go away
     TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
         GraphConstructorOptions(),
-        *(NGraphClusterManager::GetClusterGraph(cluster_idx)), &sgraph));
+        *(NGraphClusterManager::GetClusterGraph(cluster_idx)), &subgraph));
     FunctionDef* fdef = fdeflib->add_function();
     // TODO: if func lib has func with same name etc?
     TF_RETURN_IF_ERROR(GraphToFunctionDef(
-        sgraph, strings::StrCat("ngraph_cluster_", to_string(cluster_idx)),
+        subgraph, strings::StrCat("ngraph_cluster_", to_string(cluster_idx)),
         fdef));
   }
 
