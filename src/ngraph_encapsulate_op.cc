@@ -462,8 +462,8 @@ class NGraphEncapsulateOp : public OpKernel {
 
   Status AllocateTensorInput(
       OpKernelContext* ctx,
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-      std::vector<TensorShape> input_shapes, ng::runtime::Backend* op_backend,
+      std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs,
       std::vector<std::unique_ptr<ngraph::Event>>& input_copy_events) {
     // Allocate tensors for input arguments.
@@ -542,9 +542,9 @@ class NGraphEncapsulateOp : public OpKernel {
 
   Status AllocateTensorOutput(
       OpKernelContext* ctx,
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-      std::vector<TensorShape> input_shapes, ng::runtime::Backend* op_backend,
-      vector<shared_ptr<ng::runtime::Tensor>> ng_inputs,
+      std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
+      vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
           output_caches) {
