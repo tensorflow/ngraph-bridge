@@ -463,7 +463,7 @@ class NGraphEncapsulateOp : public OpKernel {
   Status AllocateTensorInput(
       OpKernelContext* ctx,
       std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-      std::vector<TensorShape> input_shapes, ng::runtime::Backend*& op_backend,
+      std::vector<TensorShape> input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs,
       std::vector<std::unique_ptr<ngraph::Event>>& input_copy_events) {
     // Allocate tensors for input arguments.
@@ -473,7 +473,6 @@ class NGraphEncapsulateOp : public OpKernel {
         input_caches = m_ng_exec_input_cache_map[ng_exec];
     input_caches.resize(input_shapes.size());
 
-// std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     bool log_copies = false;
     TF_RETURN_IF_ERROR(IsCopyLogEnabled(m_graph_id, log_copies));
@@ -553,7 +552,7 @@ class NGraphEncapsulateOp : public OpKernel {
   Status AllocateTensorOutput(
       OpKernelContext* ctx,
       std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-      ng::runtime::Backend*& op_backend,
+      ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
           output_caches) {
