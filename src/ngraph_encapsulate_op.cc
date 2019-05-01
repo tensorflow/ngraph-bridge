@@ -603,18 +603,17 @@ class NGraphEncapsulateOp : public OpKernel {
           m_graph_id, def().name(), input_index);
 
       if (!ref_exists) {
-        OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
-                    errors::Internal("Input ", input_index,
-                                     " is not in Catalog nor was set from TF"));
+        if (ng_inputs[input_index] != nullptr)
+          errors::Internal("Input ", input_index,
+                           " is not in Catalog nor was set from TF");
         continue;
       }
 
       string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
           m_graph_id, def().name(), input_index);
       NGraphVar* var;
-      OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
-                              ctx->resource_manager()->default_container(),
-                              ref_var_name, &var));
+      TF_RETURN_IF_ERROR(ctx->resource_manager()->Lookup<NGraphVar>(
+          ctx->resource_manager()->default_container(), ref_var_name, &var));
 
       if (var->need_sync_ng_tensor()) {
         number_of_copies++;
