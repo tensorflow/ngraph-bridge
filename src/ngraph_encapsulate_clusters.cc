@@ -403,6 +403,7 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
 
   // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
   // rewiring the inputs in their NodeDefs as we go.
+  std::set<int> cluster_indices_for_this_rewrite;
   for (auto node : graph->op_nodes()) {
     int cluster_idx;
 
@@ -457,6 +458,7 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
 
     auto node_def =
         NGraphClusterManager::GetClusterGraph(cluster_idx)->add_node();
+    cluster_indices_for_this_rewrite.insert(cluster_idx);
     *node_def = original_def;
 
     for (auto& input : *(node_def->mutable_input())) {
@@ -485,7 +487,9 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
   }
 
   // Pass 7: Insert to function library
-  for (const auto& cluster_idx : NGraphClusterManager::GetClusterIndexes()) {
+  // Note: We loop over cluster_indices_for_this_rewrite and not all the
+  // contents of ClusterManager
+  for (const auto& cluster_idx : cluster_indices_for_this_rewrite) {
     // TODO: whats the right flib to use in sgraph's constructor?
     Graph sgraph(graph->flib_def());
     // TODO: When this works, NGraphClusterManager can go away
