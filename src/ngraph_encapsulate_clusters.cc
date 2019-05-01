@@ -403,7 +403,7 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
 
   // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
   // rewiring the inputs in their NodeDefs as we go.
-  std::set<int> cluster_indices_for_this_rewrite;
+  std::set<int> cluster_indices_for_this_graph;
   for (auto node : graph->op_nodes()) {
     int cluster_idx;
 
@@ -458,7 +458,7 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
 
     auto node_def =
         NGraphClusterManager::GetClusterGraph(cluster_idx)->add_node();
-    cluster_indices_for_this_rewrite.insert(cluster_idx);
+    cluster_indices_for_this_graph.insert(cluster_idx);
     *node_def = original_def;
 
     for (auto& input : *(node_def->mutable_input())) {
@@ -487,9 +487,9 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
   }
 
   // Pass 7: Insert to function library
-  // Note: We loop over cluster_indices_for_this_rewrite and not all the
+  // Note: We loop over cluster_indices_for_this_graph and not all the
   // contents of ClusterManager
-  for (const auto& cluster_idx : cluster_indices_for_this_rewrite) {
+  for (const auto& cluster_idx : cluster_indices_for_this_graph) {
     // The transformation happening inside this loop is:
     // graphdef --> graph --> functiondef
     // NGraphClusterManager::GetClusterGraph(cluster_idx)-->subgraph-->fdef
