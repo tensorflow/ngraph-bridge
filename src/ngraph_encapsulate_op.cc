@@ -544,6 +544,7 @@ class NGraphEncapsulateOp : public OpKernel {
       OpKernelContext* ctx,
       std::shared_ptr<ngraph::runtime::Executable> ng_exec,
       std::vector<TensorShape> input_shapes, ng::runtime::Backend* op_backend,
+      vector<shared_ptr<ng::runtime::Tensor>> ng_inputs,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
           output_caches) {
@@ -696,7 +697,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     bool log_copies = false;
-    TF_RETURN_IF_ERROR(IsCopyLogEnabled(m_graph_id, log_copies));
+    OP_REQUIRES_OK(ctx, IsCopyLogEnabled(m_graph_id, log_copies));
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
                  << " ,GraphID " << m_graph_id << "\n";
 #endif
@@ -731,7 +732,7 @@ class NGraphEncapsulateOp : public OpKernel {
         output_caches;
     OP_REQUIRES_OK(ctx,
                    AllocateTensorOutput(ctx, ng_exec, input_shapes, op_backend,
-                                        ng_outputs, output_caches));
+                                        ng_inputs, ng_outputs, output_caches));
 
     event_alloc_output.Stop();
     NGRAPH_VLOG(4)
