@@ -22,40 +22,41 @@ import ctypes
 import pytest
 
 from common import NgraphTest
+import ngraph_bridge
 
 
-@pytest.mark.skip(reason="new deviceless mode WIP")
+#@pytest.mark.skip(reason="new deviceless mode WIP")
 class TestNgraphAPI(NgraphTest):
 
-    def test_is_enabled(self, ngraph_device):
-        assert ngraph_device.ngraph_is_enabled()
+    def test_is_enabled(self):
+        assert ngraph_bridge.is_enabled()
 
-    def test_disable(self, ngraph_device):
-        ngraph_device.ngraph_disable()
-        assert ngraph_device.ngraph_is_enabled() == 0
+    def test_disable(self):
+        ngraph_bridge.disable()
+        assert ngraph_bridge.is_enabled() == 0
 
-    def test_enable(self, ngraph_device):
-        ngraph_device.ngraph_enable()
-        assert ngraph_device.ngraph_is_enabled() == 1
+    def test_enable(self):
+        ngraph_bridge.enable()
+        assert ngraph_bridge.is_enabled() == 1
 
-    def test_backends_len(self, ngraph_device):
-        assert ngraph_device.ngraph_backends_len()
+    def test_backends_len(self):
+        assert ngraph_bridge.backends_len()
 
-    def test_set_backend(self, ngraph_device):
-        assert ngraph_device.ngraph_set_backend(b"CPU")
+    def test_set_backend(self):
+        assert ngraph_bridge.set_backend("CPU")
 
-    def test_set_backend_invalid(self, ngraph_device):
-        assert ngraph_device.ngraph_set_backend(b"POTATO") == 0
+    def test_set_backend_invalid(self):
+        assert ngraph_bridge.set_backend("POTATO") == 0
 
-    def test_list_backends(self, ngraph_device):
-        backends_count = ngraph_device.ngraph_backends_len()
-        assert ngraph_device.ngraph_list_backends(
+    def test_list_backends(self):
+        backends_count = ngraph_bridge.backends_len()
+        assert ngraph_bridge.list_backends(
             (ctypes.c_char_p * backends_count)(None), backends_count) == 1
 
-    def test_start_logging_placement(self, ngraph_device):
-        ngraph_device.ngraph_start_logging_placement()
-        assert ngraph_device.ngraph_is_logging_placement() == 1
+    def test_start_logging_placement(self):
+        ngraph_bridge.start_logging_placement()
+        assert ngraph_bridge.is_logging_placement() == 1
 
-    def test_stop_logging_placement(self, ngraph_device):
-        ngraph_device.ngraph_stop_logging_placement()
-        assert ngraph_device.ngraph_is_logging_placement() == 0
+    def test_stop_logging_placement(self):
+        ngraph_bridge.stop_logging_placement()
+        assert ngraph_bridge.is_logging_placement() == 0
