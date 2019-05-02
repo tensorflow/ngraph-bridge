@@ -44,7 +44,7 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 Status IsCopyLogEnabled(int graph_id, bool& is_copy_log_enabled) {
-  const char* copy_env_var = std::getenv("NGRAPH_TF_LOG_COPIES");
+  const char* copy_env_var = std::getenv("NGRAPH_TF_LOG_TENSOR_COPIES");
   if (copy_env_var == nullptr) {
     is_copy_log_enabled = false;
     return Status::OK();
@@ -53,7 +53,8 @@ Status IsCopyLogEnabled(int graph_id, bool& is_copy_log_enabled) {
   try {
     test_graph_id = stoi(string(copy_env_var));
   } catch (const std::invalid_argument& ia) {
-    return errors::InvalidArgument("Invalid argument for NGRAPH_TF_LOG_COPIES");
+    return errors::InvalidArgument(
+        "Invalid argument for NGRAPH_TF_LOG_TENSOR_COPIES");
   }
   // if -1 copies are logged for all graphs
   is_copy_log_enabled = (test_graph_id == -1 || test_graph_id == graph_id);
