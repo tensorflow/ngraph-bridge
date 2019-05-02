@@ -43,7 +43,6 @@ def run_inference(model_name, models_dir, json_file_name):
 
     try:
         data = parse_json(args.json_file_name)
-        
     except:
         print("Pass a valid model prameters dictionary")
         sys.exit(1)
