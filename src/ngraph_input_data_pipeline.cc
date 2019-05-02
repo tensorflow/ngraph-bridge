@@ -15,12 +15,21 @@
  *******************************************************************************/
 #include "tensorflow/core/graph/graph.h"
 
+#include "ngraph/ngraph.hpp"
+
+#include "ngraph_input_data_pipeline.h"
+
+using namespace std;
+namespace ng=ngraph;
+
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status LoadInputDataOnDevice(vector<string> input_node_names,
-                             vector<tensorflow::Tensor*>) {}
+Status LoadInputDataOnDevice(vector<string>& input_node_names,
+                             vector<Tensor*>& input_tf_tensors) {
+                                 return Status::OK();
+                             }
 
 }  // namespace ngraph_bridge
 
