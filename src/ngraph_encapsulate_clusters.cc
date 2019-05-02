@@ -493,7 +493,7 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
     // The transformation happening inside this loop is:
     // graphdef --> graph --> functiondef
     // NGraphClusterManager::GetClusterGraph(cluster_idx)-->subgraph-->fdef
-    // TODO: whats the right flib to use in sgraph's constructor?
+    // TODO: whats the right flib to use in subgraph's constructor?
     Graph subgraph(graph->flib_def());
     // TODO: When this works, NGraphClusterManager can go away
     TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
