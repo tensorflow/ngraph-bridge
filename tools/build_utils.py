@@ -224,20 +224,20 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
 
     # Remove just in case
     try:
-        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so")
+        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.1")
         os.remove(doomed_file)
-        doomed_file = os.path.join(artifacts_dir, "libtensorflow_framework.so")
+        doomed_file = os.path.join(artifacts_dir, "libtensorflow_framework.so.1")
         os.remove(doomed_file)
     except OSError:
         print("Cannot remove: %s" % doomed_file)
         pass
 
     # Now copy the TF libraries
-    tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so"
+    tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.1"
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)
 
-    tf_cc_fmwk_file = "bazel-bin/tensorflow/libtensorflow_framework.so"
+    tf_cc_fmwk_file = "bazel-bin/tensorflow/libtensorflow_framework.so.1"
     print("Copying %s to %s" % (tf_cc_fmwk_file, artifacts_dir))
     shutil.copy(tf_cc_fmwk_file, artifacts_dir)
 
@@ -373,6 +373,9 @@ def download_repo(target_name, repo, version):
     # checkout the specified branch
     call(["git", "fetch"])
     command_executor(["git", "checkout", version])
+
+    # Get the latest if applicable
+    call(["git", "pull"])
     os.chdir(pwd)
 
 
