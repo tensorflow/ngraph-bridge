@@ -14,6 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 #include "ngraph_utils.h"
+#include "ngraph_api.h"
 
 #include <fstream>
 #include <iomanip>
@@ -73,9 +74,9 @@ std::string PrintBool(bool var) { return (var ? "Yes" : "No"); }
 
 bool IsNGVariableType(string node_type) {
   if (ngraph_tf_are_variables_enabled())
-    return node_type == "NGraphVariable";
-  else
     return (node_type == "NGraphVariable" || node_type == "NGraphAssign");
+  else
+    return node_type == "NGraphVariable";
 }
 
 bool IsNGSupportedType(string node_type) {
