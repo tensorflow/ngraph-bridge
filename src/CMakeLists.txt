@@ -36,6 +36,7 @@ set(SRC
    ngraph_builder.cc
    ngraph_backend_manager.cc
    ngraph_capture_variables.cc
+   ngraph_catalog.cc
    ngraph_cluster_manager.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
@@ -72,7 +73,6 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 
     # new files
     list(APPEND SRC enable_variable_ops/ngraph_assign_op.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_op_utilities.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_variable_modifiers.cc)
