@@ -111,7 +111,7 @@ TEST(CaptureVariables, VariableScope) {
 }
 
 // Test that an Assign (specifically Assign1) with attribute
-// variable_scope = false and also the Variable is shared with
+// validate_shape = false and also the Variable is shared with
 // another Assign so none of them is captured
 TEST(CaptureVariables, SingleVariable1) {
   Scope root = Scope::NewRootScope();
@@ -145,7 +145,7 @@ TEST(CaptureVariables, SingleVariable1) {
 }
 
 // Test that an Assign (specifically Assign2) with attribute
-// variable_scope = false and also the Variable is shared with
+// validate_shape = false and also the Variable is shared with
 // another Assign so none of them is captured
 TEST(CaptureVariables, SingleVariable2) {
   Scope root = Scope::NewRootScope();
