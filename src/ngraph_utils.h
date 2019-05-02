@@ -63,6 +63,8 @@ bool IsNGVariableType(string node_type);
 // Node-types that are executed on nGraph
 bool IsNGSupportedType(string node_type);
 
+bool IsProcessedByNgraphPass(Graph* g);
+
 // Taken from: tensorflow/core/grappler/optimizers/arithmetic_optimizer.cc
 // Extract values from a Const op to `values`. Returns true if succeeds.
 //
@@ -264,6 +266,7 @@ bool DumpTrackedGraphs();
 
 // Insert constrol dependency for AllReduce ops to ensure execution order
 void AllreduceOpControlOrder(const std::shared_ptr<ngraph::Function>&);
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

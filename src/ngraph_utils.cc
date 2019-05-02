@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2018 Intel Corporation
+ * Copyright 2017-2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 #include "ngraph_utils.h"
+#include "ngraph_api.h"
 
 #include <fstream>
 #include <iomanip>
@@ -378,7 +379,17 @@ void AllreduceOpControlOrder(
       }
     }
   }
-};
+}
+
+bool IsProcessedByNgraphPass(Graph* g) {
+  // TODO: place a dummy node as a marker
+  // Current method may fail when graph has no encapsulates after first pass
+  // Also variable/optimizer change introduces other types of ng nodes
+  for (Node* node : g->nodes()) {
+    if (node->type_string() == "NGraphEncapsulate") return true;
+  }
+  return false;
+}
 
 }  // namespace ngraph_bridge
 

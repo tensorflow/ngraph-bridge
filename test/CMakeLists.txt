@@ -48,6 +48,7 @@ set(SRC
     graph_rewrites/assign_clusters.cc
     graph_rewrites/deadness_test.cc
     graph_rewrites/backend_manager_test.cc
+    graph_rewrites/disable_ops_test.cc
     test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
@@ -111,4 +112,9 @@ install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
     FILES_MATCHING PATTERN "*.py"
+)
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "*.pbtxt"
 )

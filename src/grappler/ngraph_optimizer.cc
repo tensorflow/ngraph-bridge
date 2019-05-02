@@ -15,6 +15,7 @@
  *******************************************************************************/
 
 #include "ngraph_optimizer.h"
+#include "ngraph_cluster_manager.h"
 
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
@@ -63,9 +64,14 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
   // we will not do anything; all subsequent
   // passes become a no-op.
-  if (config::IsEnabled() == false ||
-      std::getenv("NGRAPH_TF_DISABLE") != nullptr) {
-    NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Ngraph is disabled ";
+  bool ngraph_not_enabled =
+      (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
+  bool already_processed = IsProcessedByNgraphPass(&graph);
+  if (ngraph_not_enabled || already_processed) {
+    NGRAPH_VLOG(0) << "Not running through nGraph. nGraph not enabled: "
+                   << ngraph_not_enabled
+                   << " Already processed: " << already_processed;
+    NGraphClusterManager::EvictAllClusters();
     graph.ToGraphDef(output);
     return Status::OK();
   }
@@ -86,20 +92,38 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // Init Ops
   nodes_to_preserve.insert(item.init_ops.begin(), item.init_ops.end());
 
+  // Find a list of nodes that are of the types that are disabled
+  std::set<string> disabled_nodes;
+  std::set<string> disabled_ops_set = config::GetDisabledOps();
+  for (auto itr : graph.nodes()) {
+    if (disabled_ops_set.find(itr->type_string()) != disabled_ops_set.end()) {
+      disabled_nodes.insert(itr->name());
+    }
+  }
+
   // Fetch Nodes
   std::set<string> fetch_nodes;
   for (const string& f : item.fetch) {
     int pos = f.find(":");
     fetch_nodes.insert(f.substr(0, pos));
   }
+
+  // nodes_to_add_identity_to = fetch_nodes - disabled_nodes
+  std::set<string> nodes_to_add_identity_to;
+  std::set_difference(fetch_nodes.begin(), fetch_nodes.end(),
+                      disabled_nodes.begin(), disabled_nodes.end(),
+                      std::inserter(nodes_to_add_identity_to,
+                                    nodes_to_add_identity_to.begin()));
+
   // Rewrite graph to add IdentityN node so the fetch node can be encapsulated
   // as well
   // If the fetch node in question has 0 outputs or any of the outputs
   // has ref type as a data type then don't add IdentityN node, but the fetch
   // node will be skipped from capturing and marking for clustering.
-  TF_RETURN_IF_ERROR(AddIdentityN(&graph, fetch_nodes));
+  TF_RETURN_IF_ERROR(AddIdentityN(&graph, nodes_to_add_identity_to));
 
-  nodes_to_preserve.insert(fetch_nodes.begin(), fetch_nodes.end());
+  nodes_to_preserve.insert(nodes_to_add_identity_to.begin(),
+                           nodes_to_add_identity_to.end());
   std::set<string>& skip_these_nodes = nodes_to_preserve;
 
   //
