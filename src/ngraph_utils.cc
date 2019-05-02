@@ -14,7 +14,6 @@
  * limitations under the License.
  *******************************************************************************/
 #include "ngraph_utils.h"
-#include "ngraph_api.h"
 
 #include <fstream>
 #include <iomanip>
@@ -44,7 +43,7 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status IsCopyLogEnabled(int graph_id, bool& is_copy_log_enabled) {
+Status IsNgraphTFLogTensorCopiesEnabled(int graph_id, bool& is_copy_log_enabled) {
   const char* copy_env_var = std::getenv("NGRAPH_TF_LOG_TENSOR_COPIES");
   if (copy_env_var == nullptr) {
     is_copy_log_enabled = false;
@@ -54,8 +53,7 @@ Status IsCopyLogEnabled(int graph_id, bool& is_copy_log_enabled) {
   try {
     test_graph_id = stoi(string(copy_env_var));
   } catch (const std::invalid_argument& ia) {
-    return errors::InvalidArgument(
-        "Invalid argument for NGRAPH_TF_LOG_TENSOR_COPIES");
+    return errors::InvalidArgument("Invalid argument for NGRAPH_TF_LOG_TENSOR_COPIES");
   }
   // if -1 copies are logged for all graphs
   is_copy_log_enabled = (test_graph_id == -1 || test_graph_id == graph_id);
@@ -74,9 +72,9 @@ std::string PrintBool(bool var) { return (var ? "Yes" : "No"); }
 
 bool IsNGVariableType(string node_type) {
   if (ngraph_tf_are_variables_enabled())
-    return (node_type == "NGraphVariable" || node_type == "NGraphAssign");
-  else
     return node_type == "NGraphVariable";
+  else
+    return (node_type == "NGraphVariable" || node_type == "NGraphAssign");
 }
 
 bool IsNGSupportedType(string node_type) {
