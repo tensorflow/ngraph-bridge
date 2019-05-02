@@ -57,22 +57,22 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
           {"VariableV2", std::make_pair("NGraphVariable", ReplaceVariable)}};
 
-  std::set<Node*> ref_list;
   std::vector<Node*> nodes_to_capture;
 
   for (auto node : graph->op_nodes()) {
+    std::set<Node*> ref_list;
     if (NGraphPlacementRequested(node)) {
       // Check if the node is a VariableV2
       if (node->type_string() == "VariableV2") {
         NGRAPH_VLOG(4) << "Found Variable: " << node->name();
+        // Add the Variable node to the ref list
+        ref_list.insert(node);
 
         // go over all the nodes leading from VariableV2 and store them
         // in a list if they are ref type
         StoreRefTypeOutputs(node, &ref_list);
 
         if (ref_list.size()) {
-          // Add the Variable node to the ref list
-          ref_list.insert(node);
           for (auto n : ref_list) {
             auto itr = CAPTURE_REPLACE_OP_MAP.find(n->type_string());
             if (itr != CAPTURE_REPLACE_OP_MAP.end()) {

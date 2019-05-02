@@ -225,7 +225,7 @@ bool IsValidateShape(Node* node) {
 Status StoreRefTypeOutputs(Node* node, std::set<Node*>* ref_list) {
   for (auto edge : node->out_edges()) {
     // no need to go over control edges
-    if (!(edge->IsControlEdge())) {
+    if (!(edge->IsControlEdge()) && ref_list->size()) {
       Node* dst = edge->dst();
       if (IsRefType(dst->input_type(edge->dst_input()))) {
         NGRAPH_VLOG(4) << "Found a ref type output " << dst->name();
@@ -245,7 +245,7 @@ Status StoreRefTypeOutputs(Node* node, std::set<Node*>* ref_list) {
           // 2. AssignAdd
           // 3. AssignSub
           // 4. ApplyGradientDescent
-          // 5. other ref types
+          // 5. other
           // which are all ref types, add to the ref list if not already added
           if (ref_list->find(dst) == ref_list->end()) {
             NGRAPH_VLOG(4) << "Adding " << dst->name() << " to the ref list";
