@@ -40,10 +40,10 @@ def download_repo(repo, target_name=None, version='master'):
 
 
 def run_inference(model_name, models_dir, json_file_name):
-    data = parse_json(args.json_file_name)
 
     try:
-        data
+        data = parse_json(args.json_file_name)
+        
     except:
         print("Pass a valid model prameters dictionary")
         sys.exit(1)
