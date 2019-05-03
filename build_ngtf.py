@@ -158,7 +158,8 @@ def main():
 
     if arguments.use_prebuilt_tensorflow:
         print("Using existing TensorFlow")
-        command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
+        #command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
+        command_executor(["pip", "install", "-U", "tf-nightly"])
 
         import tensorflow as tf
         print('Version information:')
