@@ -210,7 +210,7 @@ __version__ = \
   "nGraph version used for this build: " + str(ngraph_bridge_lib.NgraphLibVersion()) + "\n" + \
   "TensorFlow version used for this build: " + TF_GIT_VERSION_BUILT_WITH + "\n" \
   "CXX11_ABI flag used for this build: " + str(ngraph_bridge_lib.NgraphBridgeCXX11ABIFlag()) + "\n" \
-  "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.NgraphBridgeAreVariablesEnabled()) + "\n" \
+  "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.NgraphBridgeIsGrapplerEnabled()) + "\n" \
   "nGraph bridge built with Variables and Optimizers Enablement: " \
       + str(ngraph_bridge_lib.NgraphBridgeAreVariablesEnabled())
 
