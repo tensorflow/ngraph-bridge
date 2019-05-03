@@ -36,11 +36,11 @@ namespace testing {
 // Set using C API, get using C API
 TEST(DisableOps, SimpleSettingAndGetting1) {
   char disabled_list[] = "Add,Sub";
-  config::ngraph_set_disabled_ops(disabled_list);
-  ASSERT_EQ(string(config::ngraph_get_disabled_ops()), "Add,Sub");
+  config::NgraphSetDisabledOps(disabled_list);
+  ASSERT_EQ(string(config::NgraphGetDisabledOps()), "Add,Sub");
 
   // Clean up
-  config::ngraph_set_disabled_ops("");
+  config::NgraphSetDisabledOps("");
 }
 
 // Multiple tests of setting and getting executed on a graph that adds 2 consts
@@ -48,7 +48,7 @@ TEST(DisableOps, SimpleSettingAndGetting1) {
 TEST(DisableOps, DisableTest) {
   Graph g(OpRegistry::Global());
 
-  config::ngraph_set_disabled_ops("");
+  config::NgraphSetDisabledOps("");
 
   Tensor t_input(DT_FLOAT, TensorShape{2, 3});
   Tensor t_shape(DT_INT32, TensorShape{2});
@@ -102,7 +102,7 @@ TEST(DisableOps, DisableTest) {
   node3->ClearAttr("_ngraph_marked_for_clustering");
 
   // Add is disabled
-  config::ngraph_set_disabled_ops("Add,Mul");
+  config::NgraphSetDisabledOps("Add,Mul");
   ASSERT_OK(MarkForClustering(&g, {}));
   ASSERT_OK(
       GetNodeAttr(node1->attrs(), "_ngraph_marked_for_clustering", &marked));
@@ -120,7 +120,7 @@ TEST(DisableOps, DisableTest) {
   node3->ClearAttr("_ngraph_marked_for_clustering");
 
   // Add,Add,Mul,Add should work too
-  config::ngraph_set_disabled_ops("Add,Add,Mul,Add");
+  config::NgraphSetDisabledOps("Add,Add,Mul,Add");
   ASSERT_OK(MarkForClustering(&g, {}));
   ASSERT_OK(
       GetNodeAttr(node1->attrs(), "_ngraph_marked_for_clustering", &marked));
@@ -138,7 +138,7 @@ TEST(DisableOps, DisableTest) {
   node3->ClearAttr("_ngraph_marked_for_clustering");
 
   // Resetting it. So Add should be accepted now
-  config::ngraph_set_disabled_ops("");
+  config::NgraphSetDisabledOps("");
   ASSERT_OK(MarkForClustering(&g, {}));
   ASSERT_OK(
       GetNodeAttr(node1->attrs(), "_ngraph_marked_for_clustering", &marked));
@@ -157,7 +157,7 @@ TEST(DisableOps, DisableTest) {
   node3->ClearAttr("_ngraph_marked_for_clustering");
 
   // Invalid op name should trigger an error
-  config::ngraph_set_disabled_ops("Add,_InvalidOp");
+  config::NgraphSetDisabledOps("Add,_InvalidOp");
   ASSERT_NOT_OK(MarkForClustering(&g, {}));
   ASSERT_NOT_OK(
       GetNodeAttr(node1->attrs(), "_ngraph_marked_for_clustering", &marked));
@@ -167,7 +167,7 @@ TEST(DisableOps, DisableTest) {
       GetNodeAttr(node3->attrs(), "_ngraph_marked_for_clustering", &marked));
 
   // Clean up
-  config::ngraph_set_disabled_ops("");
+  config::NgraphSetDisabledOps("");
 }
 }
 }

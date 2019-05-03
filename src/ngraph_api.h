@@ -27,22 +27,22 @@ namespace tensorflow {
 namespace ngraph_bridge {
 namespace config {
 extern "C" {
-extern void ngraph_enable();
-extern void ngraph_disable();
-extern bool ngraph_is_enabled();
+extern void NgraphEnable();
+extern void NgraphDisable();
+extern bool NgraphIsEnabled();
 
-extern size_t ngraph_backends_len();
-extern bool ngraph_list_backends(char** backends, int backends_len);
-extern bool ngraph_set_backend(const char* backend);
-extern bool ngraph_is_supported_backend(const char* backend);
-extern bool ngraph_get_currently_set_backend_name(char** backend);
+extern size_t NgraphBackendsLen();
+extern bool NgraphListBackends(char** backends, int backends_len);
+extern bool NgraphSetBackend(const char* backend);
+extern bool NgraphIsSupportedBackend(const char* backend);
+extern bool NgraphGetCurrentlySetBackendName(char** backend);
 
-extern void ngraph_start_logging_placement();
-extern void ngraph_stop_logging_placement();
-extern bool ngraph_is_logging_placement();
+extern void NgraphStartLoggingPlacement();
+extern void NgraphStopLoggingPlacement();
+extern bool NgraphIsLoggingPlacement();
 
-extern void ngraph_set_disabled_ops(const char* op_type_list);
-extern const char* ngraph_get_disabled_ops();
+extern void NgraphSetDisabledOps(const char* op_type_list);
+extern const char* NgraphGetDisabledOps();
 }
 // // TODO: why is this not const?
 extern vector<string> ListBackends();

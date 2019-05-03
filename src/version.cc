@@ -45,9 +45,9 @@ extern "C" const char* get_ngraph_version_string();
 
 namespace tensorflow {
 namespace ngraph_bridge {
-const char* ngraph_tf_version() { return (NG_TF_VERSION_STRING); }
-const char* ngraph_lib_version() { return get_ngraph_version_string(); }
-int ngraph_tf_cxx11_abi_flag() {
+const char* NgraphBridgeVersion() { return (NG_TF_VERSION_STRING); }
+const char* NgraphLibVersion() { return get_ngraph_version_string(); }
+int NgraphBridgeCXX11ABIFlag() {
 #ifdef _GLIBCXX_USE_CXX11_ABI
   return _GLIBCXX_USE_CXX11_ABI;
 #else
@@ -55,7 +55,7 @@ int ngraph_tf_cxx11_abi_flag() {
 #endif
 }
 
-bool ngraph_tf_is_grappler_enabled() {
+bool NgraphBridgeIsGrapplerEnabled() {
 #if defined(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
   return true;
 #else
@@ -63,7 +63,7 @@ bool ngraph_tf_is_grappler_enabled() {
 #endif
 }
 
-bool ngraph_tf_are_variables_enabled() {
+bool NgraphBridgeAreVariablesEnabled() {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   return true;
 #else

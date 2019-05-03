@@ -27,15 +27,15 @@ static bool _is_logging_placement = false;
 static std::set<std::string> disabled_op_types{};
 
 extern "C" {
-void ngraph_enable() { _is_enabled = true; }
-void ngraph_disable() { _is_enabled = false; }
-bool ngraph_is_enabled() { return _is_enabled; }
+void NgraphEnable() { _is_enabled = true; }
+void NgraphDisable() { _is_enabled = false; }
+bool NgraphIsEnabled() { return _is_enabled; }
 
-size_t ngraph_backends_len() {
+size_t NgraphBackendsLen() {
   return BackendManager::GetNumOfSupportedBackends();
 }
 
-bool ngraph_list_backends(char** backends, int backends_len) {
+bool NgraphListBackends(char** backends, int backends_len) {
   const auto ngraph_backends = ListBackends();
   if (backends_len != ngraph_backends.size()) {
     return false;
@@ -47,32 +47,32 @@ bool ngraph_list_backends(char** backends, int backends_len) {
   return true;
 }
 
-bool ngraph_set_backend(const char* backend) {
+bool NgraphSetBackend(const char* backend) {
   if (BackendManager::SetBackendName(backend) != tensorflow::Status::OK()) {
     return false;
   }
   return true;
 }
 
-extern bool ngraph_is_supported_backend(const char* backend) {
+extern bool NgraphIsSupportedBackend(const char* backend) {
   return BackendManager::IsSupportedBackend(backend);
 }
 
-extern bool ngraph_get_currently_set_backend_name(char** backend) {
+extern bool NgraphGetCurrentlySetBackendName(char** backend) {
   string backend_set = "";
   backend_set = BackendManager::GetCurrentlySetBackendName();
   backend[0] = strdup(backend_set.c_str());
   return true;
 }
 
-void ngraph_start_logging_placement() { _is_logging_placement = true; }
-void ngraph_stop_logging_placement() { _is_logging_placement = false; }
-bool ngraph_is_logging_placement() {
+void NgraphStartLoggingPlacement() { _is_logging_placement = true; }
+void NgraphStopLoggingPlacement() { _is_logging_placement = false; }
+bool NgraphIsLoggingPlacement() {
   return _is_enabled && (_is_logging_placement ||
                          std::getenv("NGRAPH_TF_LOG_PLACEMENT") != nullptr);
 }
 
-extern void ngraph_set_disabled_ops(const char* op_type_list) {
+extern void NgraphSetDisabledOps(const char* op_type_list) {
   auto disabled_ops_list = ng::split(std::string(op_type_list), ',');
   // In case string is '', then splitting yields ['']. So taking care that ['']
   // corresponds to empty set {}
@@ -84,7 +84,7 @@ extern void ngraph_set_disabled_ops(const char* op_type_list) {
   }
 }
 
-extern const char* ngraph_get_disabled_ops() {
+extern const char* NgraphGetDisabledOps() {
   return ng::join(GetDisabledOps(), ",").c_str();
 }
 }

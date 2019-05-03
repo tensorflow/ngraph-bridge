@@ -268,7 +268,7 @@ Status EncapsulateClusters(Graph* graph, int graph_id) {
           std::make_tuple(src->id(), edge->src_output(), dt));
     }
 
-    if (config::ngraph_is_logging_placement()) {
+    if (config::NgraphIsLoggingPlacement()) {
       if (edge_is_arg && edge_is_retval) {
         count_both_arg_retval++;
       } else {
@@ -281,7 +281,7 @@ Status EncapsulateClusters(Graph* graph, int graph_id) {
     }
   }
 
-  if (config::ngraph_is_logging_placement()) {
+  if (config::NgraphIsLoggingPlacement()) {
     int computed_edge_number = count_arg + count_retval +
                                count_both_arg_retval + count_free +
                                count_encapsulated;

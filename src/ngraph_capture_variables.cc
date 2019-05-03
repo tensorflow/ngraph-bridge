@@ -44,7 +44,7 @@ static bool IsOutputNode(const Node* node,
 // Main entry point for the variable-capture.
 //
 Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
-  if (config::ngraph_is_enabled() == false) {
+  if (config::NgraphIsEnabled() == false) {
     return Status::OK();
   }
 

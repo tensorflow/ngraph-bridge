@@ -123,7 +123,7 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
     // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
     // we will not do anything; all subsequent
     // passes become a no-op.
-    bool ngraph_not_enabled = (!config::ngraph_is_enabled()) ||
+    bool ngraph_not_enabled = (!config::NgraphIsEnabled()) ||
                               (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
     if (ngraph_not_enabled || already_processed) {
@@ -198,7 +198,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
     // we will not do anything; all subsequent
     // passes become a no-op.
-    bool ngraph_not_enabled = (!config::ngraph_is_enabled()) ||
+    bool ngraph_not_enabled = (!config::NgraphIsEnabled()) ||
                               (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
     if (ngraph_not_enabled || already_processed) {

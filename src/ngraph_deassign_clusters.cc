@@ -58,7 +58,7 @@ unordered_map<string, int> deassigned_histogram;
 int num_nodes_marked_before_deassign = 0;
 
 static void MaybeLogPlacement(const Graph* graph) {
-  if (!config::ngraph_is_logging_placement()) return;
+  if (!config::NgraphIsLoggingPlacement()) return;
 
   std::map<int, std::set<const Node*>> final_cluster_map;
   int number_of_nodes = 0, nodes_marked_for_clustering = 0,

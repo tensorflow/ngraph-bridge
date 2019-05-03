@@ -19,24 +19,24 @@
 namespace tensorflow {
 namespace ngraph_bridge {
 extern "C" {
-// Returns the ngraph-tensorflow library version
-const char* ngraph_tf_version();
+// Returns the ngraph-bridge library version
+const char* NgraphBridgeVersion();
 
 // Returns the nGraph version this bridge was compiled with
-const char* ngraph_lib_version();
+const char* NgraphLibVersion();
 
 // Returns the 0 if _GLIBCXX_USE_CXX11_ABI wasn't set by the
 // compiler (e.g., clang or gcc pre 4.8) or the value of the
 // _GLIBCXX_USE_CXX11_ABI set during the compilation time
-int ngraph_tf_cxx11_abi_flag();
+int NgraphBridgeCXX11ABIFlag();
 
 // Returns true when nGraph is using Grappler optimizer APIs for
 // graph rewriting
-bool ngraph_tf_is_grappler_enabled();
+bool NgraphBridgeIsGrapplerEnabled();
 
 // Returns true when nGraph-bridge is built with
 // --enable_variables_and_optimizers flag
-bool ngraph_tf_are_variables_enabled();
+bool NgraphBridgeAreVariablesEnabled();
 }
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
