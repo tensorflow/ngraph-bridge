@@ -29,6 +29,9 @@ import tensorflow as tf
 #sys.path.append(base_dir)
 #sys.path.append(base_dir + '/tools')
 
+# Assuming its run from root of ngraph-bridge
+base_dir = '.'
+
 from tools.build_utils import command_executor
 from tools.convert import convert, get_gdef
 
