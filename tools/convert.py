@@ -112,8 +112,8 @@ def filter_dict(prefix, dictionary):
     return (stripped, dictionary[prefix + stripped])
 
 
-def save_gdef_to_savedmodel():
-    pass
+def save_gdef_to_savedmodel(gdef, location):
+    raise Exception("Implement me")
 
 
 def save_gdef_to_pbtxt(gdef, location):
