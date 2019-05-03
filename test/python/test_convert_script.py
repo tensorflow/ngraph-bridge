@@ -73,9 +73,9 @@ class TestConversionScript(NgraphTest):
         print(inp_format, inp_loc, out_format, commandline, out_loc)
         print('_' * 50)
         if commandline:
-            command_executor('python ' + base_dir +
-                             '/tools/convert.py --input' + inp_format + ' ' +
-                             inp_loc + ' --outnodes out_node --output' +
+            # In CI this test is expected to be run out of artifacts/test/python
+            command_executor('python ../tools/convert.py --input' + inp_format +
+                             ' ' + inp_loc + ' --outnodes out_node --output' +
                              out_format + ' ' + out_loc)
         else:
             convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
