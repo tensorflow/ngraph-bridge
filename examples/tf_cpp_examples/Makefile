@@ -1,9 +1,9 @@
 # A simple makefile that builds the hello_tf example
 
 # Location of the ngraph-tf directory
-ARTIFACTS_DIR=/localdisk/shrestha/ng-tf-Apr30/ngraph-bridge/build_cmake/artifacts
-TF_PY_DIR=/localdisk/shrestha/ng-tf-Apr30/ngraph-bridge/build_cmake/venv-tf-py3/lib/python3.5/site-packages/tensorflow
-TF_SRC_DIR=/localdisk/shrestha/ng-tf-Apr30/ngraph-bridge/build_cmake/tensorflow
+ARTIFACTS_DIR=../../build_cmake/artifacts
+TF_PY_DIR=../../build_cmake/venv-tf-py3/lib/python3.5/site-packages/tensorflow
+TF_SRC_DIR=../../build_cmake/tensorflow
 
 define GET_TF_CXX_ABI
 import tensorflow as tf
