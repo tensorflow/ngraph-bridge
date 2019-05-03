@@ -103,7 +103,7 @@ message(STATUS "TensorFlow_VERSION: " ${TensorFlow_VERSION})
 # Make sure that the TF library exists
 find_library(
   TensorFlow_FRAMEWORK_LIBRARY
-  NAME tensorflow_framework
+  NAME libtensorflow_framework.so.1 
   PATHS ${TensorFlow_DIR}
   NO_DEFAULT_PATH
 )

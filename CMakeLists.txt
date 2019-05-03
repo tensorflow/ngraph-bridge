@@ -100,7 +100,7 @@ endif()
 #       libngraph_bridge.so
 #       ...
 #     /tensorflow
-#       libtensorflow_framework.so
+#       libtensorflow_framework.so.1
 #       python/
 #           _pywrap....so
 # Therefore we are setting two entries in the RPATH:
@@ -123,7 +123,7 @@ add_library(tensorflow_framework_lib SHARED IMPORTED)
 set_target_properties(
     tensorflow_framework_lib
     PROPERTIES IMPORTED_LOCATION
-    ${TensorFlow_DIR}/libtensorflow_framework.so
+    ${TensorFlow_DIR}/libtensorflow_framework.so.1
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -239,7 +239,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.18.0
+        GIT_TAG v0.18.1
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
