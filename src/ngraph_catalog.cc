@@ -43,13 +43,17 @@ void NGraphCatalog::AddToInputDataMap(string key,
 
 bool NGraphCatalog::ExistsInInputDataMap(string key) {
   auto itr = NGraphCatalog::input_data_map_.find(key);
-  return (itr != NGraphCatalog::input_data_map_.end() &&
-          !NGraphCatalog::input_data_map_[key].empty());
+  return itr != NGraphCatalog::input_data_map_.end();
 }
 
 shared_ptr<ng::runtime::Tensor> NGraphCatalog::GetTensorFromInputDataMap(
     string key) {
   auto input_queue = NGraphCatalog::input_data_map_[key];
+  // TODO: Should wait till the input is fed
+  if (input_queue.empty()) {
+    return nullptr;
+  }
+
   auto retval = input_queue.front();
   input_queue.pop();
   return retval;

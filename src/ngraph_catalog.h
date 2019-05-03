@@ -42,6 +42,10 @@ namespace ngraph_bridge {
 // Catalog will be a collection of objects of sub-classes that implement this
 // class (TMap)
 
+// TODO(malikshr): Establish a uniform way of accessing the catalog
+// For e.g. : To access input variables we use the node name
+// but to access the input data we use the input-node's name
+
 class NGraphCatalog {
  private:
   // Map keeps track of input data nodes to the graph
