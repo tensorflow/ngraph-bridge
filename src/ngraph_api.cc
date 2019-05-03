@@ -55,10 +55,7 @@ bool ngraph_set_backend(const char* backend) {
 }
 
 extern bool ngraph_is_supported_backend(const char* backend) {
-  // bool IsSupportedBackend(const string& type) {
   return BackendManager::IsSupportedBackend(backend);
-
-  // return IsSupportedBackend(string(backend));
 }
 
 extern bool ngraph_get_currently_set_backend_name(char** backend) {
@@ -76,7 +73,6 @@ bool ngraph_is_logging_placement() {
 }
 
 extern void ngraph_set_disabled_ops(const char* op_type_list) {
-  // SetDisabledOps(std::string(op_type_list));
   auto disabled_ops_list = ng::split(std::string(op_type_list), ',');
   // In case string is '', then splitting yields ['']. So taking care that ['']
   // corresponds to empty set {}
@@ -96,6 +92,7 @@ extern const char* ngraph_get_disabled_ops() {
 // note that TensorFlow always uses camel case for the C++ API, but not for
 // Python
 
+// Keeping these C++ functions because of the data structures.
 vector<string> ListBackends() {
   auto supported_backends = BackendManager::GetSupportedBackendNames();
   vector<string> backend_list(supported_backends.begin(),

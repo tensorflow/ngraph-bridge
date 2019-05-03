@@ -40,18 +40,19 @@ class TestNgraphAPI(NgraphTest):
         assert ngraph_bridge.is_enabled() == 1
 
     def test_backends_len(self):
-        assert ngraph_bridge.backends_len()
+        backends_count = ngraph_bridge.backends_len()
+        assert (backends_count > 2) == 1
 
     def test_set_backend(self):
-        assert ngraph_bridge.set_backend("CPU")
-
-    def test_set_backend_invalid(self):
-        assert ngraph_bridge.set_backend("POTATO") == 0
+        ngraph_bridge.set_backend('CPU')
+        assert ngraph_bridge.get_currently_set_backend_name() == 'CPU'
 
     def test_list_backends(self):
         backends_count = ngraph_bridge.backends_len()
-        assert ngraph_bridge.list_backends(
-            (ctypes.c_char_p * backends_count)(None), backends_count) == 1
+        assert (backends_count > 2) == 1
+
+    def test_supported_backend(self):
+        assert ngraph_bridge.is_supported_backend('INTERPRETER') == 1
 
     def test_start_logging_placement(self):
         ngraph_bridge.start_logging_placement()
