@@ -138,7 +138,7 @@ def save_gdef_to_savedmodel(gdef, location):
             builder.add_meta_graph_and_variables(
                 sess, [tf.saved_model.tag_constants.TRAINING])
             builder.add_meta_graph([tf.saved_model.tag_constants.SERVING],
-                                strip_default_attrs=True)
+                                   strip_default_attrs=True)
         builder.save()
 
 

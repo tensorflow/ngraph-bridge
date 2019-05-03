@@ -36,7 +36,8 @@ class NgraphTest(object):
 
     @staticmethod
     def get_tensor(graph, tname, loading_from_protobuf):
-        return graph.get_tensor_by_name(("", "import/")[loading_from_protobuf] + tname)
+        return graph.get_tensor_by_name(("", "import/")[loading_from_protobuf] +
+                                        tname)
 
     @staticmethod
     def import_protobuf(pb_filename):

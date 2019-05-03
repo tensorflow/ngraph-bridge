@@ -24,10 +24,10 @@ import shutil
 import tensorflow as tf
 
 #TODO fix this
-import sys
-base_dir = '/localdisk/sarkars/workspace1/ngraph_bridge_tf/dir_1_apr22_grappler/ngraph-bridge'
-sys.path.append(base_dir)
-sys.path.append(base_dir + '/tools')
+#import sys
+#base_dir = '/localdisk/sarkars/workspace1/ngraph_bridge_tf/dir_1_apr22_grappler/ngraph-bridge'
+#sys.path.append(base_dir)
+#sys.path.append(base_dir + '/tools')
 
 from tools.build_utils import command_executor
 from tools.convert import convert, get_gdef
@@ -53,8 +53,11 @@ class TestConversionScript(NgraphTest):
                              (('pbtxt', 'sample_graph.pbtxt'),
                               ('savedmodel', 'sample_graph'),
                               ('pb', 'sample_graph.pb')))
-    @pytest.mark.parametrize(('out_format',), (('pbtxt',), ('pb',),
-                                               ('savedmodel',),))
+    @pytest.mark.parametrize(('out_format',), (
+        ('pbtxt',),
+        ('pb',),
+        ('savedmodel',),
+    ))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline):
         if out_format == 'savedmodel':
