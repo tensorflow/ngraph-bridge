@@ -124,7 +124,13 @@ def filter_dict(prefix, dictionary):
 
 
 def save_gdef_to_savedmodel(gdef, location):
-    raise Exception("Implement me")
+    builder = tf.saved_model.builder.SavedModelBuilder(location)
+    with tf.Session() as sess:
+        builder.add_meta_graph_and_variables(
+            sess, [tf.saved_model.tag_constants.TRAINING])
+        builder.add_meta_graph([tf.saved_model.tag_constants.SERVING],
+                               strip_default_attrs=True)
+    builder.save()
 
 
 def save_gdef_to_protobuf(gdef, location, as_text):

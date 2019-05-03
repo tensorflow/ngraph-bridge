@@ -39,10 +39,14 @@ class NgraphTest(object):
         return graph.get_tensor_by_name("import/" + tname)
 
     @staticmethod
-    def import_pbtxt(pb_filename):
+    def import_protobuf(pb_filename):
         graph_def = tf.GraphDef()
-        with open(pb_filename, "r") as f:
-            text_format.Merge(f.read(), graph_def)
+        if pb_filename.endswith("pbtxt"):
+            with open(pb_filename, "r") as f:
+                text_format.Merge(f.read(), graph_def)
+        else:
+            with open(pb_filename, "rb") as f:
+                graph_def.ParseFromString(f.read())
 
         with tf.Graph().as_default() as graph:
             tf.import_graph_def(graph_def)

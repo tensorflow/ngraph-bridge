@@ -20,6 +20,7 @@ from __future__ import print_function
 import pytest
 import os
 import numpy as np
+import shutil
 
 #TODO fix this
 import sys
@@ -50,13 +51,17 @@ class TestConversionScript(NgraphTest):
     @pytest.mark.parametrize(('inp_format', 'inp_loc'),
                              (('pbtxt', 'sample_graph.pbtxt'),
                               ('savedmodel', 'sample_graph')))
-    @pytest.mark.parametrize(('out_format',), (('pbtxt',), ('pb',)))
+    @pytest.mark.parametrize(('out_format',), (('pbtxt',), ('pb',),
+                                               ('savedmodel',)))
     #TODO enable 'savedmodel'
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline):
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
+        print('_' * 50)
+        print(inp_format, inp_loc, out_format, commandline, out_loc)
+        print('_' * 50)
         if commandline:
             command_executor('python ' + base_dir +
                              '/tools/convert.py --input' + inp_format + ' ' +
@@ -66,8 +71,8 @@ class TestConversionScript(NgraphTest):
             convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
 
         #TODO: load the modified graph and run it
-        if out_format == 'pbtxt':
-            graph = NgraphTest.import_pbtxt(out_loc)
+        if out_format == 'pbtxt' or out_format == 'pb':
+            graph = NgraphTest.import_protobuf(out_loc)
             with graph.as_default() as g:
                 x = NgraphTest.get_tensor(g, "x:0")
                 y = NgraphTest.get_tensor(g, "y:0")
@@ -83,8 +88,6 @@ class TestConversionScript(NgraphTest):
                 assert np.isclose(res1, res2).all()
                 # Comparing with expected value
                 assert np.isclose(res1, exp).all()
-        elif out_format == 'pb':
-            pass
         else:
             raise Exception("TODO: Unimplemented")
-        #os.remove(out_loc)
+        (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
