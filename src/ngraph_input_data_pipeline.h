@@ -28,10 +28,12 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status LoadInputDataOnDevice(vector<string>& input_node_names,
-                             vector<Tensor*>& input_tf_tensors,
-                             string backend_name = "");
-
+class NGraphInputDataPiepline {
+ public:
+  static Status LoadInputDataOnDevice(vector<string>& input_node_names,
+                                      vector<Tensor*>& input_tf_tensors,
+                                      string backend_name = "");
+};
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

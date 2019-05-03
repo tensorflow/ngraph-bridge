@@ -70,7 +70,7 @@ void RunModel() {
   vector<string> input_node_names = {"x", "y"};
   vector<tensorflow::Tensor*> input_tensors = {&x, &y};
 
-  if (tensorflow::ngraph_bridge::LoadInputDataOnDevice(
+  if (tensorflow::ngraph_bridge::NGraphInputDataPiepline::LoadInputDataOnDevice(
           input_node_names, input_tensors) != tensorflow::Status::OK()) {
     std::cout << "Failed to load the data on device " << std::endl;
     return;

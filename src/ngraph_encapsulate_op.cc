@@ -550,8 +550,12 @@ class NGraphEncapsulateOp : public OpKernel {
       bool has_data_input = NGraphCatalog::ExistsInInputDataMap(def().input(i));
       if (has_data_input) {
         cout << " Input data already in device. For Input Index " << i << endl;
-        ng_inputs.push_back(
-            NGraphCatalog::GetTensorFromInputDataMap(def().input(i)));
+
+        auto data_input_tensor =
+            NGraphCatalog::GetTensorFromInputDataMap(def().input(i));
+        OP_REQUIRES(ctx, data_input_tensor != nullptr,
+                    errors::Internal("Not found input data on Device.\n"));
+        ng_inputs.push_back(data_input_tensor);
         continue;
       }
 

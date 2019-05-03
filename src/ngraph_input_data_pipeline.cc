@@ -30,9 +30,9 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status LoadInputDataOnDevice(vector<string>& input_node_names,
-                             vector<Tensor*>& input_tf_tensors,
-                             string backend_name) {
+Status NGraphInputDataPiepline::LoadInputDataOnDevice(
+    vector<string>& input_node_names, vector<Tensor*>& input_tf_tensors,
+    string backend_name) {
   cout << "Loading Data To Device " << endl;
   if (input_node_names.size() != input_tf_tensors.size()) {
     return errors::Internal(
