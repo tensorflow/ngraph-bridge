@@ -51,10 +51,12 @@ class TestConversionScript(NgraphTest):
                              (('pbtxt', 'sample_graph.pbtxt'),
                               ('savedmodel', 'sample_graph')))
     @pytest.mark.parametrize(('out_format',), (('pbtxt',), ('pb',)))
-     #TODO enable 'savedmodel'
-    def test_command_line_api(self, inp_format, inp_loc, out_format, commandline):
+    #TODO enable 'savedmodel'
+    def test_command_line_api(self, inp_format, inp_loc, out_format,
+                              commandline):
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
-        out_loc = inp_loc.split('.')[0] + '_modified' + ('' if out_format=='savedmodel' else ('.'+out_format))
+        out_loc = inp_loc.split('.')[0] + '_modified' + (
+            '' if out_format == 'savedmodel' else ('.' + out_format))
         if commandline:
             command_executor('python ' + base_dir +
                              '/tools/convert.py --input' + inp_format + ' ' +

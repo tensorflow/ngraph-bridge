@@ -26,7 +26,6 @@ import os
 from functools import partial
 
 
-
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
     graph = tf.Graph()
     with graph.as_default():
@@ -75,11 +74,23 @@ def get_gdef_from_pbtxt(filename):
     return graph_def
 
 
+def check_graph_validity(gdef):
+    # Assuming that the input graph has not already been processed by ngraph
+    # TODO: add other checks for other types on NG ops
+    not_already_processed = all(
+        [i.op is not 'NGraphEncapsulate' for i in gdef.node])
+    # Assume it is an inference ready graph
+    no_variables = all(['Variable' not in i.op for i in gdef.node])
+    return not_already_processed and no_variables
+
+
 def get_input_gdef(format, location):
-    return {
+    gdef = {
         'savedmodel': get_gdef_from_savedmodel,
         'pbtxt': get_gdef_from_pbtxt
     }[format](location)
+    assert check_graph_validity(gdef)
+    return gdef
 
 
 def prepare_argparser(formats):
