@@ -58,10 +58,13 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
         session_config_with_trt, grappler_meta_graph_def, graph_id=b"tf_graph")
     return input_gdef
 
+
 def get_gdef_from_savedmodel(export_dir):
     with tf.Session(graph=tf.Graph()) as sess:
-        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING], export_dir)
+        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING],
+                                   export_dir)
         return sess.graph.as_graph_def()
+
 
 def get_gdef_from_pbtxt(filename):
     graph_def = tf.GraphDef()
@@ -69,10 +72,15 @@ def get_gdef_from_pbtxt(filename):
         text_format.Merge(f.read(), graph_def)
     return graph_def
 
+
 def get_input_gdef(input_dict):
     # input_dict is a dictionary of input formats and locations. all except one should be None
     format, location = filter_dict("input", input_dict)
-    return {'savedmodel' : get_gdef_from_savedmodel, 'pbtxt' : get_gdef_from_pbtxt}[format](location)
+    return {
+        'savedmodel': get_gdef_from_savedmodel,
+        'pbtxt': get_gdef_from_pbtxt
+    }[format](location)
+
 
 def prepare_argparser(formats):
     parser = argparse.ArgumentParser()
@@ -81,37 +89,60 @@ def prepare_argparser(formats):
         inp_out_group = grp.add_mutually_exclusive_group()
         for format in formats[grp.title]:
             opt_name = grp.title + format
-            inp_out_group.add_argument("--" + opt_name, help="Location of " + grp.title + " " + format)
+            inp_out_group.add_argument(
+                "--" + opt_name, help="Location of " + grp.title + " " + format)
     # Note: no other option must begin with "input" or "output"
-    parser.add_argument("--outnodes", help="Comma separated list of output nodes")
+    parser.add_argument(
+        "--outnodes", help="Comma separated list of output nodes")
     return parser.parse_args()
+
 
 def filter_dict(prefix, dictionary):
     assert prefix in ['input', 'output']
-    current_format = list(filter(lambda x : x.startswith(prefix) and dictionary[x] is not None, dictionary))
-    assert len(current_format) == 1, "Got " + str(len(current_format)) + " input formats, expected only 1"
+    current_format = list(
+        filter(lambda x: x.startswith(prefix) and dictionary[x] is not None,
+               dictionary))
+    assert len(current_format) == 1, "Got " + str(
+        len(current_format)) + " input formats, expected only 1"
     # [len(prefix):] deletes the initial "input" in the string
     stripped = current_format[0][len(prefix):]
-    assert stripped in allowed_formats[prefix], "Got " + prefix + " format = " + stripped + " but only support " + str(allowed_formats[prefix])
+    assert stripped in allowed_formats[
+        prefix], "Got " + prefix + " format = " + stripped + " but only support " + str(
+            allowed_formats[prefix])
     return (stripped, dictionary[prefix + stripped])
+
 
 def save_gdef_to_savedmodel():
     pass
 
+
 def save_gdef_to_pbtxt(gdef, location):
-    tf.io.write_graph(gdef, os.path.dirname(location), os.path.basename(location), as_text=True)
+    tf.io.write_graph(
+        gdef,
+        os.path.dirname(location),
+        os.path.basename(location),
+        as_text=True)
+
 
 def save_model(gdef, out_dict):
     format, location = filter_dict("output", out_dict)
-    return {'savedmodel' : save_gdef_to_savedmodel, 'pbtxt' : save_gdef_to_pbtxt}[format](gdef, location)
+    return {
+        'savedmodel': save_gdef_to_savedmodel,
+        'pbtxt': save_gdef_to_pbtxt
+    }[format](gdef, location)
 
 
-allowed_formats = {"input": ['savedmodel', 'pbtxt'], "output": ['savedmodel', 'pbtxt']}
+allowed_formats = {
+    "input": ['savedmodel', 'pbtxt'],
+    "output": ['savedmodel', 'pbtxt']
+}
+
 
 def main():
     args = prepare_argparser(allowed_formats)
     input_gdef = get_input_gdef(args.__dict__)
-    output_gdef = run_ngraph_grappler_optimizer(input_gdef, args.outnodes.split(','))
+    output_gdef = run_ngraph_grappler_optimizer(input_gdef,
+                                                args.outnodes.split(','))
     save_model(output_gdef, args.__dict__)
     print('Bye')
 
