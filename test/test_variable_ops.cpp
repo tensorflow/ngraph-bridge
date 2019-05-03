@@ -379,8 +379,6 @@ TEST(VariableTest, SmallGraph5) {
 
   auto add = ops::Add(root.WithOpName("Add"), var, c);
 
-  // auto assign = ops::Assign(root, var, add);
-
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
   options.config.mutable_graph_options()
