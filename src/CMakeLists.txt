@@ -128,9 +128,8 @@ endif()
 message(STATUS "NGTF_INSTALL_LIB_DIR: ${NGTF_INSTALL_LIB_DIR}")
 
 # First install the libngraph_bridge.so and headers
-install(TARGETS ${LIB_NAME} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
-install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
-
+install(TARGETS ${LIB_NAME} DESTINATION "${NGTF_INSTALL_LIB_DIR}")
+install(FILES ngraph_backend_manager.h ngraph_input_data_pipeline.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 # Next install all the other prerequisites
 if(OS_VERSION STREQUAL "\"centos\"")
