@@ -23,6 +23,8 @@ from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.grappler import tf_optimizer
 import ngraph_bridge
 import os
+from functools import partial
+
 
 
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
@@ -114,24 +116,25 @@ def save_gdef_to_savedmodel(gdef, location):
     raise Exception("Implement me")
 
 
-def save_gdef_to_pbtxt(gdef, location):
+def save_gdef_to_protobuf(gdef, location, as_text):
     tf.io.write_graph(
         gdef,
         os.path.dirname(location),
         os.path.basename(location),
-        as_text=True)
+        as_text=as_text)
 
 
 def save_model(gdef, format, location):
     return {
         'savedmodel': save_gdef_to_savedmodel,
-        'pbtxt': save_gdef_to_pbtxt
+        'pbtxt': partial(save_gdef_to_protobuf, as_text=True),
+        'pb': partial(save_gdef_to_protobuf, as_text=False)
     }[format](gdef, location)
 
 
 allowed_formats = {
     "input": ['savedmodel', 'pbtxt'],
-    "output": ['savedmodel', 'pbtxt']
+    "output": ['savedmodel', 'pbtxt', 'pb']
 }
 
 
