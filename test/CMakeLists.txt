@@ -89,7 +89,7 @@ target_link_libraries(
     ngraph_lib
     libgtest
     pthread
-    tensorflow_framework_lib
+    ${TensorFlow_FRAMEWORK_LIBRARY}
     tensorflow_cc_lib
 )
 
