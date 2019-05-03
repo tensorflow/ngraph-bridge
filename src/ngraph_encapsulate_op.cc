@@ -353,9 +353,8 @@ class NGraphEncapsulateOp : public OpKernel {
         NgraphSerialize("tf_function_" + ctx->op_kernel().name() + ".json",
                         ng_function);
 #if defined NGRAPH_DISTRIBUTED
-        ngraph::Distributed dist;
         int Rank_ID;
-        Rank_ID = dist.get_rank();
+        Rank_ID = ng::get_distributed_interface()->get_rank();
         NgraphSerialize("tf_function_" + ctx->op_kernel().name() + "_" +
                             to_string(Rank_ID) + ".json",
                         ng_function);
