@@ -20,6 +20,7 @@
 #include <atomic>
 #include <mutex>
 #include <ostream>
+#include <queue>
 #include <vector>
 
 #include "tensorflow/core/lib/core/errors.h"
@@ -35,8 +36,27 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+// TODO(malikshr, sarkars) : Create a template class "TMap" for map that can
+// take arbitary key and value types
+// With Functions Add, Get, Exists etc
+// Catalog will be a collection of objects of sub-classes that implement this
+// class (TMap)
+
 class NGraphCatalog {
  private:
+  // Map keeps track of input data nodes to the graph
+  // Will be used by NGraphEncapsulate Op
+  // Map of
+  // Key
+  //   when op index ==0
+  //      string : GraphId + _ + nodename
+  //   otherwise
+  //     string : GraphId + _ + nodename + : + input_index
+  // Value : queue<shared_ptr<ng::runtime::Tensor>>
+  // LOCK?
+  static unordered_map<string, queue<shared_ptr<ng::runtime::Tensor>>>
+      input_data_map_;
+
   // Map keeps track of nodes whose input is a variable tensor
   // Will be used by Assign/Optimizers and NGraphEncapsulate Op
   // Map of
@@ -73,6 +93,14 @@ class NGraphCatalog {
 
  public:
   // Utility Functions for the data structures
+  // *** Check whether the key exists before asking for a value ***
+
+  // Functions for InputDataMap
+  static void AddToInputDataMap(string key,
+                                shared_ptr<ng::runtime::Tensor> ng_val);
+  static bool ExistsInInputDataMap(string key);
+  static shared_ptr<ng::runtime::Tensor> GetTensorFromInputDataMap(string key);
+
   // Functions for EncapsulateOutputCopyIndexes Map
   static void AddToEncapOutputCopyIndexesMap(string key,
                                              unordered_set<int> val);

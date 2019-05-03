@@ -69,7 +69,9 @@ void RunModel() {
   // input node names
   vector<string> input_node_names = {"x", "y"};
   vector<tensorflow::Tensor*> input_tensors = {&x, &y};
-  // TF_RETURN_IF_ERROR(LoadInputDataOnDevice(input_node_names, input_tensors));
+  TF_RETURN_IF_ERROR(
+      tensorflow::ngraph_bridge::BackendManager::BMLoadInputDataOnDevice(
+          input_node_names, input_tensors));
   std::vector<tensorflow::Tensor> outputs;
 
   tensorflow::SessionOptions options;

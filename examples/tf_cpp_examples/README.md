@@ -30,9 +30,9 @@ Run the `make` command to build the application that will produce the executable
 
 Before running the application, set the `LD_LIBRARY_PATH` (or `DYLD_LIBRARY_PATH` for MacOS) to point to the library directories referred to in the `Makefile`:
 
-    export LD_LIBRARY_PATH=$NGRAPH_TF_DIR/build/artifacts/lib:$NGRAPH_TF_DIR/build/artifacts/tensorflow
+    export LD_LIBRARY_PATH=$NGRAPH_BRIDGE_DIR/build_cmake/artifacts/lib:$NGRAPH_BRIDGE_DIR/build_cmake/artifacts/tensorflow
 
-Where `NGRAPH_TF_DIR` should point to the directory where ngraph-tf was cloned.
+Where `NGRAPH_BRIDGE_DIR` should point to the directory where ngraph-bridge was cloned.
 
 :warning: Note: If this example is built on CentOS then the library directory 
 is `lib64` - so please set the `LD_LIBRARY_PATH` accordingly

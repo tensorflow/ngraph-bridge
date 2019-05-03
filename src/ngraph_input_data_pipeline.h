@@ -18,17 +18,19 @@
 #ifndef NGRAPH_TF_INPUT_DATA_PIPELINE_H_
 #define NGRAPH_TF_INPUT_DATA_PIPELINE_H_
 
-#include "tensorflow/core/graph/graph.h"
 #include "ngraph/ngraph.hpp"
+#include "tensorflow/core/graph/graph.h"
 
 using namespace std;
-namespace ng=ngraph;
+namespace ng = ngraph;
 
 namespace tensorflow {
 
 namespace ngraph_bridge {
+
 Status LoadInputDataOnDevice(vector<string>& input_node_names,
-                             vector<Tensor*>& input_tf_tensors);
+                             vector<Tensor*>& input_tf_tensors,
+                             string backend_name = "");
 
 }  // namespace ngraph_bridge
 

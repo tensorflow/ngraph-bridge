@@ -32,6 +32,28 @@ map<string, shared_ptr<ng::runtime::Tensor>>
     NGraphCatalog::encap_output_tensor_map_;
 unordered_map<string, unordered_set<int>>
     NGraphCatalog::encap_output_copy_indexes_map_;
+unordered_map<string, queue<shared_ptr<ng::runtime::Tensor>>>
+    NGraphCatalog::input_data_map_;
+
+// Functions for InputDataMap
+void NGraphCatalog::AddToInputDataMap(string key,
+                                      shared_ptr<ng::runtime::Tensor> ng_val) {
+  NGraphCatalog::input_data_map_[key].push(ng_val);
+}
+
+bool NGraphCatalog::ExistsInInputDataMap(string key) {
+  auto itr = NGraphCatalog::input_data_map_.find(key);
+  return (itr != NGraphCatalog::input_data_map_.end() &&
+          !NGraphCatalog::input_data_map_[key].empty());
+}
+
+shared_ptr<ng::runtime::Tensor> NGraphCatalog::GetTensorFromInputDataMap(
+    string key) {
+  auto input_queue = NGraphCatalog::input_data_map_[key];
+  auto retval = input_queue.front();
+  input_queue.pop();
+  return retval;
+}
 
 // Functions for Encapsulate Output Copy Indexes Map
 void NGraphCatalog::AddToEncapOutputCopyIndexesMap(string key,

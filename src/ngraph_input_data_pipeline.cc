@@ -13,23 +13,77 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+#include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/graph/graph.h"
 
 #include "ngraph/ngraph.hpp"
 
+#include "ngraph_backend_manager.h"
+#include "ngraph_catalog.h"
 #include "ngraph_input_data_pipeline.h"
+#include "ngraph_utils.h"
 
 using namespace std;
-namespace ng=ngraph;
+namespace ng = ngraph;
 
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
 Status LoadInputDataOnDevice(vector<string>& input_node_names,
-                             vector<Tensor*>& input_tf_tensors) {
-                                 return Status::OK();
-                             }
+                             vector<Tensor*>& input_tf_tensors,
+                             string backend_name) {
+  if (input_node_names.size() == input_tf_tensors.size()) {
+    return errors::Internal(
+        "Number of Input Node Names and Tensors don't match");
+  };
+
+  // if the backend is empty get currently set backend
+  if (backend_name.empty()) {
+    backend_name = BackendManager::GetCurrentlySetBackendName();
+  }
+  NGRAPH_VLOG(5) << "Got backend " << backend_name;
+  BackendManager::CreateBackend(backend_name);
+  ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
+
+  // Where to release the backend? In the encapsulate op that uses these inputs?
+
+  // create ng-tensor and load to device
+  for (int i = 0; i < input_tf_tensors.size(); i++) {
+    // TF datatype to nGraph element type
+    DataType tf_dtype = input_tf_tensors[i]->dtype();
+    ng::element::Type ng_element_type;
+    TF_RETURN_IF_ERROR(
+        TFDataTypeToNGraphElementType(tf_dtype, &ng_element_type));
+
+    // TF TensorShape to nGraphShape
+    TensorShape tf_shape = input_tf_tensors[i]->shape();
+    ng::Shape ng_shape(tf_shape.dims());
+    for (int j = 0; j < tf_shape.dims(); ++j) {
+      ng_shape[j] = tf_shape.dim_size(j);
+    }
+
+    // Create nGTensor
+    auto ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape);
+
+    // Load to Device
+    void* current_src_ptr = (void*)DMAHelper::base(input_tf_tensors[i]);
+    ng_tensor->write(current_src_ptr, 0,
+                     ng_tensor->get_element_count() * ng_element_type.size());
+
+    // HARDCODED FOR NOW
+    // In the example graph, the input nodes are placeholders
+    // TF replaces them with _Arg nodes and renames them
+
+    string input_node_name =
+        "_arg_" + input_node_names[i] + "_0_" + to_string(i);
+
+    // Save in Catalog
+    NGraphCatalog::AddToInputDataMap(input_node_name, ng_tensor);
+  }
+
+  return Status::OK();
+}
 
 }  // namespace ngraph_bridge
 

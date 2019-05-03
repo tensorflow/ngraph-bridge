@@ -533,6 +533,8 @@ class NGraphEncapsulateOp : public OpKernel {
 #endif
 
     for (int i = 0; i < input_shapes.size(); i++) {
+      cout << "Encap " << m_ngraph_cluster << " Input " << i << " NAme "
+           << def().input(i) << endl;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
       bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
           m_graph_id, def().name(), i);
