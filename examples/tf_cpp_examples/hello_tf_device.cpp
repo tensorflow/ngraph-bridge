@@ -34,6 +34,7 @@
 
 #include "ngraph/event_tracing.hpp"
 #include "ngraph_backend_manager.h"
+#include "ngraph_input_data_pipeline.h"
 
 using namespace std;
 
@@ -46,10 +47,9 @@ void RunModel() {
   tensorflow::GraphDef gdef;
   std::cout << "Loading the input graph" << std::endl;
 
-  auto status = tensorflow::ReadTextProto(tensorflow::Env::Default(),
-                                          "test_axpy.pbtxt", &gdef);
-  if (status != tensorflow::Status::OK()) {
-    std::cout << "Can't open input graph" << std::endl;
+  if (tensorflow::ReadTextProto(tensorflow::Env::Default(), "test_axpy.pbtxt",
+                                &gdef) != tensorflow::Status::OK()) {
+    std::cout << "Failed to load the graph " << std::endl;
     return;
   }
 
@@ -69,9 +69,13 @@ void RunModel() {
   // input node names
   vector<string> input_node_names = {"x", "y"};
   vector<tensorflow::Tensor*> input_tensors = {&x, &y};
-  TF_RETURN_IF_ERROR(
-      tensorflow::ngraph_bridge::BackendManager::BMLoadInputDataOnDevice(
-          input_node_names, input_tensors));
+
+  if (tensorflow::ngraph_bridge::LoadInputDataOnDevice(
+          input_node_names, input_tensors) != tensorflow::Status::OK()) {
+    std::cout << "Failed to load the data on device " << std::endl;
+    return;
+  }
+
   std::vector<tensorflow::Tensor> outputs;
 
   tensorflow::SessionOptions options;
@@ -82,4 +86,6 @@ void RunModel() {
 
   std::cout << "Created Session" << std::endl;
   session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &outputs);
+
+  return;
 }

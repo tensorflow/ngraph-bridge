@@ -111,5 +111,6 @@ int main(int argc, char** argv) {
   // Run the MatMul example
   // RunSimpleNetworkExample();
   RunModel();
+
   return 0;
 }

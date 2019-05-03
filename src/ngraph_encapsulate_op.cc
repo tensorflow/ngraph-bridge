@@ -38,13 +38,13 @@
 
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
+#include "ngraph_catalog.h"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
 #endif
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "enable_variable_ops/ngraph_catalog.h"
 #include "enable_variable_ops/ngraph_var.h"
 #endif
 
@@ -544,9 +544,17 @@ class NGraphEncapsulateOp : public OpKernel {
         ng_inputs.push_back(nullptr);
         continue;
       }
-
       NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from non Variable Node";
 #endif
+
+      bool has_data_input = NGraphCatalog::ExistsInInputDataMap(def().input(i));
+      if (has_data_input) {
+        cout << " Input data already in device. For Input Index " << i << endl;
+        ng_inputs.push_back(
+            NGraphCatalog::GetTensorFromInputDataMap(def().input(i)));
+        continue;
+      }
+
       ng::Shape ng_shape(input_shapes[i].dims());
       for (int j = 0; j < input_shapes[i].dims(); ++j) {
         ng_shape[j] = input_shapes[i].dim_size(j);
