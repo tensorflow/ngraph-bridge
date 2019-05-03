@@ -226,7 +226,8 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     try:
         doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.1")
         os.remove(doomed_file)
-        doomed_file = os.path.join(artifacts_dir, "libtensorflow_framework.so.1")
+        doomed_file = os.path.join(artifacts_dir,
+                                   "libtensorflow_framework.so.1")
         os.remove(doomed_file)
     except OSError:
         print("Cannot remove: %s" % doomed_file)
