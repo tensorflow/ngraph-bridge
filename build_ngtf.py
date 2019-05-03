@@ -75,8 +75,8 @@ def main():
         action="store_true")    
         
     parser.add_argument(        
-        '--use_grappler_optimizer',
-        help="Use Grappler optimizer instead of the optimization passes\n",
+        '--no_grappler_optimizer',
+        help="Do not use Grappler optimizer (instead use legacy optimization passes)\n",
         action="store_true")
 
     parser.add_argument(
@@ -275,12 +275,12 @@ def main():
     else:
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=FALSE"])
         
-    if (arguments.use_grappler_optimizer):
-        ngraph_tf_cmake_flags.extend(
-            ["-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=TRUE"])
-    else:
+    if (arguments.no_grappler_optimizer):
         ngraph_tf_cmake_flags.extend(
             ["-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=FALSE"])
+    else:
+        ngraph_tf_cmake_flags.extend(
+            ["-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=TRUE"])
 
     # Now build the bridge
     ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,
@@ -306,11 +306,11 @@ def main():
     # Run a quick test
     install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
 
-    if arguments.use_grappler_optimizer:
+    if arguments.no_grappler_optimizer:
         import tensorflow as tf
         import ngraph_bridge
-        if not ngraph_bridge.is_grappler_enabled():
-            raise Exception("Build failed: 'use_grappler_optimizer' specified but not used")
+        if ngraph_bridge.is_grappler_enabled():
+            raise Exception("Build failed: 'no_grappler_optimizer' specified but used")
 
     print('\033[1;32mBuild successful\033[0m')
     os.chdir(pwd)
