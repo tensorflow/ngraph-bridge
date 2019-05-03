@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import pytest
 import os
+import numpy as np
 
 #TODO fix this
 import sys
@@ -68,4 +69,23 @@ class TestConversionScript(NgraphTest):
             convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
 
         #TODO: load the modified graph and run it
+        if out_format == 'pbtxt':
+            graph = NgraphTest.import_pbtxt(out_loc)
+            with graph.as_default() as g:
+                x = NgraphTest.get_tensor(g, "x:0")
+                y = NgraphTest.get_tensor(g, "y:0")
+                out = NgraphTest.get_tensor(g, "out_node:0")
+
+                sess_fn = lambda sess: sess.run(
+                    [out], feed_dict={i: np.zeros((10,)) for i in [x, y]})
+
+                res1 = self.with_ngraph(sess_fn)
+                res2 = self.without_ngraph(sess_fn)
+                exp = [0.5 * np.ones((10,))]
+                # Note both run on Host (because NgraphEncapsulate can only run on host)
+                assert np.isclose(res1, res2).all()
+                # Comparing with expected value
+                assert np.isclose(res1, exp).all()
+        else:
+            raise Exception("TODO: Unimplemented")
         os.remove(out_loc)

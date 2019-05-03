@@ -26,11 +26,7 @@ import numpy as np
 from common import NgraphTest
 
 
-class TestFloorOperations(NgraphTest):
-
-    @staticmethod
-    def get_tensor(graph, tname):
-        return graph.get_tensor_by_name("import/" + tname)
+class TestFlibOperations(NgraphTest):
 
     def test_flib_1(self):
         import os
@@ -39,12 +35,12 @@ class TestFloorOperations(NgraphTest):
         graph = NgraphTest.import_pbtxt('flib_graph_1.pbtxt')
         with graph.as_default() as g:
 
-            x = TestFloorOperations.get_tensor(g, "Placeholder:0")
-            y = TestFloorOperations.get_tensor(g, "Placeholder_1:0")
-            z = TestFloorOperations.get_tensor(g, "Placeholder_2:0")
+            x = NgraphTest.get_tensor(g, "Placeholder:0")
+            y = NgraphTest.get_tensor(g, "Placeholder_1:0")
+            z = NgraphTest.get_tensor(g, "Placeholder_2:0")
 
-            a = TestFloorOperations.get_tensor(g, "add_1:0")
-            b = TestFloorOperations.get_tensor(g, "Sigmoid:0")
+            a = NgraphTest.get_tensor(g, "add_1:0")
+            b = NgraphTest.get_tensor(g, "Sigmoid:0")
 
             sess_fn = lambda sess: sess.run(
                 [a, b], feed_dict={i: np.full((2, 3), 1.0) for i in [x, y, z]})
@@ -64,12 +60,12 @@ class TestFloorOperations(NgraphTest):
         graph = import_pbtxt('flib_graph_1.pbtxt')
         with graph.as_default() as g:
 
-            x = TestFloorOperations.get_tensor(g, "Variable_2/peek/_2:0")
-            y = TestFloorOperations.get_tensor(g, "Variable_1/peek/_3:0")
-            z = TestFloorOperations.get_tensor(g, "Variable/peek/_4:0")
+            x = NgraphTest.get_tensor(g, "Variable_2/peek/_2:0")
+            y = NgraphTest.get_tensor(g, "Variable_1/peek/_3:0")
+            z = NgraphTest.get_tensor(g, "Variable/peek/_4:0")
 
-            a = TestFloorOperations.get_tensor(g, "add_1:0")
-            b = TestFloorOperations.get_tensor(g, "Sigmoid:0")
+            a = NgraphTest.get_tensor(g, "add_1:0")
+            b = NgraphTest.get_tensor(g, "Sigmoid:0")
 
             def sess_fn(sess):
                 #sess.run(tf.global_variables_initializer())

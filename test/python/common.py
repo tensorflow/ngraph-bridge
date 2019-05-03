@@ -35,6 +35,10 @@ LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
 class NgraphTest(object):
 
     @staticmethod
+    def get_tensor(graph, tname):
+        return graph.get_tensor_by_name("import/" + tname)
+
+    @staticmethod
     def import_pbtxt(pb_filename):
         graph_def = tf.GraphDef()
         with open(pb_filename, "r") as f:
