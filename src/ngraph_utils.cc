@@ -73,7 +73,7 @@ std::string DebugNode(Node* node) {
 std::string PrintBool(bool var) { return (var ? "Yes" : "No"); }
 
 bool IsNGVariableType(string node_type) {
-  if (ngraph_tf_are_variables_enabled())
+  if (NgraphBridgeAreVariablesEnabled())
     return (node_type == "NGraphVariable" || node_type == "NGraphAssign");
   else
     return node_type == "NGraphVariable";
