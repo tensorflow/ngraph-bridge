@@ -59,11 +59,11 @@ package_data_dict['ngraph_bridge'] = include_list
 
 setup( 
     name='ngraph_tensorflow_bridge',
-    version='0.12.0',
+    version='0.13.0rc0',
     description='Intel nGraph compiler and runtime for TensorFlow',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/NervanaSystems/ngraph-tf/',
+    url='https://github.com/tensorflow/ngraph-bridge',
     packages=['ngraph_bridge'], 
     author='Intel Nervana', 
     license='Apache License, Version 2.0',
@@ -72,6 +72,7 @@ setup(
     package_data= package_data_dict,
     cmdclass={'bdist_wheel': BinaryBdistWheel},
     extras_require={
+        'plaidml': ["tensorflow==1.13.0"],
         'plaidml': ["plaidml>=0.5.0"],
     },
 )

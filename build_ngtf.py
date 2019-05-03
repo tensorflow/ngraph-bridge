@@ -24,9 +24,8 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.18.0"
+    ngraph_version = "v0.18.1"
     tf_version = "r1.14"
-    #tf_version = "v1.14.1"
 
     # Command line parser options
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)

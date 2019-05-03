@@ -24,7 +24,7 @@ array_ops_test.ShapeSizeRankTest.testSizeDtype
 array_ops_test.ShapeSizeRankTest.testSparseShape
 
 bias_op_test.BiasAddTest.testEmpty 
-bias_op_test.BiasAddTest.testEmptyGradient 
+#bias_op_test.BiasAddTest.testEmptyGradient 
 bias_op_test.BiasAddTest.testFloatTypes 
 #bias_op_test.BiasAddTest.testGradientTensor4D
 #bias_op_test.BiasAddTest.testIntTypes 

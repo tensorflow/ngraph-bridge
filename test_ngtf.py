@@ -58,39 +58,27 @@ def main():
     venv_dir = 'build_cmake/venv-tf-py3'
     tf_src_dir = 'build_cmake/tensorflow'
 
-    if (platform.system() != 'Darwin'):
-        # Run the bazel based buil
-        run_bazel_build_test(venv_dir, build_dir)
+    # Activate the virtual env
+    load_venv(venv_dir)
 
-    # First run the C++ gtests
-    run_ngtf_gtests(build_dir, None)
+    os.environ['PYTHONPATH'] = root_pwd
+    test_cmds = [
+        'python3', 
+        'test/ci/buildkite/test_runner.py',
+        '--artifacts',
+        os.path.join(build_dir, 'artifacts')
+    ]
 
     # If the GPU tests are requested, then run them as well
     if (arguments.gpu_unit_tests_enable):
-        os.environ['NGRAPH_TF_BACKEND'] = 'GPU'
-        run_ngtf_gtests(
-            build_dir,
-            str("-ArrayOps.Quanti*:ArrayOps.Dequant*:BackendManager.BackendAssignment:"
-                "MathOps.AnyKeepDims:MathOps.AnyNegativeAxis:MathOps.AnyPositiveAxis:"
-                "MathOps.AllKeepDims:MathOps.AllNegativeAxis:MathOps.AllPositiveAxis:"
-                "NNOps.Qu*:NNOps.SoftmaxZeroDimTest*:"
-                "NNOps.SparseSoftmaxCrossEntropyWithLogits"))
+        test_cmds.extend(['--backend', 'GPU'])
 
-    os.environ['NGRAPH_TF_BACKEND'] = 'CPU'
-
-    # Next run Python unit tests
-    load_venv(venv_dir)
-    run_ngtf_pytests(venv_dir, build_dir)
-
-    if (arguments.test_examples):
-        # Run the C++ example build/run test
-        run_cpp_example_test('build')
-
-    # Next run the TensorFlow python tests
-    run_tensorflow_pytests(venv_dir, build_dir, './', tf_src_dir)
-
-    # Finally run Resnet50 based training and inferences
-    run_resnet50(build_dir)
+    if (platform.system() != 'Darwin'):
+        command_executor(test_cmds + ['--test_bazel_build'])
+    command_executor(test_cmds + ['--test_cpp'])
+    command_executor(test_cmds + ['--test_python'])
+    command_executor(test_cmds + ['--test_tf_python'])
+    command_executor(test_cmds + ['--test_resnet'])
 
     os.chdir(root_pwd)
 
