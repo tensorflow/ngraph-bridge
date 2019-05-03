@@ -73,9 +73,7 @@ def get_gdef_from_pbtxt(filename):
     return graph_def
 
 
-def get_input_gdef(input_dict):
-    # input_dict is a dictionary of input formats and locations. all except one should be None
-    format, location = filter_dict("input", input_dict)
+def get_input_gdef(format, location):
     return {
         'savedmodel': get_gdef_from_savedmodel,
         'pbtxt': get_gdef_from_pbtxt
@@ -124,8 +122,7 @@ def save_gdef_to_pbtxt(gdef, location):
         as_text=True)
 
 
-def save_model(gdef, out_dict):
-    format, location = filter_dict("output", out_dict)
+def save_model(gdef, format, location):
     return {
         'savedmodel': save_gdef_to_savedmodel,
         'pbtxt': save_gdef_to_pbtxt
@@ -138,13 +135,21 @@ allowed_formats = {
 }
 
 
+def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
+    assert inp_format in allowed_formats['input']
+    assert out_format in allowed_formats['output']
+    input_gdef = get_input_gdef(inp_format, inp_loc)
+    output_gdef = run_ngraph_grappler_optimizer(input_gdef, outnodes)
+    save_model(output_gdef, out_format, out_loc)
+
+
 def main():
     args = prepare_argparser(allowed_formats)
-    input_gdef = get_input_gdef(args.__dict__)
-    output_gdef = run_ngraph_grappler_optimizer(input_gdef,
-                                                args.outnodes.split(','))
-    save_model(output_gdef, args.__dict__)
-    print('Bye')
+    inp_format, inp_loc = filter_dict("input", args.__dict__)
+    out_format, out_loc = filter_dict("output", args.__dict__)
+    outnodes = args.outnodes.split(',')
+    convert(inp_format, inp_loc, out_format, out_loc, outnodes)
+    print('Converted the model. Exiting now')
 
 
 if __name__ == '__main__':
