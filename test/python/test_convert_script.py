@@ -55,9 +55,6 @@ class TestConversionScript(NgraphTest):
     )  #TODO enable (('savedmodel', 'sample_graph_modified'))
     def test_command_line_api(self, inp_format, inp_loc, out_format, out_loc,
                               commandline):
-        print('-' * 50)
-        print(inp_format, inp_loc, out_format, out_loc, commandline)
-        print('-' * 50)
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
         assert TestConversionScript.format_and_loc_match(out_format, out_loc)
         if commandline:
