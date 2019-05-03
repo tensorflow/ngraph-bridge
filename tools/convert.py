@@ -15,7 +15,6 @@
 # ==============================================================================
 
 import argparse
-import pdb
 import tensorflow as tf
 from google.protobuf import text_format
 from tensorflow.core.protobuf import meta_graph_pb2
@@ -67,10 +66,14 @@ def get_gdef_from_savedmodel(export_dir):
         return sess.graph.as_graph_def()
 
 
-def get_gdef_from_pbtxt(filename):
+def get_gdef_from_protobuf(pb_filename):
     graph_def = tf.GraphDef()
-    with open(filename, "r") as f:
-        text_format.Merge(f.read(), graph_def)
+    if pb_filename.endswith("pbtxt"):
+        with open(pb_filename, "r") as f:
+            text_format.Merge(f.read(), graph_def)
+    else:
+        with open(pb_filename, "rb") as f:
+            graph_def.ParseFromString(f.read())
     return graph_def
 
 
@@ -84,10 +87,11 @@ def check_graph_validity(gdef):
     return not_already_processed and no_variables
 
 
-def get_input_gdef(format, location):
+def get_gdef(format, location):
     gdef = {
         'savedmodel': get_gdef_from_savedmodel,
-        'pbtxt': get_gdef_from_pbtxt
+        'pbtxt': get_gdef_from_protobuf,
+        'pb': get_gdef_from_protobuf
     }[format](location)
     assert check_graph_validity(gdef)
     return gdef
@@ -125,12 +129,17 @@ def filter_dict(prefix, dictionary):
 
 def save_gdef_to_savedmodel(gdef, location):
     builder = tf.saved_model.builder.SavedModelBuilder(location)
-    with tf.Session() as sess:
-        builder.add_meta_graph_and_variables(
-            sess, [tf.saved_model.tag_constants.TRAINING])
-        builder.add_meta_graph([tf.saved_model.tag_constants.SERVING],
-                               strip_default_attrs=True)
-    builder.save()
+    with tf.Graph().as_default() as graph:
+        tf.import_graph_def(gdef)
+        with tf.Session(graph=graph) as sess:
+            # TODO: This fails
+            # Err msg: Op NGraphEncapsulate is used by the graph, but is not registered
+            import ngraph_bridge
+            builder.add_meta_graph_and_variables(
+                sess, [tf.saved_model.tag_constants.TRAINING])
+            builder.add_meta_graph([tf.saved_model.tag_constants.SERVING],
+                                strip_default_attrs=True)
+        builder.save()
 
 
 def save_gdef_to_protobuf(gdef, location, as_text):
@@ -150,7 +159,7 @@ def save_model(gdef, format, location):
 
 
 allowed_formats = {
-    "input": ['savedmodel', 'pbtxt'],
+    "input": ['savedmodel', 'pbtxt', 'pb'],
     "output": ['savedmodel', 'pbtxt', 'pb']
 }
 
@@ -158,7 +167,7 @@ allowed_formats = {
 def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
     assert inp_format in allowed_formats['input']
     assert out_format in allowed_formats['output']
-    input_gdef = get_input_gdef(inp_format, inp_loc)
+    input_gdef = get_gdef(inp_format, inp_loc)
     output_gdef = run_ngraph_grappler_optimizer(input_gdef, outnodes)
     save_model(output_gdef, out_format, out_loc)
 

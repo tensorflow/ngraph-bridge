@@ -31,3 +31,5 @@ builder.save()
 
 tf.io.write_graph(
     sess.graph.as_graph_def(), '.', 'test_graph_SM.pbtxt', as_text=True)
+tf.io.write_graph(
+    sess.graph.as_graph_def(), '.', 'test_graph_SM.pb', as_text=True)

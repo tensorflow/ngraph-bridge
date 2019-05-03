@@ -60,12 +60,12 @@ class TestFlibOperations(NgraphTest):
         graph = import_pbtxt('flib_graph_1.pbtxt')
         with graph.as_default() as g:
 
-            x = NgraphTest.get_tensor(g, "Variable_2/peek/_2:0")
-            y = NgraphTest.get_tensor(g, "Variable_1/peek/_3:0")
-            z = NgraphTest.get_tensor(g, "Variable/peek/_4:0")
+            x = NgraphTest.get_tensor(g, "Variable_2/peek/_2:0", True)
+            y = NgraphTest.get_tensor(g, "Variable_1/peek/_3:0", True)
+            z = NgraphTest.get_tensor(g, "Variable/peek/_4:0", True)
 
-            a = NgraphTest.get_tensor(g, "add_1:0")
-            b = NgraphTest.get_tensor(g, "Sigmoid:0")
+            a = NgraphTest.get_tensor(g, "add_1:0", True)
+            b = NgraphTest.get_tensor(g, "Sigmoid:0", True)
 
             def sess_fn(sess):
                 #sess.run(tf.global_variables_initializer())

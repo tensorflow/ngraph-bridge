@@ -21,6 +21,7 @@ import pytest
 import os
 import numpy as np
 import shutil
+import tensorflow as tf
 
 #TODO fix this
 import sys
@@ -29,7 +30,7 @@ sys.path.append(base_dir)
 sys.path.append(base_dir + '/tools')
 
 from tools.build_utils import command_executor
-from tools.convert import convert
+from tools.convert import convert, get_gdef
 
 from common import NgraphTest
 
@@ -39,7 +40,7 @@ class TestConversionScript(NgraphTest):
     # utility function to make sure input format and location match
     @staticmethod
     def format_and_loc_match(format, loc):
-        assert format in ['pbtxt', 'savedmodel']
+        assert format in ['pb', 'pbtxt', 'savedmodel']
         implies = lambda p, q: (not p) or (p and q)
         #if its pbtxt, file name has pbtxt AND if its savedmodel, file name does not have pbtxt
         return implies(
@@ -50,12 +51,15 @@ class TestConversionScript(NgraphTest):
     @pytest.mark.parametrize(('commandline'), (True, False))
     @pytest.mark.parametrize(('inp_format', 'inp_loc'),
                              (('pbtxt', 'sample_graph.pbtxt'),
-                              ('savedmodel', 'sample_graph')))
+                              ('savedmodel', 'sample_graph'),
+                              ('pb', 'sample_graph.pb')))
     @pytest.mark.parametrize(('out_format',), (('pbtxt',), ('pb',),
-                                               ('savedmodel',)))
-    #TODO enable 'savedmodel'
+                                               ('savedmodel',),))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline):
+        if out_format == 'savedmodel':
+            # TODO: enable this
+            return
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
@@ -70,24 +74,24 @@ class TestConversionScript(NgraphTest):
         else:
             convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
 
-        #TODO: load the modified graph and run it
-        if out_format == 'pbtxt' or out_format == 'pb':
-            graph = NgraphTest.import_protobuf(out_loc)
-            with graph.as_default() as g:
-                x = NgraphTest.get_tensor(g, "x:0")
-                y = NgraphTest.get_tensor(g, "y:0")
-                out = NgraphTest.get_tensor(g, "out_node:0")
+        gdef = get_gdef(out_format, out_loc)
+        loading_from_protobuf = out_format in ['pb', 'pbtxt']
 
-                sess_fn = lambda sess: sess.run(
-                    [out], feed_dict={i: np.zeros((10,)) for i in [x, y]})
+        with tf.Graph().as_default() as g:
+            tf.import_graph_def(gdef)
+            x = NgraphTest.get_tensor(g, "x:0", loading_from_protobuf)
+            y = NgraphTest.get_tensor(g, "y:0", loading_from_protobuf)
+            out = NgraphTest.get_tensor(g, "out_node:0", loading_from_protobuf)
 
-                res1 = self.with_ngraph(sess_fn)
-                res2 = self.without_ngraph(sess_fn)
-                exp = [0.5 * np.ones((10,))]
-                # Note both run on Host (because NgraphEncapsulate can only run on host)
-                assert np.isclose(res1, res2).all()
-                # Comparing with expected value
-                assert np.isclose(res1, exp).all()
-        else:
-            raise Exception("TODO: Unimplemented")
+            sess_fn = lambda sess: sess.run(
+                [out], feed_dict={i: np.zeros((10,)) for i in [x, y]})
+
+            res1 = self.with_ngraph(sess_fn)
+            res2 = self.without_ngraph(sess_fn)
+            exp = [0.5 * np.ones((10,))]
+            # Note both run on Host (because NgraphEncapsulate can only run on host)
+            assert np.isclose(res1, res2).all()
+            # Comparing with expected value
+            assert np.isclose(res1, exp).all()
+
         (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
