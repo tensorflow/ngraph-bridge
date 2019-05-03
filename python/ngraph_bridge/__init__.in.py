@@ -106,7 +106,6 @@ def requested():
 
 
 ngraph_bridge_lib.NgraphIsEnabled.restype = ctypes.c_bool
-ngraph_bridge_lib.NgraphListBackends.argtypes = [ctypes.c_char_p]
 ngraph_bridge_lib.NgraphListBackends.restype = ctypes.c_bool
 ngraph_bridge_lib.NgraphSetBackend.argtypes = [ctypes.c_char_p]
 ngraph_bridge_lib.NgraphSetBackend.restype = ctypes.c_bool
