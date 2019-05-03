@@ -44,25 +44,10 @@ extern bool ngraph_is_logging_placement();
 extern void ngraph_set_disabled_ops(const char* op_type_list);
 extern const char* ngraph_get_disabled_ops();
 }
-
-extern void Enable();
-extern void Disable();
-extern bool IsEnabled();
-
-extern size_t BackendsLen();
-// TODO: why is this not const?
+// // TODO: why is this not const?
 extern vector<string> ListBackends();
-extern tensorflow::Status SetBackend(const string& type);
-extern bool IsSupportedBackend(const string& type);
-extern string GetCurrentlySetBackendName();
-
-extern void StartLoggingPlacement();
-extern void StopLoggingPlacement();
-extern bool IsLoggingPlacement();
-
 extern std::set<string> GetDisabledOps();
-extern void SetDisabledOps(std::set<string>);
-extern void SetDisabledOps(string);
+
 }  // namespace config
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

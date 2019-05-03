@@ -27,11 +27,13 @@ static bool _is_logging_placement = false;
 static std::set<std::string> disabled_op_types{};
 
 extern "C" {
-void ngraph_enable() { Enable(); }
-void ngraph_disable() { Disable(); }
-bool ngraph_is_enabled() { return IsEnabled(); }
+void ngraph_enable() { _is_enabled = true; }
+void ngraph_disable() { _is_enabled = false; }
+bool ngraph_is_enabled() { return _is_enabled; }
 
-size_t ngraph_backends_len() { return BackendsLen(); }
+size_t ngraph_backends_len() {
+  return BackendManager::GetNumOfSupportedBackends();
+}
 
 bool ngraph_list_backends(char** backends, int backends_len) {
   const auto ngraph_backends = ListBackends();
@@ -46,27 +48,44 @@ bool ngraph_list_backends(char** backends, int backends_len) {
 }
 
 bool ngraph_set_backend(const char* backend) {
-  if (SetBackend(string(backend)) != tensorflow::Status::OK()) {
+  if (BackendManager::SetBackendName(backend) != tensorflow::Status::OK()) {
     return false;
   }
   return true;
 }
 
 extern bool ngraph_is_supported_backend(const char* backend) {
-  return IsSupportedBackend(string(backend));
+  // bool IsSupportedBackend(const string& type) {
+  return BackendManager::IsSupportedBackend(backend);
+
+  // return IsSupportedBackend(string(backend));
 }
 
 extern bool ngraph_get_currently_set_backend_name(char** backend) {
-  backend[0] = strdup(GetCurrentlySetBackendName().c_str());
+  string backend_set = "";
+  backend_set = BackendManager::GetCurrentlySetBackendName();
+  backend[0] = strdup(backend_set.c_str());
   return true;
 }
 
-void ngraph_start_logging_placement() { StartLoggingPlacement(); }
-void ngraph_stop_logging_placement() { StopLoggingPlacement(); }
-bool ngraph_is_logging_placement() { return IsLoggingPlacement(); }
+void ngraph_start_logging_placement() { _is_logging_placement = true; }
+void ngraph_stop_logging_placement() { _is_logging_placement = false; }
+bool ngraph_is_logging_placement() {
+  return _is_enabled && (_is_logging_placement ||
+                         std::getenv("NGRAPH_TF_LOG_PLACEMENT") != nullptr);
+}
 
 extern void ngraph_set_disabled_ops(const char* op_type_list) {
-  SetDisabledOps(std::string(op_type_list));
+  // SetDisabledOps(std::string(op_type_list));
+  auto disabled_ops_list = ng::split(std::string(op_type_list), ',');
+  // In case string is '', then splitting yields ['']. So taking care that ['']
+  // corresponds to empty set {}
+  if (disabled_ops_list.size() >= 1 && disabled_ops_list[0] != "") {
+    disabled_op_types =
+        set<string>(disabled_ops_list.begin(), disabled_ops_list.end());
+  } else {
+    disabled_op_types = {};
+  }
 }
 
 extern const char* ngraph_get_disabled_ops() {
@@ -76,11 +95,6 @@ extern const char* ngraph_get_disabled_ops() {
 
 // note that TensorFlow always uses camel case for the C++ API, but not for
 // Python
-void Enable() { _is_enabled = true; }
-void Disable() { _is_enabled = false; }
-bool IsEnabled() { return _is_enabled; }
-
-size_t BackendsLen() { return BackendManager::GetNumOfSupportedBackends(); }
 
 vector<string> ListBackends() {
   auto supported_backends = BackendManager::GetSupportedBackendNames();
@@ -89,42 +103,7 @@ vector<string> ListBackends() {
   return backend_list;
 }
 
-tensorflow::Status SetBackend(const string& type) {
-  return BackendManager::SetBackendName(type);
-}
-
-bool IsSupportedBackend(const string& type) {
-  return BackendManager::IsSupportedBackend(type);
-}
-
-string GetCurrentlySetBackendName() {
-  return BackendManager::GetCurrentlySetBackendName();
-}
-
-void StartLoggingPlacement() { _is_logging_placement = true; }
-void StopLoggingPlacement() { _is_logging_placement = false; }
-bool IsLoggingPlacement() {
-  return _is_enabled && (_is_logging_placement ||
-                         std::getenv("NGRAPH_TF_LOG_PLACEMENT") != nullptr);
-}
-
 std::set<string> GetDisabledOps() { return disabled_op_types; }
-
-void SetDisabledOps(string disabled_ops_str) {
-  auto disabled_ops_list = ng::split(disabled_ops_str, ',');
-  // In case string is '', then splitting yields ['']. So taking care that ['']
-  // corresponds to empty set {}
-  if (disabled_ops_list.size() >= 1 && disabled_ops_list[0] != "") {
-    SetDisabledOps(
-        set<string>(disabled_ops_list.begin(), disabled_ops_list.end()));
-  } else {
-    SetDisabledOps(set<string>{});
-  }
-}
-
-void SetDisabledOps(set<string> disabled_ops_set) {
-  disabled_op_types = disabled_ops_set;
-}
 
 }  // namespace config
 }  // namespace ngraph_bridge

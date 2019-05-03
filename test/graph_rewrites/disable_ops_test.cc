@@ -43,25 +43,6 @@ TEST(DisableOps, SimpleSettingAndGetting1) {
   config::ngraph_set_disabled_ops("");
 }
 
-// Set using Cpp API, get using Cpp API
-TEST(DisableOps, SimpleSettingAndGetting2) {
-  config::SetDisabledOps("Add,Sub");
-  auto expected = set<string>{"Add", "Sub"};
-  ASSERT_EQ(config::GetDisabledOps(), expected);
-
-  // Clean up
-  config::ngraph_set_disabled_ops("");
-}
-
-// Set using Cpp API, get using C API
-TEST(DisableOps, SimpleSettingAndGetting3) {
-  config::SetDisabledOps(std::set<string>{"Add", "Sub"});
-  ASSERT_EQ(string(config::ngraph_get_disabled_ops()), "Add,Sub");
-
-  // Clean up
-  config::ngraph_set_disabled_ops("");
-}
-
 // Multiple tests of setting and getting executed on a graph that adds 2 consts
 // Also a unit test for MarkForClustering
 TEST(DisableOps, DisableTest) {
