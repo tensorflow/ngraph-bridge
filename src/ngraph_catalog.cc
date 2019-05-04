@@ -59,6 +59,10 @@ shared_ptr<ng::runtime::Tensor> NGraphCatalog::GetTensorFromInputDataMap(
   return retval;
 }
 
+void NGraphCatalog::DeleteFromInputDataMap(string key) {
+  NGraphCatalog::input_data_map_.erase(key);
+}
+
 // Functions for Encapsulate Output Copy Indexes Map
 void NGraphCatalog::AddToEncapOutputCopyIndexesMap(string key,
                                                    unordered_set<int> val) {

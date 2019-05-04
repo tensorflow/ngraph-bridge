@@ -72,15 +72,8 @@ Status NGraphInputDataPiepline::LoadInputDataOnDevice(
     ng_tensor->write(current_src_ptr, 0,
                      ng_tensor->get_element_count() * ng_element_type.size());
 
-    // HARDCODED FOR NOW
-    // In the example graph, the input nodes are placeholders
-    // TF replaces them with _Arg nodes and renames them
-
-    string input_node_name =
-        "_arg_" + input_node_names[i] + "_0_" + to_string(i);
-
     // Save in Catalog
-    NGraphCatalog::AddToInputDataMap(input_node_name, ng_tensor);
+    NGraphCatalog::AddToInputDataMap(input_node_names[i], ng_tensor);
   }
 
   return Status::OK();

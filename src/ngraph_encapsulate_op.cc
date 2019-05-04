@@ -81,7 +81,6 @@ class NGraphEncapsulateOp : public OpKernel {
         m_freshness_tracker(nullptr) {
     my_instance_id = s_instance_count;
     s_instance_count++;
-
     std::ostringstream oss;
     oss << "Encapsulate_" << my_instance_id << ": " << name();
     ngraph::Event event(oss.str(), name(), "");
@@ -171,6 +170,11 @@ class NGraphEncapsulateOp : public OpKernel {
                    ctx->GetAttr<string>("_ngraph_backend", &m_op_backend_name));
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
     BackendManager::CreateBackend(m_op_backend_name);
+    m_number_inputs = num_inputs();
+    m_number_outputs = num_outputs();
+    NGRAPH_VLOG(4) << "No of inputs " << m_number_inputs << " ,No of outputs "
+                   << m_number_outputs;
+
     event.Stop();
     ngraph::Event::write_trace(event);
   }
@@ -206,6 +210,15 @@ class NGraphEncapsulateOp : public OpKernel {
       }
     }
 #endif
+
+    // Delete the input data ng-tensors
+    for (int i = 0; i < m_number_inputs; i++) {
+      string key = def().input(i);
+      if (NGraphCatalog::ExistsInInputDataMap(key)) {
+        NGraphCatalog::DeleteFromInputDataMap(key);
+        cout << "Deleting from input tensor map " << key <<endl;
+      }
+    }
 
     // Release the backend
     NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
@@ -788,10 +801,6 @@ class NGraphEncapsulateOp : public OpKernel {
       size_t output_tensor_count = output_caches.size();
       std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-      if (m_number_outputs == -1) {
-        NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-        m_number_outputs = output_caches.size();
-      }
       for (size_t i = 0; i < output_tensor_count; ++i) {
         string key = NGraphCatalog::CreateNodeKey(m_graph_id, def().name(), i);
         bool ref_exists = NGraphCatalog::ExistsInEncapOutputTensorMap(key);
@@ -984,6 +993,7 @@ class NGraphEncapsulateOp : public OpKernel {
   static int s_instance_count;
   int my_instance_id{0};
   int m_number_outputs = -1;
+  int m_number_inputs = -1;
 };
 
 int NGraphEncapsulateOp::s_instance_count = 0;

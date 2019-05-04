@@ -104,6 +104,7 @@ class NGraphCatalog {
                                 shared_ptr<ng::runtime::Tensor> ng_val);
   static bool ExistsInInputDataMap(string key);
   static shared_ptr<ng::runtime::Tensor> GetTensorFromInputDataMap(string key);
+  static void DeleteFromInputDataMap(string key);
 
   // Functions for EncapsulateOutputCopyIndexes Map
   static void AddToEncapOutputCopyIndexesMap(string key,
