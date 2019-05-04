@@ -40,20 +40,21 @@ set_target_properties(
 )
 
 set(SRC
-    main.cpp
-    graph_exec.cpp
-    tf_exec.cpp
-    padding.cpp
     conversions.cpp
-    graph_rewrites/assign_clusters.cc
-    graph_rewrites/deadness_test.cc
+    graph_exec.cpp
+    graph_rewrites/assign_clusters_test.cc
     graph_rewrites/backend_manager_test.cc
-    test_utilities.cpp
+    graph_rewrites/deadness_test.cc
+    main.cpp
+    opexecuter.cpp
+    padding.cpp
+    test_array_ops.cpp
+    test_data_loading.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
-    test_array_ops.cpp
+    test_utilities.cpp
     test_variable_ops.cpp
-    opexecuter.cpp
+    tf_exec.cpp
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
