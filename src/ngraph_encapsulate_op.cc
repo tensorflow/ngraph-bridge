@@ -473,6 +473,17 @@ class NGraphEncapsulateOp : public OpKernel {
         input_caches = m_ng_exec_input_cache_map[ng_exec];
     input_caches.resize(input_shapes.size());
 
+    std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    bool log_copies = false;
+    OP_REQUIRES_OK(ctx,
+                   IsNgraphTFLogTensorCopiesEnabled(m_graph_id, log_copies));
+    std::stringstream copy_log_str;
+    copy_log_str << "KERNEL[" << type_string() << "]: " << name()
+                 << " ,GraphID " << m_graph_id << "\n";
+    int number_of_copies = 0;
+#endif
+
     for (int i = 0; i < input_shapes.size(); i++) {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
       bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
