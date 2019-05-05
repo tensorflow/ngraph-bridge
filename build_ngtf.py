@@ -58,6 +58,11 @@ def main():
         action="store_true")
 
     parser.add_argument(
+        '--build_intelgpu_backend',
+        help="nGraph backends will include Intel GPU bckend\n",
+        action="store_true")
+
+    parser.add_argument(
         '--use_prebuilt_tensorflow',
         help="Skip building TensorFlow and use downloaded version.\n" +
         "Note that in this case C++ unit tests won't be build for nGrapg-TF bridge",
@@ -232,6 +237,11 @@ def main():
         ngraph_cmake_flags.extend(["-DNGRAPH_PLAIDML_ENABLE=YES"])
     else:
         ngraph_cmake_flags.extend(["-DNGRAPH_PLAIDML_ENABLE=NO"])
+
+    if arguments.build_intelgpu_backend:
+        ngraph_cmake_flags.extend(["-DNGRAPH_INTELGPU_ENABLE=YES"])
+    else:
+        ngraph_cmake_flags.extend(["-DNGRAPH_INTELGPU_ENABLE=NO"])
 
     if not arguments.use_prebuilt_tensorflow:
         ngraph_cmake_flags.extend(["-DNGRAPH_UNIT_TEST_ENABLE=YES"])
