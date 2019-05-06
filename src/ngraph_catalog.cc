@@ -33,22 +33,22 @@ map<string, shared_ptr<ng::runtime::Tensor>>
 unordered_map<string, unordered_set<int>>
     NGraphCatalog::encap_output_copy_indexes_map_;
 unordered_map<string, queue<shared_ptr<ng::runtime::Tensor>>>
-    NGraphCatalog::input_data_map_;
+    NGraphCatalog::input_data_tensor_map_;
 
 // Functions for InputDataMap
-void NGraphCatalog::AddToInputDataMap(string key,
-                                      shared_ptr<ng::runtime::Tensor> ng_val) {
-  NGraphCatalog::input_data_map_[key].push(ng_val);
+void NGraphCatalog::AddToInputDataTensorMap(
+    string key, shared_ptr<ng::runtime::Tensor> ng_val) {
+  NGraphCatalog::input_data_tensor_map_[key].push(ng_val);
 }
 
-bool NGraphCatalog::ExistsInInputDataMap(string key) {
-  auto itr = NGraphCatalog::input_data_map_.find(key);
-  return itr != NGraphCatalog::input_data_map_.end();
+bool NGraphCatalog::ExistsInInputDataTensorMap(string key) {
+  auto itr = NGraphCatalog::input_data_tensor_map_.find(key);
+  return itr != NGraphCatalog::input_data_tensor_map_.end();
 }
 
-shared_ptr<ng::runtime::Tensor> NGraphCatalog::GetTensorFromInputDataMap(
+shared_ptr<ng::runtime::Tensor> NGraphCatalog::GetTensorFromInputDataTensorMap(
     string key) {
-  auto input_queue = NGraphCatalog::input_data_map_[key];
+  auto input_queue = NGraphCatalog::input_data_tensor_map_[key];
   // TODO: Should wait till the input is fed
   if (input_queue.empty()) {
     return nullptr;
@@ -59,8 +59,8 @@ shared_ptr<ng::runtime::Tensor> NGraphCatalog::GetTensorFromInputDataMap(
   return retval;
 }
 
-void NGraphCatalog::DeleteFromInputDataMap(string key) {
-  NGraphCatalog::input_data_map_.erase(key);
+void NGraphCatalog::DeleteFromInputDataTensorMap(string key) {
+  NGraphCatalog::input_data_tensor_map_.erase(key);
 }
 
 // Functions for Encapsulate Output Copy Indexes Map

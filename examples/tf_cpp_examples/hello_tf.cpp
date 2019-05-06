@@ -92,8 +92,6 @@ void RunSimpleNetworkExample() {
   std::cout << "Result: " << outputs[0].matrix<float>() << std::endl;
 }
 
-void RunModel();
-
 int main(int argc, char** argv) {
   PrintAvailableBackends();
 

@@ -33,7 +33,6 @@ namespace ngraph_bridge {
 Status NGraphInputDataPiepline::LoadInputDataOnDevice(
     vector<string>& input_node_names, vector<Tensor*>& input_tf_tensors,
     string backend_name) {
-  cout << "Loading Data To Device " << endl;
   if (input_node_names.size() != input_tf_tensors.size()) {
     return errors::Internal(
         "Number of Input Node Names and Tensors don't match");
@@ -73,7 +72,7 @@ Status NGraphInputDataPiepline::LoadInputDataOnDevice(
                      ng_tensor->get_element_count() * ng_element_type.size());
 
     // Save in Catalog
-    NGraphCatalog::AddToInputDataMap(input_node_names[i], ng_tensor);
+    NGraphCatalog::AddToInputDataTensorMap(input_node_names[i], ng_tensor);
   }
 
   return Status::OK();

@@ -62,7 +62,7 @@ TEST(DataLoading, AXPY) {
   ActivateNGraph();
 
   // HARDCODED: input node names
-  // In the example graph, the input nodes are placeholders
+  // In the graph test_axpy.pbtxt, the input nodes ("x" and "y")are placeholders
   // TF replaces them with _Arg nodes and renames them
   vector<string> input_node_names = {"_arg_x_0_0", "_arg_y_0_1"};
   vector<Tensor*> input_tensors = {&x, &y};

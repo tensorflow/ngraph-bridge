@@ -212,12 +212,23 @@ class NGraphEncapsulateOp : public OpKernel {
 #endif
 
     // Delete the input data ng-tensors
+    bool has_input_data = false;
     for (int i = 0; i < m_number_inputs; i++) {
       string key = def().input(i);
-      if (NGraphCatalog::ExistsInInputDataMap(key)) {
-        NGraphCatalog::DeleteFromInputDataMap(key);
-        cout << "Deleting from input tensor map " << key << endl;
+      if (NGraphCatalog::ExistsInInputDataTensorMap(key)) {
+        if (!has_input_data) {
+          has_input_data = true;
+        }
+        NGraphCatalog::DeleteFromInputDataTensorMap(key);
+        NGRAPH_VLOG(2) << "Deleting from input data tensor map " << key << endl;
       }
+    }
+    // We create the backend when creating and loading the input data
+    // directly to device. This backend is released here
+    // On moving to custom op for this, we can delete the backend in its
+    // destructor
+    if (has_input_data) {
+      BackendManager::ReleaseBackend(m_op_backend_name);
     }
 
     // Release the backend
@@ -546,8 +557,6 @@ class NGraphEncapsulateOp : public OpKernel {
 #endif
 
     for (int i = 0; i < input_shapes.size(); i++) {
-      cout << "Encap " << m_ngraph_cluster << " Input " << i << " NAme "
-           << def().input(i) << endl;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
       bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
           m_graph_id, def().name(), i);
@@ -560,12 +569,14 @@ class NGraphEncapsulateOp : public OpKernel {
       NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from non Variable Node";
 #endif
 
-      bool has_data_input = NGraphCatalog::ExistsInInputDataMap(def().input(i));
+      bool has_data_input =
+          NGraphCatalog::ExistsInInputDataTensorMap(def().input(i));
       if (has_data_input) {
-        cout << " Input data already in device. For Input Index " << i << endl;
+        NGRAPH_VLOG(4) << " Input data already in device. For Input Index " << i
+                       << endl;
 
         auto data_input_tensor =
-            NGraphCatalog::GetTensorFromInputDataMap(def().input(i));
+            NGraphCatalog::GetTensorFromInputDataTensorMap(def().input(i));
         OP_REQUIRES(ctx, data_input_tensor != nullptr,
                     errors::Internal("Not found input data on Device.\n"));
         ng_inputs.push_back(data_input_tensor);

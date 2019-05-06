@@ -43,8 +43,16 @@ namespace ngraph_bridge {
 // class (TMap)
 
 // TODO(malikshr): Establish a uniform way of accessing the catalog
-// For e.g. : To access input variables we use the node name
-// but to access the input data we use the input-node's name
+// For e.g. : To access input variables we use the node name as key for eg
+// "ng-encap1:0"
+// but to access the input data we use the input-node's name for eg "x:0"
+// where x is input to encap1
+
+// Catalog can be designed in a way, that the
+// Op Compute calls do not need to know whether the input is a variable
+// or input-data tensor or any other tensor
+// Right now, as they get and set in specific "maps" this knowledge is required
+// while accessing the catalog
 
 class NGraphCatalog {
  private:
@@ -59,7 +67,7 @@ class NGraphCatalog {
   // Value : queue<shared_ptr<ng::runtime::Tensor>>
   // LOCK?
   static unordered_map<string, queue<shared_ptr<ng::runtime::Tensor>>>
-      input_data_map_;
+      input_data_tensor_map_;
 
   // Map keeps track of nodes whose input is a variable tensor
   // Will be used by Assign/Optimizers and NGraphEncapsulate Op
@@ -99,12 +107,13 @@ class NGraphCatalog {
   // Utility Functions for the data structures
   // *** Check whether the key exists before asking for a value ***
 
-  // Functions for InputDataMap
-  static void AddToInputDataMap(string key,
-                                shared_ptr<ng::runtime::Tensor> ng_val);
-  static bool ExistsInInputDataMap(string key);
-  static shared_ptr<ng::runtime::Tensor> GetTensorFromInputDataMap(string key);
-  static void DeleteFromInputDataMap(string key);
+  // Functions for InputDataTensorMap
+  static void AddToInputDataTensorMap(string key,
+                                      shared_ptr<ng::runtime::Tensor> ng_val);
+  static bool ExistsInInputDataTensorMap(string key);
+  static shared_ptr<ng::runtime::Tensor> GetTensorFromInputDataTensorMap(
+      string key);
+  static void DeleteFromInputDataTensorMap(string key);
 
   // Functions for EncapsulateOutputCopyIndexes Map
   static void AddToEncapOutputCopyIndexesMap(string key,
