@@ -473,7 +473,6 @@ class NGraphEncapsulateOp : public OpKernel {
         input_caches = m_ng_exec_input_cache_map[ng_exec];
     input_caches.resize(input_shapes.size());
 
-    std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     bool log_copies = false;
     OP_REQUIRES_OK(ctx,
