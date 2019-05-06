@@ -45,17 +45,24 @@ set(SRC
     graph_rewrites/assign_clusters_test.cc
     graph_rewrites/backend_manager_test.cc
     graph_rewrites/deadness_test.cc
+    graph_rewrites/disable_ops_test.cc
+    graph_rewrites/encapsulate_clusters_test.cc
     main.cpp
     opexecuter.cpp
     padding.cpp
     test_array_ops.cpp
-    test_data_loading.cpp
+    test_data_loading.cpp    
+    test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
     test_utilities.cpp
     test_variable_ops.cpp
     tf_exec.cpp
 )
+
+if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    list(APPEND SRC graph_rewrites/capture_variables.cc)
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
