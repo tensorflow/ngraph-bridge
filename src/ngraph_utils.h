@@ -184,6 +184,8 @@ void print_node_histogram(const std::unordered_map<string, int>&,
                           bool sorted = true);
 
 // Prints the tensor to the given output stream
+// TODO: internally convert ng types to cpptypes
+// so that users do not have to specify the template arg T
 template <typename T>
 std::ostream& DumpNGTensor(std::ostream& s, const string& name,
                            const std::shared_ptr<ngraph::runtime::Tensor>& t) {
