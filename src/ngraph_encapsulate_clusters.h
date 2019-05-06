@@ -22,8 +22,12 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status EncapsulateClusters(Graph* graph, int graph_id,
-                           FunctionDefLibrary* fdeflib);
+typedef string UniqueTensorId;
+// Potentially this could be std::tuple<string, bool, int>, or a class
+
+Status EncapsulateClusters(
+    Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
+    std::vector<std::set<UniqueTensorId>>* shared_tensors);
 
 }  // namespace ngraph_bridge
 
