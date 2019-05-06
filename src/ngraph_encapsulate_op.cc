@@ -216,7 +216,7 @@ class NGraphEncapsulateOp : public OpKernel {
       string key = def().input(i);
       if (NGraphCatalog::ExistsInInputDataMap(key)) {
         NGraphCatalog::DeleteFromInputDataMap(key);
-        cout << "Deleting from input tensor map " << key <<endl;
+        cout << "Deleting from input tensor map " << key << endl;
       }
     }
 

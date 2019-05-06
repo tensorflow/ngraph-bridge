@@ -97,7 +97,7 @@ void RunModel();
 int main(int argc, char** argv) {
   PrintAvailableBackends();
 
-  const char* backend = "CPU";
+  const char* backend = "INTERPRETER";
 
   if (argc > 1) {
     backend = argv[1];
@@ -109,8 +109,7 @@ int main(int argc, char** argv) {
   }
 
   // Run the MatMul example
-  // RunSimpleNetworkExample();
-  RunModel();
+  RunSimpleNetworkExample();
 
   return 0;
 }
