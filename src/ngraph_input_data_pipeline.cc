@@ -46,7 +46,8 @@ Status NGraphInputDataPiepline::LoadInputDataOnDevice(
   BackendManager::CreateBackend(backend_name);
   ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
 
-  // Where to release the backend? In the encapsulate op that uses these inputs?
+  // Where to release the backend?
+  // Currently, released in the encapsulate op that uses these inputs
 
   // create ng-tensor and load to device
   for (int i = 0; i < input_tf_tensors.size(); i++) {

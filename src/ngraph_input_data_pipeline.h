@@ -30,6 +30,12 @@ namespace ngraph_bridge {
 
 class NGraphInputDataPiepline {
  public:
+  // Should be used to load the input data on device prior to execution
+  // 1. Creates ng-tensor of the specified backend
+  // 2. Calls ng-tensor->write to copy the data (in the provided tf-tensor) from
+  // host to device
+  // 3. Adds the node name that produces this tensor and the ng-tensor to the
+  // catalog
   static Status LoadInputDataOnDevice(vector<string>& input_node_names,
                                       vector<Tensor*>& input_tf_tensors,
                                       string backend_name = "");
