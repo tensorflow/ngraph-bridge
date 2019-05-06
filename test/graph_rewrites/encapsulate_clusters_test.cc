@@ -113,6 +113,72 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   ASSERT_EQ(present, expected);
   free(fdeflib_new);
 }
+
+TEST(EncapsulateClusters, CollectSharedTensorsTest) {
+  // E0-->E1.
+  // Simplest test: Output of E0 is sharable with input of E1
+  // In this test E0 has 1 const, and E1 has another const and an add
+
+  NGraphClusterManager::EvictAllClusters();
+  Graph g(OpRegistry::Global());
+
+  Tensor t_input(DT_FLOAT, TensorShape{2, 3});
+  Tensor t_shape(DT_INT32, TensorShape{2});
+  t_shape.flat<int32>().data()[0] = 3;
+  t_shape.flat<int32>().data()[1] = 2;
+
+  int cluster_idx_0 = NGraphClusterManager::NewCluster();
+
+  Node* node1;
+  ASSERT_OK(NodeBuilder("node1", "Const")
+                .Attr("dtype", DT_FLOAT)
+                .Attr("value", t_input)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx_0)
+                .Attr("_ngraph_backend", "CPU")
+                .Finalize(&g, &node1));
+
+  int cluster_idx_1 = NGraphClusterManager::NewCluster();
+
+  Node* node2;
+  ASSERT_OK(NodeBuilder("node2", "Const")
+                .Attr("dtype", DT_FLOAT)
+                .Attr("value", t_shape)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx_1)
+                .Attr("_ngraph_backend", "CPU")
+                .Finalize(&g, &node2));
+
+  Node* node3;
+  ASSERT_OK(NodeBuilder("node3", "Add")
+                .Input(node1, 0)
+                .Input(node2, 0)
+                .Attr("T", DT_FLOAT)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx_1)
+                .Attr("_ngraph_backend", "CPU")
+                .Finalize(&g, &node3));
+
+  Node* source = g.source_node();
+  Node* sink = g.sink_node();
+  g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+  g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  std::vector<std::set<UniqueTensorId>> shared_tensors;
+  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, &shared_tensors));
+
+  // TODO: add asserts
+  cout << "shared_tensors.size():: " << shared_tensors.size() << "\n";
+  for (int i = 0; i < shared_tensors.size(); i++) {
+    cout << "SET " << i << "\n";
+    for (auto itr : shared_tensors[i]) {
+      cout << itr << ", ";
+    }
+    cout << "\n";
+  }
+}
 }
 }
 }
