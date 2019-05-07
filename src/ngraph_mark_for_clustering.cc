@@ -575,6 +575,8 @@ Status MarkForClustering(Graph* graph,
       set_attributes_map["ArgMin"] = SetStaticInputs({1});
       set_attributes_map["AvgPoolGrad"] = SetStaticInputs({0});
       set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
+      set_attributes_map["CombinedNonMaxSuppression"] =
+          SetStaticInputs({2, 3, 4, 5});
       set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
       set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
       set_attributes_map["ExpandDims"] = SetStaticInputs({1});
