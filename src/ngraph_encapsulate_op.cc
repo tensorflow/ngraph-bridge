@@ -573,7 +573,7 @@ class NGraphEncapsulateOp : public OpKernel {
       bool has_data_input =
           NGraphCatalog::ExistsInInputDataTensorMap(def().input(i));
       if (has_data_input) {
-        NGRAPH_VLOG(4) << " Input data already in device. For Input Index " << i
+        NGRAPH_VLOG(4) << "Input data already in device. For Input Index " << i
                        << endl;
 
         auto data_input_tensor =
