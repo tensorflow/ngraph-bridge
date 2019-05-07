@@ -2191,6 +2191,76 @@ static Status TranslateMatMulOp(
   return Status::OK();
 }
 
+static Status TranslateFusedMatMulOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  int num_args;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "num_args", &num_args));
+
+  std::vector<string> fused_ops;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "fused_ops", &fused_ops));
+
+  auto CreateNgDot = [&](shared_ptr<ng::Node>& ng_lhs,
+                         shared_ptr<ng::Node>& ng_rhs,
+                         shared_ptr<ng::Node>& ng_dot) {
+
+    // Transpose arguments if requested.
+    bool transpose_a = false;
+    bool transpose_b = false;
+
+    if (GetNodeAttr(op->attrs(), "transpose_a", &transpose_a) == Status::OK() &&
+        transpose_a) {
+      ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng::AxisVector{1, 0});
+    }
+    if (GetNodeAttr(op->attrs(), "transpose_b", &transpose_b) == Status::OK() &&
+        transpose_b) {
+      ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng::AxisVector{1, 0});
+    }
+
+    // The default axis count for nGraph's Dot op is 1, which is just what
+    // we need here.
+    ng_dot = ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs);
+
+    return Status::OK();
+  };
+
+  // TODO: Need to add BiasAdd + Activation fusedMatMul op
+  if (!VecStrCmp(fused_ops, {"BiasAdd"})) {
+    return errors::Unimplemented("Unsupported _FusedMatMul " +
+                                 str_util::Join(fused_ops, ","));
+  }
+
+  shared_ptr<ng::Node> ng_lhs, ng_rhs, ng_bias, ng_dot;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs, &ng_bias));
+  TF_RETURN_IF_ERROR(CreateNgDot(ng_lhs, ng_rhs, ng_dot));
+
+  auto ng_dot_shape = ng_dot->get_shape();
+  auto ng_bias_shape = ng_bias->get_shape();
+
+  if (ng_bias_shape.size() != 1) {
+    return errors::InvalidArgument(
+        "Bias argument to BiasAdd does not have one dimension");
+  }
+
+  ng::AxisSet ng_broadcast_axes;
+
+  // TODO : _FusedMatMul doesn't have data_format attributes, insert broadcast
+  // axe as if it's NHWC for now.
+  for (size_t i = 0; i < ng_dot_shape.size() - 1; i++) {
+    ng_broadcast_axes.insert(i);
+  }
+
+  auto ng_bias_broadcasted = ConstructNgNode<ng::op::Broadcast>(
+      op->name(), ng_bias, ng_dot_shape, ng_broadcast_axes);
+
+  auto ng_add =
+      ConstructNgNode<ng::op::Add>(op->name(), ng_dot, ng_bias_broadcasted);
+
+  SaveNgOp(ng_op_map, op->name(), ng_add);
+
+  return Status::OK();
+}
+
 static Status TranslateMaxPoolOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -4422,6 +4492,7 @@ const static std::map<
         {"FusedBatchNormGrad", TranslateFusedBatchNormGradOp},
         {"GatherV2", TranslateGatherV2Op},
         {"_FusedConv2D", TranslateFusedConv2DOp},
+        {"_FusedMatMul", TranslateFusedMatMulOp},
         {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
         {"GreaterEqual", TranslateBinaryOp<ngraph::op::GreaterEq>},
         {"HorovodAllreduce", TranslateAllreduceOp},
