@@ -656,6 +656,12 @@ Status MarkForClustering(Graph* graph,
     return Status::OK();
   };
 
+  confirmation_function_map["CombinedNonMaxSuppression"] = [&current_backend](
+      Node* n, bool* result) {
+    *result = (current_backend == "NNPI");
+    return Status::OK();
+  };
+
   if (op_set_support_has_changed) {
     NGRAPH_VLOG(5) << "Changing op support";
     disabled_ops_set = disabled_ops_set_current;
