@@ -42,6 +42,7 @@ Status NGraphInputDataPiepline::LoadInputDataOnDevice(
   if (backend_name.empty()) {
     backend_name = BackendManager::GetCurrentlySetBackendName();
   }
+
   NGRAPH_VLOG(5) << "Got backend " << backend_name;
   BackendManager::CreateBackend(backend_name);
   ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);

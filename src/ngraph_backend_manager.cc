@@ -109,5 +109,19 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
   return true;
 };
 
+string BackendManager::GetCurrentlySetBackendName() {
+  const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+  if (ng_backend_env_value == nullptr) {
+    return BackendManager::ng_backend_name_;
+  }
+
+  string backend_env = std::string(ng_backend_env_value);
+  if (backend_env.empty() || !BackendManager::IsSupportedBackend(backend_env)) {
+    throw std::invalid_argument("NGRAPH_TF_BACKEND: " + backend_env +
+                                " is not supported");
+  }
+  return backend_env;
+};
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

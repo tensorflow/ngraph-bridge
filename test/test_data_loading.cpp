@@ -41,6 +41,7 @@ TEST(DataLoading, AXPY) {
   // Load the graph
   GraphDef gdef;
   ASSERT_OK(ReadTextProto(Env::Default(), "test_axpy.pbtxt", &gdef));
+
   // create input TF Tensors
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
   auto x_flat = x.flat<float>();
@@ -62,7 +63,8 @@ TEST(DataLoading, AXPY) {
   ActivateNGraph();
 
   // HARDCODED: input node names
-  // In the graph test_axpy.pbtxt, the input nodes ("x" and "y")are placeholders
+  // In the graph test_axpy.pbtxt, the input nodes ("x" and "y") are
+  // placeholders
   // TF replaces them with _Arg nodes and renames them
   vector<string> input_node_names = {"_arg_x_0_0", "_arg_y_0_1"};
   vector<Tensor*> input_tensors = {&x, &y};
@@ -70,17 +72,19 @@ TEST(DataLoading, AXPY) {
                                                            input_tensors));
 
   std::unique_ptr<Session> ng_session(NewSession(options));
-  ng_session->Create(gdef);
+  ASSERT_OK(ng_session->Create(gdef));
   std::vector<Tensor> ng_outputs;
-  ng_session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &ng_outputs);
+  ASSERT_OK(
+      ng_session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &ng_outputs));
 
   // Run on TF
   DeactivateNGraph();
 
   std::unique_ptr<Session> tf_session(NewSession(options));
-  tf_session->Create(gdef);
+  ASSERT_OK(tf_session->Create(gdef));
   std::vector<Tensor> tf_outputs;
-  tf_session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &tf_outputs);
+  ASSERT_OK(
+      tf_session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &tf_outputs));
 
   // Compare the results
   Compare(tf_outputs, ng_outputs);

@@ -46,9 +46,7 @@ struct Backend {
 class BackendManager {
  public:
   // Returns the backend name currently set
-  static string GetCurrentlySetBackendName() {
-    return BackendManager::ng_backend_name_;
-  };
+  static string GetCurrentlySetBackendName();
 
   // Returns the nGraph supported backend names
   static unordered_set<string> GetSupportedBackendNames();
