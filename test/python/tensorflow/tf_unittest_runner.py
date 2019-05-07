@@ -28,6 +28,7 @@ try:
 except:
     os.system('pip install unittest-xml-reporting')
     import xmlrunner
+os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
 """
 tf_unittest_runner is primarily used to run tensorflow python 
 unit tests using ngraph
@@ -84,7 +85,7 @@ def main():
             if test is not None:
                 invalid_list.append(test_list[1])
                 result_str = "\033[91m INVALID \033[0m " + test + \
-                '\n\033[91m' + '\033[0m'
+                '\033[91m' + '\033[0m'
                 print('TEST:', result_str)
         test_results = run_test(test_list[0], xml_report)
         elapsed = time.time() - start
@@ -102,9 +103,9 @@ def main():
             for test in test_list[1]:
                 if test is not None:
                     invalid_list.append(test_list[1])
-                    result_str = " \033[91m INVALID \033[0m " + test + \
-                    '\n\033[91m' + "Test name is not a valid format" + '\033[0m'
-                    print('TEST: ', result_str)
+                    result_str = "\033[91m INVALID \033[0m " + test + \
+                    '\033[91m' + '\033[0m'
+                    print('TEST:', result_str)
             test_list = list(set(test_list[0]))
             for test_name in test_list:
                 if test_name not in all_test_list:
