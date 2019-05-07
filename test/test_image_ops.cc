@@ -26,7 +26,7 @@ namespace ngraph_bridge {
 
 namespace testing {
 // TODO add DISABLED_
-TEST(ImageOps, CombinedNMS) {
+TEST(ImageOps, DISABLED_CombinedNMS) {
   Scope root = Scope::NewRootScope();
   int batch_size = 10;
   int num_anchors = 2;
