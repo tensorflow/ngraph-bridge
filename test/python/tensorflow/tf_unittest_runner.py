@@ -77,8 +77,15 @@ def main():
         return None, None
 
     if (arguments.run_test):
+        invalid_list = []
         start = time.time()
         test_list = get_test_list(arguments.tensorflow_path, arguments.run_test)
+        for test in test_list[1]:
+            if test is not None:
+                invalid_list.append(test_list[1])
+                result_str = "\033[91m INVALID \033[0m " + test + \
+                '\n\033[91m' + '\033[0m'
+                print('TEST:', result_str)
         test_results = run_test(test_list[0], xml_report)
         elapsed = time.time() - start
         print("Testing results\nTime elapsed: ", str(
@@ -95,6 +102,9 @@ def main():
             for test in test_list[1]:
                 if test is not None:
                     invalid_list.append(test_list[1])
+                    result_str = " \033[91m INVALID \033[0m " + test + \
+                    '\n\033[91m' + "Test name is not a valid format" + '\033[0m'
+                    print('TEST: ', result_str)
             test_list = list(set(test_list[0]))
             for test_name in test_list:
                 if test_name not in all_test_list:
@@ -167,6 +177,7 @@ def regex_walk(dirname, regex_input):
                 name = os.path.splitext(name)[0]
                 module_list.append(name)
     if not module_list:
+        print("Test name does not exist")
         sys.exit(1)
     return module_list
 
@@ -298,7 +309,6 @@ def check_and_print_summary(test_results, invalid_list):
 
     if (len(invalid_list) > 0):
         print("INVALID: ", len(invalid_list))
-        print('\n'.join(''.join(map(str, test)) for test in invalid_list))
 
     if len(test_results['FAILED']) == 0:
         return True
