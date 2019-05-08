@@ -25,6 +25,7 @@ import tensorflow as tf
 import numpy as np
 from common import NgraphTest
 from google.protobuf import text_format
+from tensorflow.python.ops.gen_image_ops import combined_non_max_suppression
 
 
 class TestFloorOperations(NgraphTest):
@@ -32,35 +33,44 @@ class TestFloorOperations(NgraphTest):
     # TODO disable this test
     #@pytest.mark.skip(reason="Backend specific test")
     def test_cmns(self):
-        graph_def = tf.GraphDef()
-        with open('cnms.pbtxt', "r") as f:
-            text_format.Merge(f.read(), graph_def)
+        input_boxes = np.array([[[0, 0, 1, 1], [0, 0, 4, 5]],
+                         [[0, 0.1, 1, 1.1], [0, 0.1, 2, 1.1]],
+                         [[0, -0.1, 1, 0.9], [0, -0.1, 1, 0.9]],
+                         [[0, 10, 1, 11], [0, 10, 1, 11]],
+                         [[0, 10.1, 1, 11.1], [0, 10.1, 1, 11.1]],
+                         [[0, 100, 1, 101], [0, 100, 1, 101]],
+                         [[0, 1000, 1, 1002], [0, 999, 2, 1004]],
+                         [[0, 1000, 1, 1002.1], [0, 999, 2, 1002.7]]], np.float32)
+        input_scores = np.array([[.9, 0.01], [.75, 0.05],
+                       [.6, 0.01], [.95, 0],
+                       [.5, 0.01], [.3, 0.01],
+                       [.01, .85], [.01, .5]], np.float32)
 
-        with tf.Graph().as_default() as g:
-            tf.import_graph_def(graph_def)
-            input_placeholders = [
-                g.get_tensor_by_name("import/arg_" + str(i) + ':0')
-                for i in range(6)
-            ]
+        input_boxes = np.reshape(input_boxes,(1,8,2,4))
+        input_scores = np.reshape(input_scores,(1,8,2))
+        score_thresh = 0.1
+        iou_thresh = .5
+        max_size_per_class = 4
+        max_output_size = 5
 
-            outputs = [
-                g.get_tensor_by_name("import/CombinedNonMaxSuppression:" +
-                                     str(i)) for i in range(4)
-            ]
-            boxes = 19 * np.random.random([10, 2, 1, 4]) + 1
-            scores = np.random.random([10, 2, 20])
-            sess_fn = lambda sess: sess.run(
-                outputs,
-                feed_dict={
-                    input_placeholders[0]: boxes,
-                    input_placeholders[1]: scores,
-                    input_placeholders[2]: 3,
-                    input_placeholders[3]: 4,
-                    input_placeholders[4]: 0.2,
-                    input_placeholders[5]: 0.3,
-                })
+        boxes_ph = tf.compat.v1.placeholder(dtype=tf.float32, shape=(1,8,2,4), name = 'box_input')
+        scores_ph = tf.compat.v1.placeholder(dtype=tf.float32, shape=(1,8,2), name = 'scores_input')
+        cnms = combined_non_max_suppression(boxes_ph, 
+                                            scores_ph, 
+                                            max_size_per_class,
+                                    max_output_size,
+                                    iou_thresh,
+                                    score_thresh,
+                                    pad_per_class=False, 
+                                    clip_boxes=True)
 
-            for res1, res2 in zip(
-                    self.with_ngraph(sess_fn), self.without_ngraph(sess_fn)):
-                assert np.isclose(res1.shape, res2.shape).all()
-                assert np.isclose(res1, res2).all()
+        def run_test(sess):
+            return sess.run(cnms, feed_dict={boxes_ph: input_boxes, scores_ph: input_scores})
+
+        ngb_out = self.with_ngraph(run_test)
+        tf_out = self.without_ngraph(run_test)
+        assert len(ngb_out) == len(tf_out)
+        for res1, res2 in zip(ngb_out, tf_out):
+            assert res1.shape == res2.shape
+            assert np.isclose(res1, res2).all()
+
