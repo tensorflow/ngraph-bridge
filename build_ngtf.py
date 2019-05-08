@@ -24,7 +24,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.19.0-rc.1"
+    ngraph_version = "langjian/MPI_Finalize"
     tf_version = "v1.13.1"
 
     # Command line parser options
