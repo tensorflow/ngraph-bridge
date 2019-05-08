@@ -197,6 +197,7 @@ def main():
             cxx_abi = str(tf.__cxx11_abi_flag__)
 
     # Download nGraph if required.
+    ngraph_src_dir=''
     if arguments.ngraph_src_dir:
         ngraph_src_dir = arguments.ngraph_src_dir
 
