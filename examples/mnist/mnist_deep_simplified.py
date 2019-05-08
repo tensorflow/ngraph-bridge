@@ -131,9 +131,7 @@ def train_mnist_cnn(FLAGS):
         log_device_placement=False,
         inter_op_parallelism_threads=1)
     # Enable the custom optimizer using the rewriter config options
-    if ngraph_bridge.is_grappler_enabled():
-        grappler_config = ngraph_bridge.get_grappler_config()
-        config.MergeFrom(grappler_config)
+    config = ngraph_bridge.update_config(config)
 
     # Note: Additional configuration option to boost performance is to set the
     # following environment for the run:
