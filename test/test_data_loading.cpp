@@ -44,16 +44,10 @@ TEST(DataLoading, AXPY) {
 
   // create input TF Tensors
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
-  auto x_flat = x.flat<float>();
-  for (int i = 0; i < x_flat.size(); i++) {
-    x_flat.data()[i] = 1.0;
-  }
+  AssignInputValuesRandom<float>(x, -15.0f, 15.0f);
 
   Tensor y(DT_FLOAT, TensorShape({2, 3}));
-  auto y_flat = y.flat<float>();
-  for (int i = 0; i < y_flat.size(); i++) {
-    y_flat.data()[i] = 1.0;
-  }
+  AssignInputValuesRandom<float>(y, -100.0f, 100.0f);
 
   // Session Config
   SessionOptions options;
@@ -89,6 +83,7 @@ TEST(DataLoading, AXPY) {
   // Compare the results
   Compare(tf_outputs, ng_outputs);
 }
+
 
 }  // namespace testing
 
