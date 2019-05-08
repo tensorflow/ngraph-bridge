@@ -202,8 +202,9 @@ def main():
         ngraph_src_dir = arguments.ngraph_src_dir
 
         print("Using local nGraph source in directory ",ngraph_src_dir)
-    elif arguments.ngraph_version:
-        ngraph_version = arguments.ngraph_version
+    else:
+        if arguments.ngraph_version:
+            ngraph_version = arguments.ngraph_version
 
         print("nGraph Version: ", ngraph_version)
         download_repo("ngraph", "https://github.com/NervanaSystems/ngraph.git",
