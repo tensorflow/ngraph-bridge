@@ -532,8 +532,13 @@ class NGraphEncapsulateOp : public OpKernel {
 
         auto data_input_tensor =
             NGraphCatalog::GetTensorFromInputDataTensorMap(def().input(i));
-        OP_REQUIRES(ctx, data_input_tensor != nullptr,
-                    errors::Internal("Not found input data on Device.\n"));
+        // If key exists (that is this input was expected to be already loaded)
+        // but the queue is empty
+        if (data_input_tensor == nullptr) {
+          return errors::Internal("Not found input data on Device for ",
+                                  def().input(i));
+        }
+
         ng_inputs.push_back(data_input_tensor);
         continue;
       }
