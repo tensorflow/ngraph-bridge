@@ -30,7 +30,7 @@ TEST(ImageOps, DISABLED_CombinedNMS) {
   Scope root = Scope::NewRootScope();
   int batch_size = 10;
   int num_anchors = 2;
-  int q = 5;
+  int q = 1;
   int num_classes = 20;
 
   Tensor boxes(DT_FLOAT, TensorShape({batch_size, num_anchors, q, 4}));
@@ -40,16 +40,16 @@ TEST(ImageOps, DISABLED_CombinedNMS) {
   Tensor scores(DT_FLOAT, TensorShape({batch_size, num_anchors, num_classes}));
   AssignInputValuesRandom<float>(scores, 0.0f, 1.0f);
 
-  Tensor max_output_size_per_class(DT_INT32, TensorShape({1}));
+  Tensor max_output_size_per_class(DT_INT32, TensorShape({}));
   AssignInputValues<int>(max_output_size_per_class, {3});
 
-  Tensor max_total_size(DT_INT32, TensorShape({1}));
+  Tensor max_total_size(DT_INT32, TensorShape({}));
   AssignInputValues<int>(max_total_size, {4});
 
-  Tensor iou_threshold(DT_FLOAT, TensorShape({1}));
+  Tensor iou_threshold(DT_FLOAT, TensorShape({}));
   AssignInputValues<float>(iou_threshold, {0.2f});
 
-  Tensor score_threshold(DT_FLOAT, TensorShape({1}));
+  Tensor score_threshold(DT_FLOAT, TensorShape({}));
   AssignInputValues<float>(score_threshold, {0.3f});
 
   vector<int> static_input_indexes = {2, 3, 4, 5};
