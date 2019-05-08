@@ -559,6 +559,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
     for (int i = 0; i < input_shapes.size(); i++) {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+      // If input is from a Variable like op, get it from catalog
       bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
           m_graph_id, def().name(), i);
 
@@ -570,6 +571,9 @@ class NGraphEncapsulateOp : public OpKernel {
       NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from non Variable Node";
 #endif
 
+      // If input is input-data provided by the user, and has already been
+      // loaded
+      // get it from catalog
       bool has_data_input =
           NGraphCatalog::ExistsInInputDataTensorMap(def().input(i));
       if (has_data_input) {
@@ -584,6 +588,8 @@ class NGraphEncapsulateOp : public OpKernel {
         continue;
       }
 
+      // If the input tensor is not in Catalog
+      // Either Create NG Tensor or get it from cache using GetCurrentNgTensor()
       ng::Shape ng_shape(input_shapes[i].dims());
       for (int j = 0; j < input_shapes[i].dims(); ++j) {
         ng_shape[j] = input_shapes[i].dim_size(j);

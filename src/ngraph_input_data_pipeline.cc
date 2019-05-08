@@ -46,6 +46,7 @@ Status NGraphInputDataPiepline::LoadInputDataOnDevice(
   NGRAPH_VLOG(5) << "Got backend " << backend_name;
   BackendManager::CreateBackend(backend_name);
   ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
+  bool is_cpu_backend = backend_name == "CPU";
 
   // Where to release the backend?
   // Currently, released in the encapsulate op that uses these inputs
@@ -65,13 +66,20 @@ Status NGraphInputDataPiepline::LoadInputDataOnDevice(
       ng_shape[j] = tf_shape.dim_size(j);
     }
 
-    // Create nGTensor
-    auto ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape);
-
-    // Load to Device
+    shared_ptr<ng::runtime::Tensor> ng_tensor = nullptr;
     void* current_src_ptr = (void*)DMAHelper::base(input_tf_tensors[i]);
-    ng_tensor->write(current_src_ptr, 0,
-                     ng_tensor->get_element_count() * ng_element_type.size());
+    if (is_cpu_backend) {
+      // Create nGTensor
+      ng_tensor =
+          op_backend->create_tensor(ng_element_type, ng_shape, current_src_ptr);
+    } else {
+      // Create nGTensor
+      auto ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape);
+
+      // Load to Device
+      ng_tensor->write(current_src_ptr, 0,
+                       ng_tensor->get_element_count() * ng_element_type.size());
+    }
 
     // Save in Catalog
     NGraphCatalog::AddToInputDataTensorMap(input_node_names[i], ng_tensor);
