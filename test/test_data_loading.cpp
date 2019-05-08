@@ -84,7 +84,6 @@ TEST(DataLoading, AXPY) {
   Compare(tf_outputs, ng_outputs);
 }
 
-
 }  // namespace testing
 
 }  // namespace ngraph_bridge

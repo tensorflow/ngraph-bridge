@@ -16,6 +16,7 @@
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/graph/graph.h"
 
+#include "ngraph/event_tracing.hpp"
 #include "ngraph/ngraph.hpp"
 
 #include "ngraph_backend_manager.h"
@@ -33,6 +34,8 @@ namespace ngraph_bridge {
 Status NGraphInputDataPiepline::LoadInputDataOnDevice(
     vector<string>& input_node_names, vector<Tensor*>& input_tf_tensors,
     string backend_name) {
+  ngraph::Event load_data_event("LoadInputDataOnDevice", "", "");
+
   if (input_node_names.size() != input_tf_tensors.size()) {
     return errors::Internal(
         "Number of Input Node Names and Tensors don't match");
@@ -85,6 +88,8 @@ Status NGraphInputDataPiepline::LoadInputDataOnDevice(
     NGraphCatalog::AddToInputDataTensorMap(input_node_names[i], ng_tensor);
   }
 
+  load_data_event.Stop();
+  ngraph::Event::write_trace(load_data_event);
   return Status::OK();
 }
 
