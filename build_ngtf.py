@@ -197,7 +197,7 @@ def main():
             cxx_abi = str(tf.__cxx11_abi_flag__)
 
     # Download nGraph if required.
-    ngraph_src_dir=''
+    ngraph_src_dir='./ngraph'
     if arguments.ngraph_src_dir:
         ngraph_src_dir = arguments.ngraph_src_dir
 
@@ -208,7 +208,6 @@ def main():
         print("nGraph Version: ", ngraph_version)
         download_repo("ngraph", "https://github.com/NervanaSystems/ngraph.git",
                       ngraph_version)
-        ngraph_src_dir='./ngraph'
 
     # Now build nGraph
     ngraph_cmake_flags = [
