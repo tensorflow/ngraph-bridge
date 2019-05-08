@@ -22,6 +22,7 @@ from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.grappler import tf_optimizer
 import ngraph_bridge
 import os
+import sys
 from functools import partial
 
 
@@ -109,6 +110,9 @@ def prepare_argparser(formats):
     # Note: no other option must begin with "input" or "output"
     parser.add_argument(
         "--outnodes", help="Comma separated list of output nodes")
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
     return parser.parse_args()
 
 
@@ -186,7 +190,7 @@ def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
 
 
 def main():
-    """Command line api for converting TF models by inserting ngraph nodes
+    """ Entry point of command line api for converting TF models by inserting ngraph nodes
     """
     args = prepare_argparser(allowed_formats)
     inp_format, inp_loc = filter_dict("input", args.__dict__)
