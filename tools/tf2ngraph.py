@@ -99,7 +99,20 @@ def get_gdef(format, location):
 
 
 def prepare_argparser(formats):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description='''
+    Tool to convert TF graph into a ngraph enabled graph
+    Sample usage:
+    Command line:
+    python convert.py --inputsavedmodel test_graph_SM --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
+    python convert.py --inputpbtxt test_graph_SM.pbtxt --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
+    or:
+    functional api
+    from convert import convert
+    convert('savedmodel', 'test_graph_SM' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
+    convert('pbtxt', 'test_graph_SM.pbtxt' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
+    ''')
     in_out_groups = [parser.add_argument_group(i) for i in ['input', 'output']]
     for grp in in_out_groups:
         inp_out_group = grp.add_mutually_exclusive_group()
@@ -171,7 +184,11 @@ allowed_formats = {
 
 
 def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
-    """Functional api for converting TF models by inserting ngraph nodes
+    """Functional api for converting TF models by inserting ngraph nodes.
+    Sample usage:
+    from convert import convert
+    convert('savedmodel', 'test_graph_SM' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
+    convert('pbtxt', 'test_graph_SM.pbtxt' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
 
     Parameters:
     inp_format (string): 'savedmodel', 'pbtxt', 'pb'
@@ -190,7 +207,10 @@ def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
 
 
 def main():
-    """ Entry point of command line api for converting TF models by inserting ngraph nodes
+    """ Entry point of command line api for converting TF models by inserting ngraph nodes.
+    Sample usage:
+    python convert.py --inputsavedmodel test_graph_SM --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
+    python convert.py --inputpbtxt test_graph_SM.pbtxt --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
     """
     args = prepare_argparser(allowed_formats)
     inp_format, inp_loc = filter_dict("input", args.__dict__)
@@ -202,12 +222,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # Sample usage:
-    # Command line:
-    # python convert.py --inputsavedmodel test_graph_SM --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
-    # python convert.py --inputpbtxt test_graph_SM.pbtxt --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
-    # or:
-    # functional api
-    # from convert import convert
-    # convert('savedmodel', 'test_graph_SM' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
-    # convert('pbtxt', 'test_graph_SM.pbtxt' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
