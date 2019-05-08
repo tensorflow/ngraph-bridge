@@ -2111,14 +2111,14 @@ static Status TranslateFusedConv2DOp(
 
     std::shared_ptr<ng::Node> ng_batch_norm =
         ConstructNgNode<ng::op::BatchNormInference>(
-            op->name()+"_FusedConv2D_BathcNorm", tf_epsilon, ng_scale, ng_offset, ng_conv, ng_mean,
+            op->name()+"_FusedConv2D_BatchNorm", tf_epsilon, ng_scale, ng_offset, ng_conv, ng_mean,
             ng_variance);
 
     BatchToTensorflow(is_nhwc, ng_batch_norm);
 
     if (VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu"})) {
       SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ng::op::Relu>(op->name()+"_FusedConv2D_BathcNormRelu", ng_batch_norm));
+               ConstructNgNode<ng::op::Relu>(op->name()+"_FusedConv2D_BatchNormRelu", ng_batch_norm));
     } else {
       SaveNgOp(ng_op_map, op->name(), ng_batch_norm);
     }
