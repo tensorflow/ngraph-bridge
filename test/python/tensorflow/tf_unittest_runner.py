@@ -311,10 +311,7 @@ def check_and_print_summary(test_results, invalid_list):
     if (len(invalid_list) > 0):
         print("INVALID: ", len(invalid_list))
 
-    if len(test_results['FAILED']) == 0:
-        return True
-    else:
-        return False
+    return len(test_results['FAILED']) == 0
 
 
 if __name__ == '__main__':

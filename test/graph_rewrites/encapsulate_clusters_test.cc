@@ -177,12 +177,11 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest0) {
   ASSERT_EQ(shared_tensors[0], (std::set<string>{"1_0_0", "0_1_0"}));
 }
 
-
-
 TEST(EncapsulateClusters, CollectSharedTensorsTest1) {
   // E0<--TF-->E1.
   // A TF node feeds to inputs of E0 and E1
-  // In this test E0 and E1 is Abs, and the TF node is a const (which is disabled for ngraph for this test)
+  // In this test E0 and E1 is Abs, and the TF node is a const (which is
+  // disabled for ngraph for this test)
 
   NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
@@ -238,11 +237,10 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest1) {
   // There is only 1 group
   ASSERT_EQ(shared_tensors.size(), 1);
   // That group contains 2 shareable tensors
-  //ASSERT_EQ(shared_tensors[0].size(), 2);
+  // ASSERT_EQ(shared_tensors[0].size(), 2);
 
-  //ASSERT_EQ(shared_tensors[0], (std::set<string>{"1_0_0", "0_1_0"}));
+  // ASSERT_EQ(shared_tensors[0], (std::set<string>{"1_0_0", "0_1_0"}));
 }
-
 }
 }
 }
