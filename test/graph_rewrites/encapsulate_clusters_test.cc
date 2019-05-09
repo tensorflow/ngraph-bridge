@@ -169,15 +169,12 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest) {
   std::vector<std::set<UniqueTensorId>> shared_tensors;
   ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, &shared_tensors));
 
-  // TODO: add asserts
-  cout << "shared_tensors.size():: " << shared_tensors.size() << "\n";
-  for (int i = 0; i < shared_tensors.size(); i++) {
-    cout << "SET " << i << "\n";
-    for (auto itr : shared_tensors[i]) {
-      cout << itr << ", ";
-    }
-    cout << "\n";
-  }
+  // There is only 1 group
+  ASSERT_EQ(shared_tensors.size(), 1);
+  // That group contains 2 shareable tensors
+  ASSERT_EQ(shared_tensors[0].size(), 2);
+
+  ASSERT_EQ(shared_tensors[0], (std::set<string>{"1_0_0", "0_1_0"}));
 }
 }
 }

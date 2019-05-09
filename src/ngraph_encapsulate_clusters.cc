@@ -583,6 +583,8 @@ Status EncapsulateClusters(
               int in_neighbour_out_dst_slot, in_neighbour_out_src_slot;
               // This for loop iterates over all edges and populates
               // in_neighbour_out and in_neighbour_out_slot
+              // TODO maybe we do not need this for loop. the if-else following
+              // this loop probably can be merged. then this loop can be removed
               for (auto in_neighbour_out_edge : in_neighbour->out_edges()) {
                 if (in_neighbour_out_edge->src_output() ==
                     in_neighbour_edge->src_output()) {
@@ -623,8 +625,6 @@ Status EncapsulateClusters(
                   new_group.insert(src_tid);
                 }
               }
-              //}
-              //}
             }
           }
           if (new_group.size() > 0) {
