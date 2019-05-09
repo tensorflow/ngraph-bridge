@@ -45,7 +45,8 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
         output_collection)
 
     session_config_with_trt = tf.ConfigProto()
-    session_config_with_trt = ngraph_bridge.update_config(session_config_with_trt)
+    session_config_with_trt = ngraph_bridge.update_config(
+        session_config_with_trt)
 
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config_with_trt, grappler_meta_graph_def, graph_id=b"tf_graph")
