@@ -63,8 +63,8 @@ TEST(EncapsulateClusters, PopulateLibrary) {
 
   Node* node3;
   ASSERT_OK(NodeBuilder("node3", "Add")
-                .Input(node1, 0)
-                .Input(node2, 0)
+                .Input(node1)
+                .Input(node2)
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
@@ -114,7 +114,7 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   free(fdeflib_new);
 }
 
-TEST(EncapsulateClusters, CollectSharedTensorsTest) {
+TEST(EncapsulateClusters, CollectSharedTensorsTest0) {
   // E0-->E1.
   // Simplest test: Output of E0 is sharable with input of E1
   // In this test E0 has 1 const, and E1 has another const and an add
@@ -151,8 +151,8 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest) {
 
   Node* node3;
   ASSERT_OK(NodeBuilder("node3", "Add")
-                .Input(node1, 0)
-                .Input(node2, 0)
+                .Input(node1)
+                .Input(node2)
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_1)
@@ -178,8 +178,8 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest) {
 }
 
 
-/*
-TEST(EncapsulateClusters, CollectSharedTensorsTest) {
+
+TEST(EncapsulateClusters, CollectSharedTensorsTest1) {
   // E0<--TF-->E1.
   // A TF node feeds to inputs of E0 and E1
   // In this test E0 and E1 is Abs, and the TF node is a const (which is disabled for ngraph for this test)
@@ -198,8 +198,8 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest) {
   int cluster_idx_0 = NGraphClusterManager::NewCluster();
   Node* node2;
   ASSERT_OK(NodeBuilder("node2", "Abs")
-                .Attr("dtype", DT_FLOAT)
-                .Attr("value", t_shape)
+                .Input(node1)
+                .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_0)
                 .Attr("_ngraph_backend", "CPU")
@@ -207,9 +207,8 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest) {
 
   int cluster_idx_1 = NGraphClusterManager::NewCluster();
   Node* node3;
-  ASSERT_OK(NodeBuilder("node3", "Add")
-                .Input(node1, 0)
-                .Input(node2, 0)
+  ASSERT_OK(NodeBuilder("node3", "Abs")
+                .Input(node1)
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_1)
@@ -219,21 +218,31 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest) {
   Node* source = g.source_node();
   Node* sink = g.sink_node();
   g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
-  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+  g.AddEdge(node2, Graph::kControlSlot, sink, Graph::kControlSlot);
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
   std::vector<std::set<UniqueTensorId>> shared_tensors;
   ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, &shared_tensors));
 
+  // TODO: add asserts
+  cout << "shared_tensors.size():: " << shared_tensors.size() << "\n";
+  for (int i = 0; i < shared_tensors.size(); i++) {
+    cout << "SET " << i << "\n";
+    for (auto itr : shared_tensors[i]) {
+      cout << itr << ", ";
+    }
+    cout << "\n";
+  }
+
   // There is only 1 group
   ASSERT_EQ(shared_tensors.size(), 1);
   // That group contains 2 shareable tensors
-  ASSERT_EQ(shared_tensors[0].size(), 2);
+  //ASSERT_EQ(shared_tensors[0].size(), 2);
 
-  ASSERT_EQ(shared_tensors[0], (std::set<string>{"1_0_0", "0_1_0"}));
+  //ASSERT_EQ(shared_tensors[0], (std::set<string>{"1_0_0", "0_1_0"}));
 }
-*/
+
 }
 }
 }
