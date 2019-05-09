@@ -553,8 +553,7 @@ Status EncapsulateClusters(
     };
 
     // TODO: take care of cases where slot is -1, ie edge->dst_input() returns
-    // -1
-    // (control slot)
+    // -1 (control slot)
     for (auto node : graph->nodes()) {
       // TODO: id() or name() as unique identifier?
       auto curr_node_id = node->id();
@@ -568,51 +567,64 @@ Status EncapsulateClusters(
               curr_encapsulate_idx, false, in_neighbour_edge->dst_input());
           std::set<UniqueTensorId> new_group;
           // TODO: instead of searching in the vector, maybe mark graph nodes
-          // with
-          // a "visited" tag
+          // with a "visited" tag
           if (!is_tracked(curr_tid)) {
             // Note we have to only run "is_tracked" once.
             // In this design, if a tensor of a group is inserted in
             // shared_tensors, then all members of the group are already in
             // On the flip side if one tensor is not in, no other of the group
-            // is
-            // in yet
+            // is in yet
 
             // TODO: Now its NGraphVariable, later it could be other types too
             // like NGraphAssign etc
             // Sharing in case of E<-NGV->E is handled separately
-            if (in_neighbour->type_string() != "NGraphVariable") {
+            if (is_encapsulate(in_neighbour)) {
+              Node* in_neighbour_out;
+              int in_neighbour_out_dst_slot, in_neighbour_out_src_slot;
+              // This for loop iterates over all edges and populates
+              // in_neighbour_out and in_neighbour_out_slot
               for (auto in_neighbour_out_edge : in_neighbour->out_edges()) {
                 if (in_neighbour_out_edge->src_output() ==
                     in_neighbour_edge->src_output()) {
-                  Node* in_neighbour_outs = in_neighbour_out_edge->dst();
-                  // TODO : maybe we do not need id() gere, just src_output or
-                  // dst_input?
-                  if (in_neighbour_outs->id() != curr_node_id) {
-                    if (is_encapsulate(in_neighbour_outs)) {
-                      int other_shared_encapsulates_idx;
-                      TF_RETURN_IF_ERROR(GetNodeAttr(
-                          in_neighbour_outs->attrs(), "ngraph_cluster",
-                          &other_shared_encapsulates_idx));
-                      UniqueTensorId other_tid =
-                          get_string_info(other_shared_encapsulates_idx, false,
-                                          in_neighbour_out_edge->dst_input());
-                      new_group.insert(other_tid);
-                    }
-                  } else {
-                    if (is_encapsulate(in_neighbour)) {
-                      int src_encapsulate_idx;
-                      TF_RETURN_IF_ERROR(GetNodeAttr(in_neighbour->attrs(),
-                                                     "ngraph_cluster",
-                                                     &src_encapsulate_idx));
-                      UniqueTensorId src_tid =
-                          get_string_info(src_encapsulate_idx, true,
-                                          in_neighbour_out_edge->src_output());
-                      new_group.insert(src_tid);
-                    }
-                  }
+                  in_neighbour_out = in_neighbour_out_edge->dst();
+                  in_neighbour_out_dst_slot =
+                      in_neighbour_out_edge->dst_input();
+                  in_neighbour_out_src_slot =
+                      in_neighbour_out_edge->src_output();
+                  break;
                 }
               }
+              if (in_neighbour_out == nullptr) {
+                return errors::Internal(
+                    "Failed while figuring out encapsulate tensor sharing");
+              }
+
+              // TODO : maybe we do not need id() here, just src_output or
+              // dst_input?
+              if (in_neighbour_out->id() != curr_node_id) {
+                if (is_encapsulate(in_neighbour_out)) {
+                  int other_shared_encapsulates_idx;
+                  TF_RETURN_IF_ERROR(
+                      GetNodeAttr(in_neighbour_out->attrs(), "ngraph_cluster",
+                                  &other_shared_encapsulates_idx));
+                  UniqueTensorId other_tid =
+                      get_string_info(other_shared_encapsulates_idx, false,
+                                      in_neighbour_out_dst_slot);
+                  new_group.insert(other_tid);
+                }
+              } else {
+                if (is_encapsulate(in_neighbour)) {
+                  int src_encapsulate_idx;
+                  TF_RETURN_IF_ERROR(GetNodeAttr(in_neighbour->attrs(),
+                                                 "ngraph_cluster",
+                                                 &src_encapsulate_idx));
+                  UniqueTensorId src_tid = get_string_info(
+                      src_encapsulate_idx, true, in_neighbour_out_src_slot);
+                  new_group.insert(src_tid);
+                }
+              }
+              //}
+              //}
             }
           }
           if (new_group.size() > 0) {
