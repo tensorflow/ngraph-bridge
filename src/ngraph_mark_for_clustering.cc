@@ -273,6 +273,7 @@ Status MarkForClustering(Graph* graph,
         return Status::OK();
       };
       confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
+      confirmation_function_map["_FusedMatMul"] = SimpleConfirmationFunction(); // TODO accept under all conditions? check?
       confirmation_function_map["Greater"] = SimpleConfirmationFunction();
       confirmation_function_map["GreaterEqual"] = SimpleConfirmationFunction();
 #if defined NGRAPH_DISTRIBUTED
@@ -441,6 +442,7 @@ Status MarkForClustering(Graph* graph,
       type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
       type_constraint_map["GatherV2"]["Taxis"] = NGraphIndexDTypes();
       type_constraint_map["_FusedConv2D"]["T"] = NGraphRealDTypes();
+      type_constraint_map["_FusedMatMul"]["T"] = NGraphRealDTypes();
       type_constraint_map["Greater"]["T"] = NGraphDTypes();
       type_constraint_map["GreaterEqual"]["T"] = NGraphDTypes();
 #if defined NGRAPH_DISTRIBUTED
