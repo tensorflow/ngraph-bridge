@@ -40,9 +40,9 @@ namespace testing {
 
 /*
 These tests test the Backend Handling by the bridge
-Since the backend is set globaly the setting of NGRAPH_TF_BACKEND might cause
+Since the backend is set globally the setting of NGRAPH_TF_BACKEND might cause
 some tests to fail
-For e.g. "BackendCLustering" test would fail If the NGRAPH_TF_BACKEND is set to
+For e.g. "BackendCLustering" test would fail if the NGRAPH_TF_BACKEND is set to
 INTERPRETER the nodes going to CPU also go to interpreter
 putting all the nodes in the same cluster.
 */
