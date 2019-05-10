@@ -52,16 +52,11 @@ RUN apt-get update &&  apt-get install -y \
 RUN updatedb
 
 # six, enum34 and mock are required for building the tensorflow wheel
-# scipy, portpicker, and sklearn are needed by some TensorFlow tests
 # keras_applications and keras_preprocessing are needed for modern TensorFlow builds
-# matplotlib and librosa are needed to run inference models
-# opencv-python is used by some inference models (for import cv2)
 # yapf and futures are needed for code-format checks (ngraph-tf PR#211)
 RUN pip install --upgrade pip
 RUN pip install six enum34 mock
-RUN pip install scipy portpicker sklearn
 RUN pip install keras_applications keras_preprocessing
-RUN pip install matplotlib librosa opencv-python
 RUN pip install yapf==0.26.0
 RUN pip install futures
 
@@ -73,17 +68,13 @@ RUN pip3 install futures
 # We include pytest so the Docker image can be used for daily validation
 RUN pip install --upgrade pytest
 
-# FROM NG-TF:
-# We need to be careful to run apt-get update in any RUN where apt-get install
-# might be run.  This is needed due to docker layer limitations.
-# RUN apt-get update && ./initial-setup-once-per-machine.ubuntu-16.04.sh
-#
-# REPLACED BY:
+# Bazel requires the OpenJDK
 RUN apt-get update && apt-get install -y openjdk-8-jdk
 #
 # This bazel version works with current TF
-RUN wget --no-verbose -c https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel_0.21.0-linux-x86_64.deb
-RUN dpkg -i bazel_0.21.0-linux-x86_64.deb || true
+ARG BAZEL_VERSION=0.24.1
+RUN wget --no-verbose -c https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel_${BAZEL_VERSION}-linux-x86_64.deb
+RUN dpkg -i bazel_${BAZEL_VERSION}-linux-x86_64.deb || true
 
 # Copy in the run-as-user.sh script
 # This will allow the builds, which are done in a mounted directory, to
