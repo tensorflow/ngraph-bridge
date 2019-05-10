@@ -59,7 +59,7 @@ extern bool ngraph_is_supported_backend(const char* backend) {
 extern bool ngraph_get_currently_set_backend_name(char** backend) {
   string got_backend;
   auto status = GetCurrentlySetBackendName(&got_backend);
-  if (status != Status::OK()){
+  if (status != Status::OK()) {
     return false;
   }
   backend[0] = strdup(got_backend.c_str());

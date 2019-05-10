@@ -332,7 +332,8 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   // If NGRAPH_TF_BACKEND is set create that backend
   // Else create backend of type ng_backend_name
   string ng_backend_type = ng_backend_name;
-  // Note in unit tests opexecuter, backend manager is not used. So NGRAPH_TF_BACKEND is the only way to set backend
+  // Note in unit tests opexecuter, backend manager is not used. So
+  // NGRAPH_TF_BACKEND is the only way to set backend
   const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
   if (ng_backend_env_value != nullptr) {
     string backend_env = std::string(ng_backend_env_value);
