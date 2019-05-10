@@ -200,6 +200,10 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
 
   // Get Tensor input shapes and values from the const nodes
   int number_of_inputs = test_op->num_inputs();
+
+  // Add the _ngraph_backend attr to the node
+  test_op->AddAttr("_ngraph_backend", ng_backend_name);
+
   // TODO : Validate static_input_indexes < number_of_inputs
   vector<TensorShape> input_shapes;
   vector<DataType> input_dt;

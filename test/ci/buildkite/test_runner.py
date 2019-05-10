@@ -98,7 +98,6 @@ def main():
                     "-ArrayOps.Quanti*:ArrayOps.Dequant*:BackendManager.BackendAssignment:"
                     "MathOps.AnyKeepDims:MathOps.AnyNegativeAxis:MathOps.AnyPositiveAxis:"
                     "MathOps.AllKeepDims:MathOps.AllNegativeAxis:MathOps.AllPositiveAxis:"
-                    "MathOps.BatchMatMul3*:"
                     "NNOps.Qu*:NNOps.SoftmaxZeroDimTest*:"
                     "NNOps.SparseSoftmaxCrossEntropyWithLogits")
         run_ngtf_cpp_gtests(arguments.artifacts_dir, './', test_filter)
