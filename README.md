@@ -135,7 +135,7 @@ with nGraph backends. Please note that you can also install the TensorFlow and n
         ...
         config = tf.ConfigProto() # or your existing config
         config_ngraph_enabled = ngraph_bridge.update_config(config)
-        sess = tf.Session(config=config_ng_enabled) # use the updated config in session creation
+        sess = tf.Session(config=config_ngraph_enabled) # use the updated config in session creation
 
 Detailed examples on how to use ngraph_bridge are located in the [examples] directory.
 
