@@ -581,7 +581,6 @@ TEST(MathOps, BatchMatMul3DAdjY) {
 
   AssignInputValues(A, 2.0f);
   AssignInputValues(B, 7.0f);
-  AssignInputValues(B, 5.0f);
 
   vector<int> static_input_indexes = {};
 
@@ -595,6 +594,59 @@ TEST(MathOps, BatchMatMul3DAdjY) {
 
   opexecuter.RunTest();
 }  // end of test op BatchMatMul
+
+TEST(MathOps, BatchMatMul4D) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+  int dim3 = 2;
+  int dim4 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2, dim3, dim4}));
+  Tensor B(DT_FLOAT, TensorShape({dim1, dim2, dim3, dim4}));
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMul(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMul", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(MathOps, BatchMatMul5D) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+  int dim3 = 2;
+  int dim4 = 2;
+  int dim5 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2, dim3, dim4, dim5}));
+  Tensor B(DT_FLOAT, TensorShape({dim1, dim2, dim3, dim4, dim5}));
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMul(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMul", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
 
 // Test op: Cast : float to int
 TEST(MathOps, Cast1D) {

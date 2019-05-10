@@ -807,6 +807,9 @@ static Status TranslateBatchMatMulOp(
   if (n_dims == 2) {
     SaveNgOp(ng_op_map, op->name(),
              ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs));
+  } else if (n_dims == 3) {
+    SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ngraph::op::BatchMatMul>(
+                                        op->name(), ng_lhs, ng_rhs));
   } else {
     auto output_shape = ng_lhs_shape;
     output_shape[n_dims - 1] = ng_rhs_shape[1];
@@ -825,12 +828,8 @@ static Status TranslateBatchMatMulOp(
     ng::Shape dot_shape = {compound_size, ng_lhs_shape[n_dims - 2],
                            ng_rhs_shape[1], compound_size};
     std::shared_ptr<ng::Node> dot_reshape;
-    if (n_dims == 3) {
-      dot_reshape = dot_output;
-    } else {
-      dot_reshape = ConstructNgNode<ngraph::op::Reshape>(op->name(), dot_output,
-                                                         dot_axes, dot_shape);
-    }
+    dot_reshape = ConstructNgNode<ngraph::op::Reshape>(op->name(), dot_output,
+                                                       dot_axes, dot_shape);
     ng::Shape tmp_shape = {1, ng_lhs_shape[n_dims - 2], ng_rhs_shape[1]};
     vector<shared_ptr<ngraph::Node>> tmp_tensors;
     for (size_t i = 0; i < dot_shape[0]; i++) {
@@ -845,14 +844,9 @@ static Status TranslateBatchMatMulOp(
     }
     auto concat_op =
         ConstructNgNode<ngraph::op::Concat>(op->name(), tmp_tensors, 0);
-    if (n_dims == 3) {
-      SaveNgOp(ng_op_map, op->name(), concat_op);
-    } else {
-      SaveNgOp(
-          ng_op_map, op->name(),
-          ConstructNgNode<ngraph::op::Reshape>(
-              op->name(), concat_op, ng::AxisVector{0, 1, 2}, output_shape));
-    }
+    SaveNgOp(ng_op_map, op->name(),
+             ConstructNgNode<ngraph::op::Reshape>(
+                 op->name(), concat_op, ng::AxisVector{0, 1, 2}, output_shape));
   }
   return Status::OK();
 }
