@@ -40,6 +40,7 @@ std::map<std::string, int> BackendManager::ref_count_each_backend_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_name_mutex_);
+  // TODO: Should NGRAPH_TF_BACKEND be read here as well and should it override backend_name?
   if (backend_name.empty() || !IsSupportedBackend(backend_name)) {
     return errors::Internal("Backend ", backend_name,
                             " is not supported on nGraph");
@@ -107,7 +108,26 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
     return false;
   }
   return true;
-};
+}
+
+Status BackendManager::GetCurrentlySetBackendName(string* current_backend) {
+    string possible_backend;
+    const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+    // Environment variable has higher priority than API set value
+    if (ng_backend_env_value != nullptr) {
+      possible_backend = std::string(ng_backend_env_value);;
+    } else {
+      possible_backend = BackendManager::ng_backend_name_;
+    }
+    // Check if possible_backend is valid
+    if (possible_backend.empty() || !BackendManager::IsSupportedBackend(possible_backend)) {
+        current_backend = nullptr;
+        return errors::Internal("NGRAPH_TF_BACKEND: ", possible_backend, " is not supported");
+    } else { 
+      *current_backend = possible_backend;
+      return SetBackendName(*current_backend);
+    }
+  }
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

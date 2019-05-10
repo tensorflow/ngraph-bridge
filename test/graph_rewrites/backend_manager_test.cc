@@ -50,11 +50,13 @@ putting all the nodes in the same cluster.
 // Test SetBackendAPI
 TEST(BackendManager, SetBackend) {
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
-  string cpu_backend = BackendManager::GetCurrentlySetBackendName();
+  string cpu_backend;
+  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&cpu_backend));
   ASSERT_EQ(cpu_backend, "CPU");
 
   ASSERT_OK(BackendManager::SetBackendName("INTERPRETER"));
-  string current_backend = BackendManager::GetCurrentlySetBackendName();
+  string current_backend;
+  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&current_backend));
   ASSERT_EQ(current_backend, "INTERPRETER");
 
   ASSERT_NOT_OK(BackendManager::SetBackendName("temp"));
@@ -168,7 +170,8 @@ TEST(BackendManager, BackendRun) {
   auto R = ops::Add(root.WithOpName("R"), A, B);
   auto S = ops::Sub(root.WithOpName("S"), R, B);
 
-  auto default_backend = BackendManager::GetCurrentlySetBackendName();
+  string default_backend;
+  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&default_backend));
   std::vector<Tensor> cpu_outputs;
   ClientSession session_cpu(root);
   // Run and fetch v
@@ -176,7 +179,8 @@ TEST(BackendManager, BackendRun) {
                             &cpu_outputs));
 
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
-  auto backend2 = BackendManager::GetCurrentlySetBackendName();
+  string backend2;
+  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend2));
 
   std::vector<Tensor> inter_outputs;
   ClientSession session_inter(root);

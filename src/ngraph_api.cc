@@ -57,7 +57,12 @@ extern bool ngraph_is_supported_backend(const char* backend) {
 }
 
 extern bool ngraph_get_currently_set_backend_name(char** backend) {
-  backend[0] = strdup(GetCurrentlySetBackendName().c_str());
+  string got_backend;
+  auto status = GetCurrentlySetBackendName(&got_backend);
+  if (status != Status::OK()){
+    return false;
+  }
+  backend[0] = strdup(got_backend.c_str());
   return true;
 }
 
@@ -97,8 +102,8 @@ bool IsSupportedBackend(const string& type) {
   return BackendManager::IsSupportedBackend(type);
 }
 
-string GetCurrentlySetBackendName() {
-  return BackendManager::GetCurrentlySetBackendName();
+Status GetCurrentlySetBackendName(string* backend) {
+  return BackendManager::GetCurrentlySetBackendName(backend);
 }
 
 void StartLoggingPlacement() { _is_logging_placement = true; }

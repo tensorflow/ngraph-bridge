@@ -78,9 +78,14 @@ void RunSimpleNetworkExample() {
       ->mutable_rewrite_options()
       ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
+  string backend;
+  if(tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(&backend) != tensorflow::Status::OK()) {
+    std::cout << "Error: Cannot get the backend: " << std::endl;
+    return -1;
+  }
   std::cout
       << "Currently selected backend: "
-      << tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName()
+      << backend
       << std::endl;
 
   tensorflow::ClientSession session(root, options);
