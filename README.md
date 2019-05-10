@@ -129,7 +129,7 @@ with nGraph backends. Please note that you can also install the TensorFlow and n
 
     Note: The version of the ngraph-tensorflow-bridge is not going to be exactly the same as when you build from source. This is due to delay in the source release and publishing the corresponding Python wheel. 
 
-2. You can try out the TensorFlow models by adding one line to your existing TensorFlow model scripts and running them the usual way:
+2. You can try out the TensorFlow models by adding the following lines to your existing TensorFlow model scripts and running them the usual way:
 
         import ngraph_bridge
         config = tf.ConfigProto() # or your existing config
