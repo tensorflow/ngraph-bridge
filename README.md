@@ -132,6 +132,7 @@ with nGraph backends. Please note that you can also install the TensorFlow and n
 2. You can try out the TensorFlow models by adding the following lines to your existing TensorFlow model scripts and running them the usual way:
 
         import ngraph_bridge
+        ...
         config = tf.ConfigProto() # or your existing config
         config_ng_enabled = ngraph_bridge.update_config(config)
         sess = tf.Session(config=config_ng_enabled) # use the updated config in session creation
