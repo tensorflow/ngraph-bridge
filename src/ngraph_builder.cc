@@ -1950,10 +1950,10 @@ static Status TranslateFusedMatMulOp(
   };
 
   // TODO: Need to add BiasAdd + Activation fusedMatMul op
-  if (!VecStrCmp(fused_ops, {"BiasAdd"})) {
+  /*if (!VecStrCmp(fused_ops, {"BiasAdd"})) {
     return errors::Unimplemented("Unsupported _FusedMatMul " +
                                  str_util::Join(fused_ops, ","));
-  }
+  }*/
 
   shared_ptr<ng::Node> ng_lhs, ng_rhs, ng_bias, ng_dot;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs, &ng_bias));
@@ -1970,7 +1970,7 @@ static Status TranslateFusedMatMulOp(
   ng::AxisSet ng_broadcast_axes;
 
   // TODO : _FusedMatMul doesn't have data_format attributes, insert broadcast
-  // axe as if it's NHWC for now.
+  // axes as if it's NHWC for now.
   for (size_t i = 0; i < ng_dot_shape.size() - 1; i++) {
     ng_broadcast_axes.insert(i);
   }
@@ -1980,8 +1980,21 @@ static Status TranslateFusedMatMulOp(
 
   auto ng_add =
       ConstructNgNode<ng::op::Add>(op->name(), ng_dot, ng_bias_broadcasted);
+  if (fused_ops.size() == 1) { // Only fusing BiasAdd
+    SaveNgOp(ng_op_map, op->name(), ng_add);
+  } else if (fused_ops.size() == 2) { // Also has activation
+    if (fused_ops[1] == "Relu") {
+      SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Relu>(op->name(), ng_add));
+    } else if (fused_ops[1] == "Relu6") {
+      // TODO fill
+    } else {
+      return errors::Internal("Expected activation to be Relu but got ", fused_ops[1]);
+    }
 
-  SaveNgOp(ng_op_map, op->name(), ng_add);
+  } else {
+    // Adding this here to catch future changes in _FusedMatMul
+    return errors::Internal("Unsupported combination");
+  }
 
   return Status::OK();
 }
