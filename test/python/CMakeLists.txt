@@ -37,13 +37,19 @@ execute_process(
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/fusedmatmul.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/fusedmatmul.pbtxt
+        ${CMAKE_CURRENT_SOURCE_DIR}/fusedmatmul_0.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/fusedmatmul_0.pbtxt
 )
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/fusedmatmul_1.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/fusedmatmul_1.pbtxt
+)
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/fusedmatmul_2.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/fusedmatmul_2.pbtxt
 )
 
