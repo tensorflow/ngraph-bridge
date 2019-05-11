@@ -26,7 +26,6 @@ import numpy as np
 from common import NgraphTest
 
 
-
 class TestFloorOperations(NgraphTest):
 
     def test_flib_1(self):

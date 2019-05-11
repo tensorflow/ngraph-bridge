@@ -1980,15 +1980,17 @@ static Status TranslateFusedMatMulOp(
 
   auto ng_add =
       ConstructNgNode<ng::op::Add>(op->name(), ng_dot, ng_bias_broadcasted);
-  if (fused_ops.size() == 1) { // Only fusing BiasAdd
+  if (fused_ops.size() == 1) {  // Only fusing BiasAdd
     SaveNgOp(ng_op_map, op->name(), ng_add);
-  } else if (fused_ops.size() == 2) { // Also has activation
+  } else if (fused_ops.size() == 2) {  // Also has activation
     if (fused_ops[1] == "Relu") {
-      SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Relu>(op->name(), ng_add));
+      SaveNgOp(ng_op_map, op->name(),
+               ConstructNgNode<ng::op::Relu>(op->name(), ng_add));
     } else if (fused_ops[1] == "Relu6") {
       // TODO fill
     } else {
-      return errors::Internal("Expected activation to be Relu but got ", fused_ops[1]);
+      return errors::Internal("Expected activation to be Relu but got ",
+                              fused_ops[1]);
     }
 
   } else {
@@ -1998,7 +2000,6 @@ static Status TranslateFusedMatMulOp(
 
   return Status::OK();
 }
-
 
 static Status TranslateGatherV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,

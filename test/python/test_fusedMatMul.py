@@ -31,10 +31,12 @@ from tensorflow.python.framework import dtypes
 
 import numpy as np
 
-
 from google.protobuf import text_format
+
+
 def get_tensor(graph, tname):
-        return graph.get_tensor_by_name("import/" + tname)
+    return graph.get_tensor_by_name("import/" + tname)
+
 
 def import_pbtxt(pb_filename):
     graph_def = tf.GraphDef()
@@ -49,11 +51,11 @@ def import_pbtxt(pb_filename):
 class TestFusedMatMul(NgraphTest):
     # TODO: add tests for relu6 as well
     @pytest.mark.parametrize(("filename",), (
-        ('fusedmatmul.pbtxt',),
+        ('fusedmatmul_0.pbtxt',),
         ('fusedmatmul_1.pbtxt',),
         ('fusedmatmul_2.pbtxt',),
     ))
-    @pytest.mark.parametrize(("dim1", "dim2", "dim3"), ((3,2,2),(3,4,5)))
+    @pytest.mark.parametrize(("dim1", "dim2", "dim3"), ((3, 2, 2), (3, 4, 5)))
     def test_fusedmatmul_bias_pbtxt(self, filename, dim1, dim2, dim3):
         graph = import_pbtxt('fusedmatmul.pbtxt')
         with graph.as_default() as g:
@@ -67,25 +69,25 @@ class TestFusedMatMul(NgraphTest):
                 #inp1_values = 10*np.random.rand(*self.INPUT1_SIZES) - 5
                 #inp2_values = 10*np.random.rand(*self.INPUT2_SIZES) - 5
                 #bias_values = 10*np.random.rand(*self.BIAS_SIZES) - 5
-                
+
                 #inp1_values = np.ones(self.INPUT1_SIZES)
                 #inp2_values = 2*np.ones(self.INPUT2_SIZES)
                 #bias_values = -50*np.ones(self.BIAS_SIZES)
-                
+
                 #inp1_values = np.array([[1,2],[3,4], [10, 20]])
                 #inp2_values = np.array([[-5,6],[7,-8]])
                 #bias_values = np.array([9, 10])
 
-
                 inp1_values = np.ones([dim1, dim2])
-                inp2_values = 2*np.ones([dim2, dim3])
-                bias_values = -50*np.ones([dim3])
-
+                inp2_values = 2 * np.ones([dim2, dim3])
+                bias_values = -50 * np.ones([dim3])
 
                 return sess.run(a, {
                     x: inp1_values,
                     y: inp2_values,
                     z: bias_values,
                 })
+
             #import pdb;pdb.set_trace()
-            assert np.allclose(self.without_ngraph(run_test), self.with_ngraph(run_test))
+            assert np.allclose(
+                self.without_ngraph(run_test), self.with_ngraph(run_test))
