@@ -1996,8 +1996,8 @@ static Status TranslateFusedMatMulOp(
           constant_6);
       SaveNgOp(ng_op_map, op->name(), relu6_op);
     } else {
-      return errors::Internal("Expected activation to be Relu but got ",
-                              fused_ops[1]);
+      return errors::Internal(
+          "Expected activation to be Relu or Relu6 but got ", fused_ops[1]);
     }
 
   } else {
