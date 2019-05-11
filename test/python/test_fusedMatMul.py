@@ -31,22 +31,6 @@ from tensorflow.python.framework import dtypes
 
 import numpy as np
 
-from google.protobuf import text_format
-
-
-def get_tensor(graph, tname):
-    return graph.get_tensor_by_name("import/" + tname)
-
-
-def import_pbtxt(pb_filename):
-    graph_def = tf.GraphDef()
-    with open(pb_filename, "r") as f:
-        text_format.Merge(f.read(), graph_def)
-
-    with tf.Graph().as_default() as graph:
-        tf.import_graph_def(graph_def)
-    return graph
-
 
 class TestFusedMatMul(NgraphTest):
     # TODO: add tests for relu6 as well
@@ -59,12 +43,12 @@ class TestFusedMatMul(NgraphTest):
         ))
     @pytest.mark.parametrize(("dim1", "dim2", "dim3"), ((3, 2, 2), (3, 4, 5)))
     def test_fusedmatmul_bias_pbtxt(self, filename, dim1, dim2, dim3):
-        graph = import_pbtxt(filename)
+        graph = self.import_pbtxt(filename)
         with graph.as_default() as g:
-            x = get_tensor(g, "Placeholder_3:0")
-            y = get_tensor(g, "Placeholder_4:0")
-            z = get_tensor(g, "Placeholder_5:0")
-            a = get_tensor(g, "Relu_1:0")
+            x = self.get_tensor(g, "Placeholder_3:0")
+            y = self.get_tensor(g, "Placeholder_4:0")
+            z = self.get_tensor(g, "Placeholder_5:0")
+            a = self.get_tensor(g, "Relu_1:0")
 
             inp1_values = 10 * np.random.rand(dim1, dim2) - 5
             inp2_values = 10 * np.random.rand(dim2, dim3) - 5
