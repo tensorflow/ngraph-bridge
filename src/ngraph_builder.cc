@@ -1999,7 +1999,6 @@ static Status TranslateFusedMatMulOp(
       return errors::Internal(
           "Expected activation to be Relu or Relu6 but got ", fused_ops[1]);
     }
-
   } else {
     // Adding this here to catch future changes in _FusedMatMul
     return errors::Internal("Unsupported combination");
