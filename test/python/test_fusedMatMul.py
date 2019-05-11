@@ -57,7 +57,7 @@ class TestFusedMatMul(NgraphTest):
     ))
     @pytest.mark.parametrize(("dim1", "dim2", "dim3"), ((3, 2, 2), (3, 4, 5)))
     def test_fusedmatmul_bias_pbtxt(self, filename, dim1, dim2, dim3):
-        graph = import_pbtxt('fusedmatmul.pbtxt')
+        graph = import_pbtxt(filename)
         with graph.as_default() as g:
             x = get_tensor(g, "Placeholder_3:0")
             y = get_tensor(g, "Placeholder_4:0")
