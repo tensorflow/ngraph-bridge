@@ -220,7 +220,8 @@ class NGraphEncapsulateOp : public OpKernel {
           has_input_data = true;
         }
         NGraphCatalog::DeleteFromInputDataTensorMap(key);
-        NGRAPH_VLOG(2) << "Deleting from input data tensor map " << key << endl;
+        cout << "~NGraphEncapsulateOp::Deleting from input data tensor map "
+             << key << endl;
       }
     }
     // We create the backend when creating and loading the input data
@@ -527,8 +528,7 @@ class NGraphEncapsulateOp : public OpKernel {
       bool has_data_input =
           NGraphCatalog::ExistsInInputDataTensorMap(def().input(i));
       if (has_data_input) {
-        NGRAPH_VLOG(4) << "Input data already in device. For Input Index " << i
-                       << endl;
+        cout << "Input data already in device. For Input Index " << i << endl;
 
         auto data_input_tensor =
             NGraphCatalog::GetTensorFromInputDataTensorMap(def().input(i));

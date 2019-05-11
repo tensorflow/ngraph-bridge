@@ -56,6 +56,7 @@ tensorflow::Status SetNGraphBackend(const string& backend_name) {
 
 // Create a simple computation graph and run
 void RunSimpleNetworkExample() {
+  cout << " Running simple network example C++ " << endl;
   // Create the graph
   tensorflow::Scope root = tensorflow::Scope::NewRootScope();
 
@@ -92,6 +93,8 @@ void RunSimpleNetworkExample() {
   std::cout << "Result: " << outputs[0].matrix<float>() << std::endl;
 }
 
+void RunInputDataPipelineExample();
+
 int main(int argc, char** argv) {
   PrintAvailableBackends();
 
@@ -107,7 +110,10 @@ int main(int argc, char** argv) {
   }
 
   // Run the MatMul example
-  RunSimpleNetworkExample();
+  // RunSimpleNetworkExample();
+
+  // Run the DataInputPipeline example
+  RunInputDataPipelineExample();
 
   return 0;
 }

@@ -34,6 +34,7 @@ namespace ngraph_bridge {
 Status NGraphInputDataPiepline::LoadInputDataOnDevice(
     vector<string>& input_node_names, vector<Tensor*>& input_tf_tensors,
     string backend_name) {
+  cout << "Loading Input Data On Device" << endl;
   ngraph::Event load_data_event("LoadInputDataOnDevice", "", "");
 
   if (input_node_names.size() != input_tf_tensors.size()) {
