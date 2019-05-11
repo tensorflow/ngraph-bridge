@@ -1988,6 +1988,13 @@ static Status TranslateFusedMatMulOp(
                ConstructNgNode<ng::op::Relu>(op->name(), ng_add));
     } else if (fused_ops[1] == "Relu6") {
       // TODO fill
+      auto constant_6 = ConstructNgNode<ng::op::Constant>(
+          op->name(), ng_add->get_element_type(), ng_add->get_shape(),
+          std::vector<std::string>(ng::shape_size(ng_add->get_shape()), "6"));
+      auto relu6_op = ConstructNgNode<ng::op::Minimum>(
+          op->name(), ConstructNgNode<ng::op::Relu>(op->name(), ng_add),
+          constant_6);
+      SaveNgOp(ng_op_map, op->name(), relu6_op);
     } else {
       return errors::Internal("Expected activation to be Relu but got ",
                               fused_ops[1]);
