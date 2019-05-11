@@ -33,7 +33,6 @@ import numpy as np
 
 
 class TestFusedMatMul(NgraphTest):
-    # TODO: add tests for relu6 as well
     @pytest.mark.parametrize(
         ("filename",),
         (
