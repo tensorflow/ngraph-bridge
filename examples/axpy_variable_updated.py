@@ -25,6 +25,9 @@ import ctypes
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.client import timeline
+import json
+
 import ngraph_bridge
 
 print("TensorFlow version: ", tf.VERSION)
@@ -62,13 +65,27 @@ config = tf.ConfigProto(
 # Create session and run
 with tf.Session(config=config) as sess:
     print("Python: Running with Session")
+    options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+    run_metadata = tf.RunMetadata()
+
+    event_times = []
     sess.run(tf.global_variables_initializer())
     for i in range(10):
-        (result_axpy) = sess.run((train_op)),
+        (result_axpy) = sess.run((train_op),
+                                 options=options,
+                                 run_metadata=run_metadata),
         print(i)
+        event_times.append(timeline.Timeline(run_metadata.step_stats))
 
     print("Final value: ", x.eval())
-
+    print("Writing event trace")
+    with open('tf_event_trace.json', 'w') as f:
+        f.write("[\n")
+        for event in event_times:
+            chrome_trace = event.generate_chrome_trace_format(
+                show_dataflow=False)
+            parsed_trace = json.loads(chrome_trace)
+            for tr in parsed_trace['traceEvents']:
+                f.write(json.dumps(tr) + ',\n')
 
 train_writer.add_graph(tf.get_default_graph())
-
