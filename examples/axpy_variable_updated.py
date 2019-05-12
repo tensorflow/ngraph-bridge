@@ -35,7 +35,7 @@ print('Saving graph to: %s' % graph_location)
 train_writer = tf.summary.FileWriter(graph_location)
 
 # Define the data
-a = tf.constant(np.full((2048, 2048), 0.05, dtype=np.float32), name='alpha')
+a = tf.constant(np.full((2048, 2048), 1.5, dtype=np.float32), name='alpha')
 x = tf.get_variable('x', [2048, 2048], initializer=tf.zeros_initializer)
 y = tf.constant(np.full((2048, 2048), 1.0, dtype=np.float32), name='y')
 
@@ -67,4 +67,8 @@ with tf.Session(config=config) as sess:
         (result_axpy) = sess.run((train_op)),
         print(i)
 
+    print("Final value: ", x.eval())
+
+
 train_writer.add_graph(tf.get_default_graph())
+
