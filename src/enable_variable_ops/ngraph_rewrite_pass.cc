@@ -111,7 +111,7 @@ class NGraphRewritePass : public GraphOptimizationPass {
     std::stringstream ss;
     ss << kind << "_" << std::setfill('0') << std::setw(4) << idx;
 #if defined NGRAPH_DISTRIBUTED
-    int rank_id = ng::get_distributed_interface()->get_rank();
+    int rank_id = ngraph::get_distributed_interface()->get_rank();
     ss << "_" << std::setfill('0') << std::setw(4) << rank_id;
 #endif
     return ss.str();
@@ -122,7 +122,7 @@ class NGraphRewritePass : public GraphOptimizationPass {
     ss << GraphFilenamePrefix(kind, idx) << "_" << std::setfill('0')
        << std::setw(4) << sub_idx;
 #if defined NGRAPH_DISTRIBUTED
-    int rank_id = ng::get_distributed_interface()->get_rank();
+    int rank_id = ngraph::get_distributed_interface()->get_rank();
     ss << "_" << std::setfill('0') << std::setw(4) << rank_id;
 #endif
     return ss.str();
