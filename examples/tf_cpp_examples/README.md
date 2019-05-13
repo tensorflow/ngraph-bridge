@@ -20,7 +20,7 @@ The application links with the following dynamic shared object (DSO) libraries
 
 1. libngraph_bridge.(so/dylib)
 2. libtensorflow_framework.so.1
-3. libtensorflow_cc.so
+3. libtensorflow_cc.so.1
 
 ## Build the example
 
