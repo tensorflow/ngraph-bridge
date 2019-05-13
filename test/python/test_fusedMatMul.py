@@ -33,6 +33,7 @@ import numpy as np
 
 
 class TestFusedMatMul(NgraphTest):
+
     @pytest.mark.parametrize(
         ("filename",),
         (
