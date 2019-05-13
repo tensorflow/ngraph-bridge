@@ -571,7 +571,7 @@ Status EncapsulateClusters(
           Node* in_neighbour = in_neighbour_edge->src();
           UniqueTensorId curr_tid = get_string_info(
               curr_encapsulate_idx, false, in_neighbour_edge->dst_input());
-          std::set<UniqueTensorId> new_group;
+          std::set<UniqueTensorId> new_group{};
           // TODO: instead of searching in the vector, maybe mark graph nodes
           // with a "visited" tag
           if (!is_tracked(curr_tid)) {
@@ -584,37 +584,29 @@ Status EncapsulateClusters(
             // TODO: Now its NGraphVariable, later it could be other types too
             // like NGraphAssign etc
             // Sharing in case of E<-NGV->E is handled separately
-            Node* in_neighbour_out;
+            Node* in_neighbour_out = nullptr;
             int in_neighbour_out_dst_slot, in_neighbour_out_src_slot;
             // This for loop iterates over all edges and populates
             // in_neighbour_out and in_neighbour_out_slot
             // TODO maybe we do not need this for loop. the if-else following
             // this loop probably can be merged. then this loop can be removed
             for (auto in_neighbour_out_edge : in_neighbour->out_edges()) {
-              if (in_neighbour_out_edge->src_output() ==
-                  in_neighbour_edge->src_output()) {
-                in_neighbour_out = in_neighbour_out_edge->dst();
-                in_neighbour_out_dst_slot = in_neighbour_out_edge->dst_input();
-                in_neighbour_out_src_slot = in_neighbour_out_edge->src_output();
-                break;
+              in_neighbour_out_dst_slot = in_neighbour_out_edge->dst_input();
+              if (in_neighbour_out_dst_slot >= 0) {
+                if (in_neighbour_out_edge->src_output() ==
+                    in_neighbour_edge->src_output()) {
+                  in_neighbour_out = in_neighbour_out_edge->dst();
+                  in_neighbour_out_src_slot =
+                      in_neighbour_out_edge->src_output();
+                  add_to_group(in_neighbour, true, in_neighbour_out_src_slot,
+                               new_group);
+                }
+                add_to_group(in_neighbour_out, false, in_neighbour_out_dst_slot,
+                             new_group);
               }
             }
-            if (in_neighbour_out == nullptr) {
-              return errors::Internal(
-                  "Failed while figuring out encapsulate tensor sharing");
-            }
-
-            // TODO : maybe we do not need id() here, just src_output or
-            // dst_input?
-            if (in_neighbour_out->id() != curr_node_id) {
-              add_to_group(in_neighbour_out, false, in_neighbour_out_dst_slot,
-                           new_group);
-            } else {
-              add_to_group(in_neighbour, true, in_neighbour_out_src_slot,
-                           new_group);
-            }
           }
-          if (new_group.size() > 0) {
+          if (new_group.size() > 1) {
             new_group.insert(curr_tid);
             shared_tensors->push_back(new_group);
           }

@@ -179,9 +179,9 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest0) {
 }
 
 TEST(EncapsulateClusters, CollectSharedTensorsTest1) {
-  // E2<--E0-->E1.
-  // Simplest test: Output of E0 is sharable with input of E1
-  // In this test E0 has 1 const, and E1 has another const and an add
+  // E2-->E0<--E1.
+  // Input of E0 is sharable with outputs of E1 and E2
+  // In this test E0 has 1 add, and E1/E2 has consts
 
   NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
@@ -250,8 +250,11 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest1) {
 
 TEST(EncapsulateClusters, CollectSharedTensorsTest2) {
   // E0<--TF-->E1.
-  // A TF node feeds to inputs of E0 and E1
-  // In this test E0 and E1 is Abs, and the TF node is a const (which is
+  //      |
+  //      v
+  //      E2
+  // A TF node feeds to inputs of E0, E1 and E2
+  // In this test E0, E1 and E2 are Abs, and the TF node is a const (which is
   // disabled for ngraph for this test)
 
   NGraphClusterManager::EvictAllClusters();
@@ -285,11 +288,22 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest2) {
                 .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node3));
 
+  int cluster_idx_2 = NGraphClusterManager::NewCluster();
+  Node* node4;
+  ASSERT_OK(NodeBuilder("node3", "Abs")
+                .Input(node1)
+                .Attr("T", DT_FLOAT)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx_2)
+                .Attr("_ngraph_backend", "CPU")
+                .Finalize(&g, &node4));
+
   Node* source = g.source_node();
   Node* sink = g.sink_node();
   g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
   g.AddEdge(node2, Graph::kControlSlot, sink, Graph::kControlSlot);
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+  g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
   std::vector<std::set<UniqueTensorId>> shared_tensors;
@@ -298,10 +312,10 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest2) {
   // There is only 1 group
   ASSERT_EQ(shared_tensors.size(), 1);
   // That group contains 2 shareable tensors
-  ASSERT_EQ(shared_tensors[0].size(), 2);
+  ASSERT_EQ(shared_tensors[0].size(), 3);
 
-  // Input slot 0 of encapsulate 0 is shared with Input slot 0 of encapsulate 1
-  ASSERT_EQ(shared_tensors[0], (std::set<string>{"0_0_0", "1_0_0"}));
+  // Input slot 0 of encapsulate 0, 1 and 2 are shareable
+  ASSERT_EQ(shared_tensors[0], (std::set<string>{"0_0_0", "1_0_0", "2_0_0"}));
 }
 }
 }
