@@ -750,6 +750,9 @@ static Status TranslateBatchMatMulOp(
   shared_ptr<ng::Node> ng_lhs, ng_rhs;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
 
+  std::string backend_name;
+  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
+
   auto ng_lhs_shape = ng_lhs->get_shape();
   auto ng_rhs_shape = ng_rhs->get_shape();
 
@@ -781,6 +784,23 @@ static Status TranslateBatchMatMulOp(
 
   auto ng_lhs_axes = out_axes;
   auto ng_rhs_axes = out_axes;
+
+  // Get the backend name, if the backend is CPU and n_dims = 3
+  // then use the BatchMatMul op supported by nGraph
+  if (n_dims == 3 && backend_name == "CPU") {
+    if (tf_adj_x) {
+      ng_lhs_axes.push_back(n_dims - 1);
+      ng_lhs_axes.push_back(n_dims - 2);
+      ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng_lhs_axes);
+    }
+    if (tf_adj_y) {
+      ng_rhs_axes.push_back(n_dims - 1);
+      ng_rhs_axes.push_back(n_dims - 2);
+      ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
+    }
+    SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ngraph::op::BatchMatMul>(
+                                        op->name(), ng_lhs, ng_rhs));
+  } else {
   if (tf_adj_x) {
     ng_lhs_axes.push_back(n_dims - 1);
     ng_lhs_axes.push_back(n_dims - 2);
@@ -805,17 +825,9 @@ static Status TranslateBatchMatMulOp(
         "should have the same size");
   }
 
-  // Get the backend name, if the backend is CPU and n_dims = 3
-  // then use the BatchMatMul op supported by nGraph
-  std::string backend_name;
-  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
-
   if (n_dims == 2) {
     SaveNgOp(ng_op_map, op->name(),
              ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs));
-  } else if (n_dims == 3 && backend_name == "CPU") {
-    SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ngraph::op::BatchMatMul>(
-                                        op->name(), ng_lhs, ng_rhs));
   } else {
     auto output_shape = ng_lhs_shape;
     output_shape[n_dims - 1] = ng_rhs_shape[1];
@@ -862,6 +874,8 @@ static Status TranslateBatchMatMulOp(
           ConstructNgNode<ngraph::op::Reshape>(
               op->name(), concat_op, ng::AxisVector{0, 1, 2}, output_shape));
     }
+  }
+
   }
   return Status::OK();
 }
