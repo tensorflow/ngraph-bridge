@@ -24,7 +24,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.19.0-rc.2"
+    ngraph_version = "v0.19.0-rc.4"
     tf_version = "v1.13.1"
 
     # Command line parser options
@@ -48,13 +48,21 @@ def main():
 
     parser.add_argument(
         '--build_gpu_backend',
-        help="nGraph backends will include nVidia GPU.\n"
+        help=
+        "nGraph backends will include nVidia GPU. Use: NGRAPH_TF_BACKEND=GPU\n"
         "Note: You need to have CUDA headers and libraries available on the build system.\n",
         action="store_true")
 
     parser.add_argument(
         '--build_plaidml_backend',
-        help="nGraph backends will include PlaidML bckend\n",
+        help=
+        "nGraph backends will include PlaidML bckend. Use: NGRAPH_TF_BACKEND=PLAIDML\n",
+        action="store_true")
+
+    parser.add_argument(
+        '--build_intelgpu_backend',
+        help=
+        "nGraph backends will include Intel GPU bckend. Use: NGRAPH_TF_BACKEND=INTELGPU\n",
         action="store_true")
 
     parser.add_argument(
@@ -71,10 +79,11 @@ def main():
 
     parser.add_argument(
         '--enable_variables_and_optimizers',
-        help="Ops like variable and optimizers are supported by nGraph in this version of the bridge\n",
-        action="store_true")    
-        
-    parser.add_argument(        
+        help=
+        "Ops like variable and optimizers are supported by nGraph in this version of the bridge\n",
+        action="store_true")
+
+    parser.add_argument(
         '--use_grappler_optimizer',
         help="Use Grappler optimizer instead of the optimization passes\n",
         action="store_true")
@@ -88,13 +97,15 @@ def main():
     parser.add_argument(
         '--ngraph_src_dir',
         type=str,
-        help="Local nGraph source directory to use. Overrides --ngraph_version.\n",
+        help=
+        "Local nGraph source directory to use. Overrides --ngraph_version.\n",
         action="store")
 
     parser.add_argument(
         '--ngraph_version',
         type=str,
-        help="nGraph version to use. Overridden by --ngraph_src_dir. (Default: " + ngraph_version + ")\n",
+        help="nGraph version to use. Overridden by --ngraph_src_dir. (Default: "
+        + ngraph_version + ")\n",
         action="store")
 
     parser.add_argument(
@@ -197,11 +208,11 @@ def main():
             cxx_abi = str(tf.__cxx11_abi_flag__)
 
     # Download nGraph if required.
-    ngraph_src_dir='./ngraph'
+    ngraph_src_dir = './ngraph'
     if arguments.ngraph_src_dir:
         ngraph_src_dir = arguments.ngraph_src_dir
 
-        print("Using local nGraph source in directory ",ngraph_src_dir)
+        print("Using local nGraph source in directory ", ngraph_src_dir)
     else:
         if arguments.ngraph_version:
             ngraph_version = arguments.ngraph_version
@@ -219,10 +230,6 @@ def main():
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
     ]
-    if (platform.system() != 'Darwin'):
-        ngraph_cmake_flags.extend(["-DNGRAPH_TOOLS_ENABLE=YES"])
-    else:
-        ngraph_cmake_flags.extend(["-DNGRAPH_TOOLS_ENABLE=NO"])
 
     if arguments.debug_build:
         ngraph_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
@@ -234,21 +241,29 @@ def main():
     else:
         ngraph_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=OFF"])
 
-    if arguments.build_gpu_backend:
-        ngraph_cmake_flags.extend(["-DNGRAPH_GPU_ENABLE=YES"])
-    else:
-        ngraph_cmake_flags.extend(["-DNGRAPH_GPU_ENABLE=NO"])
-
     if arguments.build_plaidml_backend:
         command_executor(["pip", "install", "-U", "plaidML"])
-        ngraph_cmake_flags.extend(["-DNGRAPH_PLAIDML_ENABLE=YES"])
-    else:
-        ngraph_cmake_flags.extend(["-DNGRAPH_PLAIDML_ENABLE=NO"])
 
-    if not arguments.use_prebuilt_tensorflow:
-        ngraph_cmake_flags.extend(["-DNGRAPH_UNIT_TEST_ENABLE=YES"])
-    else:
-        ngraph_cmake_flags.extend(["-DNGRAPH_UNIT_TEST_ENABLE=NO"])
+    flag_string_map = {True: 'YES', False: 'NO'}
+    ngraph_cmake_flags.extend([
+        "-DNGRAPH_TOOLS_ENABLE=" +
+        flag_string_map[platform.system() != 'Darwin']
+    ])
+    ngraph_cmake_flags.extend([
+        "-DNGRAPH_GPU_ENABLE=" + flag_string_map[arguments.build_gpu_backend]
+    ])
+    ngraph_cmake_flags.extend([
+        "-DNGRAPH_PLAIDML_ENABLE=" +
+        flag_string_map[arguments.build_plaidml_backend]
+    ])
+    ngraph_cmake_flags.extend([
+        "-DNGRAPH_INTELGPU_ENABLE=" +
+        flag_string_map[arguments.build_intelgpu_backend]
+    ])
+    ngraph_cmake_flags.extend([
+        "-DNGRAPH_UNIT_TEST_ENABLE=" +
+        flag_string_map[not arguments.use_prebuilt_tensorflow]
+    ])
 
     build_ngraph(build_dir, ngraph_src_dir, ngraph_cmake_flags, verbosity)
 
@@ -265,10 +280,7 @@ def main():
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
-    if arguments.use_prebuilt_tensorflow:
-        ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=OFF"])
-    else:
-        ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=ON"])
+    if not arguments.use_prebuilt_tensorflow:
         ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
         ngraph_tf_cmake_flags.extend([
             "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
@@ -281,27 +293,28 @@ def main():
     else:
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=FALSE"])
 
-    if (arguments.enable_variables_and_optimizers):
-        ngraph_tf_cmake_flags.extend(["-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=TRUE"])
-    else:
-        ngraph_tf_cmake_flags.extend(["-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=FALSE"])
-        
-    if (arguments.use_grappler_optimizer):
-        ngraph_tf_cmake_flags.extend(
-            ["-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=TRUE"])
-    else:
-        ngraph_tf_cmake_flags.extend(
-            ["-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=FALSE"])
+    ngraph_tf_cmake_flags.extend([
+        "-DUNIT_TEST_ENABLE=" +
+        flag_string_map[not arguments.use_prebuilt_tensorflow]
+    ])
+    ngraph_tf_cmake_flags.extend([
+        "-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=" +
+        flag_string_map[arguments.enable_variables_and_optimizers]
+    ])
+    ngraph_tf_cmake_flags.extend([
+        "-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=" +
+        flag_string_map[arguments.use_grappler_optimizer]
+    ])
 
     # Now build the bridge
     ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,
                                 ngraph_tf_src_dir, venv_dir,
                                 ngraph_tf_cmake_flags, verbosity)
-    
+
     # Make sure that the ngraph bridge whl is present in the artfacts directory
     if not os.path.isfile(os.path.join(artifacts_location, ng_tf_whl)):
         raise Exception("Cannot locate nGraph whl in the artifacts location")
-        
+
     print("SUCCESSFULLY generated wheel: %s" % ng_tf_whl)
     print("PWD: " + os.getcwd())
 
@@ -313,7 +326,6 @@ def main():
             os.path.join(artifacts_location, "tensorflow")
         ])
 
-
     # Run a quick test
     install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
 
@@ -321,7 +333,9 @@ def main():
         import tensorflow as tf
         import ngraph_bridge
         if not ngraph_bridge.is_grappler_enabled():
-            raise Exception("Build failed: 'use_grappler_optimizer' specified but not used")
+            raise Exception(
+                "Build failed: 'use_grappler_optimizer' specified but not used"
+            )
 
     print('\033[1;32mBuild successful\033[0m')
     os.chdir(pwd)
