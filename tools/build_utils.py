@@ -184,6 +184,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     os.environ["TF_NEED_IGNITE"] = "0"
     if (platform.system() == 'Darwin'):
         os.environ["TF_ENABLE_XLA"] = "0"
+        os.environ["TF_CONFIGURE_IOS"] = "0"
     else:
         os.environ["TF_ENABLE_XLA"] = "1"
     os.environ["TF_NEED_OPENCL_SYCL"] = "0"
@@ -219,16 +220,21 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     print("TF Wheel: %s" % tf_wheel_files[0])
 
     # Now build the TensorFlow C++ library
-    cmd = ["bazel", "build", "--config=opt", "//tensorflow:libtensorflow_cc.so"]
+    cmd = [
+        "bazel", "build", "--config=opt", "//tensorflow:libtensorflow_cc.so.1"
+    ]
     command_executor(cmd)
 
     # Remove just in case
+    tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
+    if (platform.system() == 'Darwin'):
+        tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
+
     try:
         doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.1")
-        os.remove(doomed_file)
-        doomed_file = os.path.join(artifacts_dir,
-                                   "libtensorflow_framework.so.1")
-        os.remove(doomed_file)
+        os.unlink(doomed_file)
+        doomed_file = os.path.join(artifacts_dir, tf_fmwk_lib_name)
+        os.unlink(doomed_file)
     except OSError:
         print("Cannot remove: %s" % doomed_file)
         pass
@@ -238,7 +244,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)
 
-    tf_cc_fmwk_file = "bazel-bin/tensorflow/libtensorflow_framework.so.1"
+    tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
     print("Copying %s to %s" % (tf_cc_fmwk_file, artifacts_dir))
     shutil.copy(tf_cc_fmwk_file, artifacts_dir)
 
