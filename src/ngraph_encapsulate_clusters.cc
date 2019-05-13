@@ -511,34 +511,20 @@ Status EncapsulateClusters(
   // Looking for these 2 patterns:
   // E-->E
   // E1<--TF-->E2, where TF node does not feed into a modifying TF node
-  // What if this TF node is a var?? ... Shrestha's change
+  // What if this TF node is a var? ... Shrestha's change takes care of that
 
   // What of: E1-->Tf
   //          |
   //          v
   //          E2
   // where TF is a modifying node
-  // Generally: what of A-->M
+  // Generally: what of A-->M (where M is a modifying node)
   //                    |
   //                    v
   //                    B
-  // It seems modifying nodes can only accept mutable tensors (eg from
-  // variable).
-  // Maybe it cannot accept from normal TF nodes.... yes. we cant apply assign
-  // on normal tensors. only tensorflow.python.ops.variables.RefVariable
-
-  auto get_string_info = [](int enc_id, bool is_output, int slot_id) {
-    std::vector<int> info = {enc_id, is_output ? 1 : 0, slot_id};
-    return ng::join(info, "_");
-  };
-
-  auto is_encapsulate = [](Node* n) {
-    return n->type_string() == "NGraphEncapsulate";
-  };
-
-  // When searching for E->E. We can be sure that there will be no TF<-E->E
-  // where the TF node can modify the tensor
-  // That is because E is non-mutable. so only "normal" TF nodes can access it
+  // Modifying nodes can only accept mutable tensors (eg from variable).
+  // We can't apply assign on normal tensors. Only
+  // tensorflow.python.ops.variables.RefVariable
 
   // So we are looking for: E<--TF-->E or E<--E-->E.
   // In first case only the sinks share tensor, in the second case, the source
@@ -550,6 +536,26 @@ Status EncapsulateClusters(
                          [&key](std::set<UniqueTensorId> group) {
                            return group.find(key) != group.end();
                          });
+    };
+
+    auto is_encapsulate = [](Node* n) {
+      return n->type_string() == "NGraphEncapsulate";
+    };
+
+    auto get_string_info = [](int enc_id, bool is_output, int slot_id) {
+      std::vector<int> info = {enc_id, is_output ? 1 : 0, slot_id};
+      return ng::join(info, "_");
+    };
+
+    auto add_to_group = [&get_string_info, &is_encapsulate](
+        Node* n, bool is_out, int slot, std::set<UniqueTensorId>& new_group) {
+      if (is_encapsulate(n)) {
+        int enc_idx;
+        TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "ngraph_cluster", &enc_idx));
+        UniqueTensorId tid = get_string_info(enc_idx, is_out, slot);
+        new_group.insert(tid);
+      }
+      return Status::OK();
     };
 
     // TODO: take care of cases where slot is -1, ie edge->dst_input() returns
@@ -601,26 +607,11 @@ Status EncapsulateClusters(
             // TODO : maybe we do not need id() here, just src_output or
             // dst_input?
             if (in_neighbour_out->id() != curr_node_id) {
-              if (is_encapsulate(in_neighbour_out)) {
-                int other_shared_encapsulates_idx;
-                TF_RETURN_IF_ERROR(GetNodeAttr(in_neighbour_out->attrs(),
-                                               "ngraph_cluster",
-                                               &other_shared_encapsulates_idx));
-                UniqueTensorId other_tid =
-                    get_string_info(other_shared_encapsulates_idx, false,
-                                    in_neighbour_out_dst_slot);
-                new_group.insert(other_tid);
-              }
+              add_to_group(in_neighbour_out, false, in_neighbour_out_dst_slot,
+                           new_group);
             } else {
-              if (is_encapsulate(in_neighbour)) {
-                int src_encapsulate_idx;
-                TF_RETURN_IF_ERROR(GetNodeAttr(in_neighbour->attrs(),
-                                               "ngraph_cluster",
-                                               &src_encapsulate_idx));
-                UniqueTensorId src_tid = get_string_info(
-                    src_encapsulate_idx, true, in_neighbour_out_src_slot);
-                new_group.insert(src_tid);
-              }
+              add_to_group(in_neighbour, true, in_neighbour_out_src_slot,
+                           new_group);
             }
           }
           if (new_group.size() > 0) {
