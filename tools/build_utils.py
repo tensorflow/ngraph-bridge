@@ -224,7 +224,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     command_executor(cmd)
 
     # Remove just in case
-    tf_fmwk_lib_name = 'libtensorflow_framework.so'
+    tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
     if (platform.system() == 'Darwin'):
         tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
 

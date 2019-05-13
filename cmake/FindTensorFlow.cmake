@@ -104,7 +104,7 @@ message(STATUS "TensorFlow_VERSION: " ${TensorFlow_VERSION})
 if ( APPLE )
     set(TF_LIB_NAME libtensorflow_framework.dylib)
 else()
-    set(TF_LIB_NAME libtensorflow_framework.so)
+    set(TF_LIB_NAME libtensorflow_framework.so.1)
 endif()
 
 message(STATUS "TF_LIB: " ${TF_LIB_NAME})

@@ -100,7 +100,7 @@ endif()
 #       libngraph_bridge.so
 #       ...
 #     /tensorflow
-#       libtensorflow_framework.so
+#       libtensorflow_framework.so.1
 #       python/
 #           _pywrap....so
 # Therefore we are setting two entries in the RPATH:
@@ -232,7 +232,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.19.0-rc.3
+        GIT_TAG v0.19.0-rc.4
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
