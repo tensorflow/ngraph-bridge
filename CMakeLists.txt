@@ -100,7 +100,7 @@ endif()
 #       libngraph_bridge.so
 #       ...
 #     /tensorflow
-#       libtensorflow_framework.so.1
+#       libtensorflow_framework.so
 #       python/
 #           _pywrap....so
 # Therefore we are setting two entries in the RPATH:

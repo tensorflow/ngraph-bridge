@@ -224,22 +224,25 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     command_executor(cmd)
 
     # Remove just in case
+    tf_fmwk_lib_name = 'libtensorflow_framework.so'
+    if (platform.system() == 'Darwin'):
+        tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
+
     try:
-        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.1")
+        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so")
         os.remove(doomed_file)
-        doomed_file = os.path.join(artifacts_dir,
-                                   "libtensorflow_framework.so.1")
+        doomed_file = os.path.join(artifacts_dir, tf_fmwk_lib_name)
         os.remove(doomed_file)
     except OSError:
         print("Cannot remove: %s" % doomed_file)
         pass
 
     # Now copy the TF libraries
-    tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.1"
+    tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so"
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)
 
-    tf_cc_fmwk_file = "bazel-bin/tensorflow/libtensorflow_framework.so.1"
+    tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
     print("Copying %s to %s" % (tf_cc_fmwk_file, artifacts_dir))
     shutil.copy(tf_cc_fmwk_file, artifacts_dir)
 
