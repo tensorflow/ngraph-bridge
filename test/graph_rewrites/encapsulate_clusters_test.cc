@@ -242,10 +242,10 @@ TEST(EncapsulateClusters, CollectSharedTensorsTest1) {
   ASSERT_EQ(shared_tensors[1].size(), 2);
 
   // Input slot 0 of encapsulate 2 is shared with output slot 0 of encapsulate 0
-  ASSERT_EQ(shared_tensors[0], (std::set<string>{"2_0_0", "0_1_0", ""}));
+  ASSERT_EQ(shared_tensors[0], (std::set<string>{"2_0_0", "0_1_0"}));
 
   // Input slot 1 of encapsulate 2 is shared with output slot 0 of encapsulate 1
-  ASSERT_EQ(shared_tensors[1], (std::set<string>{"2_0_1", "1_1_0", ""}));
+  ASSERT_EQ(shared_tensors[1], (std::set<string>{"2_0_1", "1_1_0"}));
 }
 
 TEST(EncapsulateClusters, CollectSharedTensorsTest2) {
