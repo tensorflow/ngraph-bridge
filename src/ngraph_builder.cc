@@ -1949,12 +1949,6 @@ static Status TranslateFusedMatMulOp(
     return Status::OK();
   };
 
-  // TODO: Need to add BiasAdd + Activation fusedMatMul op
-  /*if (!VecStrCmp(fused_ops, {"BiasAdd"})) {
-    return errors::Unimplemented("Unsupported _FusedMatMul " +
-                                 str_util::Join(fused_ops, ","));
-  }*/
-
   shared_ptr<ng::Node> ng_lhs, ng_rhs, ng_bias, ng_dot;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs, &ng_bias));
   TF_RETURN_IF_ERROR(CreateNgDot(ng_lhs, ng_rhs, ng_dot));
