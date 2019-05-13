@@ -578,52 +578,48 @@ Status EncapsulateClusters(
             // TODO: Now its NGraphVariable, later it could be other types too
             // like NGraphAssign etc
             // Sharing in case of E<-NGV->E is handled separately
-            if (is_encapsulate(in_neighbour)) {
-              Node* in_neighbour_out;
-              int in_neighbour_out_dst_slot, in_neighbour_out_src_slot;
-              // This for loop iterates over all edges and populates
-              // in_neighbour_out and in_neighbour_out_slot
-              // TODO maybe we do not need this for loop. the if-else following
-              // this loop probably can be merged. then this loop can be removed
-              for (auto in_neighbour_out_edge : in_neighbour->out_edges()) {
-                if (in_neighbour_out_edge->src_output() ==
-                    in_neighbour_edge->src_output()) {
-                  in_neighbour_out = in_neighbour_out_edge->dst();
-                  in_neighbour_out_dst_slot =
-                      in_neighbour_out_edge->dst_input();
-                  in_neighbour_out_src_slot =
-                      in_neighbour_out_edge->src_output();
-                  break;
-                }
+            Node* in_neighbour_out;
+            int in_neighbour_out_dst_slot, in_neighbour_out_src_slot;
+            // This for loop iterates over all edges and populates
+            // in_neighbour_out and in_neighbour_out_slot
+            // TODO maybe we do not need this for loop. the if-else following
+            // this loop probably can be merged. then this loop can be removed
+            for (auto in_neighbour_out_edge : in_neighbour->out_edges()) {
+              if (in_neighbour_out_edge->src_output() ==
+                  in_neighbour_edge->src_output()) {
+                in_neighbour_out = in_neighbour_out_edge->dst();
+                in_neighbour_out_dst_slot = in_neighbour_out_edge->dst_input();
+                in_neighbour_out_src_slot = in_neighbour_out_edge->src_output();
+                break;
               }
-              if (in_neighbour_out == nullptr) {
-                return errors::Internal(
-                    "Failed while figuring out encapsulate tensor sharing");
-              }
+            }
+            if (in_neighbour_out == nullptr) {
+              return errors::Internal(
+                  "Failed while figuring out encapsulate tensor sharing");
+            }
 
-              // TODO : maybe we do not need id() here, just src_output or
-              // dst_input?
-              if (in_neighbour_out->id() != curr_node_id) {
-                if (is_encapsulate(in_neighbour_out)) {
-                  int other_shared_encapsulates_idx;
-                  TF_RETURN_IF_ERROR(
-                      GetNodeAttr(in_neighbour_out->attrs(), "ngraph_cluster",
-                                  &other_shared_encapsulates_idx));
-                  UniqueTensorId other_tid =
-                      get_string_info(other_shared_encapsulates_idx, false,
-                                      in_neighbour_out_dst_slot);
-                  new_group.insert(other_tid);
-                }
-              } else {
-                if (is_encapsulate(in_neighbour)) {
-                  int src_encapsulate_idx;
-                  TF_RETURN_IF_ERROR(GetNodeAttr(in_neighbour->attrs(),
-                                                 "ngraph_cluster",
-                                                 &src_encapsulate_idx));
-                  UniqueTensorId src_tid = get_string_info(
-                      src_encapsulate_idx, true, in_neighbour_out_src_slot);
-                  new_group.insert(src_tid);
-                }
+            // TODO : maybe we do not need id() here, just src_output or
+            // dst_input?
+            if (in_neighbour_out->id() != curr_node_id) {
+              if (is_encapsulate(in_neighbour_out)) {
+                int other_shared_encapsulates_idx;
+                TF_RETURN_IF_ERROR(GetNodeAttr(in_neighbour_out->attrs(),
+                                               "ngraph_cluster",
+                                               &other_shared_encapsulates_idx));
+                UniqueTensorId other_tid =
+                    get_string_info(other_shared_encapsulates_idx, false,
+                                    in_neighbour_out_dst_slot);
+                new_group.insert(other_tid);
+              }
+            } else {
+              if (is_encapsulate(in_neighbour)) {
+                int src_encapsulate_idx;
+                TF_RETURN_IF_ERROR(GetNodeAttr(in_neighbour->attrs(),
+                                               "ngraph_cluster",
+                                               &src_encapsulate_idx));
+                UniqueTensorId src_tid = get_string_info(
+                    src_encapsulate_idx, true, in_neighbour_out_src_slot);
+                new_group.insert(src_tid);
               }
             }
           }
