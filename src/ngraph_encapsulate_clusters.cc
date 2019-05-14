@@ -509,8 +509,10 @@ Status EncapsulateClusters(
 
   // Pass 8: Find sharable connections
   // Looking for these 2 patterns:
-  // E-->E
+  // E1<--E3-->E2
   // E1<--TF-->E2, where TF node does not feed into a modifying TF node
+  // In second case only the sinks share tensor, in the first case, the source
+  // is also included
   // What if this TF node is a var? ... Shrestha's change takes care of that
 
   // What of: E1-->Tf
@@ -526,11 +528,8 @@ Status EncapsulateClusters(
   // We can't apply assign on normal tensors. Only
   // tensorflow.python.ops.variables.RefVariable
 
-  // So we are looking for: E<--TF-->E or E<--E-->E.
-  // In first case only the sinks share tensor, in the second case, the source
-  // is also included
-
   if (shared_tensors != nullptr) {
+    // Some utility functions
     auto is_tracked = [&shared_tensors](UniqueTensorId key) {
       return std::any_of(shared_tensors->begin(), shared_tensors->end(),
                          [&key](std::set<UniqueTensorId> group) {
@@ -558,6 +557,7 @@ Status EncapsulateClusters(
       return Status::OK();
     };
 
+    // Main loop for this pass starts here
     for (auto node : graph->nodes()) {
       if (is_encapsulate(node)) {
         int curr_encapsulate_idx;
@@ -576,16 +576,8 @@ Status EncapsulateClusters(
             // shared_tensors, then all members of the group are already in
             // On the flip side if one tensor is not in, no other of the group
             // is in yet
-
-            // TODO: Now its NGraphVariable, later it could be other types too
-            // like NGraphAssign etc
-            // Sharing in case of E<-NGV->E is handled separately
             Node* in_neighbour_out = nullptr;
             int in_neighbour_out_dst_slot, in_neighbour_out_src_slot;
-            // This for loop iterates over all edges and populates
-            // in_neighbour_out and in_neighbour_out_slot
-            // TODO maybe we do not need this for loop. the if-else following
-            // this loop probably can be merged. then this loop can be removed
             for (auto in_neighbour_out_edge : in_neighbour->out_edges()) {
               in_neighbour_out_dst_slot = in_neighbour_out_edge->dst_input();
               in_neighbour_out = in_neighbour_out_edge->dst();
@@ -594,15 +586,17 @@ Status EncapsulateClusters(
                     in_neighbour_edge->src_output()) {
                   in_neighbour_out_src_slot =
                       in_neighbour_out_edge->src_output();
+                  // Add the source of the shareable group
                   add_to_group(in_neighbour, true, in_neighbour_out_src_slot,
                                new_group);
                 }
+                // Add the sinks of the shareable group
                 add_to_group(in_neighbour_out, false, in_neighbour_out_dst_slot,
                              new_group);
               }
             }
           }
-          if (new_group.size() > 1) {
+          if (new_group.size() > 1) { // A group of size=1 is trivial. Leave it
             new_group.insert(curr_tid);
             shared_tensors->push_back(new_group);
           }
