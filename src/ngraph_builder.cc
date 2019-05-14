@@ -2194,7 +2194,6 @@ static Status TranslateLogSoftmaxOp(
       op->name(), ng_inp_minus_max, ng_broadcast);
   SaveNgOp(ng_op_map, op->name(), ng_output);
   return Status::OK();
-  return Status::OK();
 }
 
 static Status TranslateMatMulOp(
