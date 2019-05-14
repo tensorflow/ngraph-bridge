@@ -558,11 +558,7 @@ Status EncapsulateClusters(
       return Status::OK();
     };
 
-    // TODO: take care of cases where slot is -1, ie edge->dst_input() returns
-    // -1 (control slot)
     for (auto node : graph->nodes()) {
-      // TODO: id() or name() as unique identifier?
-      auto curr_node_id = node->id();
       if (is_encapsulate(node)) {
         int curr_encapsulate_idx;
         TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "ngraph_cluster",
@@ -592,10 +588,10 @@ Status EncapsulateClusters(
             // this loop probably can be merged. then this loop can be removed
             for (auto in_neighbour_out_edge : in_neighbour->out_edges()) {
               in_neighbour_out_dst_slot = in_neighbour_out_edge->dst_input();
-              if (in_neighbour_out_dst_slot >= 0) {
+              in_neighbour_out = in_neighbour_out_edge->dst();
+              if (in_neighbour_out_dst_slot >= 0) {  // Skip control edge (-1)
                 if (in_neighbour_out_edge->src_output() ==
                     in_neighbour_edge->src_output()) {
-                  in_neighbour_out = in_neighbour_out_edge->dst();
                   in_neighbour_out_src_slot =
                       in_neighbour_out_edge->src_output();
                   add_to_group(in_neighbour, true, in_neighbour_out_src_slot,
