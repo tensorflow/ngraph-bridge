@@ -2168,6 +2168,25 @@ static Status TranslateL2LossOp(
   return Status::OK();
 }
 
+static Status TranslateLogSoftmaxOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_inp;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_inp));
+  // Batch i, class j
+  // logsoftmax[i, j] = logits[i, j] - log(sum(exp(logits[i])))
+  auto ng_exp = ConstructNgNode<ng::op::Exp>(op->name(), ng_inp);
+  auto ng_log_sum = ConstructNgNode<ng::op::Log>(
+      op->name(),
+      ConstructNgNode<ng::op::Sum>(op->name(), ng_exp, ng::AxisSet{1}));
+  auto ng_broadcast = ConstructNgNode<ng::op::Broadcast>(
+      op->name(), ng_log_sum, ng_inp->get_shape(), ng::AxisSet{1});
+  auto ng_output =
+      ConstructNgNode<ng::op::Subtract>(op->name(), ng_inp, ng_broadcast);
+  SaveNgOp(ng_op_map, op->name(), ng_output);
+  return Status::OK();
+}
+
 static Status TranslateMatMulOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -4430,6 +4449,7 @@ const static std::map<
         {"HorovodAllreduce", TranslateAllreduceOp},
         {"Identity", TranslateIdentityOp},
         {"L2Loss", TranslateL2LossOp},
+        {"LogSoftmax", TranslateLogSoftmaxOp},
         {"Less", TranslateBinaryOp<ngraph::op::Less>},
         {"LessEqual", TranslateBinaryOp<ngraph::op::LessEq>},
         {"Log", TranslateUnaryOp<ngraph::op::Log>},
