@@ -1119,7 +1119,7 @@ TEST(NNOps, L2Loss) {
 // Test Op :"LogSoftmax"
 TEST(NNOps, LogSoftmax) {
   std::vector<std::vector<int64>> input_sizes = {
-      {3, 2}, {5, 6}};  // TODO {3,4,5}, {2, 3, 4, 5}
+      {3}, {3, 2}, {5, 6}, {3, 4, 5}, {2, 3, 4, 5}};
 
   vector<int> static_input_indexes = {};
 
