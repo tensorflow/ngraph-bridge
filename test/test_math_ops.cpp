@@ -684,13 +684,12 @@ TEST(MathOps, BatchMatMul3DAdjY) {
 TEST(MathOps, BatchMatMul3DAdjXY) {
   Scope root = Scope::NewRootScope();
 
-  Tensor A(DT_FLOAT, TensorShape({2,4,5}));
-  Tensor B(DT_FLOAT, TensorShape({2,3,4}));
+  Tensor A(DT_FLOAT, TensorShape({2, 4, 5}));
+  Tensor B(DT_FLOAT, TensorShape({2, 3, 4}));
 
   auto attrs_xy = ops::BatchMatMul::Attrs();
   attrs_xy = attrs_xy.AdjX(true);
   attrs_xy = attrs_xy.AdjY(true);
-
 
   AssignInputValues(A, 2.0f);
   AssignInputValues(B, 7.0f);
@@ -772,7 +771,7 @@ TEST(MathOps, BatchMatMul4DAdjY) {
 
   auto attrs_y = ops::BatchMatMul::Attrs();
   attrs_y = attrs_y.AdjY(true);
-  
+
   AssignInputValues(A, 2.0f);
   AssignInputValues(B, 7.0f);
 
@@ -816,7 +815,7 @@ TEST(MathOps, BatchMatMul4DAdjXY) {
                         output_datatypes, sess_run_fetchoutputs);
 
   opexecuter.RunTest();
-} // end of test op BatchMatMul
+}  // end of test op BatchMatMul
 
 // Test op: Cast : float to int
 TEST(MathOps, Cast1D) {
