@@ -32,30 +32,24 @@ import numpy as np
 
 class TestRsqrtGrad(NgraphTest):
 
-    def test_rsqrtgrad_2d(self):
-        y = constant_op.constant(
-            self.generate_random_numbers(6, 1.0, 10.0), shape=[2, 3])
-        dy = constant_op.constant(
-            self.generate_random_numbers(6, 0.0, 100.0), shape=[2, 3])
+    @pytest.mark.parametrize(("shape",), (
+        ([2, 3],),
+        ([100],),
+        ([3, 2],),
+        ([3, 2, 3],),
+        ([4, 2, 1, 3],),
+    ))
+    def test_rsqrtgrad(self, shape):
+        a = tf.placeholder(tf.float32, shape)
+        b = tf.placeholder(tf.float32, shape)
+
+        y = np.random.rand(*shape)
+        dy = np.random.rand(*shape)
 
         out = rsqrt_grad(y, dy)
 
         def run_test(sess):
-            return sess.run(out)
-
-        assert np.isclose(
-            self.with_ngraph(run_test), self.without_ngraph(run_test)).all()
-
-    def test_rsqrtgrad_1d(self):
-        y = constant_op.constant(
-            self.generate_random_numbers(100, 123.0, 345.0), shape=[100])
-        dy = constant_op.constant(
-            self.generate_random_numbers(100, 567.0, 789.0), shape=[100])
-
-        out = rsqrt_grad(y, dy)
-
-        def run_test(sess):
-            return sess.run(out)
+            return sess.run(out, feed_dict={a: y, b: dy})
 
         assert np.isclose(
             self.with_ngraph(run_test), self.without_ngraph(run_test)).all()
