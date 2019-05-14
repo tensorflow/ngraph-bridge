@@ -31,7 +31,7 @@ from tensorflow.python.ops.gen_image_ops import combined_non_max_suppression
 class TestFloorOperations(NgraphTest):
 
     # TODO disable this test
-    #@pytest.mark.skip(reason="Backend specific test")
+    @pytest.mark.skip(reason="Backend specific test")
     def test_cmns(self):
         input_boxes = np.array(
             [[[0, 0, 1, 1], [0, 0, 4, 5]], [[0, 0.1, 1, 1.1], [0, 0.1, 2, 1.1]],
