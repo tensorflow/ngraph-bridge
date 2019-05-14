@@ -2173,18 +2173,27 @@ static Status TranslateLogSoftmaxOp(
     Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_inp;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_inp));
-  int rank = (ng_inp->get_shape()).size();
+  auto inp_shape = ng_inp->get_shape();
+  int rank = inp_shape.size();
+  auto ng_axis = ng::AxisSet{rank - 1};
   // Batch i, class j
   // logsoftmax[i, j] = logits[i, j] - log(sum(exp(logits[i])))
-  auto ng_exp = ConstructNgNode<ng::op::Exp>(op->name(), ng_inp);
+  // Actually implementing: logsoftmax[i, j] = logits[i, j] - max(logits[i]) -
+  // log(sum(exp(logits[i] - max(logits[i]))))
+  auto ng_max = ConstructNgNode<ng::op::Broadcast>(
+      op->name(), ConstructNgNode<ng::op::Max>(op->name(), ng_inp, ng_axis),
+      inp_shape, ng_axis);
+  auto ng_inp_minus_max =
+      ConstructNgNode<ng::op::Subtract>(op->name(), ng_inp, ng_max);
+  auto ng_exp = ConstructNgNode<ng::op::Exp>(op->name(), ng_inp_minus_max);
   auto ng_log_sum = ConstructNgNode<ng::op::Log>(
-      op->name(),
-      ConstructNgNode<ng::op::Sum>(op->name(), ng_exp, ng::AxisSet{rank - 1}));
+      op->name(), ConstructNgNode<ng::op::Sum>(op->name(), ng_exp, ng_axis));
   auto ng_broadcast = ConstructNgNode<ng::op::Broadcast>(
-      op->name(), ng_log_sum, ng_inp->get_shape(), ng::AxisSet{rank - 1});
-  auto ng_output =
-      ConstructNgNode<ng::op::Subtract>(op->name(), ng_inp, ng_broadcast);
+      op->name(), ng_log_sum, ng_inp->get_shape(), ng_axis);
+  auto ng_output = ConstructNgNode<ng::op::Subtract>(
+      op->name(), ng_inp_minus_max, ng_broadcast);
   SaveNgOp(ng_op_map, op->name(), ng_output);
+  return Status::OK();
   return Status::OK();
 }
 
