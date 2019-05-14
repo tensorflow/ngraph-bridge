@@ -29,6 +29,11 @@
 #include "ngraph_utils.h"
 #include "tf_graph_writer.h"
 
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+#include "ngraph_enter_in_catalog.h"
+#include "ngraph_replace_variable_modifiers.h"
+#endif
+
 #include <iomanip>
 
 #if defined NGRAPH_DISTRIBUTED
@@ -209,6 +214,15 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       return Status::OK();
     }
 
+    #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    // 0. Replace optimizers then, if requested, dump the graphs.
+    TF_RETURN_IF_ERROR(ReplaceModifiers(options.graph->get(), idx));
+    if (DumpMarkedGraphs()) {
+      DumpGraphs(options, idx, "replaced_modifier",
+                 "Graph with Modifiers replaced");
+    }
+    #endif
+
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
     TF_RETURN_IF_ERROR(
@@ -247,6 +261,15 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       DumpGraphs(options, idx, "tracked",
                  "Graph with Variables Rewritten for Tracking");
     }
+
+    #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    // Enter in catalog then.		
+    TF_RETURN_IF_ERROR(EnterInCatalog(options.graph->get(), idx));		
+    if (DumpCatalogedGraphs()) {		
+      DumpGraphs(options, idx, "cataloged",		
+                 "Graph with Variables Inputs Entered in Catalog");		
+    }
+    #endif
 
     return Status::OK();
   }
