@@ -23,7 +23,6 @@ from __future__ import print_function
 import pytest
 
 import tensorflow as tf
-from tensorflow.python.framework import constant_op
 from tensorflow.python.ops.gen_math_ops import rsqrt_grad
 
 from common import NgraphTest
@@ -46,7 +45,7 @@ class TestRsqrtGrad(NgraphTest):
         y = np.random.rand(*shape)
         dy = np.random.rand(*shape)
 
-        out = rsqrt_grad(y, dy)
+        out = rsqrt_grad(a, b)
 
         def run_test(sess):
             return sess.run(out, feed_dict={a: y, b: dy})
