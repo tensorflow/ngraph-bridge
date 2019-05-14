@@ -596,7 +596,7 @@ Status EncapsulateClusters(
               }
             }
           }
-          if (new_group.size() > 1) { // A group of size=1 is trivial. Leave it
+          if (new_group.size() > 1) {  // A group of size=1 is trivial. Leave it
             new_group.insert(curr_tid);
             shared_tensors->push_back(new_group);
           }
