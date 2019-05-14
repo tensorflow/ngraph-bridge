@@ -134,25 +134,13 @@ Select the help option of `build_ngtf.py` script to learn more about various bui
 
     Note: The version of the ngraph-tensorflow-bridge is not going to be exactly the same as when you build from source. This is due to delay in the source release and publishing the corresponding Python wheel. 
 
-2. You can use TensorFlow models by adding the following lines to your existing TensorFlow model scripts and running them the usual way:
+2. You can try out the TensorFlow models by adding the following lines to your existing TensorFlow model scripts and running them the usual way:
 
         import ngraph_bridge
-        
-        config = tf.ConfigProto(inter_op_parallelism_threads=2)
-        rewrite_options = rewriter_config_pb2.RewriterConfig(
-            meta_optimizer_iterations=rewriter_config_pb2.RewriterConfig.ONE,
-            custom_optimizers=[
-                rewriter_config_pb2.RewriterConfig.CustomGraphOptimizer(
-                    name="ngraph-optimizer")
-            ])
-        config.MergeFrom(
-            tf.ConfigProto(
-                graph_options=tf.GraphOptions(rewrite_options=rewrite_options)))
-
-Next provide this modfied `config` to the tf.Session() during execution.
-
-        with tf.Session(config=config) as sess:
-            sess.run(...)
+        ...
+        config = tf.ConfigProto() # or your existing config
+        config_ngraph_enabled = ngraph_bridge.update_config(config)
+        sess = tf.Session(config=config_ngraph_enabled) # use the updated config in session creation
 
 Detailed examples on how to use ngraph_bridge are located in the [examples] directory.
 
