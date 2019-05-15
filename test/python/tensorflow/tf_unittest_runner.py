@@ -261,12 +261,12 @@ def run_test(test_list, xml_report, verbosity=0):
             names = loader.loadTestsFromName(test)
             suite.addTest(names)
         with open(xml_report, 'wb') as output:
-            #sys.stdout = open(os.devnull, "w")
-            #sys.stderr = open(os.devnull, "w")
+            sys.stdout = open(os.devnull, "w")
+            sys.stderr = open(os.devnull, "w")
             test_result = xmlrunner.XMLTestRunner(
                 output=output, verbosity=verbosity).run(suite)
-            #sys.stderr = sys.__stderr__
-            #sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+            sys.stdout = sys.__stdout__
             failures.extend(test_result.failures)
             failures.extend(test_result.errors)
             succeeded.extend(test_result.successes)
@@ -274,17 +274,16 @@ def run_test(test_list, xml_report, verbosity=0):
         summary = {"TOTAL": test_list, "PASSED": succeeded, "FAILED": failures}
         return summary
     else:
-        #import pdb; pdb.set_trace()
         for test in test_list:
             start = time.time()
-            #sys.stdout = open(os.devnull, "w")
-            #sys.stderr = open(os.devnull, "w")
+            sys.stdout = open(os.devnull, "w")
+            sys.stderr = open(os.devnull, "w")
 
             test_result = unittest.TextTestRunner(verbosity=verbosity).run(
                 loader.loadTestsFromName(test))
 
-            #sys.stderr = sys.__stderr__
-            #sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+            sys.stdout = sys.__stdout__
             elapsed = time.time() - start
             elapsed = str(timedelta(seconds=elapsed))
 
