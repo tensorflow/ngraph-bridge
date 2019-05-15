@@ -214,14 +214,14 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       return Status::OK();
     }
 
-    #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     // 0. Replace optimizers then, if requested, dump the graphs.
     TF_RETURN_IF_ERROR(ReplaceModifiers(options.graph->get(), idx));
     if (DumpMarkedGraphs()) {
       DumpGraphs(options, idx, "replaced_modifier",
                  "Graph with Modifiers replaced");
     }
-    #endif
+#endif
 
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
@@ -262,14 +262,14 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
                  "Graph with Variables Rewritten for Tracking");
     }
 
-    #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    // Enter in catalog then.		
-    TF_RETURN_IF_ERROR(EnterInCatalog(options.graph->get(), idx));		
-    if (DumpCatalogedGraphs()) {		
-      DumpGraphs(options, idx, "cataloged",		
-                 "Graph with Variables Inputs Entered in Catalog");		
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    // Enter in catalog then.
+    TF_RETURN_IF_ERROR(EnterInCatalog(options.graph->get(), idx));
+    if (DumpCatalogedGraphs()) {
+      DumpGraphs(options, idx, "cataloged",
+                 "Graph with Variables Inputs Entered in Catalog");
     }
-    #endif
+#endif
 
     return Status::OK();
   }
