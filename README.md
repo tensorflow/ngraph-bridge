@@ -34,7 +34,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 
 2. Install TensorFlow v1.14.0:
 
-        pip install -U tensorflow==1.14.0
+        pip install -U tf-nightly==1.14.1.dev20190515
 
 3. Install nGraph-TensorFlow bridge:
 
