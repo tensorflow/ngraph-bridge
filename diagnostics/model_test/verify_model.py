@@ -77,7 +77,8 @@ def calculate_output(param_dict, select_device, input_example):
 
     output_tensor_name = param_dict["output_tensor_name"]
 
-    config = tf.ConfigProto(inter_op_parallelism_threads=1, allow_soft_placement=True)
+    config = tf.ConfigProto(
+        inter_op_parallelism_threads=1, allow_soft_placement=True)
     config_ngraph_enabled = ngraph_bridge.update_config(config)
 
     sess = tf.Session(config=config_ngraph_enabled)

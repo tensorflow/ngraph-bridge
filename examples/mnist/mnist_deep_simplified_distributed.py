@@ -208,7 +208,8 @@ def train_mnist_cnn(FLAGS):
         tf.train.StopAtStepHook(train_loops)
     ]
 
-    with tf.train.MonitoredTrainingSession(hooks=hooks, config=config_ngraph_enabled) as sess:
+    with tf.train.MonitoredTrainingSession(
+            hooks=hooks, config=config_ngraph_enabled) as sess:
 
         step = 0
         start = time.time()
