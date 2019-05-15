@@ -793,6 +793,7 @@ static Status TranslateBatchMatMulOp(
       ng_lhs_axes.push_back(n_dims - 1);
       ng_lhs_axes.push_back(n_dims - 2);
       ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng_lhs_axes);
+      ng_lhs_shape = ng_lhs->get_shape();
     } else {
       ng_lhs_axes.push_back(n_dims - 2);
       ng_lhs_axes.push_back(n_dims - 1);
@@ -802,6 +803,7 @@ static Status TranslateBatchMatMulOp(
       ng_rhs_axes.push_back(n_dims - 1);
       ng_rhs_axes.push_back(n_dims - 2);
       ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
+      ng_rhs_shape = ng_rhs->get_shape();
     } else {
       ng_rhs_axes.push_back(n_dims - 2);
       ng_rhs_axes.push_back(n_dims - 1);
