@@ -44,8 +44,8 @@
 #endif
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "enable_variable_ops/ngraph_catalog.h"
-#include "enable_variable_ops/ngraph_var.h"
+#include "ngraph_catalog.h"
+#include "ngraph_var.h"
 #endif
 
 using namespace std;
