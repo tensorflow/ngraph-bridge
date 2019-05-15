@@ -785,21 +785,56 @@ static Status TranslateBatchMatMulOp(
   auto ng_lhs_axes = out_axes;
   auto ng_rhs_axes = out_axes;
 
-  // Get the backend name, if the backend is CPU and n_dims = 3
+  // Get the backend name, if the backend is CPU and n_dims >= 3
   // then use the BatchMatMul op supported by nGraph
-  if (n_dims == 3 && backend_name == "CPU") {
+  if (n_dims >= 3 && backend_name == "CPU") {
+    // Transpose X if AdjX = true
     if (tf_adj_x) {
       ng_lhs_axes.push_back(n_dims - 1);
       ng_lhs_axes.push_back(n_dims - 2);
       ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng_lhs_axes);
+    } else {
+      ng_lhs_axes.push_back(n_dims - 2);
+      ng_lhs_axes.push_back(n_dims - 1);
     }
+    // Transpose Y if AdjY = true
     if (tf_adj_y) {
       ng_rhs_axes.push_back(n_dims - 1);
       ng_rhs_axes.push_back(n_dims - 2);
       ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
+    } else {
+      ng_rhs_axes.push_back(n_dims - 2);
+      ng_rhs_axes.push_back(n_dims - 1);
     }
-    SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ngraph::op::BatchMatMul>(
-                                        op->name(), ng_lhs, ng_rhs));
+
+    if (n_dims == 3) {
+      SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ngraph::op::BatchMatMul>(
+                                          op->name(), ng_lhs, ng_rhs));
+    } else {
+      // Find the compound size for dim1 so as to reshape to 3D
+      size_t compound_size = 1;
+      for (int i = 0; i < out_axes.size(); i++) {
+        compound_size *= ng_lhs_shape[i];
+      }
+
+      ng::Shape tmp_lhs_shape = {compound_size, ng_lhs_shape[n_dims - 2],
+                              ng_lhs_shape[n_dims - 1]};
+      ng::Shape tmp_rhs_shape = {compound_size, ng_rhs_shape[n_dims - 2],
+                              ng_rhs_shape[n_dims - 1]};
+
+      auto output_shape = ng_lhs_shape;
+      output_shape[n_dims - 1] = ng_rhs_shape[n_dims - 1];
+      ng::AxisVector tmp_axes = {0,1,2};
+
+      std::shared_ptr<ng::Node> lhs_reshape = ConstructNgNode<ngraph::op::Reshape>(
+          op->name(), ng_lhs, ng_lhs_axes, tmp_lhs_shape);
+      std::shared_ptr<ng::Node> rhs_reshape = ConstructNgNode<ngraph::op::Reshape>(
+          op->name(), ng_rhs, ng_rhs_axes, tmp_rhs_shape);
+      std::shared_ptr<ng::Node> batchmatmul = ConstructNgNode<ngraph::op::BatchMatMul>(
+                                          op->name(), lhs_reshape, rhs_reshape);
+      SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ngraph::op::Reshape>(
+          op->name(), batchmatmul, tmp_axes, output_shape));
+    }
   } else {
     if (tf_adj_x) {
       ng_lhs_axes.push_back(n_dims - 1);
@@ -833,6 +868,7 @@ static Status TranslateBatchMatMulOp(
       output_shape[n_dims - 1] = ng_rhs_shape[1];
       auto dot_output =
           ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs);
+
       size_t compound_size = 1;
       for (int i = 0; i < out_axes.size(); i++) {
         compound_size *= output_shape[i];
