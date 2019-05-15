@@ -820,22 +820,26 @@ static Status TranslateBatchMatMulOp(
       }
 
       ng::Shape tmp_lhs_shape = {compound_size, ng_lhs_shape[n_dims - 2],
-                              ng_lhs_shape[n_dims - 1]};
+                                 ng_lhs_shape[n_dims - 1]};
       ng::Shape tmp_rhs_shape = {compound_size, ng_rhs_shape[n_dims - 2],
-                              ng_rhs_shape[n_dims - 1]};
+                                 ng_rhs_shape[n_dims - 1]};
 
       auto output_shape = ng_lhs_shape;
       output_shape[n_dims - 1] = ng_rhs_shape[n_dims - 1];
-      ng::AxisVector tmp_axes = {0,1,2};
+      ng::AxisVector tmp_axes = {0, 1, 2};
 
-      std::shared_ptr<ng::Node> lhs_reshape = ConstructNgNode<ngraph::op::Reshape>(
-          op->name(), ng_lhs, ng_lhs_axes, tmp_lhs_shape);
-      std::shared_ptr<ng::Node> rhs_reshape = ConstructNgNode<ngraph::op::Reshape>(
-          op->name(), ng_rhs, ng_rhs_axes, tmp_rhs_shape);
-      std::shared_ptr<ng::Node> batchmatmul = ConstructNgNode<ngraph::op::BatchMatMul>(
-                                          op->name(), lhs_reshape, rhs_reshape);
-      SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ngraph::op::Reshape>(
-          op->name(), batchmatmul, tmp_axes, output_shape));
+      std::shared_ptr<ng::Node> lhs_reshape =
+          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, ng_lhs_axes,
+                                               tmp_lhs_shape);
+      std::shared_ptr<ng::Node> rhs_reshape =
+          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, ng_rhs_axes,
+                                               tmp_rhs_shape);
+      std::shared_ptr<ng::Node> batchmatmul =
+          ConstructNgNode<ngraph::op::BatchMatMul>(op->name(), lhs_reshape,
+                                                   rhs_reshape);
+      SaveNgOp(ng_op_map, op->name(),
+               ConstructNgNode<ngraph::op::Reshape>(op->name(), batchmatmul,
+                                                    tmp_axes, output_shape));
     }
   } else {
     if (tf_adj_x) {
