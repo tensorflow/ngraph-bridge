@@ -368,6 +368,11 @@ bool DumpTrackedGraphs() {
          std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
 }
 
+bool DumpCatalogedGraphs() {
+  return DumpAllGraphs() ||
+         std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
+}
+
 void AllreduceOpControlOrder(
     const std::shared_ptr<ngraph::Function>& ng_function) {
   // Get the serialized ops and stored the allreduce ops to a vector and
