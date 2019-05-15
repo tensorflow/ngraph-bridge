@@ -176,7 +176,8 @@ def main():
     if arguments.use_prebuilt_tensorflow:
         print("Using existing TensorFlow")
         #command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
-        command_executor(["pip", "install", "-U", "tf-nightly"])
+        # Until an official release of TensorFlow is made, we will use a tagged nightly build
+        command_executor(["pip", "install", "-U", "--no-cache-dir", "tf-nightly==1.14.1.dev20190515"])
 
         import tensorflow as tf
         print('Version information:')
