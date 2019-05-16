@@ -33,7 +33,7 @@ import tensorflow as tf
 base_dir = '.'
 
 from tools.build_utils import command_executor
-from tools.convert import convert, get_gdef
+from tools.tf2ngraph import convert, get_gdef
 
 from common import NgraphTest
 
@@ -74,7 +74,7 @@ class TestConversionScript(NgraphTest):
         print('_' * 50)
         if commandline:
             # In CI this test is expected to be run out of artifacts/test/python
-            command_executor('python ../../tools/convert.py --input' +
+            command_executor('python ../../tools/tf2ngraph.py --input' +
                              inp_format + ' ' + inp_loc +
                              ' --outnodes out_node --output' + out_format +
                              ' ' + out_loc)
