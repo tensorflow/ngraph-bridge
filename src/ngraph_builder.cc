@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2018 Intel Corporation
+ * Copyright 2017-2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2039,8 +2039,8 @@ static Status TranslateFusedConv2DOp(
                          ng_padding_above);
 
     ng_conv = ConstructNgNode<ng::op::Convolution>(
-        op->name(), ng_input, ng_filter, ng_strides, ng_dilations,
-        ng_padding_below, ng_padding_above);
+        op->name() + "_FusedConv2D_Conv", ng_input, ng_filter, ng_strides,
+        ng_dilations, ng_padding_below, ng_padding_above);
 
     return Status::OK();
   };
@@ -2082,13 +2082,15 @@ static Status TranslateFusedConv2DOp(
     }
 
     auto ng_bias_broadcasted = ConstructNgNode<ng::op::Broadcast>(
-        op->name(), ng_bias, ng_conv_shape, ng_broadcast_axes);
-    auto ng_add =
-        ConstructNgNode<ng::op::Add>(op->name(), ng_conv, ng_bias_broadcasted);
+        op->name() + "_FusedConv2D_BiasAdd", ng_bias, ng_conv_shape,
+        ng_broadcast_axes);
+    auto ng_add = ConstructNgNode<ng::op::Add>(
+        op->name() + "_FusedConv2D_BiasAdd", ng_conv, ng_bias_broadcasted);
 
     if (VecStrCmp(fused_ops, {"BiasAdd", "Relu"})) {
       SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ng::op::Relu>(op->name(), ng_add));
+               ConstructNgNode<ng::op::Relu>(op->name() + "_FusedConv2D_Relu",
+                                             ng_add));
     } else {
       SaveNgOp(ng_op_map, op->name(), ng_add);
     }
@@ -2111,14 +2113,15 @@ static Status TranslateFusedConv2DOp(
 
     std::shared_ptr<ng::Node> ng_batch_norm =
         ConstructNgNode<ng::op::BatchNormInference>(
-            op->name(), tf_epsilon, ng_scale, ng_offset, ng_conv, ng_mean,
-            ng_variance);
+            op->name() + "_FusedConv2D_BatchNorm", tf_epsilon, ng_scale,
+            ng_offset, ng_conv, ng_mean, ng_variance);
 
     BatchToTensorflow(is_nhwc, ng_batch_norm);
 
     if (VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu"})) {
       SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ng::op::Relu>(op->name(), ng_batch_norm));
+               ConstructNgNode<ng::op::Relu>(
+                   op->name() + "_FusedConv2D_BatchNormRelu", ng_batch_norm));
     } else {
       SaveNgOp(ng_op_map, op->name(), ng_batch_norm);
     }
@@ -3236,6 +3239,37 @@ static Status TranslateRsqrtOp(
         // Raise each element of the input to the power -0.5.
         return ConstructNgNode<ng::op::Power>(op->name(), n, ng_exponent);
       });
+}
+
+static Status TranslateRsqrtGradOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input;
+  shared_ptr<ng::Node> ng_delta;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_delta));
+
+  //`grad = dy * -0.5 * y^3`, where `y = rsqrt(x)`, and `dy`
+  // Create a constant tensor populated with the value 3.
+  auto et = ng_input->get_element_type();
+  auto shape = ng_input->get_shape();
+  std::vector<std::string> constant_values(ng::shape_size(shape), "3");
+  auto ng_exponent =
+      ConstructNgNode<ng::op::Constant>(op->name(), et, shape, constant_values);
+
+  // Raise each element of the input to the power 3.
+  auto ng_pow =
+      ConstructNgNode<ng::op::Power>(op->name(), ng_input, ng_exponent);
+
+  // Create a constant tensor populated with the value -1/2.
+  std::vector<std::string> constant_diff(ng::shape_size(shape), "-0.5");
+  auto ng_diff =
+      ConstructNgNode<ng::op::Constant>(op->name(), et, shape, constant_diff);
+  auto ng_result = ConstructNgNode<ng::op::Multiply>(
+      op->name(),
+      (ConstructNgNode<ng::op::Multiply>(op->name(), ng_pow, ng_delta)),
+      ng_diff);
+  SaveNgOp(ng_op_map, op->name(), ng_result);
+  return Status::OK();
 }
 
 static Status TranslateShapeOp(
@@ -4478,6 +4512,7 @@ const static std::map<
         {"ReluGrad", TranslateReluGradOp},
         {"Reshape", TranslateReshapeOp},
         {"Rsqrt", TranslateRsqrtOp},
+        {"RsqrtGrad", TranslateRsqrtGradOp},
         {"Select", TranslateSelectOp},
         {"Shape", TranslateShapeOp},
         {"Sigmoid", TranslateSigmoidOp},
@@ -4544,9 +4579,8 @@ Status Builder::TranslateGraph(
     } else {
       tf_ops.push_back(n);
 #if defined(NGRAPH_DISTRIBUTED)
-      ngraph::Distributed dist;
       int rank_id;
-      rank_id = dist.get_rank();
+      rank_id = ng::get_distributed_interface()->get_rank();
       if (n->type_string() == "HorovodAllreduce") {
         NGRAPH_VLOG(1) << "[NGRAPH_TF RANK: " << rank_id << "]: " << n->name();
       }
