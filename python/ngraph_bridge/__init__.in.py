@@ -36,7 +36,6 @@ from tensorflow.python.framework import ops
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import load_library
 
-
 import ctypes
 
 __all__ = [
@@ -97,7 +96,6 @@ if (TF_INSTALLED_VER[0] == TF_NEEDED_VER[0]) and \
     full_lib_path = os.path.join(libpath, 'libngraph_bridge.' + ext)
     _ = load_library.load_op_library(full_lib_path)
     ngraph_bridge_lib = ctypes.cdll.LoadLibrary(full_lib_path)
-
 else:
     raise ValueError(
         "Error: Installed TensorFlow version {0}\nnGraph bridge built with: {1}"
@@ -109,6 +107,7 @@ def requested():
         "_ngraph_requested":
         attr_value_pb2.AttrValue(b=True)
     })
+
 
 ngraph_bridge_lib.ngraph_is_enabled.restype = ctypes.c_bool
 ngraph_bridge_lib.ngraph_list_backends.restype = ctypes.c_bool
@@ -139,7 +138,6 @@ def enable():
     ngraph_bridge_lib.ngraph_enable()
 
 
-
 def disable():
     ngraph_bridge_lib.ngraph_disable()
 
@@ -155,7 +153,7 @@ def backends_len():
 def list_backends():
     len_backends = backends_len()
     result = (ctypes.c_char_p * len_backends)()
-    if ngraph_bridge_lib.ngraph_list_backends(result, len_backends):
+    if not ngraph_bridge_lib.ngraph_list_backends(result, len_backends):
         raise Exception("Expected " + str(len_backends) +
                         " backends, but got some  other number of backends")
     list_result = list(result)
@@ -167,7 +165,7 @@ def list_backends():
 
 
 def set_backend(backend):
-    if ngraph_bridge_lib.ngraph_set_backend(backend.encode("utf-8")):
+    if not ngraph_bridge_lib.ngraph_set_backend(backend.encode("utf-8")):
         raise Exception("Backend " + backend + " unavailable.")
 
 
@@ -178,7 +176,7 @@ def is_supported_backend(backend):
 
 def get_currently_set_backend_name():
     result = (ctypes.c_char_p * 1)()
-    if ngraph_bridge_lib.ngraph_get_currently_set_backend_name(result):
+    if not ngraph_bridge_lib.ngraph_get_currently_set_backend_name(result):
         raise Exception("Cannot get currently set backend")
     list_result = list(result)
     return list_result[0].decode("utf-8")
@@ -223,4 +221,11 @@ def set_disabled_ops(unsupported_ops):
 def get_disabled_ops():
     return ngraph_bridge_lib.ngraph_get_disabled_ops()
 
-__version__ = "HELLO"
+__version__ = \
+  "nGraph bridge version: " + str(ngraph_bridge_lib.ngraph_tf_version()) + "\n" + \
+  "nGraph version used for this build: " + str(ngraph_bridge_lib.ngraph_lib_version()) + "\n" + \
+  "TensorFlow version used for this build: " + TF_GIT_VERSION_BUILT_WITH + "\n" \
+  "CXX11_ABI flag used for this build: " + str(ngraph_bridge_lib.ngraph_tf_cxx11_abi_flag()) + "\n" \
+  "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()) + "\n" \
+  "nGraph bridge built with Variables and Optimizers Enablement: " \
+      + str(ngraph_bridge_lib.ngraph_tf_are_variables_enabled())
