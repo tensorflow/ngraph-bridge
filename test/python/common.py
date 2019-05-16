@@ -35,7 +35,7 @@ LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
 class NgraphTest(object):
 
     def get_tensor(self, graph, tname, loading_from_protobuf):
-        return graph.get_tensor_by_name(("", "import/")[loading_from_protobuf] + 
+        return graph.get_tensor_by_name(("", "import/")[loading_from_protobuf] +
                                         tname)
 
     def import_pbtxt(self, pb_filename):
