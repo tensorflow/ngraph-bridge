@@ -119,10 +119,10 @@ with nGraph backends. Please note that you can also install the TensorFlow and n
 
    This will produce something like this:
 
-        TensorFlow version:  1.13.1
-        nGraph bridge version: b'0.12.0'
-        nGraph version used for this build: b'0.18.0+c5d52f1'
-        TensorFlow version used for this build: v1.13.1-0-g6612da8951
+        TensorFlow version:  <1.13.1>
+        nGraph bridge version: <b'0.14.0-rc0'>
+        nGraph version used for this build: <b'0.18.0+c5d52f1'>
+        TensorFlow version used for this build: <v1.13.1-0-g6612da8951>
         CXX11_ABI flag used for this build: 0
         nGraph bridge built with Grappler: False
         nGraph bridge built with Variables and Optimizers Enablement: False
