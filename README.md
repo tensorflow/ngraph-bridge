@@ -125,7 +125,7 @@ Select the help option of `build_ngtf.py` script to learn more about various bui
    This will produce something like this:
 
         TensorFlow version:  1.14.0
-        nGraph bridge version: b'0.13.0'
+        nGraph bridge version: b'0.13.1'
         nGraph version used for this build: b'0.18.1<SPECIFIC_GIT_SHA1>'
         TensorFlow version used for this build: v1.14.0<SPECIFIC_GIT_SHA1>
         CXX11_ABI flag used for this build: 0
