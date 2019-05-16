@@ -575,7 +575,7 @@ TEST(MathOps, BatchMatMul2DAdjY) {
 TEST(MathOps, BatchMatMul2DAdjXY) {
   Scope root = Scope::NewRootScope();
 
-  Tensor A(DT_FLOAT, TensorShape({2, 3}));
+  Tensor A(DT_FLOAT, TensorShape({2, 4}));
   Tensor B(DT_FLOAT, TensorShape({3, 2}));
 
   auto attrs_xy = ops::BatchMatMul::Attrs();
