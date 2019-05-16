@@ -94,6 +94,7 @@ void RunSimpleNetworkExample() {
 }
 
 void RunInputDataPipelineExample();
+void RunMNISTInputDataPipelineExample();
 
 int main(int argc, char** argv) {
   PrintAvailableBackends();
@@ -104,16 +105,19 @@ int main(int argc, char** argv) {
     backend = argv[1];
   }
 
-  if (SetNGraphBackend(backend) != tensorflow::Status::OK()) {
-    std::cout << "Error: Cannot set the backend: " << backend << std::endl;
-    return -1;
-  }
+  // if (SetNGraphBackend(backend) != tensorflow::Status::OK()) {
+  //   std::cout << "Error: Cannot set the backend: " << backend << std::endl;
+  //   return -1;
+  // }
 
   // Run the MatMul example
   // RunSimpleNetworkExample();
 
   // Run the DataInputPipeline example
   RunInputDataPipelineExample();
+
+  // Run MNIST Example
+  //RunMNISTInputDataPipelineExample();
 
   return 0;
 }

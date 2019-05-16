@@ -45,7 +45,7 @@ void AssignInputValues(tf::Tensor& A, T x) {
   }
 }
 
-void LoadData() {
+void LoadMNISTData() {
   for (int iteration = 0; iteration < 10; iteration++) {
     cout << "Loading data for iteration " << iteration << endl;
 
@@ -66,7 +66,7 @@ void LoadData() {
   }
 }
 
-void ProcessData() {
+void ProcessMNISTData() {
   tf::GraphDef gdef;
   tf::ReadTextProto(tf::Env::Default(), "test_axpy.pbtxt", &gdef);
 
@@ -95,11 +95,11 @@ void ProcessData() {
   }
 }
 
-void RunInputDataPipelineExample() {
-  cout << " Running input data pipeline example C++ " << endl;
+void RunMNISTInputDataPipelineExample() {
+  cout << " Running MNIST input data pipeline example C++ " << endl;
 
-  thread producer(LoadData);
-  thread consumer(ProcessData);
+  thread producer(LoadMNISTData);
+  thread consumer(ProcessMNISTData);
 
   producer.join();
   consumer.join();
