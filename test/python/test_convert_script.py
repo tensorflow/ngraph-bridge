@@ -86,9 +86,9 @@ class TestConversionScript(NgraphTest):
 
         with tf.Graph().as_default() as g:
             tf.import_graph_def(gdef)
-            x = NgraphTest.get_tensor(g, "x:0", loading_from_protobuf)
-            y = NgraphTest.get_tensor(g, "y:0", loading_from_protobuf)
-            out = NgraphTest.get_tensor(g, "out_node:0", loading_from_protobuf)
+            x = self.get_tensor(g, "x:0", loading_from_protobuf)
+            y = self.get_tensor(g, "y:0", loading_from_protobuf)
+            out = self.get_tensor(g, "out_node:0", loading_from_protobuf)
 
             sess_fn = lambda sess: sess.run(
                 [out], feed_dict={i: np.zeros((10,)) for i in [x, y]})

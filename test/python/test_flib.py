@@ -35,12 +35,12 @@ class TestFlibOperations(NgraphTest):
         graph = self.import_pbtxt('flib_graph_1.pbtxt')
         with graph.as_default() as g:
 
-            x = self.get_tensor(g, "Placeholder:0")
-            y = self.get_tensor(g, "Placeholder_1:0")
-            z = self.get_tensor(g, "Placeholder_2:0")
+            x = self.get_tensor(g, "Placeholder:0", True)
+            y = self.get_tensor(g, "Placeholder_1:0", True)
+            z = self.get_tensor(g, "Placeholder_2:0", True)
 
-            a = self.get_tensor(g, "add_1:0")
-            b = self.get_tensor(g, "Sigmoid:0")
+            a = self.get_tensor(g, "add_1:0", True)
+            b = self.get_tensor(g, "Sigmoid:0", True)
 
             sess_fn = lambda sess: sess.run(
                 [a, b], feed_dict={i: np.full((2, 3), 1.0) for i in [x, y, z]})
