@@ -37,11 +37,16 @@ using namespace std;
 namespace tf = tensorflow;
 
 template <typename T>
-void AssignInputValues(tf::Tensor& A, T x) {
+void AssignInputValuesRandom(tf::Tensor& A, T min, T max) {
   auto A_flat = A.flat<T>();
   auto A_flat_data = A_flat.data();
+  srand(static_cast<unsigned>(time(0)));
   for (int i = 0; i < A_flat.size(); i++) {
-    A_flat_data[i] = x;
+    T value =
+        // randomly generate a number between 0 and (max-min) inclusive
+        static_cast<T>(rand()) / static_cast<T>(RAND_MAX / (max - min + 1));
+    value = value + min;  // transform the range to (min, max) inclusive
+    A_flat_data[i] = value;
   }
 }
 
@@ -49,26 +54,24 @@ void LoadMNISTData() {
   for (int iteration = 0; iteration < 10; iteration++) {
     cout << "Loading data for iteration " << iteration << endl;
 
-    vector<string> input_node_names = {"_arg_x_0_0", "_arg_y_0_1"};
+    vector<string> input_node_names = {"_arg_Placeholder_0_0"};
 
-    tf::Tensor x(tf::DT_FLOAT, tf::TensorShape({2, 3}));
-    AssignInputValues<float>(x, 1.0f);
+    tf::Tensor x(tf::DT_FLOAT, tf::TensorShape({16, 28, 28, 1}));
+    AssignInputValuesRandom<float>(x, 0.0f, 255.0f);
 
-    tf::Tensor y(tf::DT_FLOAT, tf::TensorShape({2, 3}));
-    AssignInputValues<float>(y, 2.0f);
-
-    vector<tf::Tensor*> input_tensors = {&x, &y};
+    vector<tf::Tensor*> input_tensors = {&x};
     tf::ngraph_bridge::NGraphInputDataPiepline::LoadInputDataOnDevice(
         input_node_names, input_tensors);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
   }
 }
 
 void ProcessMNISTData() {
   tf::GraphDef gdef;
-  tf::ReadTextProto(tf::Env::Default(), "test_axpy.pbtxt", &gdef);
+  tf::ReadBinaryProto(
+      tf::Env::Default(),
+      "mnist_quantized/mnist_inference_quantized_trained_12212018.pb", &gdef);
 
   // Create Session
   tf::SessionOptions options;
@@ -82,13 +85,11 @@ void ProcessMNISTData() {
     // dummy data
     // These tensors are required for session.run call
     // but will not be actually used
-    tf::Tensor x(tf::DT_FLOAT, tf::TensorShape({2, 3}));
-    AssignInputValues<float>(x, 1.0f);
+    tf::Tensor x(tf::DT_FLOAT, tf::TensorShape({16, 28, 28, 1}));
+    AssignInputValuesRandom<float>(x, 0.0f, 255.0f);
 
-    tf::Tensor y(tf::DT_FLOAT, tf::TensorShape({2, 3}));
-    AssignInputValues<float>(x, 1.0f);
-
-    ng_session->Run({{"x", x}, {"y", y}}, {"mul", "add"}, {}, &ng_outputs);
+    ng_session->Run({{"Placeholder", x}},
+                    {"softmax/quant/QuantizeAndDequantizeV2"}, {}, &ng_outputs);
 
     cout << "executed iteration " << iteration << endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));

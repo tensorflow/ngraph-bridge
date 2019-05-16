@@ -527,6 +527,7 @@ class NGraphEncapsulateOp : public OpKernel {
       // get it from catalog
       bool has_data_input =
           NGraphCatalog::ExistsInInputDataTensorMap(def().input(i));
+
       if (has_data_input) {
         cout << "Input data already in device. For Input Index " << i << endl;
 
@@ -542,7 +543,8 @@ class NGraphEncapsulateOp : public OpKernel {
         ng_inputs.push_back(data_input_tensor);
         continue;
       }
-
+      cout << "Input data not in device. For Input Index " << i
+           << " , name: " << def().input(i) << endl;
       // If the input tensor is not in Catalog
       // Either Create NG Tensor or get it from cache using GetCurrentNgTensor()
       ng::Shape ng_shape(input_shapes[i].dims());

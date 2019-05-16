@@ -114,10 +114,10 @@ int main(int argc, char** argv) {
   // RunSimpleNetworkExample();
 
   // Run the DataInputPipeline example
-  RunInputDataPipelineExample();
+  // RunInputDataPipelineExample();
 
   // Run MNIST Example
-  //RunMNISTInputDataPipelineExample();
+  RunMNISTInputDataPipelineExample();
 
   return 0;
 }

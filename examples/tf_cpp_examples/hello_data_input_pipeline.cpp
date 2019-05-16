@@ -62,7 +62,6 @@ void LoadData() {
         input_node_names, input_tensors);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
   }
 }
 
