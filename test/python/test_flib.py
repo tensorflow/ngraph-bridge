@@ -32,15 +32,15 @@ class TestFlibOperations(NgraphTest):
         import os
         cwd = os.getcwd()
         print(cwd)
-        graph = NgraphTest.import_pbtxt('flib_graph_1.pbtxt')
+        graph = self.import_pbtxt('flib_graph_1.pbtxt')
         with graph.as_default() as g:
 
-            x = NgraphTest.get_tensor(g, "Placeholder:0")
-            y = NgraphTest.get_tensor(g, "Placeholder_1:0")
-            z = NgraphTest.get_tensor(g, "Placeholder_2:0")
+            x = self.get_tensor(g, "Placeholder:0")
+            y = self.get_tensor(g, "Placeholder_1:0")
+            z = self.get_tensor(g, "Placeholder_2:0")
 
-            a = NgraphTest.get_tensor(g, "add_1:0")
-            b = NgraphTest.get_tensor(g, "Sigmoid:0")
+            a = self.get_tensor(g, "add_1:0")
+            b = self.get_tensor(g, "Sigmoid:0")
 
             sess_fn = lambda sess: sess.run(
                 [a, b], feed_dict={i: np.full((2, 3), 1.0) for i in [x, y, z]})
@@ -55,17 +55,17 @@ class TestFlibOperations(NgraphTest):
 
     @pytest.mark.skip(reason="Not passing through grappler")
     def test_flib_2(self):
-        graph = import_pbtxt('flib_graph_2.pbtxt')
+        graph = self.import_pbtxt('flib_graph_2.pbtxt')
 
-        graph = import_pbtxt('flib_graph_1.pbtxt')
+        graph = self.import_pbtxt('flib_graph_1.pbtxt')
         with graph.as_default() as g:
 
-            x = NgraphTest.get_tensor(g, "Variable_2/peek/_2:0", True)
-            y = NgraphTest.get_tensor(g, "Variable_1/peek/_3:0", True)
-            z = NgraphTest.get_tensor(g, "Variable/peek/_4:0", True)
+            x = self.get_tensor(g, "Variable_2/peek/_2:0", True)
+            y = self.get_tensor(g, "Variable_1/peek/_3:0", True)
+            z = self.get_tensor(g, "Variable/peek/_4:0", True)
 
-            a = NgraphTest.get_tensor(g, "add_1:0", True)
-            b = NgraphTest.get_tensor(g, "Sigmoid:0", True)
+            a = self.get_tensor(g, "add_1:0", True)
+            b = self.get_tensor(g, "Sigmoid:0", True)
 
             def sess_fn(sess):
                 #sess.run(tf.global_variables_initializer())
