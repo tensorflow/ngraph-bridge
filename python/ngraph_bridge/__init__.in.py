@@ -201,7 +201,7 @@ def is_grappler_enabled():
 
 def update_config(config):
     #updating session config if grappler is enabled
-    if (ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()):
+    if(ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()):
         rewrite_options = rewriter_config_pb2.RewriterConfig(
             meta_optimizer_iterations=rewriter_config_pb2.RewriterConfig.ONE,
             min_graph_nodes=-1,
