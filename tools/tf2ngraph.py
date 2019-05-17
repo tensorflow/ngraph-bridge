@@ -44,12 +44,10 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
     grappler_meta_graph_def.collection_def["train_op"].CopyFrom(
         output_collection)
 
-    session_config_with_trt = tf.ConfigProto()
-    session_config_with_trt = ngraph_bridge.update_config(
-        session_config_with_trt)
-
+    session_config = tf.ConfigProto()
+    session_config = ngraph_bridge.update_config(session_config)
     output_gdef = tf_optimizer.OptimizeGraph(
-        session_config_with_trt, grappler_meta_graph_def, graph_id=b"tf_graph")
+        session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
 
 
