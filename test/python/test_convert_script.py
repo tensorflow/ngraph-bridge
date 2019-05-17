@@ -65,9 +65,6 @@ class TestConversionScript(NgraphTest):
     ))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline):
-        if out_format == 'savedmodel':
-            # TODO: enable this
-            return
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
