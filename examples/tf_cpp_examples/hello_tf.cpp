@@ -99,11 +99,16 @@ void RunMNISTInputDataPipelineExample();
 int main(int argc, char** argv) {
   PrintAvailableBackends();
 
-  const char* backend = "INTERPRETER";
+  // const char* backend = "INTERPRETER";
 
-  if (argc > 1) {
-    backend = argv[1];
-  }
+  // if (argc > 1) {
+  //   backend = argv[1];
+  // }
+
+  // Select a backend
+  string currently_set_backend_name =
+      tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName();
+  cout <<" *** Running on Backend **** "<< currently_set_backend_name << endl;
 
   // if (SetNGraphBackend(backend) != tensorflow::Status::OK()) {
   //   std::cout << "Error: Cannot set the backend: " << backend << std::endl;
