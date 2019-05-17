@@ -58,13 +58,11 @@ class TestConversionScript(NgraphTest):
         ('pb', 'sample_graph.pb'),
         ('pbtxt', 'sample_graph_nodevice.pbtxt'),
     ))
-    @pytest.mark.parametrize(
-        ('out_format',),
-        (
-            ('pbtxt',),
-            ('pb',),
-            #('savedmodel',),  # TODO enable this
-        ))
+    @pytest.mark.parametrize(('out_format',), (
+        ('pbtxt',),
+        ('pb',),
+        ('savedmodel',),
+    ))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline):
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)

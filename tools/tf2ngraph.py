@@ -138,7 +138,7 @@ def filter_dict(prefix, dictionary):
 def save_gdef_to_savedmodel(gdef, location):
     builder = tf.saved_model.builder.SavedModelBuilder(location)
     with tf.Graph().as_default() as graph:
-        tf.import_graph_def(gdef)
+        tf.import_graph_def(gdef, name="")
         # TODO: If input is pb or pbtxt, node names get an extra "import". strip that before saving
         with tf.Session(graph=graph) as sess:
             builder.add_meta_graph_and_variables(
