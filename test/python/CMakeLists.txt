@@ -53,3 +53,9 @@ execute_process(
         ${CMAKE_CURRENT_BINARY_DIR}/sample_graph
 )
 
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/sample_graph_nodevice.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/sample_graph_nodevice.pbtxt
+)
+
