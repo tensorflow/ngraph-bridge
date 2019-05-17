@@ -66,6 +66,7 @@ class TestConversionScript(NgraphTest):
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
+        (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
         print('_' * 50)
         print(inp_format, inp_loc, out_format, commandline, out_loc)
         print('_' * 50)
@@ -79,6 +80,7 @@ class TestConversionScript(NgraphTest):
             convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
 
         gdef = get_gdef(out_format, out_loc)
+        (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
         loading_from_protobuf = out_format in ['pb', 'pbtxt']
 
         with tf.Graph().as_default() as g:
@@ -92,10 +94,9 @@ class TestConversionScript(NgraphTest):
 
             res1 = self.with_ngraph(sess_fn)
             res2 = self.without_ngraph(sess_fn)
+
             exp = [0.5 * np.ones((10,))]
             # Note both run on Host (because NgraphEncapsulate can only run on host)
             assert np.isclose(res1, res2).all()
             # Comparing with expected value
             assert np.isclose(res1, exp).all()
-
-        (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
