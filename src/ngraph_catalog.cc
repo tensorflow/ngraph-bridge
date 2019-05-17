@@ -48,7 +48,7 @@ bool NGraphCatalog::ExistsInInputDataTensorMap(string key) {
 
 shared_ptr<ng::runtime::Tensor> NGraphCatalog::GetTensorFromInputDataTensorMap(
     string key) {
-  auto input_queue = NGraphCatalog::input_data_tensor_map_[key];
+  auto& input_queue = NGraphCatalog::input_data_tensor_map_[key];
   // TODO: Should wait till the input is fed
   if (input_queue.empty()) {
     return nullptr;

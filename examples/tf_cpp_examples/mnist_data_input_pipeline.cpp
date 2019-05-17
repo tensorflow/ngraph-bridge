@@ -71,7 +71,7 @@ void ProcessMNISTData() {
   tf::GraphDef gdef;
   tf::ReadBinaryProto(
       tf::Env::Default(),
-      "mnist_quantized/mnist_inference_quantized_trained_12212018.pb", &gdef);
+      "mnist_inference_quantized_trained_12212018.pb", &gdef);
 
   // Create Session
   tf::SessionOptions options;
