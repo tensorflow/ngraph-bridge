@@ -170,7 +170,7 @@ def save_model(gdef, format, location):
 
 def attach_device(gdef):
     for n in gdef.node:
-        n.device = "/job:localhost/replica:0/task:0/device:cpu:0"
+        n.device = "/device:CPU:0"
 
 
 allowed_formats = {

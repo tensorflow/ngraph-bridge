@@ -55,7 +55,8 @@ class TestConversionScript(NgraphTest):
     @pytest.mark.parametrize(
         ('inp_format', 'inp_loc'),
         (('pbtxt', 'sample_graph.pbtxt'), ('savedmodel', 'sample_graph'),
-         ('pb', 'sample_graph.pb'), ('pbtxt', 'sample_graph_nodevice.pbtxt')))
+         ('pb', 'sample_graph.pb'),
+         ('pbtxt', 'sample_graph_nodevice.pbtxt'),))
     @pytest.mark.parametrize(('out_format',), (
         ('pbtxt',),
         ('pb',),
@@ -66,18 +67,27 @@ class TestConversionScript(NgraphTest):
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
-        (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
+        try:
+            (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
+        except:
+            pass
         print('_' * 50)
         print(inp_format, inp_loc, out_format, commandline, out_loc)
         print('_' * 50)
-        if commandline:
-            # In CI this test is expected to be run out of artifacts/test/python
-            command_executor('python ../../tools/tf2ngraph.py --input' +
-                             inp_format + ' ' + inp_loc +
-                             ' --outnodes out_node --output' + out_format +
-                             ' ' + out_loc)
-        else:
-            convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
+        conversion_successful = False
+        try:
+            if commandline:
+                # In CI this test is expected to be run out of artifacts/test/python
+                command_executor('python ../../tools/tf2ngraph.py --input' +
+                                inp_format + ' ' + inp_loc +
+                                ' --outnodes out_node --output' + out_format +
+                                ' ' + out_loc)
+            else:
+                convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
+            conversion_successful = True
+        finally:
+            if not conversion_successful:
+                (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
 
         gdef = get_gdef(out_format, out_loc)
         (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
