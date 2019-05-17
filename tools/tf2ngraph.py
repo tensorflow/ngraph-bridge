@@ -195,7 +195,6 @@ def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
    """
     assert inp_format in allowed_formats['input']
     assert out_format in allowed_formats['output']
-    assert ngraph_bridge.is_grappler_enabled()
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
     output_gdef = run_ngraph_grappler_optimizer(input_gdef, outnodes)

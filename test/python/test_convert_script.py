@@ -52,16 +52,19 @@ class TestConversionScript(NgraphTest):
 
     # TODO Certain input combos are commented out (output format = savedmodel)
     @pytest.mark.parametrize(('commandline'), (True, False))
-    @pytest.mark.parametrize(
-        ('inp_format', 'inp_loc'),
-        (('pbtxt', 'sample_graph.pbtxt'), ('savedmodel', 'sample_graph'),
-         ('pb', 'sample_graph.pb'),
-         ('pbtxt', 'sample_graph_nodevice.pbtxt'),))
-    @pytest.mark.parametrize(('out_format',), (
-        ('pbtxt',),
-        ('pb',),
-        ('savedmodel',),
+    @pytest.mark.parametrize(('inp_format', 'inp_loc'), (
+        ('pbtxt', 'sample_graph.pbtxt'),
+        ('savedmodel', 'sample_graph'),
+        ('pb', 'sample_graph.pb'),
+        ('pbtxt', 'sample_graph_nodevice.pbtxt'),
     ))
+    @pytest.mark.parametrize(
+        ('out_format',),
+        (
+            ('pbtxt',),
+            ('pb',),
+            #('savedmodel',),  # TODO enable this
+        ))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline):
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
@@ -79,9 +82,9 @@ class TestConversionScript(NgraphTest):
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
                 command_executor('python ../../tools/tf2ngraph.py --input' +
-                                inp_format + ' ' + inp_loc +
-                                ' --outnodes out_node --output' + out_format +
-                                ' ' + out_loc)
+                                 inp_format + ' ' + inp_loc +
+                                 ' --outnodes out_node --output' + out_format +
+                                 ' ' + out_loc)
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
             conversion_successful = True
