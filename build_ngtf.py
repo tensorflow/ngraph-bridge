@@ -24,7 +24,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.19.0-rc.5"
+    ngraph_version = "v0.19.0"
     tf_version = "cd701ec1c577211fa05e18d91d73b08014c04034"
 
     # Command line parser options
