@@ -52,12 +52,10 @@ class TestConversionScript(NgraphTest):
 
     # TODO Certain input combos are commented out (output format = savedmodel)
     @pytest.mark.parametrize(('commandline'), (True, False))
-    @pytest.mark.parametrize(('inp_format', 'inp_loc'),
-                             (('pbtxt', 'sample_graph.pbtxt'),
-                              ('savedmodel', 'sample_graph'),
-                              ('pb', 'sample_graph.pb'),
-                              ('pbtxt', 'sample_graph_nodevice.pbtxt')
-                              ))
+    @pytest.mark.parametrize(
+        ('inp_format', 'inp_loc'),
+        (('pbtxt', 'sample_graph.pbtxt'), ('savedmodel', 'sample_graph'),
+         ('pb', 'sample_graph.pb'), ('pbtxt', 'sample_graph_nodevice.pbtxt')))
     @pytest.mark.parametrize(('out_format',), (
         ('pbtxt',),
         ('pb',),
