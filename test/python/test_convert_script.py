@@ -42,8 +42,8 @@ class TestConversionScript(NgraphTest):
             format == 'pbtxt', 'pbtxt' == loc.split('.')[-1]) and implies(
                 format == 'savedmodel', 'pbtxt' != loc.split('.')[-1])
 
-    # TODO Certain input combos are commented out (output format = savedmodel)
-    @pytest.mark.parametrize(('commandline'), (True, False))
+    @pytest.mark.parametrize(('commandline'),
+                             (True,))  #TODO: add False for functional api test
     @pytest.mark.parametrize(('inp_format', 'inp_loc'), (
         ('pbtxt', 'sample_graph.pbtxt'),
         ('savedmodel', 'sample_graph'),
