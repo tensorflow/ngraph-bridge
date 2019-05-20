@@ -83,7 +83,11 @@ class TestConversionScript(NgraphTest):
             conversion_successful = True
         finally:
             if not conversion_successful:
-                (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
+                try:
+                    (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
+                except:
+                    pass
+        assert conversion_successful
 
         gdef = get_gdef(out_format, out_loc)
         (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
