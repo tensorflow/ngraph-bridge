@@ -22,15 +22,7 @@ import os
 import numpy as np
 import shutil
 import tensorflow as tf
-
-#TODO fix this
-#import sys
-#base_dir = '/localdisk/sarkars/workspace1/ngraph_bridge_tf/dir_1_apr22_grappler/ngraph-bridge'
-#sys.path.append(base_dir)
-#sys.path.append(base_dir + '/tools')
-
-# Assuming its run from root of ngraph-bridge
-base_dir = '.'
+import ngraph_bridge
 
 from tools.build_utils import command_executor
 from tools.tf2ngraph import convert, get_gdef
@@ -65,6 +57,9 @@ class TestConversionScript(NgraphTest):
     ))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline):
+        # Only run this test when grappler is enabled
+        if not ngraph_bridge.is_grappler_enabled():
+            return
         assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
@@ -96,7 +91,9 @@ class TestConversionScript(NgraphTest):
         with tf.Graph().as_default() as g:
             tf.import_graph_def(gdef, name='')
             # The graph should have exactly one encapsulate
-            assert len([0 for i in g.get_operations()  if i.type=='NGraphEncapsulate']) == 1
+            assert len([
+                0 for i in g.get_operations() if i.type == 'NGraphEncapsulate'
+            ]) == 1
             x = self.get_tensor(g, "x:0", False)
             y = self.get_tensor(g, "y:0", False)
             out = self.get_tensor(g, "out_node:0", False)
