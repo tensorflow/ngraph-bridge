@@ -95,6 +95,8 @@ class TestConversionScript(NgraphTest):
 
         with tf.Graph().as_default() as g:
             tf.import_graph_def(gdef, name='')
+            # The graph should have exactly one encapsulate
+            assert len([0 for i in g.get_operations()  if i.type=='NGraphEncapsulate']) == 1
             x = self.get_tensor(g, "x:0", False)
             y = self.get_tensor(g, "y:0", False)
             out = self.get_tensor(g, "out_node:0", False)
