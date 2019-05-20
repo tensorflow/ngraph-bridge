@@ -92,13 +92,12 @@ class TestConversionScript(NgraphTest):
 
         gdef = get_gdef(out_format, out_loc)
         (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
-        loading_from_protobuf = out_format in ['pb', 'pbtxt']
 
         with tf.Graph().as_default() as g:
-            tf.import_graph_def(gdef)
-            x = self.get_tensor(g, "x:0", loading_from_protobuf)
-            y = self.get_tensor(g, "y:0", loading_from_protobuf)
-            out = self.get_tensor(g, "out_node:0", loading_from_protobuf)
+            tf.import_graph_def(gdef, name='')
+            x = self.get_tensor(g, "x:0", False)
+            y = self.get_tensor(g, "y:0", False)
+            out = self.get_tensor(g, "out_node:0", False)
 
             sess_fn = lambda sess: sess.run(
                 [out], feed_dict={i: np.zeros((10,)) for i in [x, y]})
