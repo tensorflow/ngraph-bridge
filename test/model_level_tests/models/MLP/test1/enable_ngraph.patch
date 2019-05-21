@@ -1,8 +1,8 @@
 diff --git a/examples/mnist_mlp.py b/examples/mnist_mlp.py
-index cba180ff..575ab0f9 100644
+index cba180ff..19dded39 100644
 --- a/examples/mnist_mlp.py
 +++ b/examples/mnist_mlp.py
-@@ -12,10 +12,11 @@ from keras.datasets import mnist
+@@ -12,16 +12,22 @@ from keras.datasets import mnist
  from keras.models import Sequential
  from keras.layers import Dense, Dropout
  from keras.optimizers import RMSprop
@@ -15,6 +15,9 @@ index cba180ff..575ab0f9 100644
  
  # the data, split between train and test sets
  (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+ x_train = x_train.reshape(60000, 784)
+ x_test = x_test.reshape(10000, 784)
 +max_samples = 1024
 +x_train = x_train[:max_samples, :]
 +x_test = x_test[:max_samples, :]

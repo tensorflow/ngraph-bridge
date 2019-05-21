@@ -62,13 +62,12 @@ def execute_test(test_folder):
         patch_file = patch_in_test_folder
     else:
         patch_file = None
-    #pdb.set_trace()
+    assert patch_file is not None
 
     os.chdir(downloaded_repo)
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
-    os.chdir(downloaded_repo)
     command_executor(test_folder + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1])
     command_executor('git reset --hard') # remove applied patch (if any)
 
