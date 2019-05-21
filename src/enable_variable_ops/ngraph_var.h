@@ -76,7 +76,7 @@ class NGraphVar : public ResourceBase {
   }
 
   bool need_sync_ng_tensor() { return sync_ng_tensor_; }
-  void sync_ng_tensor(bool sync_ng_tensor) { sync_ng_tensor_ = sync_ng_tensor; }
+  void set_sync_ng_tensor(bool sync_ng_tensor) { sync_ng_tensor_ = sync_ng_tensor; }
 
   // TODO(malikshr): Implement syncing utility functions here
   Status copy_ng_to_tf();

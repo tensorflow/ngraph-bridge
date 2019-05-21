@@ -150,7 +150,7 @@ class NGraphAssignOp : public OpKernel {
       if (!just_looking_) {
         // Some tf op might update the ng-tensor value so mark it stale
         copy_log_str << " SET_SYNC ";
-        var->sync_ng_tensor(true);
+        var->set_sync_ng_tensor(true);
       }
     }
 
