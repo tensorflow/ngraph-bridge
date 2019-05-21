@@ -291,6 +291,8 @@ cc_binary(
         ":ngraph_headers",
         ":ngraph_core",
         "@tbb",
+        "@eigen",
+        "@mkl_dnn",
     ],
     copts = [
         "-I external/ngraph/src",
