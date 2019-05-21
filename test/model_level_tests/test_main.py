@@ -49,8 +49,9 @@ def return_to_cwd(f):
     return _helper
 
 @return_to_cwd
-def execute_test(test_folder, downloaded_repo):
+def execute_test(test_folder):
     model_dir = os.path.abspath(test_folder + '/..')
+    downloaded_repo = os.path.abspath(test_folder + '/../downloaded_model')
     os.chdir(model_dir)
     # To generate the patch use: git diff > enable_ngraph.patch
     patch_in_test_folder = os.path.abspath(test_folder + '/enable_ngraph.patch')
@@ -66,7 +67,8 @@ def execute_test(test_folder, downloaded_repo):
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
-    command_executor(model_dir + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1])
+    os.chdir(downloaded_repo)
+    command_executor(test_folder + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1])
     command_executor('git reset --hard') # remove applied patch (if any)
 
 @return_to_cwd
@@ -96,7 +98,7 @@ def rewrite_test(model_dir):
         # The model folder can have multiple tests, each packed in a folder named test*
         for flname in os.listdir(model_dir):
             if flname.startswith('test') and 'disabled' not in flname:
-                execute_test(model_dir + '/' + flname, repo_dl_loc)
+                execute_test(model_dir + '/' + flname)
 
     else:
         # TODO: found a pbtxt or pb or saved model. Load and run that
