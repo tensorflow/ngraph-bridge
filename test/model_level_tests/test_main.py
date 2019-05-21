@@ -190,10 +190,8 @@ if __name__ == '__main__':
 
     model_list = os.listdir(
         'models') if args.models == '' else args.models.split(',')
-    # atleast some tests are being run
-    assert len(model_list) != 0
-    # the requested tests are present
-    assert len(set(model_list).difference(set(os.listdir('./models')))) == 0
+    assert len(model_list) != 0, "Number of tests expected to be > 0"
+    assert len(set(model_list).difference(set(os.listdir('./models')))) == 0, "The requested tests are not present"
 
     for model_name in model_list:
         print('Testing model: ' + model_name)
