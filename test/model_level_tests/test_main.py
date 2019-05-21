@@ -21,17 +21,20 @@ import sys
 # expects tools to be present at this relative location. Need access to build_utils
 sys.path.insert(0, os.path.abspath('../../tools'))
 from build_utils import download_repo
-
+from tf2ngraph import get_gdef
 
 #TODO: update ngraph_enable.patch to be compatible with grappler build
+
 
 def parse_json(json_file_name):
     #TODO: check if the json is in agreed-upon format and has all relevant info
     with open(json_file_name) as f:
         return json.load(f)
 
+
 def generate_functional_check_checkpoint(loc, chkpoint_save_patch, run_command):
     pass
+
 
 def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
     if verbose or msg is not None:
@@ -44,12 +47,16 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
     assert errcode == 0, "Error in running command: " + cmd
     return so, se, errcode
 
+
 def return_to_cwd(f):
+
     def _helper(*args, **kwargs):
         cwd = os.getcwd()
         f(*args, **kwargs)
         os.chdir(cwd)
+
     return _helper
+
 
 @return_to_cwd
 def apply_patch_and_test(test_folder):
@@ -58,7 +65,8 @@ def apply_patch_and_test(test_folder):
     os.chdir(model_dir)
     # To generate the patch use: git diff > enable_ngraph.patch
     patch_in_test_folder = os.path.abspath(test_folder + '/enable_ngraph.patch')
-    patch_in_model_folder = os.path.abspath(test_folder + '../enable_ngraph.patch')
+    patch_in_model_folder = os.path.abspath(test_folder +
+                                            '../enable_ngraph.patch')
     if os.path.isfile(patch_in_test_folder):
         patch_file = patch_in_test_folder
     elif os.path.isfile(patch_in_model_folder):
@@ -71,9 +79,12 @@ def apply_patch_and_test(test_folder):
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
-    command_executor(test_folder + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1])
+    command_executor(
+        test_folder + '/core_rewrite_test.sh',
+        msg="Running test config: " + test_folder.split('/')[-1])
 
-    command_executor('git reset --hard') # remove applied patch (if any)
+    command_executor('git reset --hard')  # remove applied patch (if any)
+
 
 @return_to_cwd
 def ready_repo(model_dir, repo_dl_loc):
@@ -82,15 +93,20 @@ def ready_repo(model_dir, repo_dl_loc):
     if os.path.isfile(model_dir + '/getting_repo_ready.sh'):
         command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
 
+
 def rewrite_test(model_dir):
     #TODO: assert TF version. Some models may not run on TF1.12 etc
     model_dir = os.path.abspath(model_dir)
 
     repo_filename = model_dir + '/repo.txt'
     if os.path.isfile(repo_filename):
-        repo_info = [line.strip() for line in open(repo_filename).readlines() if len(line.strip())>0]
+        repo_info = [
+            line.strip()
+            for line in open(repo_filename).readlines()
+            if len(line.strip()) > 0
+        ]
         repo_name = repo_info[0]
-        repo_version = repo_info[1] if len(repo_info)==2 else 'master'
+        repo_version = repo_info[1] if len(repo_info) == 2 else 'master'
         repo_dl_loc = model_dir + '/downloaded_model'
         #TODO: download only when needed?
         download_repo(repo_dl_loc, repo_name, repo_version)
@@ -103,34 +119,62 @@ def rewrite_test(model_dir):
         for flname in os.listdir(model_dir):
             if flname.startswith('test') and 'disabled' not in flname:
                 apply_patch_and_test(model_dir + '/' + flname)
-
     else:
-        # TODO: found a pbtxt or pb or saved model. Load and run that
-        pass
+        files = os.listdir(model_dir)
+        assert len(files) == 1
+        model = files[0]
+        split_on_dot = model.split('.')
+        assert len(split_on_dot) <= 2
+        if len(split_on_dot) == 1:
+            model_format = 'savedmodel'
+        elif split_on_dot[1] in ['pb', 'pbtxt']:
+            model_format = split_on_dot[1]
+        else:
+            assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
+        gdef = get_gdef(model_format, model_dir + '/' + model)
+        # TODO: use gdef to run
+        # TODO: add axpy test folders for pb. pbtxt and savedmodel
 
-        #TODO: check if failed or passed
-        # TODO: check if ran to completion
-        # TODO: check if ran within a prefixed amount of time
-        # TODO: check throughput/latency
-        #TODO: check if atleast some stuff was placed on ngraph. Leverage LOG_PLACEMENT
+    #TODO: check if failed or passed
+    # TODO: check if ran to completion
+    # TODO: check if ran within a prefixed amount of time
+    # TODO: check throughput/latency
+    #TODO: check if atleast some stuff was placed on ngraph. Leverage LOG_PLACEMENT
+
 
 def get_checkpoint():
     pass
+
 
 def check_functional(model_dir):
     #check if there exists a check_functional.sh in the model folder
     #if not, then use run_functional
     pass
 
+
 # TODO: what of same model but different configs?
 # TODO: what if the same repo supports multiple models?
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Testing framework for TF models. Performs 2 types of tests. A) run_only and B) functional')
+    parser = argparse.ArgumentParser(
+        description=
+        'Testing framework for TF models. Performs 2 types of tests. A) run_only and B) functional'
+    )
 
-    parser.add_argument('--rewrite_test', action='store_true', help='perform type a tests (rewrite_test)')
-    parser.add_argument('--functional', action='store_true', help='perform type b tests (functional)')
-    parser.add_argument('--models', action='store', type=str, help='comma separated list of model names', default='')
+    parser.add_argument(
+        '--rewrite_test',
+        action='store_true',
+        help='perform type a tests (rewrite_test)')
+    parser.add_argument(
+        '--functional',
+        action='store_true',
+        help='perform type b tests (functional)')
+    parser.add_argument(
+        '--models',
+        action='store',
+        type=str,
+        help='comma separated list of model names',
+        default='')
 
     cwd = os.getcwd()
     # This script must be run from this location
@@ -138,11 +182,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if not(args.rewrite_test or args.functional):
-        print("No type of test enabled. Please choose --rewrite_test, --functional or both")
+    if not (args.rewrite_test or args.functional):
+        print(
+            "No type of test enabled. Please choose --rewrite_test, --functional or both"
+        )
         sys.exit(0)
 
-    model_list = os.listdir('models') if args.models == '' else args.models.split(',')
+    model_list = os.listdir(
+        'models') if args.models == '' else args.models.split(',')
     # atleast some tests are being run
     assert len(model_list) != 0
     # the requested tests are present
@@ -155,11 +202,8 @@ if __name__ == '__main__':
         if args.functional:
             print('Functional tests not implemented yet!!')
 
-
 #TODO verbose or quiet?
 #TODO: output a shell script, for debugging purposes
 
 # Sample run script:
 # python test_main.py --rewrite_test --models MLP
-
-
