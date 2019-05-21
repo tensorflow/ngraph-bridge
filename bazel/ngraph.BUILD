@@ -40,6 +40,7 @@ cc_library(
         "src/ngraph/descriptor/layout/*.cpp",
         "src/ngraph/op/*.cpp",
         "src/ngraph/op/fused/*.cpp",
+        "src/ngraph/op/experimental/batch_mat_mul.cpp",
         "src/ngraph/op/experimental/dyn_broadcast.cpp",
         "src/ngraph/op/experimental/dyn_pad.cpp",
         "src/ngraph/op/experimental/dyn_reshape.cpp",
