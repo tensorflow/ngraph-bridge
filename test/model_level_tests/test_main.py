@@ -51,7 +51,7 @@ def return_to_cwd(f):
 @return_to_cwd
 def execute_test(test_folder):
     model_dir = os.path.abspath(test_folder + '/..')
-    downloaded_repo = os.path.abspath(test_folder + '/../downloaded_model')
+    downloaded_repo = os.path.abspath(model_dir + '/downloaded_model')
     os.chdir(model_dir)
     # To generate the patch use: git diff > enable_ngraph.patch
     patch_in_test_folder = os.path.abspath(test_folder + '/enable_ngraph.patch')
@@ -64,6 +64,7 @@ def execute_test(test_folder):
         patch_file = None
     #pdb.set_trace()
 
+    os.chdir(downloaded_repo)
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
