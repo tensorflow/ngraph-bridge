@@ -176,7 +176,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     copy_log_str << "Var_Sync ";
     NGRAPH_VLOG(4) << "in tracked variable, ng tensor behind, needs to sync "
                       "with tf-tensor";
-    WriteNGTensor(var->ng_tensor(), var->tensor());
+    var->copy_tf_to_ng();
     var->set_sync_ng_tensor(false);
     just_synced = true;
   }
@@ -223,7 +223,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     if (!just_synced) {
       number_of_copies++;
       copy_log_str << " COPY_TF ";
-      ReadNGTensor(var->ng_tensor(), var->tensor());
+      var->copy_ng_to_tf();
       NGRAPH_VLOG(4) << "Copying to TF Tensor";
     }
 

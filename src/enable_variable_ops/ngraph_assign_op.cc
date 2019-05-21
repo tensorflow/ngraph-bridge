@@ -145,7 +145,7 @@ class NGraphAssignOp : public OpKernel {
     if (copy_to_tf_) {
       number_of_copies++;
       copy_log_str << " COPY_TF ";
-      ReadNGTensor(ng_tensor_to_assign, &old_lhs);
+      var->copy_ng_to_tf();
 
       if (!just_looking_) {
         // Some tf op might update the ng-tensor value so mark it stale

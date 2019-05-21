@@ -584,7 +584,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
         NGRAPH_VLOG(4) << "In NGEncapsulate, ng tensor behind, needs to sync "
                           "with tf-tensor";
-        WriteNGTensor(var->ng_tensor(), var->tensor());
+        var->copy_tf_to_ng();
         // TODO(malikshr): We will be able to set the sync_ng_tensor to false
         // once we do topological sort to add attributes like copy_to_tf
         event_sync_ng_tf_tensors.Stop();

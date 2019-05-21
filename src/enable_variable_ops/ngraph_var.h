@@ -79,8 +79,13 @@ class NGraphVar : public ResourceBase {
   void set_sync_ng_tensor(bool sync_ng_tensor) { sync_ng_tensor_ = sync_ng_tensor; }
 
   // TODO(malikshr): Implement syncing utility functions here
-  Status copy_ng_to_tf();
-  Status copy_tf_to_ng();
+  Status copy_ng_to_tf(){
+    ReadNGTensor(ng_tensor_, &tf_tensor_);
+  }
+
+  Status copy_tf_to_ng(){
+    WriteNGTensor(ng_tensor_, &tf_tensor_);
+  }
 
  private:
   mutex mu_;
