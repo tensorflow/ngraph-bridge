@@ -307,6 +307,7 @@ cc_binary(
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
         '-D NGRAPH_VERSION=\\"0.19.0-rc.4\\"',
         "-D NGRAPH_DEX_ONLY",
+        "-D NGRAPH_TBB_ENABLE",
         '-D PROJECT_ROOT_DIR=\\"\\"',
     ] + CXX_ABI,
     linkopts = [
