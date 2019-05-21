@@ -33,13 +33,15 @@ def parse_json(json_file_name):
 def generate_functional_check_checkpoint(loc, chkpoint_save_patch, run_command):
     pass
 
-def command_executor(cmd, verbose = False, msg=None):
+def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
     if verbose or msg is not None:
         tag = 'Running COMMAND: ' if msg is None else msg
         print(tag + cmd)
 
-    ps = Popen(cmd, stdin=PIPE, shell=True)
+    ps = Popen(cmd, stdin=PIPE, stdout=stdout, stderr=stderr, shell=True)
     so, se = ps.communicate()
+    errcode = ps.returncode
+    return so, se, errcode
 
 def return_to_cwd(f):
     def _helper(*args, **kwargs):
@@ -62,11 +64,14 @@ def execute_test(test_folder):
         patch_file = patch_in_test_folder
     else:
         patch_file = None
-    assert patch_file is not None
+    assert patch_file is not None, "Did not fine any patch file"
 
     os.chdir(downloaded_repo)
     if patch_file is not None:
-        command_executor('git apply ' + patch_file)
+        so, se, errcode = command_executor('git apply ' + patch_file, stdout=PIPE, stderr=PIPE)
+        assert so is not None and se is not None
+        assert errcode == 0, "Error in applying patch: " + patch_file
+
 
     command_executor(test_folder + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1])
     command_executor('git reset --hard') # remove applied patch (if any)
