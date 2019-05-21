@@ -41,6 +41,41 @@ def command_executor(cmd, verbose = False, msg=None):
     ps = Popen(cmd, stdin=PIPE, shell=True)
     so, se = ps.communicate()
 
+def return_to_cwd(f):
+    def _helper(*args, **kwargs):
+        cwd = os.getcwd()
+        f(*args, **kwargs)
+        os.chdir(cwd)
+    return _helper
+
+@return_to_cwd
+def execute_test(test_folder, downloaded_repo):
+    model_dir = os.path.abspath(test_folder + '/..')
+    os.chdir(model_dir)
+    # To generate the patch use: git diff > enable_ngraph.patch
+    patch_in_test_folder = os.path.abspath(test_folder + '/enable_ngraph.patch')
+    patch_in_model_folder = os.path.abspath(test_folder + '../enable_ngraph.patch')
+    if os.path.isfile(patch_in_test_folder):
+        patch_file = patch_in_test_folder
+    elif os.path.isfile(patch_in_model_folder):
+        patch_file = patch_in_test_folder
+    else:
+        patch_file = None
+    #pdb.set_trace()
+
+    if patch_file is not None:
+        command_executor('git apply ' + patch_file)
+
+    command_executor(model_dir + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1])
+    command_executor('git reset --hard') # remove applied patch (if any)
+
+@return_to_cwd
+def ready_repo(model_dir, repo_dl_loc):
+    os.chdir(repo_dl_loc)
+    # getting the repo ready is common to both check_rewrite_test and get_checkpoint
+    if os.path.isfile(model_dir + '/getting_repo_ready.sh'):
+        command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
+
 def rewrite_test(model_dir):
     #TODO: assert TF version. Some models may not run on TF1.12 etc
     model_dir = os.path.abspath(model_dir)
@@ -54,25 +89,15 @@ def rewrite_test(model_dir):
         #TODO: download only when needed?
         download_repo(repo_dl_loc, repo_name, repo_version)
 
-        cwd = os.getcwd()
-        os.chdir(repo_dl_loc)
-        # getting the repo ready is common to both check_rrewrite_test and get_checkpoint
-        if os.path.isfile(model_dir + '/getting_repo_ready.sh'):
+        ready_repo(model_dir, repo_dl_loc)
 
-            command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
+        # It is assumed that we need to be in the "model repo" for core_rewrite_test to run
+        # core_rewrite_test is written assuming we are currently in the downloaded repo
+        # The model folder can have multiple tests, each packed in a folder named test*
+        for flname in os.listdir(model_dir):
+            if flname.startswith('test') and 'disabled' not in flname:
+                execute_test(model_dir + '/' + flname, repo_dl_loc)
 
-        # To generate the patch use: git diff > enable_ngraph.patch
-        if os.path.isfile(model_dir + '/enable_ngraph.patch'):  #/foo/bar/.git
-            command_executor('git apply ' + model_dir + '/enable_ngraph.patch')
-
-        #It is assumed that we need to be in the "model repo" for core_rewrite_test to run
-        #core_rewrite_test is written assuming we are currently in the downloaded repo
-        for flname in os.listdir(model_dir): # The model folder can have multiple tests
-            if flname.startswith('core_rewrite_test') and 'disabled' not in flname:
-                command_executor(model_dir + '/' + flname, msg="Running test config: " + flname)
-        command_executor('git reset --hard') # remove applied patch (if any)
-        # TODO: each core_rewrite_test.sh could have its own enable_ngraph.patch
-        os.chdir(cwd)
     else:
         # TODO: found a pbtxt or pb or saved model. Load and run that
         pass
