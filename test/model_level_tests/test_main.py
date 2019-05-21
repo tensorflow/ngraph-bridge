@@ -50,6 +50,12 @@ def return_to_cwd(f):
         os.chdir(cwd)
     return _helper
 
+
+def apply_patch(patch_file):
+    so, se, errcode = command_executor('git apply ' + patch_file, stdout=PIPE, stderr=PIPE)
+    assert so is not None and se is not None
+    assert errcode == 0, "Error in applying patch: " + patch_file
+
 @return_to_cwd
 def execute_test(test_folder):
     model_dir = os.path.abspath(test_folder + '/..')
@@ -68,10 +74,7 @@ def execute_test(test_folder):
 
     os.chdir(downloaded_repo)
     if patch_file is not None:
-        so, se, errcode = command_executor('git apply ' + patch_file, stdout=PIPE, stderr=PIPE)
-        assert so is not None and se is not None
-        assert errcode == 0, "Error in applying patch: " + patch_file
-
+        apply_patch(patch_file)
 
     command_executor(test_folder + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1])
     command_executor('git reset --hard') # remove applied patch (if any)
