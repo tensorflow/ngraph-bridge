@@ -41,6 +41,7 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
     ps = Popen(cmd, stdin=PIPE, stdout=stdout, stderr=stderr, shell=True)
     so, se = ps.communicate()
     errcode = ps.returncode
+    assert errcode == 0, "Error in running command: " + cmd
     return so, se, errcode
 
 def return_to_cwd(f):
@@ -50,14 +51,8 @@ def return_to_cwd(f):
         os.chdir(cwd)
     return _helper
 
-
-def apply_patch(patch_file):
-    so, se, errcode = command_executor('git apply ' + patch_file, stdout=PIPE, stderr=PIPE)
-    assert so is not None and se is not None
-    assert errcode == 0, "Error in applying patch: " + patch_file
-
 @return_to_cwd
-def execute_test(test_folder):
+def apply_patch_and_test(test_folder):
     model_dir = os.path.abspath(test_folder + '/..')
     downloaded_repo = os.path.abspath(model_dir + '/downloaded_model')
     os.chdir(model_dir)
@@ -74,9 +69,10 @@ def execute_test(test_folder):
 
     os.chdir(downloaded_repo)
     if patch_file is not None:
-        apply_patch(patch_file)
+        command_executor('git apply ' + patch_file)
 
     command_executor(test_folder + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1])
+
     command_executor('git reset --hard') # remove applied patch (if any)
 
 @return_to_cwd
@@ -106,7 +102,7 @@ def rewrite_test(model_dir):
         # The model folder can have multiple tests, each packed in a folder named test*
         for flname in os.listdir(model_dir):
             if flname.startswith('test') and 'disabled' not in flname:
-                execute_test(model_dir + '/' + flname)
+                apply_patch_and_test(model_dir + '/' + flname)
 
     else:
         # TODO: found a pbtxt or pb or saved model. Load and run that
@@ -159,6 +155,9 @@ if __name__ == '__main__':
         if args.functional:
             print('Functional tests not implemented yet!!')
 
+
+#TODO verbose or quiet?
+#TODO: output a shell script, for debugging purposes
 
 # Sample run script:
 # python test_main.py --rewrite_test --models MLP
