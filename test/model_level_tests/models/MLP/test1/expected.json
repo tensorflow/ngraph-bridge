@@ -1,0 +1,36 @@
+{
+    "default":
+    {
+        "logparse":
+        {
+            "0":
+            {
+                "num_nodes_in_graph": 50,
+                "num_nodes_marked_for_clustering": 0
+            },
+            "1":
+            {
+                "num_nodes_in_graph": 315,
+                "num_nodes_marked_for_clustering": 244
+            }
+        },
+        "time": 12.0
+    },
+    "interpreter":
+    {
+        "logparse":
+        {
+            "0":
+            {
+                "num_nodes_in_graph": 50,
+                "num_nodes_marked_for_clustering": 0
+            },
+            "1":
+            {
+                "num_nodes_in_graph": 315,
+                "num_nodes_marked_for_clustering": 244
+            }
+        },
+        "time": 8.0
+    }
+}

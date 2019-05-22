@@ -14,7 +14,7 @@
 #  limitations under the License.
 # =============================================================================
 
-import pdb
+import pdb, time
 from subprocess import check_output, call, Popen, PIPE
 import json, os, argparse, sys
 import sys
@@ -91,7 +91,7 @@ def apply_patch_and_test(test_folder):
 
     so, se, errcode = command_executor(
         'NGRAPH_TF_LOG_PLACEMENT=1 ' + test_folder + '/core_rewrite_test.sh',
-        msg="Running test config: " + test_folder.split('/')[-1],
+        msg="Running test config " + test_folder.split('/')[-1] + ': ',
         stdout=PIPE,
         stderr=PIPE)
 
@@ -131,9 +131,10 @@ def rewrite_test(model_dir):
         # The model folder can have multiple tests, each packed in a folder named test*
         for flname in os.listdir(model_dir):
             if flname.startswith('test') and 'disabled' not in flname:
+                tstart = time.time()
                 so, se = apply_patch_and_test(model_dir + '/' + flname)
+                tend = time.time()
             command_executor.commands += '\n'
-
     else:
         files = os.listdir(model_dir)
         num_files = len(files)
@@ -274,6 +275,10 @@ if __name__ == '__main__':
 # Level3: parse prints we put. These tests are run without "NGRAPH_TF_LOG_PLACEMENT=1". the framework can provide some default parsers, but users are free to add pyscripts that provide functions for custom script parsers
 # These tests can be long
 # So we can offer options to do: {1}, {1,2}, {1,2,3}, {3}  (or do we allow options for any combination of tests?)
+
+# Structure of "expected json"
+# dictionary of expected values. key is a config, value is the expected values json. there is a "default" config, but one can add other configs (for example for other backends etc)
+
 
 #TODO: update main README.md. Document "how-to-use" and features
 
