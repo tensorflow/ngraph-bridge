@@ -81,34 +81,31 @@ class NGraphVar : public ResourceBase {
   }
 
   // TODO(malikshr): Implement syncing utility functions here
-  
+
   // Copies the NG Tensor to TF Tensor for this variable
   // Involves a copy from device to host
-  // Returns the number of copies made
-  int copy_ng_to_tf() { 
-    ReadNGTensor(ng_tensor_, &tf_tensor_); 
+  // Returns the number of copies made (0 or 1)
+  int copy_ng_to_tf() {
+    ReadNGTensor(ng_tensor_, &tf_tensor_);
     return 1;
-    }
+  }
 
   // Copies the TF Tensor to NG Tensor for this variable
   // Involves a copy from host to device
-  // Returns the number of copies made
-  int copy_tf_to_ng() { 
+  // Returns the number of copies made (0 or 1)
+  int copy_tf_to_ng() {
     WriteNGTensor(ng_tensor_, &tf_tensor_);
     return 1;
-   }
+  }
 
   // If the NGTensor is behind TF Tensor (ie it NGTensor is out-of-date)
   // It updates ng_tensor by copy_tf_to_ng
-  // Returns the number of copies made
-  int sync_ng_tensor(){
-      if (var->need_sync_ng_tensor()) {
-        return var->copy_tf_to_ng();
-      }
+  // Returns the number of copies made (0 or 1)
+  int sync_ng_tensor() {
+    if (sync_ng_tensor_) {
+      return copy_tf_to_ng();
+    }
     return 0;
-  }
-
-
   }
 
  private:

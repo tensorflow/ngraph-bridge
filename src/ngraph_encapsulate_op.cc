@@ -576,19 +576,25 @@ class NGraphEncapsulateOp : public OpKernel {
       TF_RETURN_IF_ERROR(ctx->resource_manager()->Lookup<NGraphVar>(
           ctx->resource_manager()->default_container(), ref_var_name, &var));
 
-      if (var->need_sync_ng_tensor()) {
+      // if (var->need_sync_ng_tensor()) {
+      //   number_of_copies++;
+      //   copy_log_str << "Var_Sync[" << input_index << "] ";
+      //   ngraph::Event event_sync_ng_tf_tensors(
+      //       "Output: ng_tensor and tf_tensor sync", name(), "");
+
+      //   NGRAPH_VLOG(4) << "In NGEncapsulate, ng tensor behind, needs to sync
+      //   "
+      //                     "with tf-tensor";
+      //   var->copy_tf_to_ng();
+      //   // TODO(malikshr): We will be able to set the sync_ng_tensor to false
+      //   // once we do topological sort to add attributes like copy_to_tf
+      //   event_sync_ng_tf_tensors.Stop();
+      //   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
+      // }
+
+      if (var->sync_ng_tensor()) {
         number_of_copies++;
         copy_log_str << "Var_Sync[" << input_index << "] ";
-        ngraph::Event event_sync_ng_tf_tensors(
-            "Output: ng_tensor and tf_tensor sync", name(), "");
-
-        NGRAPH_VLOG(4) << "In NGEncapsulate, ng tensor behind, needs to sync "
-                          "with tf-tensor";
-        var->copy_tf_to_ng();
-        // TODO(malikshr): We will be able to set the sync_ng_tensor to false
-        // once we do topological sort to add attributes like copy_to_tf
-        event_sync_ng_tf_tensors.Stop();
-        ngraph::Event::write_trace(event_sync_ng_tf_tensors);
       }
 
       ng_inputs[input_index] = var->ng_tensor();
