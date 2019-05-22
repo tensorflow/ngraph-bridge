@@ -38,7 +38,8 @@ def generate_functional_check_checkpoint(loc, chkpoint_save_patch, run_command):
 
 
 def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
-    command_executor.commands += ('' if (msg is None) else '# ' + msg.strip('\n') + '\n') + cmd + '\n'
+    command_executor.commands += ('' if (msg is None) else
+                                  '# ' + msg.strip('\n') + '\n') + cmd + '\n'
     if verbose or msg is not None:
         tag = 'Running Command: ' if msg is None else msg
         print(tag + cmd)
@@ -50,6 +51,8 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
         errcode = ps.returncode
         assert errcode == 0, "Error in running command: " + cmd
         return so, se, errcode
+
+
 command_executor.commands = ''
 
 
@@ -86,10 +89,14 @@ def apply_patch_and_test(test_folder):
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
-    so, se, errcode = command_executor('NGRAPH_TF_LOG_PLACEMENT=1 ' + test_folder + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1], stdout=PIPE, stderr=PIPE)
+    so, se, errcode = command_executor(
+        'NGRAPH_TF_LOG_PLACEMENT=1 ' + test_folder + '/core_rewrite_test.sh',
+        msg="Running test config: " + test_folder.split('/')[-1],
+        stdout=PIPE,
+        stderr=PIPE)
 
     command_executor('git reset --hard')  # remove applied patch (if any)
-    return so.decode("utf-8") , se.decode("utf-8") 
+    return so.decode("utf-8"), se.decode("utf-8")
 
 
 @return_to_cwd
@@ -116,7 +123,6 @@ def rewrite_test(model_dir):
         repo_dl_loc = model_dir + '/downloaded_model'
         #TODO: download only when needed?
         download_repo(repo_dl_loc, repo_name, repo_version)
-
 
         ready_repo(model_dir, repo_dl_loc)
 
@@ -149,7 +155,6 @@ def rewrite_test(model_dir):
     # TODO: check if ran within a prefixed amount of time
     # TODO: check throughput/latency
     #TODO: check if atleast some stuff was placed on ngraph. Leverage LOG_PLACEMENT
-
 
 
 def get_checkpoint():
@@ -207,7 +212,8 @@ if __name__ == '__main__':
     model_list = os.listdir(
         'models') if args.models == '' else args.models.split(',')
     assert len(model_list) != 0, "Number of tests expected to be > 0"
-    assert len(set(model_list).difference(set(os.listdir('./models')))) == 0, "The requested tests are not present"
+    assert len(set(model_list).difference(set(
+        os.listdir('./models')))) == 0, "The requested tests are not present"
 
     for model_name in model_list:
         print('Testing model: ' + model_name)
@@ -216,12 +222,10 @@ if __name__ == '__main__':
         if args.functional:
             print('Functional tests not implemented yet!!')
 
-
 #TODO verbose or quiet?
 #TODO: output a shell script, for debugging purposes
 
 # Sample run script:
 # python test_main.py --rewrite_test --models MLP
-
 
 # features: dumps shell script at the end. dumps shell script even when the framework crashes
