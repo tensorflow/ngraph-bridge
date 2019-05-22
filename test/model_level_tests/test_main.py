@@ -266,11 +266,7 @@ if __name__ == '__main__':
         print(get_test_list_string(args.list))
         exit(0)
 
-    if not (args.rewrite_test or args.functional):
-        print(
-            "No type of test enabled. Please choose --rewrite_test, --functional or both"
-        )
-        sys.exit(0)
+    assert (args.rewrite_test or args.functional), 'No type of test enabled. Please choose --rewrite_test, --functional or both'
 
     model_list = os.listdir(
         'models') if args.models == '' else args.models.split(',')
@@ -286,7 +282,6 @@ if __name__ == '__main__':
             print('Functional tests not implemented yet!!')
 
 # TODO verbose or quiet?
-# TODO: output a shell script, for debugging purposes
 # TODO: add a way to disable tests and subtests through the CLI
 
 # TODO: we have a way to control which model/test-dirs run (using --models). But we do not have a flag for test "intensity".
