@@ -90,6 +90,7 @@ def apply_patch_and_test(test_folder):
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
+    # TODO: Add the flag, only when there is no user-specified parser in the sub-test folder
     so, se, errcode = command_executor(
         'NGRAPH_TF_LOG_PLACEMENT=1 ' + test_folder + '/core_rewrite_test.sh',
         msg="Running test config " + test_folder.split('/')[-1] + ': ',
@@ -316,3 +317,4 @@ if __name__ == '__main__':
 # feature 3: "expected" values can be varied by different configs
 # feature 4: cleanup script
 # feature 5: sub tests folders must start with 'test' (else ignored). Can have 'disabled' in their names to disable
+# feature 6: default and user-specified log parsers
