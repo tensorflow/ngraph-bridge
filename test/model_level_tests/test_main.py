@@ -52,8 +52,9 @@ def return_to_cwd(f):
 
     def _helper(*args, **kwargs):
         cwd = os.getcwd()
-        f(*args, **kwargs)
+        retval = f(*args, **kwargs)
         os.chdir(cwd)
+        return retval
 
     return _helper
 
@@ -79,11 +80,12 @@ def apply_patch_and_test(test_folder):
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
-    command_executor(
+    so, se, errcode = command_executor('NGRAPH_TF_LOG_PLACEMENT=1 ' +
         test_folder + '/core_rewrite_test.sh',
-        msg="Running test config: " + test_folder.split('/')[-1])
+        msg="Running test config: " + test_folder.split('/')[-1], stdout=PIPE, stderr=PIPE)
 
     command_executor('git reset --hard')  # remove applied patch (if any)
+    return str(so), str(se)
 
 
 @return_to_cwd
@@ -118,7 +120,7 @@ def rewrite_test(model_dir):
         # The model folder can have multiple tests, each packed in a folder named test*
         for flname in os.listdir(model_dir):
             if flname.startswith('test') and 'disabled' not in flname:
-                apply_patch_and_test(model_dir + '/' + flname)
+                so, se = apply_patch_and_test(model_dir + '/' + flname)
     else:
         files = os.listdir(model_dir)
         assert len(files) == 1
