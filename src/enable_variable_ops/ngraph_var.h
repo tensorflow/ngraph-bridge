@@ -60,7 +60,15 @@ class NGraphVar : public ResourceBase {
         BackendManager::GetBackend(ng_backend_name_);
 
     // Create nGTensor
+    ng_tf_share_buffer_ = (ng_backend_name_ == "CPU");
+
+    // if(ng_tf_share_buffer_){
+
+    //    ng_tensor_ = op_backend->create_tensor(ng_element_type, ng_shape);
+    // }
+    // else{
     ng_tensor_ = op_backend->create_tensor(ng_element_type, ng_shape);
+    //}
   }
   // Not copyable or movable.
   NGraphVar(const NGraphVar&) = delete;
@@ -80,8 +88,6 @@ class NGraphVar : public ResourceBase {
     sync_ng_tensor_ = sync_ng_tensor;
   }
 
-  // TODO(malikshr): Implement syncing utility functions here
-
   // Copies the NG Tensor to TF Tensor for this variable
   // Involves a copy from device to host
   // Returns the number of copies made (0 or 1)
@@ -98,7 +104,7 @@ class NGraphVar : public ResourceBase {
     return 1;
   }
 
-  // If the NGTensor is behind TF Tensor (ie it NGTensor is out-of-date)
+  // If the NGTensor is behind TF Tensor (ie if NGTensor is out-of-date)
   // It updates ng_tensor by copy_tf_to_ng
   // Returns the number of copies made (0 or 1)
   int sync_ng_tensor() {
@@ -113,6 +119,7 @@ class NGraphVar : public ResourceBase {
   Tensor tf_tensor_;
   shared_ptr<ngraph::runtime::Tensor> ng_tensor_;
   string ng_backend_name_;
+  bool ng_tf_share_buffer_;
   // sync from tf to ng
   bool sync_ng_tensor_;
   ~NGraphVar() override {

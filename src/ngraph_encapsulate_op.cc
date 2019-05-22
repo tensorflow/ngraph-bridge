@@ -564,9 +564,10 @@ class NGraphEncapsulateOp : public OpKernel {
           m_graph_id, def().name(), input_index);
 
       if (!ref_exists) {
-        if (ng_inputs[input_index] != nullptr)
-          errors::Internal("Input ", input_index,
-                           " is not in Catalog nor was set from TF");
+        if (ng_inputs[input_index] == nullptr) {
+          return errors::Internal("Input ", input_index,
+                                  " is not in Catalog nor was set from TF");
+        }
         continue;
       }
 
@@ -575,22 +576,6 @@ class NGraphEncapsulateOp : public OpKernel {
       NGraphVar* var;
       TF_RETURN_IF_ERROR(ctx->resource_manager()->Lookup<NGraphVar>(
           ctx->resource_manager()->default_container(), ref_var_name, &var));
-
-      // if (var->need_sync_ng_tensor()) {
-      //   number_of_copies++;
-      //   copy_log_str << "Var_Sync[" << input_index << "] ";
-      //   ngraph::Event event_sync_ng_tf_tensors(
-      //       "Output: ng_tensor and tf_tensor sync", name(), "");
-
-      //   NGRAPH_VLOG(4) << "In NGEncapsulate, ng tensor behind, needs to sync
-      //   "
-      //                     "with tf-tensor";
-      //   var->copy_tf_to_ng();
-      //   // TODO(malikshr): We will be able to set the sync_ng_tensor to false
-      //   // once we do topological sort to add attributes like copy_to_tf
-      //   event_sync_ng_tf_tensors.Stop();
-      //   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
-      // }
 
       if (var->sync_ng_tensor()) {
         number_of_copies++;
@@ -639,7 +624,7 @@ class NGraphEncapsulateOp : public OpKernel {
       TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
           ctx->expected_output_dtype(i), &expected_elem_type));
       if (ng_element_type != expected_elem_type) {
-        errors::Internal(
+        return errors::Internal(
             "Element type inferred by nGraph does not match "
             "the element type expected by TensorFlow");
       }
