@@ -37,23 +37,28 @@ def generate_functional_check_checkpoint(loc, chkpoint_save_patch, run_command):
 
 
 def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
+    command_executor.commands += cmd + '\n'
     if verbose or msg is not None:
         tag = 'Running COMMAND: ' if msg is None else msg
         print(tag + cmd)
-
-    ps = Popen(cmd, stdin=PIPE, stdout=stdout, stderr=stderr, shell=True)
-    so, se = ps.communicate()
-    errcode = ps.returncode
-    assert errcode == 0, "Error in running command: " + cmd
-    return so, se, errcode
+    if 'cd ' == cmd[:3]:
+        os.chdir(cmd.split(' ')[1])
+    else:
+        ps = Popen(cmd, stdin=PIPE, stdout=stdout, stderr=stderr, shell=True)
+        so, se = ps.communicate()
+        errcode = ps.returncode
+        assert errcode == 0, "Error in running command: " + cmd
+        return so, se, errcode
+command_executor.commands = ''
 
 
 def return_to_cwd(f):
 
     def _helper(*args, **kwargs):
-        cwd = os.getcwd()
+        so, _, __ = command_executor('pwd', stdout=PIPE)
+        cwd = so.decode("utf-8").strip('\n')
         retval = f(*args, **kwargs)
-        os.chdir(cwd)
+        command_executor('cd ' + cwd)
         return retval
 
     return _helper
@@ -63,7 +68,7 @@ def return_to_cwd(f):
 def apply_patch_and_test(test_folder):
     model_dir = os.path.abspath(test_folder + '/..')
     downloaded_repo = os.path.abspath(model_dir + '/downloaded_model')
-    os.chdir(model_dir)
+    command_executor('cd ' + model_dir)
     # To generate the patch use: git diff > enable_ngraph.patch
     patch_in_test_folder = os.path.abspath(test_folder + '/enable_ngraph.patch')
     patch_in_model_folder = os.path.abspath(test_folder +
@@ -76,21 +81,19 @@ def apply_patch_and_test(test_folder):
         patch_file = None
     assert patch_file is not None, "Did not fine any patch file"
 
-    os.chdir(downloaded_repo)
+    command_executor('cd ' + downloaded_repo)
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
-    so, se, errcode = command_executor('NGRAPH_TF_LOG_PLACEMENT=1 ' +
-        test_folder + '/core_rewrite_test.sh',
-        msg="Running test config: " + test_folder.split('/')[-1], stdout=PIPE, stderr=PIPE)
+    so, se, errcode = command_executor('NGRAPH_TF_LOG_PLACEMENT=1 ' + test_folder + '/core_rewrite_test.sh', msg="Running test config: " + test_folder.split('/')[-1], stdout=PIPE, stderr=PIPE)
 
     command_executor('git reset --hard')  # remove applied patch (if any)
-    return str(so), str(se)
+    return so.decode("utf-8") , se.decode("utf-8") 
 
 
 @return_to_cwd
 def ready_repo(model_dir, repo_dl_loc):
-    os.chdir(repo_dl_loc)
+    command_executor('cd ' + repo_dl_loc)
     # getting the repo ready is common to both check_rewrite_test and get_checkpoint
     if os.path.isfile(model_dir + '/getting_repo_ready.sh'):
         command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
@@ -113,6 +116,7 @@ def rewrite_test(model_dir):
         #TODO: download only when needed?
         download_repo(repo_dl_loc, repo_name, repo_version)
 
+
         ready_repo(model_dir, repo_dl_loc)
 
         # It is assumed that we need to be in the "model repo" for core_rewrite_test to run
@@ -134,6 +138,7 @@ def rewrite_test(model_dir):
         else:
             assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
         gdef = get_gdef(model_format, model_dir + '/' + model)
+
         # TODO: use gdef to run
         # TODO: add axpy test folders for pb. pbtxt and savedmodel
 
@@ -178,9 +183,8 @@ if __name__ == '__main__':
         help='comma separated list of model names',
         default='')
 
-    cwd = os.getcwd()
     # This script must be run from this location
-    assert cwd.split('/')[-1] == 'model_level_tests'
+    assert os.getcwd().split('/')[-1] == 'model_level_tests'
 
     args = parser.parse_args()
 
@@ -201,6 +205,9 @@ if __name__ == '__main__':
             rewrite_test('./models/' + model_name)
         if args.functional:
             print('Functional tests not implemented yet!!')
+    
+    with open('dump.sh', 'w') as f:
+        f.write(command_executor.commands)
 
 #TODO verbose or quiet?
 #TODO: output a shell script, for debugging purposes
