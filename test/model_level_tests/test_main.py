@@ -137,27 +137,24 @@ def rewrite_test(model_dir):
                 tend = time.time()
             command_executor.commands += '\n'
     else:
-        files = os.listdir(model_dir)
-        num_files = len(files)
-        assert num_files <= 2  # A model file and a README at most
-        if num_files == 1:
-            model = files[0]
-        else:
-            assert any(['.md' in i for i in files
-                       ])  # if there are 2 files, atleast one is a .md
-            model = files[0] if '.md' in files[1] else files[1]
-        split_on_dot = model.split('.')
-        assert len(split_on_dot) <= 2
-        if len(split_on_dot) == 1:
-            model_format = 'savedmodel'
-        elif split_on_dot[1] in ['pb', 'pbtxt']:
-            model_format = split_on_dot[1]
-        else:
-            assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
-        gdef = get_gdef(model_format, model_dir + '/' + model)
+        contents = os.listdir(model_dir)
+        for c in contents:
+            sub_test_dir = model_dir + '/' + c
+            if not os.path.isfile(sub_test_dir):
+                model = [i for i in os.listdir(sub_test_dir) if '.md' not in i and '.json' not in i]
+                assert len(model) == 1
+                model = model[0]
+                split_on_dot = model.split('.')
+                assert len(split_on_dot) <= 2
+                if len(split_on_dot) == 1:
+                    model_format = 'savedmodel'
+                elif split_on_dot[1] in ['pb', 'pbtxt']:
+                    model_format = split_on_dot[1]
+                else:
+                    assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
+                gdef = get_gdef(model_format, sub_test_dir + '/' + model)
 
     cleanup_script = model_dir + '/cleanup.sh'
-    #pdb.set_trace()
     if os.path.isfile(cleanup_script):
         command_executor(cleanup_script)
     command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split('/')[-1]
