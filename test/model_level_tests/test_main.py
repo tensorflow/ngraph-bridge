@@ -133,10 +133,16 @@ def rewrite_test(model_dir):
             if flname.startswith('test') and 'disabled' not in flname:
                 so, se = apply_patch_and_test(model_dir + '/' + flname)
             command_executor.commands += '\n'
+
     else:
         files = os.listdir(model_dir)
-        assert len(files) == 1
-        model = files[0]
+        num_files = len(files)
+        assert num_files <= 2  # A model file and a README at most
+        if num_files == 1:
+            model = files[0]
+        else:
+            assert any(['.md' in i for i in files]) # if there are 2 files, atleast one is a .md
+            model = files[0] if '.md' in files[1] else files[1]
         split_on_dot = model.split('.')
         assert len(split_on_dot) <= 2
         if len(split_on_dot) == 1:
@@ -197,11 +203,41 @@ if __name__ == '__main__':
         type=str,
         help='comma separated list of model names',
         default='')
+    parser.add_argument(
+        '--list',
+        action='store',
+        type=str,
+        help='List all tests if empty string is passed, else list tests of the directories in the comma separated string that was passed',
+        default=None)
 
     # This script must be run from this location
     assert cwd.split('/')[-1] == 'model_level_tests'
 
     args = parser.parse_args()
+
+    if args.list is not None:
+        available_dirs = os.listdir('./models')
+        dirs_to_scan = available_dirs if args.list == '' else args.list.split(',')
+        help_string = ''
+        for dir in dirs_to_scan:
+            assert dir in available_dirs, "Requested to list " + dir + ", but that directory is not present in available directories: " + ','.join(available_dirs)
+            help_string += 'Test directory: ' + dir + '\n' + '*'*50 + '\n'
+            currdir = './models/' + dir
+            contents = os.listdir(currdir)
+            if 'README.md' in contents:
+                with open(currdir + '/README.md') as f:
+                    help_string += '\n'.join(f.readlines()) + '\n'
+            for c in contents:
+                if os.path.isdir(c):
+                    help_string += 'Test: ' + c + '\n'
+                    currtest = currdir + '/' + c
+                    if 'README.md' in os.listdir(currtest + '/README.md'):
+                        with open(currtest + '/README.md') as f:
+                            help_string += '\n'.join(f.readlines()) + '\n'
+            help_string += '\n'
+        print(help_string)
+        exit(0)
+
 
     if not (args.rewrite_test or args.functional):
         print(
@@ -228,4 +264,5 @@ if __name__ == '__main__':
 # Sample run script:
 # python test_main.py --rewrite_test --models MLP
 
-# features: dumps shell script at the end. dumps shell script even when the framework crashes
+# feature 1: dumps shell script at the end. dumps shell script even when the framework crashes
+# feature 2: prints list of tests and their descriptions (--list)
