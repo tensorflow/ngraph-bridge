@@ -53,7 +53,7 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
         return so, se, errcode
 
 
-command_executor.commands = ''
+command_executor.commands = ''  # TODO: slightly ugly
 
 
 def return_to_cwd(f):
@@ -107,13 +107,19 @@ def ready_repo(model_dir, repo_dl_loc):
     if os.path.isfile(model_dir + '/getting_repo_ready.sh'):
         command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
 
-
+# TODO: this function needs a name change
+# TODO: this function needs to accept "do-i-dump-pbtxt"? and if so, a cleanup needs to happen later.
+# Also this function could return the list of pbtxts it generated (but does it need to? we can infer it)
+# TODO: this function should also take the level/intensity of test to run
 def rewrite_test(model_dir):
     # TODO: assert TF version. Some models may not run on TF1.12 etc
     model_dir = os.path.abspath(model_dir)
 
+    # download/prepare repo if needed:
     repo_filename = model_dir + '/repo.txt'
+    repo_based = False # Is this test dir repo based or pb/pbtxt/savedmodel based?
     if os.path.isfile(repo_filename):
+        repo_based = True
         repo_info = [
             line.strip()
             for line in open(repo_filename).readlines()
@@ -124,23 +130,20 @@ def rewrite_test(model_dir):
         repo_dl_loc = model_dir + '/downloaded_model'
         # TODO: download only when needed?
         download_repo(repo_dl_loc, repo_name, repo_version)
-
         ready_repo(model_dir, repo_dl_loc)
 
-        # It is assumed that we need to be in the "model repo" for core_rewrite_test to run
-        # core_rewrite_test is written assuming we are currently in the downloaded repo
-        # The model folder can have multiple tests, each packed in a folder named test*
-        for flname in os.listdir(model_dir):
-            if flname.startswith('test') and 'disabled' not in flname:
+    # Iterate through each sub-test
+    for flname in os.listdir(model_dir):
+        sub_test_dir = model_dir + '/' + flname
+        # if its  directory starting with test, and not containing "disabled" in its name
+        if not os.path.isfile(sub_test_dir) and flname.startswith('test') and 'disabled' not in flname:
+            if repo_based:
+                # TODO: shift the timing inside apply_patch_and_test
                 tstart = time.time()
                 so, se = apply_patch_and_test(model_dir + '/' + flname)
                 tend = time.time()
-            command_executor.commands += '\n'
-    else:
-        contents = os.listdir(model_dir)
-        for c in contents:
-            sub_test_dir = model_dir + '/' + c
-            if not os.path.isfile(sub_test_dir):
+                command_executor.commands += '\n'
+            else:
                 model = [i for i in os.listdir(sub_test_dir) if '.md' not in i and '.json' not in i]
                 assert len(model) == 1
                 model = model[0]
@@ -152,10 +155,15 @@ def rewrite_test(model_dir):
                     model_format = split_on_dot[1]
                 else:
                     assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
+                # TODO: support checkpoint too later
                 gdef = get_gdef(model_format, sub_test_dir + '/' + model)
+                # TODO: run Level1 tests on gdef
 
+
+    # Clean up if needed
     cleanup_script = model_dir + '/cleanup.sh'
     if os.path.isfile(cleanup_script):
+        assert repo_based, 'Did not expect a cleanup script in non-repo based test'
         command_executor(cleanup_script)
     command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split('/')[-1]
     # TODO: delete downloaded model repo
@@ -289,6 +297,7 @@ if __name__ == '__main__':
 # Level3: parse prints we put. These tests are run without "NGRAPH_TF_LOG_PLACEMENT=1". the framework can provide some default parsers, but users are free to add pyscripts that provide functions for custom script parsers
 # These tests can be long
 # So we can offer options to do: {1}, {1,2}, {1,2,3}, {3}  (or do we allow options for any combination of tests?)
+# NOTE: Level3 and Level1 test are same (mechanics wise). Merge them. Then we have only 2 types of tests
 
 # Each model dir represents 1 repo to download. A model dir can have multiple sub tests (each sub-test could represent a different model, or the same model tested under different settings)
 
@@ -305,3 +314,4 @@ if __name__ == '__main__':
 # feature 2: prints list of tests and their descriptions (--list)
 # feature 3: "expected" values can be varied by different configs
 # feature 4: cleanup script
+# feature 5: sub tests folders must start with 'test' (else ignored). Can have 'disabled' in their names to disable
