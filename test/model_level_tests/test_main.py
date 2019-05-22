@@ -22,6 +22,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../../tools'))
 from build_utils import download_repo
 from tf2ngraph import get_gdef
+from log_parser import parse_logs, compare_parsed_values
 import atexit
 
 # TODO: update ngraph_enable.patch to be compatible with grappler build
@@ -143,6 +144,8 @@ def rewrite_test(model_dir):
                 so, se = apply_patch_and_test(model_dir + '/' + flname)
                 tend = time.time()
                 command_executor.commands += '\n'
+                parsed_vals = parse_logs(so)
+                # TODO: call compare_parsed_values. Move parse and compare logs, outside this if repo_based
             else:
                 model = [i for i in os.listdir(sub_test_dir) if '.md' not in i and '.json' not in i]
                 assert len(model) == 1
@@ -168,9 +171,9 @@ def rewrite_test(model_dir):
     command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split('/')[-1]
     # TODO: delete downloaded model repo
 
-        # TODO: use gdef to run
-        # TODO: add axpy test folders for pb. pbtxt and savedmodel
-        # TODO integrate the if-else paths as much as possible
+    # TODO: use gdef to run
+    # TODO: add axpy test folders for pb. pbtxt and savedmodel
+    # TODO integrate the if-else paths as much as possible
 
     # TODO: check if failed or passed
     # TODO: check if ran to completion
@@ -249,6 +252,7 @@ if __name__ == '__main__':
         help=
         'List all tests if empty string is passed, else list tests of the directories in the comma separated string that was passed',
         default=None)
+    # TODO: add some pre-set configuration types. We already have "default", add "grappler", "var-opt", etc
     parser.add_argument(
         '--configuration',
         action='store',
@@ -283,6 +287,8 @@ if __name__ == '__main__':
 
 # TODO verbose or quiet?
 # TODO: add a way to disable tests and subtests through the CLI
+
+# TODO: what happens in case of shrestha's change. maybe expected number of clusters etc is different for normal path and var-opt path. Can be taken care of by --configuration. However user will have to decide if grappler, then use this config. it could possibly be auto-detected
 
 # TODO: we have a way to control which model/test-dirs run (using --models). But we do not have a flag for test "intensity".
 # each subtest folder has a "enable" patch and a run command.
