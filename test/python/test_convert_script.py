@@ -67,9 +67,6 @@ class TestConversionScript(NgraphTest):
             (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
         except:
             pass
-        print('_' * 50)
-        print(inp_format, inp_loc, out_format, commandline, out_loc)
-        print('_' * 50)
         conversion_successful = False
         try:
             if commandline:
