@@ -141,7 +141,8 @@ def rewrite_test(model_dir):
         if num_files == 1:
             model = files[0]
         else:
-            assert any(['.md' in i for i in files]) # if there are 2 files, atleast one is a .md
+            assert any(['.md' in i for i in files
+                       ])  # if there are 2 files, atleast one is a .md
             model = files[0] if '.md' in files[1] else files[1]
         split_on_dot = model.split('.')
         assert len(split_on_dot) <= 2
@@ -193,7 +194,7 @@ if __name__ == '__main__':
         '--rewrite_test',
         action='store_true',
         help='perform type a tests (rewrite_test)')
-    parser.add_argument(
+    parser.add_argument(  # TODO: revisit this flag
         '--functional',
         action='store_true',
         help='perform type b tests (functional)')
@@ -207,7 +208,8 @@ if __name__ == '__main__':
         '--list',
         action='store',
         type=str,
-        help='List all tests if empty string is passed, else list tests of the directories in the comma separated string that was passed',
+        help=
+        'List all tests if empty string is passed, else list tests of the directories in the comma separated string that was passed',
         default=None)
 
     # This script must be run from this location
@@ -217,11 +219,13 @@ if __name__ == '__main__':
 
     if args.list is not None:
         available_dirs = os.listdir('./models')
-        dirs_to_scan = available_dirs if args.list == '' else args.list.split(',')
+        dirs_to_scan = available_dirs if args.list == '' else args.list.split(
+            ',')
         help_string = ''
         for dir in dirs_to_scan:
-            assert dir in available_dirs, "Requested to list " + dir + ", but that directory is not present in available directories: " + ','.join(available_dirs)
-            help_string += 'Test directory: ' + dir + '\n' + '*'*50 + '\n'
+            assert dir in available_dirs, "Requested to list " + dir + ", but that directory is not present in available directories: " + ','.join(
+                available_dirs)
+            help_string += 'Test directory: ' + dir + '\n' + '*' * 50 + '\n'
             currdir = './models/' + dir
             contents = os.listdir(currdir)
             if 'README.md' in contents:
@@ -237,7 +241,6 @@ if __name__ == '__main__':
             help_string += '\n'
         print(help_string)
         exit(0)
-
 
     if not (args.rewrite_test or args.functional):
         print(
@@ -260,6 +263,17 @@ if __name__ == '__main__':
 
 #TODO verbose or quiet?
 #TODO: output a shell script, for debugging purposes
+
+#TODO: we have a way to control which model/test-dirs run (using --models). But we do not have a flag for test "intensity".
+#each subtest folder has a "enable" patch and a run command.
+# Level1: These are run with "parse the NGRAPH_TF_LOG_PLACEMENT=1". These tests should be short
+# Level2: Dump pbtxts and run verify models (needs an input file that specifies certain layers. (what about all layers?)). These tests should be short
+# When Level1 is running, dump out pbtxts that can be used for Level2 tests
+# Level3: parse prints we put. These tests are run without "NGRAPH_TF_LOG_PLACEMENT=1". the framework can provide some default parsers, but users are free to add pyscripts that provide functions for custom script parsers
+# These tests can be long
+# So we can offer options to do: {1}, {1,2}, {1,2,3}, {3}  (or do we allow options for any combination of tests?)
+
+#TODO: update main README.md. Document "how-to-use" and features
 
 # Sample run script:
 # python test_main.py --rewrite_test --models MLP
