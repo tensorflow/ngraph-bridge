@@ -22,6 +22,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../../tools'))
 from build_utils import download_repo
 from tf2ngraph import get_gdef
+import atexit
 
 #TODO: update ngraph_enable.patch to be compatible with grappler build
 
@@ -37,9 +38,9 @@ def generate_functional_check_checkpoint(loc, chkpoint_save_patch, run_command):
 
 
 def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
-    command_executor.commands += cmd + '\n'
+    command_executor.commands += ('' if (msg is None) else '# ' + msg.strip('\n') + '\n') + cmd + '\n'
     if verbose or msg is not None:
-        tag = 'Running COMMAND: ' if msg is None else msg
+        tag = 'Running Command: ' if msg is None else msg
         print(tag + cmd)
     if 'cd ' == cmd[:3]:
         os.chdir(cmd.split(' ')[1])
@@ -125,6 +126,7 @@ def rewrite_test(model_dir):
         for flname in os.listdir(model_dir):
             if flname.startswith('test') and 'disabled' not in flname:
                 so, se = apply_patch_and_test(model_dir + '/' + flname)
+            command_executor.commands += '\n'
     else:
         files = os.listdir(model_dir)
         assert len(files) == 1
@@ -149,8 +151,14 @@ def rewrite_test(model_dir):
     #TODO: check if atleast some stuff was placed on ngraph. Leverage LOG_PLACEMENT
 
 
+
 def get_checkpoint():
     pass
+
+
+def dump_commands_in_shellscript(dir):
+    with open(dir + '/dump.sh', 'w') as f:
+        f.write(command_executor.commands)
 
 
 def check_functional(model_dir):
@@ -163,6 +171,8 @@ def check_functional(model_dir):
 # TODO: what if the same repo supports multiple models?
 
 if __name__ == '__main__':
+    cwd = os.getcwd()
+    atexit.register(dump_commands_in_shellscript, cwd)
     parser = argparse.ArgumentParser(
         description=
         'Testing framework for TF models. Performs 2 types of tests. A) run_only and B) functional'
@@ -184,7 +194,7 @@ if __name__ == '__main__':
         default='')
 
     # This script must be run from this location
-    assert os.getcwd().split('/')[-1] == 'model_level_tests'
+    assert cwd.split('/')[-1] == 'model_level_tests'
 
     args = parser.parse_args()
 
@@ -205,12 +215,13 @@ if __name__ == '__main__':
             rewrite_test('./models/' + model_name)
         if args.functional:
             print('Functional tests not implemented yet!!')
-    
-    with open('dump.sh', 'w') as f:
-        f.write(command_executor.commands)
+
 
 #TODO verbose or quiet?
 #TODO: output a shell script, for debugging purposes
 
 # Sample run script:
 # python test_main.py --rewrite_test --models MLP
+
+
+# features: dumps shell script at the end. dumps shell script even when the framework crashes
