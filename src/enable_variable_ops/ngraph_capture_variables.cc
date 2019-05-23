@@ -46,7 +46,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
                  function<Status(
                      Graph * graph, Node * node, Node * *replacement,
                      const string replacement_node_name,
-                     const string replacement_op_type, const bool just_looking,
+                     const string replacement_op_type, const bool is_tf_modifying,
                      const bool outputs_ng_supported, const int graph_id,
                      const bool is_backend_set)>>>
       CAPTURE_REPLACE_OP_MAP{
@@ -64,7 +64,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     if (NGraphPlacementRequested(node)) {
       // Check if the node is a VariableV2
       if (node->type_string() == "VariableV2") {
-        NGRAPH_VLOG(4) << "Found Variable: " << node->name();
+        cout << "Enable: CaptureVariables Found Variable: " << node->name() << "\n";
         // Add the Variable node to the ref list
         ref_list.insert(node);
 
@@ -93,8 +93,8 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
                                             node->name(), itr->second.first,
                                             false, false, 0, false));
 
-    NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
-                   << replacement->DebugString();
+    cout << "Replacing Node " << node->type_string() << " with "
+                   << replacement->type_string()<< "\n";
 
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
