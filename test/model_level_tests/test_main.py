@@ -129,9 +129,10 @@ def ready_repo(model_dir, repo_dl_loc):
 # TODO: this function needs to accept "do-i-dump-pbtxt"? and if so, a cleanup needs to happen later.
 # Also this function could return the list of pbtxts it generated (but does it need to? we can infer it)
 # TODO: this function should also take the level/intensity of test to run
-def rewrite_test(model_dir, configuration):
+def run_test_suite(model_dir, configuration, disabled):
     # TODO: assert TF version. Some models may not run on TF1.12 etc
     model_dir = os.path.abspath(model_dir)
+    test_suites = os.listdir(model_dir)
 
     # download/prepare repo if needed:
     repo_filename = model_dir + '/repo.txt'
@@ -151,11 +152,13 @@ def rewrite_test(model_dir, configuration):
         ready_repo(model_dir, repo_dl_loc)
 
     # Iterate through each sub-test
-    for flname in os.listdir(model_dir):
+    for flname in test_suites:
         sub_test_dir = model_dir + '/' + flname
         # if its  directory starting with test, and not containing "disabled" in its name
-        if not os.path.isfile(sub_test_dir) and flname.startswith(
-                'test') and 'disabled' not in flname:
+        item_is_a_subtest = not os.path.isfile(sub_test_dir) and flname.startswith('test')
+        disabled_by_dir_name = 'disabled' in flname
+        disabled_by_cli = flname in disabled
+        if item_is_a_subtest and (not disabled_by_dir_name) and (not disabled_by_cli):
             custom_parser_present = os.path.isfile(sub_test_dir + '/custom_log_parser.py')
             if repo_based:
                 # TODO: shift the timing inside apply_patch_and_test
@@ -280,16 +283,16 @@ if __name__ == '__main__':
     parser.add_argument(
         '--rewrite_test',
         action='store_true',
-        help='perform type a tests (rewrite_test)')
+        help='Perform type a tests (rewrite_test)')
     parser.add_argument(  # TODO: revisit this flag
         '--functional',
         action='store_true',
-        help='perform type b tests (functional)')
+        help='Perform type b tests (functional)')
     parser.add_argument(
         '--models',
         action='store',
         type=str,
-        help='comma separated list of model names',
+        help='Comma separated list of model names',
         default='')
     parser.add_argument(
         '--list',
@@ -306,6 +309,12 @@ if __name__ == '__main__':
         help=
         "The configuration in which the test is run (to choose which expected values current run's results will be compared against)",
         default='default')
+    parser.add_argument(
+        '--disable',
+        action='store',
+        type=str,
+        help='Comma separated list of model/test-suite names or sub-test names to be disabled. Eg: "MLP,DenseNet.test1"',
+        default='')
 
     # This script must be run from this location
     assert cwd.split('/')[-1] == 'model_level_tests'
@@ -320,18 +329,33 @@ if __name__ == '__main__':
         args.rewrite_test or args.functional
     ), 'No type of test enabled. Please choose --rewrite_test, --functional or both'
 
-    model_list = os.listdir(
+    requested_test_suites = os.listdir(
         'models') if args.models == '' else args.models.split(',')
-    assert len(model_list) != 0, "Number of tests expected to be > 0"
-    assert len(set(model_list).difference(set(
-        os.listdir('./models')))) == 0, "The requested tests are not present"
+    available_test_suites = os.listdir('./models/')
+    assert len(requested_test_suites) != 0, "Number of tests expected to be > 0"
+    assert len(set(requested_test_suites).difference(set(available_test_suites))) == 0, "The requested tests are not present"
+    assert all([not os.path.isfile(i) for i in available_test_suites]), "Expected that all the contents of models to be directories, but found files there"
 
-    for model_name in model_list:
-        print('Testing model: ' + model_name)
-        if args.rewrite_test:
-            rewrite_test('./models/' + model_name, args.configuration)
-        if args.functional:
-            print('Functional tests not implemented yet!!')
+    disabled_test_suite = []
+    disabled_sub_test = {}
+    if len(args.disable) > 0:
+        for item in args.disable.split(','):
+            if '.' in item:
+                test_suite, sub_test = item.split('.')
+                assert test_suite in available_test_suites, 'Request to disable ' + item + ' but ' + test_suite + ' is not a directory in models'
+                assert sub_test in os.listdir('./models/' + test_suite), 'Expected ' + sub_test + ' to be in ' + test_suite
+                disabled_sub_test[test_suite] = sub_test
+            else:
+                assert item in available_test_suites, 'Request to disable ' + item + ' which is not a directory in models'
+                disabled_test_suite.append(item)
+
+    for test_suite in requested_test_suites:
+        print('Testing model/test-suite: ' + test_suite)
+        if test_suite not in disabled_test_suite:
+            if args.rewrite_test:
+                run_test_suite('./models/' + test_suite, args.configuration, disabled_sub_test.get(test_suite, []))
+            if args.functional:
+                print('Functional tests not implemented yet!!')
 
 # TODO verbose or quiet?
 # TODO: add a way to disable tests and subtests through the CLI
