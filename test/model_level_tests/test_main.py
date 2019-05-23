@@ -154,10 +154,6 @@ def rewrite_test(model_dir, configuration):
                 so, se = apply_patch_and_test(sub_test_dir)
                 tend = time.time()
                 command_executor.commands += '\n'
-                parsed_vals = parse_logs(so)
-                expected = get_expected_from_json(sub_test_dir + '/expected.json', configuration)
-                passed, fail_help_string = compare_parsed_values(parsed_vals, expected.get('logparse', {}))
-                # TODO: call compare_parsed_values. Move parse and compare logs, outside this if repo_based
             else:
                 model = [i for i in os.listdir(sub_test_dir) if '.md' not in i and '.json' not in i]
                 assert len(model) == 1
@@ -173,6 +169,13 @@ def rewrite_test(model_dir, configuration):
                 # TODO: support checkpoint too later
                 gdef = get_gdef(model_format, sub_test_dir + '/' + model)
                 # TODO: run Level1 tests on gdef
+
+            expected_json_file = sub_test_dir + '/expected.json'
+            if os.path.isfile(expected_json_file):
+                parsed_vals = parse_logs(so)
+                expected = get_expected_from_json(expected_json_file, configuration)
+            passed, fail_help_string = compare_parsed_values(parsed_vals, expected.get('logparse', {}))
+            assert passed, 'Failed in test ' + flname + '. Help message: ' + fail_help_string
 
 
     # Clean up if needed

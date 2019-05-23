@@ -46,8 +46,6 @@ def parse_logs(log_lines):
 
 
 
-        
-
 def compare_parsed_values(parsed_vals, expected_vals):
     # Both inputs are expected to be 2 dictionaries (representing jsons)
     # The constraints in expected is <= parsed_vals. Parsed_vals should have all possible values that the parser can spit out. However expected_vals can be relaxed (even empty) and choose to only verify/match certain fields
