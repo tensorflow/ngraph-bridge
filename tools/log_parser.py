@@ -44,6 +44,23 @@ def parse_logs(log_lines):
             # TODO: fill other information as needed
     return all_results
 
+
+
+        
+
 def compare_parsed_values(parsed_vals, expected_vals):
-    # TODO
-    return True
+    # Both inputs are expected to be 2 dictionaries (representing jsons)
+    # The constraints in expected is <= parsed_vals. Parsed_vals should have all possible values that the parser can spit out. However expected_vals can be relaxed (even empty) and choose to only verify/match certain fields
+    match = lambda current, expected: all([expected[k]==current[k] for k in expected])
+    for graph_id_1 in expected_vals:
+        # The ordering is not important and could be different, hence search through all elements of parsed_vals
+        matching_id = None
+        for graph_id_2 in parsed_vals:
+            if match(expected_vals[graph_id_1], parsed_vals[graph_id_2]):
+                matching_id = graph_id_2
+                break
+        if matching_id is None:
+            return False, 'Failed to match expected graph info ' + graph_id_1
+        else:
+            parsed_vals.pop(matching_id)
+    return True, ''

@@ -28,10 +28,18 @@ import atexit
 # TODO: update ngraph_enable.patch to be compatible with grappler build
 
 
-def parse_json(json_file_name):
-    # TODO: check if the json is in agreed-upon format and has all relevant info
+def get_expected_from_json(json_file_name, configuration):
     with open(json_file_name) as f:
-        return json.load(f)
+        expected_vals = json.load(f)[configuration]
+        possible_keys_1 = set(['logparse', 'time'])
+        assert all([(k in possible_keys_1) for k in expected_vals])
+        for k in expected_vals:
+            assert k in possible_keys_1, "Got unexpected key in json: " + k + ". Expected: " + possible_keys_1
+        possible_keys_2 = set(['num_nodes_in_graph', 'num_nodes_marked_for_clustering', 'num_ng_clusters'])
+        for k in expected_vals.get('logparse', {}):
+            current_keys = set(expected_vals['logparse'][k].keys())
+            assert len(current_keys.difference(possible_keys_2)) == 0, "Got unexpected keys in json: " + current_keys + ". Expected: " + possible_keys_2
+        return expected_vals
 
 
 def generate_functional_check_checkpoint(loc, chkpoint_save_patch, run_command):
@@ -90,7 +98,7 @@ def apply_patch_and_test(test_folder):
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
-    # TODO: Add the flag, only when there is no user-specified parser in the sub-test folder
+    # TODO: Add the NGRAPH_TF_LOG_PLACEMENT=1 flag, only when there is no user-specified parser in the sub-test folder
     so, se, errcode = command_executor(
         'NGRAPH_TF_LOG_PLACEMENT=1 ' + test_folder + '/core_rewrite_test.sh',
         msg="Running test config " + test_folder.split('/')[-1] + ': ',
@@ -113,7 +121,7 @@ def ready_repo(model_dir, repo_dl_loc):
 # TODO: this function needs to accept "do-i-dump-pbtxt"? and if so, a cleanup needs to happen later.
 # Also this function could return the list of pbtxts it generated (but does it need to? we can infer it)
 # TODO: this function should also take the level/intensity of test to run
-def rewrite_test(model_dir):
+def rewrite_test(model_dir, configuration):
     # TODO: assert TF version. Some models may not run on TF1.12 etc
     model_dir = os.path.abspath(model_dir)
 
@@ -141,11 +149,14 @@ def rewrite_test(model_dir):
         if not os.path.isfile(sub_test_dir) and flname.startswith('test') and 'disabled' not in flname:
             if repo_based:
                 # TODO: shift the timing inside apply_patch_and_test
+                sub_test_dir = model_dir + '/' + flname
                 tstart = time.time()
-                so, se = apply_patch_and_test(model_dir + '/' + flname)
+                so, se = apply_patch_and_test(sub_test_dir)
                 tend = time.time()
                 command_executor.commands += '\n'
                 parsed_vals = parse_logs(so)
+                expected = get_expected_from_json(sub_test_dir + '/expected.json', configuration)
+                passed, fail_help_string = compare_parsed_values(parsed_vals, expected.get('logparse', {}))
                 # TODO: call compare_parsed_values. Move parse and compare logs, outside this if repo_based
             else:
                 model = [i for i in os.listdir(sub_test_dir) if '.md' not in i and '.json' not in i]
@@ -282,7 +293,7 @@ if __name__ == '__main__':
     for model_name in model_list:
         print('Testing model: ' + model_name)
         if args.rewrite_test:
-            rewrite_test('./models/' + model_name)
+            rewrite_test('./models/' + model_name, args.configuration)
         if args.functional:
             print('Functional tests not implemented yet!!')
 
@@ -318,3 +329,4 @@ if __name__ == '__main__':
 # feature 4: cleanup script
 # feature 5: sub tests folders must start with 'test' (else ignored). Can have 'disabled' in their names to disable
 # feature 6: default and user-specified log parsers
+# feature 7: filename is supposed to be expected.json
