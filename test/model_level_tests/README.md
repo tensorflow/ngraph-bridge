@@ -32,9 +32,9 @@ This section describes the directory structure. Indentation means sub-directorie
 1. `test suite` or `model test directory`:
     1. `repo based`: See **Directory Structure 2.1**
     2. `non-repo based`: See **Directory Structure 2.2**
-2. `sub-test`: See **2.1.5** and **2.2.5**
+2. `sub-test`: See **Directory Structure 2.1.5, 2.2.5**
 3. `log parser`: A default log parsing function `parse_logs` that parses the output of `NGRAPH_TF_LOG_PLACEMENT=1` is present in `tools/log_parser.py`.
-    1. `custom log parser`: A python file named `custom_log_parser.py` that contains a function named `custom_parse_logs`. This can be placed in a `sub-test` directory if required. If a custom parser is present, tests are not run with any flags such as `NGRAPH_TF_LOG_PLACEMENT=1` and it is up to the user to use such flags in `core_rewrite_test.sh` if they need it. The patch file (**2.1.4**, **2.1.5.1**) which can modify the repo by adding prints, and the `custom log parser`, the user can write tests that check accuracy/throughput and other metrics
+    1. `custom log parser`: A python file named `custom_log_parser.py` that contains a function named `custom_parse_logs`. This can be placed in a `sub-test` directory if required. If a custom parser is present, tests are not run with any flags such as `NGRAPH_TF_LOG_PLACEMENT=1` and it is up to the user to use such flags in `core_rewrite_test.sh` if they need it. The patch file (**Directory Structure 2.1.4, 2.1.5.1**) which can modify the repo by adding prints, and the `custom log parser`, the user can write tests that check accuracy/throughput and other metrics
 4. `configuration`: **_TODO_**
 
 ### Expected results format
