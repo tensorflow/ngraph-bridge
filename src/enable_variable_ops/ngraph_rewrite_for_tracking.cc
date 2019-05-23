@@ -36,6 +36,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
       const function<Status(
           Graph * graph, Node * node, Node * *replacement,
           const string replacement_node_name, const string replacement_op_type,
+          const bool just_looking,
           const bool is_tf_modifying, const bool outputs_ng_supported,
           const int graph_id, const bool is_backend_set)>>
       REWRITE_REPLACE_OP_MAP{{"NGraphAssign", ReplaceAssign},
@@ -81,7 +82,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
         }
       }
 
-      NGRAPH_VLOG(1) << "Just Looking: " << PrintBool(is_tf_modifying);
+      NGRAPH_VLOG(1) << "Is_TF_Modifying: " << PrintBool(is_tf_modifying);
       NGRAPH_VLOG(1) << "Outputs supported by nGraph: "
                      << PrintBool(outputs_ng_supported);
       NGRAPH_VLOG(1) << "Requires Replacement "
@@ -90,8 +91,8 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
       std::string node_new_name = node->name();
 
       if (is_tf_modifying) {
-        cout << "Just looking: " << node->name() << "\n";
-        node_new_name += "/peek";
+        cout << "Is_TF_Modifying: " << node->name() << "\n";
+        node_new_name += "/tf_modifying";
       }
 
       if (!outputs_ng_supported) {
@@ -106,7 +107,8 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
 
       // Create and add the replacement node
       TF_RETURN_IF_ERROR((itr->second)(graph, node, &replacement, node_new_name,
-                                       node->type_string(), is_tf_modifying,
+                                       node->type_string(), true, 
+                                       is_tf_modifying,
                                        outputs_ng_supported, graph_id, true));
 
       TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));

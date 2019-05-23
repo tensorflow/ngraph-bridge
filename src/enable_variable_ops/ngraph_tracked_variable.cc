@@ -64,6 +64,7 @@ class NGraphVariableOp : public OpKernel {
   DataType dtype_;
   TensorShape shape_;
   bool is_tf_modifying_;
+  bool just_looking_;
   bool copy_to_tf_;
   NGraphFreshnessTracker* tracker_;
   string ng_backend_name_;
@@ -81,6 +82,7 @@ int NGraphVariableOp::s_instance_count = 0;
 NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
     : OpKernel(context),
       tracker_(nullptr),
+      just_looking_(true),
       is_tf_modifying_(false),
       copy_to_tf_(false),
       dtype_(RemoveRefType(context->output_type(0))) {
@@ -88,6 +90,7 @@ NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
   s_instance_count++;
 
   OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
+  OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
   OP_REQUIRES_OK(context, context->GetAttr("is_tf_modifying", &is_tf_modifying_));
   OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
   OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
@@ -274,6 +277,7 @@ REGISTER_OP("NGraphVariable")
     .Output("ref: Ref(dtype)")
     .Attr("shape: shape")
     .Attr("dtype: type")
+    .Attr("just_looking: bool = true")
     .Attr("is_tf_modifying: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("container: string = ''")

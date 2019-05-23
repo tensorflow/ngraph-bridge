@@ -51,6 +51,7 @@ class NGraphAssignOp : public OpKernel {
   bool is_tf_modifying_;
   bool copy_to_tf_;
   int ng_graph_id_;
+  bool just_looking_;
   static int s_instance_count;
   int my_instance_id{0};
 
@@ -64,10 +65,12 @@ class NGraphAssignOp : public OpKernel {
     OP_REQUIRES_OK(context, context->GetAttr("is_tf_modifying", &is_tf_modifying_));
     OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
     OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
+    OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Constructor called for: " << def().name()
-                   << ",just looking " << PrintBool(is_tf_modifying_)
-                   << ",copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
+                   << ", is_tf_modifying " << PrintBool(is_tf_modifying_)
+                   << ", just_looking " << PrintBool(just_looking_)
+                   << ", copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
                    << ng_graph_id_;
 
     OP_REQUIRES(context, IsRefType(context->input_type(0)),
@@ -82,8 +85,9 @@ class NGraphAssignOp : public OpKernel {
     ngraph::Event event_compute(oss.str(), name(), "");
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Compute called for: " << def().name()
-                   << " ,just looking " << PrintBool(is_tf_modifying_)
-                   << " ,copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
+                   << ", is_tf_modifying " << PrintBool(is_tf_modifying_)
+                   << ", just_looking " << PrintBool(just_looking_)
+                   << ", copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
                    << ng_graph_id_;
 
     bool log_copies = false;
@@ -91,8 +95,9 @@ class NGraphAssignOp : public OpKernel {
                    IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
     std::stringstream copy_log_str;
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-                 << " ,Copy_TF " << PrintBool(copy_to_tf_) << " ,is_tf_modifying "
-                 << PrintBool(is_tf_modifying_) << "\n";
+                 << " ,Copy_TF " << PrintBool(copy_to_tf_) << ", is_tf_modifying "
+                 << PrintBool(is_tf_modifying_) 
+                 << ", just_looking " << PrintBool(just_looking_) << "\n";
     int number_of_copies = 0;
 
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
@@ -175,6 +180,7 @@ REGISTER_OP("NGraphAssign")
     .Attr("T: type")
     .Attr("validate_shape: bool = true")
     .Attr("use_locking: bool = true")
+    .Attr("just_looking: bool = true")
     .Attr("is_tf_modifying: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
