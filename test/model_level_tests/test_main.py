@@ -28,7 +28,7 @@ import atexit
 # TODO: update ngraph_enable.patch to be compatible with grappler build
 
 
-def get_expected_from_json(json_file_name, configuration):
+def get_expected_from_json(json_file_name, configuration, strict):
     with open(json_file_name) as f:
         expected_vals = json.load(f)[configuration]
         possible_keys_1 = set(['logparse', 'time'])
@@ -38,7 +38,8 @@ def get_expected_from_json(json_file_name, configuration):
         possible_keys_2 = set(['num_nodes_in_graph', 'num_nodes_marked_for_clustering', 'num_ng_clusters'])
         for k in expected_vals.get('logparse', {}):
             current_keys = set(expected_vals['logparse'][k].keys())
-            assert len(current_keys.difference(possible_keys_2)) == 0, "Got unexpected keys in json: " + current_keys + ". Expected: " + possible_keys_2
+            if strict:
+                assert len(current_keys.difference(possible_keys_2)) == 0, "Got unexpected keys in json: " + str(current_keys) + ". Expected: " + str(possible_keys_2)
         return expected_vals
 
 
@@ -172,8 +173,15 @@ def rewrite_test(model_dir, configuration):
 
             expected_json_file = sub_test_dir + '/expected.json'
             if os.path.isfile(expected_json_file):
-                parsed_vals = parse_logs(so)
-                expected = get_expected_from_json(expected_json_file, configuration)
+                custom_parser_present = os.path.isfile(sub_test_dir + '/custom_log_parser.py')
+                if custom_parser_present:
+                    sys.path.insert(0, os.path.abspath(sub_test_dir))
+                    from custom_log_parser import custom_parse_logs
+                    parsed_vals = custom_parse_logs(so)
+                    sys.path.pop(0)
+                else:
+                    parsed_vals = parse_logs(so)
+                expected = get_expected_from_json(expected_json_file, configuration, not custom_parser_present)
             passed, fail_help_string = compare_parsed_values(parsed_vals, expected.get('logparse', {}))
             # TODO: right now the script will grind to a halt at the first failure. Fix that by powering through all tests and then printing in the end how many passed or failed
             assert passed, 'Failed in test ' + flname + '. Help message: ' + fail_help_string
@@ -337,5 +345,6 @@ if __name__ == '__main__':
 # feature 3: "expected" values can be varied by different configs
 # feature 4: cleanup script
 # feature 5: sub tests folders must start with 'test' (else ignored). Can have 'disabled' in their names to disable
-# feature 6: default and user-specified log parsers
+# feature 6: default and user-specified log parsers (named custom_log_parser.py, which is expected to contain a function custom_parse_logs)
 # feature 7: filename is supposed to be expected.json
+# feature 8: enable_ngraph can be placed in each test dir or in the model dir for all subtests to share. test folder's patch overrides global model folder patch
