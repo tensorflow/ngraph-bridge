@@ -168,14 +168,20 @@ def rewrite_test(model_dir, configuration):
                     assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
                 # TODO: support checkpoint too later
                 gdef = get_gdef(model_format, sub_test_dir + '/' + model)
-                # TODO: run Level1 tests on gdef
+                # TODO: run Level1 tests on gdef. needs another json for that (one which specifies input shapes etc)
 
             expected_json_file = sub_test_dir + '/expected.json'
             if os.path.isfile(expected_json_file):
                 parsed_vals = parse_logs(so)
                 expected = get_expected_from_json(expected_json_file, configuration)
             passed, fail_help_string = compare_parsed_values(parsed_vals, expected.get('logparse', {}))
+            # TODO: right now the script will grind to a halt at the first failure. Fix that by powering through all tests and then printing in the end how many passed or failed
             assert passed, 'Failed in test ' + flname + '. Help message: ' + fail_help_string
+            if 'time' in expected:
+                actual_runtime = tend - tstart
+                # TODO: decide this criteria. time can be pretty variable
+                assert (actual_runtime - expected['time'])/expected['time'] < 0.1, "Expected run time for test " + flname + " is " + str(expected['time']) + " but it actually took " + str(actual_runtime)
+
 
 
     # Clean up if needed
