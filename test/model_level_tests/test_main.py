@@ -106,7 +106,7 @@ def apply_patch_and_test(test_folder, env_flags):
         command_executor('git apply ' + patch_file)
 
     so, se, errcode = command_executor(
-        env_flags + ' ' + test_folder + '/core_rewrite_test.sh',
+        env_flags + ' ' + test_folder + '/core_run.sh',
         msg="Running test config " + test_folder.split('/')[-1] + ': ',
         stdout=PIPE,
         stderr=PIPE)
@@ -272,13 +272,13 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--rewrite_test',
+        '--run_logparse_tests',
         action='store_true',
-        help='Perform type a tests (rewrite_test)')
+        help='Perform type A tests (Log parsing)')
     parser.add_argument(  # TODO: revisit this flag
-        '--functional',
+        '--run_functional_tests',
         action='store_true',
-        help='Perform type b tests (functional)')
+        help='Perform type B tests (functional, random input)')
     parser.add_argument(
         '--models',
         action='store',
@@ -317,8 +317,8 @@ if __name__ == '__main__':
         exit(0)
 
     assert (
-        args.rewrite_test or args.functional
-    ), 'No type of test enabled. Please choose --rewrite_test, --functional or both'
+        args.run_logparse_tests or args.run_functional_tests
+    ), 'No type of test enabled. Please choose --run_logparse_tests, --functional or both'
 
     requested_test_suites = os.listdir(
         'models') if args.models == '' else args.models.split(',')
@@ -343,9 +343,9 @@ if __name__ == '__main__':
     for test_suite in requested_test_suites:
         print('Testing model/test-suite: ' + test_suite)
         if test_suite not in disabled_test_suite:
-            if args.rewrite_test:
+            if args.run_logparse_tests:
                 run_test_suite('./models/' + test_suite, args.configuration, disabled_sub_test.get(test_suite, []))
-            if args.functional:
+            if args.run_functional_tests:
                 print('Functional tests not implemented yet!!')
 
 # TODO verbose or quiet?
@@ -368,7 +368,7 @@ if __name__ == '__main__':
 # dictionary of expected values. key is a config, value is the expected values json. there is a "default" config, but one can add other configs (for example for other backends etc)
 
 # Sample run script:
-# python test_main.py --rewrite_test --models MLP
+# python test_main.py --run_logparse_tests --models MLP
 
 # feature 1: dumps shell script at the end. dumps shell script even when the framework crashes
 # feature 2: prints list of tests and their descriptions (--list)
