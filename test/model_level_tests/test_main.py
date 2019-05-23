@@ -105,7 +105,6 @@ def apply_patch_and_test(test_folder, env_flags):
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
-    # TODO: Add the NGRAPH_TF_LOG_PLACEMENT=1 flag, only when there is no user-specified parser in the sub-test folder
     so, se, errcode = command_executor(
         env_flags + ' ' + test_folder + '/core_rewrite_test.sh',
         msg="Running test config " + test_folder.split('/')[-1] + ': ',
@@ -125,7 +124,6 @@ def ready_repo(model_dir, repo_dl_loc):
         command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
 
 
-# TODO: this function needs a name change
 # TODO: this function needs to accept "do-i-dump-pbtxt"? and if so, a cleanup needs to happen later.
 # Also this function could return the list of pbtxts it generated (but does it need to? we can infer it)
 # TODO: this function should also take the level/intensity of test to run
@@ -147,7 +145,7 @@ def run_test_suite(model_dir, configuration, disabled):
         repo_name = repo_info[0]
         repo_version = repo_info[1] if len(repo_info) == 2 else 'master'
         repo_dl_loc = model_dir + '/downloaded_model'
-        # TODO: download only when needed?
+        # TODO: download only when needed? If already present, check if on the right branch
         download_repo(repo_dl_loc, repo_name, repo_version)
         ready_repo(model_dir, repo_dl_loc)
 
@@ -224,11 +222,7 @@ def run_test_suite(model_dir, configuration, disabled):
     # TODO: add axpy test folders for pb. pbtxt and savedmodel
     # TODO integrate the if-else paths as much as possible
 
-    # TODO: check if failed or passed
-    # TODO: check if ran to completion
-    # TODO: check if ran within a prefixed amount of time
     # TODO: check throughput/latency
-    # TODO: check if atleast some stuff was placed on ngraph. Leverage LOG_PLACEMENT
 
 
 def get_checkpoint():
@@ -268,9 +262,6 @@ def get_test_list_string(string):
         help_string += '\n'
     return help_string
 
-
-# TODO: what of same model but different configs?
-# TODO: what if the same repo supports multiple models?
 
 if __name__ == '__main__':
     cwd = os.getcwd()
@@ -358,7 +349,6 @@ if __name__ == '__main__':
                 print('Functional tests not implemented yet!!')
 
 # TODO verbose or quiet?
-# TODO: add a way to disable tests and subtests through the CLI
 
 # TODO: what happens in case of shrestha's change. maybe expected number of clusters etc is different for normal path and var-opt path. Can be taken care of by --configuration. However user will have to decide if grappler, then use this config. it could possibly be auto-detected
 
@@ -376,8 +366,6 @@ if __name__ == '__main__':
 
 # Structure of "expected json"
 # dictionary of expected values. key is a config, value is the expected values json. there is a "default" config, but one can add other configs (for example for other backends etc)
-
-# TODO: update main README.md. Document "how-to-use" and features
 
 # Sample run script:
 # python test_main.py --rewrite_test --models MLP
