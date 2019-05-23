@@ -300,6 +300,7 @@ if __name__ == '__main__':
         '--run_functional_tests',
         action='store_true',
         help='Perform type B tests (functional, random input)')
+    # TODO: if needed we can pass an arg here that indicates the dir where all the test-suites are. Currently its assumed to be `models`
     parser.add_argument(
         '--models',
         action='store',
