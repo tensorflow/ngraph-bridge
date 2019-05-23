@@ -240,27 +240,48 @@ def check_functional(model_dir):
     pass
 
 
-def get_test_list_string(string):
+def get_test_list_string(string, disabled_test_suite, disabled_sub_test):
     available_dirs = os.listdir('./models')
     dirs_to_scan = available_dirs if string == '' else string.split(',')
     help_string = ''
     for dir in dirs_to_scan:
         assert dir in available_dirs, "Requested to list " + dir + ", but that directory is not present in available directories: " + ','.join(
             available_dirs)
-        help_string += 'Test directory: ' + dir + '\n' + '*' * 50 + '\n'
+        help_string += ("\033[1;32m", "\033[1;31m")[dir in disabled_test_suite]
+        help_string += 'Test suite: ' + dir + '\033[0;0m\n'
         currdir = './models/' + dir
         if os.path.isfile(currdir + '/README.md'):
             with open(currdir + '/README.md') as f:
                 help_string += '\n'.join(f.readlines()) + '\n'
         for c in os.listdir(currdir):
-            if os.path.isdir(c):
-                help_string += 'Test: ' + c + '\n'
-                currtest_readme = currdir + '/' + c + '/README.md'
-                if os.path.isfile(currtest_readme):
-                    with open(currtest_readme) as f:
-                        help_string += '\n'.join(f.readlines()) + '\n'
-        help_string += '\n'
+            if c.startswith('test'):
+                sub_test = currdir + '/' + c
+                if os.path.isdir(sub_test):
+                    help_string += ("\033[1;32m","\033[1;31m")['disabled' in c or dir in disabled_test_suite or c in disabled_sub_test.get(dir, [])]
+                    help_string += '\tSub test: ' + c + '\033[0;0m\n'
+                    currtest_readme = sub_test + '/README.md'
+                    if os.path.isfile(currtest_readme):
+                        with open(currtest_readme) as f:
+                            help_string += '\n'.join(['\t'+i for i in f.readlines()]) + '\n'
+        help_string += '\n' + '*' * 50 + '\n\n'
     return help_string
+
+def get_disabled_tests_info():
+    available_test_suites = os.listdir('./models/')
+    # TODO assert we are in model_level_tests
+    disabled_test_suite = []
+    disabled_sub_test = {}
+    if len(args.disable) > 0:
+        for item in args.disable.split(','):
+            if '.' in item:
+                test_suite, sub_test = item.split('.')
+                assert test_suite in available_test_suites, 'Request to disable ' + item + ' but ' + test_suite + ' is not a directory in models'
+                assert sub_test in os.listdir('./models/' + test_suite), 'Expected ' + sub_test + ' to be in ' + test_suite
+                disabled_sub_test[test_suite] = sub_test
+            else:
+                assert item in available_test_suites, 'Request to disable ' + item + ' which is not a directory in models'
+                disabled_test_suite.append(item)
+    return disabled_test_suite, disabled_sub_test
 
 
 if __name__ == '__main__':
@@ -287,11 +308,9 @@ if __name__ == '__main__':
         default='')
     parser.add_argument(
         '--list',
-        action='store',
-        type=str,
+        action='store_true',
         help=
-        'List all tests if empty string is passed, else list tests of the directories in the comma separated string that was passed',
-        default=None)
+        'List all tests or only those tests selected by --models and --disable')
     # TODO: add some pre-set configuration types. We already have "default", add "grappler", "var-opt", etc
     parser.add_argument(
         '--configuration',
@@ -312,8 +331,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.list is not None:
-        print(get_test_list_string(args.list))
+    available_test_suites = os.listdir('./models/')
+
+    disabled_test_suite, disabled_sub_test = get_disabled_tests_info()
+
+    if args.list:
+        print(get_test_list_string(args.models, disabled_test_suite, disabled_sub_test))
         exit(0)
 
     assert (
@@ -322,23 +345,10 @@ if __name__ == '__main__':
 
     requested_test_suites = os.listdir(
         'models') if args.models == '' else args.models.split(',')
-    available_test_suites = os.listdir('./models/')
+    
     assert len(requested_test_suites) != 0, "Number of tests expected to be > 0"
     assert len(set(requested_test_suites).difference(set(available_test_suites))) == 0, "The requested tests are not present"
     assert all([not os.path.isfile(i) for i in available_test_suites]), "Expected that all the contents of models to be directories, but found files there"
-
-    disabled_test_suite = []
-    disabled_sub_test = {}
-    if len(args.disable) > 0:
-        for item in args.disable.split(','):
-            if '.' in item:
-                test_suite, sub_test = item.split('.')
-                assert test_suite in available_test_suites, 'Request to disable ' + item + ' but ' + test_suite + ' is not a directory in models'
-                assert sub_test in os.listdir('./models/' + test_suite), 'Expected ' + sub_test + ' to be in ' + test_suite
-                disabled_sub_test[test_suite] = sub_test
-            else:
-                assert item in available_test_suites, 'Request to disable ' + item + ' which is not a directory in models'
-                disabled_test_suite.append(item)
 
     for test_suite in requested_test_suites:
         print('Testing model/test-suite: ' + test_suite)

@@ -48,7 +48,8 @@ Expected results are specified in a json file of the following format:
             4. to be expanded as the default `log parser` produces more information
     2. `time` (*Optional*): Time in seconds
 
-<img src="./test_framework.svg">
+<img src="./resources/test_framework.svg">
+<img src="./resources/list.png">
 
 ## Features and sample uses
 
