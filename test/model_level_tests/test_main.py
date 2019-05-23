@@ -85,7 +85,7 @@ def return_to_cwd(f):
 
 
 @return_to_cwd
-def apply_patch_and_test(test_folder):
+def apply_patch_and_test(test_folder, env_flags):
     model_dir = os.path.abspath(test_folder + '/..')
     downloaded_repo = os.path.abspath(model_dir + '/downloaded_model')
     command_executor('cd ' + model_dir)
@@ -107,7 +107,7 @@ def apply_patch_and_test(test_folder):
 
     # TODO: Add the NGRAPH_TF_LOG_PLACEMENT=1 flag, only when there is no user-specified parser in the sub-test folder
     so, se, errcode = command_executor(
-        'NGRAPH_TF_LOG_PLACEMENT=1 ' + test_folder + '/core_rewrite_test.sh',
+        env_flags + ' ' + test_folder + '/core_rewrite_test.sh',
         msg="Running test config " + test_folder.split('/')[-1] + ': ',
         stdout=PIPE,
         stderr=PIPE)
@@ -156,11 +156,12 @@ def rewrite_test(model_dir, configuration):
         # if its  directory starting with test, and not containing "disabled" in its name
         if not os.path.isfile(sub_test_dir) and flname.startswith(
                 'test') and 'disabled' not in flname:
+            custom_parser_present = os.path.isfile(sub_test_dir + '/custom_log_parser.py')
             if repo_based:
                 # TODO: shift the timing inside apply_patch_and_test
                 sub_test_dir = model_dir + '/' + flname
                 tstart = time.time()
-                so, se = apply_patch_and_test(sub_test_dir)
+                so, se = apply_patch_and_test(sub_test_dir, ('NGRAPH_TF_LOG_PLACEMENT=1', '')[custom_parser_present])
                 tend = time.time()
                 command_executor.commands += '\n'
             else:
@@ -184,8 +185,6 @@ def rewrite_test(model_dir, configuration):
 
             expected_json_file = sub_test_dir + '/expected.json'
             if os.path.isfile(expected_json_file):
-                custom_parser_present = os.path.isfile(sub_test_dir +
-                                                       '/custom_log_parser.py')
                 if custom_parser_present:
                     sys.path.insert(0, os.path.abspath(sub_test_dir))
                     from custom_log_parser import custom_parse_logs
