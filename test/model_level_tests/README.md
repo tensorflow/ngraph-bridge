@@ -52,3 +52,16 @@ Expected results are specified in a json file of the following format:
 
 ## Features and sample uses
 
+**_TODO_**
+
+Dumping some points:
+* dumps shell script at the end. dumps shell script even when the framework crashes
+* prints list of tests and their descriptions (--list)
+* "expected" values can be varied by different configs
+* cleanup script
+* sub tests folders must start with 'test' (else ignored). Can have 'disabled' in their names to disable
+* default and user-specified log parsers (named custom_log_parser.py, which is expected to contain a function custom_parse_logs)
+* filename is supposed to be expected.json
+* enable_ngraph can be placed in each test dir or in the model dir for all subtests to share. test folder's patch overrides global model folder patch
+
+
