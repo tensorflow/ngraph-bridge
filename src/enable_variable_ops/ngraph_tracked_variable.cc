@@ -82,7 +82,7 @@ int NGraphVariableOp::s_instance_count = 0;
 NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
     : OpKernel(context),
       tracker_(nullptr),
-      just_looking_(true),
+      just_looking_(false),
       is_tf_modifying_(false),
       copy_to_tf_(false),
       dtype_(RemoveRefType(context->output_type(0))) {
@@ -96,10 +96,11 @@ NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
   OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
   OP_REQUIRES_OK(context,
                  context->GetAttr("_ngraph_backend", &ng_backend_name_));
-  // cout << "NGraphVariable:: Constructor called for: " << def().name()
-  //                << " ,just looking " << is_tf_modifying_ << " ,copy-to-tf "
-  //                << copy_to_tf_ << " ,Graph ID " << ng_graph_id_
-  //                << " ,backend_name " << ng_backend_name_ << "\n";
+  NGRAPH_VLOG(4) << "NGraphVariable:: Constructor called for: " << def().name()
+                 << " ,just looking " << just_looking_ << "is_tf_modifying "
+                 << is_tf_modifying_ << " ,copy-to-tf "
+                 << copy_to_tf_ << " ,Graph ID " << ng_graph_id_
+                 << " ,backend_name " << ng_backend_name_ << "\n";
 }
 
 NGraphVariableOp::~NGraphVariableOp() {
@@ -110,10 +111,11 @@ NGraphVariableOp::~NGraphVariableOp() {
 // (Changes: Renamed from VariableOp, modified to pass TensorShape to NGraphVar
 // constructor.)
 void NGraphVariableOp::Compute(OpKernelContext* ctx) {
-  // cout << "NGraphVariable:: Compute called for: " << def().name()
-  //                << " ,just looking " << is_tf_modifying_ << " ,copy-to-tf "
-  //                << copy_to_tf_ << " ,Graph ID " << ng_graph_id_
-  //                << " ,backend_name " << ng_backend_name_<< "\n";
+  NGRAPH_VLOG(4) << "NGraphVariable:: Compute called for: " << def().name()
+                 << " ,just looking " << just_looking_ << "is_tf_modifying "
+                 << is_tf_modifying_ << " ,copy-to-tf "
+                 << copy_to_tf_ << " ,Graph ID " << ng_graph_id_
+                 << " ,backend_name " << ng_backend_name_;
 
   std::ostringstream oss;
   oss << "NGraphVariable: " << my_instance_id << ": " << name();
@@ -158,7 +160,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   }
 
   auto creator = [this](NGraphVar** var) {
-    // cout << "Create NGraphVar Tensors for " << name() << endl;
+    NGRAPH_VLOG(4) << "Create NGraphVar Tensors for " << name() << endl;
     *var = new NGraphVar(dtype_, shape_, ng_backend_name_);
     return Status::OK();
   };
@@ -177,8 +179,8 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   if (var->need_sync_ng_tensor()) {
     number_of_copies++;
     copy_log_str << "Var_Sync ";
-    cout << "in tracked variable, ng tensor behind, needs to sync "
-                      "with tf-tensor" << "\n";
+    NGRAPH_VLOG(4) << "in tracked variable, ng tensor behind, needs to sync "
+                      "with tf-tensor";
     WriteNGTensor(var->ng_tensor(), var->tensor());
     var->sync_ng_tensor(false);
     just_synced = true;
@@ -198,8 +200,6 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     return Status::OK();
   };
   if (tracker_ == nullptr) {
-      cout << "TrackedVariable: Variable " << ctx->op_kernel().name()
-                     << ": getting tracker"<< "\n";
     if (NGRAPH_VLOG_IS_ON(5)) {
       NGRAPH_VLOG(5) << "Variable " << ctx->op_kernel().name()
                      << ": getting tracker";
@@ -208,21 +208,21 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
         ctx, ctx->resource_manager()->LookupOrCreate<NGraphFreshnessTracker>(
                  ctx->resource_manager()->default_container(),
                  "ngraph_freshness_tracker", &tracker_, t_creator));
-    // if (NGRAPH_VLOG_IS_ON(5)) {
-      cout << "Variable " << ctx->op_kernel().name()
-                     << ": got tracker"<< "\n";
-    // }
+    if (NGRAPH_VLOG_IS_ON(5)) {
+      NGRAPH_VLOG(5) << "Variable " << ctx->op_kernel().name()
+                     << ": got tracker";
+    }
   }
 
-  // if (NGRAPH_VLOG_IS_ON(5)) {
-    cout << "Variable " << ctx->op_kernel().name() << ": adding "
-                   << DMAHelper::base(var->tensor())<< "\n";
-  // }
+  if (NGRAPH_VLOG_IS_ON(5)) {
+    NGRAPH_VLOG(5) << "Variable " << ctx->op_kernel().name() << ": adding "
+                   << DMAHelper::base(var->tensor());
+  }
   tracker_->AddTensor(DMAHelper::base(var->tensor()));
-  // if (NGRAPH_VLOG_IS_ON(5)) {
-    cout << "Variable " << ctx->op_kernel().name() << ": added "
-                   << DMAHelper::base(var->tensor())<< "\n";
-  // }
+  if (NGRAPH_VLOG_IS_ON(5)) {
+    NGRAPH_VLOG(5) << "Variable " << ctx->op_kernel().name() << ": added "
+                   << DMAHelper::base(var->tensor());
+  }
 
   if (copy_to_tf_) {
     if (!just_synced) {
@@ -233,7 +233,6 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     }
 
     if (!is_tf_modifying_) {
-      cout << "TrackedVariable: Not is_tf_modifying -1\n";
       // Some tf op might update the tf-tensor
       // So we need to sync_it_later
       var->sync_ng_tensor(true);
@@ -246,18 +245,17 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     cout << copy_log_str.str();
   }
 
-  // if (!is_tf_modifying_) {
-  //   // if (NGRAPH_VLOG_IS_ON(5)) {
-  //     cout << "TrackedVariable: Not is_tf_modifying -2\n";
-  //     cout << "TrackedVariableVariable " << ctx->op_kernel().name() << ": marking "
-  //                    << DMAHelper::base(var->tensor()) << "\n";
-  //   // }
-  //   tracker_->MarkStale(DMAHelper::base(var->tensor()));
-  //   // if (NGRAPH_VLOG_IS_ON(5)) {
-  //     cout << "Variable " << ctx->op_kernel().name() << ": marked "
-  //                    << DMAHelper::base(var->tensor())<< "\n";
-  //   // }
-  // }
+  if (!just_looking_) {
+    if (NGRAPH_VLOG_IS_ON(5)) {
+      NGRAPH_VLOG(5) << "Variable " << ctx->op_kernel().name() << ": marking "
+                     << DMAHelper::base(var->tensor());
+    }
+    tracker_->MarkStale(DMAHelper::base(var->tensor()));
+    if (NGRAPH_VLOG_IS_ON(5)) {
+      NGRAPH_VLOG(5) << "Variable " << ctx->op_kernel().name() << ": marked "
+                     << DMAHelper::base(var->tensor());
+    }
+  }
   // To output a reference.  Caller retains ownership of mu and tensor_for_ref,
   // and they must outlive all uses within the step. See comment above.
   // REQUIRES: IsRefType(expected_output_dtype(index))
@@ -277,7 +275,7 @@ REGISTER_OP("NGraphVariable")
     .Output("ref: Ref(dtype)")
     .Attr("shape: shape")
     .Attr("dtype: type")
-    .Attr("just_looking: bool = true")
+    .Attr("just_looking: bool = false")
     .Attr("is_tf_modifying: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("container: string = ''")

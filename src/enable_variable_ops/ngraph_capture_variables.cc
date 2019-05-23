@@ -65,7 +65,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     if (NGraphPlacementRequested(node)) {
       // Check if the node is a VariableV2
       if (node->type_string() == "VariableV2") {
-        cout << "Enable: CaptureVariables Found Variable: " << node->name() << "\n";
+        NGRAPH_VLOG(4) << "Found Variable: " << node->name();
         // Add the Variable node to the ref list
         ref_list.insert(node);
 
@@ -96,9 +96,6 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
                                               false, false, 0, false));
     NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
                    << replacement->DebugString();
-
-    cout << "Replacing Node " << node->DebugString() << " with "
-                   << replacement->DebugString() << "\n";
 
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
