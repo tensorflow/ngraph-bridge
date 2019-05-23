@@ -24,6 +24,7 @@
 
 #include "tensorflow/core/platform/default/logging.h"
 
+#include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
 #include "ngraph_backend_manager.h"
 #include "ngraph_freshness_tracker.h"
@@ -61,14 +62,15 @@ class NGraphVar : public ResourceBase {
 
     // Create nGTensor
     ng_tf_share_buffer_ = (ng_backend_name_ == "CPU");
-
-    // if(ng_tf_share_buffer_){
-
-    //    ng_tensor_ = op_backend->create_tensor(ng_element_type, ng_shape);
-    // }
-    // else{
-    ng_tensor_ = op_backend->create_tensor(ng_element_type, ng_shape);
-    //}
+    // cout << "NGraphVar:: Share Buffer "<< PrintBool(ng_tf_share_buffer_)
+    // <<endl;
+    if (ng_tf_share_buffer_) {
+      void* tf_src_ptr = (void*)DMAHelper::base(&tf_tensor_);
+      ng_tensor_ =
+          op_backend->create_tensor(ng_element_type, ng_shape, tf_src_ptr);
+    } else {
+      ng_tensor_ = op_backend->create_tensor(ng_element_type, ng_shape);
+    }
   }
   // Not copyable or movable.
   NGraphVar(const NGraphVar&) = delete;
@@ -92,7 +94,13 @@ class NGraphVar : public ResourceBase {
   // Involves a copy from device to host
   // Returns the number of copies made (0 or 1)
   int copy_ng_to_tf() {
+    if (ng_tf_share_buffer_) {
+      return 0;
+    }
+    ngraph::Event event_sync_ng_tf_tensors("sync ng-tf-tensors D2H", "", "");
     ReadNGTensor(ng_tensor_, &tf_tensor_);
+    event_sync_ng_tf_tensors.Stop();
+    ngraph::Event::write_trace(event_sync_ng_tf_tensors);
     return 1;
   }
 
@@ -100,7 +108,13 @@ class NGraphVar : public ResourceBase {
   // Involves a copy from host to device
   // Returns the number of copies made (0 or 1)
   int copy_tf_to_ng() {
+    if (ng_tf_share_buffer_) {
+      return 0;
+    }
+    ngraph::Event event_sync_ng_tf_tensors("sync ng-tf-tensors H2D", "", "");
     WriteNGTensor(ng_tensor_, &tf_tensor_);
+    event_sync_ng_tf_tensors.Stop();
+    ngraph::Event::write_trace(event_sync_ng_tf_tensors);
     return 1;
   }
 
@@ -108,10 +122,33 @@ class NGraphVar : public ResourceBase {
   // It updates ng_tensor by copy_tf_to_ng
   // Returns the number of copies made (0 or 1)
   int sync_ng_tensor() {
+    if (ng_tf_share_buffer_) {
+      return 0;
+    }
     if (sync_ng_tensor_) {
       return copy_tf_to_ng();
     }
     return 0;
+  }
+
+  // updates the NGTensor with the new value
+  int update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value) {
+    ng_tensor_->copy_from(*new_value);
+    return 0;
+  }
+
+  // updates the NGTensor with the new value
+  int update_ng_tensor(Tensor* new_value) {
+    if (ng_tf_share_buffer_) {
+      void* tf_src_ptr = (void*)DMAHelper::base(new_value);
+      ng::runtime::Backend* op_backend =
+          BackendManager::GetBackend(ng_backend_name_);
+      auto ng_tensor_new_value = op_backend->create_tensor(
+          ng_tensor_->get_element_type(), ng_tensor_->get_shape(), tf_src_ptr);
+      return update_ng_tensor(ng_tensor_new_value);
+    }
+    WriteNGTensor(ng_tensor_, new_value);
+    return 1;
   }
 
  private:

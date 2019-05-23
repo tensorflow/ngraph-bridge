@@ -186,9 +186,10 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     // If it was just synced from TF
     // We dont need to sync again
     if (!just_synced) {
-      number_of_copies++;
-      copy_log_str << " COPY_TF ";
-      var->copy_ng_to_tf();
+      if (var->copy_ng_to_tf()) {
+        number_of_copies++;
+        copy_log_str << " COPY_TF ";
+      }
       NGRAPH_VLOG(4) << "Copying to TF Tensor";
     }
 
