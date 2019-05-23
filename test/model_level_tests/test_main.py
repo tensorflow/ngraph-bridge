@@ -35,11 +35,17 @@ def get_expected_from_json(json_file_name, configuration, strict):
         assert all([(k in possible_keys_1) for k in expected_vals])
         for k in expected_vals:
             assert k in possible_keys_1, "Got unexpected key in json: " + k + ". Expected: " + possible_keys_1
-        possible_keys_2 = set(['num_nodes_in_graph', 'num_nodes_marked_for_clustering', 'num_ng_clusters'])
+        possible_keys_2 = set([
+            'num_nodes_in_graph', 'num_nodes_marked_for_clustering',
+            'num_ng_clusters'
+        ])
         for k in expected_vals.get('logparse', {}):
             current_keys = set(expected_vals['logparse'][k].keys())
             if strict:
-                assert len(current_keys.difference(possible_keys_2)) == 0, "Got unexpected keys in json: " + str(current_keys) + ". Expected: " + str(possible_keys_2)
+                assert len(
+                    current_keys.difference(possible_keys_2)
+                ) == 0, "Got unexpected keys in json: " + str(
+                    current_keys) + ". Expected: " + str(possible_keys_2)
         return expected_vals
 
 
@@ -118,6 +124,7 @@ def ready_repo(model_dir, repo_dl_loc):
     if os.path.isfile(model_dir + '/getting_repo_ready.sh'):
         command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
 
+
 # TODO: this function needs a name change
 # TODO: this function needs to accept "do-i-dump-pbtxt"? and if so, a cleanup needs to happen later.
 # Also this function could return the list of pbtxts it generated (but does it need to? we can infer it)
@@ -128,7 +135,7 @@ def rewrite_test(model_dir, configuration):
 
     # download/prepare repo if needed:
     repo_filename = model_dir + '/repo.txt'
-    repo_based = False # Is this test dir repo based or pb/pbtxt/savedmodel based?
+    repo_based = False  # Is this test dir repo based or pb/pbtxt/savedmodel based?
     if os.path.isfile(repo_filename):
         repo_based = True
         repo_info = [
@@ -147,7 +154,8 @@ def rewrite_test(model_dir, configuration):
     for flname in os.listdir(model_dir):
         sub_test_dir = model_dir + '/' + flname
         # if its  directory starting with test, and not containing "disabled" in its name
-        if not os.path.isfile(sub_test_dir) and flname.startswith('test') and 'disabled' not in flname:
+        if not os.path.isfile(sub_test_dir) and flname.startswith(
+                'test') and 'disabled' not in flname:
             if repo_based:
                 # TODO: shift the timing inside apply_patch_and_test
                 sub_test_dir = model_dir + '/' + flname
@@ -156,7 +164,10 @@ def rewrite_test(model_dir, configuration):
                 tend = time.time()
                 command_executor.commands += '\n'
             else:
-                model = [i for i in os.listdir(sub_test_dir) if '.md' not in i and '.json' not in i]
+                model = [
+                    i for i in os.listdir(sub_test_dir)
+                    if '.md' not in i and '.json' not in i
+                ]
                 assert len(model) == 1
                 model = model[0]
                 split_on_dot = model.split('.')
@@ -173,7 +184,8 @@ def rewrite_test(model_dir, configuration):
 
             expected_json_file = sub_test_dir + '/expected.json'
             if os.path.isfile(expected_json_file):
-                custom_parser_present = os.path.isfile(sub_test_dir + '/custom_log_parser.py')
+                custom_parser_present = os.path.isfile(sub_test_dir +
+                                                       '/custom_log_parser.py')
                 if custom_parser_present:
                     sys.path.insert(0, os.path.abspath(sub_test_dir))
                     from custom_log_parser import custom_parse_logs
@@ -181,23 +193,28 @@ def rewrite_test(model_dir, configuration):
                     sys.path.pop(0)
                 else:
                     parsed_vals = parse_logs(so)
-                expected = get_expected_from_json(expected_json_file, configuration, not custom_parser_present)
-            passed, fail_help_string = compare_parsed_values(parsed_vals, expected.get('logparse', {}))
+                expected = get_expected_from_json(expected_json_file,
+                                                  configuration,
+                                                  not custom_parser_present)
+            passed, fail_help_string = compare_parsed_values(
+                parsed_vals, expected.get('logparse', {}))
             # TODO: right now the script will grind to a halt at the first failure. Fix that by powering through all tests and then printing in the end how many passed or failed
             assert passed, 'Failed in test ' + flname + '. Help message: ' + fail_help_string
             if 'time' in expected:
                 actual_runtime = tend - tstart
                 # TODO: decide this criteria. time can be pretty variable
-                assert (actual_runtime - expected['time'])/expected['time'] < 0.1, "Expected run time for test " + flname + " is " + str(expected['time']) + " but it actually took " + str(actual_runtime)
-
-
+                assert (actual_runtime - expected['time']) / expected[
+                    'time'] < 0.1, "Expected run time for test " + flname + " is " + str(
+                        expected['time']) + " but it actually took " + str(
+                            actual_runtime)
 
     # Clean up if needed
     cleanup_script = model_dir + '/cleanup.sh'
     if os.path.isfile(cleanup_script):
         assert repo_based, 'Did not expect a cleanup script in non-repo based test'
         command_executor(cleanup_script)
-    command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split('/')[-1]
+    command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split(
+        '/')[-1]
     # TODO: delete downloaded model repo
 
     # TODO: use gdef to run
@@ -299,7 +316,9 @@ if __name__ == '__main__':
         print(get_test_list_string(args.list))
         exit(0)
 
-    assert (args.rewrite_test or args.functional), 'No type of test enabled. Please choose --rewrite_test, --functional or both'
+    assert (
+        args.rewrite_test or args.functional
+    ), 'No type of test enabled. Please choose --rewrite_test, --functional or both'
 
     model_list = os.listdir(
         'models') if args.models == '' else args.models.split(',')
@@ -333,7 +352,6 @@ if __name__ == '__main__':
 
 # Structure of "expected json"
 # dictionary of expected values. key is a config, value is the expected values json. there is a "default" config, but one can add other configs (for example for other backends etc)
-
 
 # TODO: update main README.md. Document "how-to-use" and features
 
