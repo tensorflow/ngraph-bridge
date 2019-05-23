@@ -202,6 +202,7 @@ def rewrite_test(model_dir, configuration):
             if 'time' in expected:
                 actual_runtime = tend - tstart
                 # TODO: decide this criteria. time can be pretty variable
+                # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
                 assert (actual_runtime - expected['time']) / expected[
                     'time'] < 0.1, "Expected run time for test " + flname + " is " + str(
                         expected['time']) + " but it actually took " + str(

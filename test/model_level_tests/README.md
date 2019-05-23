@@ -1,6 +1,7 @@
-# Model Level Testing for ngraph bridge
+# Model Level Testing for nGraph Bridge
 
 ## Introduction
+**_TODO_**
 
 ### Directory Structure
 This section describes the directory structure. Indentation means sub-directories. Top to bottom, roughly, they are in the order in which they are executed
@@ -34,9 +35,19 @@ This section describes the directory structure. Indentation means sub-directorie
 2. `sub-test`: See **2.1.5** and **2.2.5**
 3. `log parser`: A default log parsing function `parse_logs` that parses the output of `NGRAPH_TF_LOG_PLACEMENT=1` is present in `tools/log_parser.py`.
     1. `custom log parser`: A python file named `custom_log_parser.py` that contains a function named `custom_parse_logs`. This can be placed in a `sub-test` directory if required. If a custom parser is present, tests are not run with any flags such as `NGRAPH_TF_LOG_PLACEMENT=1` and it is up to the user to use such flags in `core_rewrite_test.sh` if they need it. The patch file (**2.1.4**, **2.1.5.1**) which can modify the repo by adding prints, and the `custom log parser`, the user can write tests that check accuracy/throughput and other metrics
+4. `configuration`: **_TODO_**
 
 ### Expected results format
+Expected results are specified in a json file of the following format:
+1. `configuration` (*Repeated*, *Optional*): Perhaps changing the ngraph backend means different expected results. Generally the `default` configuration is used
+    1. `logparse` (*Optional*): Results of parsing `NGRAPH_TF_LOG_PLACEMENT=1` with the default `log parser` in the normal case, or parsing the (user-generated) logs with the `custom log parser`
+        1. `graph id` (*Repeated*, *Optional*): Integers
+            1. `num_nodes_in_graph` (*Optional*):
+            2. `num_nodes_marked_for_clustering` (*Optional*):
+            3. `num_ng_clusters` (*Optional*):
+            4. to be expanded as the default `log parser` produces more information
+    2. `time` (*Optional*): Time in seconds
 
 
-## Features and Sample uses
+## Features and sample uses
 
