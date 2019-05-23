@@ -99,7 +99,7 @@ def apply_patch_and_test(test_folder, env_flags):
         patch_file = patch_in_test_folder
     else:
         patch_file = None
-    assert patch_file is not None, "Did not fine any patch file"
+    assert patch_file is not None, "Did not find any patch file"
 
     command_executor('cd ' + downloaded_repo)
     if patch_file is not None:

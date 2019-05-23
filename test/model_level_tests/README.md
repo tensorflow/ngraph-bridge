@@ -11,11 +11,11 @@ This section describes the directory structure. Indentation means sub-directorie
         1. `README.md` (*Optional*): Information about this `test suite`. Expected to be short as this text is used by `test_main.py` to print a short help on available tests
         2. `repo.txt`: Clonable git URL in the first line, Optionally branch/SHA/tag in the second line (by default master will be used)
         3. `getting_repo_ready.sh` (*Optional*): An executable shell script to run before the tests start running for this repo. Can be used to install prerequisites.
-        4. `enable_ngraph.patch` (*Optional*): A patch to be applied to the downloaded repo (**2.1.2**). If this file exists it is used by all `sub-test` directories (**2.1.5**), unless overridden by their own patch file (**2.1.5.1**)
+        4. `enable_ngraph.patch` (*Optional*): A patch to be applied to the downloaded repo (**2.1.2**). If this file exists it is used by all `sub-test` directories (**2.1.5**), unless overridden by their own patch file (**2.1.5.1**). Either a global or a local patch file must be present
         5. `Sub-test` (*Repeated*): Should start with the string `test`. Can be disabled by adding the string `disabled` to its name.
             1. `enable_ngraph.patch` (*Optional*): If a `sub-test` contains its own patch, that takes precedence over the global patch (**2.1.4**)
             2. `core_rewrite_test.sh`: The main run script for this `sub-test`
-            3. `expected.json` (*Optional*): **_TODO_**
+            3. `expected.json` (*Optional*): A json file containing expected results. See **Expected results format**
             4. `custom_log_parser.py` (*Optional*): See **Terminology 3** and **Terminology 3.1**
             5. `README.md` (*Optional*): Information about this `sub-test`. Expected to be short as this text is used by
         6. `cleanup.sh` (*Optional*): An executable shell script that will be used to clean up, potentially the effects of `getting_repo_ready.sh` (**2.1.3**)
@@ -26,16 +26,16 @@ This section describes the directory structure. Indentation means sub-directorie
         4. `README.md` (*Optional*): It might have a `README`. Same description as 2.1.1
         5. `Sub-test` (*Repeated*):
             1. `pbtxt/pb/savedmodel`: One TF model file per `sub-test`
-            2. `expected.json` (*Optional*): **_TODO_**
-
+            2. `expected.json` (*Optional*): A json file containing expected results. See **Expected results format**
 ### Terminology:
 1. `test suite` or `model test directory`:
     1. `repo based`: See **Directory Structure 2.1**
     2. `non-repo based`: See **Directory Structure 2.2**
 2. `sub-test`: See **Directory Structure 2.1.5, 2.2.5**
-3. `log parser`: A default log parsing function `parse_logs` that parses the output of `NGRAPH_TF_LOG_PLACEMENT=1` is present in `tools/log_parser.py`.
+3. `patch file`: To enable ngraph, make the tests short enoough to run, to add prints etc. Can be global (to a `test-suite`) or local to each `sub-test`. See **Directory Structure 2.1.4, 2.1.5.1**
+4. `log parser`: A default log parsing function `parse_logs` that parses the output of `NGRAPH_TF_LOG_PLACEMENT=1` is present in `tools/log_parser.py`.
     1. `custom log parser`: A python file named `custom_log_parser.py` that contains a function named `custom_parse_logs`. This can be placed in a `sub-test` directory if required. If a custom parser is present, tests are not run with any flags such as `NGRAPH_TF_LOG_PLACEMENT=1` and it is up to the user to use such flags in `core_rewrite_test.sh` if they need it. The patch file (**Directory Structure 2.1.4, 2.1.5.1**) which can modify the repo by adding prints, and the `custom log parser`, the user can write tests that check accuracy/throughput and other metrics
-4. `configuration`: **_TODO_**
+5. `configuration`: **_TODO_**
 
 ### Expected results format
 Expected results are specified in a json file of the following format:
