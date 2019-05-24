@@ -396,7 +396,7 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
         '--model=resnet50', '--batch_size=' + str(batch_size), '--num_batches',
         str(iterations), '--eval', '--eval_dir=' + eval_eventlog_dir
     ]
-    command_executor(cmd)
+    command_executor(cmd, True)
 
     os.chdir(root_pwd)
 
