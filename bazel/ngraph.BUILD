@@ -101,6 +101,7 @@ cc_binary(
         "src/ngraph/except.hpp",
         "src/ngraph/runtime/interpreter/*.cpp",
         "src/ngraph/state/rng_state.cpp",
+        "src/ngraph/runtime/hybrid/hybrid_tensor.cpp",
         "src/ngraph/runtime/hybrid/hybrid_backend.cpp",
         "src/ngraph/runtime/hybrid/hybrid_backend.hpp",
         "src/ngraph/runtime/hybrid/hybrid_executable.cpp",
