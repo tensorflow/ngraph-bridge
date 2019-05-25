@@ -22,10 +22,7 @@ cc_library(
     name = "ngraph_headers",
     hdrs = glob([
         "src/ngraph/**/*.hpp",
-        "src/ngraph/*.hpp",
-        "src/ngraph/runtime/cpu/*.hpp",
-        "src/ngraph/runtime/cpu/*.h",
-        "src/ngraph/runtime/cpu/kernel/*.hpp"
+        "src/ngraph/*.hpp"
     ]),
     visibility = ["//visibility:public"],
 )
@@ -55,6 +52,7 @@ cc_library(
         "src/ngraph/op/experimental/shape_of.cpp",
         "src/ngraph/op/experimental/quantized_dot.cpp",
         "src/ngraph/op/experimental/quantized_dot_bias.cpp",
+        "src/ngraph/op/experimental/tile.cpp",
         "src/ngraph/op/experimental/transpose.cpp",
         "src/ngraph/op/util/*.cpp",
         "src/ngraph/pattern/*.cpp",
@@ -62,6 +60,7 @@ cc_library(
         "src/ngraph/pass/*.cpp",
         "src/ngraph/pass/*.hpp",
         "src/ngraph/runtime/*.cpp",
+        "src/ngraph/runtime/dynamic/dynamic_backend.cpp",
         "src/ngraph/type/*.cpp",
         ],
         exclude = [
@@ -184,6 +183,9 @@ cc_library(
 cc_binary(
     name = 'libcpu_backend.so',
     srcs = glob([
+        "src/ngraph/runtime/cpu/*.hpp",
+        "src/ngraph/runtime/cpu/*.h",
+        "src/ngraph/runtime/cpu/kernel/*.hpp",
         "src/ngraph/runtime/cpu/cpu_backend.cpp",
         "src/ngraph/runtime/cpu/cpu_builder.cpp",
         "src/ngraph/runtime/cpu/cpu_call_frame.cpp",
@@ -234,6 +236,7 @@ cc_binary(
         "src/ngraph/runtime/cpu/builder/quantized_conv.cpp",
         "src/ngraph/runtime/cpu/builder/quantized_concat.cpp",
         "src/ngraph/runtime/cpu/builder/quantized_dot.cpp",
+        "src/ngraph/runtime/cpu/builder/quantized_matmul.cpp",
         "src/ngraph/runtime/cpu/builder/quantized_max_pool.cpp",
         "src/ngraph/runtime/cpu/builder/reshape.cpp",
         "src/ngraph/runtime/cpu/builder/reverse.cpp",
@@ -271,6 +274,7 @@ cc_binary(
         "src/ngraph/runtime/cpu/op/lstm.cpp",
         "src/ngraph/runtime/cpu/op/matmul_bias.cpp",
         "src/ngraph/runtime/cpu/op/max_pool_with_indices.cpp",
+        "src/ngraph/runtime/cpu/op/quantized_matmul.cpp",
         "src/ngraph/runtime/cpu/op/rnn.cpp",
         "src/ngraph/runtime/cpu/op/sigmoid_mul.cpp",
         "src/ngraph/runtime/cpu/op/update_slice.cpp",
@@ -288,6 +292,8 @@ cc_binary(
         "src/ngraph/runtime/cpu/pass/cpu_rnn_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_workspace_insertion.cpp",
         "src/ngraph/runtime/cpu/ngraph_version.cpp",
+        "src/ngraph/state/rng_state.hpp", 
+        "src/ngraph/state/rng_state.cpp", 
     ]),
     deps = [
         ":ngraph_headers",
