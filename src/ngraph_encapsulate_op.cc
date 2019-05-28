@@ -774,12 +774,12 @@ class NGraphEncapsulateOp : public OpKernel {
         string key = NGraphCatalog::CreateNodeKey(m_graph_id, def().name(), i);
         bool ref_exists = NGraphCatalog::ExistsInEncapOutputTensorMap(key);
         void* dst_ptr;
-        std::shared_ptr<ng::runtime::Tensor> dst_tv;
-        std::tie(dst_ptr, dst_tv) = output_caches[i];
+        std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
+        std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
 
         if (ref_exists) {
           NGRAPH_VLOG(4) << "Adding in output tensor map " << key;
-          NGraphCatalog::AddToEncapOutputTensorMap(key, dst_tv);
+          NGraphCatalog::AddToEncapOutputTensorMap(key, dst_ng_tensor);
         }
 
         if (m_op_backend_name != "CPU" &&
@@ -789,15 +789,15 @@ class NGraphEncapsulateOp : public OpKernel {
 
           NGRAPH_VLOG(4) << "Copying Output " << def().name()
                          << " ,index: " << i;
-          auto ng_element_type = dst_tv->get_element_type();
+          auto ng_element_type = dst_ng_tensor->get_element_type();
           size_t copy_size =
-              dst_tv->get_element_count() * ng_element_type.size();
+              dst_ng_tensor->get_element_count() * ng_element_type.size();
           string event_name =
               "Output_" + to_string(i) + "_" + to_string(copy_size);
           std::unique_ptr<ngraph::Event> event_copy_output_next(
               new ngraph::Event(event_name, name(), ""));
-          dst_tv->read(dst_ptr, 0,
-                       dst_tv->get_element_count() * ng_element_type.size());
+          dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
+                                              ng_element_type.size());
           event_copy_output_next->Stop();
           output_copy_events.push_back(std::move(event_copy_output_next));
         }
