@@ -153,16 +153,21 @@ def run_test_suite(model_dir, configuration, disabled):
     for flname in test_suites:
         sub_test_dir = model_dir + '/' + flname
         # if its  directory starting with test, and not containing "disabled" in its name
-        item_is_a_subtest = not os.path.isfile(sub_test_dir) and flname.startswith('test')
+        item_is_a_subtest = not os.path.isfile(
+            sub_test_dir) and flname.startswith('test')
         disabled_by_dir_name = 'disabled' in flname
         disabled_by_cli = flname in disabled
-        if item_is_a_subtest and (not disabled_by_dir_name) and (not disabled_by_cli):
-            custom_parser_present = os.path.isfile(sub_test_dir + '/custom_log_parser.py')
+        if item_is_a_subtest and (not disabled_by_dir_name) and (
+                not disabled_by_cli):
+            custom_parser_present = os.path.isfile(sub_test_dir +
+                                                   '/custom_log_parser.py')
             if repo_based:
                 # TODO: shift the timing inside apply_patch_and_test
                 sub_test_dir = model_dir + '/' + flname
                 tstart = time.time()
-                so, se = apply_patch_and_test(sub_test_dir, ('NGRAPH_TF_LOG_PLACEMENT=1', '')[custom_parser_present])
+                so, se = apply_patch_and_test(sub_test_dir,
+                                              ('NGRAPH_TF_LOG_PLACEMENT=1',
+                                               '')[custom_parser_present])
                 tend = time.time()
                 command_executor.commands += '\n'
             else:
@@ -257,14 +262,20 @@ def get_test_list_string(string, disabled_test_suite, disabled_sub_test):
             if c.startswith('test'):
                 sub_test = currdir + '/' + c
                 if os.path.isdir(sub_test):
-                    help_string += ("\033[1;32m","\033[1;31m")['disabled' in c or dir in disabled_test_suite or c in disabled_sub_test.get(dir, [])]
+                    help_string += ("\033[1;32m",
+                                    "\033[1;31m")['disabled' in c or
+                                                  dir in disabled_test_suite or
+                                                  c in disabled_sub_test.get(
+                                                      dir, [])]
                     help_string += '\tSub test: ' + c + '\033[0;0m\n'
                     currtest_readme = sub_test + '/README.md'
                     if os.path.isfile(currtest_readme):
                         with open(currtest_readme) as f:
-                            help_string += '\n'.join(['\t'+i for i in f.readlines()]) + '\n'
+                            help_string += '\n'.join(
+                                ['\t' + i for i in f.readlines()]) + '\n'
         help_string += '\n' + '*' * 50 + '\n\n'
     return help_string
+
 
 def get_disabled_tests_info():
     available_test_suites = os.listdir('./models/')
@@ -276,7 +287,9 @@ def get_disabled_tests_info():
             if '.' in item:
                 test_suite, sub_test = item.split('.')
                 assert test_suite in available_test_suites, 'Request to disable ' + item + ' but ' + test_suite + ' is not a directory in models'
-                assert sub_test in os.listdir('./models/' + test_suite), 'Expected ' + sub_test + ' to be in ' + test_suite
+                assert sub_test in os.listdir(
+                    './models/' + test_suite
+                ), 'Expected ' + sub_test + ' to be in ' + test_suite
                 disabled_sub_test[test_suite] = sub_test
             else:
                 assert item in available_test_suites, 'Request to disable ' + item + ' which is not a directory in models'
@@ -324,7 +337,8 @@ if __name__ == '__main__':
         '--disable',
         action='store',
         type=str,
-        help='Comma separated list of model/test-suite names or sub-test names to be disabled. Eg: "MLP,DenseNet.test1"',
+        help=
+        'Comma separated list of model/test-suite names or sub-test names to be disabled. Eg: "MLP,DenseNet.test1"',
         default='')
 
     # This script must be run from this location
@@ -337,7 +351,9 @@ if __name__ == '__main__':
     disabled_test_suite, disabled_sub_test = get_disabled_tests_info()
 
     if args.list:
-        print(get_test_list_string(args.models, disabled_test_suite, disabled_sub_test))
+        print(
+            get_test_list_string(args.models, disabled_test_suite,
+                                 disabled_sub_test))
         exit(0)
 
     assert (
@@ -346,16 +362,21 @@ if __name__ == '__main__':
 
     requested_test_suites = os.listdir(
         'models') if args.models == '' else args.models.split(',')
-    
+
     assert len(requested_test_suites) != 0, "Number of tests expected to be > 0"
-    assert len(set(requested_test_suites).difference(set(available_test_suites))) == 0, "The requested tests are not present"
-    assert all([not os.path.isfile(i) for i in available_test_suites]), "Expected that all the contents of models to be directories, but found files there"
+    assert len(
+        set(requested_test_suites).difference(set(
+            available_test_suites))) == 0, "The requested tests are not present"
+    assert all(
+        [not os.path.isfile(i) for i in available_test_suites]
+    ), "Expected that all the contents of models to be directories, but found files there"
 
     for test_suite in requested_test_suites:
         print('Testing model/test-suite: ' + test_suite)
         if test_suite not in disabled_test_suite:
             if args.run_logparse_tests:
-                run_test_suite('./models/' + test_suite, args.configuration, disabled_sub_test.get(test_suite, []))
+                run_test_suite('./models/' + test_suite, args.configuration,
+                               disabled_sub_test.get(test_suite, []))
             if args.run_functional_tests:
                 print('Functional tests not implemented yet!!')
 
