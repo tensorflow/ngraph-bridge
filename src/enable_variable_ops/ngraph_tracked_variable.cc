@@ -91,16 +91,17 @@ NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
 
   OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
   OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
-  OP_REQUIRES_OK(context, context->GetAttr("is_tf_modifying", &is_tf_modifying_));
+  OP_REQUIRES_OK(context,
+                 context->GetAttr("is_tf_modifying", &is_tf_modifying_));
   OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
   OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
   OP_REQUIRES_OK(context,
                  context->GetAttr("_ngraph_backend", &ng_backend_name_));
   NGRAPH_VLOG(4) << "NGraphVariable:: Constructor called for: " << def().name()
                  << " ,just looking " << just_looking_ << "is_tf_modifying "
-                 << is_tf_modifying_ << " ,copy-to-tf "
-                 << copy_to_tf_ << " ,Graph ID " << ng_graph_id_
-                 << " ,backend_name " << ng_backend_name_ << "\n";
+                 << is_tf_modifying_ << " ,copy-to-tf " << copy_to_tf_
+                 << " ,Graph ID " << ng_graph_id_ << " ,backend_name "
+                 << ng_backend_name_ << "\n";
 }
 
 NGraphVariableOp::~NGraphVariableOp() {
@@ -113,9 +114,9 @@ NGraphVariableOp::~NGraphVariableOp() {
 void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4) << "NGraphVariable:: Compute called for: " << def().name()
                  << " ,just looking " << just_looking_ << "is_tf_modifying "
-                 << is_tf_modifying_ << " ,copy-to-tf "
-                 << copy_to_tf_ << " ,Graph ID " << ng_graph_id_
-                 << " ,backend_name " << ng_backend_name_;
+                 << is_tf_modifying_ << " ,copy-to-tf " << copy_to_tf_
+                 << " ,Graph ID " << ng_graph_id_ << " ,backend_name "
+                 << ng_backend_name_;
 
   std::ostringstream oss;
   oss << "NGraphVariable: " << my_instance_id << ": " << name();

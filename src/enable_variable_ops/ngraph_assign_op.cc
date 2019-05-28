@@ -62,7 +62,8 @@ class NGraphAssignOp : public OpKernel {
   ~NGraphAssignOp() { NGRAPH_VLOG(4) << "~NGraphAssignOp::" << name() << endl; }
   explicit NGraphAssignOp(OpKernelConstruction* context)
       : OpKernel(context), is_tf_modifying_(false), copy_to_tf_(false) {
-    OP_REQUIRES_OK(context, context->GetAttr("is_tf_modifying", &is_tf_modifying_));
+    OP_REQUIRES_OK(context,
+                   context->GetAttr("is_tf_modifying", &is_tf_modifying_));
     OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
     OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
     OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
@@ -95,8 +96,8 @@ class NGraphAssignOp : public OpKernel {
                    IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
     std::stringstream copy_log_str;
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-                 << " ,Copy_TF " << PrintBool(copy_to_tf_) << ", is_tf_modifying "
-                 << PrintBool(is_tf_modifying_) 
+                 << " ,Copy_TF " << PrintBool(copy_to_tf_)
+                 << ", is_tf_modifying " << PrintBool(is_tf_modifying_)
                  << ", just_looking " << PrintBool(just_looking_) << "\n";
     int number_of_copies = 0;
 

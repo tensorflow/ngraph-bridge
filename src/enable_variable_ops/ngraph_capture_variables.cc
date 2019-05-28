@@ -42,14 +42,14 @@ static bool NGraphPlacementRequested(const Node* node) { return true; }
 Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
   const static std::map<
       const string,
-      const pair<string,
-                 function<Status(
-                     Graph * graph, Node * node, Node * *replacement,
-                     const string replacement_node_name,
-                     const string replacement_op_type, const bool just_looking,
-                     const bool is_tf_modifying,
-                     const bool outputs_ng_supported, const int graph_id,
-                     const bool is_backend_set)>>>
+      const pair<
+          string,
+          function<Status(Graph * graph, Node * node, Node * *replacement,
+                          const string replacement_node_name,
+                          const string replacement_op_type,
+                          const bool just_looking, const bool is_tf_modifying,
+                          const bool outputs_ng_supported, const int graph_id,
+                          const bool is_backend_set)>>>
       CAPTURE_REPLACE_OP_MAP{
           {"ApplyGradientDescent", std::make_pair("NGraphApplyGradientDescent",
                                                   ReplaceApplyGradientDescent)},
@@ -91,9 +91,8 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     auto itr = CAPTURE_REPLACE_OP_MAP.find(node->type_string());
     // Create the replacement node
     TF_RETURN_IF_ERROR((itr->second.second)(graph, node, &replacement,
-                                              node->name(), itr->second.first,
-                                              true,
-                                              false, false, 0, false));
+                                            node->name(), itr->second.first,
+                                            true, false, false, 0, false));
     NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
                    << replacement->DebugString();
 
