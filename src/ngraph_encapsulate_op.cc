@@ -611,7 +611,7 @@ class NGraphEncapsulateOp : public OpKernel {
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                       "for cluster "
                    << m_ngraph_cluster;
-    
+
     // Allocate tensors for the output results.
     ngraph::Event event_alloc_output("Output: maybe create", name(), "");
     vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
