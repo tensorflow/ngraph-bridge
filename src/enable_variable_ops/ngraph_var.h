@@ -139,15 +139,11 @@ class NGraphVar : public ResourceBase {
 
   // updates the NGTensor with the new value
   int update_ng_tensor(Tensor* new_value) {
-    if (ng_tf_share_buffer_) {
-      void* tf_src_ptr = (void*)DMAHelper::base(new_value);
-      ng::runtime::Backend* op_backend =
-          BackendManager::GetBackend(ng_backend_name_);
-      auto ng_tensor_new_value = op_backend->create_tensor(
-          ng_tensor_->get_element_type(), ng_tensor_->get_shape(), tf_src_ptr);
-      return update_ng_tensor(ng_tensor_new_value);
-    }
     WriteNGTensor(ng_tensor_, new_value);
+    if (ng_tf_share_buffer_) {
+      return 0;
+    }
+
     return 1;
   }
 
