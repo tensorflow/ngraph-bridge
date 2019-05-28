@@ -74,9 +74,9 @@ class TestConversionScript(NgraphTest):
                 command_executor('python ../../tools/tf2ngraph.py --input' +
                                  inp_format + ' ' + inp_loc +
                                  ' --outnodes out_node --output' + out_format +
-                                 ' ' + out_loc)
+                                 ' ' + out_loc + ' --ngbackend CPU:0')
             else:
-                convert(inp_format, inp_loc, out_format, out_loc, ['out_node'])
+                convert(inp_format, inp_loc, out_format, out_loc, ['out_node'], 'CPU:0')
             conversion_successful = True
         finally:
             if not conversion_successful:
