@@ -707,6 +707,11 @@ class NGraphEncapsulateOp : public OpKernel {
         ngraph::Event::write_trace(event_sync_ng_tf_tensors);
       }
 
+      void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
+      if (!m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec)) {
+        var->ng_tensor()->set_stale(true);
+      }
+
       ng_inputs[input_index] = var->ng_tensor();
 
       var->Unref();
