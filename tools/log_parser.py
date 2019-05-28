@@ -14,12 +14,18 @@
 #  limitations under the License.
 # =============================================================================
 
+
 def parse_logs(log_lines):
     if type(log_lines) == type(''):
         log_lines = log_lines.split('\n')
     else:
-        assert type(log_lines) == type([]), "If log_lines if not a string, it should have been a list, but instead it is a " + type(log_lines)
-    assert all([type(i) == type('') and '\n' not in i for i in log_lines]), 'Each element of the list should be a string and not contain new lines'
+        assert type(log_lines) == type(
+            []
+        ), "If log_lines if not a string, it should have been a list, but instead it is a " + type(
+            log_lines)
+    assert all([
+        type(i) == type('') and '\n' not in i for i in log_lines
+    ]), 'Each element of the list should be a string and not contain new lines'
     all_results = {}
     curr_result = {}
     ctr = 0
@@ -40,16 +46,17 @@ def parse_logs(log_lines):
                 curr_result['num_nodes_marked_for_clustering'] = int(
                     line.split(':')[-1].strip().split(' ')[0].strip())
             elif 'Number of ngraph clusters' in line:
-                curr_result['num_ng_clusters'] = int(line.split(':')[-1].strip())
+                curr_result['num_ng_clusters'] = int(
+                    line.split(':')[-1].strip())
             # TODO: fill other information as needed
     return all_results
-
 
 
 def compare_parsed_values(parsed_vals, expected_vals):
     # Both inputs are expected to be 2 dictionaries (representing jsons)
     # The constraints in expected is <= parsed_vals. Parsed_vals should have all possible values that the parser can spit out. However expected_vals can be relaxed (even empty) and choose to only verify/match certain fields
-    match = lambda current, expected: all([expected[k]==current[k] for k in expected])
+    match = lambda current, expected: all(
+        [expected[k] == current[k] for k in expected])
     for graph_id_1 in expected_vals:
         # The ordering is not important and could be different, hence search through all elements of parsed_vals
         matching_id = None
