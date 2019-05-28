@@ -62,8 +62,7 @@ class NGraphVar : public ResourceBase {
 
     // Create nGTensor
     ng_tf_share_buffer_ = (ng_backend_name_ == "CPU");
-    // cout << "NGraphVar:: Share Buffer "<< PrintBool(ng_tf_share_buffer_)
-    // <<endl;
+
     if (ng_tf_share_buffer_) {
       void* tf_src_ptr = (void*)DMAHelper::base(&tf_tensor_);
       ng_tensor_ =
