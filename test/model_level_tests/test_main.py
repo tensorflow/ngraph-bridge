@@ -196,18 +196,18 @@ def run_test_suite(model_dir, configuration, disabled):
                 expected = get_expected_from_json(expected_json_file,
                                                   configuration,
                                                   not custom_parser_present)
-            passed, fail_help_string = compare_parsed_values(
-                parsed_vals, expected.get('logparse', {}))
-            # TODO: right now the script will grind to a halt at the first failure. Fix that by powering through all tests and then printing in the end how many passed or failed
-            assert passed, 'Failed in test ' + flname + '. Help message: ' + fail_help_string
-            if 'time' in expected:
-                actual_runtime = tend - tstart
-                # TODO: decide this criteria. time can be pretty variable
-                # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
-                assert (actual_runtime - expected['time']) / expected[
-                    'time'] < 0.1, "Expected run time for test " + flname + " is " + str(
-                        expected['time']) + " but it actually took " + str(
-                            actual_runtime)
+                passed, fail_help_string = compare_parsed_values(
+                    parsed_vals, expected.get('logparse', {}))
+                # TODO: right now the script will grind to a halt at the first failure. Fix that by powering through all tests and then printing in the end how many passed or failed
+                assert passed, 'Failed in test ' + flname + '. Help message: ' + fail_help_string
+                if 'time' in expected:
+                    actual_runtime = tend - tstart
+                    # TODO: decide this criteria. time can be pretty variable
+                    # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
+                    assert (actual_runtime - expected['time']) / expected[
+                        'time'] < 0.1, "Expected run time for test " + flname + " is " + str(
+                            expected['time']) + " but it actually took " + str(
+                                actual_runtime)
 
     # Clean up if needed
     cleanup_script = model_dir + '/cleanup.sh'
