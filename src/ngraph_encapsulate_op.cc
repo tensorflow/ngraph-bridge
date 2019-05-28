@@ -459,23 +459,73 @@ class NGraphEncapsulateOp : public OpKernel {
     return Status::OK();
   }
 
-  Status AllocateTensorInput(
-      OpKernelContext* ctx,
-      std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
-      vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
+  //---------------------------------------------------------------------------
+  // OpKernel::Compute
+  //---------------------------------------------------------------------------
+  void Compute(OpKernelContext* ctx) override {
+    std::ostringstream oss;
+    oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
+    ngraph::Event event(oss.str(), name(), "");
+
+    Timer compute_time;
+    std::lock_guard<std::mutex> lock(m_compute_lock);
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
+                   << m_ngraph_cluster;
+
+    ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
+    Timer function_lookup_or_create;
+
+    std::vector<TensorShape> input_shapes;
+    std::vector<const Tensor*> static_input_map;
+    std::shared_ptr<ngraph::Function> ng_function;
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec;
+    ng::runtime::Backend* op_backend;
+
+    // Get ngraph executable and inputs information
+    OP_REQUIRES_OK(ctx, GetNgExec(ctx, ng_exec, input_shapes, static_input_map,
+                                  op_backend));
+
+    NGRAPH_VLOG(4)
+        << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
+        << m_ngraph_cluster;
+
+    int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
+    event_func_maybe_create.Stop();
+
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
+                   << m_ngraph_cluster;
+
+    Timer create_or_lookup_tensors;
+
+    if (m_freshness_tracker == nullptr) {
+      auto creator = [](NGraphFreshnessTracker** tracker) {
+        *tracker = new NGraphFreshnessTracker();
+        return Status::OK();
+      };
+      OP_REQUIRES_OK(
+          ctx, ctx->resource_manager()->LookupOrCreate<NGraphFreshnessTracker>(
+                   ctx->resource_manager()->default_container(),
+                   "ngraph_freshness_tracker", &m_freshness_tracker, creator));
+    }
+
+    NGRAPH_VLOG(4)
+        << "NGraphEncapsulateOp::Compute got freshness tracker for cluster "
+        << m_ngraph_cluster;
+
     // Allocate tensors for input arguments.
     ngraph::Event event_alloc_input("Input: maybe create", name(), "");
-    std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
+    vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
+    int ng_input_tensor_size_in_bytes = 0;
 
     std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
         input_caches = m_ng_exec_input_cache_map[ng_exec];
     input_caches.resize(input_shapes.size());
 
+    std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     bool log_copies = false;
-    TF_RETURN_IF_ERROR(
-        IsNgraphTFLogTensorCopiesEnabled(m_graph_id, log_copies));
+    OP_REQUIRES_OK(ctx,
+                   IsNgraphTFLogTensorCopiesEnabled(m_graph_id, log_copies));
     std::stringstream copy_log_str;
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
                  << " ,GraphID " << m_graph_id << "\n";
@@ -490,33 +540,18 @@ class NGraphEncapsulateOp : public OpKernel {
       if (ref_exists) {
         NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from Variable Node";
         ng_inputs.push_back(nullptr);
-        ng::Shape ng_shape(input_shapes[i].dims());
-        for (int j = 0; j < input_shapes[i].dims(); ++j) {
-          ng_shape[j] = input_shapes[i].dim_size(j);
-        }
-        ng::element::Type ng_element_type;
-        TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(ctx->input(i).dtype(),
-                                                         &ng_element_type));
-        void* last_src_ptr = input_caches[i].first;
-        std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
-            input_caches[i].second;
-        void* current_src_ptr = (void*)DMAHelper::base(&ctx->input(i));
-        std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
-            GetCurrentNgTensor(current_src_ptr, last_src_ptr, last_ng_tensor,
-                               false, ng_exec, op_backend, ng_element_type,
-                               ng_shape);
         continue;
-      } else {
-        NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from non Variable Node";
       }
+
+      NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from non Variable Node";
 #endif
       ng::Shape ng_shape(input_shapes[i].dims());
       for (int j = 0; j < input_shapes[i].dims(); ++j) {
         ng_shape[j] = input_shapes[i].dim_size(j);
       }
       ng::element::Type ng_element_type;
-      TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(ctx->input(i).dtype(),
-                                                       &ng_element_type));
+      OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(ctx->input(i).dtype(),
+                                                        &ng_element_type));
 
       // At the first call of the ng_exec, both last_src_ptr and
       // last_ng_tensor shall point to null. Otherwise, they are retrived
@@ -552,19 +587,84 @@ class NGraphEncapsulateOp : public OpKernel {
           input_copy_events.push_back(std::move(event_copy_input_next));
 
         } catch (const std::exception& exp) {
-          errors::Internal(
-              "Caught exception while transferring tensor data to nGraph\n");
+          OP_REQUIRES(
+              ctx, false,
+              errors::Internal(
+                  "Caught exception while transferring tensor data to nGraph: ",
+                  exp.what(), "\n"));
         } catch (...) {
-          errors::Internal("Error in transferring tensor data to nGraph\n");
+          OP_REQUIRES(ctx, false,
+                      errors::Internal(
+                          "Error in transferring tensor data to nGraph\n"));
         }
       }
       input_caches[i] = std::make_pair(current_src_ptr, current_ng_tensor);
       ng_inputs.push_back(current_ng_tensor);
-    }
+    }  // for (int i = 0; i < input_shapes.size(); i++)
+
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
+                      "for cluster "
+                   << m_ngraph_cluster;
+
     // Now write the events back
     for (auto& next : input_copy_events) {
       ngraph::Event::write_trace(*next.get());
     }
+    event_alloc_input.Stop();
+
+    // Allocate tensors for the output results.
+    ngraph::Event event_alloc_output("Output: maybe create", name(), "");
+    vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+    int ng_output_tensor_size_in_bytes = 0;
+    std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
+        output_caches = m_ng_exec_output_cache_map[ng_exec];
+    output_caches.resize(ng_exec->get_results().size());
+    // ngraph executable returns get_results, using that to get the tensor shape
+    // and element type.
+    for (auto i = 0; i < ng_exec->get_results().size(); i++) {
+      auto ng_element = ng_exec->get_results()[i];
+      auto ng_shape = ng_element->get_shape();
+      auto ng_element_type = ng_element->get_element_type();
+
+      // Create the TF output tensor
+      vector<int64> dims;
+      for (auto dim : ng_shape) {
+        dims.push_back(dim);
+      }
+      TensorShape tf_shape(dims);
+      Tensor* output_tensor = nullptr;
+      OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
+
+      // Make sure the nGraph-inferred element type agrees with what TensorFlow
+      // expected.
+      ng::element::Type expected_elem_type;
+      OP_REQUIRES_OK(
+          ctx, TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
+                                             &expected_elem_type));
+      OP_REQUIRES(
+          ctx, ng_element_type == expected_elem_type,
+          errors::Internal("Element type inferred by nGraph does not match "
+                           "the element type expected by TensorFlow"));
+
+      void* last_dst_ptr = output_caches[i].first;
+      std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
+          output_caches[i].second;
+
+      void* current_dst_ptr = DMAHelper::base(output_tensor);
+      std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
+          GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor,
+                             true, ng_exec, op_backend, ng_element_type,
+                             ng_shape);
+
+      current_ng_tensor->set_stale(true);
+      output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
+      ng_outputs.push_back(current_ng_tensor);
+    }
+
+    event_alloc_output.Stop();
+    NGRAPH_VLOG(4)
+        << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
+        << m_ngraph_cluster;
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
@@ -579,17 +679,18 @@ class NGraphEncapsulateOp : public OpKernel {
           m_graph_id, def().name(), input_index);
 
       if (!ref_exists) {
-        if (ng_inputs[input_index] != nullptr)
-          errors::Internal("Input ", input_index,
-                           " is not in Catalog nor was set from TF");
+        OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
+                    errors::Internal("Input ", input_index,
+                                     " is not in Catalog nor was set from TF"));
         continue;
       }
 
       string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
           m_graph_id, def().name(), input_index);
       NGraphVar* var;
-      TF_RETURN_IF_ERROR(ctx->resource_manager()->Lookup<NGraphVar>(
-          ctx->resource_manager()->default_container(), ref_var_name, &var));
+      OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
+                              ctx->resource_manager()->default_container(),
+                              ref_var_name, &var));
 
       if (var->need_sync_ng_tensor()) {
         number_of_copies++;
@@ -613,152 +714,6 @@ class NGraphEncapsulateOp : public OpKernel {
     event_input_check_in_catalog.Stop();
     ngraph::Event::write_trace(event_input_check_in_catalog);
 #endif
-
-    return Status::OK();
-  }
-
-  Status AllocateTensorOutput(
-      OpKernelContext* ctx,
-      std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
-      vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
-      std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-          output_caches) {
-    output_caches = m_ng_exec_output_cache_map[ng_exec];
-    output_caches.resize(ng_exec->get_results().size());
-    // ngraph executable returns get_results, using that to get the tensor shape
-    // and element type.
-    for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-      auto ng_element = ng_exec->get_results()[i];
-      auto ng_shape = ng_element->get_shape();
-      auto ng_element_type = ng_element->get_element_type();
-
-      // Create the TF output tensor
-      vector<int64> dims;
-      for (auto dim : ng_shape) {
-        dims.push_back(dim);
-      }
-      TensorShape tf_shape(dims);
-      Tensor* output_tensor = nullptr;
-      TF_RETURN_IF_ERROR(ctx->allocate_output(i, tf_shape, &output_tensor));
-
-      // Make sure the nGraph-inferred element type agrees with what TensorFlow
-      // expected.
-      ng::element::Type expected_elem_type;
-      TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
-          ctx->expected_output_dtype(i), &expected_elem_type));
-      if (ng_element_type != expected_elem_type) {
-        errors::Internal(
-            "Element type inferred by nGraph does not match "
-            "the element type expected by TensorFlow");
-      }
-      void* last_dst_ptr = output_caches[i].first;
-      std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
-          output_caches[i].second;
-
-      void* current_dst_ptr = DMAHelper::base(output_tensor);
-      std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
-          GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor,
-                             true, ng_exec, op_backend, ng_element_type,
-                             ng_shape);
-
-      current_ng_tensor->set_stale(true);
-      output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
-      ng_outputs.push_back(current_ng_tensor);
-    }
-
-    return Status::OK();
-  }
-
-  //---------------------------------------------------------------------------
-  // OpKernel::Compute
-  //---------------------------------------------------------------------------
-  void Compute(OpKernelContext* ctx) override {
-    std::ostringstream oss;
-    oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
-    ngraph::Event event(oss.str(), name(), "");
-
-    Timer compute_time;
-    std::lock_guard<std::mutex> lock(m_compute_lock);
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
-                   << m_ngraph_cluster;
-
-    ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
-    Timer function_lookup_or_create;
-
-    std::vector<TensorShape> input_shapes;
-    std::vector<const Tensor*> static_input_map;
-    std::shared_ptr<ngraph::Function> ng_function;
-    std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-    ng::runtime::Backend* op_backend;
-
-    // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(ctx, GetNgExec(ctx, ng_exec, input_shapes, static_input_map,
-                                  op_backend));
-    NGRAPH_VLOG(4)
-        << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
-        << m_ngraph_cluster;
-
-    int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
-    event_func_maybe_create.Stop();
-
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
-                   << m_ngraph_cluster;
-
-    Timer create_or_lookup_tensors;
-
-    if (m_freshness_tracker == nullptr) {
-      auto creator = [](NGraphFreshnessTracker** tracker) {
-        *tracker = new NGraphFreshnessTracker();
-        return Status::OK();
-      };
-      OP_REQUIRES_OK(
-          ctx, ctx->resource_manager()->LookupOrCreate<NGraphFreshnessTracker>(
-                   ctx->resource_manager()->default_container(),
-                   "ngraph_freshness_tracker", &m_freshness_tracker, creator));
-    }
-
-    NGRAPH_VLOG(4)
-        << "NGraphEncapsulateOp::Compute got freshness tracker for cluster "
-        << m_ngraph_cluster;
-
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    bool log_copies = false;
-    OP_REQUIRES_OK(ctx,
-                   IsNgraphTFLogTensorCopiesEnabled(m_graph_id, log_copies));
-    copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-                 << " ,GraphID " << m_graph_id << "\n";
-#endif
-
-    // Allocate tensors for input arguments.
-    ngraph::Event event_alloc_input("Input: maybe create", name(), "");
-
-    vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
-    int ng_input_tensor_size_in_bytes = 0;
-
-    OP_REQUIRES_OK(ctx, AllocateTensorInput(ctx, ng_exec, input_shapes,
-                                            op_backend, ng_inputs));
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
-                      "for cluster "
-                   << m_ngraph_cluster;
-
-    event_alloc_input.Stop();
-
-    vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
-    int ng_output_tensor_size_in_bytes = 0;
-
-    // Allocate tensors for the output results.
-    ngraph::Event event_alloc_output("Output: maybe create", name(), "");
-    std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>
-        output_caches;
-    OP_REQUIRES_OK(ctx,
-                   AllocateTensorOutput(ctx, ng_exec, input_shapes, op_backend,
-                                        ng_outputs, output_caches));
-
-    event_alloc_output.Stop();
-    NGRAPH_VLOG(4)
-        << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
-        << m_ngraph_cluster;
 
     int time_create_or_lookup_tensors = create_or_lookup_tensors.ElapsedInMS();
 
@@ -944,9 +899,6 @@ class NGraphEncapsulateOp : public OpKernel {
 
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
-
-  int number_of_copies = 0;
-  std::stringstream copy_log_str;
 
   // Freshness tracker maintains a set of ng::functions using a particular base
   // pointer(for Tensor)
