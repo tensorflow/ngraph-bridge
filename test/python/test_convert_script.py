@@ -76,7 +76,8 @@ class TestConversionScript(NgraphTest):
                                  ' --outnodes out_node --output' + out_format +
                                  ' ' + out_loc + ' --ngbackend CPU:0')
             else:
-                convert(inp_format, inp_loc, out_format, out_loc, ['out_node'], 'CPU:0')
+                convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
+                        'CPU:0')
             conversion_successful = True
         finally:
             if not conversion_successful:
