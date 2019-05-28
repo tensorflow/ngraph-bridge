@@ -48,8 +48,8 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-cc_binary(
-    name = 'libngraph_bridge.so',
+cc_library(
+    name = 'ngraph_bridge_lib',
     srcs = [
         "src/ngraph_api.cc",
         "src/ngraph_assign_clusters.cc",
@@ -64,18 +64,15 @@ cc_binary(
         "src/ngraph_freshness_tracker.cc",
         "src/ngraph_mark_for_clustering.cc",
         "src/ngraph_rewrite_for_tracking.cc",
-        #"src/ngraph_rewrite_pass.cc",
         "src/ngraph_tracked_variable.cc",
         "src/ngraph_utils.cc",
         "src/tf_deadness_analysis.cc",
         "src/tf_graphcycles.cc",
-        "src/version.cc",
         "src/grappler/ngraph_optimizer.cc",
         "src/grappler/ngraph_add_identityn.cc",
         "logging/ngraph_log.cc",
         "logging/tf_graph_writer.cc",
     ],
-    linkshared = 1,
     deps = [
         ":ngraph_bridge_headers",
         "@local_config_tf//:libtensorflow_framework",
@@ -105,5 +102,80 @@ cc_binary(
         "-Wl,-z,relro",
         "-Wl,-z,now",
     ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = 'libngraph_bridge.so',
+    srcs = [
+        "src/version.cc",
+    ],
+    linkshared = 1,
+    deps = [
+        ":ngraph_bridge_headers",
+        ":ngraph_bridge_lib",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
+        "@ngraph//:ngraph_headers",
+        "@ngraph//:ngraph_core",
+        "@ngraph//:ngraph_version",
+    ],
+    copts = [
+        "-pthread", 
+        "-std=c++11", 
+        "-D_FORTIFY_SOURCE=2",
+        "-Wformat",
+        "-Wformat-security",
+        "-Wformat",
+        "-fstack-protector-all",
+        "-D NDEBUG",
+        '-D SHARED_LIB_PREFIX=\\"lib\\"',
+        '-D SHARED_LIB_SUFFIX=\\".so\\"',
+        '-D NGRAPH_TF_USE_GRAPPLER_OPTIMIZER',
+        "-I src",
+        "-I logging",
+        "-I external/ngraph/src",
+    ] + CXX_ABI,
+    linkopts = [
+        "-Wl,-z,noexecstack",
+        "-Wl,-z,relro",
+        "-Wl,-z,now",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_cc_binary")
+tf_cc_binary(
+    name = 'hello_tf',
+    srcs = [
+        "examples/tf_cpp_examples/hello_tf.cpp",
+    ],
+    deps = [
+        ":ngraph_bridge_headers",
+        ":ngraph_bridge_lib",
+        "@org_tensorflow//tensorflow/cc:cc_ops",
+        "@org_tensorflow//tensorflow/cc:client_session",
+        # "@org_tensorflow//tensorflow/core:core_cpu",
+        # "@org_tensorflow//tensorflow/core:framework",
+        # "@org_tensorflow//tensorflow/core:lib",
+        # "@org_tensorflow//tensorflow/core:protos_all_cc",
+        # "@org_tensorflow//tensorflow/core:tensorflow",
+
+        "@ngraph//:ngraph_headers",
+    ],
+    copts = [
+        "-pthread", 
+        "-std=c++11", 
+        "-D_FORTIFY_SOURCE=2",
+        "-Wformat",
+        "-Wformat-security",
+        "-Wformat",
+        "-fstack-protector-all",
+        "-D NDEBUG",
+        "-I src",
+        "-I external/ngraph/src",
+        "-I logging",
+    ] + CXX_ABI,
+    linkstatic=False,
     visibility = ["//visibility:public"],
 )
