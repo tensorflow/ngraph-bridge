@@ -91,7 +91,7 @@ class NGraphVar : public ResourceBase {
 
   // Copies the NG Tensor to TF Tensor for this variable
   // Involves a copy from device to host
-  // Returns the number of copies made (0 or 1)
+  // Returns the number of tensor copies made (0 or 1)
   int copy_ng_to_tf() {
     if (ng_tf_share_buffer_) {
       return 0;
@@ -105,7 +105,7 @@ class NGraphVar : public ResourceBase {
 
   // Copies the TF Tensor to NG Tensor for this variable
   // Involves a copy from host to device
-  // Returns the number of copies made (0 or 1)
+  // Returns the number of tensor copies made (0 or 1)
   int copy_tf_to_ng() {
     if (ng_tf_share_buffer_) {
       return 0;
@@ -119,7 +119,7 @@ class NGraphVar : public ResourceBase {
 
   // If the NGTensor is behind TF Tensor (ie if NGTensor is out-of-date)
   // It updates ng_tensor by copy_tf_to_ng
-  // Returns the number of copies made (0 or 1)
+  // Returns the number of tensor copies made (0 or 1)
   int sync_ng_tensor() {
     if (ng_tf_share_buffer_) {
       return 0;
@@ -131,12 +131,18 @@ class NGraphVar : public ResourceBase {
   }
 
   // updates the NGTensor with the new value
+  // This new_value could be from ngraph-tensor, for e.g. when computed from
+  // NGraphEncapsulateOp
+  // and saved in Catalog
+  // Returns the number of tensor copies made (0 or 1)
   int update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value) {
     ng_tensor_->copy_from(*new_value);
     return 0;
   }
 
   // updates the NGTensor with the new value
+  // This new_value could be from tf-tensor, for e.g. when computed from a TF op
+  // Returns the number of tensor copies made (0 or 1)
   int update_ng_tensor(Tensor* new_value) {
     WriteNGTensor(ng_tensor_, new_value);
     if (ng_tf_share_buffer_) {
