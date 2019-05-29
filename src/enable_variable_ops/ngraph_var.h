@@ -121,9 +121,6 @@ class NGraphVar : public ResourceBase {
   // It updates ng_tensor by copy_tf_to_ng
   // Returns the number of tensor copies made (0 or 1)
   int sync_ng_tensor() {
-    if (ng_tf_share_buffer_) {
-      return 0;
-    }
     if (sync_ng_tensor_) {
       return copy_tf_to_ng();
     }
