@@ -168,7 +168,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
     // Set the backend type for the op
     OP_REQUIRES_OK(ctx,
-                   ctx->GetAttr<string>("_ngraph_backend", &m_op_backend_name));
+                   ctx->GetAttr<string>("ngraph_backend", &m_op_backend_name));
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
     BackendManager::CreateBackend(m_op_backend_name);
     event.Stop();
