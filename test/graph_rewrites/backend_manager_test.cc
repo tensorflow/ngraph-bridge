@@ -111,6 +111,10 @@ TEST(BackendManager, BackendAssignment) {
   ASSERT_EQ(bA, bR);
   ASSERT_EQ(bA, backend1);
 
+  for (auto node : graph.op_nodes()) {
+    node->ClearAttr("_ngraph_backend");
+  }
+
   // Set backend 2
   string backend2 = "CPU";
   ASSERT_OK(BackendManager::SetBackendName(backend2));
