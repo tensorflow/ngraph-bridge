@@ -171,7 +171,7 @@ def attach_device_and_ng_backend(gdef, ng_backend):
     # Assumes that the whole graph runs on a single ng_backend
     for n in gdef.node:
         n.device = "/device:CPU:0"
-        n._ngraph_backend = ng_backend
+        ngraph_bridge.set_backend(ng_backend)
 
 
 allowed_formats = {
