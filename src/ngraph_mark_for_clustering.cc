@@ -630,7 +630,40 @@ Status MarkForClustering(Graph* graph,
   // 1. Set Attribute "_ngraph_marked_for_clustering" as "true"
   // 2. Set the backend for each op
   // 3. Set any other attributes as defined in set_attribute_map
+
+  // The priority of backend setting is: API < Graph nodes < Env variable
   string current_backend = BackendManager::GetCurrentlySetBackendName();
+
+  // Go through all nodes in the graph and check if they have any ng backend set
+  // Enforces that if ng backend is set as a preference, then its same for all
+  // nodes that have that attribute set
+  string backend_name_from_nodes;
+  for (auto node : graph->op_nodes()) {
+    string backend_name_from_this_node;
+    if (GetNodeBackend(node, &backend_name_from_this_node) == Status::OK()) {
+      if (!BackendManager::IsSupportedBackend(backend_name_from_this_node)) {
+        return errors::Internal("Backend from node ", node->name(), " is ",
+                                backend_name_from_this_node,
+                                " which is not supported");
+      }
+      if (!backend_name_from_nodes.empty() &&
+          !backend_name_from_this_node.empty() &&
+          backend_name_from_nodes.compare(backend_name_from_this_node) != 0) {
+        return errors::Internal("Previous nodes had backend set to ",
+                                backend_name_from_nodes, " but node ",
+                                node->name(), " has backend set to ",
+                                backend_name_from_this_node);
+      }
+      if (backend_name_from_nodes.empty()) {
+        backend_name_from_nodes = backend_name_from_this_node;
+      }
+    }
+  }
+
+  if (!backend_name_from_nodes.empty()) {
+    current_backend = backend_name_from_nodes;
+  }
+
   const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
   if (ng_backend_env_value != nullptr) {
     string backend_env = std::string(ng_backend_env_value);

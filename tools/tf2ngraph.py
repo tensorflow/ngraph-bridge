@@ -115,7 +115,9 @@ def prepare_argparser(formats):
     parser.add_argument(
         "--outnodes", help="Comma separated list of output nodes")
     parser.add_argument(
-        "--ngbackend", default='CPU:0', help="Ngraph backend (with cardinality). Eg, NNPI:0")
+        "--ngbackend",
+        default='CPU:0',
+        help="Ngraph backend (with cardinality). Eg, NNPI:0")
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
