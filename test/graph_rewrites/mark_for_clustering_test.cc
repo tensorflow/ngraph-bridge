@@ -82,6 +82,79 @@ TEST(MarkForClustering, SimpleTest) {
     ASSERT_EQ(backend, expected_backend);
   }
 }
+
+// _ngraph_backend set to unsupported POTATO ng backend. MFE expected to fail
+TEST(MarkForClustering, BadBackend1) {
+  Graph g(OpRegistry::Global());
+
+  Tensor t_input_0(DT_FLOAT, TensorShape{2, 3});
+  Tensor t_input_1(DT_FLOAT, TensorShape{2, 3});
+
+  Node* node1;
+  ASSERT_OK(NodeBuilder("node1", "Const")
+                .Attr("dtype", DT_FLOAT)
+                .Attr("value", t_input_0)
+                .Finalize(&g, &node1));
+
+  Node* node2;
+  ASSERT_OK(NodeBuilder("node2", "Const")
+                .Attr("dtype", DT_FLOAT)
+                .Attr("value", t_input_1)
+                .Attr("_ngraph_backend", "POTATO")
+                .Finalize(&g, &node2));
+
+  Node* node3;
+  ASSERT_OK(NodeBuilder("node3", "Add")
+                .Input(node1, 0)
+                .Input(node2, 0)
+                .Attr("T", DT_FLOAT)
+                .Finalize(&g, &node3));
+
+  Node* source = g.source_node();
+  Node* sink = g.sink_node();
+  g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+  g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+
+  ASSERT_NOT_OK(MarkForClustering(&g, {}));
+}
+
+// _ngraph_backend set to 2 different ng backends. MFE expected to fail
+TEST(MarkForClustering, BadBackend2) {
+  Graph g(OpRegistry::Global());
+
+  Tensor t_input_0(DT_FLOAT, TensorShape{2, 3});
+  Tensor t_input_1(DT_FLOAT, TensorShape{2, 3});
+
+  Node* node1;
+  ASSERT_OK(NodeBuilder("node1", "Const")
+                .Attr("dtype", DT_FLOAT)
+                .Attr("value", t_input_0)
+                .Attr("_ngraph_backend", "INTERPRETER")
+                .Finalize(&g, &node1));
+
+  Node* node2;
+  ASSERT_OK(NodeBuilder("node2", "Const")
+                .Attr("dtype", DT_FLOAT)
+                .Attr("value", t_input_1)
+                .Attr("_ngraph_backend", "CPU")
+                .Finalize(&g, &node2));
+
+  Node* node3;
+  ASSERT_OK(NodeBuilder("node3", "Add")
+                .Input(node1, 0)
+                .Input(node2, 0)
+                .Attr("T", DT_FLOAT)
+                .Finalize(&g, &node3));
+
+  Node* source = g.source_node();
+  Node* sink = g.sink_node();
+  g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+  g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+
+  ASSERT_NOT_OK(MarkForClustering(&g, {}));
+}
 }
 }
 }

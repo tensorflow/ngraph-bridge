@@ -647,11 +647,15 @@ Status MarkForClustering(Graph* graph,
                                 " which is not supported");
       }
       if (!backend_name_from_nodes.empty() &&
+          !backend_name_from_this_node.empty() &&
           backend_name_from_nodes.compare(backend_name_from_this_node) != 0) {
         return errors::Internal("Previous nodes had backend set to ",
                                 backend_name_from_nodes, " but node ",
                                 node->name(), " has backend set to ",
                                 backend_name_from_this_node);
+      }
+      if (backend_name_from_nodes.empty()) {
+        backend_name_from_nodes = backend_name_from_this_node;
       }
     }
   }
