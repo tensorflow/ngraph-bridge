@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#ifndef NGRAPH_TF_NgraphVar_H_
-#define NGRAPH_TF_NgraphVar_H_
+#ifndef NGRAPH_TF_NGRAPHVAR_H_
+#define NGRAPH_TF_NGRAPHVAR_H_
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/op.h"
@@ -96,10 +96,7 @@ class NGraphVar : public ResourceBase {
     if (ng_tf_share_buffer_) {
       return 0;
     }
-    ngraph::Event event_sync_ng_tf_tensors("sync ng-tf-tensors D2H", "", "");
     ReadNGTensor(ng_tensor_, &tf_tensor_);
-    event_sync_ng_tf_tensors.Stop();
-    ngraph::Event::write_trace(event_sync_ng_tf_tensors);
     return 1;
   }
 
@@ -110,10 +107,7 @@ class NGraphVar : public ResourceBase {
     if (ng_tf_share_buffer_) {
       return 0;
     }
-    ngraph::Event event_sync_ng_tf_tensors("sync ng-tf-tensors H2D", "", "");
     WriteNGTensor(ng_tensor_, &tf_tensor_);
-    event_sync_ng_tf_tensors.Stop();
-    ngraph::Event::write_trace(event_sync_ng_tf_tensors);
     return 1;
   }
 
