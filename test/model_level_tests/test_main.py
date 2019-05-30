@@ -167,15 +167,15 @@ def run_test_suite(model_dir, configuration, disabled):
             disabled_by_cli = flname in disabled
             if (not disabled_by_dir_name) and (not disabled_by_cli):
                 custom_parser_present = os.path.isfile(sub_test_dir +
-                                                    '/custom_log_parser.py')
+                                                       '/custom_log_parser.py')
                 if repo_based:
                     # TODO: shift the timing inside apply_patch_and_test
                     sub_test_dir = model_dir + '/' + flname
                     tstart = time.time()
                     try:
-                        so, se = apply_patch_and_test(sub_test_dir,
-                                                    ('NGRAPH_TF_LOG_PLACEMENT=1',
-                                                    '')[custom_parser_present])
+                        so, se = apply_patch_and_test(
+                            sub_test_dir, ('NGRAPH_TF_LOG_PLACEMENT=1',
+                                           '')[custom_parser_present])
                     except:
                         failed_tests.append(sub_test_dir)
                         continue
@@ -211,13 +211,13 @@ def run_test_suite(model_dir, configuration, disabled):
                     else:
                         parsed_vals = parse_logs(so)
                     expected = get_expected_from_json(expected_json_file,
-                                                    configuration,
-                                                    not custom_parser_present)
+                                                      configuration,
+                                                      not custom_parser_present)
                     passed, fail_help_string = compare_parsed_values(
                         parsed_vals, expected.get('logparse', {}))
                     if not passed:
                         print('Failed in test ' + flname + '. Help message: ' +
-                            fail_help_string)
+                              fail_help_string)
                         failed_tests.append(sub_test_dir)
                         continue
                     if 'time' in expected:
@@ -225,18 +225,24 @@ def run_test_suite(model_dir, configuration, disabled):
                         # TODO: decide this criteria. time can be pretty variable
                         # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
                         time_check = (actual_runtime -
-                                    expected['time']) / expected['time'] < 0.1
+                                      expected['time']) / expected['time'] < 0.1
                         if not time_check:
-                            print("Expected run time for test " + flname + " is " +
-                                str(expected['time']) + " but it actually took " +
-                                str(actual_runtime))
+                            print("Expected run time for test " + flname +
+                                  " is " + str(expected['time']) +
+                                  " but it actually took " +
+                                  str(actual_runtime))
                             failed_tests.append(sub_test_dir)
                             continue
                 passed_tests.append(sub_test_dir)
             else:
                 skipped_tests.append(sub_test_dir)
             # Make sure the test is exactly one of passed, skipped or failed
-            assert sum([sub_test_dir in skipped_tests, sub_test_dir in passed_tests, sub_test_dir in failed_tests])==1, str(sub_test_dir) + ' does not appear exactly once in passed, skipped or failed test lists'
+            assert sum([
+                sub_test_dir in skipped_tests, sub_test_dir in passed_tests,
+                sub_test_dir in failed_tests
+            ]) == 1, str(
+                sub_test_dir
+            ) + ' does not appear exactly once in passed, skipped or failed test lists'
 
     # Clean up if needed
     cleanup_script = model_dir + '/cleanup.sh'
@@ -411,7 +417,8 @@ if __name__ == '__main__':
                 skipped_tests[test_suite] = skipped_tests_in_suite
             if args.run_functional_tests:
                 print('Functional tests not implemented yet!!')
-    print_format = lambda d : '\n'.join(['\n\t'.join([k] + d[k]) for k in d if len(d[k]) > 0])
+    print_format = lambda d: '\n'.join(
+        ['\n\t'.join([k] + d[k]) for k in d if len(d[k]) > 0])
     print('Passed:\n' + '\033[92m' + print_format(passed_tests) + '\033[0m')
     print('Skipped:\n' + '\033[93m' + print_format(skipped_tests) + '\033[0m')
     print('Failed:\n' + '\033[91m' + print_format(failed_tests) + '\033[0m')
