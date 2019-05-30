@@ -631,7 +631,6 @@ Status MarkForClustering(Graph* graph,
   // 2. Set the backend for each op
   // 3. Set any other attributes as defined in set_attribute_map
   string current_backend = BackendManager::GetCurrentlySetBackendName();
-
   const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
   if (ng_backend_env_value != nullptr) {
     string backend_env = std::string(ng_backend_env_value);
