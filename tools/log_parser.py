@@ -65,7 +65,7 @@ def compare_parsed_values(parsed_vals, expected_vals):
                 matching_id = graph_id_2
                 break
         if matching_id is None:
-            return False, 'Failed to match expected graph info ' + graph_id_1
+            return False, 'Failed to match expected graph info ' + graph_id_1 + " which was: " + str(expected_vals[graph_id_1]) + "\n. Got the following parsed results: " + str(parsed_vals)
         else:
             parsed_vals.pop(matching_id)
     return True, ''
