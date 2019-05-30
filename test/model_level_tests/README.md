@@ -27,6 +27,10 @@ This section describes the directory structure. Indentation means sub-directorie
         5. `Sub-test` (*Repeated*):
             1. `pbtxt/pb/savedmodel`: One TF model file per `sub-test`.
             2. `expected.json` (*Optional*): A json file containing expected results. See **Expected results format**.
+
+<img src="./resources/test_framework.svg" height="600" width="300">
+
+
 ### Terminology:
 1. `test suite` or `model test directory`:
     1. `repo based`: See **Directory Structure 2.1**.
@@ -48,9 +52,8 @@ Expected results are specified in a json file of the following format:
             4. to be expanded as the default `log parser` produces more information.
     2. `time` (*Optional*): Time in seconds.
 
-<img src="./resources/test_framework.svg">
-<img src="./resources/list.png">
-<img src="./resources/end_of_tests.png">
+<img src="./resources/list.png" height="415" width="350">
+<img src="./resources/end_of_tests.png" height="104" width="121">
 
 ## Features and sample uses
 
