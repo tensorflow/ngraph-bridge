@@ -169,8 +169,8 @@ def run_test_suite(model_dir, configuration, disabled):
                 disabled_by_dir_name = 'disabled' in flname
                 disabled_by_cli = flname in disabled
                 if (not disabled_by_dir_name) and (not disabled_by_cli):
-                    custom_parser_present = os.path.isfile(sub_test_dir +
-                                                        '/custom_log_parser.py')
+                    custom_parser_present = os.path.isfile(
+                        sub_test_dir + '/custom_log_parser.py')
                     if repo_based:
                         # TODO: shift the timing inside apply_patch_and_test
                         sub_test_dir = model_dir + '/' + flname
@@ -178,7 +178,7 @@ def run_test_suite(model_dir, configuration, disabled):
                         try:
                             so, se = apply_patch_and_test(
                                 sub_test_dir, ('NGRAPH_TF_LOG_PLACEMENT=1',
-                                            '')[custom_parser_present])
+                                               '')[custom_parser_present])
                         except:
                             failed_tests.append(sub_test_dir)
                             continue
@@ -200,7 +200,8 @@ def run_test_suite(model_dir, configuration, disabled):
                         else:
                             assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
                         # TODO: support checkpoint too later
-                        gdef = get_gdef(model_format, sub_test_dir + '/' + model)
+                        gdef = get_gdef(model_format,
+                                        sub_test_dir + '/' + model)
                         # TODO: run Level1 tests on gdef. needs another json for that (one which specifies input shapes etc)
 
                     # If expected.json is present, run some extra tests. If not present we deem the test passed if it ran apply_patch_and_test without raising any errors
@@ -213,27 +214,27 @@ def run_test_suite(model_dir, configuration, disabled):
                             sys.path.pop(0)
                         else:
                             parsed_vals = parse_logs(so)
-                        expected = get_expected_from_json(expected_json_file,
-                                                        configuration,
-                                                        not custom_parser_present)
+                        expected = get_expected_from_json(
+                            expected_json_file, configuration,
+                            not custom_parser_present)
                         passed, fail_help_string = compare_parsed_values(
                             parsed_vals, expected.get('logparse', {}))
                         if not passed:
-                            print('Failed in test ' + flname + '. Help message: ' +
-                                fail_help_string)
+                            print('Failed in test ' + flname +
+                                  '. Help message: ' + fail_help_string)
                             failed_tests.append(sub_test_dir)
                             continue
                         if 'time' in expected:
                             actual_runtime = tend - tstart
                             # TODO: decide this criteria. time can be pretty variable
                             # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
-                            time_check = (actual_runtime -
-                                        expected['time']) / expected['time'] < 0.1
+                            time_check = (actual_runtime - expected['time']
+                                         ) / expected['time'] < 0.1
                             if not time_check:
                                 print("Expected run time for test " + flname +
-                                    " is " + str(expected['time']) +
-                                    " but it actually took " +
-                                    str(actual_runtime))
+                                      " is " + str(expected['time']) +
+                                      " but it actually took " +
+                                      str(actual_runtime))
                                 failed_tests.append(sub_test_dir)
                                 continue
                     passed_tests.append(sub_test_dir)
