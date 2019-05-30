@@ -108,6 +108,7 @@ def apply_patch_and_test(test_folder, env_flags):
     if patch_file is not None:
         command_executor('git apply ' + patch_file)
 
+    command_executor('chmod +x ' + test_folder + '/core_run.sh')
     so, se, errcode = command_executor(
         env_flags + ' ' + test_folder + '/core_run.sh',
         msg="Running test config " + test_folder.split('/')[-1] + ': ',
@@ -124,6 +125,7 @@ def ready_repo(model_dir, repo_dl_loc):
     command_executor('git reset --hard')
     # getting the repo ready is common to both check_rewrite_test and get_checkpoint
     if os.path.isfile(model_dir + '/getting_repo_ready.sh'):
+        command_executor('chmod +x ' + model_dir + '/getting_repo_ready.sh')
         command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
 
 
@@ -248,6 +250,7 @@ def run_test_suite(model_dir, configuration, disabled):
     cleanup_script = model_dir + '/cleanup.sh'
     if os.path.isfile(cleanup_script):
         assert repo_based, 'Did not expect a cleanup script in non-repo based test'
+        command_executor('chmod +x ' + cleanup_script)
         command_executor(cleanup_script)
     command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split(
         '/')[-1]
