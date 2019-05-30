@@ -133,150 +133,142 @@ def ready_repo(model_dir, repo_dl_loc):
 # Also this function could return the list of pbtxts it generated (but does it need to? we can infer it)
 # TODO: this function should also take the level/intensity of test to run
 def run_test_suite(model_dir, configuration, disabled):
-    # TODO: assert TF version. Some models may not run on TF1.12 etc
-    model_dir = os.path.abspath(model_dir)
-    test_suites = os.listdir(model_dir)
+    try:
+        # TODO: assert TF version. Some models may not run on TF1.12 etc
+        model_dir = os.path.abspath(model_dir)
+        test_suites = os.listdir(model_dir)
 
-    failed_tests = []
-    passed_tests = []
-    skipped_tests = []
+        failed_tests = []
+        passed_tests = []
+        skipped_tests = []
 
-    # download/prepare repo if needed:
-    repo_filename = model_dir + '/repo.txt'
-    repo_based = False  # Is this test dir repo based or pb/pbtxt/savedmodel based?
-    if os.path.isfile(repo_filename):
-        repo_based = True
-        repo_info = [
-            line.strip()
-            for line in open(repo_filename).readlines()
-            if len(line.strip()) > 0
-        ]
-        repo_name = repo_info[0]
-        repo_version = repo_info[1] if len(repo_info) == 2 else 'master'
-        repo_dl_loc = model_dir + '/downloaded_model'
-        # TODO: download only when needed? If already present, check if on the right branch
-        download_repo(repo_dl_loc, repo_name, repo_version)
-        ready_repo(model_dir, repo_dl_loc)
+        # download/prepare repo if needed:
+        repo_filename = model_dir + '/repo.txt'
+        repo_based = False  # Is this test dir repo based or pb/pbtxt/savedmodel based?
+        if os.path.isfile(repo_filename):
+            repo_based = True
+            repo_info = [
+                line.strip()
+                for line in open(repo_filename).readlines()
+                if len(line.strip()) > 0
+            ]
+            repo_name = repo_info[0]
+            repo_version = repo_info[1] if len(repo_info) == 2 else 'master'
+            repo_dl_loc = model_dir + '/downloaded_model'
+            # TODO: download only when needed? If already present, check if on the right branch
+            download_repo(repo_dl_loc, repo_name, repo_version)
+            ready_repo(model_dir, repo_dl_loc)
 
-    # Iterate through each sub-test
-    for flname in test_suites:
-        sub_test_dir = model_dir + '/' + flname
-        # if its  directory starting with test, and not containing "disabled" in its name
-        item_is_a_subtest = not os.path.isfile(
-            sub_test_dir) and flname.startswith('test')
-        if item_is_a_subtest:
-            disabled_by_dir_name = 'disabled' in flname
-            disabled_by_cli = flname in disabled
-            if (not disabled_by_dir_name) and (not disabled_by_cli):
-                custom_parser_present = os.path.isfile(sub_test_dir +
-                                                       '/custom_log_parser.py')
-                if repo_based:
-                    # TODO: shift the timing inside apply_patch_and_test
-                    sub_test_dir = model_dir + '/' + flname
-                    tstart = time.time()
-                    try:
-                        so, se = apply_patch_and_test(
-                            sub_test_dir, ('NGRAPH_TF_LOG_PLACEMENT=1',
-                                           '')[custom_parser_present])
-                    except:
-                        failed_tests.append(sub_test_dir)
-                        continue
-                    tend = time.time()
-                    command_executor.commands += '\n'
-                else:
-                    model = [
-                        i for i in os.listdir(sub_test_dir)
-                        if '.md' not in i and '.json' not in i
-                    ]
-                    assert len(model) == 1
-                    model = model[0]
-                    split_on_dot = model.split('.')
-                    assert len(split_on_dot) <= 2
-                    if len(split_on_dot) == 1:
-                        model_format = 'savedmodel'
-                    elif split_on_dot[1] in ['pb', 'pbtxt']:
-                        model_format = split_on_dot[1]
-                    else:
-                        assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
-                    # TODO: support checkpoint too later
-                    gdef = get_gdef(model_format, sub_test_dir + '/' + model)
-                    # TODO: run Level1 tests on gdef. needs another json for that (one which specifies input shapes etc)
-
-                # If expected.json is present, run some extra tests. If not present we deem the test passed if it ran apply_patch_and_test without raising any errors
-                expected_json_file = sub_test_dir + '/expected.json'
-                if os.path.isfile(expected_json_file):
-                    if custom_parser_present:
-                        sys.path.insert(0, os.path.abspath(sub_test_dir))
-                        from custom_log_parser import custom_parse_logs
-                        parsed_vals = custom_parse_logs(so)
-                        sys.path.pop(0)
-                    else:
-                        parsed_vals = parse_logs(so)
-                    expected = get_expected_from_json(expected_json_file,
-                                                      configuration,
-                                                      not custom_parser_present)
-                    passed, fail_help_string = compare_parsed_values(
-                        parsed_vals, expected.get('logparse', {}))
-                    if not passed:
-                        print('Failed in test ' + flname + '. Help message: ' +
-                              fail_help_string)
-                        failed_tests.append(sub_test_dir)
-                        continue
-                    if 'time' in expected:
-                        actual_runtime = tend - tstart
-                        # TODO: decide this criteria. time can be pretty variable
-                        # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
-                        time_check = (actual_runtime -
-                                      expected['time']) / expected['time'] < 0.1
-                        if not time_check:
-                            print("Expected run time for test " + flname +
-                                  " is " + str(expected['time']) +
-                                  " but it actually took " +
-                                  str(actual_runtime))
+        # Iterate through each sub-test
+        for flname in test_suites:
+            sub_test_dir = model_dir + '/' + flname
+            # if its  directory starting with test, and not containing "disabled" in its name
+            item_is_a_subtest = not os.path.isfile(
+                sub_test_dir) and flname.startswith('test')
+            if item_is_a_subtest:
+                disabled_by_dir_name = 'disabled' in flname
+                disabled_by_cli = flname in disabled
+                if (not disabled_by_dir_name) and (not disabled_by_cli):
+                    custom_parser_present = os.path.isfile(sub_test_dir +
+                                                        '/custom_log_parser.py')
+                    if repo_based:
+                        # TODO: shift the timing inside apply_patch_and_test
+                        sub_test_dir = model_dir + '/' + flname
+                        tstart = time.time()
+                        try:
+                            so, se = apply_patch_and_test(
+                                sub_test_dir, ('NGRAPH_TF_LOG_PLACEMENT=1',
+                                            '')[custom_parser_present])
+                        except:
                             failed_tests.append(sub_test_dir)
                             continue
-                passed_tests.append(sub_test_dir)
-            else:
-                skipped_tests.append(sub_test_dir)
-            # Make sure the test is exactly one of passed, skipped or failed
-            assert sum([
-                sub_test_dir in skipped_tests, sub_test_dir in passed_tests,
-                sub_test_dir in failed_tests
-            ]) == 1, str(
-                sub_test_dir
-            ) + ' does not appear exactly once in passed, skipped or failed test lists'
+                        tend = time.time()
+                        command_executor.commands += '\n'
+                    else:
+                        model = [
+                            i for i in os.listdir(sub_test_dir)
+                            if '.md' not in i and '.json' not in i
+                        ]
+                        assert len(model) == 1
+                        model = model[0]
+                        split_on_dot = model.split('.')
+                        assert len(split_on_dot) <= 2
+                        if len(split_on_dot) == 1:
+                            model_format = 'savedmodel'
+                        elif split_on_dot[1] in ['pb', 'pbtxt']:
+                            model_format = split_on_dot[1]
+                        else:
+                            assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
+                        # TODO: support checkpoint too later
+                        gdef = get_gdef(model_format, sub_test_dir + '/' + model)
+                        # TODO: run Level1 tests on gdef. needs another json for that (one which specifies input shapes etc)
 
-    # Clean up if needed
-    cleanup_script = model_dir + '/cleanup.sh'
-    if os.path.isfile(cleanup_script):
-        assert repo_based, 'Did not expect a cleanup script in non-repo based test'
-        command_executor('chmod +x ' + cleanup_script)
-        command_executor(cleanup_script)
-    command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split(
-        '/')[-1]
-    return passed_tests, failed_tests, skipped_tests
-    # TODO: delete downloaded model repo
+                    # If expected.json is present, run some extra tests. If not present we deem the test passed if it ran apply_patch_and_test without raising any errors
+                    expected_json_file = sub_test_dir + '/expected.json'
+                    if os.path.isfile(expected_json_file):
+                        if custom_parser_present:
+                            sys.path.insert(0, os.path.abspath(sub_test_dir))
+                            from custom_log_parser import custom_parse_logs
+                            parsed_vals = custom_parse_logs(so)
+                            sys.path.pop(0)
+                        else:
+                            parsed_vals = parse_logs(so)
+                        expected = get_expected_from_json(expected_json_file,
+                                                        configuration,
+                                                        not custom_parser_present)
+                        passed, fail_help_string = compare_parsed_values(
+                            parsed_vals, expected.get('logparse', {}))
+                        if not passed:
+                            print('Failed in test ' + flname + '. Help message: ' +
+                                fail_help_string)
+                            failed_tests.append(sub_test_dir)
+                            continue
+                        if 'time' in expected:
+                            actual_runtime = tend - tstart
+                            # TODO: decide this criteria. time can be pretty variable
+                            # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
+                            time_check = (actual_runtime -
+                                        expected['time']) / expected['time'] < 0.1
+                            if not time_check:
+                                print("Expected run time for test " + flname +
+                                    " is " + str(expected['time']) +
+                                    " but it actually took " +
+                                    str(actual_runtime))
+                                failed_tests.append(sub_test_dir)
+                                continue
+                    passed_tests.append(sub_test_dir)
+                else:
+                    skipped_tests.append(sub_test_dir)
+                # Make sure the test is exactly one of passed, skipped or failed
+                assert sum([
+                    sub_test_dir in skipped_tests, sub_test_dir in passed_tests,
+                    sub_test_dir in failed_tests
+                ]) == 1, str(
+                    sub_test_dir
+                ) + ' does not appear exactly once in passed, skipped or failed test lists'
 
-    # TODO: use gdef to run
-    # TODO: add axpy test folders for pb. pbtxt and savedmodel
-    # TODO integrate the if-else paths as much as possible
+        # Clean up if needed
+        cleanup_script = model_dir + '/cleanup.sh'
+        if os.path.isfile(cleanup_script):
+            assert repo_based, 'Did not expect a cleanup script in non-repo based test'
+            command_executor('chmod +x ' + cleanup_script)
+            command_executor(cleanup_script)
+        command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split(
+            '/')[-1]
+        return passed_tests, failed_tests, skipped_tests
+        # TODO: use gdef to run
+        # TODO: add axpy test folders for pb. pbtxt and savedmodel
+        # TODO integrate the if-else paths as much as possible
 
-    # TODO: check throughput/latency
-
-
-def get_checkpoint():
-    pass
+        # TODO: check throughput/latency
+    finally:
+        if (os.path.isdir(repo_dl_loc)):
+            command_executor('rm -rf ' + repo_dl_loc)
 
 
 def dump_commands_in_shellscript(dir):
     with open(dir + '/dump.sh', 'w') as f:
         f.write(command_executor.commands)
-
-
-def check_functional(model_dir):
-    #check if there exists a check_functional.sh in the model folder
-    #if not, then use run_functional
-    pass
 
 
 def get_test_list_string(string, disabled_test_suite, disabled_sub_test):
