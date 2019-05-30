@@ -1,15 +1,21 @@
 load("//:cxx_abi_option.bzl", "CXX_ABI")
 
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_cc_binary")
-cc_binary(
+tf_cc_binary(
     name = 'sample',
     srcs = [
         "sample.cpp",
     ],
     deps = [
-        "@org_tensorflow//tensorflow/core",
         "@org_tensorflow//tensorflow/cc:cc_ops",
-        "//:ngraph_bridge_lib"
+        "@org_tensorflow//tensorflow/cc:client_session",
+        "@org_tensorflow//tensorflow/core:core_cpu",
+        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:lib",
+        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        "//:ngraph_bridge_lib",
+        "//:ngraph_bridge_version"
     ],
     copts = [
         "-pthread", 
@@ -20,9 +26,9 @@ cc_binary(
         # "-Wformat",
         # "-fstack-protector-all",
         "-D NDEBUG",
-        # "-I src",
-        # "-I external/ngraph/src",
-        # "-I logging",
+        "-I src",
+        "-I external/ngraph/src",
+        "-I logging",
     ] + CXX_ABI,
     linkstatic=False,
     visibility = ["//visibility:public"],
