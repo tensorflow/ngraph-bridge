@@ -180,7 +180,7 @@ def run_test_suite(model_dir, configuration, disabled):
                                 sub_test_dir, ('NGRAPH_TF_LOG_PLACEMENT=1',
                                                '')[custom_parser_present])
                         except:
-                            failed_tests.append(sub_test_dir)
+                            failed_tests.append(flname)
                             continue
                         tend = time.time()
                         command_executor.commands += '\n'
@@ -222,7 +222,7 @@ def run_test_suite(model_dir, configuration, disabled):
                         if not passed:
                             print('Failed in test ' + flname +
                                   '. Help message: ' + fail_help_string)
-                            failed_tests.append(sub_test_dir)
+                            failed_tests.append(flname)
                             continue
                         if 'time' in expected:
                             actual_runtime = tend - tstart
@@ -235,17 +235,17 @@ def run_test_suite(model_dir, configuration, disabled):
                                       " is " + str(expected['time']) +
                                       " but it actually took " +
                                       str(actual_runtime))
-                                failed_tests.append(sub_test_dir)
+                                failed_tests.append(flname)
                                 continue
-                    passed_tests.append(sub_test_dir)
+                    passed_tests.append(flname)
                 else:
-                    skipped_tests.append(sub_test_dir)
+                    skipped_tests.append(flname)
                 # Make sure the test is exactly one of passed, skipped or failed
                 assert sum([
-                    sub_test_dir in skipped_tests, sub_test_dir in passed_tests,
-                    sub_test_dir in failed_tests
+                    flname in skipped_tests, flname in passed_tests,
+                    flname in failed_tests
                 ]) == 1, str(
-                    sub_test_dir
+                    flname
                 ) + ' does not appear exactly once in passed, skipped or failed test lists'
 
         # Clean up if needed

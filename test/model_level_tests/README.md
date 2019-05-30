@@ -50,6 +50,7 @@ Expected results are specified in a json file of the following format:
 
 <img src="./resources/test_framework.svg">
 <img src="./resources/list.png">
+<img src="./resources/end_of_tests.png">
 
 ## Features and sample uses
 
