@@ -121,6 +121,12 @@ install(
     FILES_MATCHING PATTERN "*.pbtxt"
 )
 install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "*.pb"
+)
+
+install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
 )
