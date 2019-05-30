@@ -171,11 +171,11 @@ def run_test_suite(model_dir, configuration, disabled):
                 tstart = time.time()
                 try:
                     so, se = apply_patch_and_test(sub_test_dir,
-                                                ('NGRAPH_TF_LOG_PLACEMENT=1',
-                                                '')[custom_parser_present])
-                    passed_tests.append(sub_test_dir)
+                                                  ('NGRAPH_TF_LOG_PLACEMENT=1',
+                                                   '')[custom_parser_present])
                 except:
                     failed_tests.append(sub_test_dir)
+                    continue
                 tend = time.time()
                 command_executor.commands += '\n'
             else:
@@ -211,16 +211,23 @@ def run_test_suite(model_dir, configuration, disabled):
                                                   not custom_parser_present)
                 passed, fail_help_string = compare_parsed_values(
                     parsed_vals, expected.get('logparse', {}))
-                # TODO: right now the script will grind to a halt at the first failure. Fix that by powering through all tests and then printing in the end how many passed or failed
-                assert passed, 'Failed in test ' + flname + '. Help message: ' + fail_help_string
+                if not passed:
+                    print('Failed in test ' + flname + '. Help message: ' +
+                          fail_help_string)
+                    failed_tests.append(sub_test_dir)
+                    continue
                 if 'time' in expected:
                     actual_runtime = tend - tstart
                     # TODO: decide this criteria. time can be pretty variable
                     # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
-                    assert (actual_runtime - expected['time']) / expected[
-                        'time'] < 0.1, "Expected run time for test " + flname + " is " + str(
-                            expected['time']) + " but it actually took " + str(
-                                actual_runtime)
+                    time_check = (actual_runtime -
+                                  expected['time']) / expected['time'] < 0.1
+                    if not time_check:
+                        print("Expected run time for test " + flname + " is " +
+                              str(expected['time']) + " but it actually took " +
+                              str(actual_runtime))
+                        failed_tests.append(sub_test_dir)
+                passed_tests.append(sub_test_dir)
         else:
             skipped_tests.append(sub_test_dir)
         assert sub_test_dir in skipped_tests + passed_tests + failed_tests
@@ -388,7 +395,9 @@ if __name__ == '__main__':
         pdb.set_trace()
         if test_suite not in disabled_test_suite:
             if args.run_logparse_tests:
-                passed_tests, failed_tests, skipped_tests = run_test_suite('./models/' + test_suite, args.configuration, disabled_sub_test.get(test_suite, []))
+                passed_tests, failed_tests, skipped_tests = run_test_suite(
+                    './models/' + test_suite, args.configuration,
+                    disabled_sub_test.get(test_suite, []))
             if args.run_functional_tests:
                 print('Functional tests not implemented yet!!')
     print('Passed:\n' + '\033[92m' + '\n'.join(passed_tests) + '\033[0m')
