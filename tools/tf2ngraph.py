@@ -116,7 +116,7 @@ def prepare_argparser(formats):
         "--outnodes", help="Comma separated list of output nodes")
     parser.add_argument(
         "--ngbackend",
-        default='CPU:0',
+        default='CPU',
         help="Ngraph backend (with cardinality). Eg, NNPI:0")
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -168,10 +168,10 @@ def save_model(gdef, format, location):
 
 
 def attach_device_and_ng_backend(gdef, ng_backend):
+    ngraph_bridge.set_backend(ng_backend)
     # Assumes that the whole graph runs on a single ng_backend
     for n in gdef.node:
         n.device = "/device:CPU:0"
-        ngraph_bridge.set_backend(ng_backend)
 
 
 allowed_formats = {
