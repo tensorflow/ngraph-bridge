@@ -77,8 +77,11 @@ def return_to_cwd(f):
     def _helper(*args, **kwargs):
         so, _, __ = command_executor('pwd', stdout=PIPE)
         cwd = so.decode("utf-8").strip('\n')
-        retval = f(*args, **kwargs)
-        command_executor('cd ' + cwd)
+        try:
+            retval = f(*args, **kwargs)
+        finally:
+            # In both cases (the call to f passes or fails), return to original directory
+            command_executor('cd ' + cwd)
         return retval
 
     return _helper
@@ -159,78 +162,81 @@ def run_test_suite(model_dir, configuration, disabled):
         # if its  directory starting with test, and not containing "disabled" in its name
         item_is_a_subtest = not os.path.isfile(
             sub_test_dir) and flname.startswith('test')
-        disabled_by_dir_name = 'disabled' in flname
-        disabled_by_cli = flname in disabled
-        if item_is_a_subtest and (not disabled_by_dir_name) and (
-                not disabled_by_cli):
-            custom_parser_present = os.path.isfile(sub_test_dir +
-                                                   '/custom_log_parser.py')
-            if repo_based:
-                # TODO: shift the timing inside apply_patch_and_test
-                sub_test_dir = model_dir + '/' + flname
-                tstart = time.time()
-                try:
-                    so, se = apply_patch_and_test(sub_test_dir,
-                                                  ('NGRAPH_TF_LOG_PLACEMENT=1',
-                                                   '')[custom_parser_present])
-                except:
-                    failed_tests.append(sub_test_dir)
-                    continue
-                tend = time.time()
-                command_executor.commands += '\n'
-            else:
-                model = [
-                    i for i in os.listdir(sub_test_dir)
-                    if '.md' not in i and '.json' not in i
-                ]
-                assert len(model) == 1
-                model = model[0]
-                split_on_dot = model.split('.')
-                assert len(split_on_dot) <= 2
-                if len(split_on_dot) == 1:
-                    model_format = 'savedmodel'
-                elif split_on_dot[1] in ['pb', 'pbtxt']:
-                    model_format = split_on_dot[1]
-                else:
-                    assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
-                # TODO: support checkpoint too later
-                gdef = get_gdef(model_format, sub_test_dir + '/' + model)
-                # TODO: run Level1 tests on gdef. needs another json for that (one which specifies input shapes etc)
-
-            expected_json_file = sub_test_dir + '/expected.json'
-            if os.path.isfile(expected_json_file):
-                if custom_parser_present:
-                    sys.path.insert(0, os.path.abspath(sub_test_dir))
-                    from custom_log_parser import custom_parse_logs
-                    parsed_vals = custom_parse_logs(so)
-                    sys.path.pop(0)
-                else:
-                    parsed_vals = parse_logs(so)
-                expected = get_expected_from_json(expected_json_file,
-                                                  configuration,
-                                                  not custom_parser_present)
-                passed, fail_help_string = compare_parsed_values(
-                    parsed_vals, expected.get('logparse', {}))
-                if not passed:
-                    print('Failed in test ' + flname + '. Help message: ' +
-                          fail_help_string)
-                    failed_tests.append(sub_test_dir)
-                    continue
-                if 'time' in expected:
-                    actual_runtime = tend - tstart
-                    # TODO: decide this criteria. time can be pretty variable
-                    # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
-                    time_check = (actual_runtime -
-                                  expected['time']) / expected['time'] < 0.1
-                    if not time_check:
-                        print("Expected run time for test " + flname + " is " +
-                              str(expected['time']) + " but it actually took " +
-                              str(actual_runtime))
+        if item_is_a_subtest:
+            disabled_by_dir_name = 'disabled' in flname
+            disabled_by_cli = flname in disabled
+            if (not disabled_by_dir_name) and (not disabled_by_cli):
+                custom_parser_present = os.path.isfile(sub_test_dir +
+                                                    '/custom_log_parser.py')
+                if repo_based:
+                    # TODO: shift the timing inside apply_patch_and_test
+                    sub_test_dir = model_dir + '/' + flname
+                    tstart = time.time()
+                    try:
+                        so, se = apply_patch_and_test(sub_test_dir,
+                                                    ('NGRAPH_TF_LOG_PLACEMENT=1',
+                                                    '')[custom_parser_present])
+                    except:
                         failed_tests.append(sub_test_dir)
+                        continue
+                    tend = time.time()
+                    command_executor.commands += '\n'
+                else:
+                    model = [
+                        i for i in os.listdir(sub_test_dir)
+                        if '.md' not in i and '.json' not in i
+                    ]
+                    assert len(model) == 1
+                    model = model[0]
+                    split_on_dot = model.split('.')
+                    assert len(split_on_dot) <= 2
+                    if len(split_on_dot) == 1:
+                        model_format = 'savedmodel'
+                    elif split_on_dot[1] in ['pb', 'pbtxt']:
+                        model_format = split_on_dot[1]
+                    else:
+                        assert False, "Unknown input format. Expected savedmodel, pb or pbtxt"
+                    # TODO: support checkpoint too later
+                    gdef = get_gdef(model_format, sub_test_dir + '/' + model)
+                    # TODO: run Level1 tests on gdef. needs another json for that (one which specifies input shapes etc)
+
+                # If expected.json is present, run some extra tests. If not present we deem the test passed if it ran apply_patch_and_test without raising any errors
+                expected_json_file = sub_test_dir + '/expected.json'
+                if os.path.isfile(expected_json_file):
+                    if custom_parser_present:
+                        sys.path.insert(0, os.path.abspath(sub_test_dir))
+                        from custom_log_parser import custom_parse_logs
+                        parsed_vals = custom_parse_logs(so)
+                        sys.path.pop(0)
+                    else:
+                        parsed_vals = parse_logs(so)
+                    expected = get_expected_from_json(expected_json_file,
+                                                    configuration,
+                                                    not custom_parser_present)
+                    passed, fail_help_string = compare_parsed_values(
+                        parsed_vals, expected.get('logparse', {}))
+                    if not passed:
+                        print('Failed in test ' + flname + '. Help message: ' +
+                            fail_help_string)
+                        failed_tests.append(sub_test_dir)
+                        continue
+                    if 'time' in expected:
+                        actual_runtime = tend - tstart
+                        # TODO: decide this criteria. time can be pretty variable
+                        # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
+                        time_check = (actual_runtime -
+                                    expected['time']) / expected['time'] < 0.1
+                        if not time_check:
+                            print("Expected run time for test " + flname + " is " +
+                                str(expected['time']) + " but it actually took " +
+                                str(actual_runtime))
+                            failed_tests.append(sub_test_dir)
+                            continue
                 passed_tests.append(sub_test_dir)
-        else:
-            skipped_tests.append(sub_test_dir)
-        assert sub_test_dir in skipped_tests + passed_tests + failed_tests
+            else:
+                skipped_tests.append(sub_test_dir)
+            # Make sure the test is exactly one of passed, skipped or failed
+            assert sum([sub_test_dir in skipped_tests, sub_test_dir in passed_tests, sub_test_dir in failed_tests])==1, str(sub_test_dir) + ' does not appear exactly once in passed, skipped or failed test lists'
 
     # Clean up if needed
     cleanup_script = model_dir + '/cleanup.sh'
@@ -390,19 +396,25 @@ if __name__ == '__main__':
         [not os.path.isfile(i) for i in available_test_suites]
     ), "Expected that all the contents of models to be directories, but found files there"
 
+    passed_tests = {}
+    failed_tests = {}
+    skipped_tests = {}
     for test_suite in requested_test_suites:
         print('Testing model/test-suite: ' + test_suite)
-        pdb.set_trace()
         if test_suite not in disabled_test_suite:
             if args.run_logparse_tests:
-                passed_tests, failed_tests, skipped_tests = run_test_suite(
+                passed_tests_in_suite, failed_tests_in_suite, skipped_tests_in_suite = run_test_suite(
                     './models/' + test_suite, args.configuration,
                     disabled_sub_test.get(test_suite, []))
+                passed_tests[test_suite] = passed_tests_in_suite
+                failed_tests[test_suite] = failed_tests_in_suite
+                skipped_tests[test_suite] = skipped_tests_in_suite
             if args.run_functional_tests:
                 print('Functional tests not implemented yet!!')
-    print('Passed:\n' + '\033[92m' + '\n'.join(passed_tests) + '\033[0m')
-    print('Skipped:\n' + '\033[93m' + '\n'.join(skipped_tests) + '\033[0m')
-    print('Failed:\n' + '\033[91m' + '\n'.join(failed_tests) + '\033[0m')
+    print_format = lambda d : '\n'.join(['\n\t'.join([k] + d[k]) for k in d if len(d[k]) > 0])
+    print('Passed:\n' + '\033[92m' + print_format(passed_tests) + '\033[0m')
+    print('Skipped:\n' + '\033[93m' + print_format(skipped_tests) + '\033[0m')
+    print('Failed:\n' + '\033[91m' + print_format(failed_tests) + '\033[0m')
 
 # TODO verbose or quiet?
 
