@@ -132,6 +132,10 @@ def run_test_suite(model_dir, configuration, disabled):
     model_dir = os.path.abspath(model_dir)
     test_suites = os.listdir(model_dir)
 
+    failed_tests = []
+    passed_tests = []
+    skipped_tests = []
+
     # download/prepare repo if needed:
     repo_filename = model_dir + '/repo.txt'
     repo_based = False  # Is this test dir repo based or pb/pbtxt/savedmodel based?
@@ -165,9 +169,13 @@ def run_test_suite(model_dir, configuration, disabled):
                 # TODO: shift the timing inside apply_patch_and_test
                 sub_test_dir = model_dir + '/' + flname
                 tstart = time.time()
-                so, se = apply_patch_and_test(sub_test_dir,
-                                              ('NGRAPH_TF_LOG_PLACEMENT=1',
-                                               '')[custom_parser_present])
+                try:
+                    so, se = apply_patch_and_test(sub_test_dir,
+                                                ('NGRAPH_TF_LOG_PLACEMENT=1',
+                                                '')[custom_parser_present])
+                    passed_tests.append(sub_test_dir)
+                except:
+                    failed_tests.append(sub_test_dir)
                 tend = time.time()
                 command_executor.commands += '\n'
             else:
@@ -213,6 +221,9 @@ def run_test_suite(model_dir, configuration, disabled):
                         'time'] < 0.1, "Expected run time for test " + flname + " is " + str(
                             expected['time']) + " but it actually took " + str(
                                 actual_runtime)
+        else:
+            skipped_tests.append(sub_test_dir)
+        assert sub_test_dir in skipped_tests + passed_tests + failed_tests
 
     # Clean up if needed
     cleanup_script = model_dir + '/cleanup.sh'
@@ -221,6 +232,7 @@ def run_test_suite(model_dir, configuration, disabled):
         command_executor(cleanup_script)
     command_executor.commands += '# Exiting. Done with tests in ' + model_dir.split(
         '/')[-1]
+    return passed_tests, failed_tests, skipped_tests
     # TODO: delete downloaded model repo
 
     # TODO: use gdef to run
@@ -373,12 +385,15 @@ if __name__ == '__main__':
 
     for test_suite in requested_test_suites:
         print('Testing model/test-suite: ' + test_suite)
+        pdb.set_trace()
         if test_suite not in disabled_test_suite:
             if args.run_logparse_tests:
-                run_test_suite('./models/' + test_suite, args.configuration,
-                               disabled_sub_test.get(test_suite, []))
+                passed_tests, failed_tests, skipped_tests = run_test_suite('./models/' + test_suite, args.configuration, disabled_sub_test.get(test_suite, []))
             if args.run_functional_tests:
                 print('Functional tests not implemented yet!!')
+    print('Passed:\n' + '\033[92m' + '\n'.join(passed_tests) + '\033[0m')
+    print('Skipped:\n' + '\033[93m' + '\n'.join(skipped_tests) + '\033[0m')
+    print('Failed:\n' + '\033[91m' + '\n'.join(failed_tests) + '\033[0m')
 
 # TODO verbose or quiet?
 
