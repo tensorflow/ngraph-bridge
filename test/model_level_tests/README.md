@@ -60,7 +60,14 @@ Expected results are specified in a json file of the following format:
 3. **Listing tests**: Adding `--list` will produce a list if available tests. It can be coupled with the `--models` and `--disable` flag to get a list of tests that will be run if `--list` is not present. For example the command `python test_main.py --run_logparse_tests --models MLP_custom_logparser,MLP,MLP_fail_1,MLP_fail_2 --list --disable "MLP.test1,MLP_fail_2"` prints the following. <img src="./resources/list.png" height="415" width="350">
 4. **Testing if a model runs**: If `expected.json` is not present just running the test to completion is considered a pass
 5. **Testing if model ran with appropriate placement**: If an `expected.json` is present in the sub-test folder then the output of the test is parsed and matched. So model must run and outputs must match expected values
-6. **Checking for accuracy**: Lets say we want to train a simple model for 100 iterations and match accuracy after 10 steps. We can do that using the framework by adding appropriate print lines in the patch file and then adding a `custom_log_parser.py` file and `expected.json`, that would parse the log for accuracy prints.
+6. **Checking for accuracy**: Lets say we want to train a simple model for 100 iterations and match accuracy after 10 steps. We can do that using the framework by adding appropriate print lines in the patch file and then adding a `custom_log_parser.py` file and `expected.json`, that would parse the log for accuracy prints. A trivial example with a custom parser is `MLP_custom_logparser`
 7. **Shell script**: At the end of each run a shell script `dump.sh` is generated that is a shell script of commands that were run. It can be run on the terminal to simulate what `test_main.py` just ran. This might be useful when adding a new test-suite in case we face errors.
 8. **Global vs local patching**: Each test suite can have a global patch that all subtests share, or each test can have its own patch file. Local patch file has more precedence than global patch file.
 9. **Configuration**: **_TODO_**
+
+
+
+## TODO
+1. **pb/pbtxt/savedmodel based test**
+2. **verify_model integration**
+3. Create patches that are grappler compatible (update_config)
