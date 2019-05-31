@@ -15,7 +15,7 @@ digraph {
 
     done_all_sub_tests [shape="diamond", style="", color=blue];
     download_repo[shape="box", style=rounded, color=cyan]
-    done_all_test_suites -> test_suite_disabled
+    done_all_test_suites -> test_suite_disabled[label="no"];
     
     test_suite_disabled->download_repo[label="no"]
 
