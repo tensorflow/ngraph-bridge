@@ -39,7 +39,7 @@ digraph {
     do_cleanup->done_all_test_suites
 
     local_patch_present[shape="diamond", style=""]
-    done_all_sub_tests -> sub_test_disabled
+    done_all_sub_tests -> sub_test_disabled[label="no"]
 
 
     sub_test_disabled[shape="diamond", style=""]
