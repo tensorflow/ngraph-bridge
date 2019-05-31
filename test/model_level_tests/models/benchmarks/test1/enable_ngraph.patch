@@ -1,8 +1,25 @@
 diff --git a/scripts/tf_cnn_benchmarks/benchmark_cnn.py b/scripts/tf_cnn_benchmarks/benchmark_cnn.py
-index 09b118e..6210966 100644
+index 09b118e..e22179f 100644
 --- a/scripts/tf_cnn_benchmarks/benchmark_cnn.py
 +++ b/scripts/tf_cnn_benchmarks/benchmark_cnn.py
-@@ -1152,9 +1152,9 @@ class BenchmarkCNN(object):
+@@ -34,6 +34,7 @@ import numpy as np
+ import six
+ from six.moves import xrange  # pylint: disable=redefined-builtin
+ import tensorflow as tf
++import ngraph_bridge
+ 
+ from google.protobuf import text_format
+ 
+@@ -620,7 +621,7 @@ def create_config_proto(params):
+     params: Params tuple, typically created by make_params or
+             make_params_from_flags.
+   """
+-  config = tf.ConfigProto()
++  config = ngraph_bridge.update_config(tf.ConfigProto())
+   config.allow_soft_placement = True
+   if params.num_intra_threads is None:
+     if params.device == 'gpu':
+@@ -1152,9 +1153,9 @@ class BenchmarkCNN(object):
      else:
        self.gpu_indices = [x for x in range(self.num_gpus)]
  
