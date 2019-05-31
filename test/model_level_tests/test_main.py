@@ -155,7 +155,9 @@ def run_test_suite(model_dir, configuration, disabled):
             repo_name = repo_info[0]
             repo_version = repo_info[1] if len(repo_info) == 2 else 'master'
             repo_dl_loc = model_dir + '/downloaded_model'
-            # TODO: download only when needed? If already present, check if on the right branch
+            assert not os.path.isdir(
+                repo_dl_loc
+            ), "Did not expect " + repo_dl_loc + " to be present. Maybe a leftover from the last run that was not deleted?"
             download_repo(repo_dl_loc, repo_name, repo_version)
             ready_repo(model_dir, repo_dl_loc)
 
