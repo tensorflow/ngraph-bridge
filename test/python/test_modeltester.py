@@ -28,16 +28,13 @@ from common import NgraphTest
 from tools.build_utils import command_executor
 
 
-
 class TestModelTester(NgraphTest):
 
     def test_MLP(self):
         cwd = os.getcwd()
         os.chdir('../model_level_tests/')
         try:
-            command_executor("python test_main.py --run_logparse_tests --models MLP")
+            command_executor(
+                "python test_main.py --run_logparse_tests --models MLP")
         finally:
             os.chdir(cwd)
-
-
-
