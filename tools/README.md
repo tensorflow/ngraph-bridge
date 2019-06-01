@@ -31,7 +31,7 @@ result = sess.run(out0, feed_dict = {in0:[2,3], in1:[4,5]})
 Notice the new line introduced here wrt the "normal" path. `config_updated = ngraph_bridge.update_config(config)` must now be passed during session construction to ensure `NgraphOptimizer` `grappler` pass is enabled. Like the "normal" path, in this script too the graph rewriting and actual execution happen when `session.run` is called.
 
 
-###tf2ngraph
+### tf2ngraph
 
 The advantage of `grappler` is that the graph rewriting can happen before `session.run` is called. This is exactly what `tf2ngraph` does. The workflow can now look like this:
 ```
