@@ -63,7 +63,11 @@ Some features of `tf2ngraph:
 7. `tf2ngraph` can be used in 2 ways: CLI and python functional api. The CLI is well tested and recommended for now
 
 ## build_utils, test_utils
-**TODO**
-
+These files contain some useful functions we use for building and testing. For example:
+1. **Command_executor**: The function accepts a string and executes it as a shell command
+2. **Venv related functions**: `load_venv`, `install_virtual_env`, `setup_venv`
+3. **Building functions**: `build_ngraph`, `build_tensorflow`, `install_tensorflow`, `build_ngraph_tf`, `install_ngraph_tf`, `install_ngraph_bridge`
+4. **Git related functions**: `download_repo`, `apply_patch`
+5. **Test related functions** Some test related functions in `test_utils` used for CI
 
 [here]: https://github.com/tensorflow/ngraph-bridge/blob/master/test/python/test_convert_script.py
