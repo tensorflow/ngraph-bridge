@@ -49,7 +49,40 @@ cc_library(
 )
 
 cc_library(
-    name = 'ngraph_bridge_lib',
+    name = 'ngraph_bridge_version',
+    srcs = [
+        "src/version.h",
+        "src/version.cc",
+    ],
+    deps = [
+        "@ngraph//:ngraph_headers",
+    ],
+    copts = [
+        "-pthread",
+        "-std=c++11",
+        "-D_FORTIFY_SOURCE=2",
+        "-Wformat",
+        "-Wformat-security",
+        "-Wformat",
+        "-fstack-protector-all",
+        "-D NDEBUG",
+        '-D SHARED_LIB_PREFIX=\\"lib\\"',
+        '-D SHARED_LIB_SUFFIX=\\".so\\"',
+        #'-D NGRAPH_TF_USE_GRAPPLER_OPTIMIZER',
+        "-I src",
+        "-I logging",
+        "-I external/ngraph/src",
+    ] + CXX_ABI,
+    linkopts = [
+        "-Wl,-z,noexecstack",
+        "-Wl,-z,relro",
+        "-Wl,-z,now",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = 'ngraph_bridge_lib_with_grappler',
     srcs = [
         "src/ngraph_api.cc",
         "src/ngraph_assign_clusters.cc",
@@ -75,13 +108,18 @@ cc_library(
     ],
     deps = [
         ":ngraph_bridge_headers",
+        ":ngraph_bridge_version",
         # "@org_tensorflow//tensorflow/core:framework",
         # "@org_tensorflow//tensorflow/core:lib",
         # "@org_tensorflow//tensorflow/core:protos_all_cc",
         # "@org_tensorflow//tensorflow/core:tensorflow",
 
+        # Altervative
         # "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
+        #"@local_config_tf//:tf_header_lib",
+
+        # New
+        "@org_tensorflow//tensorflow/core:tensorflow",
 
         "@ngraph//:ngraph_headers",
         "@ngraph//:ngraph_core",
@@ -112,17 +150,40 @@ cc_library(
 )
 
 cc_library(
-    name = 'ngraph_bridge_version',
+    name = 'ngraph_bridge_lib',
     srcs = [
-        "src/version.h",
-        "src/version.cc",
+        "src/ngraph_api.cc",
+        "src/ngraph_assign_clusters.cc",
+        "src/ngraph_assign_clusters.h",
+        "src/ngraph_builder.cc",
+        "src/ngraph_backend_manager.cc",
+        "src/ngraph_capture_variables.cc",
+        "src/ngraph_cluster_manager.cc",
+        "src/ngraph_deassign_clusters.cc",
+        "src/ngraph_encapsulate_clusters.cc",
+        "src/ngraph_encapsulate_op.cc",
+        "src/ngraph_freshness_tracker.cc",
+        "src/ngraph_mark_for_clustering.cc",
+        "src/ngraph_rewrite_for_tracking.cc",
+        "src/ngraph_rewrite_pass.cc", # Without grappler
+        "src/ngraph_tracked_variable.cc",
+        "src/ngraph_utils.cc",
+        "src/tf_deadness_analysis.cc",
+        "src/tf_graphcycles.cc",
+        "logging/ngraph_log.cc",
+        "logging/tf_graph_writer.cc",
     ],
     deps = [
+        ":ngraph_bridge_headers",
+        ":ngraph_bridge_version",
         "@ngraph//:ngraph_headers",
+        "@ngraph//:ngraph_core",
+        "@ngraph//:ngraph_version",
+        "@org_tensorflow//tensorflow/core:tensorflow",
     ],
     copts = [
-        "-pthread",
-        "-std=c++11",
+        "-pthread", 
+        "-std=c++11", 
         "-D_FORTIFY_SOURCE=2",
         "-Wformat",
         "-Wformat-security",
@@ -131,7 +192,6 @@ cc_library(
         "-D NDEBUG",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_TF_USE_GRAPPLER_OPTIMIZER',
         "-I src",
         "-I logging",
         "-I external/ngraph/src",
@@ -144,6 +204,10 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
+#-------------------------------------------------------------------
+# Won't work now as the ngraph_bridge_lib statically includes the 
+# @org_tensorflow//tensorflow/core:tensorflow
+#-------------------------------------------------------------------
 cc_binary(
     name = 'libngraph_bridge.so',
     linkshared = 1,

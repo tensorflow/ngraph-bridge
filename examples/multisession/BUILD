@@ -9,13 +9,9 @@ tf_cc_binary(
     deps = [
         "@org_tensorflow//tensorflow/cc:cc_ops",
         "@org_tensorflow//tensorflow/cc:client_session",
-        "@org_tensorflow//tensorflow/core:core_cpu",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
         "//:ngraph_bridge_lib",
-        "//:ngraph_bridge_version"
+        "@ngraph//:cpu_backend",
     ],
     copts = [
         "-pthread", 

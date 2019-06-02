@@ -180,8 +180,8 @@ cc_library(
     alwayslink = 1,
 )
 
-cc_binary(
-    name = 'libcpu_backend.so',
+cc_library(
+    name = 'cpu_backend',
     srcs = glob([
         "src/ngraph/runtime/cpu/*.hpp",
         "src/ngraph/runtime/cpu/*.h",
@@ -323,7 +323,37 @@ cc_binary(
         "-Wl,-z,relro",
         "-Wl,-z,now",
     ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = 'libcpu_backend.so',
     linkshared = 1,
+    deps = [
+        ":cpu_backend",
+    ],
+    copts = [
+        "-I external/ngraph/src",
+        "-I external/ngraph/src/ngraph",
+        "-I external/nlohmann_json_lib/include/",
+        "-D_FORTIFY_SOURCE=2",
+        "-Wformat",
+        "-Wformat-security",
+        "-Wformat",
+        "-fstack-protector-all",
+        '-D SHARED_LIB_PREFIX=\\"lib\\"',
+        '-D SHARED_LIB_SUFFIX=\\".so\\"',
+        '-D NGRAPH_VERSION=\\"0.19.0-rc.4\\"',
+        "-D NGRAPH_DEX_ONLY",
+        "-D NGRAPH_TBB_ENABLE",
+        '-D PROJECT_ROOT_DIR=\\"\\"',
+    ] + CXX_ABI,
+    linkopts = [
+        "-Wl,-z,noexecstack",
+        "-Wl,-z,relro",
+        "-Wl,-z,now",
+    ],
+    linkstatic=1,
     visibility = ["//visibility:public"],
 )
 

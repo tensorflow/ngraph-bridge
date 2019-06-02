@@ -43,6 +43,9 @@ int main(int argc, char** argv) {
       ->mutable_rewrite_options()
       ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
+  #if 0
+  // The following is related to Grapller - which we are turning off
+  // Until we get a library fully running
   options.config.mutable_graph_options()
       ->mutable_rewrite_options()
       ->add_custom_optimizers()
@@ -50,6 +53,7 @@ int main(int argc, char** argv) {
 
   options.config.mutable_graph_options()
     ->mutable_rewrite_options()->set_min_graph_nodes(-1);
+  #endif
 
   auto supported_backends =
       tensorflow::ngraph_bridge::BackendManager::GetSupportedBackendNames();
@@ -64,7 +68,7 @@ int main(int argc, char** argv) {
       << "Currently selected backend: "
       << tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName()
       << std::endl;
-
+  
   tensorflow::ClientSession session(root, options);
 
   std::vector<tensorflow::Tensor> outputs;
