@@ -284,6 +284,7 @@ Status MarkForClustering(Graph* graph,
 #endif
       confirmation_function_map["Identity"] = SimpleConfirmationFunction();
       confirmation_function_map["L2Loss"] = SimpleConfirmationFunction();
+      confirmation_function_map["LogSoftmax"] = SimpleConfirmationFunction();
       confirmation_function_map["Less"] = SimpleConfirmationFunction();
       confirmation_function_map["LessEqual"] = SimpleConfirmationFunction();
       confirmation_function_map["Log"] = SimpleConfirmationFunction();
@@ -453,6 +454,7 @@ Status MarkForClustering(Graph* graph,
 #endif
       type_constraint_map["Identity"]["T"] = NGraphDTypes();
       type_constraint_map["L2Loss"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["LogSoftmax"]["T"] = NGraphRealDTypes();
       type_constraint_map["Less"]["T"] = NGraphDTypes();
       type_constraint_map["LessEqual"]["T"] = NGraphDTypes();
       type_constraint_map["Log"]["T"] = NGraphNumericDTypes();

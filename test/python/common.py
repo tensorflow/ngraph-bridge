@@ -22,6 +22,8 @@ import tensorflow as tf
 from tensorflow.core.protobuf import rewriter_config_pb2
 from google.protobuf import text_format
 
+from google.protobuf import text_format
+
 import ngraph_bridge
 
 __all__ = ['LIBNGRAPH_BRIDGE', 'NgraphTest']
@@ -33,8 +35,9 @@ LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
 
 class NgraphTest(object):
 
-    def get_tensor(self, graph, tname):
-        return graph.get_tensor_by_name("import/" + tname)
+    def get_tensor(self, graph, tname, loading_from_protobuf):
+        return graph.get_tensor_by_name(("", "import/")[loading_from_protobuf] +
+                                        tname)
 
     def import_pbtxt(self, pb_filename):
         graph_def = tf.GraphDef()

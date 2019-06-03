@@ -37,19 +37,40 @@ execute_process(
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
+<<<<<<< HEAD
         ${CMAKE_CURRENT_SOURCE_DIR}/fusedmatmul_0.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/fusedmatmul_0.pbtxt
+=======
+        ${CMAKE_CURRENT_SOURCE_DIR}/sample_graph.pb
+        ${CMAKE_CURRENT_BINARY_DIR}/sample_graph.pb
+>>>>>>> master
 )
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
+<<<<<<< HEAD
         ${CMAKE_CURRENT_SOURCE_DIR}/fusedmatmul_1.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/fusedmatmul_1.pbtxt
+=======
+        ${CMAKE_CURRENT_SOURCE_DIR}/sample_graph.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/sample_graph.pbtxt
+>>>>>>> master
 )
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
+<<<<<<< HEAD
         ${CMAKE_CURRENT_SOURCE_DIR}/fusedmatmul_2.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/fusedmatmul_2.pbtxt
+=======
+        ${CMAKE_CURRENT_SOURCE_DIR}/sample_graph
+        ${CMAKE_CURRENT_BINARY_DIR}/sample_graph
+)
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/sample_graph_nodevice.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/sample_graph_nodevice.pbtxt
+>>>>>>> master
 )
 

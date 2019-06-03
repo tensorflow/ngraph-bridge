@@ -61,6 +61,7 @@ def main():
     # Activate the virtual env
     load_venv(venv_dir)
 
+
     os.environ['PYTHONPATH'] = root_pwd
     test_cmds = [
         'python3', 
