@@ -1967,6 +1967,14 @@ static Status TranslateFusedBatchNormOp(
     //(inverted variance in the cuDNN case), to be reused in the gradient
     // computation.
     SaveNgOp(ng_op_map, op->name(), ng_variance);
+    if (op->name() == "FusedBatchNormV3") {
+      // FusedBatchNormV3 has 6 outputs (reserve_space_3)
+      shared_ptr<ng::Node> ng_reserved_3 =
+          ConstructNgNode<ngraph::op::Constant>(
+              op->name(), ng_mean->get_element_type(), ng::Shape{},
+              std::vector<std::string>{""});
+      SaveNgOp(ng_op_map, op->name(), ng_reserved_3);
+    }
   } else {
     ng_batch_norm = ConstructNgNode<ng::op::BatchNormInference>(
         op->name(), tf_epsilon, ng_scale, ng_offset, ng_input, ng_mean,
