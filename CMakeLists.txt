@@ -296,7 +296,12 @@ get_filename_component(
     ABSOLUTE
 )
 if (NOT EXISTS ${TensorFlow_SRC_DIR})
-    message(FATAL_ERROR "TensorFlow source directory doesn't exist: " ${TensorFlow_SRC_DIR} )
+    message(
+        STATUS 
+        "C++ unit tests will not be built as no TensorFlow source directory defined"
+    )
+else()
+    add_subdirectory(examples/cpp)
 endif()
 
 if (UNIT_TEST_ENABLE)
@@ -312,4 +317,3 @@ if (UNIT_TEST_ENABLE)
     add_subdirectory(test)
     message(STATUS "unit tests enabled")
 endif()
-add_subdirectory(examples/cpp)
