@@ -161,7 +161,7 @@ def train_mnist_cnn(FLAGS, scope_suffix):
     with tf.name_scope('gradient_descent_optimizer'):
         train_step = tf.train.GradientDescentOptimizer(1e-4).minimize(
             cross_entropy)
-
+        
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
         correct_prediction = tf.cast(correct_prediction, tf.float32)
@@ -180,11 +180,16 @@ def train_mnist_cnn(FLAGS, scope_suffix):
     saver = tf.train.Saver()
 
     with tf.Session(config=config) as sess:
+        print('Initializing Variables')
         sess.run(tf.global_variables_initializer())
         train_loops = FLAGS.train_loop_count
         loss_values = []
+
+        print('Training Started')
         for i in range(train_loops):
+            print ("iteration ", i)
             batch = mnist.train.next_batch(FLAGS.batch_size, shuffle=False)
+            print(batch[0], batch[1])
             if i % 10 == 0:
                 t = time.time()
                 train_accuracy = accuracy.eval(feed_dict={
@@ -196,12 +201,15 @@ def train_mnist_cnn(FLAGS, scope_suffix):
                 print('step %d, training accuracy %g, %g sec to evaluate' %
                       (i, train_accuracy, time.time() - t))
             t = time.time()
+            print ("training loss ", i)
+            print(batch[0], batch[1])
             _, summary, loss = sess.run([train_step, merged, cross_entropy],
                                         feed_dict={
                                             x: batch[0],
                                             y_: batch[1],
                                             keep_prob: 0.5
                                         })
+            print ("got loss ", i)
             loss_values.append(loss)
             print('step %d, loss %g, %g sec for training step' %
                   (i, loss, time.time() - t))
@@ -224,16 +232,23 @@ def train_mnist_cnn(FLAGS, scope_suffix):
 
 
 def main(_):
-    ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS, "ngng")
-    print('ng_loss_values %f,  ng_test_accuracy %f', ng_loss_values,
-          ng_test_accuracy)
-
     # disable ngraph-tf
     print('disable ngraph')
     ngraph_bridge.disable()
     tf_loss_values, tf_test_accuracy = train_mnist_cnn(FLAGS, "tftf")
     print('tf_loss_values %f,  tf_test_accuracy %f', tf_loss_values,
           tf_test_accuracy)
+    
+    tf.reset_default_graph()
+
+    print('enable ngraph')
+    ngraph_bridge.enable()
+
+    ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS, "ngng")
+    print('ng_loss_values %f,  ng_test_accuracy %f', ng_loss_values,
+          ng_test_accuracy)
+
+    
 
 
 if __name__ == '__main__':
@@ -247,7 +262,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--train_loop_count',
         type=int,
-        default=1000,
+        default=20,
         help='Number of training iterations')
 
     parser.add_argument('--batch_size', type=int, default=50, help='Batch Size')
