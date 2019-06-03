@@ -1903,8 +1903,16 @@ static Status TranslateFusedBatchNormOp(
   NGRAPH_VLOG(3) << "is_training: " << tf_is_training;
 
   shared_ptr<ng::Node> ng_input, ng_scale, ng_offset, ng_mean, ng_variance;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_scale,
-                                   &ng_offset, &ng_mean, &ng_variance));
+  bool is_v3 = op->type_string() == "FusedBatchNormV3";
+  if (is_v3) {
+    // In case of V3, inputs 3 and 4 are not required
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 1, &ng_scale));
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 2, &ng_offset));
+  } else {
+    TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_scale,
+                                     &ng_offset, &ng_mean, &ng_variance));
+  }
 
   std::string tf_data_format;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
@@ -1967,7 +1975,7 @@ static Status TranslateFusedBatchNormOp(
     //(inverted variance in the cuDNN case), to be reused in the gradient
     // computation.
     SaveNgOp(ng_op_map, op->name(), ng_variance);
-    if (op->name() == "FusedBatchNormV3") {
+    if (is_v3) {
       // FusedBatchNormV3 has 6 outputs (reserve_space_3)
       shared_ptr<ng::Node> ng_reserved_3 =
           ConstructNgNode<ngraph::op::Constant>(
