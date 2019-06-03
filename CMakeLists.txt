@@ -287,6 +287,18 @@ add_subdirectory(third-party)
 add_subdirectory(logging)
 add_subdirectory(src)
 add_subdirectory(tools)
+
+# The following targets depend on the Tensorflow source code directory
+# Get the absolute file name for the source
+get_filename_component(
+    TensorFlow_SRC_DIR
+    "${TF_SRC_DIR}"
+    ABSOLUTE
+)
+if (NOT EXISTS ${TensorFlow_SRC_DIR})
+    message(FATAL_ERROR "TensorFlow source directory doesn't exist: " ${TensorFlow_SRC_DIR} )
+endif()
+
 if (UNIT_TEST_ENABLE)
     if (NOT DEFINED TF_SRC_DIR)
         message(FATAL_ERROR "Provide TensorFlow source directory: -DTF_SRC_DIR=<directory>")
@@ -297,16 +309,7 @@ if (UNIT_TEST_ENABLE)
         set(TF_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TF_SRC_DIR})
     endif()
 
-    # Get the absolute file name for the source
-    get_filename_component(
-        TensorFlow_SRC_DIR
-        "${TF_SRC_DIR}"
-        ABSOLUTE
-    )
-    if (NOT EXISTS ${TensorFlow_SRC_DIR})
-        message(FATAL_ERROR "TensorFlow source directory doesn't exist: " ${TensorFlow_SRC_DIR} )
-    endif()
-
     add_subdirectory(test)
     message(STATUS "unit tests enabled")
 endif()
+add_subdirectory(examples/cpp)
