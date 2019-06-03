@@ -13,8 +13,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+//-----------------------------------------------------------------------------
 // NOTE: This file is taken from tensorflow/examples/label_image/main.cc
-// and modified for this example
+// and modified for this example:
+// https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/label_image/main.cc
+//-----------------------------------------------------------------------------
+
+/*******************************************************************************
+ * Copyright 2019 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 // A minimal but useful C++ example showing how to load an Imagenet-style object
 // recognition TensorFlow model, prepare input images for it, run them through
@@ -62,15 +81,17 @@ limitations under the License.
 #include "tensorflow/core/util/command_line_flags.h"
 
 // These are all common classes it's handy to reference with no namespace.
-using tensorflow::Flag;
+// using tensorflow::Flag;
 using tensorflow::Tensor;
 using tensorflow::Status;
 using tensorflow::string;
 using tensorflow::int32;
 
+//-----------------------------------------------------------------------------
 // Takes a file name, and loads a list of labels from it, one per line, and
 // returns a vector of the strings. It pads with empty strings so the length
 // of the result is a multiple of 16, because our model expects that.
+//-----------------------------------------------------------------------------
 Status ReadLabelsFile(const string& file_name, std::vector<string>* result,
                       size_t* found_label_count) {
   std::ifstream file(file_name);
@@ -91,6 +112,10 @@ Status ReadLabelsFile(const string& file_name, std::vector<string>* result,
   return Status::OK();
 }
 
+//-----------------------------------------------------------------------------
+// Reads a binary file and returns a Tensor with the contents read from the
+// file pointed to by the "filename"
+//-----------------------------------------------------------------------------
 static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
                              Tensor* output) {
   tensorflow::uint64 file_size = 0;
@@ -113,8 +138,10 @@ static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
   return Status::OK();
 }
 
+//-----------------------------------------------------------------------------
 // Given an image file name, read in the data, try to decode it as an image,
 // resize it to the requested size, and then scale the values as desired.
+//-----------------------------------------------------------------------------
 Status ReadTensorFromImageFile(const string& file_name, const int input_height,
                                const int input_width, const float input_mean,
                                const float input_std,
@@ -184,8 +211,10 @@ Status ReadTensorFromImageFile(const string& file_name, const int input_height,
   return Status::OK();
 }
 
+//-----------------------------------------------------------------------------
 // Reads a model graph definition from disk, and creates a session object you
 // can use to run it.
+//-----------------------------------------------------------------------------
 Status LoadGraph(const string& graph_file_name,
                  std::unique_ptr<tensorflow::Session>* session,
                  const tensorflow::SessionOptions& options) {
@@ -204,8 +233,10 @@ Status LoadGraph(const string& graph_file_name,
   return Status::OK();
 }
 
+//-----------------------------------------------------------------------------
 // Analyzes the output of the Inception graph to retrieve the highest scores and
 // their positions in the tensor, which correspond to categories.
+//-----------------------------------------------------------------------------
 Status GetTopLabels(const std::vector<Tensor>& outputs, int how_many_labels,
                     Tensor* indices, Tensor* scores) {
   auto root = tensorflow::Scope::NewRootScope();
@@ -231,8 +262,10 @@ Status GetTopLabels(const std::vector<Tensor>& outputs, int how_many_labels,
   return Status::OK();
 }
 
+//-----------------------------------------------------------------------------
 // Given the output of a model run, and the name of a file containing the labels
 // this prints out the top five highest-scoring values.
+//-----------------------------------------------------------------------------
 Status PrintTopLabels(const std::vector<Tensor>& outputs,
                       const string& labels_file_name) {
   std::vector<string> labels;
@@ -257,8 +290,10 @@ Status PrintTopLabels(const std::vector<Tensor>& outputs,
   return Status::OK();
 }
 
+//-----------------------------------------------------------------------------
 // This is a testing function that returns whether the top label index is the
 // one that's expected.
+//-----------------------------------------------------------------------------
 Status CheckTopLabel(const std::vector<Tensor>& outputs, int expected,
                      bool* is_expected) {
   *is_expected = false;

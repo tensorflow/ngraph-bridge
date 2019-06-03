@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,8 +46,7 @@ extern tf::Status ReadTensorFromImageFile(const string& file_name,
                                           std::vector<tf::Tensor>* out_tensors);
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
-                      const string& labels_file_name);
-
+                                 const string& labels_file_name);
 
 // Prints the available backends
 void PrintAvailableBackends() {
@@ -143,7 +142,7 @@ void PrintVersion() {
   PrintAvailableBackends();
 }
 
-std::unique_ptr<tf::Session> CreateSession(const string& filename) {
+std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
   tf::SessionOptions options;
   options.config.mutable_graph_options()
       ->mutable_optimizer_options()
@@ -167,7 +166,7 @@ std::unique_ptr<tf::Session> CreateSession(const string& filename) {
 
   // Load the network
   std::unique_ptr<tf::Session> session;
-  tf::Status load_graph_status = LoadGraph(filename, &session, options);
+  tf::Status load_graph_status = LoadGraph(graph_filename, &session, options);
 
   if (!load_graph_status.ok()) {
     LOG(ERROR) << load_graph_status;
