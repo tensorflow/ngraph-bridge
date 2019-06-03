@@ -1035,6 +1035,92 @@ TEST(NNOps, FusedBatchNormV2NHWCTraining) {
                      static_cast<float>(1e-03));
 }  // end of FusedBatchNormV2NHWCTraining
 
+// FusedBatchNormV3 op test with only DT_FLOAT datatype
+TEST(NNOps, FusedBatchNormV3NHWCInference) {
+  Scope root = Scope::NewRootScope();
+
+  // 4D tensor for input data
+  Tensor x(DT_FLOAT, TensorShape({10, 128, 128, 3}));
+  // 1D tensor for scaling the normalized x
+  Tensor scale(DT_FLOAT, TensorShape({3}));
+  // 1D tensor for offset, to shift to the normalized x
+  Tensor offset(DT_FLOAT, TensorShape({3}));
+  // 1D tensor for population mean
+  // used for inference only, must be empty for training
+  Tensor mean(DT_FLOAT, TensorShape({3}));
+  // 1D tensor for population variance
+  // used for inference only, must be empty for training
+  Tensor variance(DT_FLOAT, TensorShape({3}));
+
+  AssignInputValuesRandom<float>(x, -30.0f, 50.0f);
+  AssignInputValuesRandom<float>(scale, 0.2f, 3.f);
+  AssignInputValuesRandom<float>(offset, 1.1f, 1.5f);
+  AssignInputValuesRandom<float>(mean, -3.5f, 3.5f);
+  AssignInputValuesRandom<float>(variance, 0.5f, 3.5f);
+
+  auto attrs = ops::FusedBatchNormV3::Attrs();
+  attrs.is_training_ = false;
+  attrs.epsilon_ = 0.0001f;
+  attrs.data_format_ = "NHWC";
+
+  // test grab the first three outputs from the FusedBatchNormGrad op
+  vector<int> static_input_indexes = {};
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  auto R = ops::FusedBatchNormV3(root, x, scale, offset, mean, variance, attrs);
+
+  // In inference case, y is the only output tensor
+  std::vector<Output> sess_run_fetchoutputs = {R.y};
+  OpExecuter opexecuter(root, "FusedBatchNormV3", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest(1e-05, 1e-06);
+}  // end of FusedBatchNormV3NHWCInference
+
+// FusedBatchNormV3 op test with only DT_FLOAT datatype
+TEST(NNOps, FusedBatchNormV3NHWCTraining) {
+  Scope root = Scope::NewRootScope();
+
+  // 4D tensor for input data
+  Tensor x(DT_FLOAT, TensorShape({10, 128, 128, 3}));
+  // Tensor x(DT_FLOAT, TensorShape({27, 131, 127, 6}));
+  // Tensor x(DT_FLOAT, TensorShape({0, 131, 127, 6}));
+  // 1D tensor for scaling the normalized x
+  Tensor scale(DT_FLOAT, TensorShape({3}));
+  // 1D tensor for offset, to shift to the normalized x
+  Tensor offset(DT_FLOAT, TensorShape({3}));
+  // 1D tensor for population mean
+  // used for inference only, must be empty for training
+  Tensor mean(DT_FLOAT, TensorShape({0}));
+  // 1D tensor for population variance
+  // used for inference only, must be empty for training
+  Tensor variance(DT_FLOAT, TensorShape({0}));
+
+  AssignInputValuesRandom<float>(x, -30.f, 50.f);
+  AssignInputValuesRandom<float>(scale, 0.f, 1.f);
+  AssignInputValuesRandom<float>(offset, 0.f, 1.f);
+
+  auto attrs = ops::FusedBatchNormV3::Attrs();
+  attrs.is_training_ = true;  // default
+  attrs.epsilon_ = 0.0001f;
+  attrs.data_format_ = "NHWC";
+
+  // test grab the first three outputs from the FusedBatchNormGrad op
+  vector<int> static_input_indexes = {};
+
+  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT, DT_FLOAT,
+                                       DT_FLOAT};
+  auto R = ops::FusedBatchNormV3(root, x, scale, offset, mean, variance, attrs);
+
+  std::vector<Output> sess_run_fetchoutputs = {
+      R.y, R.batch_mean, R.batch_variance, R.reserve_space_1,
+      R.reserve_space_2};
+  OpExecuter opexecuter(root, "FusedBatchNormV3", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+  opexecuter.RunTest("CPU", static_cast<float>(1e-03),
+                     static_cast<float>(1e-03));
+}  // end of FusedBatchNormV3NHWCTraining
+
 // FusedBatchNormGrad : Gradient for batch normalization
 // On TF CPU: only supports NHWC
 TEST(NNOps, FusedBatchNormGradNHWC) {

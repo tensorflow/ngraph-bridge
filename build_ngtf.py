@@ -25,7 +25,7 @@ def main():
 
     # Component versions
     ngraph_version = "v0.19.0"
-    tf_version = "cd701ec1c577211fa05e18d91d73b08014c04034"
+    tf_version = "v1.14.0-rc0"
 
     # Command line parser options
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
@@ -175,9 +175,9 @@ def main():
 
     if arguments.use_prebuilt_tensorflow:
         print("Using existing TensorFlow")
-        #command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
+        command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
         # Until an official release of TensorFlow is made, we will use a tagged nightly build
-        command_executor(["pip", "install", "-U", "--no-cache-dir", "tf-nightly==1.14.1.dev20190515"])
+        #command_executor(["pip", "install", "-U", "--no-cache-dir", "tf-nightly==1.14.1.dev20190515"])
 
         import tensorflow as tf
         print('Version information:')
