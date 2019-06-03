@@ -162,6 +162,10 @@ std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
     options.config.mutable_graph_options()
         ->mutable_rewrite_options()
         ->set_min_graph_nodes(-1);
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_meta_optimizer_iterations(tf::RewriterConfig::ONE);
   }
 
   // Load the network
