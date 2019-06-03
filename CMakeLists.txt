@@ -295,18 +295,27 @@ get_filename_component(
     "${TF_SRC_DIR}"
     ABSOLUTE
 )
-if (NOT EXISTS ${TensorFlow_SRC_DIR})
+
+if (DEFINED TF_SRC_DIR)
+    message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
+    add_subdirectory(examples/cpp)
+else()
     message(
         STATUS 
-        "C++ unit tests will not be built as no TensorFlow source directory defined"
+        "TensorFlow source directory not provided. "
+        "C++ Examples won't be built"
     )
-else()
-    add_subdirectory(examples/cpp)
 endif()
 
 if (UNIT_TEST_ENABLE)
     if (NOT DEFINED TF_SRC_DIR)
         message(FATAL_ERROR "Provide TensorFlow source directory: -DTF_SRC_DIR=<directory>")
+    endif()
+    if (NOT EXISTS ${TensorFlow_SRC_DIR})
+        message(
+            STATUS 
+            "TensorFlow source directory doesn't exist"
+        )
     endif()
 
     # Check if the path specified is ABSOLUTE or RELATVE

@@ -13,6 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ******************************************************************************
-
+message(STATUS "C++ Examples will be built")
 add_subdirectory(infer_single)
 add_subdirectory(infer_multi)

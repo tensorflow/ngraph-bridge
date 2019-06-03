@@ -21,7 +21,7 @@ include_directories(${TensorFlow_INCLUDE_DIR}/external/nsync/public)
 if (NOT DEFINED TF_SRC_DIR)
    message(
        FATAL_ERROR
-       "TensorFlow source directory.Use -DTF_SRC_DIR=<tf source directory>"
+       "No TensorFlow source directory.Use -DTF_SRC_DIR=<tf source directory>"
     )
 endif()
 
