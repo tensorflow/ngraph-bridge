@@ -1,5 +1,5 @@
 # ******************************************************************************
-# Copyright 2018-2019 Intel Corporation
+# Copyright 2019 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,59 +14,5 @@
 # limitations under the License.
 # ******************************************************************************
 
-include_directories(${TensorFlow_INCLUDE_DIR})
-include_directories(${TensorFlow_INCLUDE_DIR}/external/nsync/public)
-
-# Get this location from the CMAKE variables passed during the cmake time
-if (NOT DEFINED TF_SRC_DIR)
-   message(
-       FATAL_ERROR
-       "TensorFlow source directory.Use -DTF_SRC_DIR=<tf source directory>"
-    )
-endif()
-
-
-message(STATUS "TF Src Dir: ${TensorFlow_SRC_DIR}")
-include_directories(${TensorFlow_SRC_DIR})
-
-# Files that are generated during TF build are here
-include_directories(${TensorFlow_SRC_DIR}/bazel-genfiles)
-
-add_library(tensorflow_cc_lib SHARED IMPORTED)
-set_target_properties(
-    tensorflow_cc_lib
-    PROPERTIES IMPORTED_LOCATION
-    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so
-)
-
-set(SRC
-    infer.cpp
-    label_image_utils.cc
-)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-message(STATUS "Compile Flags: ${CMAKE_CXX_FLAGS}")
-message(STATUS "Shared Link Flags: ${CMAKE_SHARED_LINKER_FLAGS}")
-
-add_executable(ng_infer ${SRC})
-message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
-
-if (APPLE)
-    set(NGRAPH_TF_CXX11_ABI 0)
-endif()
-
-target_link_libraries(
-    ng_infer
-    ngraph_bridge
-    ngraph_lib
-    pthread
-    tensorflow_framework_lib
-    tensorflow_cc_lib
-)
-
-if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
-    set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
-else()
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/../install/")
-endif()
+add_subdirectory(infer_single)
+add_subdirectory(infer_multi)
