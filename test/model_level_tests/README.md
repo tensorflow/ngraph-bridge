@@ -70,4 +70,3 @@ Expected results are specified in a json file of the following format:
 ## TODO
 1. **pb/pbtxt/savedmodel based test**
 2. **verify_model integration**
-3. Create patches that are grappler compatible (update_config)

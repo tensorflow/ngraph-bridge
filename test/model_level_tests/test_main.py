@@ -25,8 +25,6 @@ from tf2ngraph import get_gdef
 from log_parser import parse_logs, compare_parsed_values
 import atexit
 
-# TODO: update ngraph_enable.patch to be compatible with grappler build
-
 
 def get_expected_from_json(json_file_name, configuration, strict):
     with open(json_file_name) as f:
