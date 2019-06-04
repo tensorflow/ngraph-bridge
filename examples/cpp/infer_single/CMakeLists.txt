@@ -54,6 +54,7 @@ message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
 
 if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
+    add_definitions(-DTEST_SINGLE_INSTANCE)
 endif()
 
 target_link_libraries(
