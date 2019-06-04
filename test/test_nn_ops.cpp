@@ -1066,17 +1066,11 @@ TEST(NNOps, FusedBatchNormV3NHWCInference) {
   // test grab the first three outputs from the FusedBatchNormGrad op
   vector<int> static_input_indexes = {};
 
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT,
-                                       DT_FLOAT, DT_FLOAT, DT_FLOAT};
+  vector<DataType> output_datatypes = {DT_FLOAT};
   auto R = ops::FusedBatchNormV3(root, x, scale, offset, mean, variance, attrs);
 
   // In inference case, y is the only output tensor
-  std::vector<Output> sess_run_fetchoutputs = {R.y,
-                                               R.batch_mean,
-                                               R.batch_variance,
-                                               R.reserve_space_1,
-                                               R.reserve_space_2,
-                                               R.reserve_space_3};
+  std::vector<Output> sess_run_fetchoutputs = {R.y};
   OpExecuter opexecuter(root, "FusedBatchNormV3", static_input_indexes,
                         output_datatypes, sess_run_fetchoutputs);
 
