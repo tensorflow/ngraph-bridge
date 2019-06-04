@@ -28,6 +28,8 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
 
+#include <thread>
+#include "ngraph/event_tracing.hpp"
 #include "ngraph_backend_manager.h"
 #include "version.h"
 
@@ -68,56 +70,6 @@ tf::Status SetNGraphBackend(const string& backend_name) {
   tf::Status status =
       tf::ngraph_bridge::BackendManager::SetBackendName(backend_name);
   return status;
-}
-
-// Create a simple computation graph and run
-void RunSimpleNetworkExample() {
-  // Create the graph
-  tf::Scope root = tf::Scope::NewRootScope();
-
-  // Matrix A = [3 2; -1 0]
-  auto A = tf::ops::Const(root, {{0.03f, 0.022f}, {-0.001f, 0.025f}});
-  // Vector b = [3 5]
-  auto b = tf::ops::Const(root, {{0.345f, 0.35f}});
-  // v = Ab^T
-  auto v = tf::ops::MatMul(root.WithOpName("v"), A, b,
-                           tf::ops::MatMul::TransposeB(true));
-  // R = softmax(v)
-  auto R = tf::ops::Softmax(root, v);
-
-  // Turn off optimizations so that all the nodes are processed
-  tf::SessionOptions options;
-  options.config.mutable_graph_options()
-      ->mutable_optimizer_options()
-      ->set_opt_level(tf::OptimizerOptions_Level_L0);
-  options.config.mutable_graph_options()
-      ->mutable_rewrite_options()
-      ->set_constant_folding(tf::RewriterConfig::OFF);
-
-  // The following is related to Grapller - which we are turning off
-  // Until we get a library fully running
-  if (tf::ngraph_bridge::ngraph_tf_is_grappler_enabled()) {
-    options.config.mutable_graph_options()
-        ->mutable_rewrite_options()
-        ->add_custom_optimizers()
-        ->set_name("ngraph-optimizer");
-
-    options.config.mutable_graph_options()
-        ->mutable_rewrite_options()
-        ->set_min_graph_nodes(-1);
-  }
-
-  std::cout << "Currently selected backend: "
-            << tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName()
-            << std::endl;
-
-  tf::ClientSession session(root, options);
-
-  std::vector<tf::Tensor> outputs;
-  session.Run({R}, &outputs);
-
-  // Print the output
-  std::cout << "Result: " << outputs[0].matrix<float>() << std::endl;
 }
 
 void PrintVersion() {
@@ -181,9 +133,10 @@ std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
 
 int main(int argc, char** argv) {
   const char* backend = "CPU";
+  int num_images_for_each_thread = 10;
 
   if (argc > 1) {
-    backend = argv[1];
+    num_images_for_each_thread = atoi(argv[1]);
   }
 
   if (SetNGraphBackend(backend) != tf::Status::OK()) {
@@ -191,9 +144,73 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  std::cout << "Component versions\n";
+  PrintVersion();
+
+  std::cout << "\nCreating session\n";
+  ngraph::Event session_create_event("Session Create", "", "");
+
   // Run the MatMul example
   auto session = CreateSession("inception_v3_2016_08_28_frozen.pb");
+  session_create_event.Stop();
+  ngraph::Event::write_trace(session_create_event);
 
+  // Create threads and fire up the images
+  const int NUM_THREADS = 2;
+  std::thread threads[NUM_THREADS];
+
+  std::cout << "Running inferences\n";
+
+  for (int i = 0; i < NUM_THREADS; i++) {
+    threads[i] = std::thread([i, num_images_for_each_thread, &session] {
+      for (int iter_count = 0; iter_count < num_images_for_each_thread;
+           iter_count++) {
+        std::ostringstream oss;
+        oss << "Read(" << i << ") [" << iter_count << "]";
+        ngraph::Event read_event(oss.str(), "Image reading", "");
+
+        // Read image
+        std::vector<tf::Tensor> resized_tensors;
+        tf::Status read_tensor_status = ReadTensorFromImageFile(
+            "grace_hopper.jpg", 299 /*input_height*/, 299 /*input_width*/,
+            0.0 /*input_mean*/, 255 /*input_std*/, &resized_tensors);
+        if (!read_tensor_status.ok()) {
+          LOG(ERROR) << read_tensor_status;
+          continue;
+        }
+        read_event.Stop();
+
+        // Run inference
+        oss.clear();
+        oss.seekp(0);
+        oss << "Infer(" << i << ") [" << iter_count << "]";
+        ngraph::Event infer_event(oss.str(), "Inference", "");
+
+        const tf::Tensor& resized_tensor = resized_tensors[0];
+        string input_layer = "input";
+        std::vector<tf::Tensor> outputs;
+        string output_layer = "InceptionV3/Predictions/Reshape_1";
+
+        tf::Status run_status = session->Run({{input_layer, resized_tensor}},
+                                             {output_layer}, {}, &outputs);
+        if (!run_status.ok()) {
+          LOG(ERROR) << "Running model failed: " << run_status;
+        }
+        infer_event.Stop();
+
+        // Write the events
+        ngraph::Event::write_trace(read_event);
+        ngraph::Event::write_trace(infer_event);
+      }
+    });
+  }
+
+  // Wait until everyone is done
+  for (auto& next_thread : threads) {
+    next_thread.join();
+  }
+
+#if TEST_SINGLE_INSTANCE
   // Get the image from disk as a float array of numbers, resized and normalized
   // to the specifications the main graph expects.
   std::vector<tf::Tensor> resized_tensors;
@@ -223,6 +240,8 @@ int main(int argc, char** argv) {
     LOG(ERROR) << "Running print failed: " << print_status;
     return -1;
   }
+#endif
 
+  std::cout << "Done\n";
   return 0;
 }

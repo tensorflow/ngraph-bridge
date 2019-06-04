@@ -78,6 +78,23 @@ void RunSimpleNetworkExample() {
       ->mutable_rewrite_options()
       ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
+  // The following is related to Grapller - which we are turning off
+  // Until we get a library fully running
+  if (tf::ngraph_bridge::ngraph_tf_is_grappler_enabled()) {
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->add_custom_optimizers()
+        ->set_name("ngraph-optimizer");
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_min_graph_nodes(-1);
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_meta_optimizer_iterations(tf::RewriterConfig::ONE);
+  }
+
   std::cout
       << "Currently selected backend: "
       << tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName()
