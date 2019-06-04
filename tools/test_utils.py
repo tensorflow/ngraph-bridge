@@ -149,6 +149,13 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
     if not os.path.isdir(test_dir):
         raise Exception("test directory doesn't exist: " + test_dir)
 
+    new_paths = root_pwd + "/examples/mnist"
+    print("adding path", new_paths)
+    env = os.environ.copy()
+    if 'PYTHONPATH' in env:
+        env["PYTHONPATH"] = env["PYTHONPATH"] + ":" + new_paths
+    print("GOT ENV PATH", env["PYTHONPATH"])
+
     # Change the directory to the test_dir
     os.chdir(test_dir)
 

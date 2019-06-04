@@ -24,7 +24,9 @@ from common import NgraphTest
 
 # This is the path from where the script is actually run
 # which is ngraph-bridge/build_cmake/test/python
-sys.path.insert(0, '../../../examples/mnist')
+#sys.path.insert(0, '../../../examples/mnist')
+
+#sys.path.insert(0, 'examples/mnist')
 from mnist_deep_simplified import *
 
 
