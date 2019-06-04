@@ -30,7 +30,7 @@ from mnist_deep_simplified import *
 
 
 class TestMnistTraining(NgraphTest):
-
+     @pytest.mark.parametrize(("optimizer"), ("adam", "sgd"))
     def test_mnist_training_adam_optimizer(self):
 
         class mnist_training_flags:
@@ -52,7 +52,7 @@ class TestMnistTraining(NgraphTest):
         test_image_count = None
         make_deterministic = True
         model_dir = './mnist_trained/'
-        optimizer = "adam"
+        #optimizer = "adam"
 
         FLAGS = mnist_training_flags(data_dir, model_dir, train_loop_count,
                                      batch_size, test_image_count,
