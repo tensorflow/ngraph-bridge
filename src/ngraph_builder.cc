@@ -1904,7 +1904,7 @@ static Status TranslateFusedBatchNormOp(
 
   shared_ptr<ng::Node> ng_input, ng_scale, ng_offset, ng_mean, ng_variance;
   bool is_v3 = op->type_string() == "FusedBatchNormV3";
-  if (is_v3) {
+  if (is_v3 && tf_is_training) {
     // In case of V3, inputs 3 and 4 are not required
     TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
     TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 1, &ng_scale));
