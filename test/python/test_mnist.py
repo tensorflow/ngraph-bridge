@@ -19,6 +19,7 @@ import tensorflow as tf
 import ngraph_bridge
 
 import numpy as np
+from common import NgraphTest
 
 # This is the path from where the script is actually run
 # which is ngraph-bridge/build_cmake/test/python
@@ -28,47 +29,46 @@ print('Added sys path')
 from mnist_deep_simplified import *
 
 
-class TestCastOperations(NgraphTest):
-    def mnist_training_test_adam_optimizer(self):
+class TestMnistTraining(NgraphTest):
+
+    def test_mnist_training_adam_optimizer(self):
+
         class mnist_training_flags:
-            def __init__(self, data_dir,model_dir,training_iterations, training_batch_size, validation_batch_size, make_determinisitc, training_optimizer):
+
+            def __init__(self, data_dir, model_dir, training_iterations,
+                         training_batch_size, validation_batch_size,
+                         make_deterministic, training_optimizer):
                 self.data_dir = data_dir
+                self.model_dir = model_dir
                 self.train_loop_count = training_iterations
                 self.batch_size = training_batch_size
                 self.test_image_count = validation_batch_size
-                self.make_determinisitc = make_determinisitc
+                self.make_deterministic = make_deterministic
                 self.optimizer = optimizer
-                
-        data_dir ='/tmp/tensorflow/mnist/input_data'
+
+        data_dir = '/tmp/tensorflow/mnist/input_data'
         train_loop_count = 20
-        batch_size=50
-
-        test_image_count',
-        type=int,
-        default=None,
-        help="Number of test images to evaluate on")
-
-        make_deterministic = True 
-        model_dir='./mnist_trained/'
+        batch_size = 50
+        test_image_count = None
+        make_deterministic = True
+        model_dir = './mnist_trained/'
         optimizer = "adam"
-        
-        
-        
-        
-        
-        
-        print('enable ngraph')
-        ngraph_bridge.enable()
 
+        FLAGS = mnist_training_flags(data_dir, model_dir, train_loop_count,
+                                     batch_size, test_image_count,
+                                     make_deterministic, optimizer)
+
+        # Run on nGraph
         ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
-        print('ng_loss_values %f,  ng_test_accuracy %f', ng_loss_values,
-            ng_test_accuracy)
-
+        ng_values = ng_loss_values + [ng_test_accuracy]
+        # Reset the Graph
         tf.reset_default_graph()
 
         # disable ngraph-tf
-        print('disable ngraph')
         ngraph_bridge.disable()
         tf_loss_values, tf_test_accuracy = train_mnist_cnn(FLAGS)
-        print('tf_loss_values %f,  tf_test_accuracy %f', tf_loss_values,
-            tf_test_accuracy)
+        tf_values = tf_loss_values + [tf_test_accuracy]
+
+        # compare values
+        assert np.allclose(
+            ng_values, tf_values, atol=1e-3), "Values don't match"
