@@ -1108,16 +1108,14 @@ TEST(NNOps, FusedBatchNormV3NHWCTraining) {
   // test grab the first three outputs from the FusedBatchNormGrad op
   vector<int> static_input_indexes = {};
 
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT,
-                                       DT_FLOAT, DT_FLOAT, DT_FLOAT};
+  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT, DT_FLOAT,
+                                       DT_FLOAT};
   auto R = ops::FusedBatchNormV3(root, x, scale, offset, mean, variance, attrs);
 
-  std::vector<Output> sess_run_fetchoutputs = {R.y,
-                                               R.batch_mean,
-                                               R.batch_variance,
-                                               R.reserve_space_1,
-                                               R.reserve_space_2,
-                                               R.reserve_space_3};
+  std::vector<Output> sess_run_fetchoutputs = {
+      R.y, R.batch_mean, R.batch_variance, R.reserve_space_1,
+      R.reserve_space_2};
+  // reserve_space_3 is also an output but not comparing it
   OpExecuter opexecuter(root, "FusedBatchNormV3", static_input_indexes,
                         output_datatypes, sess_run_fetchoutputs);
   opexecuter.RunTest("CPU", static_cast<float>(1e-03),
