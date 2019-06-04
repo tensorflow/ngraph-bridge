@@ -1990,6 +1990,18 @@ static Status TranslateFusedBatchNormOp(
         ng_variance);
     BatchToTensorflow(is_nhwc, ng_batch_norm);
     SaveNgOp(ng_op_map, op->name(), ng_batch_norm);
+    if (is_v3) {
+      SaveNgOp(ng_op_map, op->name(), ng_mean);
+      SaveNgOp(ng_op_map, op->name(), ng_variance);
+      SaveNgOp(ng_op_map, op->name(), ng_mean);
+      SaveNgOp(ng_op_map, op->name(), ng_variance);
+      // FusedBatchNormV3 has 6 outputs (reserve_space_3)
+      shared_ptr<ng::Node> ng_reserved_3 =
+          ConstructNgNode<ngraph::op::Constant>(
+              op->name(), ng_mean->get_element_type(), ng::Shape{},
+              std::vector<std::string>{""});
+      SaveNgOp(ng_op_map, op->name(), ng_reserved_3);
+    }
   }
 
   return Status::OK();
