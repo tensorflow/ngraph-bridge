@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#pragma once
 
-#ifndef NGRAPH_TF_MARK_FOR_CLUSTERING_H_
-#define NGRAPH_TF_MARK_FOR_CLUSTERING_H_
+#ifndef NGRAPH_TF_BRIDGE_BACKEND_CONFIG_H_
+#define NGRAPH_TF_BRIDGE_BACKEND_CONFIG_H_
 
-#include "tensorflow/core/graph/graph.h"
+#include <ostream>
+
+#include "ngraph_log.h"
+#include "tensorflow/core/lib/core/errors.h"
+
+using namespace std;
 
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes, std::string current_backend);
-bool NodeIsMarkedForClustering(const Node* node);
-void GetStaticInputs(const Node* node, std::vector<int32>* inputs);
-bool InputIsStatic(const Node* node, int index);
-Status GetNodeBackend(const Node* node, string* backend_name);
-void SetNodeBackend(Node* node, string& backend_name);
-}  // namespace ngraph_bridge
+class BackendConfig {
+ public:
+  
+  std::string join(std::map<std::string, std::string>);
+  std::map<std::string, std::string> split(std::string);
 
+  ~BackendConfig();
+};
+
+}  // namespace ngraph_bridge
 }  // namespace tensorflow
-#endif  // NGRAPH_TF_MARK_FOR_CLUSTERING_H_
+
+#endif
+// NGRAPH_TF_BRIDGE_BACKEND_CONFIG_H

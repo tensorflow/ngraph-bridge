@@ -38,11 +38,55 @@ using namespace std;
 namespace tensorflow {
 namespace ngraph_bridge {
 
+Status NgraphOptimizer::Init(
+    const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
+  if (config == nullptr) {
+    NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: config is null ";
+  } else {
+    const auto params = config->parameter_map();
+    if (params.count("backend_name")) {
+      config_map["backend_name"] =  params.at("backend_name").s();
+      NGRAPH_VLOG(3) << config_map["backend_name"];
+    }
+    if (params.count("device_id")) {
+      config_map["device_id"] = params.at("device_id").s();
+      NGRAPH_VLOG(3) << config_map["backend_name"];
+    }
+    if (params.count("max_batch_size")) {
+      config_map["max_batch_size"] = params.at("max_batch_size").s();
+      NGRAPH_VLOG(3) << config_map["max_batch_size"];
+    }
+    if (params.count("num_ice_cores")) {
+      config_map["num_ice_cores"] = params.at("num_ice_cores").s();
+      NGRAPH_VLOG(3) << config_map["num_ice_cores"];
+    }
+  }
+  return Status::OK();
+}
+
 Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                  const tensorflow::grappler::GrapplerItem& item,
                                  GraphDef* output) {
   NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
   NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
+
+  NGRAPH_VLOG(0) << "Getting the config information";
+  string backend_name = BackendManager::GetCurrentlySetBackendName();
+  if (config_map.find("backend_name") != config_map.end()) {
+    backend_name = config_map["backend_name"];
+  } else {
+    const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+    if (ng_backend_env_value != nullptr) {
+      string backend_env = std::string(ng_backend_env_value);
+      if (backend_env.empty() ||
+          !BackendManager::IsSupportedBackend(backend_env)) {
+        return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
+                                " is not supported");
+      }
+      backend_name = backend_env;
+    }
+  }
+  NGRAPH_VLOG(0) << "backend_name " << backend_name;
 
   // Convert the GraphDef to Graph
   GraphConstructorOptions opts;
@@ -62,8 +106,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
-  // we will not do anything; all subsequent
-  // passes become a no-op.
+  // we will not do anything; all subsequent passes become a no-op.
   bool ngraph_not_enabled =
       (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
   bool already_processed = IsProcessedByNgraphPass(&graph);
@@ -167,7 +210,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // 1. Mark for clustering then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes));
+  TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes, backend_name));
   if (DumpMarkedGraphs()) {
     DumpGraphs(graph, idx, "marked", "Graph Marked for Clustering");
   }

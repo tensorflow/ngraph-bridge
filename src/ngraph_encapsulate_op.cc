@@ -28,6 +28,7 @@
 #include "tensorflow/core/graph/graph_constructor.h"
 
 #include "ngraph_backend_manager.h"
+#include "ngraph_backend_config.h"
 #include "ngraph_builder.h"
 #include "ngraph_cluster_manager.h"
 #include "ngraph_freshness_tracker.h"
