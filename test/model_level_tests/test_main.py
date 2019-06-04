@@ -266,9 +266,8 @@ def run_test_suite(model_dir, configuration, disabled):
     except Exception as e:
         print(e)
     finally:
-        pass
-        #if (os.path.isdir(repo_dl_loc)):
-        #    command_executor('rm -rf ' + repo_dl_loc)
+        if (os.path.isdir(repo_dl_loc)):
+            command_executor('rm -rf ' + repo_dl_loc)
 
 
 def dump_commands_in_shellscript(dir):
