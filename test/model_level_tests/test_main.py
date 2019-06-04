@@ -95,14 +95,14 @@ def apply_patch_and_test(test_folder, env_flags):
     # To generate the patch use: git diff > enable_ngraph.patch
     patch_in_test_folder = os.path.abspath(test_folder + '/enable_ngraph.patch')
     patch_in_model_folder = os.path.abspath(test_folder +
-                                            '../enable_ngraph.patch')
+                                            '/../enable_ngraph.patch')
     if os.path.isfile(patch_in_test_folder):
         patch_file = patch_in_test_folder
     elif os.path.isfile(patch_in_model_folder):
-        patch_file = patch_in_test_folder
+        patch_file = patch_in_model_folder
     else:
         patch_file = None
-    assert patch_file is not None, "Did not find any patch file"
+    assert patch_file is not None, "Did not find any patch file. Looked for " + patch_in_test_folder + ' or ' + patch_in_model_folder
 
     command_executor('cd ' + downloaded_repo)
     if patch_file is not None:
@@ -181,7 +181,8 @@ def run_test_suite(model_dir, configuration, disabled):
                             so, se = apply_patch_and_test(
                                 sub_test_dir, ('NGRAPH_TF_LOG_PLACEMENT=1',
                                                '')[custom_parser_present])
-                        except:
+                        except Exception as e:
+                            print(e)
                             failed_tests.append(flname)
                             continue
                         tend = time.time()
@@ -264,6 +265,8 @@ def run_test_suite(model_dir, configuration, disabled):
         # TODO integrate the if-else paths as much as possible
 
         # TODO: check throughput/latency
+    except Exception as e:
+        print(e)
     finally:
         if (os.path.isdir(repo_dl_loc)):
             command_executor('rm -rf ' + repo_dl_loc)
