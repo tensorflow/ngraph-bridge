@@ -71,4 +71,5 @@ class TestMnistTraining(NgraphTest):
 
         # compare values
         assert np.allclose(
-            ng_values, tf_values, atol=1e-3), "Values don't match"
+            ng_values, tf_values,
+            atol=1e-3), "Loss or Accuracy values don't match"
