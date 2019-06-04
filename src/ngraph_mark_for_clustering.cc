@@ -273,6 +273,7 @@ Status MarkForClustering(Graph* graph,
         return Status::OK();
       };
       confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
+      confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
       confirmation_function_map["Greater"] = SimpleConfirmationFunction();
       confirmation_function_map["GreaterEqual"] = SimpleConfirmationFunction();
 #if defined NGRAPH_DISTRIBUTED
@@ -439,6 +440,8 @@ Status MarkForClustering(Graph* graph,
       // DT_FLOAT
       type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
       type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["GatherNd"]["Tparams"] = NGraphDTypes();
+      type_constraint_map["GatherNd"]["Tindices"] = NGraphIndexDTypes();
       type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
       type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
       type_constraint_map["GatherV2"]["Taxis"] = NGraphIndexDTypes();

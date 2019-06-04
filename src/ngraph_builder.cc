@@ -1981,6 +1981,18 @@ static Status TranslateFusedBatchNormGradOp(
   return Status::OK();
 }
 
+static Status TranslateGatherNdOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> params;
+  shared_ptr<ng::Node> indices;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &params, &indices));
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::GatherND>(op->name(), params, indices));
+  return Status::OK();
+}
+
 static Status TranslateGatherV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -4547,6 +4559,7 @@ const static std::map<
         {"FusedBatchNorm", TranslateFusedBatchNormOp},
         {"FusedBatchNormV2", TranslateFusedBatchNormOp},
         {"FusedBatchNormGrad", TranslateFusedBatchNormGradOp},
+        {"GatherNd", TranslateGatherNdOp},
         {"GatherV2", TranslateGatherV2Op},
         {"_FusedConv2D", TranslateFusedConv2DOp},
         {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
