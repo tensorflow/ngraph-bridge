@@ -120,7 +120,7 @@ def apply_patch_and_test(test_folder, env_flags):
 @return_to_cwd
 def ready_repo(model_dir, repo_dl_loc):
     command_executor('cd ' + repo_dl_loc)
-    command_executor('git reset --hard')
+    #command_executor('git reset --hard')
     # getting the repo ready is common to both check_rewrite_test and get_checkpoint
     if os.path.isfile(model_dir + '/getting_repo_ready.sh'):
         command_executor('chmod +x ' + model_dir + '/getting_repo_ready.sh')
@@ -266,8 +266,9 @@ def run_test_suite(model_dir, configuration, disabled):
     except Exception as e:
         print(e)
     finally:
-        if (os.path.isdir(repo_dl_loc)):
-            command_executor('rm -rf ' + repo_dl_loc)
+        pass
+        #if (os.path.isdir(repo_dl_loc)):
+        #    command_executor('rm -rf ' + repo_dl_loc)
 
 
 def dump_commands_in_shellscript(dir):
