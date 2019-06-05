@@ -267,6 +267,8 @@ Status MarkForClustering(Graph* graph,
           SimpleConfirmationFunction();
       confirmation_function_map["FusedBatchNormV2"] =
           SimpleConfirmationFunction();
+      confirmation_function_map["FusedBatchNormV3"] =
+          SimpleConfirmationFunction();
       confirmation_function_map["FusedBatchNormGrad"] = [](Node* n,
                                                            bool* result) {
         TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
@@ -435,9 +437,10 @@ Status MarkForClustering(Graph* graph,
       type_constraint_map["FloorDiv"]["T"] = NGraphNumericDTypes();
       type_constraint_map["FloorMod"]["T"] = NGraphNumericDTypes();
       type_constraint_map["FusedBatchNorm"]["T"] = NGraphNumericDTypes();
-      // TODO (mingshan): FusedBatchNormV2 supports DT_HALF,DT_BFLOAT16,
+      // TODO (mingshan): FusedBatchNormV2, V3 supports DT_HALF,DT_BFLOAT16,
       // DT_FLOAT
       type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
+      type_constraint_map["FusedBatchNormV3"]["T"] = {DT_FLOAT};
       type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
       type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
       type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
