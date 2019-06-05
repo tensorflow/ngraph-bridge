@@ -72,7 +72,8 @@ static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 // ...end code copied and pasted (and modified) from graph.cc
 
 Status EncapsulateClusters(Graph* graph, int graph_id,
-                           FunctionDefLibrary* fdeflib) {
+                           FunctionDefLibrary* fdeflib,
+                           std::map<std::string, std::string> device_config) {
   // A map from cluster indices to the expected device name for nodes
   // in that cluster.
   std::map<int, std::string> device_name_map;
@@ -328,15 +329,21 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
     }
 
     Node* n;
-    Status status = NodeBuilder(ss.str(), "NGraphEncapsulate")
+    NodeBuilder nb = NodeBuilder(ss.str(), "NGraphEncapsulate")
                         .Attr("ngraph_cluster", cluster_idx)
                         .Attr("ngraph_backend", cluster_backend)
                         .Attr("Targuments", input_types)
                         .Attr("Tresults", cluster_output_dt_map[cluster_idx])
                         .Attr("ngraph_graph_id", graph_id)
                         .Device(device_name_map[cluster_idx])
-                        .Input(inputs)
-                        .Finalize(graph, &n);
+                        .Input(inputs);
+    if (!device_config.empty()) {
+      NGRAPH_VLOG(0) << "Device config is not empty";
+      for (auto const& i : device_config) {
+        nb.Attr(i.first, i.second);
+      }
+    }
+    Status status = nb.Finalize(graph, &n);
     TF_RETURN_IF_ERROR(status);
     n->set_assigned_device_name(device_name_map[cluster_idx]);
 

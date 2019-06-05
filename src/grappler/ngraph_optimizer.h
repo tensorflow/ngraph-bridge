@@ -72,6 +72,7 @@ class NgraphOptimizer : public tensorflow::grappler::CustomGraphOptimizer {
                 double) override;
 
  private:
+  std::string config_backend_name;
   std::map<std::string, std::string> config_map;
 
   void DumpGraphs(Graph&, int, std::string, std::string);

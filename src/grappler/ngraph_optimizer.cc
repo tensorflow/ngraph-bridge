@@ -45,12 +45,12 @@ Status NgraphOptimizer::Init(
   } else {
     const auto params = config->parameter_map();
     if (params.count("backend_name")) {
-      config_map["backend_name"] =  params.at("backend_name").s();
-      NGRAPH_VLOG(3) << config_map["backend_name"];
+      config_backend_name =  params.at("backend_name").s();
+      NGRAPH_VLOG(3) << config_backend_name;
     }
     if (params.count("device_id")) {
       config_map["device_id"] = params.at("device_id").s();
-      NGRAPH_VLOG(3) << config_map["backend_name"];
+      NGRAPH_VLOG(3) << config_map["device_id"];
     }
     if (params.count("max_batch_size")) {
       config_map["max_batch_size"] = params.at("max_batch_size").s();
@@ -72,8 +72,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   NGRAPH_VLOG(0) << "Getting the config information";
   string backend_name = BackendManager::GetCurrentlySetBackendName();
-  if (config_map.find("backend_name") != config_map.end()) {
-    backend_name = config_map["backend_name"];
+  if (!config_backend_name.empty() ) {
+    backend_name = config_backend_name;
   } else {
     const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
     if (ng_backend_env_value != nullptr) {
@@ -230,7 +230,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new));
+  TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
   }

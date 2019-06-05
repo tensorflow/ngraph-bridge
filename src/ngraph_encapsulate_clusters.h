@@ -23,7 +23,8 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 Status EncapsulateClusters(Graph* graph, int graph_id,
-                           FunctionDefLibrary* fdeflib);
+                           FunctionDefLibrary* fdeflib,
+                           std::map<std::string, std::string> device_config);
 
 }  // namespace ngraph_bridge
 
