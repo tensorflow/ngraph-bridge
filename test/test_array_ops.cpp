@@ -317,7 +317,7 @@ TEST(ArrayOps, ExpandDims) {
 }  // end of test op ExpandDims
 
 // Test op:GatherND
-TEST(ArrayOps, GatherNd_2D) {
+TEST(ArrayOps, GatherNd2D) {
   int dim1 = 2;
   int dim2 = 2;
 
@@ -343,7 +343,7 @@ TEST(ArrayOps, GatherNd_2D) {
 }  // end of test op GatherND
 
 // Test op:GatherND
-TEST(ArrayOps, GatherNd_3D) {
+TEST(ArrayOps, GatherNd3D) {
   Tensor indices(DT_INT32, TensorShape({2, 1, 1}));
   AssignInputValues<int>(indices, {0, 1});
 
