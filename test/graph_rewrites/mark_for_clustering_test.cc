@@ -68,7 +68,7 @@ TEST(MarkForClustering, SimpleTest) {
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
-  ASSERT_OK(MarkForClustering(&g, {}));
+  ASSERT_OK(MarkForClustering(&g, {}, "CPU"));
 
   const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
   string expected_backend{"CPU"};
