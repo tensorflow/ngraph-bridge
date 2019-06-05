@@ -1819,7 +1819,7 @@ static Status TranslateFusedBatchNormOp(
     TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 2, &ng_offset));
   } else {
     TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_scale,
-                                    &ng_offset, &ng_mean, &ng_variance));
+                                     &ng_offset, &ng_mean, &ng_variance));
   }
 
   std::string tf_data_format;
@@ -1917,7 +1917,8 @@ static Status TranslateFusedBatchNormOp(
 static Status TranslateFusedBatchNormGradOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  TF_RETURN_IF_ERROR(ValidateInputCount(op, 5));
+  bool is_v3 = op->type_string() == "FusedBatchNormGradV3";
+  TF_RETURN_IF_ERROR(ValidateInputCount(op, is_v3 ? 6 : 5));
 
   bool tf_is_training;
   // We only support is_training=true case. We marked rejection for the case
@@ -1935,8 +1936,14 @@ static Status TranslateFusedBatchNormGradOp(
   shared_ptr<ng::Node> ng_scale;
   shared_ptr<ng::Node> ng_mean;
   shared_ptr<ng::Node> ng_variance;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_delta, &ng_input,
-                                   &ng_scale, &ng_mean, &ng_variance));
+  if (is_v3) {
+    TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_delta, &ng_input,
+                                     &ng_scale, &ng_mean, &ng_variance,
+                                     nullptr));
+  } else {
+    TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_delta, &ng_input,
+                                     &ng_scale, &ng_mean, &ng_variance));
+  }
 
   std::string tf_data_format;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
@@ -4575,6 +4582,7 @@ const static std::map<
         {"FusedBatchNormV2", TranslateFusedBatchNormOp},
         {"FusedBatchNormV3", TranslateFusedBatchNormOp},
         {"FusedBatchNormGrad", TranslateFusedBatchNormGradOp},
+        {"FusedBatchNormGradV3", TranslateFusedBatchNormGradOp},
         {"GatherV2", TranslateGatherV2Op},
         {"_FusedConv2D", TranslateFusedConv2DOp},
         {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
