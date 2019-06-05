@@ -1984,12 +1984,30 @@ static Status TranslateFusedBatchNormGradOp(
 static Status TranslateGatherNdOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> params;
-  shared_ptr<ng::Node> indices;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &params, &indices));
+  shared_ptr<ng::Node> ng_params;
+  shared_ptr<ng::Node> ng_indices;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_params, &ng_indices));
 
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::op::GatherND>(op->name(), params, indices));
+  auto ng_params_shape = ng_params->get_shape();
+  size_t ng_params_rank = ng_params_shape.size();
+  size_t ng_indices_rank = ng_indices->get_shape().size();
+
+  for (size_t i = 0; i < ng_params_rank; i++) {
+    if (ng_params_shape[i] == 0) {
+      return errors::InvalidArgument(
+          "Requested more than 0 entries, but params is empty.  Params shape: "
+          "[",
+          ng::join(ng_params_shape, ","), "]");
+    }
+  }
+
+  if ((ng_indices_rank - 1) > ng_params_rank) {
+    return errors::InvalidArgument(
+        "The last dimension of indices can be at most the rank of params");
+  }
+
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::GatherND>(
+                                      op->name(), ng_params, ng_indices));
   return Status::OK();
 }
 

@@ -317,7 +317,7 @@ TEST(ArrayOps, ExpandDims) {
 }  // end of test op ExpandDims
 
 // Test op:GatherND
-TEST(ArrayOps, GatherNd) {
+TEST(ArrayOps, GatherNd_2D) {
   int dim1 = 2;
   int dim2 = 2;
 
@@ -325,6 +325,29 @@ TEST(ArrayOps, GatherNd) {
   AssignInputValues<int>(indices, {0, 1});
 
   Tensor params(DT_FLOAT, TensorShape({dim1, dim2}));
+  AssignInputValuesRandom(params);
+
+  vector<int> static_input_indexes = {};
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::GatherNd(root, params, indices);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "GatherNd", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+
+}  // end of test op GatherND
+
+// Test op:GatherND
+TEST(ArrayOps, GatherNd_3D) {
+  Tensor indices(DT_INT32, TensorShape({2, 1, 1}));
+  AssignInputValues<int>(indices, {0, 1});
+
+  Tensor params(DT_FLOAT, TensorShape({2, 2, 2}));
   AssignInputValuesRandom(params);
 
   vector<int> static_input_indexes = {};

@@ -440,7 +440,8 @@ Status MarkForClustering(Graph* graph,
       // DT_FLOAT
       type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
       type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
-      type_constraint_map["GatherNd"]["Tparams"] = NGraphDTypes();
+      type_constraint_map["GatherNd"]["Tparams"] = {
+          DT_FLOAT};  // NGraphDTypes();
       type_constraint_map["GatherNd"]["Tindices"] = NGraphIndexDTypes();
       type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
       type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
