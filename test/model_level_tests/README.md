@@ -68,6 +68,15 @@ Note that you can get the expected json file when you are adding a new model by 
 9.  **Configuration**: **_TODO_**
 
 
+# Currently available tests
+On CPU:
+| Model | Normal | Grappler | training | inference |
+| --- | --- | --- | --- | --- |
+| MLP | &#9745; | &#9745; | &#9745; | &#9744; |
+| resnet | &#9745; | &#9744; | &#9745; | &#9744; |
+| densenet | &#9745; | &#9744; | &#9745; |  &#9744; |
+
+
 
 ## TODO
 1. **pb/pbtxt/savedmodel based test**
