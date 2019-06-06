@@ -22,11 +22,14 @@ import ngraph_bridge
 import numpy as np
 from common import NgraphTest
 
-# This is the path from where the script is actually run
-# which is ngraph-bridge/build_cmake/test/python
-#sys.path.insert(0, '../../../examples/mnist')
+# This test needs access to mnist_deep_simplified.py script
+# present in ngraph-bridge/examples/mnist
+# so this path needs to be added to python path when running this
 
-#sys.path.insert(0, 'examples/mnist')
+# For eg. when running the test from ngraph-bridge/build_cmake/test/python
+# you can add this path as below
+# sys.path.insert(0, '../../../examples/mnist')
+
 from mnist_deep_simplified import *
 
 
