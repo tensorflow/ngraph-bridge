@@ -36,7 +36,9 @@ vector<string> ng_supported_backends =
 unordered_set<string> BackendManager::ng_supported_backends_(
     ng_supported_backends.begin(), ng_supported_backends.end());
 
-std::map<std::string, int> BackendManager::ref_count_each_backend_;
+map<std::string, int> BackendManager::ref_count_each_backend_;
+
+unordered_map<string, BackendConfig*> BackendManager::ng_backendconfig_map_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_name_mutex_);
@@ -108,6 +110,32 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
   }
   return true;
 };
+
+// Backend Config functions
+BackendConfig* BackendManager::GetBackendConfig(const string& backend_name) {
+  auto itr = BackendManager::ng_backendconfig_map_.find(
+      backend_name);
+  if (itr == BackendManager::ng_backendconfig_map_.end()) {
+    BackendConfig* bconfig = nullptr;
+    if (backend_name == "NNP") {
+      bconfig = new BackendNNPConfig();
+    } else {
+      bconfig = new BackendConfig();
+    }
+    BackendManager::ng_backendconfig_map_[backend_name] = bconfig;
+  }
+
+  return BackendManager::ng_backendconfig_map_[backend_name];
+}
+
+vector<string> BackendManager::GetOptionalAttributes(
+    const string& backend_name) {}
+
+unordered_map<string, string> BackendManager::GetBackendAttributes(
+    string backend_config) {}
+
+string BackendManager::GetBackendCreationType(
+    string backend_name, vector<string> optional_attribute_values) {}
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
