@@ -45,21 +45,16 @@ Status NgraphOptimizer::Init(
     NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: config is null ";
   } else {
     const auto params = config->parameter_map();
-    if (params.count("backend_name")) {
-      config_backend_name = params.at("backend_name").s();
+    if (params.count("ngraph_backend")) {
+      config_backend_name = params.at("ngraph_backend").s();
       NGRAPH_VLOG(3) << config_backend_name;
-    }
-    if (params.count("device_id")) {
-      config_map["device_id"] = params.at("device_id").s();
-      NGRAPH_VLOG(3) << config_map["device_id"];
-    }
-    if (params.count("max_batch_size")) {
-      config_map["max_batch_size"] = params.at("max_batch_size").s();
-      NGRAPH_VLOG(3) << config_map["max_batch_size"];
-    }
-    if (params.count("num_ice_cores")) {
-      config_map["num_ice_cores"] = params.at("num_ice_cores").s();
-      NGRAPH_VLOG(3) << config_map["num_ice_cores"];
+      std::vector<std::string> optional_attributes = BackendManager::GetOptionalAttributes(config_backend_name);
+      for (int i = 0; i < optional_attributes.size(); i++) {
+        if (params.count(optional_attributes[i])) {
+          config_map[optional_attributes[i]] = params.at(optional_attributes[i]).s();
+          NGRAPH_VLOG(3) << optional_attributes[i]<< " " << config_map[optional_attributes[i]];
+        }
+      }
     }
   }
   return Status::OK();

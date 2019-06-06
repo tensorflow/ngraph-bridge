@@ -28,6 +28,7 @@
 #include "ngraph_rewrite_for_tracking.h"
 #include "ngraph_utils.h"
 #include "tf_graph_writer.h"
+#include "ngraph_backend_manager.h"
 
 #include <iomanip>
 
@@ -185,6 +186,24 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       return Status::OK();
     }
 
+    NGRAPH_VLOG(0) << "Getting the backend config information";
+    std::unordered_map<std::string, std::string> config_map;
+    string backend_name = BackendManager::GetCurrentlySetBackendName();
+    const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+    if (ng_backend_env_value != nullptr) {
+      string backend_env = std::string(ng_backend_env_value);
+      if (backend_env.empty() ||
+          !BackendManager::IsSupportedBackend(backend_env)) {
+        return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
+                                " is not supported");
+      }
+      backend_name = backend_env;
+    }
+    config_map =  BackendManager::GetBackendAttributes(backend_name); //SplitBackendConfig
+    backend_name = config_map["backend_name"];
+    config_map.erase("backend_name");
+    NGRAPH_VLOG(0) << "backend_name " << backend_name;
+
     // For filename generation purposes, grab a fresh index. This is just an
     // arbitrary integer to avoid filename collisions resulting from subsequent
     // runs of this pass.
@@ -212,7 +231,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
     TF_RETURN_IF_ERROR(
-        MarkForClustering(options.graph->get(), skip_these_nodes));
+        MarkForClustering(options.graph->get(), skip_these_nodes, backend_name);
     if (DumpMarkedGraphs()) {
       DumpGraphs(options, idx, "marked", "Graph Marked for Clustering");
     }
@@ -233,7 +252,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
     TF_RETURN_IF_ERROR(
-        EncapsulateClusters(options.graph->get(), idx, fdeflib_new));
+        EncapsulateClusters(options.graph->get(), idx, fdeflib_new, config_map);
     // TODO: not using fdeflib_new in this path. Only grappler path uses it
     free(fdeflib_new);
     if (DumpEncapsulatedGraphs()) {

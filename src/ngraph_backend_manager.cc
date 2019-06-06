@@ -109,5 +109,11 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
   return true;
 };
 
+// Backend Config
+unordered_map<string, string> BackendManager::GetBackendAttributes( //SplitBackendConfig
+      string backend_config) {
+        NGRAPH_VLOG(0) << "GetBackendAttributes ";
+      }
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
