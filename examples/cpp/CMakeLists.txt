@@ -15,4 +15,3 @@
 # ******************************************************************************
 message(STATUS "C++ Examples will be built")
 add_subdirectory(infer_single)
-add_subdirectory(infer_multi)

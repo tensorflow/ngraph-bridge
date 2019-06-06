@@ -80,6 +80,8 @@ limitations under the License.
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
+#include "ngraph_api.h"
+
 // These are all common classes it's handy to reference with no namespace.
 // using tensorflow::Flag;
 using tensorflow::Tensor;
@@ -144,7 +146,7 @@ static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
 //-----------------------------------------------------------------------------
 Status ReadTensorFromImageFile(const string& file_name, const int input_height,
                                const int input_width, const float input_mean,
-                               const float input_std,
+                               const float input_std, bool use_NCHW,
                                std::vector<Tensor>* out_tensors) {
   auto root = tensorflow::Scope::NewRootScope();
   using namespace ::tensorflow::ops;  // NOLINT(build/namespaces)
@@ -195,19 +197,38 @@ Status ReadTensorFromImageFile(const string& file_name, const int input_height,
   auto resized = ResizeBilinear(
       root, dims_expander,
       Const(root.WithOpName("size"), {input_height, input_width}));
-  // Subtract the mean and divide by the scale.
-  Div(root.WithOpName(output_name), Sub(root, resized, {input_mean}),
-      {input_std});
+
+  if (use_NCHW) {
+    auto converted_input = Transpose(root, resized, {0, 3, 1, 2});
+    // Subtract the mean and divide by the scale.
+    Div(root.WithOpName(output_name), Sub(root, converted_input, {input_mean}),
+        {input_std});
+  }
+  else
+  {
+    // Subtract the mean and divide by the scale.
+    Div(root.WithOpName(output_name), Sub(root, resized, {input_mean}),
+        {input_std});
+  }
 
   // This runs the GraphDef network definition that we've just constructed, and
   // returns the results in the output tensor.
   tensorflow::GraphDef graph;
   TF_RETURN_IF_ERROR(root.ToGraphDef(&graph));
 
+  // Ideally we want to use the nGraph CPU backend for running the following
+  // network. But for now we're just disabling nGraph
+  // as for some of the devices, these Ops are not implemented
+  // tf::Status status =
+  //   tf::ngraph_bridge::BackendManager::SetBackendName(backend_name);
+
+  tensorflow::ngraph_bridge::config::ngraph_disable();
   std::unique_ptr<tensorflow::Session> session(
       tensorflow::NewSession(tensorflow::SessionOptions()));
   TF_RETURN_IF_ERROR(session->Create(graph));
   TF_RETURN_IF_ERROR(session->Run({inputs}, {output_name}, {}, out_tensors));
+  tensorflow::ngraph_bridge::config::ngraph_enable();
+
   return Status::OK();
 }
 
