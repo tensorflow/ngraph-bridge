@@ -336,7 +336,7 @@ def get_disabled_tests_info():
                 assert sub_test in os.listdir(
                     './models/' + test_suite
                 ), 'Expected ' + sub_test + ' to be in ' + test_suite
-                disabled_sub_test[test_suite] = sub_test
+                disabled_sub_test[test_suite] = disabled_sub_test.get(test_suite,[]) + [sub_test]
             else:
                 assert item in available_test_suites, 'Request to disable ' + item + ' which is not a directory in models'
                 disabled_test_suite.append(item)
