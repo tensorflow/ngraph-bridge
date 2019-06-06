@@ -70,6 +70,7 @@ Note that you can get the expected json file when you are adding a new model by 
 
 # Currently available tests
 On CPU:
+
 | Model | Normal | Grappler | training | inference |
 | --- | --- | --- | --- | --- |
 | MLP | &#9745; | &#9745; | &#9745; | &#9744; |

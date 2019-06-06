@@ -1,0 +1,8 @@
+diff --git a/README.md b/README.md
+index ae78b340..14f9bc1c 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # ngraph-models
++
++# Dummy change because the test framework expects a patch file. Generally that is true for other models, but ngraph-models already has ngraph_bridge patched in
