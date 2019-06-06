@@ -70,7 +70,7 @@ bridge using the TensorFlow source tree as follows:
 The installation prerequisites are the same as described in the TensorFlow 
 [prepare environment] for linux.
 
-1. TensorFlow uses a build system called "bazel". The version of the `bazel` is determined by the TensorFlow team. For the current version, use [bazel version 0.25.2]. 
+1. TensorFlow uses a build system called "bazel". The version of the `bazel` is determined by the TensorFlow team. For the current version, use [bazel version].
 
         wget https://github.com/bazelbuild/bazel/releases/download/0.25.2/bazel-0.25.2-installer-linux-x86_64.sh      
         bash bazel-0.25.2-installer-linux-x86_64.sh --user
@@ -187,7 +187,7 @@ See the full documentation here:  <http://ngraph.nervanasys.com/docs/latest>
 [DSO]:http://csweb.cs.wfu.edu/~torgerse/Kokua/More_SGI/007-2360-010/sgi_html/ch03.html
 [Github issues]: https://github.com/tensorflow/ngraph-bridge/issues
 [pull request]: https://github.com/tensorflow/ngraph-bridge/pulls
-[bazel version]: https://github.com/bazelbuild/bazel/releases/tag/0.24.1
+[bazel version]: https://github.com/bazelbuild/bazel/releases/tag/0.25.2
 [prepare environment]: https://www.tensorflow.org/install/install_sources#prepare_environment_for_linux
 [diagnostics]:diagnostics/README.md
 [examples]:examples/README.md
