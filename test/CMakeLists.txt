@@ -88,15 +88,27 @@ if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
 endif()
 
-target_link_libraries(
-    gtest_ngtf
-    ngraph_bridge
-    ngraph_lib
-    libgtest
-    pthread
-    tensorflow_framework_lib
-    tensorflow_cc_lib
-)
+if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    target_link_libraries(
+        gtest_ngtf
+        ngraph_bridge_static
+        ngraph_lib
+        libgtest
+        pthread
+        tensorflow_framework_lib
+        tensorflow_cc_lib
+    )
+else()
+    target_link_libraries(
+        gtest_ngtf
+        ngraph_bridge
+        ngraph_lib
+        libgtest
+        pthread
+        tensorflow_framework_lib
+        tensorflow_cc_lib
+    )
+endif()
 
 add_subdirectory(python)
 
