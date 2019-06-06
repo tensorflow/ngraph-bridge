@@ -30,8 +30,8 @@ namespace ngraph_bridge {
 
 class BackendConfig {
  public:
-  std::string join(std::map<std::string, std::string>);
-  std::map<std::string, std::string> split(std::string);
+  string join(unordered_map<string, string> parameters);
+  unordered_map<string, string> split(string backend_config);
 
   virtual vector<string> get_optional_attributes();
   ~BackendConfig();
@@ -42,7 +42,7 @@ class BackendConfig {
 
 class BackendNNPIConfig : public BackendConfig {
  public:
-  std::string join(std::map<std::string, std::string>);
+  string join(unordered_map<string, string>);
   vector<string> get_optional_attributes();
 
   ~BackendNNPIConfig();

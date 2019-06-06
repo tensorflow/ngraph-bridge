@@ -22,11 +22,18 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-std::string BackendConfig::join(std::map<std::string, std::string>) {
+string BackendConfig::join(unordered_map<string, string> parameters) {
   NGRAPH_VLOG(0) << "JOIN";
 }
-std::map<std::string, std::string> BackendConfig::split(std::string) {
+
+unordered_map<string, string> BackendConfig::split(string backend_config) {
   NGRAPH_VLOG(0) << "SPLIT";
+
+  string backend_name = backend_config.substr(0, backend_config.find(':'));
+  NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
+
+  string device_config = backend_config.substr(0, backend_config.find(':'));
+  NGRAPH_VLOG(3) << "Got Device Config  " << device_config;
 }
 
 BackendConfig::~BackendConfig() {
