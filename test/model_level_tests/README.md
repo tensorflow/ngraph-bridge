@@ -73,7 +73,7 @@ On CPU:
 
 | Model | Normal | Grappler | training | inference | repo/test-suite
 | --- | --- | --- | --- | --- | ---
-| MLP | :heavy_check_mark: | &#9745; | &#9745; | :heavy_cross_mark: | MLP
+| MLP | :heavy_check_mark: | &#9745; | &#9745; | :heavy_multiplication_x: | MLP
 | resnet | &#9745; | &#9746; | &#9745; | &#9746; | benchmarks
 | densenet | &#9745; | &#9746; | &#9745; |  &#9746; | benchmarks
 | a3c | &#9745; | &#9746; | &#9746; | &#9745; | ngraph-models
