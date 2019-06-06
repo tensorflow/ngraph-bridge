@@ -122,7 +122,7 @@ with nGraph backends. Please note that you can also install the TensorFlow and n
 
         TensorFlow version:  1.14.0-rc0
         C Compiler version used in building TensorFlow:  7.3.0
-        nGraph bridge version: b'0.14.0'
+        nGraph bridge version: b'0.15.0-rc0'
         nGraph version used for this build: b'0.20.0-rc.0+0995b71'
         TensorFlow version used for this build: v1.14.0-rc0-0-gf5ce1c00d4
         CXX11_ABI flag used for this build: 1
