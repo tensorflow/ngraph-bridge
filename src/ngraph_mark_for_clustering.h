@@ -24,7 +24,8 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes, std::string current_backend);
+Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes,
+                         std::string current_backend);
 bool NodeIsMarkedForClustering(const Node* node);
 void GetStaticInputs(const Node* node, std::vector<int32>* inputs);
 bool InputIsStatic(const Node* node, int index);
