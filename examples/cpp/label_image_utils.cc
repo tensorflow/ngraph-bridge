@@ -203,9 +203,7 @@ Status ReadTensorFromImageFile(const string& file_name, const int input_height,
     // Subtract the mean and divide by the scale.
     Div(root.WithOpName(output_name), Sub(root, converted_input, {input_mean}),
         {input_std});
-  }
-  else
-  {
+  } else {
     // Subtract the mean and divide by the scale.
     Div(root.WithOpName(output_name), Sub(root, resized, {input_mean}),
         {input_std});

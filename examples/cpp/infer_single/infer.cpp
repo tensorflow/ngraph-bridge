@@ -44,8 +44,7 @@ extern tf::Status ReadTensorFromImageFile(const string& file_name,
                                           const int input_height,
                                           const int input_width,
                                           const float input_mean,
-                                          const float input_std,
-                                          bool use_NCHW,
+                                          const float input_std, bool use_NCHW,
                                           std::vector<tf::Tensor>* out_tensors);
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
@@ -152,8 +151,10 @@ int main(int argc, char** argv) {
   ngraph::Event session_create_event("Session Create", "", "");
 
   // Run the MatMul example
-  //auto session = CreateSession("inception_v3_2016_08_28_frozen.pb");
-  auto session = CreateSession("resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_fullyquantized_02122019.pb");
+  // auto session = CreateSession("inception_v3_2016_08_28_frozen.pb");
+  auto session = CreateSession(
+      "resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_"
+      "fullyquantized_02122019.pb");
   session_create_event.Stop();
   ngraph::Event::write_trace(session_create_event);
 
@@ -176,11 +177,13 @@ int main(int argc, char** argv) {
         std::vector<tf::Tensor> resized_tensors;
         // tf::Status read_tensor_status = ReadTensorFromImageFile(
         //     "grace_hopper.jpg", 299 /*input_height*/, 299 /*input_width*/,
-        //     0.0 /*input_mean*/, 255 /*input_std*/, true /*bool use_NCHW*/, &resized_tensors);
+        //     0.0 /*input_mean*/, 255 /*input_std*/, true /*bool use_NCHW*/,
+        //     &resized_tensors);
 
         tf::Status read_tensor_status = ReadTensorFromImageFile(
             "image_00000.png", 224 /*input_height*/, 224 /*input_width*/,
-            128.0/*input_mean*/, 1 /*input_std*/, true /*bool use_NCHW*/, &resized_tensors);
+            128.0 /*input_mean*/, 1 /*input_std*/, true /*bool use_NCHW*/,
+            &resized_tensors);
 
         if (!read_tensor_status.ok()) {
           LOG(ERROR) << read_tensor_status;
@@ -197,8 +200,8 @@ int main(int argc, char** argv) {
         const tf::Tensor& resized_tensor = resized_tensors[0];
         string input_layer = "input";
         std::vector<tf::Tensor> outputs;
-        
-        //string output_layer = "InceptionV3/Predictions/Reshape_1";
+
+        // string output_layer = "InceptionV3/Predictions/Reshape_1";
         string output_layer = "resnet_v1_50/predictions/Softmax";
 
         tf::Status run_status = session->Run({{input_layer, resized_tensor}},
