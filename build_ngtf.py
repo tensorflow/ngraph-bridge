@@ -82,10 +82,10 @@ def main():
         help=
         "Ops like variable and optimizers are supported by nGraph in this version of the bridge\n",
         action="store_true")
-
-    parser.add_argument(
-        '--use_grappler_optimizer',
-        help="Use Grappler optimizer instead of the optimization passes\n",
+        
+    parser.add_argument(        
+        '--no_grappler_optimizer',
+        help="Do not use Grappler optimizer (instead use legacy optimization passes)\n",
         action="store_true")
 
     parser.add_argument(
@@ -175,7 +175,9 @@ def main():
 
     if arguments.use_prebuilt_tensorflow:
         print("Using existing TensorFlow")
-        command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
+        #command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
+        # Until an official release of TensorFlow is made, we will use a tagged nightly build
+        command_executor(["pip", "install", "-U", "--no-cache-dir", "tf-nightly==1.14.1.dev20190515"])
 
         import tensorflow as tf
         print('Version information:')
@@ -303,7 +305,7 @@ def main():
     ])
     ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=" +
-        flag_string_map[arguments.use_grappler_optimizer]
+        flag_string_map[not arguments.no_grappler_optimizer]
     ])
 
     # Now build the bridge
@@ -329,12 +331,12 @@ def main():
     # Run a quick test
     install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
 
-    if arguments.use_grappler_optimizer:
+    if arguments.no_grappler_optimizer:
         import tensorflow as tf
         import ngraph_bridge
-        if not ngraph_bridge.is_grappler_enabled():
+        if ngraph_bridge.is_grappler_enabled():
             raise Exception(
-                "Build failed: 'use_grappler_optimizer' specified but not used"
+                "Build failed: 'no_grappler_optimizer' specified but used"
             )
 
     print('\033[1;32mBuild successful\033[0m')

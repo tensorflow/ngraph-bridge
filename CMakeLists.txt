@@ -119,8 +119,6 @@ endif()
 # Find TensorFlow
 find_package(TensorFlow REQUIRED)
 
-
-
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(NGRAPH_TF_CXX11_ABI "${TensorFlow_CXX_ABI}")
     message( STATUS "nGraph-TensorFlow using CXX11 ABI:  ${NGRAPH_TF_CXX11_ABI}" )

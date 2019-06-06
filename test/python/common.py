@@ -20,6 +20,7 @@ import random
 
 import tensorflow as tf
 from tensorflow.core.protobuf import rewriter_config_pb2
+from google.protobuf import text_format
 
 from google.protobuf import text_format
 
