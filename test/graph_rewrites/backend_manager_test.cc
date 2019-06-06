@@ -198,6 +198,16 @@ TEST(BackendManager, BackendConfigGetOptionalAttributes) {
   ASSERT_EQ(gpu_options, default_backend_optional_attrs);
 }
 
+TEST(BackendManager, BackendConfigGetBackendAttributes) {
+  auto cpu_options = BackendManager::GetBackendAttributes("CPU:78");
+  auto nnpi_options = BackendManager::GetBackendAttributes("NNPI:3,5,6");
+  auto gpu_options = BackendManager::GetBackendAttributes("GPU:5");
+  auto plaidml_options =
+      BackendManager::GetBackendAttributes("PLAIDML:device:567:892_34");
+
+  ASSERT_NE(cpu_options.find("ngraph_backend"), cpu_options.end());
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
