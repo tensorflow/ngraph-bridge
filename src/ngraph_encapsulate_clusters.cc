@@ -341,7 +341,7 @@ Status EncapsulateClusters(Graph* graph, int graph_id,
       NGRAPH_VLOG(0) << "Device config is not empty";
       for (auto const& i : device_config) {
         // Adding the optional attributes
-        nb.Attr("_"+i.first, i.second);
+        nb.Attr(i.first, i.second);
       }
     }
     Status status = nb.Finalize(graph, &n);
