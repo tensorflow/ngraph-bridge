@@ -22,14 +22,12 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-  std::string BackendConfig::join(std::map<std::string, std::string>) {
-      NGRAPH_VLOG(0) << "JOIN";
-
-  }
-  std::map<std::string, std::string> BackendConfig::split(std::string) {
-      NGRAPH_VLOG(0) << "SPLIT";
-  }
-
+std::string BackendConfig::join(std::map<std::string, std::string>) {
+  NGRAPH_VLOG(0) << "JOIN";
+}
+std::map<std::string, std::string> BackendConfig::split(std::string) {
+  NGRAPH_VLOG(0) << "SPLIT";
+}
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

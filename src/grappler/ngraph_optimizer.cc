@@ -45,7 +45,7 @@ Status NgraphOptimizer::Init(
   } else {
     const auto params = config->parameter_map();
     if (params.count("backend_name")) {
-      config_backend_name =  params.at("backend_name").s();
+      config_backend_name = params.at("backend_name").s();
       NGRAPH_VLOG(3) << config_backend_name;
     }
     if (params.count("device_id")) {
@@ -72,7 +72,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   NGRAPH_VLOG(0) << "Getting the config information";
   string backend_name = BackendManager::GetCurrentlySetBackendName();
-  if (!config_backend_name.empty() ) {
+  if (!config_backend_name.empty()) {
     backend_name = config_backend_name;
   } else {
     const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");

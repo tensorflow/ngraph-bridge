@@ -136,8 +136,7 @@ static ConfirmationFunction SimpleConfirmationFunction() {
 //
 // Main entry point for the marking pass.
 //
-Status MarkForClustering(Graph* graph,
-                         const std::set<string> skip_these_nodes,
+Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
                          std::string current_backend) {
   //
   // A map of op types (e.g. "Add") to type constraint maps. For (fake)
@@ -627,7 +626,7 @@ Status MarkForClustering(Graph* graph,
     }
   }
 
-  NGRAPH_VLOG(0) << "Mark for clustering: backend_name: " << current_backend; 
+  NGRAPH_VLOG(0) << "Mark for clustering: backend_name: " << current_backend;
 
   // Right now it cannot be inside the if(!initialized) block, because it is
   // backend dependent, which might change with different sess.run()s

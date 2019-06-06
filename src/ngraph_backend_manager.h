@@ -72,7 +72,16 @@ class BackendManager {
   // UnlockBackend
   static void UnlockBackend(const string& backend_name);
 
-  ~BackendManager();
+  // Backend Config Functions
+  static vector<string> GetOptionalAttributes(const string& backend_name);
+
+  static unordered_map<string, string> GetBackendAttributes(
+      string backend_config);
+
+  static string GetBackendCreationType(
+      string backend_name, vector<string> optional_attribute_values);
+
+  static void ~BackendManager();
 
  private:
   static string ng_backend_name_;  // currently set backend name
@@ -82,6 +91,9 @@ class BackendManager {
   static mutex ng_backend_map_mutex_;
   // set of backends supported by nGraph
   static unordered_set<string> ng_supported_backends_;
+
+  // map of cached backend config objects
+  static map<string, BackendConfig*> ng_backendconfig_map_;
 
   // Map of backends and their reference counts
   static std::map<std::string, int> ref_count_each_backend_;
