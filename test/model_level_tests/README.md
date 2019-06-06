@@ -81,6 +81,12 @@ On CPU:
 | a3c | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark: | ngraph-models
 | dcgan | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark: | ngraph-models
 
+On Interpreter:
+
+| Model | Normal | Grappler | training | inference | repo/test-suite
+| --- | --- | --- | --- | --- | ---
+| MNIST MLP | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | keras
+| MNIST CNN | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | keras
 
 
 ## TODO
