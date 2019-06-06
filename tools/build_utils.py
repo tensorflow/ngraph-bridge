@@ -229,7 +229,6 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
     if (platform.system() == 'Darwin'):
         tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
-
     try:
         doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.1")
         os.unlink(doomed_file)
