@@ -29,6 +29,7 @@
 #include "ngraph/runtime/backend_manager.hpp"
 #include "ngraph_log.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "ngraph_backend_config.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -81,7 +82,7 @@ class BackendManager {
   static string GetBackendCreationType(
       string backend_name, vector<string> optional_attribute_values);
 
-  static void ~BackendManager();
+  ~BackendManager();
 
  private:
   static string ng_backend_name_;  // currently set backend name

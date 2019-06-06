@@ -73,7 +73,7 @@ static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 
 Status EncapsulateClusters(Graph* graph, int graph_id,
                            FunctionDefLibrary* fdeflib,
-                           std::map<std::string, std::string> device_config) {
+                           std::unordered_map<std::string, std::string> device_config) {
   // A map from cluster indices to the expected device name for nodes
   // in that cluster.
   std::map<int, std::string> device_name_map;

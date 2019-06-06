@@ -30,6 +30,7 @@
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
 #endif
+#include "ngraph_backend_manager.h"
 
 #include <iostream>
 
@@ -85,6 +86,9 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       }
       backend_name = backend_env;
     }
+    config_map =  BackendManager::GetBackendAttributes(backend_name); //SplitBackendConfig
+    backend_name = config_map["backend_name"];
+    config_map.erase("backend_name");
   }
   NGRAPH_VLOG(0) << "backend_name " << backend_name;
 
