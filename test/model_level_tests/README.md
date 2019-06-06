@@ -74,8 +74,9 @@ On CPU:
 | Model | Normal | Grappler | training | inference | repo/test-suite
 | --- | --- | --- | --- | --- | ---
 | MLP | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | MLP
-| resnet | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | benchmarks
+| resnet | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | benchmarks
 | densenet | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: |  :heavy_multiplication_x: | benchmarks
+| mobilenet | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: |  :heavy_multiplication_x: | benchmarks
 | a3c | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark: | ngraph-models
 | dcgan | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark: | ngraph-models
 
