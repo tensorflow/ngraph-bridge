@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
   session_create_event.Stop();
   ngraph::Event::write_trace(session_create_event);
 
+#if !defined(TEST_SINGLE_INSTANCE)
   // Create threads and fire up the images
   const int NUM_THREADS = 2;
   std::thread threads[NUM_THREADS];
@@ -219,37 +220,55 @@ int main(int argc, char** argv) {
     next_thread.join();
   }
 
-#if TEST_SINGLE_INSTANCE
-  // Get the image from disk as a float array of numbers, resized and normalized
-  // to the specifications the main graph expects.
-  std::vector<tf::Tensor> resized_tensors;
-  tf::Status read_tensor_status = ReadTensorFromImageFile(
-      "grace_hopper.jpg", 299 /*input_height*/, 299 /*input_width*/,
-      0.0 /*input_mean*/, 255 /*input_std*/, &resized_tensors);
-  if (!read_tensor_status.ok()) {
-    LOG(ERROR) << read_tensor_status;
-    return -1;
-  }
+#else   // !defined(TEST_SINGLE_INSTANCE)
+  for (int iter_count = 0; iter_count < 10; iter_count++) {
+    std::ostringstream oss;
+    oss << "Read"
+        << " [" << iter_count << "]";
+    ngraph::Event read_event(oss.str(), "Image reading", "");
 
-  const tf::Tensor& resized_tensor = resized_tensors[0];
-  string input_layer = "input";
-  std::vector<tf::Tensor> outputs;
-  string output_layer = "InceptionV3/Predictions/Reshape_1";
-  tf::Status run_status = session->Run({{input_layer, resized_tensor}},
-                                       {output_layer}, {}, &outputs);
-  if (!run_status.ok()) {
-    LOG(ERROR) << "Running model failed: " << run_status;
-    return -1;
-  }
+    // Get the image from disk as a float array of numbers, resized and
+    // normalized to the specifications the main graph expects.
+    std::vector<tf::Tensor> resized_tensors;
+    tf::Status read_tensor_status = ReadTensorFromImageFile(
+        "grace_hopper.jpg", 299 /*input_height*/, 299 /*input_width*/,
+        0.0 /*input_mean*/, 255 /*input_std*/, &resized_tensors);
+    if (!read_tensor_status.ok()) {
+      LOG(ERROR) << read_tensor_status;
+      continue;
+    }
+    read_event.Stop();
 
-  // Do something interesting with the results we've generated.
-  string labels = "imagenet_slim_labels.txt";
-  tf::Status print_status = PrintTopLabels(outputs, labels);
-  if (!print_status.ok()) {
-    LOG(ERROR) << "Running print failed: " << print_status;
-    return -1;
+    oss.clear();
+    oss.seekp(0);
+    oss << "Infer"
+        << " [" << iter_count << "]";
+    ngraph::Event infer_event(oss.str(), "Inference", "");
+
+    const tf::Tensor& resized_tensor = resized_tensors[0];
+    string input_layer = "input";
+    std::vector<tf::Tensor> outputs;
+    string output_layer = "InceptionV3/Predictions/Reshape_1";
+    tf::Status run_status = session->Run({{input_layer, resized_tensor}},
+                                         {output_layer}, {}, &outputs);
+    if (!run_status.ok()) {
+      LOG(ERROR) << "Running model failed: " << run_status;
+      continue;
+    }
+
+    // Do something interesting with the results we've generated.
+    string labels = "imagenet_slim_labels.txt";
+    tf::Status print_status = PrintTopLabels(outputs, labels);
+    if (!print_status.ok()) {
+      LOG(ERROR) << "Running print failed: " << print_status;
+      continue;
+    }
+    infer_event.Stop();
+    // Write the events
+    ngraph::Event::write_trace(read_event);
+    ngraph::Event::write_trace(infer_event);
   }
-#endif
+#endif  // !defined(TEST_SINGLE_INSTANCE)
 
   std::cout << "Done\n";
   return 0;
