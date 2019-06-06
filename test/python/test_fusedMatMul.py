@@ -45,10 +45,10 @@ class TestFusedMatMul(NgraphTest):
     def test_fusedmatmul_bias_pbtxt(self, filename, dim1, dim2, dim3):
         graph = self.import_pbtxt(filename)
         with graph.as_default() as g:
-            x = self.get_tensor(g, "Placeholder_3:0")
-            y = self.get_tensor(g, "Placeholder_4:0")
-            z = self.get_tensor(g, "Placeholder_5:0")
-            a = self.get_tensor(g, "Relu_1:0")
+            x = self.get_tensor(g, "Placeholder_3:0", True)
+            y = self.get_tensor(g, "Placeholder_4:0", True)
+            z = self.get_tensor(g, "Placeholder_5:0", True)
+            a = self.get_tensor(g, "Relu_1:0", True)
 
             inp1_values = 10 * np.random.rand(dim1, dim2) - 5
             inp2_values = 10 * np.random.rand(dim2, dim3) - 5
