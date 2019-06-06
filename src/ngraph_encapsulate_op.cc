@@ -173,17 +173,17 @@ class NGraphEncapsulateOp : public OpKernel {
     OP_REQUIRES_OK(ctx,
                    ctx->GetAttr<string>("ngraph_backend", &backend_name));
     // Get the optional attributes
-    std::vector<string> optional_attributes = BackendManager::GetOptionalAttributes(backend_name);
-    std::vector<string> optional_attribute_values;
+    std::vector<std::string> optional_attributes = BackendManager::GetOptionalAttributes(backend_name);
+    std::unordered_map<std::string, std::string> optional_attribute_map;
     for (int i = 0; i < optional_attributes.size(); i++) {
       std::string val;
       // If an attribute does not exist, TF will return a non-ok status
       OP_REQUIRES_OK(ctx,
                     ctx->GetAttr<string>(optional_attributes[i], &val));
-      optional_attribute_values.push_back(val);
+      optional_attribute_map.insert({optional_attributes[i], val});
     }
     // Concatenate the backend_name:backend_config
-    m_op_backend_name = BackendManager::GetBackendCreationType(backend_name, optional_attribute_values);
+    m_op_backend_name = BackendManager::GetBackendCreationType(backend_name, optional_attribute_map);
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
     BackendManager::CreateBackend(m_op_backend_name);
     event.Stop();
