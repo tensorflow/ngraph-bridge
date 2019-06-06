@@ -1,0 +1,10 @@
+{
+    "default": {
+        "logparse": {
+            "TEST: run-a3c.sh": "True",
+            "TEST: run-dcgan.sh": "True",
+            "TEST: run-densenet.sh": "False"
+        },
+        "time": 45
+    }
+}

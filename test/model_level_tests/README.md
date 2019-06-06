@@ -71,11 +71,13 @@ Note that you can get the expected json file when you are adding a new model by 
 # Currently available tests
 On CPU:
 
-| Model | Normal | Grappler | training | inference |
-| --- | --- | --- | --- | --- |
-| MLP | &#9745; | &#9745; | &#9745; | &#9744; |
-| resnet | &#9745; | &#9744; | &#9745; | &#9744; |
-| densenet | &#9745; | &#9744; | &#9745; |  &#9744; |
+| Model | Normal | Grappler | training | inference | repo/test-suite
+| --- | --- | --- | --- | --- | ---
+| MLP | &#9745; | &#9745; | &#9745; | &#9744; | MLP
+| resnet | &#9745; | &#9744; | &#9745; | &#9744; | benchmarks
+| densenet | &#9745; | &#9744; | &#9745; |  &#9744; | benchmarks
+| a3c | &#9745; | &#9744; | &#9744; | &#9745; | ngraph-models
+| dcgan | &#9745; | &#9744; | &#9744; | &#9745; | ngraph-models
 
 
 
