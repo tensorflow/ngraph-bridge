@@ -45,7 +45,7 @@ class BackendNNPConfig : public BackendConfig {
   std::string join(std::map<std::string, std::string>);
   vector<string> get_optional_attributes();
 
-  ~BackendConfig();
+  ~BackendNNPConfig();
 
  private:
   vector<string> optional_attributes;
