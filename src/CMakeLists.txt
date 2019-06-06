@@ -88,7 +88,11 @@ endif()
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
-add_library(${LIB_NAME} SHARED ${SRC})
+if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    add_library(${LIB_NAME} STATIC ${SRC})
+else()
+    add_library(${LIB_NAME} SHARED ${SRC})
+endif()
 
 target_link_libraries( ${LIB_NAME} ngraph_logger) 
 target_link_libraries( ${LIB_NAME} tensorflow_framework_lib )
