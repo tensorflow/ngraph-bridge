@@ -31,6 +31,8 @@
 #include "tensorflow/core/lib/core/errors.h"
 #include "ngraph_backend_config.h"
 
+#include "ngraph_backend_config.h"
+
 using namespace std;
 namespace ng = ngraph;
 
