@@ -12,6 +12,7 @@
 # limitations under the License.
 
 set(LIB_NAME ngraph_bridge)
+set(LIB_NAME_STATIC ngraph_bridge_static)
 
 include_directories(${TensorFlow_INCLUDE_DIR})
 include_directories(${TensorFlow_INCLUDE_DIR}/external/nsync/public)
@@ -89,7 +90,8 @@ endif()
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
 if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-    add_library(${LIB_NAME} STATIC ${SRC})
+    add_library(${LIB_NAME} SHARED ${SRC})
+    add_library(${LIB_NAME_STATIC} STATIC ${SRC})
 else()
     add_library(${LIB_NAME} SHARED ${SRC})
 endif()
@@ -101,14 +103,25 @@ target_link_libraries( ${LIB_NAME} absl_algorithm )
 target_link_libraries( ${LIB_NAME} absl_container )
 target_link_libraries( ${LIB_NAME} absl_strings )
 
+target_link_libraries( ${LIB_NAME_STATIC} ngraph_logger) 
+target_link_libraries( ${LIB_NAME_STATIC} tensorflow_framework_lib )
+target_link_libraries( ${LIB_NAME_STATIC} ngraph_lib )
+target_link_libraries( ${LIB_NAME_STATIC} absl_algorithm )
+target_link_libraries( ${LIB_NAME_STATIC} absl_container )
+target_link_libraries( ${LIB_NAME_STATIC} absl_strings )
+
 target_compile_definitions( 
     ${LIB_NAME} PRIVATE
+    _GLIBCXX_USE_CXX11_ABI=${TensorFlow_CXX_ABI}
+    ${LIB_NAME_STATIC} PRIVATE
     _GLIBCXX_USE_CXX11_ABI=${TensorFlow_CXX_ABI}
 )
 
 target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_INSTALL_DIR}/include")
 target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
 
+target_include_directories(${LIB_NAME_STATIC} PUBLIC "${NGRAPH_INSTALL_DIR}/include")
+target_include_directories(${LIB_NAME_STATIC} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
 
 #------------------------------------------------------------------------------
 #installation 
@@ -131,6 +144,9 @@ message(STATUS "NGTF_INSTALL_LIB_DIR: ${NGTF_INSTALL_LIB_DIR}")
 install(TARGETS ${LIB_NAME} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
 install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
+# First install the libngraph_bridge.a and headers
+install(TARGETS ${LIB_NAME_STATIC} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
+install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 # Next install all the other prerequisites
 if(OS_VERSION STREQUAL "\"centos\"")
