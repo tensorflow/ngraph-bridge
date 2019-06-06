@@ -18,14 +18,15 @@
 import argparse
 import errno
 import os
-from subprocess import check_output, call
+from subprocess import check_output, call, Popen
 import sys
 import shutil
 import glob
 import platform
+import subprocess
 from distutils.sysconfig import get_python_lib
 
-from tools.build_utils import load_venv, command_executor
+from tools.build_utils import load_venv, command_executor, apply_patch
 
 
 def get_os_type():
@@ -46,7 +47,6 @@ def install_ngraph_bridge(artifacts_dir):
             print("Existing Wheel: " + whl)
         raise Exception("Error getting the ngraph-tf wheel file")
 
-    # First ensure that we have nGraph installed
     ng_whl = os.path.join(artifacts_dir, ngtf_wheel_files[0])
     command_executor(["pip", "install", "-U", ng_whl])
 
@@ -98,7 +98,6 @@ def run_ngtf_cpp_gtests(artifacts_dir, log_dir, filters):
         cmd = ['./gtest_ngtf']
 
     command_executor(cmd, verbose=True)
-
     os.chdir(root_pwd)
 
 
@@ -123,11 +122,18 @@ def run_ngtf_pytests(venv_dir, build_dir):
     # Next run the ngraph-tensorflow python tests
     command_executor(["pip", "install", "-U", "pytest"])
     command_executor(["pip", "install", "-U", "psutil"])
-    command_executor([
-        "python", "-m", "pytest", ('--junitxml=%s/xunit_pytest.xml' % build_dir)
-    ],
-                     verbose=True)
 
+    cmd = 'python -m pytest ' + ('--junitxml=%s/xunit_pytest.xml' % build_dir)
+    env = os.environ.copy()
+    new_paths = venv_dir + '/bin/python3:' + os.path.abspath(build_dir)
+    if 'PYTHONPATH' in env:
+        env["PYTHONPATH"] = new_paths + ":" + env["PYTHONPATH"]
+    else:
+        env["PYTHONPATH"] = new_paths
+    ps = Popen(cmd, shell=True, env=env)
+    so, se = ps.communicate()
+    errcode = ps.returncode
+    assert errcode == 0, "Error in running command: " + cmd
     os.chdir(root_pwd)
 
 
@@ -179,8 +185,7 @@ def run_tensorflow_pytests(venv_dir, build_dir, ngraph_tf_src_dir, tf_src_dir):
     print("CURRENT DIR: " + os.getcwd())
 
     print("Patching TensorFlow using: %s" % patch_file)
-    result = call(["patch", "-p1", "-N", "-i", patch_file])
-    print("Patch result: %d" % result)
+    apply_patch(patch_file)
     os.chdir(pwd)
 
     # Now run the TensorFlow python tests
@@ -204,15 +209,19 @@ def run_tensorflow_pytests(venv_dir, build_dir, ngraph_tf_src_dir, tf_src_dir):
     os.chdir(root_pwd)
 
 
-def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
-                                          xml_output):
+def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
+                                          tf_src_dir, xml_output):
     root_pwd = os.getcwd()
 
     ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
 
+    # Check to see if we need to apply the patch for Grappler
+    import ngraph_bridge
+    patch_file_name = "test/python/tensorflow/tf_unittest_ngraph" + (
+        "_with_grappler"
+        if ngraph_bridge.is_grappler_enabled() else "") + ".patch"
     patch_file = os.path.abspath(
-        os.path.join(ngraph_tf_src_dir,
-                     "test/python/tensorflow/tf_unittest_ngraph.patch"))
+        os.path.join(ngraph_tf_src_dir, patch_file_name))
 
     # Next patch the TensorFlow so that the tests run using ngraph_bridge
     pwd = os.getcwd()
@@ -224,14 +233,17 @@ def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
     print("CURRENT DIR: " + os.getcwd())
 
     print("Patching TensorFlow using: %s" % patch_file)
-    result = call(["patch", "-p1", "-N", "-i", patch_file])
-    print("Patch result: %d" % result)
+    apply_patch(patch_file)
     os.chdir(pwd)
 
     # Now run the TensorFlow python tests
     test_src_dir = os.path.join(ngraph_tf_src_dir, "test/python/tensorflow")
     test_script = os.path.join(test_src_dir, "tf_unittest_runner.py")
-    test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
+    if backend is not None and 'GPU' in backend:
+        test_manifest_file = os.path.join(test_src_dir,
+                                          "python_tests_list_gpu.txt")
+    else:
+        test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
     test_xml_report = './junit_tensorflow_tests.xml'
 
     import psutil
@@ -241,16 +253,12 @@ def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
     os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
 
     cmd = [
-        "python",
-        test_script,
-        "--tensorflow_path",
-        tf_src_dir,
-        "--run_tests_from_file",
-        test_manifest_file,
+        "python", test_script, "--tensorflow_path", tf_src_dir,
+        "--run_tests_from_file", test_manifest_file
     ]
     if xml_output:
         cmd.extend(["--xml_report", test_xml_report])
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
 
     os.chdir(root_pwd)
 
@@ -295,7 +303,7 @@ def run_resnet50(build_dir):
         '--num_inter_threads', '1', '--train_dir=' + model_save_dir,
         '--num_batches', '10', '--model=resnet50', '--batch_size=128'
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
 
     os.environ['JUNIT_WRAP_FILE'] = "%s/junit_inference_test.xml" % build_dir
     os.environ['JUNIT_WRAP_SUITE'] = 'models'
@@ -307,22 +315,33 @@ def run_resnet50(build_dir):
         '--num_inter_threads', '1', '--train_dir=' + model_save_dir,
         '--model=resnet50', '--batch_size=128', '--num_batches', '10', '--eval'
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
     os.chdir(root_pwd)
 
 
-def run_resnet50_from_artifacts(artifact_dir, batch_size, iterations):
+def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
+                                iterations):
 
     root_pwd = os.getcwd()
     artifact_dir = os.path.abspath(artifact_dir)
-
+    ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
     install_ngraph_bridge(artifact_dir)
+
+    patch_file = os.path.abspath(
+        os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
 
     # Now clone the repo and proceed
     call(['git', 'clone', 'https://github.com/tensorflow/benchmarks.git'])
-    os.chdir('benchmarks/scripts/tf_cnn_benchmarks/')
-
+    os.chdir('benchmarks')
     call(['git', 'checkout', '4c7b09ad87bbfc4b1f89650bcee40b3fc5e7dfed'])
+
+    # Check to see if we need to patch the repo for Grappler
+    import ngraph_bridge
+    if ngraph_bridge.is_grappler_enabled():
+        print("Patching repo using: %s" % patch_file)
+        apply_patch(patch_file)
+
+    os.chdir('scripts/tf_cnn_benchmarks/')
 
     # junit_script = os.path.abspath('%s/test/ci/junit-wrap.sh' % root_pwd)
 
@@ -365,7 +384,7 @@ def run_resnet50_from_artifacts(artifact_dir, batch_size, iterations):
         str(iterations), '--model=resnet50', '--batch_size=' + str(batch_size),
         '--eval_dir=' + eval_eventlog_dir
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
 
     # os.environ['JUNIT_WRAP_FILE'] = "%s/junit_inference_test.xml" % build_dir
     # os.environ['JUNIT_WRAP_SUITE'] = 'models'
@@ -383,7 +402,7 @@ def run_resnet50_from_artifacts(artifact_dir, batch_size, iterations):
         '--model=resnet50', '--batch_size=' + str(batch_size), '--num_batches',
         str(iterations), '--eval', '--eval_dir=' + eval_eventlog_dir
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
 
     os.chdir(root_pwd)
 

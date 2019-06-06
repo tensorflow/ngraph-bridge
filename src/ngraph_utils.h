@@ -26,6 +26,7 @@
 #include "tensorflow/core/platform/tensor_coding.h"
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
 
+#include "ngraph/event_tracing.hpp"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
 #include "ngraph_log.h"
@@ -42,7 +43,8 @@ namespace ngraph_bridge {
 //
 ---------------------------------------------------*/
 
-Status IsCopyLogEnabled(int graph_id, bool& is_copy_log_enabled);
+Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
+                                        bool& is_copy_log_enabled);
 
 void PrintTFTensor(Tensor& T1);
 std::string DebugNode(Node* node);
@@ -62,6 +64,8 @@ bool IsNGVariableType(string node_type);
 
 // Node-types that are executed on nGraph
 bool IsNGSupportedType(string node_type);
+
+bool IsProcessedByNgraphPass(Graph* g);
 
 // Taken from: tensorflow/core/grappler/optimizers/arithmetic_optimizer.cc
 // Extract values from a Const op to `values`. Returns true if succeeds.
@@ -182,8 +186,63 @@ void print_node_histogram(const std::unordered_map<string, int>&,
                           bool sorted = true);
 
 // Prints the tensor to the given output stream
-std::ostream& DumpNGTensor(std::ostream& s, const std::string& name,
-                           const std::shared_ptr<ngraph::runtime::Tensor>& t);
+// TODO: internally convert ng types to cpptypes
+// so that users do not have to specify the template arg T
+template <typename T>
+std::ostream& DumpNGTensor(std::ostream& s, const string& name,
+                           const std::shared_ptr<ngraph::runtime::Tensor>& t) {
+  // std::shared_ptr<ngraph::runtime::Tensor> t{get_tensor()};
+  const ngraph::Shape& shape = t->get_shape();
+  s << "Tensor<" << name << ": ";
+  auto type = t->get_element_type();
+  bool T_is_integral = std::is_integral<T>::value;
+  bool type_is_integral = type.is_integral();
+  if (type_is_integral != T_is_integral) {
+    std::stringstream err_msg;
+    err_msg << "Tensor type " << type << " is"
+            << (type_is_integral ? " " : " not ")
+            << "integral but passed template is"
+            << (T_is_integral ? " " : " not ") << "integral";
+    throw std::invalid_argument(err_msg.str());
+  }
+
+  for (size_t i = 0; i < shape.size(); ++i) {
+    s << shape.at(i);
+    if (i + 1 < shape.size()) {
+      s << ", ";
+    }
+  }
+  size_t pos = 0;
+  s << ">{";
+  size_t rank = shape.size();
+  if (rank == 0) {
+    s << GetScalarFromTensor<T>(t, pos++);
+  } else if (rank <= 2) {
+    s << "[";
+    for (size_t i = 0; i < shape.at(0); ++i) {
+      if (rank == 1) {
+        s << GetScalarFromTensor<T>(t, pos++);
+      } else if (rank == 2) {
+        s << "[";
+        for (size_t j = 0; j < shape.at(1); ++j) {
+          s << GetScalarFromTensor<T>(t, pos++);
+
+          if (j + 1 < shape.at(1)) {
+            s << ", ";
+          }
+        }
+        s << "]";
+      }
+      if (i + 1 < shape.at(0)) {
+        s << ", ";
+      }
+    }
+    s << "]";
+  }
+  // TODO: extend for > 2 rank
+  s << "}";
+  return s;
+}
 
 // Converts a TensorFlow DataType to an nGraph element::Type. Returns
 // errors::Unimplemented if the element type is not supported by nGraph
@@ -264,6 +323,7 @@ bool DumpTrackedGraphs();
 
 // Insert constrol dependency for AllReduce ops to ensure execution order
 void AllreduceOpControlOrder(const std::shared_ptr<ngraph::Function>&);
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

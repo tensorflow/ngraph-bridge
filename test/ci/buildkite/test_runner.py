@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2018 Intel Corporation
+#  Copyright 2018-2019 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -107,7 +107,8 @@ def main():
         run_bazel_build()
     elif (arguments.test_tf_python):
         run_tensorflow_pytests_from_artifacts(
-            './', arguments.artifacts_dir + '/tensorflow/python', False)
+            arguments.backend, './',
+            arguments.artifacts_dir + '/tensorflow/python', False)
     elif (arguments.test_resnet):
         batch_size = 128
         iterations = 10
@@ -115,7 +116,7 @@ def main():
             if 'GPU' in arguments.backend:
                 batch_size = 64
                 iterations = 100
-        run_resnet50_from_artifacts(arguments.artifacts_dir, batch_size,
+        run_resnet50_from_artifacts('./', arguments.artifacts_dir, batch_size,
                                     iterations)
     else:
         raise Exception("No tests specified")

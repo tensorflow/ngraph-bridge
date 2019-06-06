@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2018 Intel Corporation
+ * Copyright 2017-2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include "ngraph/distributed.hpp"
 #endif
 
+#include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/framework/attr_value_util.h"
 #include "tensorflow/core/framework/graph.pb.h"
@@ -33,6 +34,8 @@
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
 
+#include "version.h"
+
 using namespace std;
 namespace ng = ngraph;
 
@@ -40,8 +43,66 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
+                                        bool& is_copy_log_enabled) {
+  const char* copy_env_var = std::getenv("NGRAPH_TF_LOG_TENSOR_COPIES");
+  if (copy_env_var == nullptr) {
+    is_copy_log_enabled = false;
+    return Status::OK();
+  }
+  int test_graph_id;
+  try {
+    test_graph_id = stoi(string(copy_env_var));
+  } catch (const std::invalid_argument& ia) {
+    return errors::InvalidArgument(
+        "Invalid argument for NGRAPH_TF_LOG_TENSOR_COPIES");
+  }
+  // if -1 copies are logged for all graphs
+  is_copy_log_enabled = (test_graph_id == -1 || test_graph_id == graph_id);
+  return Status::OK();
+}
+void PrintTFTensor(Tensor& T1) {
+  NGRAPH_VLOG(4) << "all tensor values" << (T1).SummarizeValue(64) << endl;
+}
+std::string DebugNode(Node* node) {
+  std::string temp = node->name();
+  temp += "[" + node->type_string() + "]";
+  return temp;
+}
+
+std::string PrintBool(bool var) { return (var ? "Yes" : "No"); }
+
 bool IsNGVariableType(string node_type) {
-  return node_type == "NGraphVariable";
+  if (ngraph_tf_are_variables_enabled())
+    return (node_type == "NGraphVariable" || node_type == "NGraphAssign");
+  else
+    return node_type == "NGraphVariable";
+}
+
+bool IsNGSupportedType(string node_type) {
+  return (IsNGVariableType(node_type) || node_type == "NGraphEncapsulate");
+};
+
+// Read from this ng_tensor into tf_tensor
+void ReadNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
+                  Tensor* tf_tensor) {
+  ngraph::Event event_sync_ng_tf_tensors("Tensor Read D2H", "", "");
+  void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
+  ng_tensor->read(tf_src_ptr, 0, ng_tensor->get_element_count() *
+                                     ng_tensor->get_element_type().size());
+  event_sync_ng_tf_tensors.Stop();
+  ngraph::Event::write_trace(event_sync_ng_tf_tensors);
+}
+
+// Write into this ng_tensor from tf_tensor
+void WriteNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
+                   Tensor* tf_tensor) {
+  ngraph::Event event_sync_ng_tf_tensors("Tensor Write H2D", "", "");
+  void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
+  ng_tensor->write(tf_src_ptr, 0, ng_tensor->get_element_count() *
+                                      ng_tensor->get_element_type().size());
+  event_sync_ng_tf_tensors.Stop();
+  ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
 
 void SummarizeOp(OpKernelConstruction* ctx, std::ostream& out) {
@@ -52,49 +113,6 @@ void SummarizeOp(OpKernelConstruction* ctx, std::ostream& out) {
     out << input << "\n    ";
   }
   out << "\n";
-}
-
-std::ostream& DumpNGTensor(std::ostream& s, const string& name,
-                           const std::shared_ptr<ngraph::runtime::Tensor>& t) {
-  // std::shared_ptr<ngraph::runtime::Tensor> t{get_tensor()};
-  const ngraph::Shape& shape = t->get_shape();
-  s << "Tensor<" << name << ": ";
-
-  for (size_t i = 0; i < shape.size(); ++i) {
-    s << shape.at(i);
-    if (i + 1 < shape.size()) {
-      s << ", ";
-    }
-  }
-  size_t pos = 0;
-  s << ">{";
-  size_t rank = shape.size();
-  if (rank == 0) {
-    s << GetScalarFromTensor<float>(t, pos++);
-  } else if (rank <= 2) {
-    s << "[";
-    for (size_t i = 0; i < shape.at(0); ++i) {
-      if (rank == 1) {
-        s << GetScalarFromTensor<float>(t, pos++);
-      } else if (rank == 2) {
-        s << "[";
-        for (size_t j = 0; j < shape.at(1); ++j) {
-          s << GetScalarFromTensor<float>(t, pos++);
-
-          if (j + 1 < shape.at(1)) {
-            s << ", ";
-          }
-        }
-        s << "]";
-      }
-      if (i + 1 < shape.at(0)) {
-        s << ", ";
-      }
-    }
-    s << "]";
-  }
-  s << "}";
-  return s;
 }
 
 Status TFDataTypeToNGraphElementType(DataType tf_dt,
@@ -295,9 +313,8 @@ std::string GraphFilenamePrefix(std::string kind, int idx) {
   std::stringstream ss;
   ss << kind << "_" << std::setfill('0') << std::setw(4) << idx;
 #if defined NGRAPH_DISTRIBUTED
-  ngraph::Distributed dist;
-  int Rank_ID = dist.get_rank();
-  ss << "_" << std::setfill('0') << std::setw(4) << Rank_ID;
+  int rank_id = ng::get_distributed_interface()->get_rank();
+  ss << "_" << std::setfill('0') << std::setw(4) << rank_id;
 #endif
   return ss.str();
 }
@@ -307,9 +324,8 @@ std::string GraphFilenamePrefix(std::string kind, int idx, int sub_idx) {
   ss << GraphFilenamePrefix(kind, idx) << "_" << std::setfill('0')
      << std::setw(4) << sub_idx;
 #if defined NGRAPH_DISTRIBUTED
-  ngraph::Distributed dist;
-  int Rank_ID = dist.get_rank();
-  ss << "_" << std::setfill('0') << std::setw(4) << Rank_ID;
+  int rank_id = ng::get_distributed_interface()->get_rank();
+  ss << "_" << std::setfill('0') << std::setw(4) << rank_id;
 #endif
   return ss.str();
 }
@@ -378,7 +394,17 @@ void AllreduceOpControlOrder(
       }
     }
   }
-};
+}
+
+bool IsProcessedByNgraphPass(Graph* g) {
+  // TODO: place a dummy node as a marker
+  // Current method may fail when graph has no encapsulates after first pass
+  // Also variable/optimizer change introduces other types of ng nodes
+  for (Node* node : g->nodes()) {
+    if (node->type_string() == "NGraphEncapsulate") return true;
+  }
+  return false;
+}
 
 }  // namespace ngraph_bridge
 

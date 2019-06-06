@@ -14,7 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 #include "ngraph_mark_for_clustering.h"
-#include "ngraph_api.h"
+#include "ngraph_api.h"  // TODO: Importing this first causes a compile error
 #include "ngraph_backend_manager.h"
 #include "ngraph_utils.h"
 #include "ngraph_version_utils.h"
@@ -204,10 +204,17 @@ Status MarkForClustering(Graph* graph,
   // needed in case the graph is broken up in a later rewrite pass (for example,
   // constant data).
 
+  static std::set<string> disabled_ops_set = {};
+
+  std::set<string> disabled_ops_set_current = config::GetDisabledOps();
+
+  bool op_set_support_has_changed =
+      disabled_ops_set_current != disabled_ops_set;
+
   {
     mutex_lock l(init_mu);
 
-    if (!initialized) {
+    if (!initialized || op_set_support_has_changed) {
       //
       // Initialize confirmation function map.
       //
@@ -274,6 +281,7 @@ Status MarkForClustering(Graph* graph,
 #endif
       confirmation_function_map["Identity"] = SimpleConfirmationFunction();
       confirmation_function_map["L2Loss"] = SimpleConfirmationFunction();
+      confirmation_function_map["LogSoftmax"] = SimpleConfirmationFunction();
       confirmation_function_map["Less"] = SimpleConfirmationFunction();
       confirmation_function_map["LessEqual"] = SimpleConfirmationFunction();
       confirmation_function_map["Log"] = SimpleConfirmationFunction();
@@ -291,6 +299,7 @@ Status MarkForClustering(Graph* graph,
       confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
       confirmation_function_map["Mul"] = SimpleConfirmationFunction();
       confirmation_function_map["Neg"] = SimpleConfirmationFunction();
+      confirmation_function_map["NoOp"] = SimpleConfirmationFunction();
       confirmation_function_map["OneHot"] = SimpleConfirmationFunction();
       confirmation_function_map["Pad"] = SimpleConfirmationFunction();
       confirmation_function_map["Pow"] = SimpleConfirmationFunction();
@@ -340,6 +349,7 @@ Status MarkForClustering(Graph* graph,
       confirmation_function_map["ReluGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["Reshape"] = SimpleConfirmationFunction();
       confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
+      confirmation_function_map["RsqrtGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["Select"] = SimpleConfirmationFunction();
       confirmation_function_map["Shape"] = SimpleConfirmationFunction();
       confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
@@ -440,6 +450,7 @@ Status MarkForClustering(Graph* graph,
 #endif
       type_constraint_map["Identity"]["T"] = NGraphDTypes();
       type_constraint_map["L2Loss"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["LogSoftmax"]["T"] = NGraphRealDTypes();
       type_constraint_map["Less"]["T"] = NGraphDTypes();
       type_constraint_map["LessEqual"]["T"] = NGraphDTypes();
       type_constraint_map["Log"]["T"] = NGraphNumericDTypes();
@@ -522,6 +533,7 @@ Status MarkForClustering(Graph* graph,
       type_constraint_map["Reshape"]["T"] = NGraphDTypes();
       type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
       type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
+      type_constraint_map["RsqrtGrad"]["T"] = NGraphRealDTypes();
       type_constraint_map["Select"]["T"] = NGraphDTypes();
       type_constraint_map["Shape"]["T"] = NGraphDTypes();
       type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();
@@ -645,6 +657,23 @@ Status MarkForClustering(Graph* graph,
     *result = (current_backend == "NNPI");
     return Status::OK();
   };
+
+  if (op_set_support_has_changed) {
+    NGRAPH_VLOG(5) << "Changing op support";
+    disabled_ops_set = disabled_ops_set_current;
+    for (auto itr : disabled_ops_set) {
+      auto conf_itr = confirmation_function_map.find(itr);
+      if (conf_itr == confirmation_function_map.end()) {
+        // Note: This error means, we cannot disable NGraphEncapsulate and other
+        // ng ops, because they are expected to never appear in
+        // confirmation_function_map
+        return errors::Internal("Tried to disable ngraph unsupported op ", itr);
+      } else {
+        NGRAPH_VLOG(5) << "Disabling op: " << itr;
+        confirmation_function_map.erase(conf_itr);
+      }
+    }
+  }
 
   std::unordered_map<string, int> no_support_histogram;
   std::unordered_map<string, int> fail_confirmation_histogram;

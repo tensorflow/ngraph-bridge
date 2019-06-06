@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2018 Intel Corporation
+ * Copyright 2017-2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 // nGraph-TensorFlow bridge uses semantic versioning: see http://semver.org/
 
 #define NG_TF_MAJOR_VERSION 0
-#define NG_TF_MINOR_VERSION 12
+#define NG_TF_MINOR_VERSION 14
 #define NG_TF_PATCH_VERSION 0
 
 // The version suffix is used for pre-release version numbers

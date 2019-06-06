@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2018 Intel Corporation
+ * Copyright 2017-2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_capture_variables.h"
+#include "ngraph_cluster_manager.h"
 #include "ngraph_deassign_clusters.h"
 #include "ngraph_encapsulate_clusters.h"
 #include "ngraph_log.h"
@@ -122,8 +123,24 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
     // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
     // we will not do anything; all subsequent
     // passes become a no-op.
-    if (config::IsEnabled() == false ||
-        std::getenv("NGRAPH_TF_DISABLE") != nullptr) {
+    bool ngraph_not_enabled =
+        (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
+    bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    if (ngraph_not_enabled || already_processed) {
+      // In the case that we run a network with ngraph, cluster manager gets
+      // populated. Then we run a new network, it repopulates the cluster
+      // manager. This works under the assumption that whenever
+      // NGraphEncapsulate's Compute is run the rewrite passes (grappler or
+      // optimization passes) have also run (compute --> rewrite). Now that
+      // assumption is broken because now we support NGraphEncapsulate enabled
+      // graphs. Such graphs will not run the first rewrite pass, hence the
+      // cluster manager is not overwritten. Which would mean that cluster
+      // manager contains stale data from a previous run. Hence evicting cluster
+      // manager when rewrite passes are not run.
+      NGRAPH_VLOG(1) << "Not running through nGraph. nGraph not enabled: "
+                     << ngraph_not_enabled
+                     << " Already processed: " << already_processed;
+      NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
 
@@ -181,8 +198,14 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
     // we will not do anything; all subsequent
     // passes become a no-op.
-    if (config::IsEnabled() == false ||
-        std::getenv("NGRAPH_TF_DISABLE") != nullptr) {
+    bool ngraph_not_enabled =
+        (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
+    bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    if (ngraph_not_enabled || already_processed) {
+      NGRAPH_VLOG(1) << "Not running through nGraph. nGraph not enabled: "
+                     << ngraph_not_enabled
+                     << " Already processed: " << already_processed;
+      NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
 
@@ -208,7 +231,11 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(EncapsulateClusters(options.graph->get(), idx));
+    FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+    TF_RETURN_IF_ERROR(
+        EncapsulateClusters(options.graph->get(), idx, fdeflib_new));
+    // TODO: not using fdeflib_new in this path. Only grappler path uses it
+    free(fdeflib_new);
     if (DumpEncapsulatedGraphs()) {
       DumpGraphs(options, idx, "encapsulated",
                  "Graph with Clusters Encapsulated");

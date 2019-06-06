@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018 Intel Corporation
+#  Copyright 2018-2019 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import random
 import tensorflow as tf
 from tensorflow.core.protobuf import rewriter_config_pb2
 
+from google.protobuf import text_format
+
 import ngraph_bridge
 
 __all__ = ['LIBNGRAPH_BRIDGE', 'NgraphTest']
@@ -32,18 +34,22 @@ LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
 
 class NgraphTest(object):
 
+    def get_tensor(self, graph, tname, loading_from_protobuf):
+        return graph.get_tensor_by_name(("", "import/")[loading_from_protobuf] +
+                                        tname)
+
+    def import_pbtxt(self, pb_filename):
+        graph_def = tf.GraphDef()
+        with open(pb_filename, "r") as f:
+            text_format.Merge(f.read(), graph_def)
+
+        with tf.Graph().as_default() as graph:
+            tf.import_graph_def(graph_def)
+        return graph
+
     def with_ngraph(self, l, config=tf.ConfigProto()):
-        if ngraph_bridge.is_grappler_enabled():
-            rewrite_options = rewriter_config_pb2.RewriterConfig(
-                meta_optimizer_iterations=rewriter_config_pb2.RewriterConfig.
-                ONE,
-                min_graph_nodes=-1,
-                custom_optimizers=[
-                    rewriter_config_pb2.RewriterConfig.CustomGraphOptimizer(
-                        name="ngraph-optimizer")
-                ])
-            config = tf.ConfigProto(
-                graph_options=tf.GraphOptions(rewrite_options=rewrite_options))
+        # TODO: Stop grappler on failure (Add fail_on_optimizer_errors=True)
+        config = ngraph_bridge.update_config(config)
 
         ngraph_tf_disable_deassign_clusters = os.environ.pop(
             'NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS', None)

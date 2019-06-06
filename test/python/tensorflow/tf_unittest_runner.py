@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018 Intel Corporation
+#  Copyright 2018-2019 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -19,12 +19,16 @@ import argparse
 import os
 import re
 import fnmatch
+import time
+from datetime import timedelta
+import warnings
 
 try:
     import xmlrunner
 except:
     os.system('pip install unittest-xml-reporting')
     import xmlrunner
+os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
 """
 tf_unittest_runner is primarily used to run tensorflow python 
 unit tests using ngraph
@@ -43,8 +47,8 @@ def main():
         required=True)
     optional.add_argument(
         '--list_tests',
-        help="Prints the list of test cases in this package. Eg:math_ops_test \n"
-    )
+        help=
+        "Prints the list of test cases in this package. Eg:math_ops_test.* \n")
     optional.add_argument(
         '--run_test',
         help=
@@ -59,6 +63,10 @@ def main():
         help=
         "Generates results in xml file for jenkins to populate in the test result \n"
     )
+    optional.add_argument(
+        '--verbose',
+        action="store_true",
+        help="Prints standard out if specified \n")
     parser._action_groups.append(optional)
     arguments = parser.parse_args()
 
@@ -70,31 +78,47 @@ def main():
         return None, None
 
     if (arguments.run_test):
+        invalid_list = []
+        start = time.time()
         test_list = get_test_list(arguments.tensorflow_path, arguments.run_test)
-        test_result = run_test(test_list[0], xml_report)
-        status = print_and_check_results(test_result, test_list[1])
-        return status
+        for test in test_list[1]:
+            if test is not None:
+                invalid_list.append(test_list[1])
+                result_str = "\033[91m INVALID \033[0m " + test + \
+                '\033[91m' + '\033[0m'
+                print('TEST:', result_str)
+        test_results = run_test(test_list[0], xml_report)
+        elapsed = time.time() - start
+        print("Testing results\nTime elapsed: ", str(
+            timedelta(seconds=elapsed)))
+        return check_and_print_summary(test_results, test_list[1])
 
     if (arguments.run_tests_from_file):
         all_test_list = []
         invalid_list = []
+        start = time.time()
         list_of_tests = read_tests_from_file(arguments.run_tests_from_file)
         for test in list_of_tests:
             test_list = get_test_list(arguments.tensorflow_path, test)
             for test in test_list[1]:
                 if test is not None:
                     invalid_list.append(test_list[1])
+                    result_str = "\033[91m INVALID \033[0m " + test + \
+                    '\033[91m' + '\033[0m'
+                    print('TEST:', result_str)
             test_list = list(set(test_list[0]))
             for test_name in test_list:
-                all_test_list.append(test_name)
-        test_result = run_test(all_test_list, xml_report)
-        status = print_and_check_results(test_result, invalid_list)
-        return status
+                if test_name not in all_test_list:
+                    all_test_list.append(test_name)
+        test_results = run_test(all_test_list, xml_report)
+        elapsed = time.time() - start
+        print("Testing results\nTime elapsed: ", str(
+            timedelta(seconds=elapsed)))
+        return check_and_print_summary(test_results, invalid_list)
 
 
 def get_test_list(tf_path, test_regex):
     accepted_formats = [
-        "math_ops_test", "mat_ops_test.DivNoNanTest",
         "math_ops_test.DivNoNanTest.testBasic", "math_ops_test.DivNoNanTest.*",
         "math_ops_test.D*", "math_ops_test.*", "math_*_test", "math_*_*_test",
         "math*_test"
@@ -134,8 +158,6 @@ def regex_walk(dirname, regex_input):
     
     regex_input: Regular expression input string to filter and list/run tests.
     Few examples of accepted regex_input are:
-    math_ops_test
-    math_ops_test.DivNanTest
     math_ops_test.DivNoNanTest.testBasic
     math_ops_test.DivNoNanTest.*
     math_ops_test.D*
@@ -156,6 +178,7 @@ def regex_walk(dirname, regex_input):
                 name = os.path.splitext(name)[0]
                 module_list.append(name)
     if not module_list:
+        print("Test name does not exist")
         sys.exit(1)
     return module_list
 
@@ -173,8 +196,6 @@ def list_tests(module_list, regex_input):
 
     regex_input: Regular expression input strings to filter and list tests. 
     Few examples of accepted regex_input are:
-    math_ops_test
-    math_ops_test.DivNanTest
     math_ops_test.DivNoNanTest.testBasic
     math_ops_test.DivNoNanTest.*
     math_ops_test.D*
@@ -185,6 +206,8 @@ def list_tests(module_list, regex_input):
     """
     loader = unittest.TestLoader()
     alltests = []
+    listtests = []
+    invalidtests = []
     for test_module in module_list:
         module = __import__(test_module)
         if (module is None):
@@ -194,18 +217,18 @@ def list_tests(module_list, regex_input):
             for i in test_class:
                 alltests.append(i.id())
 
-    if (re.search("\.", regex_input) is None):
-        return alltests, []
-    else:
-        test_name = (re.split("\*", regex_input))[0]
-        listtests = []
-        invalidtests = []
-        for test in alltests:
+    for test in alltests:
+        if test == regex_input:
+            listtests.append(test)
+        elif (re.search("\*", regex_input)):
+            test_name = (re.split("\*", regex_input))[0]
             if test_name in test:
                 listtests.append(test)
-        if not listtests:
-            invalidtests.append(regex_input)
-        return listtests, invalidtests
+
+    if not listtests:
+        invalidtests.append(regex_input)
+
+    return listtests, invalidtests
 
 
 def read_tests_from_file(filename):
@@ -217,7 +240,7 @@ def read_tests_from_file(filename):
         ]
 
 
-def run_test(test_list, xml_report, verbosity=2):
+def run_test(test_list, xml_report, verbosity=0):
     """
     Runs a specific test suite or test case given with the fully qualified 
     test name and prints stdout.
@@ -233,86 +256,70 @@ def run_test(test_list, xml_report, verbosity=2):
     suite = unittest.TestSuite()
     succeeded = []
     failures = []
-    errors = []
     if xml_report is not None:
         for test in test_list:
             names = loader.loadTestsFromName(test)
             suite.addTest(names)
         with open(xml_report, 'wb') as output:
+            sys.stdout = open(os.devnull, "w")
+            sys.stderr = open(os.devnull, "w")
             test_result = xmlrunner.XMLTestRunner(
-                verbosity=verbosity, output=output).run(suite)
-        for test in test_list:
-            if test_result.wasSuccessful():
-                succeeded.append(test)
-            elif test_result.failures:
-                failures.append(test_result.failures)
-            elif test_result.errors:
-                errors.append(test_result.errors)
-        summary = {"PASSED": succeeded, "FAILED": failures, "ERRORS": errors}
+                output=output, verbosity=verbosity).run(suite)
+            sys.stderr = sys.__stderr__
+            sys.stdout = sys.__stdout__
+            failures.extend(test_result.failures)
+            failures.extend(test_result.errors)
+            succeeded.extend(test_result.successes)
+
+        summary = {"TOTAL": test_list, "PASSED": succeeded, "FAILED": failures}
         return summary
     else:
         for test in test_list:
+            start = time.time()
+            sys.stdout = open(os.devnull, "w")
+            sys.stderr = open(os.devnull, "w")
+
             test_result = unittest.TextTestRunner(verbosity=verbosity).run(
                 loader.loadTestsFromName(test))
+
+            sys.stderr = sys.__stderr__
+            sys.stdout = sys.__stdout__
+            elapsed = time.time() - start
+            elapsed = str(timedelta(seconds=elapsed))
+
             if test_result.wasSuccessful():
                 succeeded.append(test)
+                result_str = " \033[92m OK \033[0m " + test
             elif test_result.failures:
                 failures.append(test_result.failures)
+                result_str = " \033[91m FAIL \033[0m " + test + \
+                    '\n\033[91m' + ''.join(test_result.failures[0][1]) + '\033[0m'
             elif test_result.errors:
-                errors.append(test_result.errors)
-        summary = {"PASSED": succeeded, "FAILED": failures, "ERRORS": errors}
+                failures.append(test_result.errors)
+                result_str = " \033[91m FAIL \033[0m " + test + \
+                    '\n\033[91m' + ''.join(test_result.errors[0][1]) + '\033[0m'
+            print('TEST: ', elapsed, result_str)
+        summary = {"TOTAL": test_list, "PASSED": succeeded, "FAILED": failures}
         return summary
 
 
-def print_and_check_results(test_result, invalid_list):
-    """
-    Prints the results of the tests run and the stats.
-    Prints the list of invalid tests if any.
+def check_and_print_summary(test_results, invalid_list):
+    print("TOTAL: ", len(test_results['TOTAL']))
+    print("PASSED: ", len(test_results['PASSED']))
+    print("FAILED: ", len(test_results['FAILED']))
 
-    Args:
-    test_result: This is a list of test cases that ran along with their 
-    status Pass, Fail or Error. 
-    invalid_list: When tests are run from file, if there is an invalid test 
-    name this list is printed along with summary.
-    """
-    status = True
-    print('\033[1m' + '\n==SUMMARY==' + '\033[0m')
-    for key in ["PASSED", "ERRORS", "FAILED"]:
-        test_name = test_result[key]
-        for test in test_name:
-            if key is "PASSED":
-                print(test + '\033[92m' + ' ..PASS' + '\033[0m')
-            if key is "FAILED":
-                print(test[0][0].id() + '\033[91m' + ' ..FAIL' + '\033[0m')
-            if key is "ERRORS":
-                print(test[0][0].id() + '\033[33m' + ' ..ERROR' + '\033[0m')
+    if (len(invalid_list) > 0):
+        print("INVALID: ", len(invalid_list))
 
-    if (len(invalid_list) != 0):
-        print('\033[1m' + '\nInvalid Tests' + '\033[0m')
-        print('\n'.join(' '.join(map(str, test)) for test in invalid_list))
-
-    print('\033[1m' + '\n==STATS==' + '\033[0m')
-    for key in ["PASSED", "ERRORS", "FAILED"]:
-        test_class_name = {}
-        test_name = test_result[key]
-        for test in test_name:
-            if key is "PASSED":
-                module, classname, testcase = test.split('.')
-                module_classname = module + '.' + classname
-                test_class_name[module_classname] = test_class_name.get(
-                    module_classname, 0) + 1
-            if key is "FAILED" or key is "ERRORS":
-                status = False
-                module, classname, testcase = test[0][0].id().split('.')
-                module_classname = module + '.' + classname
-                test_class_name[module_classname] = test_class_name.get(
-                    module_classname, 0) + 1
-        for k in test_class_name:
-            print('Number of tests ' + key + ' ' + k, test_class_name[k])
-    return status
+    if len(test_results['FAILED']) == 0:
+        return True
+    else:
+        return False
 
 
 if __name__ == '__main__':
-    status = main()
-    if status == False:
-        raise Exception("Failed")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        status = main()
+        if status == False:
+            raise Exception("Tests failed")

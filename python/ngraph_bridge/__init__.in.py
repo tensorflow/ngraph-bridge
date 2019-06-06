@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018 Intel Corporation
+#  Copyright 2018-2019 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -33,6 +33,9 @@ from tensorflow.python.framework import errors_impl
 from tensorflow.core.framework import attr_value_pb2
 from tensorflow.python.framework import ops
 
+from tensorflow.core.protobuf import rewriter_config_pb2
+from tensorflow.python.framework import load_library
+
 import ctypes
 
 __all__ = [
@@ -40,7 +43,7 @@ __all__ = [
     'set_backend', 'is_supported_backend', 'get_currently_set_backend_name',
     'start_logging_placement', 'stop_logging_placement',
     'is_logging_placement', '__version__', 'cxx11_abi_flag'
-    'is_grappler_enabled', 'are_variables_enabled'
+    'is_grappler_enabled', 'update_config', 'are_variables_enabled', 'set_disabled_ops', 'get_disabled_ops'
 ]
 
 ext = 'dylib' if system() == 'Darwin' else 'so'
@@ -90,8 +93,9 @@ if (TF_INSTALLED_VER[0] == TF_NEEDED_VER[0]) and \
    (TF_INSTALLED_VER[1] == TF_NEEDED_VER[1]) and \
    ((TF_INSTALLED_VER[2].split('-'))[0] == (TF_NEEDED_VER[2].split('-'))[0]):
     libpath = os.path.dirname(__file__)
-    ngraph_bridge_lib = ctypes.cdll.LoadLibrary(
-        os.path.join(libpath, 'libngraph_bridge.' + ext))
+    full_lib_path = os.path.join(libpath, 'libngraph_bridge.' + ext)
+    _ = load_library.load_op_library(full_lib_path)
+    ngraph_bridge_lib = ctypes.cdll.LoadLibrary(full_lib_path)
 else:
     raise ValueError(
         "Error: Installed TensorFlow version {0}\nnGraph bridge built with: {1}"
@@ -118,6 +122,8 @@ ngraph_bridge_lib.ngraph_lib_version.restype = ctypes.c_char_p
 ngraph_bridge_lib.ngraph_tf_cxx11_abi_flag.restype = ctypes.c_int
 ngraph_bridge_lib.ngraph_tf_is_grappler_enabled.restype = ctypes.c_bool
 ngraph_bridge_lib.ngraph_tf_are_variables_enabled.restype = ctypes.c_bool
+ngraph_bridge_lib.ngraph_set_disabled_ops.argtypes = [ctypes.c_char_p]
+ngraph_bridge_lib.ngraph_get_disabled_ops.restype = ctypes.c_char_p
 
 try:
     importlib.import_module('plaidml.settings')
@@ -193,9 +199,27 @@ def cxx11_abi_flag():
 def is_grappler_enabled():
     return ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()
 
+def update_config(config):
+    #updating session config if grappler is enabled
+    if(ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()):
+        rewrite_options = rewriter_config_pb2.RewriterConfig(
+            meta_optimizer_iterations=rewriter_config_pb2.RewriterConfig.ONE,
+            min_graph_nodes=-1,
+            custom_optimizers=[
+                rewriter_config_pb2.RewriterConfig.CustomGraphOptimizer(
+                    name="ngraph-optimizer")
+            ])
+        config.MergeFrom(tf.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewrite_options)))
+    return config
+
 def are_variables_enabled():
     return ngraph_bridge_lib.ngraph_tf_are_variables_enabled()
 
+def set_disabled_ops(unsupported_ops):
+    ngraph_bridge_lib.ngraph_set_disabled_ops(unsupported_ops.encode("utf-8"))
+
+def get_disabled_ops():
+    return ngraph_bridge_lib.ngraph_get_disabled_ops()
 
 __version__ = \
   "nGraph bridge version: " + str(ngraph_bridge_lib.ngraph_tf_version()) + "\n" + \
@@ -205,4 +229,3 @@ __version__ = \
   "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()) + "\n" \
   "nGraph bridge built with Variables and Optimizers Enablement: " \
       + str(ngraph_bridge_lib.ngraph_tf_are_variables_enabled())
-

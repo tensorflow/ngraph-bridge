@@ -22,6 +22,7 @@
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_capture_variables.h"
+#include "ngraph_cluster_manager.h"
 #include "ngraph_deassign_clusters.h"
 #include "ngraph_encapsulate_clusters.h"
 #include "ngraph_enter_in_catalog.h"
@@ -29,6 +30,7 @@
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_replace_variable_modifiers.h"
 #include "ngraph_rewrite_for_tracking.h"
+#include "ngraph_utils.h"
 #include "tf_graph_writer.h"
 
 #if defined NGRAPH_DISTRIBUTED
@@ -109,9 +111,8 @@ class NGraphRewritePass : public GraphOptimizationPass {
     std::stringstream ss;
     ss << kind << "_" << std::setfill('0') << std::setw(4) << idx;
 #if defined NGRAPH_DISTRIBUTED
-    ngraph::Distributed dist;
-    int Rank_ID = dist.get_rank();
-    ss << "_" << std::setfill('0') << std::setw(4) << Rank_ID;
+    int rank_id = ngraph::get_distributed_interface()->get_rank();
+    ss << "_" << std::setfill('0') << std::setw(4) << rank_id;
 #endif
     return ss.str();
   }
@@ -121,9 +122,8 @@ class NGraphRewritePass : public GraphOptimizationPass {
     ss << GraphFilenamePrefix(kind, idx) << "_" << std::setfill('0')
        << std::setw(4) << sub_idx;
 #if defined NGRAPH_DISTRIBUTED
-    ngraph::Distributed dist;
-    int Rank_ID = dist.get_rank();
-    ss << "_" << std::setfill('0') << std::setw(4) << Rank_ID;
+    int rank_id = ngraph::get_distributed_interface()->get_rank();
+    ss << "_" << std::setfill('0') << std::setw(4) << rank_id;
 #endif
     return ss.str();
   }
@@ -163,8 +163,14 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
     // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
     // we will not do anything; all subsequent
     // passes become a no-op.
-    if (config::IsEnabled() == false ||
-        std::getenv("NGRAPH_TF_DISABLE") != nullptr) {
+    bool ngraph_not_enabled =
+        (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
+    bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    if (ngraph_not_enabled || already_processed) {
+      NGRAPH_VLOG(1) << "Not running through nGraph. nGraph not enabled: "
+                     << ngraph_not_enabled
+                     << " Already processed: " << already_processed;
+      NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
 
@@ -232,8 +238,14 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
     // we will not do anything; all subsequent
     // passes become a no-op.
-    if (config::IsEnabled() == false ||
-        std::getenv("NGRAPH_TF_DISABLE") != nullptr) {
+    bool ngraph_not_enabled =
+        (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
+    bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    if (ngraph_not_enabled || already_processed) {
+      NGRAPH_VLOG(1) << "Not running through nGraph. nGraph not enabled: "
+                     << ngraph_not_enabled
+                     << " Already processed: " << already_processed;
+      NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
 
@@ -266,7 +278,11 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(EncapsulateClusters(options.graph->get(), idx));
+    FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+    TF_RETURN_IF_ERROR(
+        EncapsulateClusters(options.graph->get(), idx, fdeflib_new));
+    // TODO: not using fdeflib_new in this path. Only grappler path uses it
+    free(fdeflib_new);
     if (DumpEncapsulatedGraphs()) {
       DumpGraphs(options, idx, "encapsulated",
                  "Graph with Clusters Encapsulated");

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2018 Intel Corporation
+#  Copyright 2018-2019 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ def main():
     tf_src_dir = 'build_cmake/tensorflow'
 
     if (platform.system() != 'Darwin'):
-        # Run the bazel based buil
+        # Run the bazel based build
         run_bazel_build_test(venv_dir, build_dir)
 
     # First run the C++ gtests

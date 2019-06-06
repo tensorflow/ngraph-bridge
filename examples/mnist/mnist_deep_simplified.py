@@ -35,7 +35,6 @@ import getpass
 import time
 
 from tensorflow.examples.tutorials.mnist import input_data
-from tensorflow.core.protobuf import rewriter_config_pb2
 
 import tensorflow as tf
 import ngraph_bridge
@@ -131,22 +130,25 @@ def train_mnist_cnn(FLAGS):
         log_device_placement=False,
         inter_op_parallelism_threads=1)
     # Enable the custom optimizer using the rewriter config options
-    if ngraph_bridge.is_grappler_enabled():
-        rewrite_options = rewriter_config_pb2.RewriterConfig(
-            meta_optimizer_iterations=rewriter_config_pb2.RewriterConfig.ONE,
-            custom_optimizers=[
-                rewriter_config_pb2.RewriterConfig.CustomGraphOptimizer(
-                    name="ngraph-optimizer")
-            ])
-        config.MergeFrom(
-            tf.ConfigProto(
-                graph_options=tf.GraphOptions(rewrite_options=rewrite_options)))
+    config = ngraph_bridge.update_config(config)
 
     # Note: Additional configuration option to boost performance is to set the
     # following environment for the run:
     # OMP_NUM_THREADS=44 KMP_AFFINITY=granularity=fine,scatter
     # The OMP_NUM_THREADS number should correspond to the number of
     # cores in the system
+
+    # Set Seed
+    shuffle_batch = True
+
+    if FLAGS.make_deterministic:
+        seed = 1
+        tf.random.set_random_seed(seed)
+        shuffle_batch = False
+
+    supported_optimizers = ["adam", "sgd"]
+
+    assert (FLAGS.optimizer in supported_optimizers), "Optimizer not supported"
 
     # Import data
     mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
@@ -165,8 +167,13 @@ def train_mnist_cnn(FLAGS):
             labels=y_, logits=y_conv)
     cross_entropy = tf.reduce_mean(cross_entropy)
 
-    with tf.name_scope('adam_optimizer'):
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+    optimizer_scope = FLAGS.optimizer + "_optimizer"
+    with tf.name_scope(optimizer_scope):
+        if FLAGS.optimizer == "adam":
+            train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+        elif FLAGS.optimizer == "sgd":
+            train_step = tf.train.GradientDescentOptimizer(1e-4).minimize(
+                cross_entropy)
 
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
@@ -186,12 +193,12 @@ def train_mnist_cnn(FLAGS):
     saver = tf.train.Saver()
 
     with tf.Session(config=config) as sess:
-
         sess.run(tf.global_variables_initializer())
         train_loops = FLAGS.train_loop_count
         loss_values = []
         for i in range(train_loops):
-            batch = mnist.train.next_batch(FLAGS.batch_size)
+            batch = mnist.train.next_batch(
+                FLAGS.batch_size, shuffle=shuffle_batch)
             if i % 10 == 0:
                 t = time.time()
                 train_accuracy = accuracy.eval(feed_dict={
@@ -257,10 +264,21 @@ if __name__ == '__main__':
         help="Number of test images to evaluate on")
 
     parser.add_argument(
+        '--make_deterministic',
+        help="Fixes the random seed and stops shuffling.",
+        action="store_true")
+
+    parser.add_argument(
         '--model_dir',
         type=str,
         default='./mnist_trained/',
         help='enter model dir')
+
+    parser.add_argument(
+        '--optimizer',
+        type=str,
+        default='adam',
+        help='Optimizer to use for training. Default: adam. Options: adam, sgd')
 
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

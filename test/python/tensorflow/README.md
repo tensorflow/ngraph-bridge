@@ -14,15 +14,25 @@ tf_unittest_runner is primarily used to run tensorflow python unit tests using n
    ```
    
    This will update the `tensorflow/python/framework/test_util.py` so that the TensorFlow Python unit tests use `nGraph` to execute the tests.
+ - Python tests using nGraph with grappler and using Tensorflow (using Option 2 in the instructions in the [top level documentation page](../../../README.md#option-2-build-ngraph-bridge-from-source-using-tensorflow-source)) by patching 
+   TensorFlow as follows:
+   ```
+   cp tf_unittest_ngraph_with_grappler.patch <your_virtual_env/lib/python<VERSION>/site-packages>
+   cd <your_virtual_env/lib/python<VERSION>/site-packages>
+   patch -p1 < tf_unittest_ngraph_with_grappler.patch 
+   ```
+   
+   This will update the `tensorflow/python/framework/test_util.py` so that the TensorFlow Python unit tests use `nGraph` to execute the tests.
 
 ## Usage
 
     usage: tf_unittest_runner.py [-h] --tensorflow_path TENSORFLOW_PATH
-    
+
     [--list_tests LIST_TESTS] [--run_test RUN_TEST]
-    
+
     [--run_tests_from_file RUN_TESTS_FROM_FILE]
-    
+
+    [--xml_report XML_REPORT] [--verbose]
       
     required arguments:
     
@@ -41,7 +51,7 @@ tf_unittest_runner is primarily used to run tensorflow python unit tests using n
     
     Prints the list of test cases in this package.
     
-    Eg:math_ops_test
+    Eg:math_ops_test.*
     
     --run_test RUN_TEST Runs the testcase and returns the output.
     
@@ -53,7 +63,14 @@ tf_unittest_runner is primarily used to run tensorflow python unit tests using n
     
     them. Eg:--run_tests_from_file=tests_to_run.txt
 
-  
+    --xml_report XML_REPORT
+     
+     Generates results in xml file for jenkins to populate 
+     
+     in the test result. Need to specify xml file name
+
+  --verbose  Prints standard out if specified
+
 
 ## How to run tests
 
@@ -69,9 +86,7 @@ tf_unittest_runner is primarily used to run tensorflow python unit tests using n
  - Tests can be run by specifying one or multiple tests at a time by
    passing the name of the module/test or regular expressions. Few examples of
    supported formats by `--run_test` argument :
- ``` math_ops_test 
-       math_ops_test.DivNanTest
-       math_ops_test.DivNoNanTest.testBasic
+ ```  math_ops_test.DivNoNanTest.testBasic
        math_ops_test.DivNoNanTest.*
        math_ops_test.D*
        math_ops_test.*

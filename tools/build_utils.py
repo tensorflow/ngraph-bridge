@@ -20,6 +20,7 @@ from argparse import RawTextHelpFormatter
 
 import errno
 import os
+import subprocess
 from subprocess import check_output, call
 import sys
 import shutil
@@ -183,6 +184,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     os.environ["TF_NEED_IGNITE"] = "0"
     if (platform.system() == 'Darwin'):
         os.environ["TF_ENABLE_XLA"] = "0"
+        os.environ["TF_CONFIGURE_IOS"] = "0"
     else:
         os.environ["TF_ENABLE_XLA"] = "1"
     os.environ["TF_NEED_OPENCL_SYCL"] = "0"
@@ -373,3 +375,15 @@ def download_repo(target_name, repo, version):
     call(["git", "fetch"])
     command_executor(["git", "checkout", version])
     os.chdir(pwd)
+
+
+def apply_patch(patch_file):
+    cmd = subprocess.Popen(
+        'patch -p1 -N -i ' + patch_file, shell=True, stdout=subprocess.PIPE)
+    printed_lines = cmd.communicate()
+    # Check if the patch is being applied for the first time, in which case
+    # cmd.returncode will be 0 or if the patch has already been applied, in
+    # which case the string will be found, in all other cases the assertion
+    # will fail
+    assert cmd.returncode == 0 or 'patch detected!  Skipping patch' in str(
+        printed_lines[0]), "Error applying the patch."
