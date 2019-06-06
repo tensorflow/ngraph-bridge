@@ -15,7 +15,7 @@ This section describes the directory structure. Indentation means sub-directorie
         5. `Sub-test` (*Repeated*): Should start with the string `test`. Can be disabled by adding the string `disabled` to its name.
             1. `enable_ngraph.patch` (*Optional*): If a `sub-test` contains its own patch, that takes precedence over the global patch (**2.1.4**)
             2. `core_rewrite_test.sh`: The main run script for this `sub-test`.
-            3. `expected.json` (*Optional*): A json file containing expected results. See **Expected results format**.
+            3. `expected.json` (*Optional*): A json file containing expected results. See **Expected results format**. and `--print_parsed` flag
             4. `custom_log_parser.py` (*Optional*): See **Terminology 3** and **Terminology 3.1**.
             5. `README.md` (*Optional*): Information about this `sub-test`. Expected to be short as this text is used by `--list`.
         6. `cleanup.sh` (*Optional*): An executable shell script that will be used to clean up, potentially the effects of `getting_repo_ready.sh` (**2.1.3**)
@@ -52,6 +52,8 @@ Expected results are specified in a json file of the following format:
             4. to be expanded as the default `log parser` produces more information.
     2. `time` (*Optional*): Time in seconds.
 
+Note that you can get the expected json file when you are adding a new model by simply passing `--print_parsed` to the test run. This will print a json on screen, which can be copy pasted to the newly made `expected.json` file of that model
+
 
 ## Features and sample uses
 
@@ -63,7 +65,7 @@ Expected results are specified in a json file of the following format:
 6. **Checking for accuracy**: Lets say we want to train a simple model for 100 iterations and match accuracy after 10 steps. We can do that using the framework by adding appropriate print lines in the patch file and then adding a `custom_log_parser.py` file and `expected.json`, that would parse the log for accuracy prints. A trivial example with a custom parser is `MLP_custom_logparser`
 7. **Shell script**: At the end of each run a shell script `dump.sh` is generated that is a shell script of commands that were run. It can be run on the terminal to simulate what `test_main.py` just ran. This might be useful when adding a new test-suite in case we face errors.
 8. **Global vs local patching**: Each test suite can have a global patch that all subtests share, or each test can have its own patch file. Local patch file has more precedence than global patch file.
-9. **Configuration**: **_TODO_**
+9.  **Configuration**: **_TODO_**
 
 
 

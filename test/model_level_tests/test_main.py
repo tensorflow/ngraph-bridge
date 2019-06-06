@@ -130,7 +130,7 @@ def ready_repo(model_dir, repo_dl_loc):
 # TODO: this function needs to accept "do-i-dump-pbtxt"? and if so, a cleanup needs to happen later.
 # Also this function could return the list of pbtxts it generated (but does it need to? we can infer it)
 # TODO: this function should also take the level/intensity of test to run
-def run_test_suite(model_dir, configuration, disabled):
+def run_test_suite(model_dir, configuration, disabled, print_parsed):
     try:
         # TODO: assert TF version. Some models may not run on TF1.12 etc
         model_dir = os.path.abspath(model_dir)
@@ -205,9 +205,9 @@ def run_test_suite(model_dir, configuration, disabled):
                                         sub_test_dir + '/' + model)
                         # TODO: run Level1 tests on gdef. needs another json for that (one which specifies input shapes etc)
 
-                    # If expected.json is present, run some extra tests. If not present we deem the test passed if it ran apply_patch_and_test without raising any errors
                     expected_json_file = sub_test_dir + '/expected.json'
-                    if os.path.isfile(expected_json_file):
+                    expected_json_present = os.path.isfile(expected_json_file)
+                    if print_parsed or expected_json_present:
                         if custom_parser_present:
                             sys.path.insert(0, os.path.abspath(sub_test_dir))
                             from custom_log_parser import custom_parse_logs
@@ -215,6 +215,22 @@ def run_test_suite(model_dir, configuration, disabled):
                             sys.path.pop(0)
                         else:
                             parsed_vals = parse_logs(so)
+                        to_be_printed = {
+                            configuration: {
+                                'logparse': parsed_vals,
+                                'time': tend - tstart
+                            }
+                        }
+                        replaced_single_with_double_quotes = json.loads(
+                            to_be_printed.__str__().replace("\'", "\""))
+                        print(
+                            json.dumps(
+                                replaced_single_with_double_quotes,
+                                sort_keys=True,
+                                indent=4,
+                                separators=(',', ': ')))
+                    # If expected.json is present, run some extra tests. If not present we deem the test passed if it ran apply_patch_and_test without raising any errors
+                    if expected_json_present:
                         expected = get_expected_from_json(
                             expected_json_file, configuration,
                             not custom_parser_present)
@@ -370,6 +386,12 @@ if __name__ == '__main__':
         help=
         'Comma separated list of model/test-suite names or sub-test names to be disabled. Eg: "MLP,DenseNet.test1"',
         default='')
+    parser.add_argument(
+        '--print_parsed',
+        action='store_true',
+        help=
+        'Print the parsed values from log parsing. Useful when checking in a new model and we want to know its expected values'
+    )
 
     # This script must be run from this location
     assert cwd.split('/')[-1] == 'model_level_tests'
@@ -410,7 +432,7 @@ if __name__ == '__main__':
             if args.run_logparse_tests:
                 passed_tests_in_suite, failed_tests_in_suite, skipped_tests_in_suite = run_test_suite(
                     './models/' + test_suite, args.configuration,
-                    disabled_sub_test.get(test_suite, []))
+                    disabled_sub_test.get(test_suite, []), args.print_parsed)
                 passed_tests[test_suite] = passed_tests_in_suite
                 failed_tests[test_suite] = failed_tests_in_suite
                 skipped_tests[test_suite] = skipped_tests_in_suite
