@@ -29,5 +29,21 @@ std::map<std::string, std::string> BackendConfig::split(std::string) {
   NGRAPH_VLOG(0) << "SPLIT";
 }
 
+BackendConfig::~BackendConfig() {
+  NGRAPH_VLOG(2) << "BackendConfig::~BackendConfig() DONE";
+};
+
+BackendNNPIConfig::~BackendNNPIConfig() {
+  NGRAPH_VLOG(2) << "BackendNNPIConfig::~BackendNNPIConfig() DONE";
+};
+
+vector<string> BackendConfig::get_optional_attributes() {
+  return BackendConfig::optional_attributes_;
+}
+
+vector<string> BackendNNPIConfig::get_optional_attributes() {
+  return BackendNNPIConfig::optional_attributes_;
+}
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

@@ -96,7 +96,7 @@ TEST(BackendManager, BackendAssignment) {
   // Set backend 1
   string backend1 = "INTERPRETER";
   ASSERT_OK(BackendManager::SetBackendName(backend1));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "INTERPRETER"));
   std::map<std::string, Node*> node_map;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
@@ -182,6 +182,20 @@ TEST(BackendManager, BackendRun) {
   ClientSession session_inter(root);
   ASSERT_OK(session_inter.Run({{A, {1.0f, 1.0f}}, {B, {1.0f, 1.0f}}}, {R, S},
                               &inter_outputs));
+}
+
+TEST(BackendManager, BackendConfigGetOptionalAttributes) {
+  vector<string> default_backend_optional_attrs = {"ngraph_device_config"};
+  vector<string> nnpi_backend_optional_attrs = {
+      "ngraph_device_id", "ngraph_ice_cores", "ngraph_max_batch_size"};
+
+  auto cpu_options = BackendManager::GetOptionalAttributes("CPU");
+  auto nnpi_options = BackendManager::GetOptionalAttributes("NNPI");
+  auto gpu_options = BackendManager::GetOptionalAttributes("GPU");
+
+  ASSERT_EQ(cpu_options, default_backend_optional_attrs);
+  ASSERT_EQ(nnpi_options, nnpi_backend_optional_attrs);
+  ASSERT_EQ(gpu_options, default_backend_optional_attrs);
 }
 
 }  // namespace testing

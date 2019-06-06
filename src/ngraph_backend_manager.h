@@ -101,7 +101,7 @@ class BackendManager {
   static std::map<std::string, int> ref_count_each_backend_;
 
   // utility functions
-  BackendConfig* GetBackendConfig(const string& backend_name);
+  static BackendConfig* GetBackendConfig(const string& backend_name);
 };
 
 }  // namespace ngraph_bridge

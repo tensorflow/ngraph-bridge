@@ -113,13 +113,14 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
 
 // Backend Config functions
 BackendConfig* BackendManager::GetBackendConfig(const string& backend_name) {
-  auto itr = BackendManager::ng_backendconfig_map_.find(
-      backend_name);
+  auto itr = BackendManager::ng_backendconfig_map_.find(backend_name);
   if (itr == BackendManager::ng_backendconfig_map_.end()) {
     BackendConfig* bconfig = nullptr;
-    if (backend_name == "NNP") {
-      bconfig = new BackendNNPConfig();
+    if (backend_name == "NNPI") {
+      NGRAPH_VLOG(3) << "Creating NNPI Backend config";
+      bconfig = new BackendNNPIConfig();
     } else {
+      NGRAPH_VLOG(3) << "Creating default Backend config";
       bconfig = new BackendConfig();
     }
     BackendManager::ng_backendconfig_map_[backend_name] = bconfig;
@@ -129,7 +130,10 @@ BackendConfig* BackendManager::GetBackendConfig(const string& backend_name) {
 }
 
 vector<string> BackendManager::GetOptionalAttributes(
-    const string& backend_name) {}
+    const string& backend_name) {
+  return BackendManager::GetBackendConfig(backend_name)
+      ->get_optional_attributes();
+}
 
 unordered_map<string, string> BackendManager::GetBackendAttributes(
     string backend_config) {}
