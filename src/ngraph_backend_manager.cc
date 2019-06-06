@@ -36,7 +36,9 @@ vector<string> ng_supported_backends =
 unordered_set<string> BackendManager::ng_supported_backends_(
     ng_supported_backends.begin(), ng_supported_backends.end());
 
-std::map<std::string, int> BackendManager::ref_count_each_backend_;
+map<std::string, int> BackendManager::ref_count_each_backend_;
+
+unordered_map<string, BackendConfig*> BackendManager::ng_backendconfig_map_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_name_mutex_);
@@ -109,11 +111,47 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
   return true;
 };
 
-// Backend Config
-unordered_map<string, string> BackendManager::GetBackendAttributes( //SplitBackendConfig
-      string backend_config) {
-        NGRAPH_VLOG(0) << "GetBackendAttributes ";
-      }
+// Backend Config functions
+BackendConfig* BackendManager::GetBackendConfig(const string& backend_name) {
+  auto itr = BackendManager::ng_backendconfig_map_.find(backend_name);
+  if (itr == BackendManager::ng_backendconfig_map_.end()) {
+    BackendConfig* bconfig = nullptr;
+    if (backend_name == "NNPI") {
+      NGRAPH_VLOG(3) << "Creating NNPI Backend config";
+      bconfig = new BackendNNPIConfig();
+    } else {
+      NGRAPH_VLOG(3) << "Creating default Backend config";
+      bconfig = new BackendConfig();
+    }
+    BackendManager::ng_backendconfig_map_[backend_name] = bconfig;
+  }
+
+  return BackendManager::ng_backendconfig_map_[backend_name];
+}
+
+vector<string> BackendManager::GetOptionalAttributes(
+    const string& backend_name) {
+  return BackendManager::GetBackendConfig(backend_name)
+      ->get_optional_attributes();
+}
+
+unordered_map<string, string> BackendManager::GetBackendAttributes(
+    string backend_config) {
+  unordered_map<string, string> backend_parameters;
+
+  string backend_name = backend_config.substr(0, backend_config.find(':'));
+  NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
+
+  // If backend is not supported returns empty map
+  // if (!BackendManager::IsSupportedBackend(backend_name)) {
+  //   return backend_parameters;
+  // }
+  return BackendManager::GetBackendConfig(backend_name)->split(backend_config);
+}
+
+string BackendManager::GetBackendCreationType(
+    string backend_name,
+    unordered_map<string, string> optional_attribute_values) {}
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

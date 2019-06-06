@@ -22,11 +22,41 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-std::string BackendConfig::join(std::map<std::string, std::string>) {
+string BackendConfig::join(unordered_map<string, string> parameters) {
   NGRAPH_VLOG(0) << "JOIN";
 }
-std::map<std::string, std::string> BackendConfig::split(std::string) {
+
+unordered_map<string, string> BackendConfig::split(string backend_config) {
   NGRAPH_VLOG(0) << "SPLIT";
+
+  int delimiter_index = backend_config.find(':');
+  string backend_name = backend_config.substr(0, delimiter_index);
+  NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
+
+  string device_config = backend_config.substr(delimiter_index + 1);
+  NGRAPH_VLOG(3) << "Got Device Config  " << device_config;
+
+  unordered_map<string, string> backend_parameters;
+  backend_parameters["ngraph_backend"] = backend_name;
+  backend_parameters["_ngraph_device_config"] = device_config;
+
+  return backend_parameters;
+}
+
+BackendConfig::~BackendConfig() {
+  NGRAPH_VLOG(2) << "BackendConfig::~BackendConfig() DONE";
+};
+
+BackendNNPIConfig::~BackendNNPIConfig() {
+  NGRAPH_VLOG(2) << "BackendNNPIConfig::~BackendNNPIConfig() DONE";
+};
+
+vector<string> BackendConfig::get_optional_attributes() {
+  return BackendConfig::optional_attributes_;
+}
+
+vector<string> BackendNNPIConfig::get_optional_attributes() {
+  return BackendNNPIConfig::optional_attributes_;
 }
 
 }  // namespace ngraph_bridge

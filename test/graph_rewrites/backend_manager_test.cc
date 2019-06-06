@@ -96,7 +96,7 @@ TEST(BackendManager, BackendAssignment) {
   // Set backend 1
   string backend1 = "INTERPRETER";
   ASSERT_OK(BackendManager::SetBackendName(backend1));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "INTERPRETER"));
   std::map<std::string, Node*> node_map;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
@@ -182,6 +182,49 @@ TEST(BackendManager, BackendRun) {
   ClientSession session_inter(root);
   ASSERT_OK(session_inter.Run({{A, {1.0f, 1.0f}}, {B, {1.0f, 1.0f}}}, {R, S},
                               &inter_outputs));
+}
+
+TEST(BackendManager, BackendConfigGetOptionalAttributes) {
+  vector<string> default_backend_optional_attrs = {"_ngraph_device_config"};
+  vector<string> nnpi_backend_optional_attrs = {
+      "_ngraph_device_id", "_ngraph_ice_cores", "_ngraph_max_batch_size"};
+
+  auto cpu_options = BackendManager::GetOptionalAttributes("CPU");
+  auto nnpi_options = BackendManager::GetOptionalAttributes("NNPI");
+  auto gpu_options = BackendManager::GetOptionalAttributes("GPU");
+
+  ASSERT_EQ(cpu_options, default_backend_optional_attrs);
+  ASSERT_EQ(nnpi_options, nnpi_backend_optional_attrs);
+  ASSERT_EQ(gpu_options, default_backend_optional_attrs);
+}
+
+TEST(BackendManager, BackendConfigGetBackendAttributes) {
+  auto cpu_options = BackendManager::GetBackendAttributes("CPU:78");
+  auto nnpi_options = BackendManager::GetBackendAttributes("NNPI:3,5,6");
+  auto gpu_options = BackendManager::GetBackendAttributes("GPU:5");
+  auto plaidml_options =
+      BackendManager::GetBackendAttributes("PLAIDML:device:567:892_34");
+
+  ASSERT_NE(cpu_options.find("ngraph_backend"), cpu_options.end());
+  ASSERT_NE(cpu_options.find("_ngraph_device_config"), cpu_options.end());
+  ASSERT_EQ(cpu_options["ngraph_backend"], "CPU");
+  ASSERT_EQ(cpu_options["_ngraph_device_config"], "78");
+
+  ASSERT_NE(nnpi_options.find("ngraph_backend"), nnpi_options.end());
+  ASSERT_NE(nnpi_options.find("_ngraph_device_config"), nnpi_options.end());
+  ASSERT_EQ(nnpi_options["ngraph_backend"], "NNPI");
+  ASSERT_EQ(nnpi_options["_ngraph_device_config"], "3,5,6");
+
+  ASSERT_NE(gpu_options.find("ngraph_backend"), gpu_options.end());
+  ASSERT_NE(gpu_options.find("_ngraph_device_config"), gpu_options.end());
+  ASSERT_EQ(gpu_options["ngraph_backend"], "GPU");
+  ASSERT_EQ(gpu_options["_ngraph_device_config"], "5");
+
+  ASSERT_NE(plaidml_options.find("ngraph_backend"), plaidml_options.end());
+  ASSERT_NE(plaidml_options.find("_ngraph_device_config"),
+            plaidml_options.end());
+  ASSERT_EQ(plaidml_options["ngraph_backend"], "PLAIDML");
+  ASSERT_EQ(plaidml_options["_ngraph_device_config"], "device:567:892_34");
 }
 
 }  // namespace testing

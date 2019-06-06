@@ -29,7 +29,6 @@
 #include "ngraph/runtime/backend_manager.hpp"
 #include "ngraph_log.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "ngraph_backend_config.h"
 
 #include "ngraph_backend_config.h"
 
@@ -82,7 +81,8 @@ class BackendManager {
       string backend_config);
 
   static string GetBackendCreationType(
-      string backend_name, vector<string> optional_attribute_values);
+      string backend_name,
+      unordered_map<string, string> optional_attribute_values);
 
   ~BackendManager();
 
@@ -96,10 +96,13 @@ class BackendManager {
   static unordered_set<string> ng_supported_backends_;
 
   // map of cached backend config objects
-  static map<string, BackendConfig*> ng_backendconfig_map_;
+  static unordered_map<string, BackendConfig*> ng_backendconfig_map_;
 
   // Map of backends and their reference counts
   static std::map<std::string, int> ref_count_each_backend_;
+
+  // utility functions
+  static BackendConfig* GetBackendConfig(const string& backend_name);
 };
 
 }  // namespace ngraph_bridge
