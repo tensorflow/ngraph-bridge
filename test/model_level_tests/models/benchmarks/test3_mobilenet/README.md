@@ -1,1 +1,1 @@
-This sub test is for mobilenet
+This sub test is for mobilenet training

@@ -1,1 +1,1 @@
-This sub test is for resnet50
+This sub test is for resnet50 training
