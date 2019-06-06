@@ -95,7 +95,8 @@ std::shared_ptr<TOpType> ConstructNgNode(const std::string& op_name,
                                          TArg&&... Args) {
   auto ng_node = std::make_shared<TOpType>(std::forward<TArg>(Args)...);
   ng_node->set_friendly_name(op_name);
-  ng_node->add_provenance_tag(op_name);
+  // Fails for now, so commenting out for now
+  // ng_node->add_provenance_tag(op_name);
   return ng_node;
 }
 
@@ -2229,6 +2230,34 @@ static Status TranslateL2LossOp(
   std::shared_ptr<ng::Node> ng_l2loss =
       ConstructNgNode<ng::op::Divide>(op->name(), ng_sum, const_2);
   SaveNgOp(ng_op_map, op->name(), ng_l2loss);
+  return Status::OK();
+}
+
+static Status TranslateLogSoftmaxOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_inp;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_inp));
+  auto inp_shape = ng_inp->get_shape();
+  size_t rank = inp_shape.size();
+  auto ng_axis = ng::AxisSet{rank - 1};
+  // Batch i, class j
+  // logsoftmax[i, j] = logits[i, j] - log(sum(exp(logits[i])))
+  // Actually implementing: logsoftmax[i, j] = logits[i, j] - max(logits[i]) -
+  // log(sum(exp(logits[i] - max(logits[i]))))
+  auto ng_max = ConstructNgNode<ng::op::Broadcast>(
+      op->name(), ConstructNgNode<ng::op::Max>(op->name(), ng_inp, ng_axis),
+      inp_shape, ng_axis);
+  auto ng_inp_minus_max =
+      ConstructNgNode<ng::op::Subtract>(op->name(), ng_inp, ng_max);
+  auto ng_exp = ConstructNgNode<ng::op::Exp>(op->name(), ng_inp_minus_max);
+  auto ng_log_sum = ConstructNgNode<ng::op::Log>(
+      op->name(), ConstructNgNode<ng::op::Sum>(op->name(), ng_exp, ng_axis));
+  auto ng_broadcast = ConstructNgNode<ng::op::Broadcast>(
+      op->name(), ng_log_sum, ng_inp->get_shape(), ng_axis);
+  auto ng_output = ConstructNgNode<ng::op::Subtract>(
+      op->name(), ng_inp_minus_max, ng_broadcast);
+  SaveNgOp(ng_op_map, op->name(), ng_output);
   return Status::OK();
 }
 
@@ -4525,6 +4554,7 @@ const static std::map<
         {"HorovodAllreduce", TranslateAllreduceOp},
         {"Identity", TranslateIdentityOp},
         {"L2Loss", TranslateL2LossOp},
+        {"LogSoftmax", TranslateLogSoftmaxOp},
         {"Less", TranslateBinaryOp<ngraph::op::Less>},
         {"LessEqual", TranslateBinaryOp<ngraph::op::LessEq>},
         {"Log", TranslateUnaryOp<ngraph::op::Log>},
