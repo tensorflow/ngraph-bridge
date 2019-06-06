@@ -37,7 +37,7 @@ class BackendConfig {
   ~BackendConfig();
 
  private:
-  vector<string> optional_attributes_ = {"ngraph_device_config"};
+  vector<string> optional_attributes_ = {"_ngraph_device_config"};
 };
 
 class BackendNNPIConfig : public BackendConfig {
@@ -48,8 +48,8 @@ class BackendNNPIConfig : public BackendConfig {
   ~BackendNNPIConfig();
 
  private:
-  vector<string> optional_attributes_ = {"ngraph_device_id", "ngraph_ice_cores",
-                                         "ngraph_max_batch_size"};
+  vector<string> optional_attributes_ = {
+      "_ngraph_device_id", "_ngraph_ice_cores", "_ngraph_max_batch_size"};
 };
 
 }  // namespace ngraph_bridge

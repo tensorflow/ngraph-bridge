@@ -143,14 +143,15 @@ unordered_map<string, string> BackendManager::GetBackendAttributes(
   NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
 
   // If backend is not supported returns empty map
-  if (!BackendManager::IsSupportedBackend(backend_name)) {
-    return backend_parameters;
-  }
+  // if (!BackendManager::IsSupportedBackend(backend_name)) {
+  //   return backend_parameters;
+  // }
   return BackendManager::GetBackendConfig(backend_name)->split(backend_config);
 }
 
 string BackendManager::GetBackendCreationType(
-    string backend_name, vector<string> optional_attribute_values) {}
+    string backend_name,
+    unordered_map<string, string> optional_attribute_values) {}
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

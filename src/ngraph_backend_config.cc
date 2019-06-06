@@ -33,12 +33,12 @@ unordered_map<string, string> BackendConfig::split(string backend_config) {
   string backend_name = backend_config.substr(0, delimiter_index);
   NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
 
-  string device_config = backend_config.substr(delimiter_index);
+  string device_config = backend_config.substr(delimiter_index + 1);
   NGRAPH_VLOG(3) << "Got Device Config  " << device_config;
 
   unordered_map<string, string> backend_parameters;
   backend_parameters["ngraph_backend"] = backend_name;
-  backend_parameters["ngraph_device_config"] = device_config;
+  backend_parameters["_ngraph_device_config"] = device_config;
 
   return backend_parameters;
 }
