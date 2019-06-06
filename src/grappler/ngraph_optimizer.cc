@@ -48,11 +48,14 @@ Status NgraphOptimizer::Init(
     if (params.count("ngraph_backend")) {
       config_backend_name = params.at("ngraph_backend").s();
       NGRAPH_VLOG(3) << config_backend_name;
-      std::vector<std::string> optional_attributes = BackendManager::GetOptionalAttributes(config_backend_name);
+      std::vector<std::string> optional_attributes =
+          BackendManager::GetOptionalAttributes(config_backend_name);
       for (int i = 0; i < optional_attributes.size(); i++) {
         if (params.count(optional_attributes[i])) {
-          config_map[optional_attributes[i]] = params.at(optional_attributes[i]).s();
-          NGRAPH_VLOG(3) << optional_attributes[i]<< " " << config_map[optional_attributes[i]];
+          config_map[optional_attributes[i]] =
+              params.at(optional_attributes[i]).s();
+          NGRAPH_VLOG(3) << optional_attributes[i] << " "
+                         << config_map[optional_attributes[i]];
         }
       }
     }
@@ -81,7 +84,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       }
       backend_name = backend_env;
     }
-    config_map =  BackendManager::GetBackendAttributes(backend_name); //SplitBackendConfig
+    config_map = BackendManager::GetBackendAttributes(
+        backend_name);  // SplitBackendConfig
     backend_name = config_map["backend_name"];
     config_map.erase("backend_name");
   }

@@ -77,7 +77,8 @@ class BackendManager {
   // Backend Config Functions
   static vector<string> GetOptionalAttributes(const string& backend_name);
 
-  static unordered_map<string, string> GetBackendAttributes( //SplitBackendConfig
+  static unordered_map<string, string>
+  GetBackendAttributes(  // SplitBackendConfig
       string backend_config);
 
   static string GetBackendCreationType(

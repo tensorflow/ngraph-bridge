@@ -19,6 +19,7 @@
 
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
+#include "ngraph_backend_manager.h"
 #include "ngraph_capture_variables.h"
 #include "ngraph_cluster_manager.h"
 #include "ngraph_deassign_clusters.h"
@@ -28,7 +29,6 @@
 #include "ngraph_rewrite_for_tracking.h"
 #include "ngraph_utils.h"
 #include "tf_graph_writer.h"
-#include "ngraph_backend_manager.h"
 
 #include <iomanip>
 
@@ -199,7 +199,8 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       }
       backend_name = backend_env;
     }
-    config_map =  BackendManager::GetBackendAttributes(backend_name); //SplitBackendConfig
+    config_map = BackendManager::GetBackendAttributes(
+        backend_name);  // SplitBackendConfig
     backend_name = config_map["backend_name"];
     config_map.erase("backend_name");
     NGRAPH_VLOG(0) << "backend_name " << backend_name;
