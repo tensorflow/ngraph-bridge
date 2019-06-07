@@ -142,10 +142,6 @@ unordered_map<string, string> BackendManager::GetBackendAttributes(
   string backend_name = backend_config.substr(0, backend_config.find(':'));
   NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
 
-  // If backend is not supported returns empty map
-  // if (!BackendManager::IsSupportedBackend(backend_name)) {
-  //   return backend_parameters;
-  // }
   return BackendManager::GetBackendConfig(backend_name)->split(backend_config);
 }
 
