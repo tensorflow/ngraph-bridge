@@ -82,8 +82,8 @@ class BackendManager {
       string backend_config);
 
   static string GetBackendCreationType(
-      string backend_name,
-      unordered_map<string, string> optional_attribute_map);
+      const string& backend_name,
+      unordered_map<string, string>& optional_attribute_values);
 
   ~BackendManager();
 

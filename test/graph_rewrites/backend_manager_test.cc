@@ -198,7 +198,7 @@ TEST(BackendManager, BackendConfigGetOptionalAttributes) {
   ASSERT_EQ(gpu_options, default_backend_optional_attrs);
 }
 
-TEST(BackendManager, BackendConfigGetBackendAttributes) {
+TEST(BackendManager, GetBackendAttributes) {
   auto cpu_options = BackendManager::GetBackendAttributes("CPU:78");
   auto nnpi_options = BackendManager::GetBackendAttributes("NNPI:3,5,6");
   auto gpu_options = BackendManager::GetBackendAttributes("GPU:5");
@@ -226,6 +226,22 @@ TEST(BackendManager, BackendConfigGetBackendAttributes) {
   ASSERT_EQ(plaidml_options["ngraph_backend"], "PLAIDML");
   ASSERT_EQ(plaidml_options["_ngraph_device_config"], "device:567:892_34");
 }
+
+// TEST(BackendManager, GetBackendCreationType) {
+//   unordered_map<string,string> cpu_map = {{"_ngraph_device_config","456"}};
+//   unordered_map<string,string> nnpi_map = {{"_ngraph_device_id", "5"}};
+//   unordered_map<string,string> gpu_map = {{"_ngraph_device_config", "NOP"}};
+
+//   auto cpu_backend = BackendManager::GetBackendCreationType("CPU", cpu_map);
+//   auto nnpi_backend = BackendManager::GetBackendCreationType(
+//       "NNPI", nnpi_map);
+//   auto gpu_backend = BackendManager::GetBackendCreationType(
+//       "GPU", gpu_map);
+
+//   ASSERT_EQ(cpu_backend, "CPU");
+//   ASSERT_EQ(nnpi_backend, "NNPI:5");
+//   ASSERT_EQ(gpu_backend, "GPU:NOP");
+// }
 
 }  // namespace testing
 }  // namespace ngraph_bridge

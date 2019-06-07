@@ -121,7 +121,7 @@ BackendConfig* BackendManager::GetBackendConfig(const string& backend_name) {
       bconfig = new BackendNNPIConfig();
     } else {
       NGRAPH_VLOG(3) << "Creating default Backend config";
-      bconfig = new BackendConfig();
+      bconfig = new BackendConfig(backend_name);
     }
     BackendManager::ng_backendconfig_map_[backend_name] = bconfig;
   }
@@ -150,8 +150,11 @@ unordered_map<string, string> BackendManager::GetBackendAttributes(
 }
 
 string BackendManager::GetBackendCreationType(
-    string backend_name,
-    unordered_map<string, string> optional_attribute_values) {}
+    const string& backend_name,
+    unordered_map<string, string>& optional_attribute_values) {
+  return BackendManager::GetBackendConfig(backend_name)
+      ->join(optional_attribute_values);
+}
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
