@@ -225,7 +225,6 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       return Status::OK();
     }
 
-    NGRAPH_VLOG(0) << "Getting the backend config information";
     std::unordered_map<std::string, std::string> config_map;
     string backend_name = BackendManager::GetCurrentlySetBackendName();
     const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
@@ -242,7 +241,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
         backend_name);  // SplitBackendConfig
     backend_name = config_map["backend_name"];
     config_map.erase("backend_name");
-    NGRAPH_VLOG(0) << "backend_name " << backend_name;
+    NGRAPH_VLOG(5) << "NGraphEncapsulationPass: backend_name " << backend_name;
 
     // For filename generation purposes, grab a fresh index. This is just an
     // arbitrary integer to avoid filename collisions resulting from subsequent

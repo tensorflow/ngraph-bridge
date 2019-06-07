@@ -69,7 +69,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
   NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
 
-  NGRAPH_VLOG(0) << "Getting the config information";
   string backend_name = BackendManager::GetCurrentlySetBackendName();
   if (!config_backend_name.empty()) {
     backend_name = config_backend_name;
@@ -89,7 +88,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     backend_name = config_map["backend_name"];
     config_map.erase("backend_name");
   }
-  NGRAPH_VLOG(0) << "backend_name " << backend_name;
+  NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: backend_name " << backend_name;
 
   // Convert the GraphDef to Graph
   GraphConstructorOptions opts;
@@ -114,7 +113,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
   bool already_processed = IsProcessedByNgraphPass(&graph);
   if (ngraph_not_enabled || already_processed) {
-    NGRAPH_VLOG(0) << "Not running through nGraph. nGraph not enabled: "
+    NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Not running through nGraph. nGraph not enabled: "
                    << ngraph_not_enabled
                    << " Already processed: " << already_processed;
     NGraphClusterManager::EvictAllClusters();

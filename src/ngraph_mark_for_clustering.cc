@@ -635,8 +635,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     }
   }
 
-  NGRAPH_VLOG(0) << "Mark for clustering: backend_name: " << current_backend;
-
   // Right now it cannot be inside the if(!initialized) block, because it is
   // backend dependent, which might change with different sess.run()s
   confirmation_function_map["GatherV2"] = [&current_backend](Node* n,

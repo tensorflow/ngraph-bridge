@@ -338,7 +338,7 @@ Status EncapsulateClusters(
                          .Device(device_name_map[cluster_idx])
                          .Input(inputs);
     if (!device_config.empty()) {
-      NGRAPH_VLOG(0) << "Device config is not empty";
+      NGRAPH_VLOG(3) << "Device config is not empty";
       for (auto const& i : device_config) {
         // Adding the optional attributes
         nb.Attr(i.first, i.second);

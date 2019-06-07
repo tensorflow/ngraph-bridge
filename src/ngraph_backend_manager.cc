@@ -151,9 +151,9 @@ unordered_map<string, string> BackendManager::GetBackendAttributes(
 
 string BackendManager::GetBackendCreationType(
     const string& backend_name,
-    unordered_map<string, string>& optional_attribute_values) {
+    unordered_map<string, string>& optional_attribute_map) {
   return BackendManager::GetBackendConfig(backend_name)
-      ->join(optional_attribute_values);
+      ->join(optional_attribute_map);
 }
 
 }  // namespace ngraph_bridge
