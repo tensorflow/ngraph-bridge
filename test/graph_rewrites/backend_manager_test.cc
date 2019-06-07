@@ -227,21 +227,20 @@ TEST(BackendManager, GetBackendAttributes) {
   ASSERT_EQ(plaidml_options["_ngraph_device_config"], "device:567:892_34");
 }
 
-// TEST(BackendManager, GetBackendCreationType) {
-//   unordered_map<string,string> cpu_map = {{"_ngraph_device_config","456"}};
-//   unordered_map<string,string> nnpi_map = {{"_ngraph_device_id", "5"}};
-//   unordered_map<string,string> gpu_map = {{"_ngraph_device_config", "NOP"}};
+TEST(BackendManager, GetBackendCreationType) {
+  unordered_map<std::string, std::string> cpu_map = {
+      {"_ngraph_device_config", "456"}};
+  unordered_map<string, string> nnpi_map = {{"_ngraph_device_id", "5"}};
+  unordered_map<string, string> gpu_map = {{"_ngraph_device_config", "NOP"}};
 
-//   auto cpu_backend = BackendManager::GetBackendCreationType("CPU", cpu_map);
-//   auto nnpi_backend = BackendManager::GetBackendCreationType(
-//       "NNPI", nnpi_map);
-//   auto gpu_backend = BackendManager::GetBackendCreationType(
-//       "GPU", gpu_map);
+  auto cpu_backend = BackendManager::GetBackendCreationType("CPU", cpu_map);
+  auto nnpi_backend = BackendManager::GetBackendCreationType("NNPI", nnpi_map);
+  auto gpu_backend = BackendManager::GetBackendCreationType("GPU", gpu_map);
 
-//   ASSERT_EQ(cpu_backend, "CPU");
-//   ASSERT_EQ(nnpi_backend, "NNPI:5");
-//   ASSERT_EQ(gpu_backend, "GPU:NOP");
-// }
+  ASSERT_EQ(cpu_backend, "CPU:456");
+  ASSERT_EQ(nnpi_backend, "NNPI:5");
+  ASSERT_EQ(gpu_backend, "GPU:NOP");
+}
 
 }  // namespace testing
 }  // namespace ngraph_bridge
