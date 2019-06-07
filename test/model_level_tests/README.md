@@ -75,7 +75,8 @@ On CPU:
 | --- | --- | --- | --- | --- | ---
 | MNIST MLP | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | keras
 | MNIST CNN | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | keras
-| resnet | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | benchmarks
+| resnet20 | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | tfmodels
+| resnet50 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | benchmarks
 | densenet | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: |  :heavy_multiplication_x: | benchmarks
 | mobilenet | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: |  :heavy_multiplication_x: | benchmarks
 | inceptionv4 | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: |  :heavy_multiplication_x: | benchmarks
