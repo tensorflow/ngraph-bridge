@@ -18,7 +18,7 @@
 import argparse
 import errno
 import os
-from subprocess import check_output, call
+from subprocess import check_output, call, Popen
 import sys
 import shutil
 import glob
@@ -98,7 +98,6 @@ def run_ngtf_cpp_gtests(artifacts_dir, log_dir, filters):
         cmd = ['./gtest_ngtf']
 
     command_executor(cmd, verbose=True)
-
     os.chdir(root_pwd)
 
 
@@ -123,11 +122,18 @@ def run_ngtf_pytests(venv_dir, build_dir):
     # Next run the ngraph-tensorflow python tests
     command_executor(["pip", "install", "-U", "pytest"])
     command_executor(["pip", "install", "-U", "psutil"])
-    command_executor([
-        "python", "-m", "pytest", ('--junitxml=%s/xunit_pytest.xml' % build_dir)
-    ],
-                     verbose=True)
 
+    cmd = 'python -m pytest ' + ('--junitxml=%s/xunit_pytest.xml' % build_dir)
+    env = os.environ.copy()
+    new_paths = venv_dir + '/bin/python3:' + os.path.abspath(build_dir)
+    if 'PYTHONPATH' in env:
+        env["PYTHONPATH"] = new_paths + ":" + env["PYTHONPATH"]
+    else:
+        env["PYTHONPATH"] = new_paths
+    ps = Popen(cmd, shell=True, env=env)
+    so, se = ps.communicate()
+    errcode = ps.returncode
+    assert errcode == 0, "Error in running command: " + cmd
     os.chdir(root_pwd)
 
 
@@ -297,7 +303,7 @@ def run_resnet50(build_dir):
         '--num_inter_threads', '1', '--train_dir=' + model_save_dir,
         '--num_batches', '10', '--model=resnet50', '--batch_size=128'
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
 
     os.environ['JUNIT_WRAP_FILE'] = "%s/junit_inference_test.xml" % build_dir
     os.environ['JUNIT_WRAP_SUITE'] = 'models'
@@ -309,7 +315,7 @@ def run_resnet50(build_dir):
         '--num_inter_threads', '1', '--train_dir=' + model_save_dir,
         '--model=resnet50', '--batch_size=128', '--num_batches', '10', '--eval'
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
     os.chdir(root_pwd)
 
 
@@ -378,7 +384,7 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
         str(iterations), '--model=resnet50', '--batch_size=' + str(batch_size),
         '--eval_dir=' + eval_eventlog_dir
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
 
     # os.environ['JUNIT_WRAP_FILE'] = "%s/junit_inference_test.xml" % build_dir
     # os.environ['JUNIT_WRAP_SUITE'] = 'models'
@@ -396,7 +402,7 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
         '--model=resnet50', '--batch_size=' + str(batch_size), '--num_batches',
         str(iterations), '--eval', '--eval_dir=' + eval_eventlog_dir
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=True)
 
     os.chdir(root_pwd)
 

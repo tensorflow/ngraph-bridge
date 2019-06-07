@@ -44,12 +44,10 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
     grappler_meta_graph_def.collection_def["train_op"].CopyFrom(
         output_collection)
 
-    session_config_with_trt = tf.ConfigProto()
-    session_config_with_trt = ngraph_bridge.update_config(
-        session_config_with_trt)
-
+    session_config = tf.ConfigProto()
+    session_config = ngraph_bridge.update_config(session_config)
     output_gdef = tf_optimizer.OptimizeGraph(
-        session_config_with_trt, grappler_meta_graph_def, graph_id=b"tf_graph")
+        session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
 
 
@@ -116,6 +114,10 @@ def prepare_argparser(formats):
     # Note: no other option must begin with "input" or "output"
     parser.add_argument(
         "--outnodes", help="Comma separated list of output nodes")
+    parser.add_argument(
+        "--ngbackend",
+        default='CPU',
+        help="Ngraph backend (with cardinality). Eg, NNPI:0")
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -140,11 +142,8 @@ def filter_dict(prefix, dictionary):
 def save_gdef_to_savedmodel(gdef, location):
     builder = tf.saved_model.builder.SavedModelBuilder(location)
     with tf.Graph().as_default() as graph:
-        tf.import_graph_def(gdef)
+        tf.import_graph_def(gdef, name="")
         with tf.Session(graph=graph) as sess:
-            # TODO: This fails
-            # Err msg: Op NGraphEncapsulate is used by the graph, but is not registered
-            import ngraph_bridge
             builder.add_meta_graph_and_variables(
                 sess, [tf.saved_model.tag_constants.TRAINING])
             builder.add_meta_graph([tf.saved_model.tag_constants.SERVING],
@@ -168,9 +167,11 @@ def save_model(gdef, format, location):
     }[format](gdef, location)
 
 
-def attach_device(gdef):
+def attach_device_and_ng_backend(gdef, ng_backend):
+    ngraph_bridge.set_backend(ng_backend)
+    # Assumes that the whole graph runs on a single ng_backend
     for n in gdef.node:
-        n.device = "/job:localhost/replica:0/task:0/device:cpu:0"
+        n.device = "/device:CPU:0"
 
 
 allowed_formats = {
@@ -179,7 +180,7 @@ allowed_formats = {
 }
 
 
-def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
+def convert(inp_format, inp_loc, out_format, out_loc, outnodes, ng_backend):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -199,7 +200,7 @@ def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
     assert out_format in allowed_formats['output']
     assert ngraph_bridge.is_grappler_enabled()
     input_gdef = get_gdef(inp_format, inp_loc)
-    attach_device(input_gdef)
+    attach_device_and_ng_backend(input_gdef, ng_backend)
     output_gdef = run_ngraph_grappler_optimizer(input_gdef, outnodes)
     save_model(output_gdef, out_format, out_loc)
 
@@ -207,14 +208,14 @@ def convert(inp_format, inp_loc, out_format, out_loc, outnodes):
 def main():
     """ Entry point of command line api for converting TF models by inserting ngraph nodes.
     Sample usage:
-    python tf2ngraph.py --inputsavedmodel test_graph_SM --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
-    python tf2ngraph.py --inputpbtxt test_graph_SM.pbtxt --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
+    python tf2ngraph.py --inputsavedmodel test_graph_SM --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt --ngbackend NNPI:0
+    python tf2ngraph.py --inputpbtxt test_graph_SM.pbtxt --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt --ngbackend NNPI:0
     """
     args = prepare_argparser(allowed_formats)
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
     outnodes = args.outnodes.split(',')
-    convert(inp_format, inp_loc, out_format, out_loc, outnodes)
+    convert(inp_format, inp_loc, out_format, out_loc, outnodes, args.ngbackend)
     print('Converted the model. Exiting now')
 
 

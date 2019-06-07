@@ -36,7 +36,7 @@ add_library(tensorflow_cc_lib SHARED IMPORTED)
 set_target_properties(
     tensorflow_cc_lib
     PROPERTIES IMPORTED_LOCATION
-    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.1
 )
 
 set(SRC
@@ -50,6 +50,7 @@ set(SRC
     graph_rewrites/backend_manager_test.cc
     graph_rewrites/encapsulate_clusters_test.cc
     graph_rewrites/disable_ops_test.cc
+    graph_rewrites/mark_for_clustering_test.cc
     test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
@@ -93,7 +94,7 @@ target_link_libraries(
     ngraph_lib
     libgtest
     pthread
-    tensorflow_framework_lib
+    ${TensorFlow_FRAMEWORK_LIBRARY}
     tensorflow_cc_lib
 )
 
@@ -118,4 +119,9 @@ install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
     FILES_MATCHING PATTERN "*.pbtxt"
+)
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "*.pb"
 )

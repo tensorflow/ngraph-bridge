@@ -182,14 +182,14 @@ def _tf_pip_impl(repository_ctx):
     )
 
     tf_shared_library_dir = repository_ctx.os.environ[_TF_SHARED_LIBRARY_DIR]
-    tf_shared_library_path = "%s/libtensorflow_framework.so" % tf_shared_library_dir
+    tf_shared_library_path = "%s/libtensorflow_framework.so.1" % tf_shared_library_dir
     tf_shared_library_rule = _symlink_genrule_for_dir(
         repository_ctx,
         None,
         "",
-        "libtensorflow_framework.so",
+        "libtensorflow_framework.so.1",
         [tf_shared_library_path],
-        ["libtensorflow_framework.so"],
+        ["libtensorflow_framework.so.1"],
     )
 
     _tpl(repository_ctx, "BUILD", {
@@ -203,4 +203,25 @@ tf_configure = repository_rule(
         _TF_HEADER_DIR,
         _TF_SHARED_LIBRARY_DIR,
     ],
+)
+
+def template_rule_impl(ctx):
+    ctx.actions.expand_template(
+        template = ctx.file.src,
+        output = ctx.outputs.out,
+        substitutions = ctx.attr.substitutions,
+    )
+
+template_rule = rule(
+    attrs = {
+        "src": attr.label(
+            mandatory = True,
+            allow_single_file = True,
+        ),
+        "substitutions": attr.string_dict(mandatory = True),
+        "out": attr.output(mandatory = True),
+    },
+    # output_to_genfiles is required for header files.
+    output_to_genfiles = True,
+    implementation = template_rule_impl,
 )
