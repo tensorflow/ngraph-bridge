@@ -30,12 +30,14 @@ BackendConfig::BackendConfig(string backend_name) {
 
 string BackendConfig::join(unordered_map<string, string> optional_parameters) {
   NGRAPH_VLOG(3) << "JOIN";
+  // TODO(malikshr): If _ngraph_device_config not found
   return backend_name_ + ":" + optional_parameters["_ngraph_device_config"];
 }
 
 unordered_map<string, string> BackendConfig::split(string backend_config) {
   NGRAPH_VLOG(3) << "SPLIT";
 
+  // TODO(malikshr): If colon not found
   int delimiter_index = backend_config.find(':');
   string backend_name = backend_config.substr(0, delimiter_index);
   NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
