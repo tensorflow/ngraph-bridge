@@ -65,7 +65,8 @@ Note that you can get the expected json file when you are adding a new model by 
 6. **Checking for accuracy**: Lets say we want to train a simple model for 100 iterations and match accuracy after 10 steps. We can do that using the framework by adding appropriate print lines in the patch file and then adding a `custom_log_parser.py` file and `expected.json`, that would parse the log for accuracy prints. A trivial example with a custom parser is `MLP_custom_logparser`
 7. **Shell script**: At the end of each run a shell script `dump.sh` is generated that is a shell script of commands that were run. It can be run on the terminal to simulate what `test_main.py` just ran. This might be useful when adding a new test-suite in case we face errors.
 8. **Global vs local patching**: Each test suite can have a global patch that all subtests share, or each test can have its own patch file. Local patch file has more precedence than global patch file.
-9.  **Configuration**: **_TODO_**
+9. **Same repo different commits**: Right now you have to create 2 separate test suites in this case. Checkout `tfmodels` and `tfmodels1`, both of which use the same repo, but different commits, hence they are different test suites.
+10. **Configuration**: **_TODO_**
 
 
 # Currently available tests
@@ -83,6 +84,7 @@ On CPU:
 | a3c | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark: | ngraph-models
 | dcgan | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark: | ngraph-models
 | unet | ?? | :heavy_multiplication_x: | ?? | :heavy_check_mark: | unet
+| ssd mobilenet v1 | ?? | :heavy_multiplication_x: | ?? | :heavy_check_mark: | tfmodels
 
 On Interpreter:
 
@@ -96,3 +98,5 @@ On Interpreter:
 1. **pb/pbtxt/savedmodel based test**
 2. **verify_model integration**
 3. **compare times: ngtf vs tf**
+4. **a common cleanup scenario is pip install X, and then when exiting restoring pip to that state**
+5. **Maybe run the tests in their own virtual env sandbox? the user provides the tf and ngraph-bridge whl path**
