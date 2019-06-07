@@ -75,13 +75,14 @@ On CPU:
 | --- | --- | --- | --- | --- | ---
 | MNIST MLP | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | keras
 | MNIST CNN | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | keras
-| resnet20 | ?? | :heavy_multiplication_x: | ?? | :heavy_multiplication_x: | tfmodels
+| resnet20 | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | tfmodels
 | resnet50 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | benchmarks
 | densenet | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: |  :heavy_multiplication_x: | benchmarks
 | mobilenet | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: |  :heavy_multiplication_x: | benchmarks
 | inceptionv4 | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: |  :heavy_multiplication_x: | benchmarks
 | a3c | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark: | ngraph-models
 | dcgan | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_check_mark: | ngraph-models
+| unet | ?? | :heavy_multiplication_x: | ?? | :heavy_check_mark: | unet
 
 On Interpreter:
 
@@ -94,3 +95,4 @@ On Interpreter:
 ## TODO
 1. **pb/pbtxt/savedmodel based test**
 2. **verify_model integration**
+3. **compare times: ngtf vs tf**
