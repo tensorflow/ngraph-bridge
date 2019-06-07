@@ -58,6 +58,7 @@ cc_binary(
         "src/ngraph_backend_manager.cc",
         "src/ngraph_capture_variables.cc",
         "src/ngraph_cluster_manager.cc",
+        "src/ngraph_conversions.cc",
         "src/ngraph_deassign_clusters.cc",
         "src/ngraph_encapsulate_clusters.cc",
         "src/ngraph_encapsulate_op.cc",
