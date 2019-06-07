@@ -30,26 +30,24 @@ namespace ngraph_bridge {
 
 class BackendConfig {
  public:
-  string join(unordered_map<string, string> parameters);
+  BackendConfig() = delete;
+  BackendConfig(string backend_name);
+  virtual string join(unordered_map<string, string> optional_parameters);
   unordered_map<string, string> split(string backend_config);
 
-  virtual vector<string> get_optional_attributes();
-  ~BackendConfig();
+  vector<string> get_optional_attributes();
+  virtual ~BackendConfig();
 
- private:
-  vector<string> optional_attributes_ = {"_ngraph_device_config"};
+ protected:
+  string backend_name_;
+  vector<string> optional_attributes_;
 };
 
 class BackendNNPIConfig : public BackendConfig {
  public:
-  string join(unordered_map<string, string>);
-  vector<string> get_optional_attributes();
-
-  ~BackendNNPIConfig();
-
- private:
-  vector<string> optional_attributes_ = {
-      "_ngraph_device_id", "_ngraph_ice_cores", "_ngraph_max_batch_size"};
+  BackendNNPIConfig();
+  string join(unordered_map<string, string> optional_parameters);
+  virtual ~BackendNNPIConfig();
 };
 
 }  // namespace ngraph_bridge

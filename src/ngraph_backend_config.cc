@@ -22,12 +22,19 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-string BackendConfig::join(unordered_map<string, string> parameters) {
-  NGRAPH_VLOG(0) << "JOIN";
+BackendConfig::BackendConfig(string backend_name) {
+  NGRAPH_VLOG(3) << "BackendConfig() ";
+  backend_name_ = backend_name;
+  optional_attributes_ = {"_ngraph_device_config"};
+}
+
+string BackendConfig::join(unordered_map<string, string> optional_parameters) {
+  NGRAPH_VLOG(3) << "JOIN";
+  return backend_name_ + ":" + optional_parameters["_ngraph_device_config"];
 }
 
 unordered_map<string, string> BackendConfig::split(string backend_config) {
-  NGRAPH_VLOG(0) << "SPLIT";
+  NGRAPH_VLOG(3) << "SPLIT";
 
   int delimiter_index = backend_config.find(':');
   string backend_name = backend_config.substr(0, delimiter_index);
@@ -43,21 +50,31 @@ unordered_map<string, string> BackendConfig::split(string backend_config) {
   return backend_parameters;
 }
 
-BackendConfig::~BackendConfig() {
-  NGRAPH_VLOG(2) << "BackendConfig::~BackendConfig() DONE";
-};
-
-BackendNNPIConfig::~BackendNNPIConfig() {
-  NGRAPH_VLOG(2) << "BackendNNPIConfig::~BackendNNPIConfig() DONE";
-};
-
 vector<string> BackendConfig::get_optional_attributes() {
   return BackendConfig::optional_attributes_;
 }
 
-vector<string> BackendNNPIConfig::get_optional_attributes() {
-  return BackendNNPIConfig::optional_attributes_;
+BackendConfig::~BackendConfig() {
+  NGRAPH_VLOG(2) << "BackendConfig::~BackendConfig() DONE";
+};
+
+// BackendNNPIConfig
+BackendNNPIConfig::BackendNNPIConfig() : BackendConfig("NNPI") {
+  optional_attributes_ = {"_ngraph_device_id", "_ngraph_ice_cores",
+                          "_ngraph_max_batch_size"};
 }
+
+string BackendNNPIConfig::join(
+    unordered_map<string, string> optional_parameters) {
+  return backend_name_ + ":" + optional_parameters["_ngraph_device_id"];
+
+  // Once the backend api for the other attributes like ice cores
+  // and max batch size is fixed we change this
+}
+
+BackendNNPIConfig::~BackendNNPIConfig() {
+  NGRAPH_VLOG(3) << "BackendNNPIConfig::~BackendNNPIConfig() DONE";
+};
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
