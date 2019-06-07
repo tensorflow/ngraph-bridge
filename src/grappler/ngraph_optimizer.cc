@@ -44,6 +44,7 @@ Status NgraphOptimizer::Init(
   if (config == nullptr) {
     NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: config is null ";
   } else {
+    NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: config is not null ";
     const auto params = config->parameter_map();
     if (params.count("ngraph_backend")) {
       config_backend_name = params.at("ngraph_backend").s();
@@ -85,8 +86,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     }
     config_map = BackendManager::GetBackendAttributes(
         backend_name);  // SplitBackendConfig
-    backend_name = config_map["backend_name"];
-    config_map.erase("backend_name");
+    backend_name = config_map["ngraph_backend"];
+    config_map.erase("ngraph_backend");
   }
   NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: backend_name " << backend_name;
 
@@ -232,6 +233,9 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  if(config_map.empty()) {
+    cout<<"Config map is empty\n";
+  }
   TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
