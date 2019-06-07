@@ -89,11 +89,10 @@ endif()
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
+add_library(${LIB_NAME} SHARED ${SRC})
+
 if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-    add_library(${LIB_NAME} SHARED ${SRC})
     add_library(${LIB_NAME_STATIC} STATIC ${SRC})
-else()
-    add_library(${LIB_NAME} SHARED ${SRC})
 endif()
 
 target_link_libraries( ${LIB_NAME} ngraph_logger) 
@@ -103,16 +102,20 @@ target_link_libraries( ${LIB_NAME} absl_algorithm )
 target_link_libraries( ${LIB_NAME} absl_container )
 target_link_libraries( ${LIB_NAME} absl_strings )
 
-target_link_libraries( ${LIB_NAME_STATIC} ngraph_logger) 
-target_link_libraries( ${LIB_NAME_STATIC} tensorflow_framework_lib )
-target_link_libraries( ${LIB_NAME_STATIC} ngraph_lib )
-target_link_libraries( ${LIB_NAME_STATIC} absl_algorithm )
-target_link_libraries( ${LIB_NAME_STATIC} absl_container )
-target_link_libraries( ${LIB_NAME_STATIC} absl_strings )
+if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    target_link_libraries( ${LIB_NAME_STATIC} ngraph_logger) 
+    target_link_libraries( ${LIB_NAME_STATIC} tensorflow_framework_lib )
+    target_link_libraries( ${LIB_NAME_STATIC} ngraph_lib )
+    target_link_libraries( ${LIB_NAME_STATIC} absl_algorithm )
+    target_link_libraries( ${LIB_NAME_STATIC} absl_container )
+    target_link_libraries( ${LIB_NAME_STATIC} absl_strings )
+endif()
 
 target_compile_definitions( 
     ${LIB_NAME} PRIVATE
     _GLIBCXX_USE_CXX11_ABI=${TensorFlow_CXX_ABI}
+)
+target_compile_definitions( 
     ${LIB_NAME_STATIC} PRIVATE
     _GLIBCXX_USE_CXX11_ABI=${TensorFlow_CXX_ABI}
 )
@@ -144,9 +147,9 @@ message(STATUS "NGTF_INSTALL_LIB_DIR: ${NGTF_INSTALL_LIB_DIR}")
 install(TARGETS ${LIB_NAME} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
 install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
-# First install the libngraph_bridge.a and headers
+# First install the libngraph_bridge_static.a and headers
 install(TARGETS ${LIB_NAME_STATIC} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
-install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
 
 # Next install all the other prerequisites
 if(OS_VERSION STREQUAL "\"centos\"")
