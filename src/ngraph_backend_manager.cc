@@ -150,8 +150,8 @@ unordered_map<string, string> BackendManager::GetBackendAttributes(
 }
 
 string BackendManager::GetBackendCreationType(
-    string backend_name,
-    unordered_map<string, string> optional_attribute_values) {
+    const string& backend_name,
+    unordered_map<string, string>& optional_attribute_values) {
   return BackendManager::GetBackendConfig(backend_name)
       ->join(optional_attribute_values);
 }
