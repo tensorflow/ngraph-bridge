@@ -36,7 +36,7 @@ add_library(tensorflow_cc_lib SHARED IMPORTED)
 set_target_properties(
     tensorflow_cc_lib
     PROPERTIES IMPORTED_LOCATION
-    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.1
 )
 
 set(SRC
@@ -95,7 +95,7 @@ if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ngraph_lib
         libgtest
         pthread
-        tensorflow_framework_lib
+        ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
     )
 else()
@@ -105,7 +105,7 @@ else()
         ngraph_lib
         libgtest
         pthread
-        tensorflow_framework_lib
+        ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
     )
 endif()
