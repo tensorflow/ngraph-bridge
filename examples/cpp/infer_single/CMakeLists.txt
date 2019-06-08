@@ -62,7 +62,7 @@ target_link_libraries(
     ngraph_bridge
     ngraph_lib
     pthread
-    tensorflow_framework_lib
+    ${TensorFlow_FRAMEWORK_LIBRARY}
     tensorflow_cc_lib
 )
 
