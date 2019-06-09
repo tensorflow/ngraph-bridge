@@ -134,7 +134,8 @@ std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
 
 int main(int argc, char** argv) {
   string image = "image_00000.png";
-  string graph =       "resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_"
+  string graph =
+      "resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_"
       "fullyquantized_02122019.pb";
   string labels = "";
   int input_width = 224;
@@ -234,9 +235,6 @@ int main(int argc, char** argv) {
         const tf::Tensor& resized_tensor = resized_tensors[0];
         string input_layer = "input";
         std::vector<tf::Tensor> outputs;
-
-        // string output_layer = "InceptionV3/Predictions/Reshape_1";
-        string output_layer = "resnet_v1_50/predictions/Softmax";
 
         tf::Status run_status = session->Run({{input_layer, resized_tensor}},
                                              {output_layer}, {}, &outputs);
