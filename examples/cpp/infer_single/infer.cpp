@@ -14,19 +14,20 @@
  * limitations under the License.
  *******************************************************************************/
 
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/default_device.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
-
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/public/session.h"
+#include "tensorflow/core/util/command_line_flags.h"
 
 #include <thread>
 #include "ngraph/event_tracing.hpp"
@@ -132,6 +133,48 @@ std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
 }
 
 int main(int argc, char** argv) {
+  string image = "image_00000.png";
+  string graph =       "resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_"
+      "fullyquantized_02122019.pb";
+  string labels = "";
+  int input_width = 224;
+  int input_height = 224;
+  float input_mean = 128.0;
+  float input_std = 1;
+  string input_layer = "input";
+  string output_layer = "resnet_v1_50/predictions/Softmax";
+  bool use_NCHW = true;
+
+  std::vector<tf::Flag> flag_list = {
+      tf::Flag("image", &image, "image to be processed"),
+      tf::Flag("graph", &graph, "graph to be executed"),
+      tf::Flag("labels", &labels, "name of file containing labels"),
+      tf::Flag("input_width", &input_width,
+               "resize image to this width in pixels"),
+      tf::Flag("input_height", &input_height,
+               "resize image to this height in pixels"),
+      tf::Flag("input_mean", &input_mean, "scale pixel values to this mean"),
+      tf::Flag("input_std", &input_std,
+               "scale pixel values to this std deviation"),
+      tf::Flag("input_layer", &input_layer, "name of input layer"),
+      tf::Flag("output_layer", &output_layer, "name of output layer"),
+      tf::Flag("use_NCHW", &use_NCHW, "Input data in NCHW format"),
+  };
+
+  string usage = tensorflow::Flags::Usage(argv[0], flag_list);
+  const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
+  if (!parse_result) {
+    std::cout << usage;
+    return -1;
+  }
+
+  // We need to call this to set up global state for TensorFlow.
+  tensorflow::port::InitMain(argv[0], &argc, &argv);
+  if (argc > 1) {
+    std::cout << "Error: Unknown argument " << argv[1] << "\n" << usage;
+    return -1;
+  }
+
   const char* backend = "CPU";
   int num_images_for_each_thread = 10;
 
@@ -152,13 +195,10 @@ int main(int argc, char** argv) {
 
   // Run the MatMul example
   // auto session = CreateSession("inception_v3_2016_08_28_frozen.pb");
-  auto session = CreateSession(
-      "resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_"
-      "fullyquantized_02122019.pb");
+  auto session = CreateSession(graph);
   session_create_event.Stop();
   ngraph::Event::write_trace(session_create_event);
 
-#if !defined(TEST_SINGLE_INSTANCE)
   // Create threads and fire up the images
   const int NUM_THREADS = 2;
   std::thread threads[NUM_THREADS];
@@ -166,7 +206,7 @@ int main(int argc, char** argv) {
   std::cout << "Running inferences\n";
 
   for (int i = 0; i < NUM_THREADS; i++) {
-    threads[i] = std::thread([i, num_images_for_each_thread, &session] {
+    threads[i] = std::thread([=, &session] {
       for (int iter_count = 0; iter_count < num_images_for_each_thread;
            iter_count++) {
         std::ostringstream oss;
@@ -175,14 +215,8 @@ int main(int argc, char** argv) {
 
         // Read image
         std::vector<tf::Tensor> resized_tensors;
-        // tf::Status read_tensor_status = ReadTensorFromImageFile(
-        //     "grace_hopper.jpg", 299 /*input_height*/, 299 /*input_width*/,
-        //     0.0 /*input_mean*/, 255 /*input_std*/, true /*bool use_NCHW*/,
-        //     &resized_tensors);
-
         tf::Status read_tensor_status = ReadTensorFromImageFile(
-            "image_00000.png", 224 /*input_height*/, 224 /*input_width*/,
-            128.0 /*input_mean*/, 1 /*input_std*/, true /*bool use_NCHW*/,
+            image, input_height, input_width, input_mean, input_std, use_NCHW,
             &resized_tensors);
 
         if (!read_tensor_status.ok()) {
@@ -222,56 +256,6 @@ int main(int argc, char** argv) {
   for (auto& next_thread : threads) {
     next_thread.join();
   }
-
-#else   // !defined(TEST_SINGLE_INSTANCE)
-  for (int iter_count = 0; iter_count < 10; iter_count++) {
-    std::ostringstream oss;
-    oss << "Read"
-        << " [" << iter_count << "]";
-    ngraph::Event read_event(oss.str(), "Image reading", "");
-
-    // Get the image from disk as a float array of numbers, resized and
-    // normalized to the specifications the main graph expects.
-    std::vector<tf::Tensor> resized_tensors;
-    tf::Status read_tensor_status = ReadTensorFromImageFile(
-        "grace_hopper.jpg", 299 /*input_height*/, 299 /*input_width*/,
-        0.0 /*input_mean*/, 255 /*input_std*/, &resized_tensors);
-    if (!read_tensor_status.ok()) {
-      LOG(ERROR) << read_tensor_status;
-      continue;
-    }
-    read_event.Stop();
-
-    oss.clear();
-    oss.seekp(0);
-    oss << "Infer"
-        << " [" << iter_count << "]";
-    ngraph::Event infer_event(oss.str(), "Inference", "");
-
-    const tf::Tensor& resized_tensor = resized_tensors[0];
-    string input_layer = "input";
-    std::vector<tf::Tensor> outputs;
-    string output_layer = "InceptionV3/Predictions/Reshape_1";
-    tf::Status run_status = session->Run({{input_layer, resized_tensor}},
-                                         {output_layer}, {}, &outputs);
-    if (!run_status.ok()) {
-      LOG(ERROR) << "Running model failed: " << run_status;
-      continue;
-    }
-
-    // Do something interesting with the results we've generated.
-    string labels = "imagenet_slim_labels.txt";
-    tf::Status print_status = PrintTopLabels(outputs, labels);
-    if (!print_status.ok()) {
-      LOG(ERROR) << "Running print failed: " << print_status;
-      continue;
-    }
-    infer_event.Stop();
-    // Write the events
-    ngraph::Event::write_trace(read_event);
-    ngraph::Event::write_trace(infer_event);
-  }
-#endif  // !defined(TEST_SINGLE_INSTANCE)
 
   std::cout << "Done\n";
   return 0;
