@@ -40,7 +40,7 @@ set_target_properties(
 )
 
 set(SRC
-    infer.cpp
+    infer_single.cpp
     ../label_image_utils.cc
 )
 
