@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,19 @@
 #include "../test_utilities.h"
 #include "gtest/gtest.h"
 #include "ngraph_assign_clusters.h"
-#include "ngraph_backend_manager.h"
 #include "ngraph_backend_config.h"
+#include "ngraph_backend_manager.h"
 #include "ngraph_mark_for_clustering.h"
 
 #include "tensorflow/cc/client/client_session.h"
 #include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/tensor.h"
-#include "tensorflow/core/public/session.h"
 #include "tensorflow/core/graph/graph.h"
-#include "tensorflow/core/protobuf/config.pb.h"
-#include "tensorflow/core/platform/protobuf.h"
-#include "tensorflow/core/grappler/optimizers/meta_optimizer.h"
 #include "tensorflow/core/grappler/grappler_item.h"
+#include "tensorflow/core/grappler/optimizers/meta_optimizer.h"
+#include "tensorflow/core/platform/protobuf.h"
+#include "tensorflow/core/protobuf/config.pb.h"
+#include "tensorflow/core/public/session.h"
 #include "tf_graph_writer.h"
 
 using namespace std;
@@ -43,15 +43,14 @@ namespace testing {
 
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 
-
-TEST(GrapplerConfig, SimpleGraph1) {
+TEST(GrapplerConfig, RConfig1) {
+  // Create Graph
   Scope root = Scope::NewRootScope();
   auto A = ops::Const(root.WithOpName("A"), {3.f, 2.f});
   auto B = ops::Const(root.WithOpName("B"), {3.f, 2.f});
   auto Add = ops::Add(root.WithOpName("Add"), A, B);
   auto C = ops::Const(root.WithOpName("C"), {3.f, 2.f});
   auto Mul = ops::Mul(root.WithOpName("Mul"), Add, C);
-
 
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(root.ToGraph(&graph));
@@ -61,6 +60,7 @@ TEST(GrapplerConfig, SimpleGraph1) {
     node->set_requested_device("CPU");
   }
 
+  // Create GraphDef and Grappler
   grappler::GrapplerItem item;
   graph.ToGraphDef(&item.graph);
   ConfigProto config_proto;
@@ -81,27 +81,45 @@ TEST(GrapplerConfig, SimpleGraph1) {
   custom_config->set_name("ngraph-optimizer");
   (*custom_config->mutable_parameter_map())["ngraph_backend"] = backend_name;
   (*custom_config->mutable_parameter_map())["_ngraph_device_id"] = device_id;
-  (*custom_config->mutable_parameter_map())["_ngraph_ice_cores"] = num_ice_cores;
-  (*custom_config->mutable_parameter_map())["_ngraph_max_batch_size"] = max_batch_size;
+  (*custom_config->mutable_parameter_map())["_ngraph_ice_cores"] =
+      num_ice_cores;
+  (*custom_config->mutable_parameter_map())["_ngraph_max_batch_size"] =
+      max_batch_size;
 
+  // Run grappler
   tensorflow::grappler::MetaOptimizer optimizer(nullptr, config_proto);
   GraphDef output;
-  const Status status = optimizer.Optimize(nullptr, item, &output);
-  ASSERT_OK(status);
+  // const Status status = optimizer.Optimize(nullptr, item, &output);
+  ASSERT_OK(optimizer.Optimize(nullptr, item, &output));
 
-  for (auto node : graph.op_nodes()) {
-    auto node_name = node->name();
-    cout << "node name " << node->name();
-    cout << "\nnode type "<< node->type_string();}
-//     if (node_name == "VarX")
-//       ASSERT_EQ("NGraphVariable", node->type_string());
-//     else if (node_name == "VarY")
-//       ASSERT_NE("NGraphVariable", node->type_string());
-//     else if (node_name == "AssignX")
-//       ASSERT_EQ("NGraphAssign", node->type_string());
-//     else if (node_name == "AssignY")
-//       ASSERT_NE("NGraphAssign", node->type_string());
-//   }
+  // GraphDef to Graph
+  Graph output_graph(OpRegistry::Global());
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  ASSERT_OK(ConvertGraphDefToGraph(opts, output, &output_graph));
+
+  // There is only one node in the graph
+  // And it is an NGraphEncapsulateOp
+  ASSERT_EQ(output_graph.num_op_nodes(), 1);
+  Node* ng_encap = nullptr;
+
+  // TODO(malikshr) : Find a way to avoid loop
+  for (auto node : output_graph.op_nodes()) {
+    ng_encap = node;
+  }
+  ASSERT_NE(ng_encap, nullptr);
+  string ng_backend, ng_device_id, ng_ice_cores, ng_max_batch_size;
+
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_ice_cores", &ng_ice_cores));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_max_batch_size",
+                        &ng_max_batch_size));
+
+  ASSERT_EQ(ng_backend, "NNPI");
+  ASSERT_EQ(ng_device_id, "1");
+  ASSERT_EQ(ng_ice_cores, "4");
+  ASSERT_EQ(ng_max_batch_size, "64");
 }
 
 }  // namespace testing

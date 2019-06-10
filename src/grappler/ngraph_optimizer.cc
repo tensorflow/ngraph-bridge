@@ -114,9 +114,9 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
   bool already_processed = IsProcessedByNgraphPass(&graph);
   if (ngraph_not_enabled || already_processed) {
-    NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Not running through nGraph. nGraph not enabled: "
-                   << ngraph_not_enabled
-                   << " Already processed: " << already_processed;
+    NGRAPH_VLOG(0)
+        << "NGTF_OPTIMIZER: Not running through nGraph. nGraph not enabled: "
+        << ngraph_not_enabled << " Already processed: " << already_processed;
     NGraphClusterManager::EvictAllClusters();
     graph.ToGraphDef(output);
     return Status::OK();
@@ -233,8 +233,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  if(config_map.empty()) {
-    cout<<"Config map is empty\n";
+  if (config_map.empty()) {
+    cout << "Config map is empty\n";
   }
   TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
   if (DumpEncapsulatedGraphs()) {
