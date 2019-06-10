@@ -29,25 +29,36 @@ BackendConfig::BackendConfig(string backend_name) {
 }
 
 string BackendConfig::join(unordered_map<string, string> optional_parameters) {
-  NGRAPH_VLOG(3) << "BackendConfig::join()";
-  // TODO(malikshr): If _ngraph_device_config not found
-  return backend_name_ + ":" + optional_parameters["_ngraph_device_config"];
+  NGRAPH_VLOG(3) << "JOIN";
+  // If _ngraph_device_config is not found
+  // throw an error
+  try {
+    optional_parameters.at("_ngraph_device_config");
+  } catch (std::out_of_range e1) {
+    throw std::out_of_range("Attribute _ngraph_device_config not found");
+  }
+  return backend_name_ + ":" + optional_parameters.at("_ngraph_device_config");
 }
 
 unordered_map<string, string> BackendConfig::split(string backend_config) {
-  NGRAPH_VLOG(3) << "BackendConfig::split()";
-
-  // TODO(malikshr): If colon not found
-  int delimiter_index = backend_config.find(':');
-  string backend_name = backend_config.substr(0, delimiter_index);
-  NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
-
-  string device_config = backend_config.substr(delimiter_index + 1);
-  NGRAPH_VLOG(3) << "Got Device Config  " << device_config;
-
+  NGRAPH_VLOG(3) << "SPLIT";
   unordered_map<string, string> backend_parameters;
-  backend_parameters["ngraph_backend"] = backend_name;
-  backend_parameters["_ngraph_device_config"] = device_config;
+
+  int delimiter_index = backend_config.find(':');
+  if (delimiter_index < 0) {
+    // ":" not found
+    backend_parameters["ngraph_backend"] = backend_config;
+    backend_parameters["_ngraph_device_config"] = "";
+  } else {
+    backend_parameters["ngraph_backend"] =
+        backend_config.substr(0, delimiter_index);
+    backend_parameters["_ngraph_device_config"] =
+        backend_config.substr(delimiter_index + 1);
+  }
+
+  NGRAPH_VLOG(3) << "Got Backend Name " << backend_parameters["ngraph_backend"];
+  NGRAPH_VLOG(3) << "Got Device Config  "
+                 << backend_parameters["_ngraph_device_config"];
 
   return backend_parameters;
 }
@@ -68,7 +79,14 @@ BackendNNPIConfig::BackendNNPIConfig() : BackendConfig("NNPI") {
 
 string BackendNNPIConfig::join(
     unordered_map<string, string> optional_parameters) {
-  return backend_name_ + ":" + optional_parameters["_ngraph_device_id"];
+  // If _ngraph_device_id is not found
+  // throw an error
+  try {
+    optional_parameters.at("_ngraph_device_id");
+  } catch (std::out_of_range e1) {
+    throw std::out_of_range("Attribute _ngraph_device_id not found");
+  }
+  return backend_name_ + ":" + optional_parameters.at("_ngraph_device_id");
 
   // Once the backend api for the other attributes like ice cores
   // and max batch size is fixed we change this

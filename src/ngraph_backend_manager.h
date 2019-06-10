@@ -97,6 +97,7 @@ class BackendManager {
   static unordered_set<string> ng_supported_backends_;
 
   // map of cached backend config objects
+  // TODO(malikshr) : Add lock
   static unordered_map<string, BackendConfig*> ng_backendconfig_map_;
 
   // Map of backends and their reference counts
