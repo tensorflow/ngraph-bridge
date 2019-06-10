@@ -18,11 +18,9 @@
 
 #include <unistd.h>
 #include <chrono>
-#include <fstream>
+#include <functional>
 #include <iostream>
 #include <memory>
-#include <mutex>
-#include <string>
 #include <string>
 #include <thread>
 
@@ -33,20 +31,44 @@ using tensorflow::Status;
 using tensorflow::Session;
 using std::string;
 using std::unique_ptr;
+using std::thread;
+using std::atomic;
+using std::function;
 
 namespace infer_multiple_networks {
 
 class InferenceEngine {
  public:
-  InferenceEngine(const string& backend);
-  Status Load(const string& network, int input_width, int input_height,
-              float input_mean, float input_std, const string& input_layer,
-              const string& output_layer, bool use_NCHW);
+  InferenceEngine(const string& name, const string& backend);
+
+  Status Load(const string& network, const string& image_file, int input_width,
+              int input_height, float input_mean, float input_std,
+              const string& input_layer, const string& output_layer,
+              bool use_NCHW);
+
+  Status Start();
+  Status Start(const std::function<void(int)>& step_callback);
+  Status Stop();
 
  private:
   Status CreateSession(const string& network, unique_ptr<Session>& session);
 
+  const string m_name;
   unique_ptr<Session> m_session;
+  void ThreadMain();
+  thread m_worker;
+  atomic<bool> m_terminate_worker{false};
+  std::function<void(int)> m_step_callback{nullptr};
+
+  // Image relatd info
+  string m_image_file;
+  int m_input_width;
+  int m_input_height;
+  float m_input_mean;
+  float m_input_std;
+  string m_input_layer;
+  string m_output_layer;
+  bool m_use_NCHW;
 };
 
 }  // namespace infer_multiple_networks
