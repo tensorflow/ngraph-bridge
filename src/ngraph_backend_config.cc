@@ -30,8 +30,13 @@ BackendConfig::BackendConfig(string backend_name) {
 
 string BackendConfig::join(unordered_map<string, string> optional_parameters) {
   NGRAPH_VLOG(3) << "JOIN";
-  // TODO(malikshr): If _ngraph_device_config is not found
-  // throws an error
+  // If _ngraph_device_config is not found
+  // throw an error
+  try {
+    optional_parameters.at("_ngraph_device_config");
+  } catch (std::out_of_range e1) {
+    throw std::out_of_range("Attribute _ngraph_device_config not found");
+  }
   return backend_name_ + ":" + optional_parameters.at("_ngraph_device_config");
 }
 
@@ -74,6 +79,13 @@ BackendNNPIConfig::BackendNNPIConfig() : BackendConfig("NNPI") {
 
 string BackendNNPIConfig::join(
     unordered_map<string, string> optional_parameters) {
+  // If _ngraph_device_id is not found
+  // throw an error
+  try {
+    optional_parameters.at("_ngraph_device_id");
+  } catch (std::out_of_range e1) {
+    throw std::out_of_range("Attribute _ngraph_device_id not found");
+  }
   return backend_name_ + ":" + optional_parameters.at("_ngraph_device_id");
 
   // Once the backend api for the other attributes like ice cores
