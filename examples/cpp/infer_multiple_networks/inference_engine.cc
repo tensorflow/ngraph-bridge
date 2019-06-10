@@ -135,7 +135,7 @@ void InferenceEngine::ThreadMain() {
 
     // Check if we are asked to terminate
     if (m_terminate_worker) {
-      cout << "[" << m_name << "] m_terminate_worker: SIgnaled" << std::endl;
+      cout << "[" << m_name << "] m_terminate_worker: Signaled" << std::endl;
       break;
     }
   }
