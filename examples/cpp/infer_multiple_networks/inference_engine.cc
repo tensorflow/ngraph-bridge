@@ -14,14 +14,14 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <sstream>
 #include <vector>
 
 #include "inference_engine.h"
-#include "version.h"
 #include "ngraph/event_tracing.hpp"
+#include "version.h"
 
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/protobuf/rewriter_config.pb.h"
@@ -48,15 +48,13 @@ extern tf::Status ReadTensorFromImageFile(const string& file_name,
 
 namespace infer_multiple_networks {
 
-InferenceEngine::InferenceEngine(const string& name, const string& backend) 
-  : m_name(name) {
-
-}
-Status InferenceEngine::Load(const string& network, const string& image_file, int input_width,
-                             int input_height, float input_mean,
-                             float input_std, const string& input_layer,
+InferenceEngine::InferenceEngine(const string& name, const string& backend)
+    : m_name(name) {}
+Status InferenceEngine::Load(const string& network, const string& image_file,
+                             int input_width, int input_height,
+                             float input_mean, float input_std,
+                             const string& input_layer,
                              const string& output_layer, bool use_NCHW) {
-
   // Load the network
   TF_CHECK_OK(CreateSession(network, m_session));
 
@@ -73,77 +71,81 @@ Status InferenceEngine::Load(const string& network, const string& image_file, in
   // Now compile the graph if needed
   // This would be useful to detect errors early. For a graph
   // that had already undergone TensorFlow to nGraph (may be via tf2ngraph.py)
-  // won't need any compilation though as that graph will most likely have 
-  // the executable available as well 
+  // won't need any compilation though as that graph will most likely have
+  // the executable available as well
   // TODO
-  
+
   return Status::OK();
 }
 
-Status InferenceEngine::Start(const function<void(int)>& step_callback){
-    m_step_callback = step_callback;
-    return Start();
+InferenceEngine::~InferenceEngine() {
+  if (m_worker.joinable()) {
+    m_worker.join();
+  }
 }
 
-Status InferenceEngine::Start(){
-    thread new_worker(&InferenceEngine::ThreadMain, this);
-    m_worker = move(new_worker);
-    return Status::OK();
+Status InferenceEngine::Start(const function<void(int)>& step_callback) {
+  m_step_callback = step_callback;
+  return Start();
 }
 
-void InferenceEngine::ThreadMain(){
-    m_terminate_worker = false;
-    int step_count = 0;
-    while(true){
-        // Read the image
-        cout << "[" << m_name << "] " << step_count << ": Reading image\n";
-        ostringstream ss;
-        ss << "[" << m_name << "] Read";
-        ngraph::Event read_event(ss.str(), "", "");
+Status InferenceEngine::Start() {
+  thread new_worker(&InferenceEngine::ThreadMain, this);
+  m_worker = move(new_worker);
+  return Status::OK();
+}
 
-        std::vector<tf::Tensor> resized_tensors;
-        TF_CHECK_OK(ReadTensorFromImageFile(
-            m_image_file, m_input_height, m_input_width, m_input_mean, m_input_std, m_use_NCHW,
-            &resized_tensors));
+void InferenceEngine::ThreadMain() {
+  m_terminate_worker = false;
+  int step_count = 0;
+  while (true) {
+    // Read the image
+    cout << "[" << m_name << "] " << step_count << ": Reading image\n";
+    ostringstream ss;
+    ss << "[" << m_name << "] Read";
+    ngraph::Event read_event(ss.str(), "", "");
 
-        read_event.Stop();
+    std::vector<tf::Tensor> resized_tensors;
+    TF_CHECK_OK(ReadTensorFromImageFile(
+        m_image_file, m_input_height, m_input_width, m_input_mean, m_input_std,
+        m_use_NCHW, &resized_tensors));
 
-        // Submit for inference
-        cout << "[" << m_name  << "] " << step_count << ": Submit image for inference\n";
-        ostringstream ss2;
-        ss2 << "[" << m_name << "] Infer";
-        ngraph::Event infer_event(ss2.str(), "", "");
+    read_event.Stop();
 
-        const tf::Tensor& resized_tensor = resized_tensors[0];
-        std::vector<Tensor> outputs;
-        TF_CHECK_OK(m_session->Run({{m_input_layer, resized_tensor}},
-                                        {m_output_layer}, {}, &outputs));
+    // Submit for inference
+    cout << "[" << m_name << "] " << step_count
+         << ": Submit image for inference\n";
+    ostringstream ss2;
+    ss2 << "[" << m_name << "] Infer";
+    ngraph::Event infer_event(ss2.str(), "", "");
 
-        infer_event.Stop();
+    const tf::Tensor& resized_tensor = resized_tensors[0];
+    std::vector<Tensor> outputs;
+    TF_CHECK_OK(m_session->Run({{m_input_layer, resized_tensor}},
+                               {m_output_layer}, {}, &outputs));
 
-        ngraph::Event::write_trace(read_event);
-        ngraph::Event::write_trace(infer_event);
-        if (m_step_callback != nullptr){
-            m_step_callback(step_count);
-        }
-        step_count++;
+    infer_event.Stop();
 
-        //Check if we are asked to terminate
-        if (m_terminate_worker){
-            cout << "[" << m_name << "] m_terminate_worker: SIgnaled" << std::endl;
-            break;
-        }
+    ngraph::Event::write_trace(read_event);
+    ngraph::Event::write_trace(infer_event);
+    if (m_step_callback != nullptr) {
+      m_step_callback(step_count);
     }
-    cout << "[" << m_name << "] Worker terminating\n";
+    step_count++;
+
+    // Check if we are asked to terminate
+    if (m_terminate_worker) {
+      cout << "[" << m_name << "] m_terminate_worker: SIgnaled" << std::endl;
+      break;
+    }
+  }
+  cout << "[" << m_name << "] Worker terminating\n";
 }
 
-Status InferenceEngine::Stop(){
-    cout << "[" << m_name << "] Stop called" << std::endl;
-    m_terminate_worker = true;
-    if (m_worker.joinable()){
-        m_worker.join();
-    }
-    return Status::OK();
+Status InferenceEngine::Stop() {
+  cout << "[" << m_name << "] Stop called" << std::endl;
+  m_terminate_worker = true;
+  return Status::OK();
 }
 
 Status InferenceEngine::CreateSession(const string& graph_filename,

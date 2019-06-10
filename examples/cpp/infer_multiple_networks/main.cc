@@ -99,6 +99,7 @@ int main(int argc, char** argv) {
   string input_layer = "input";
   string output_layer = "InceptionV3/Predictions/Reshape_1";
   bool use_NCHW = false;
+  int iteration_count = 10;
 
   std::vector<tf::Flag> flag_list = {
       tf::Flag("image", &image, "image to be processed"),
@@ -114,6 +115,8 @@ int main(int argc, char** argv) {
       tf::Flag("input_layer", &input_layer, "name of input layer"),
       tf::Flag("output_layer", &output_layer, "name of output layer"),
       tf::Flag("use_NCHW", &use_NCHW, "Input data in NCHW format"),
+      tf::Flag("iteration_count", &iteration_count,
+               "How many times to repeat the inference"),
   };
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -153,9 +156,8 @@ int main(int argc, char** argv) {
                                   output_layer, use_NCHW));
 
   bool engine_1_running = true;
-
   infer_engine_1.Start([&](int step_count) {
-    if (step_count == 9) {
+    if (step_count == (iteration_count - 1)) {
       infer_engine_1.Stop();
       engine_1_running = false;
     }
@@ -163,7 +165,7 @@ int main(int argc, char** argv) {
 
   bool engine_2_running = true;
   infer_engine_2.Start([&](int step_count) {
-    if (step_count == 9) {
+    if (step_count == (iteration_count - 1)) {
       infer_engine_2.Stop();
       engine_2_running = false;
     }
@@ -171,7 +173,7 @@ int main(int argc, char** argv) {
 
   bool engine_3_running = true;
   infer_engine_3.Start([&](int step_count) {
-    if (step_count == 9) {
+    if (step_count == (iteration_count - 1)) {
       infer_engine_3.Stop();
       engine_3_running = false;
     }
