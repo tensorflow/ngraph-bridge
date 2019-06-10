@@ -111,7 +111,7 @@ if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_library(${LIB_NAME_STATIC} STATIC ${SRC})
 
     target_link_libraries( ${LIB_NAME_STATIC} ngraph_logger) 
-    target_link_libraries( ${LIB_NAME_STATIC} ${TensorFlow_FRAMEWORK_LIBRARY )
+    target_link_libraries( ${LIB_NAME_STATIC} ${TensorFlow_FRAMEWORK_LIBRARY})
     target_link_libraries( ${LIB_NAME_STATIC} ngraph_lib )
     target_link_libraries( ${LIB_NAME_STATIC} absl_algorithm )
     target_link_libraries( ${LIB_NAME_STATIC} absl_container )
