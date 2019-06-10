@@ -61,7 +61,7 @@ class InferenceEngine {
   atomic<bool> m_terminate_worker{false};
   std::function<void(int)> m_step_callback{nullptr};
 
-  // Image relatd info
+  // Image related info
   string m_image_file;
   int m_input_width;
   int m_input_height;
