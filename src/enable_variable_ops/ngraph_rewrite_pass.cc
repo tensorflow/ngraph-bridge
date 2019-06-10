@@ -276,8 +276,8 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
-    TF_RETURN_IF_ERROR(
-        MarkForClustering(options.graph->get(), skip_these_nodes, backend_name);
+    TF_RETURN_IF_ERROR(MarkForClustering(options.graph->get(), skip_these_nodes,
+                                         backend_name));
     if (DumpMarkedGraphs()) {
       DumpGraphs(options, idx, "marked", "Graph Marked for Clustering");
     }
@@ -297,8 +297,8 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-    TF_RETURN_IF_ERROR(
-        EncapsulateClusters(options.graph->get(), idx, fdeflib_new, config_map);
+    TF_RETURN_IF_ERROR(EncapsulateClusters(options.graph->get(), idx,
+                                           fdeflib_new, config_map));
     // TODO: not using fdeflib_new in this path. Only grappler path uses it
     free(fdeflib_new);
     if (DumpEncapsulatedGraphs()) {
