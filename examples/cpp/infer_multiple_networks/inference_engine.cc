@@ -158,7 +158,7 @@ Status InferenceEngine::CreateSession(const string& graph_filename,
       ->mutable_rewrite_options()
       ->set_constant_folding(RewriterConfig::OFF);
 
-  // The following is related to Grapller - which we are turning off
+  // The following is related to Grappler - which we are turning off
   // Until we get a library fully running
   if (tf::ngraph_bridge::ngraph_tf_is_grappler_enabled()) {
     options.config.mutable_graph_options()
