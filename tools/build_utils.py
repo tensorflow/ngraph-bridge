@@ -146,9 +146,9 @@ def setup_venv(venv_dir):
         "termcolor>=1.1.0",
         "protobuf>=3.6.1",
         "keras_applications>=1.0.6",
-        "--no-deps",
+        "--no-deps --no-cache-dir",
         "keras_preprocessing==1.0.5",
-        "--no-deps",
+        "--no-deps --no-cache-dir",
         "yapf==0.26.0",
     ]
     command_executor(package_list)

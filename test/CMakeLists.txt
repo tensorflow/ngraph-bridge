@@ -51,7 +51,6 @@ set(SRC
     graph_rewrites/encapsulate_clusters_test.cc
     graph_rewrites/disable_ops_test.cc
     graph_rewrites/mark_for_clustering_test.cc
-    graph_rewrites/config_for_grappler_test.cc
     test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
@@ -62,6 +61,10 @@ set(SRC
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/capture_variables.cc)
+endif()
+
+if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+    list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")

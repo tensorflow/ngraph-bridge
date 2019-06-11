@@ -43,6 +43,11 @@ namespace testing {
 
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 
+// This test can only be run when nGraph-bridge is built with grappler
+// When running with other modes, grappler's ngraph-optimizer is not
+// run, none of the nodes are encapsulated, no attributes are attached
+// etc.,etc.
+
 TEST(GrapplerConfig, RConfig1) {
   // Create Graph
   Scope root = Scope::NewRootScope();
