@@ -91,10 +91,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // we will not do anything; all subsequent passes become a no-op.
   bool ngraph_not_enabled =
       (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
-  cout << " config enabled? " << config::IsEnabled() << endl;
-  cout << " NGRAPH_TF_DISABLE? "
-       << (std::getenv("NGRAPH_TF_DISABLE") == nullptr) << endl;
-
   bool already_processed = IsProcessedByNgraphPass(&graph);
   if (ngraph_not_enabled || already_processed) {
     NGRAPH_VLOG(0)
@@ -238,9 +234,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  if (config_map.empty()) {
-    cout << "Config map is empty\n";
-  }
   TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
