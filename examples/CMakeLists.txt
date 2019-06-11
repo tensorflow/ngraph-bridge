@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ******************************************************************************
-message(STATUS "C++ Examples will be built")
-add_subdirectory(infer_multiple_networks)
-add_subdirectory(infer_single)
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mnist)
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/mnist/mnist_deep_simplified.py
+        ${CMAKE_CURRENT_BINARY_DIR}/mnist/mnist_deep_simplified.py
+)

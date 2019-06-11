@@ -54,7 +54,8 @@ Status InferenceEngine::Load(const string& network, const string& image_file,
                              int input_width, int input_height,
                              float input_mean, float input_std,
                              const string& input_layer,
-                             const string& output_layer, bool use_NCHW) {
+                             const string& output_layer, bool use_NCHW,
+                             bool preload_images) {
   // Load the network
   TF_CHECK_OK(CreateSession(network, m_session));
 
@@ -67,7 +68,16 @@ Status InferenceEngine::Load(const string& network, const string& image_file,
   m_input_layer = input_layer;
   m_output_layer = output_layer;
   m_use_NCHW = use_NCHW;
+  m_preload_images = preload_images;
 
+  // Preload the image is requested
+  if (m_preload_images) {
+    std::vector<tf::Tensor> resized_tensors;
+    TF_CHECK_OK(ReadTensorFromImageFile(
+        m_image_file, m_input_height, m_input_width, m_input_mean, m_input_std,
+        m_use_NCHW, &resized_tensors));
+    m_image_to_repeat = resized_tensors[0];
+  }
   // Now compile the graph if needed
   // This would be useful to detect errors early. For a graph
   // that had already undergone TensorFlow to nGraph (may be via tf2ngraph.py)
@@ -98,40 +108,48 @@ Status InferenceEngine::Start() {
 void InferenceEngine::ThreadMain() {
   m_terminate_worker = false;
   int step_count = 0;
+
   while (true) {
-    // Read the image
-    cout << "[" << m_name << "] " << step_count << ": Reading image\n";
     ostringstream ss;
-    ss << "[" << m_name << "] Read";
-    ngraph::Event read_event(ss.str(), "", "");
+    ss << "[" << m_name << "] Iteration: " << step_count;
+    ngraph::Event itreation_event(ss.str(), "", "");
 
-    std::vector<tf::Tensor> resized_tensors;
-    TF_CHECK_OK(ReadTensorFromImageFile(
-        m_image_file, m_input_height, m_input_width, m_input_mean, m_input_std,
-        m_use_NCHW, &resized_tensors));
+    if (!m_preload_images){
+      // Read the image
+      cout << "[" << m_name << "] " << step_count << ": Reading image\n";
+      ngraph::Event read_event("Read", "", "");
 
-    read_event.Stop();
+      std::vector<tf::Tensor> resized_tensors;
+      TF_CHECK_OK(ReadTensorFromImageFile(
+          m_image_file, m_input_height, m_input_width, m_input_mean, m_input_std,
+          m_use_NCHW, &resized_tensors));
+
+      m_image_to_repeat = resized_tensors[0];
+      read_event.Stop();
+      ngraph::Event::write_trace(read_event);
+    }
 
     // Submit for inference
     cout << "[" << m_name << "] " << step_count
-         << ": Submit image for inference\n";
-    ostringstream ss2;
-    ss2 << "[" << m_name << "] Infer";
-    ngraph::Event infer_event(ss2.str(), "", "");
+        << ": Submit image for inference\n";
+    ngraph::Event infer_event("Infer", "", "");
 
-    const tf::Tensor& resized_tensor = resized_tensors[0];
+    const tf::Tensor& resized_tensor = m_image_to_repeat;
     std::vector<Tensor> outputs;
     TF_CHECK_OK(m_session->Run({{m_input_layer, resized_tensor}},
                                {m_output_layer}, {}, &outputs));
 
     infer_event.Stop();
 
-    ngraph::Event::write_trace(read_event);
     ngraph::Event::write_trace(infer_event);
+
     if (m_step_callback != nullptr) {
       m_step_callback(step_count);
     }
     step_count++;
+
+    itreation_event.Stop();
+    ngraph::Event::write_trace(itreation_event);
 
     // Check if we are asked to terminate
     if (m_terminate_worker) {

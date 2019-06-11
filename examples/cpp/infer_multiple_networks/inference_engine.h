@@ -29,6 +29,8 @@
 
 using tensorflow::Status;
 using tensorflow::Session;
+using tensorflow::Tensor;
+
 using std::string;
 using std::unique_ptr;
 using std::thread;
@@ -45,7 +47,7 @@ class InferenceEngine {
   Status Load(const string& network, const string& image_file, int input_width,
               int input_height, float input_mean, float input_std,
               const string& input_layer, const string& output_layer,
-              bool use_NCHW);
+              bool use_NCHW, bool preload_images);
 
   Status Start();
   Status Start(const std::function<void(int)>& step_callback);
@@ -70,6 +72,8 @@ class InferenceEngine {
   string m_input_layer;
   string m_output_layer;
   bool m_use_NCHW;
+  bool m_preload_images;
+  Tensor m_image_to_repeat;
 };
 
 }  // namespace infer_multiple_networks

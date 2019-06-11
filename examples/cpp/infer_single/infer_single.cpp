@@ -24,10 +24,8 @@
 #include "tensorflow/core/graph/default_device.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
-#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/init_main.h"
-#include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
@@ -36,10 +34,19 @@
 #include "ngraph_backend_manager.h"
 #include "version.h"
 
-#include "inference_engine.h"
-
 using namespace std;
 namespace tf = tensorflow;
+
+extern tf::Status LoadGraph(const string& graph_file_name,
+                            std::unique_ptr<tf::Session>* session,
+                            const tf::SessionOptions& options);
+
+extern tf::Status ReadTensorFromImageFile(const string& file_name,
+                                          const int input_height,
+                                          const int input_width,
+                                          const float input_mean,
+                                          const float input_std, bool use_NCHW,
+                                          std::vector<tf::Tensor>* out_tensors);
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
                                  const string& labels_file_name);
@@ -88,20 +95,56 @@ void PrintVersion() {
   PrintAvailableBackends();
 }
 
-int main(int argc, char** argv) {
-  string image = "grace_hopper.jpg";
-  string graph = "inception_v3_2016_08_28_frozen.pb";
-  string labels = "";
-  int input_width = 299;
-  int input_height = 299;
-  float input_mean = 0.0;
-  float input_std = 255;
-  string input_layer = "input";
-  string output_layer = "InceptionV3/Predictions/Reshape_1";
-  bool use_NCHW = false;
-  bool preload_images = true;
+std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
+  tf::SessionOptions options;
+  options.config.mutable_graph_options()
+      ->mutable_optimizer_options()
+      ->set_opt_level(tf::OptimizerOptions_Level_L0);
+  options.config.mutable_graph_options()
+      ->mutable_rewrite_options()
+      ->set_constant_folding(tf::RewriterConfig::OFF);
 
-  int iteration_count = 10;
+  // The following is related to Grapller - which we are turning off
+  // Until we get a library fully running
+  if (tf::ngraph_bridge::ngraph_tf_is_grappler_enabled()) {
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->add_custom_optimizers()
+        ->set_name("ngraph-optimizer");
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_min_graph_nodes(-1);
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_meta_optimizer_iterations(tf::RewriterConfig::ONE);
+  }
+
+  // Load the network
+  std::unique_ptr<tf::Session> session;
+  tf::Status load_graph_status = LoadGraph(graph_filename, &session, options);
+
+  if (!load_graph_status.ok()) {
+    LOG(ERROR) << load_graph_status;
+    return nullptr;
+  }
+  return std::move(session);
+}
+
+int main(int argc, char** argv) {
+  string image = "image_00000.png";
+  string graph =
+      "resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_"
+      "fullyquantized_02122019.pb";
+  string labels = "";
+  int input_width = 224;
+  int input_height = 224;
+  float input_mean = 128.0;
+  float input_std = 1;
+  string input_layer = "input";
+  string output_layer = "resnet_v1_50/predictions/Softmax";
+  bool use_NCHW = true;
 
   std::vector<tf::Flag> flag_list = {
       tf::Flag("image", &image, "image to be processed"),
@@ -117,10 +160,6 @@ int main(int argc, char** argv) {
       tf::Flag("input_layer", &input_layer, "name of input layer"),
       tf::Flag("output_layer", &output_layer, "name of output layer"),
       tf::Flag("use_NCHW", &use_NCHW, "Input data in NCHW format"),
-      tf::Flag("iteration_count", &iteration_count,
-               "How many times to repeat the inference"),
-      tf::Flag("preload_images", &preload_images,
-               "Repeat the same image for inference"),
   };
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -137,56 +176,85 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  // const char* backend = "CPU";
-  // if (SetNGraphBackend(backend) != tf::Status::OK()) {
-  //   std::cout << "Error: Cannot set the backend: " << backend << std::endl;
-  //   return -1;
-  // }
+  const char* backend = "CPU";
+  int num_images_for_each_thread = 10;
+
+  if (argc > 1) {
+    num_images_for_each_thread = atoi(argv[1]);
+  }
+
+  if (SetNGraphBackend(backend) != tf::Status::OK()) {
+    std::cout << "Error: Cannot set the backend: " << backend << std::endl;
+    return -1;
+  }
 
   std::cout << "Component versions\n";
   PrintVersion();
 
-  infer_multiple_networks::InferenceEngine infer_engine_1("engine_1", "CPU:0");
-  TF_CHECK_OK(infer_engine_1.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
-  infer_multiple_networks::InferenceEngine infer_engine_2("engine_2", "CPU:0");
-  TF_CHECK_OK(infer_engine_2.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
-  infer_multiple_networks::InferenceEngine infer_engine_3("engine_3", "CPU:0");
-  TF_CHECK_OK(infer_engine_3.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
+  std::cout << "\nCreating session\n";
+  ngraph::Event session_create_event("Session Create", "", "");
 
-  bool engine_1_running = true;
-  infer_engine_1.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      infer_engine_1.Stop();
-      engine_1_running = false;
-    }
-  });
+  // Run the MatMul example
+  // auto session = CreateSession("inception_v3_2016_08_28_frozen.pb");
+  auto session = CreateSession(graph);
+  session_create_event.Stop();
+  ngraph::Event::write_trace(session_create_event);
 
-  bool engine_2_running = true;
-  infer_engine_2.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      infer_engine_2.Stop();
-      engine_2_running = false;
-    }
-  });
+  // Create threads and fire up the images
+  const int NUM_THREADS = 2;
+  std::thread threads[NUM_THREADS];
 
-  bool engine_3_running = true;
-  infer_engine_3.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      infer_engine_3.Stop();
-      engine_3_running = false;
-    }
-  });
+  std::cout << "Running inferences\n";
 
-  while (engine_1_running || engine_2_running || engine_3_running) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  for (int i = 0; i < NUM_THREADS; i++) {
+    threads[i] = std::thread([=, &session] {
+      for (int iter_count = 0; iter_count < num_images_for_each_thread;
+           iter_count++) {
+        std::ostringstream oss;
+        oss << "Read(" << i << ") [" << iter_count << "]";
+        ngraph::Event read_event(oss.str(), "Image reading", "");
+
+        // Read image
+        std::vector<tf::Tensor> resized_tensors;
+        tf::Status read_tensor_status = ReadTensorFromImageFile(
+            image, input_height, input_width, input_mean, input_std, use_NCHW,
+            &resized_tensors);
+
+        if (!read_tensor_status.ok()) {
+          LOG(ERROR) << read_tensor_status;
+          continue;
+        }
+        read_event.Stop();
+
+        // Run inference
+        oss.clear();
+        oss.seekp(0);
+        oss << "Infer(" << i << ") [" << iter_count << "]";
+        ngraph::Event infer_event(oss.str(), "Inference", "");
+
+        const tf::Tensor& resized_tensor = resized_tensors[0];
+        string input_layer = "input";
+        std::vector<tf::Tensor> outputs;
+
+        tf::Status run_status = session->Run({{input_layer, resized_tensor}},
+                                             {output_layer}, {}, &outputs);
+        if (!run_status.ok()) {
+          LOG(ERROR) << "Running model failed: " << run_status;
+        }
+        infer_event.Stop();
+
+        // Write the events
+        ngraph::Event::write_trace(read_event);
+        ngraph::Event::write_trace(infer_event);
+      }
+    });
   }
 
-  std::cout << "Done" << std::endl;
+  // Wait until everyone is done
+  for (auto& next_thread : threads) {
+    next_thread.join();
+  }
+
+  std::cout << "Done\n";
   return 0;
 }
