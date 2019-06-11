@@ -341,6 +341,8 @@ Status EncapsulateClusters(
       NGRAPH_VLOG(3) << "Device config is not empty";
       for (auto const& i : device_config) {
         // Adding the optional attributes
+        NGRAPH_VLOG(3) << "Attaching Attribute " << i.first << " Val "
+                       << i.second;
         nb.Attr(i.first, i.second);
       }
     }

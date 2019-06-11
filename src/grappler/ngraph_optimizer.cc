@@ -69,7 +69,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                  GraphDef* output) {
   NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
   NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
-
+  // TODO (malikshr) : Get backend etc. only when ngraph is enabled
   string backend_name = BackendManager::GetCurrentlySetBackendName();
   if (!config_backend_name.empty()) {
     backend_name = config_backend_name;

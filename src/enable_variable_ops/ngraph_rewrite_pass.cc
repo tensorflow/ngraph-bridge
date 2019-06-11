@@ -224,7 +224,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       NGRAPH_VLOG(0) << "NGraphEncapsulationPass: options.graph == nullptr";
       return Status::OK();
     }
-
+    // TODO (malikshr) : Get backend etc. only when ngraph is enabled
     std::unordered_map<std::string, std::string> config_map;
     string backend_name = BackendManager::GetCurrentlySetBackendName();
     const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
@@ -239,8 +239,8 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
     config_map = BackendManager::GetBackendAttributes(
         backend_name);  // SplitBackendConfig
-    backend_name = config_map["backend_name"];
-    config_map.erase("backend_name");
+    backend_name = config_map["ngraph_backend"];
+    config_map.erase("ngraph_backend");
     NGRAPH_VLOG(5) << "NGraphEncapsulationPass: backend_name " << backend_name;
 
     // For filename generation purposes, grab a fresh index. This is just an
