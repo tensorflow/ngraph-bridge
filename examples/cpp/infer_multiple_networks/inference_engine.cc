@@ -114,15 +114,15 @@ void InferenceEngine::ThreadMain() {
     ss << "[" << m_name << "] Iteration: " << step_count;
     ngraph::Event itreation_event(ss.str(), "", "");
 
-    if (!m_preload_images){
+    if (!m_preload_images) {
       // Read the image
       cout << "[" << m_name << "] " << step_count << ": Reading image\n";
       ngraph::Event read_event("Read", "", "");
 
       std::vector<tf::Tensor> resized_tensors;
       TF_CHECK_OK(ReadTensorFromImageFile(
-          m_image_file, m_input_height, m_input_width, m_input_mean, m_input_std,
-          m_use_NCHW, &resized_tensors));
+          m_image_file, m_input_height, m_input_width, m_input_mean,
+          m_input_std, m_use_NCHW, &resized_tensors));
 
       m_image_to_repeat = resized_tensors[0];
       read_event.Stop();
@@ -131,7 +131,7 @@ void InferenceEngine::ThreadMain() {
 
     // Submit for inference
     cout << "[" << m_name << "] " << step_count
-        << ": Submit image for inference\n";
+         << ": Submit image for inference\n";
     ngraph::Event infer_event("Infer", "", "");
 
     const tf::Tensor& resized_tensor = m_image_to_repeat;
