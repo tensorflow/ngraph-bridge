@@ -30,7 +30,7 @@
       python3 build_ngtf.py --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
       
     label: ":hammer_and_wrench: Build"
-    timeout_in_minutes: 40
+    timeout_in_minutes: 60
     agents:
     - "queue=cpu"
     parallelism: 1
@@ -77,7 +77,7 @@
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install pytest
-      PYTHONPATH=`pwd`:`pwd`/tools python3 test/ci/buildkite/test_runner.py \
+      PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_python
     
     label: ":python: nGraph Pytest"
@@ -85,6 +85,7 @@
     agents:
     - "queue=cpu"
 
+  - wait
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install pytest
@@ -92,9 +93,11 @@
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_tf_python
     
     label: ":python: TensorFlow Pytest"
-    timeout_in_minutes: 30
+    timeout_in_minutes: 60
     agents:
     - "queue=cpu"
+
+  - wait
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
