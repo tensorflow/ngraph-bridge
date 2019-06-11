@@ -90,8 +90,8 @@ endif()
 
 if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     target_link_libraries(
-        gtest_ngtf
-        ngraph_bridge_static
+        gtest_ngtf -Wl,--whole-archive
+        ngraph_bridge_static -Wl,--no-whole-archive
         ngraph_lib
         libgtest
         pthread
