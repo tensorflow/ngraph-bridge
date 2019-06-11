@@ -106,6 +106,7 @@ def run_ngtf_pytests(venv_dir, build_dir):
 
     build_dir = os.path.abspath(build_dir)
     venv_dir = os.path.abspath(venv_dir)
+    mnist_dir = os.path.abspath(build_dir + '/examples/mnist/')
 
     test_dir = os.path.join(build_dir, "test")
     test_dir = os.path.join(test_dir, "python")
@@ -125,7 +126,8 @@ def run_ngtf_pytests(venv_dir, build_dir):
 
     cmd = 'python -m pytest ' + ('--junitxml=%s/xunit_pytest.xml' % build_dir)
     env = os.environ.copy()
-    new_paths = venv_dir + '/bin/python3:' + os.path.abspath(build_dir)
+    new_paths = venv_dir + '/bin/python3:' + os.path.abspath(
+        build_dir) + ":" + os.path.abspath(mnist_dir)
     if 'PYTHONPATH' in env:
         env["PYTHONPATH"] = new_paths + ":" + env["PYTHONPATH"]
     else:
@@ -267,15 +269,24 @@ def run_resnet50(build_dir):
 
     root_pwd = os.getcwd()
     build_dir = os.path.abspath(build_dir)
+    ngraph_tf_src_dir = os.path.abspath(build_dir + '/../')
     os.chdir(build_dir)
 
     call(['git', 'clone', 'https://github.com/tensorflow/benchmarks.git'])
-    os.chdir('benchmarks/scripts/tf_cnn_benchmarks/')
-
+    os.chdir('benchmarks')
     call(['git', 'checkout', '4c7b09ad87bbfc4b1f89650bcee40b3fc5e7dfed'])
 
     junit_script = os.path.abspath('%s/test/ci/junit-wrap.sh' % root_pwd)
 
+    # Check to see if we need to patch the repo for Grappler
+    patch_file = os.path.abspath(
+        os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
+    import ngraph_bridge
+    if ngraph_bridge.is_grappler_enabled():
+        print("Patching repo using: %s" % patch_file)
+        apply_patch(patch_file)
+
+    os.chdir('scripts/tf_cnn_benchmarks/')
     # Update the script by adding `import ngraph_bridge`
     with open('convnet_builder.py', 'a') as outfile:
         call(['echo', 'import ngraph_bridge'], stdout=outfile)
@@ -327,15 +338,14 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
     ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
     install_ngraph_bridge(artifact_dir)
 
-    patch_file = os.path.abspath(
-        os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
-
     # Now clone the repo and proceed
     call(['git', 'clone', 'https://github.com/tensorflow/benchmarks.git'])
     os.chdir('benchmarks')
     call(['git', 'checkout', '4c7b09ad87bbfc4b1f89650bcee40b3fc5e7dfed'])
 
     # Check to see if we need to patch the repo for Grappler
+    patch_file = os.path.abspath(
+        os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
     if ngraph_bridge.is_grappler_enabled():
         print("Patching repo using: %s" % patch_file)
