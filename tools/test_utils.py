@@ -106,7 +106,7 @@ def run_ngtf_pytests(venv_dir, build_dir):
 
     build_dir = os.path.abspath(build_dir)
     venv_dir = os.path.abspath(venv_dir)
-    mnist_dir = os.path.abspath(build_dir + '/../examples/mnist/')
+    mnist_dir = os.path.abspath(build_dir + '/examples/mnist/')
 
     test_dir = os.path.join(build_dir, "test")
     test_dir = os.path.join(test_dir, "python")
