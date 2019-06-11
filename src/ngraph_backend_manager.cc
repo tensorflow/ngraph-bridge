@@ -38,6 +38,7 @@ unordered_set<string> BackendManager::ng_supported_backends_(
 
 map<std::string, int> BackendManager::ref_count_each_backend_;
 
+mutex BackendManager::ng_backendconfig_map_mutex_;
 unordered_map<string, BackendConfig*> BackendManager::ng_backendconfig_map_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
@@ -113,6 +114,7 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
 
 // Backend Config functions
 BackendConfig* BackendManager::GetBackendConfig(const string& backend_name) {
+  std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   auto itr = BackendManager::ng_backendconfig_map_.find(backend_name);
   if (itr == BackendManager::ng_backendconfig_map_.end()) {
     BackendConfig* bconfig = nullptr;
