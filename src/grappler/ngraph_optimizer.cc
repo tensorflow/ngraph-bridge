@@ -112,6 +112,10 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // we will not do anything; all subsequent passes become a no-op.
   bool ngraph_not_enabled =
       (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
+  cout << " config enabled? " << config::IsEnabled() << endl;
+  cout << " NGRAPH_TF_DISABLE? "
+       << (std::getenv("NGRAPH_TF_DISABLE") == nullptr) << endl;
+
   bool already_processed = IsProcessedByNgraphPass(&graph);
   if (ngraph_not_enabled || already_processed) {
     NGRAPH_VLOG(0)
