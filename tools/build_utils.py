@@ -203,6 +203,11 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
         "bazel",
         "build",
         "--config=opt",
+        "--config=noaws",
+        "--config=nohdfs",
+        "--config=noignite",
+        "--config=nokafka",
+        "--config=nonccl",
         "//tensorflow/tools/pip_package:build_pip_package",
     ]
     if verbosity:
@@ -221,7 +226,9 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
 
     # Now build the TensorFlow C++ library
     cmd = [
-        "bazel", "build", "--config=opt", "//tensorflow:libtensorflow_cc.so.1"
+        "bazel", "build", "--config=opt", "--config=noaws", "--config=nohdfs",
+        "--config=noignite", "--config=nokafka", "--config=nonccl",
+        "//tensorflow:libtensorflow_cc.so.1"
     ]
     command_executor(cmd)
 
