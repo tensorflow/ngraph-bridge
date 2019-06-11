@@ -224,24 +224,6 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       NGRAPH_VLOG(0) << "NGraphEncapsulationPass: options.graph == nullptr";
       return Status::OK();
     }
-    // TODO (malikshr) : Get backend etc. only when ngraph is enabled
-    std::unordered_map<std::string, std::string> config_map;
-    string backend_name = BackendManager::GetCurrentlySetBackendName();
-    const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
-    if (ng_backend_env_value != nullptr) {
-      string backend_env = std::string(ng_backend_env_value);
-      if (backend_env.empty() ||
-          !BackendManager::IsSupportedBackend(backend_env)) {
-        return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
-                                " is not supported");
-      }
-      backend_name = backend_env;
-    }
-    config_map = BackendManager::GetBackendAttributes(
-        backend_name);  // SplitBackendConfig
-    backend_name = config_map["ngraph_backend"];
-    config_map.erase("ngraph_backend");
-    NGRAPH_VLOG(5) << "NGraphEncapsulationPass: backend_name " << backend_name;
 
     // For filename generation purposes, grab a fresh index. This is just an
     // arbitrary integer to avoid filename collisions resulting from subsequent
@@ -267,9 +249,31 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       return Status::OK();
     }
 
+    // Get backend + its configurations
+    // to be attached to the nodes
+    std::unordered_map<std::string, std::string> config_map;
+    string backend_name = BackendManager::GetCurrentlySetBackendName();
+    const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+    if (ng_backend_env_value != nullptr) {
+      string backend_env = std::string(ng_backend_env_value);
+      if (backend_env.empty() ||
+          !BackendManager::IsSupportedBackend(backend_env)) {
+        return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
+                                " is not supported");
+      }
+      backend_name = backend_env;
+    }
+    config_map = BackendManager::GetBackendAttributes(
+        backend_name);  // SplitBackendConfig
+    backend_name = config_map["ngraph_backend"];
+    config_map.erase("ngraph_backend");
+    NGRAPH_VLOG(5) << "NGraphEncapsulationPass: backend_name " << backend_name;
+
+    // Now Process the Graph
+
     // 0. Replace optimizers then, if requested, dump the graphs.
     TF_RETURN_IF_ERROR(ReplaceModifiers(options.graph->get(), idx));
-    if (DumpMarkedGraphs()) {
+    if (DumpReplacedModifiersGraphs()) {
       DumpGraphs(options, idx, "replaced_modifier",
                  "Graph with Modifiers replaced");
     }
@@ -327,6 +331,10 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
   static bool DumpUnmarkedGraphs() {
     return DumpAllGraphs() ||
            std::getenv("NGRAPH_TF_DUMP_UNMARKED_GRAPHS") != nullptr;
+  }
+  static bool DumpReplacedModifiersGraphs() {
+    return DumpAllGraphs() ||
+           std::getenv("NGRAPH_TF_DUMP_REPLACEDMODIFIERS_GRAPHS") != nullptr;
   }
   static bool DumpMarkedGraphs() {
     return DumpAllGraphs() ||

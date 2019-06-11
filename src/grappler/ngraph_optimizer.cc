@@ -69,27 +69,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                  GraphDef* output) {
   NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
   NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
-  // TODO (malikshr) : Get backend etc. only when ngraph is enabled
-  string backend_name = BackendManager::GetCurrentlySetBackendName();
-  if (!config_backend_name.empty()) {
-    backend_name = config_backend_name;
-  } else {
-    const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
-    if (ng_backend_env_value != nullptr) {
-      string backend_env = std::string(ng_backend_env_value);
-      if (backend_env.empty() ||
-          !BackendManager::IsSupportedBackend(backend_env)) {
-        return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
-                                " is not supported");
-      }
-      backend_name = backend_env;
-    }
-    config_map = BackendManager::GetBackendAttributes(
-        backend_name);  // SplitBackendConfig
-    backend_name = config_map["ngraph_backend"];
-    config_map.erase("ngraph_backend");
-  }
-  NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: backend_name " << backend_name;
 
   // Convert the GraphDef to Graph
   GraphConstructorOptions opts;
@@ -215,6 +194,28 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   if (DumpUnmarkedGraphs()) {
     DumpGraphs(graph, idx, "unmarked", "Unmarked Graph");
   }
+
+  // Get backend + its configurations, to be attached to the nodes
+  string backend_name = BackendManager::GetCurrentlySetBackendName();
+  if (!config_backend_name.empty()) {
+    backend_name = config_backend_name;
+  } else {
+    const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+    if (ng_backend_env_value != nullptr) {
+      string backend_env = std::string(ng_backend_env_value);
+      if (backend_env.empty() ||
+          !BackendManager::IsSupportedBackend(backend_env)) {
+        return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
+                                " is not supported");
+      }
+      backend_name = backend_env;
+    }
+    config_map = BackendManager::GetBackendAttributes(
+        backend_name);  // SplitBackendConfig
+    backend_name = config_map["ngraph_backend"];
+    config_map.erase("ngraph_backend");
+  }
+  NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: backend_name " << backend_name;
 
   // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes, backend_name));
