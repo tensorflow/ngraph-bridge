@@ -265,7 +265,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
     config_map = BackendManager::GetBackendAttributes(
         backend_name);  // SplitBackendConfig
-    backend_name = config_map["ngraph_backend"];
+    backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
     NGRAPH_VLOG(5) << "NGraphEncapsulationPass: backend_name " << backend_name;
 

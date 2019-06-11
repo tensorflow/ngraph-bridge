@@ -59,6 +59,8 @@ TEST(BackendManager, SetBackend) {
   ASSERT_EQ(current_backend, "INTERPRETER");
 
   ASSERT_NOT_OK(BackendManager::SetBackendName("temp"));
+  // Setting again as clean up
+  ASSERT_OK(BackendManager::SetBackendName("CPU"));
 }
 
 // Test GetSupportedBackendNames
@@ -97,7 +99,7 @@ TEST(BackendManager, BackendAssignment) {
   // Set backend 1
   string backend1 = "INTERPRETER";
   ASSERT_OK(BackendManager::SetBackendName(backend1));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "INTERPRETER"));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, backend1));
   std::map<std::string, Node*> node_map;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
@@ -115,7 +117,7 @@ TEST(BackendManager, BackendAssignment) {
   // Set backend 2
   string backend2 = "CPU";
   ASSERT_OK(BackendManager::SetBackendName(backend2));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, backend2));
 
   ASSERT_OK(GetNodeBackend(node_map["A"], &bA));
   ASSERT_OK(GetNodeBackend(node_map["B"], &bB));
@@ -158,31 +160,6 @@ TEST(BackendManager, BackendClustering) {
 
   ASSERT_EQ(A_cluster, R_cluster);
   ASSERT_NE(A_cluster, B_cluster);
-}
-
-// Test Backend Run
-TEST(BackendManager, BackendRun) {
-  ASSERT_OK(BackendManager::SetBackendName("INTERPRETER"));
-  Scope root = Scope::NewRootScope();
-  auto A = ops::Placeholder(root.WithOpName("A"), DT_FLOAT);
-  auto B = ops::Placeholder(root.WithOpName("B"), DT_FLOAT);
-  auto R = ops::Add(root.WithOpName("R"), A, B);
-  auto S = ops::Sub(root.WithOpName("S"), R, B);
-
-  auto default_backend = BackendManager::GetCurrentlySetBackendName();
-  std::vector<Tensor> cpu_outputs;
-  ClientSession session_cpu(root);
-  // Run and fetch v
-  ASSERT_OK(session_cpu.Run({{A, {1.0f, 1.0f}}, {B, {1.0f, 1.0f}}}, {R, S},
-                            &cpu_outputs));
-
-  ASSERT_OK(BackendManager::SetBackendName("CPU"));
-  auto backend2 = BackendManager::GetCurrentlySetBackendName();
-
-  std::vector<Tensor> inter_outputs;
-  ClientSession session_inter(root);
-  ASSERT_OK(session_inter.Run({{A, {1.0f, 1.0f}}, {B, {1.0f, 1.0f}}}, {R, S},
-                              &inter_outputs));
 }
 
 TEST(BackendManager, BackendConfigGetOptionalAttributes) {
