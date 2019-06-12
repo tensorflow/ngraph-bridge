@@ -120,8 +120,6 @@ def main():
         action="store",
         default='')
 
-    assert not is_venv(), "Please deactivate virtual environment"
-
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
 
