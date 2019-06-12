@@ -192,6 +192,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // Get backend + its configurations, to be attached to the nodes
+  // Precedence Order: RewriteConfig> Env Variable > BackendManager
   string backend_name = BackendManager::GetCurrentlySetBackendName();
   if (!config_backend_name.empty()) {
     backend_name = config_backend_name;
@@ -206,6 +207,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       }
       backend_name = backend_env;
     }
+    // splits into {"ngraph_backend", "_ngraph_device_config"}
     config_map = BackendManager::GetBackendAttributes(
         backend_name);  // SplitBackendConfig
     backend_name = config_map.at("ngraph_backend");
