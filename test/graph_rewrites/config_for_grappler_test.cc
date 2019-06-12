@@ -81,7 +81,8 @@ TEST(GrapplerConfig, RConfig1) {
   auto* custom_config = rewriter_config.add_custom_optimizers();
   custom_config->set_name("ngraph-optimizer");
   (*custom_config->mutable_parameter_map())["ngraph_backend"] = backend_name;
-  (*custom_config->mutable_parameter_map())["_ngraph_device_config"] = device_config;
+  (*custom_config->mutable_parameter_map())["_ngraph_device_config"] =
+      device_config;
 
   // Run grappler
   tensorflow::grappler::MetaOptimizer optimizer(nullptr, config_proto);
@@ -109,12 +110,10 @@ TEST(GrapplerConfig, RConfig1) {
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_config",
-  &ng_device_config));
-
+                        &ng_device_config));
 
   ASSERT_EQ(ng_backend, "CPU");
   ASSERT_EQ(ng_device_config, "1");
-
 }
 
 }  // namespace testing

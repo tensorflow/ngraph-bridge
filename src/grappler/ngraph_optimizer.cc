@@ -193,13 +193,12 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // Precedence Order: RewriteConfig > Env Variable > BackendManager
   string backend_name = BackendManager::GetCurrentlySetBackendName();
   if (!config_backend_name.empty()) {
-    if(!BackendManager::IsSupportedBackend(backend_name)) {
+    if (!BackendManager::IsSupportedBackend(backend_name)) {
       return errors::Internal("NGRAPH_TF_BACKEND: ", config_backend_name,
                               " is not supported");
     }
     backend_name = config_backend_name;
-    NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig "
-                   << backend_name;
+    NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig " << backend_name;
   } else {
     const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
     if (ng_backend_env_value != nullptr) {
