@@ -113,6 +113,11 @@ def main():
         help="Use TensorFlow that's already installed" +
         "(do not build or install) \n",
         action="store_true")
+    parser.add_argument(
+        '--use_tensorflow_from_location',
+        help="Use TensorFlow from a directory where it was already built and stored\n",
+        action="store",
+        default='')
 
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
@@ -173,39 +178,35 @@ def main():
     # flag is set to 0
     cxx_abi = "0"
 
-    if arguments.use_prebuilt_tensorflow:
-        print("Using existing TensorFlow")
-        command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
-
-        import tensorflow as tf
-        print('Version information:')
-        print('TensorFlow version: ', tf.__version__)
-        print('C Compiler version used in building TensorFlow: ',
-              tf.__compiler_version__)
-        cxx_abi = str(tf.__cxx11_abi_flag__)
+    if arguments.use_tensorflow_from_location != "":
+        print("Using TensorFlow from " + arguments.use_tensorflow_from_location)
+        tf_whl = os.path.abspath(arguments.use_tensorflow_from_location)
+        assert os. path. isfile(tf_whl), "Did not find " + tf_whl
+        command_executor(["pip", "install", "-U", tf_whl])
+        cxx_abi = get_tf_cxxabi()
     else:
-        if not arguments.skip_tensorflow_build:
-            print("Building TensorFlow")
-            # Download TensorFlow
-            download_repo("tensorflow",
-                          "https://github.com/tensorflow/tensorflow.git",
-                          tf_version)
-
-            # Build TensorFlow
-            build_tensorflow(venv_dir, "tensorflow", artifacts_location,
-                             target_arch, verbosity)
-
-            # Install tensorflow
-            # Note that if gcc 4.8 is used for building TensorFlow this flag
-            # will be 0
-            cxx_abi = install_tensorflow(venv_dir, artifacts_location)
+        if arguments.use_prebuilt_tensorflow:
+            print("Using existing TensorFlow")
+            command_executor(["pip", "install", "-U", "tensorflow==" + tf_version])
+            cxx_abi = get_tf_cxxabi()
         else:
-            import tensorflow as tf
-            print('Version information:')
-            print('TensorFlow version: ', tf.__version__)
-            print('C Compiler version used in building TensorFlow: ',
-                  tf.__compiler_version__)
-            cxx_abi = str(tf.__cxx11_abi_flag__)
+            if not arguments.skip_tensorflow_build:
+                print("Building TensorFlow")
+                # Download TensorFlow
+                download_repo("tensorflow",
+                            "https://github.com/tensorflow/tensorflow.git",
+                            tf_version)
+
+                # Build TensorFlow
+                build_tensorflow(venv_dir, "tensorflow", artifacts_location,
+                                target_arch, verbosity)
+
+                # Install tensorflow
+                # Note that if gcc 4.8 is used for building TensorFlow this flag
+                # will be 0
+                cxx_abi = install_tensorflow(venv_dir, artifacts_location)
+            else:
+                cxx_abi = get_tf_cxxabi()
 
     # Download nGraph if required.
     ngraph_src_dir = './ngraph'

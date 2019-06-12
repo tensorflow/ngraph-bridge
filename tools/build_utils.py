@@ -29,6 +29,14 @@ import platform
 import shlex
 
 
+def get_tf_cxxabi():
+    import tensorflow as tf
+    print('Version information:')
+    print('TensorFlow version: ', tf.__version__)
+    print('C Compiler version used in building TensorFlow: ',
+        tf.__compiler_version__)
+    return str(tf.__cxx11_abi_flag__)
+
 def is_venv():
     return (hasattr(sys, 'real_prefix') or
             (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
