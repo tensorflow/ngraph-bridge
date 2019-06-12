@@ -115,9 +115,11 @@ def main():
         action="store_true")
     parser.add_argument(
         '--use_tensorflow_from_location',
-        help="Use TensorFlow from a directory where it was already built and stored\n",
+        help="Use TensorFlow from a directory where it was already built and stored. This location is expected to be populated by build_tf.py\n",
         action="store",
         default='')
+
+    assert not is_venv(), "Please deactivate virtual environment"
 
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
@@ -138,6 +140,25 @@ def main():
     build_dir = 'build_cmake'
 
     assert not (arguments.use_tensorflow_from_location != '' and arguments.use_prebuilt_tensorflow), "use_tensorflow_from_location and use_prebuilt_tensorflow should not be used together"
+
+    if arguments.use_tensorflow_from_location != '':
+        # Check if the prebuilt folder has necessary files
+        assert os.path.isdir(arguments.use_tensorflow_from_location), "Prebuilt TF path " + arguments.use_tensorflow_from_location + " does not exist"
+        loc = arguments.use_tensorflow_from_location + '/artifacts/tensorflow'
+        assert os.path.isdir(loc), "Could not find artiufacts/tensorflow directory" 
+        found_whl = False
+        found_libtf_fw = False
+        found_libtf_cc = False
+        for i in os.listdir(loc):
+            if '.whl' in i:
+                found_whl = True
+            if 'libtensorflow_cc' in i:
+                found_libtf_cc = True
+            if 'libtensorflow_framework' in i:
+                found_libtf_fw = True
+        assert found_whl, "Did not find TF whl file"
+        assert found_libtf_fw, "Did not find libtensorflow_framework"
+        assert found_libtf_cc, "Did not find libtensorflow_cc"
 
     try:
         os.makedirs(build_dir)

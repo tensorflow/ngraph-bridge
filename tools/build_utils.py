@@ -39,6 +39,7 @@ def get_tf_cxxabi():
 
 
 def is_venv():
+    # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
     return (hasattr(sys, 'real_prefix') or
             (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
 
