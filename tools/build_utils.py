@@ -246,12 +246,12 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     ]
     command_executor(cmd)
 
-    copy_tf_to_artifacts(artifacts_dir)
+    copy_tf_to_artifacts(artifacts_dir, None)
 
     # popd
     os.chdir(pwd)
 
-def copy_tf_to_artifacts(artifacts_dir):
+def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
     tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
     if (platform.system() == 'Darwin'):
         tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
@@ -265,11 +265,16 @@ def copy_tf_to_artifacts(artifacts_dir):
         pass
 
     # Now copy the TF libraries
-    tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.1"
+    if tf_prebuilt is None:
+        tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.1"
+        tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
+    else:
+        tf_cc_lib_file = os.path.abspath(tf_prebuilt + '/libtensorflow_cc.so.1')
+        tf_cc_fmwk_file = os.path.abspath(tf_prebuilt + '/' + tf_fmwk_lib_name)
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)
 
-    tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
+    
     print("Copying %s to %s" % (tf_cc_fmwk_file, artifacts_dir))
     shutil.copy(tf_cc_fmwk_file, artifacts_dir)
 
