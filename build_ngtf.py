@@ -180,7 +180,10 @@ def main():
 
     if arguments.use_tensorflow_from_location != "":
         print("Using TensorFlow from " + arguments.use_tensorflow_from_location)
-        tf_whl = os.path.abspath(arguments.use_tensorflow_from_location)
+        tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location + '/artifacts/tensorflow/')
+        possible_whls = [i for i in os.listdir(tf_whl_loc) if '.whl' in i and os.path.isfile(tf_whl_loc + '/' + i)]
+        assert len(possible_whls) == 1, "Found more than 1 TF whl in " + tf_whl_loc
+        tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whls[0])
         assert os. path. isfile(tf_whl), "Did not find " + tf_whl
         command_executor(["pip", "install", "-U", tf_whl])
         cxx_abi = get_tf_cxxabi()
