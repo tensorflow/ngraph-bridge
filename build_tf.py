@@ -34,7 +34,7 @@ def main():
             type=str,
             help="Location where TensorFlow build will happen\n",
             action="store",
-            required=True)s
+            required=True)
     parser.add_argument(
         '--target_arch',
         help=
