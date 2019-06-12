@@ -340,7 +340,7 @@ def main():
     if not arguments.use_prebuilt_tensorflow:
         base_dir = build_dir_abs if (arguments.use_tensorflow_from_location == '') else arguments.use_tensorflow_from_location
         command_executor([
-            'cp', '-r', build_dir_abs + '/tensorflow/tensorflow/python',
+            'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
             os.path.join(artifacts_location, "tensorflow")
         ])
 
