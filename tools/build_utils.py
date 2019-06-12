@@ -28,9 +28,11 @@ import glob
 import platform
 import shlex
 
+
 def is_venv():
     return (hasattr(sys, 'real_prefix') or
             (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
+
 
 def command_executor(cmd, verbose=False, msg=None, stdout=None):
     '''
