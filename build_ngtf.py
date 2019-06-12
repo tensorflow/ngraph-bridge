@@ -182,7 +182,9 @@ def main():
 
     if arguments.use_tensorflow_from_location != "":
         print("Using TensorFlow from " + arguments.use_tensorflow_from_location)
-        tf_whl = os.path.abspath(arguments.use_tensorflow_from_location)
+        tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location + '/artifacts/tensorflow/')
+        possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]
+        assert len(possible_whl) == 1, "Expected 1 TF whl file, but found " + len(possible_whl) 
         assert os. path. isfile(tf_whl), "Did not find " + tf_whl
         command_executor(["pip", "install", "-U", tf_whl])
         cxx_abi = get_tf_cxxabi()
