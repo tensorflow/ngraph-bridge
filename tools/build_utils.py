@@ -246,7 +246,12 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     ]
     command_executor(cmd)
 
-    # Remove just in case
+    copy_tf_to_artifacts(artifacts_dir)
+
+    # popd
+    os.chdir(pwd)
+
+def copy_tf_to_artifacts(artifacts_dir):
     tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
     if (platform.system() == 'Darwin'):
         tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
@@ -267,10 +272,6 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
     print("Copying %s to %s" % (tf_cc_fmwk_file, artifacts_dir))
     shutil.copy(tf_cc_fmwk_file, artifacts_dir)
-
-    # popd
-    os.chdir(pwd)
-
 
 def install_tensorflow(venv_dir, artifacts_dir):
 
