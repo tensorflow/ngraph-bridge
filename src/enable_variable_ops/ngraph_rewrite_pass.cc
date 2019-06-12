@@ -263,13 +263,17 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
                                 " is not supported");
       }
       backend_name = backend_env;
+      NGRAPH_VLOG(1) << "Setting backend from the enviornment variable "
+                        "NGRAPH_TF_BACKEND = "
+                     << backend_name;
     }
+
     // splits into {"ngraph_backend", "_ngraph_device_config"}
     config_map = BackendManager::GetBackendAttributes(
         backend_name);  // SplitBackendConfig
     backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
-    NGRAPH_VLOG(5) << "NGraphEncapsulationPass: backend_name " << backend_name;
+    NGRAPH_VLOG(1) << "NGraphEncapsulationPass: backend_name " << backend_name;
 
     // Now Process the Graph
 

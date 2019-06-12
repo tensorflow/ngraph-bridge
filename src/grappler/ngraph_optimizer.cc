@@ -41,25 +41,23 @@ namespace ngraph_bridge {
 
 Status NgraphOptimizer::Init(
     const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
-  if (config == nullptr) {
-    NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: config is null ";
-  } else {
-    NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: config is not null ";
-    const auto params = config->parameter_map();
-    if (params.count("ngraph_backend")) {
-      config_backend_name = params.at("ngraph_backend").s();
-      NGRAPH_VLOG(3) << config_backend_name;
-      std::vector<std::string> optional_attributes =
-          BackendManager::GetOptionalAttributes(config_backend_name);
-      for (int i = 0; i < optional_attributes.size(); i++) {
-        if (params.count(optional_attributes[i])) {
-          config_map[optional_attributes[i]] =
-              params.at(optional_attributes[i]).s();
-          NGRAPH_VLOG(3) << optional_attributes[i] << " "
-                         << config_map[optional_attributes[i]];
-        }
+  const auto params = config->parameter_map();
+  if (params.count("ngraph_backend")) {
+    config_backend_name = params.at("ngraph_backend").s();
+    NGRAPH_VLOG(3) << config_backend_name;
+    std::vector<std::string> optional_attributes =
+        BackendManager::GetOptionalAttributes(config_backend_name);
+    for (int i = 0; i < optional_attributes.size(); i++) {
+      if (params.count(optional_attributes[i])) {
+        config_map[optional_attributes[i]] =
+            params.at(optional_attributes[i]).s();
+        NGRAPH_VLOG(3) << optional_attributes[i] << " "
+                       << config_map[optional_attributes[i]];
       }
     }
+  } else {
+    NGRAPH_VLOG(5)
+        << "NGTF_OPTIMIZER: parameter_map does not have ngraph_backend";
   }
   return Status::OK();
 }
@@ -192,10 +190,16 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // Get backend + its configurations, to be attached to the nodes
-  // Precedence Order: RewriteConfig> Env Variable > BackendManager
+  // Precedence Order: RewriteConfig > Env Variable > BackendManager
   string backend_name = BackendManager::GetCurrentlySetBackendName();
   if (!config_backend_name.empty()) {
+    if(!BackendManager::IsSupportedBackend(backend_name)) {
+      return errors::Internal("NGRAPH_TF_BACKEND: ", config_backend_name,
+                              " is not supported");
+    }
     backend_name = config_backend_name;
+    NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig "
+                   << backend_name;
   } else {
     const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
     if (ng_backend_env_value != nullptr) {
@@ -206,6 +210,9 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                 " is not supported");
       }
       backend_name = backend_env;
+      NGRAPH_VLOG(1) << "Setting backend from the enviornment variable "
+                        "NGRAPH_TF_BACKEND = "
+                     << backend_name;
     }
     // splits into {"ngraph_backend", "_ngraph_device_config"}
     config_map = BackendManager::GetBackendAttributes(
@@ -213,7 +220,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
   }
-  NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: backend_name " << backend_name;
+  NGRAPH_VLOG(1) << "NGTF_OPTIMIZER: backend_name " << backend_name;
 
   // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes, backend_name));
