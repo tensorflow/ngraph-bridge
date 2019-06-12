@@ -278,11 +278,18 @@ def main():
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
         "-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location,
     ]
+
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
     if not arguments.use_prebuilt_tensorflow:
         ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
+        ngraph_tf_cmake_flags.extend([
+            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
+                                                    "tensorflow")
+        ])
+    elif arguments.use_tensorflow_from_location:
+        ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + os.path.abspath(arguments.use_prebuilt_tensorflow + '/tensorflow')])
         ngraph_tf_cmake_flags.extend([
             "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
                                                     "tensorflow")

@@ -34,8 +34,9 @@ def get_tf_cxxabi():
     print('Version information:')
     print('TensorFlow version: ', tf.__version__)
     print('C Compiler version used in building TensorFlow: ',
-        tf.__compiler_version__)
+          tf.__compiler_version__)
     return str(tf.__cxx11_abi_flag__)
+
 
 def is_venv():
     return (hasattr(sys, 'real_prefix') or
