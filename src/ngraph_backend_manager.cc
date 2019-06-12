@@ -24,8 +24,9 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 BackendManager::~BackendManager() {
-  NGRAPH_VLOG(2) << "BackendManager::~BackendManager() DONE";
+  NGRAPH_VLOG(2) << "BackendManager::~BackendManager()";
 }
+
 // initialize backend manager
 string BackendManager::ng_backend_name_ = "CPU";
 mutex BackendManager::ng_backend_name_mutex_;
@@ -80,6 +81,13 @@ void BackendManager::ReleaseBackend(const string& backend_name) {
     BackendManager::ng_backend_map_[backend_name]->backend_ptr.reset();
     BackendManager::ng_backend_map_.erase(backend_name);
     NGRAPH_VLOG(2) << "Deleted Backend " << backend_name;
+
+    // Free the Backend Config object for the backend being released
+    free(BackendManager::ng_backendconfig_map_[backend_name]);
+    NGRAPH_VLOG(5) << "Backend Config Map Size"
+                   << BackendManager::ng_backendconfig_map_.size();
+    BackendManager::ng_backendconfig_map_.erase(backend_name);
+    NGRAPH_VLOG(2) << "Deleted Backend Config" << backend_name;
   }
 }
 
@@ -113,6 +121,8 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
 };
 
 // Backend Config functions
+// BackendConfig is expected to be a readonly class
+// hence only locked at creation and not during later access
 BackendConfig* BackendManager::GetBackendConfig(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   auto itr = BackendManager::ng_backendconfig_map_.find(backend_name);

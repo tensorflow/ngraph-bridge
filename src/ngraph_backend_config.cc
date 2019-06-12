@@ -29,7 +29,6 @@ BackendConfig::BackendConfig(string backend_name) {
 }
 
 string BackendConfig::join(unordered_map<string, string> optional_parameters) {
-  NGRAPH_VLOG(3) << "JOIN";
   // If _ngraph_device_config is not found
   // throw an error
   try {
@@ -41,7 +40,6 @@ string BackendConfig::join(unordered_map<string, string> optional_parameters) {
 }
 
 unordered_map<string, string> BackendConfig::split(string backend_config) {
-  NGRAPH_VLOG(3) << "SPLIT";
   unordered_map<string, string> backend_parameters;
 
   int delimiter_index = backend_config.find(':');
