@@ -21,11 +21,11 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
 
+#include "../test_utilities.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_backend_manager.h"
 #include "ngraph_mark_for_clustering.h"
 #include "tf_graph_writer.h"
-#include "../test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -244,9 +244,6 @@ TEST(BackendManager, GetBackendCreationType) {
                    "GPU", test_missing_config_default),
                std::out_of_range);
 }
-
-
-
 
 }  // namespace testing
 }  // namespace ngraph_bridge
