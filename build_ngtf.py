@@ -191,7 +191,10 @@ def main():
         cxx_abi = get_tf_cxxabi()
         cwd = os.getcwd()
         os.chdir(tf_whl_loc)
-        copy_tf_to_artifacts(os.path.join(os.path.abspath(artifacts_location), "tensorflow"))
+        tf_in_artifacts = os.path.join(os.path.abspath(artifacts_location), "tensorflow")
+        assert not os.path.isdir(tf_in_artifacts), "Did not expect to find " + tf_in_artifacts
+        os.mkdir(tf_in_artifacts)
+        copy_tf_to_artifacts(tf_in_artifacts)
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow:
