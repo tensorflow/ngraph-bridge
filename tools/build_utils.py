@@ -251,6 +251,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     # popd
     os.chdir(pwd)
 
+
 def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
     tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
     if (platform.system() == 'Darwin'):
@@ -274,9 +275,9 @@ def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)
 
-    
     print("Copying %s to %s" % (tf_cc_fmwk_file, artifacts_dir))
     shutil.copy(tf_cc_fmwk_file, artifacts_dir)
+
 
 def install_tensorflow(venv_dir, artifacts_dir):
 
