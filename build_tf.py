@@ -65,7 +65,20 @@ def main():
                      False)
     shutil.copytree('./tensorflow/tensorflow/python',
                     './artifacts/tensorflow/python')
+    print('To build ngraph-bridge using this prebuilt tensorflow, use:')
+    print('./build_ngtf.py --use_tensorflow_from_location ' + os.path.abspath(arguments.output_dir))
 
 
 if __name__ == '__main__':
     main()
+    # Usage
+    # Build TF once
+    # ./build_tf.py --tf_version v1.14.0-rc0 --output_dir /prebuilt/tf/dir
+    #
+    # Reuse TF in different ngraph-bridge builds
+    # mkdir ngtf_1; cd ngtf_1
+    # git clone https://github.com/tensorflow/ngraph-bridge.git
+    # ./build_ngtf.py --use_tensorflow_from_location /prebuilt/tf/dir
+    # cd ..; mkdir ngtf_2; cd ngtf_2
+    # git clone https://github.com/tensorflow/ngraph-bridge.git
+    # ./build_ngtf.py --use_tensorflow_from_location /prebuilt/tf/dir
