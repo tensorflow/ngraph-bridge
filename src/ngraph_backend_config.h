@@ -19,8 +19,8 @@
 
 #include <ostream>
 
-#include "ngraph_log.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "ngraph_log.h"
 
 using namespace std;
 
@@ -28,7 +28,7 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-class BackendConfig {
+class BackendConfig { 
  public:
   BackendConfig() = delete;
   BackendConfig(string backend_name);
@@ -38,7 +38,7 @@ class BackendConfig {
   vector<string> get_optional_attributes();
   virtual ~BackendConfig();
 
- protected:
+  protected:
   string backend_name_;
   vector<string> optional_attributes_;
 };
