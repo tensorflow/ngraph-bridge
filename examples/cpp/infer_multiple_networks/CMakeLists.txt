@@ -60,8 +60,8 @@ if (APPLE)
 endif()
 
 target_link_libraries(
-    infer_multiple_networks
-    ngraph_bridge
+    infer_multiple_networks -Wl,--whole-archive
+    ngraph_bridge_static -Wl,--no-whole-archive
     ngraph_lib
     pthread
     ${TensorFlow_FRAMEWORK_LIBRARY}
