@@ -186,6 +186,7 @@ def main():
         assert os. path. isfile(tf_whl), "Did not find " + tf_whl
         command_executor(["pip", "install", "-U", tf_whl])
         cxx_abi = get_tf_cxxabi()
+        # TODO: do some of the things build_tensorflow does. copying files to artifacts_dir
     else:
         if arguments.use_prebuilt_tensorflow:
             print("Using existing TensorFlow")
