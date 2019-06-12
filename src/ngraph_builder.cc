@@ -2133,6 +2133,8 @@ static Status TranslateGatherNdOp(
 
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::GatherND>(
                                       op->name(), ng_params, ng_indices));
+
+  return Status::OK();
 }
 
 static Status TranslateFusedMatMulOp(
