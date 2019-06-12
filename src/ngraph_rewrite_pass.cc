@@ -212,6 +212,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // Get backend + its configurations
     // to be attached to the nodes
+    // Precedence Order: Env Variable > BackendManager
     std::unordered_map<std::string, std::string> config_map;
     string backend_name = BackendManager::GetCurrentlySetBackendName();
     const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
@@ -224,6 +225,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       }
       backend_name = backend_env;
     }
+    // splits into {"ngraph_backend", "_ngraph_device_config"}
     config_map = BackendManager::GetBackendAttributes(
         backend_name);  // SplitBackendConfig
     backend_name = config_map.at("ngraph_backend");
