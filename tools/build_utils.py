@@ -253,9 +253,6 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     os.chdir(pwd)
 
 
-<<<<<<< HEAD
-def copy_tf_to_artifacts(artifacts_dir):
-=======
 def locate_tf_whl(tf_whl_loc):
     possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]
     assert len(possible_whl
@@ -266,7 +263,6 @@ def locate_tf_whl(tf_whl_loc):
 
 
 def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
->>>>>>> 0f37bd9f227d33713e8401de24a466957b4acb74
     tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
     if (platform.system() == 'Darwin'):
         tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
