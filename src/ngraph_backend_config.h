@@ -30,21 +30,29 @@ namespace ngraph_bridge {
 
 class BackendConfig {
  public:
-  BackendConfig() = delete;
-  BackendConfig(string backend_name);
-  virtual string join(unordered_map<string, string> optional_parameters);
-  unordered_map<string, string> split(string backend_config);
+  friend class BackendManager;
 
-  vector<string> get_optional_attributes();
-  virtual ~BackendConfig();
+ private:
+  BackendConfig() = delete;
 
  protected:
+  // BackendNNPI Config calls this constructor
+  BackendConfig(string backend_name);
+  unordered_map<string, string> split(string backend_config);
+  vector<string> get_optional_attributes();
+
+  virtual string join(unordered_map<string, string> optional_parameters);
+  virtual ~BackendConfig();
+
   string backend_name_;
   vector<string> optional_attributes_;
 };
 
 class BackendNNPIConfig : public BackendConfig {
  public:
+  friend class BackendManager;
+
+ private:
   BackendNNPIConfig();
   string join(unordered_map<string, string> optional_parameters);
   virtual ~BackendNNPIConfig();

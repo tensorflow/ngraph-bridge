@@ -181,9 +181,16 @@ class NGraphEncapsulateOp : public OpKernel {
       OP_REQUIRES_OK(ctx, ctx->GetAttr<string>(optional_attributes[i], &val));
       optional_attribute_map.insert({optional_attributes[i], val});
     }
+
     // Concatenate the backend_name:backend_config
-    m_op_backend_name = BackendManager::GetBackendCreationType(
-        backend_name, optional_attribute_map);
+    try {
+      m_op_backend_name = BackendManager::GetBackendCreationType(
+          backend_name, optional_attribute_map);
+    } catch (const std::exception& exp) {
+      OP_REQUIRES_OK(ctx, errors::Internal(
+                              "Caught exception while creating backend string ",
+                              exp.what(), "\n"));
+    }
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
     BackendManager::CreateBackend(m_op_backend_name);
     event.Stop();
