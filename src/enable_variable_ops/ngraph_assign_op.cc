@@ -62,14 +62,14 @@ class NGraphAssignOp : public OpKernel {
   ~NGraphAssignOp() { NGRAPH_VLOG(4) << "~NGraphAssignOp::" << name() << endl; }
   explicit NGraphAssignOp(OpKernelConstruction* context)
       : OpKernel(context), is_tf_just_looking_(false), copy_to_tf_(false) {
-    OP_REQUIRES_OK(context,
-                   context->GetAttr("is_tf_modifying", &is_tf_just_looking_));
+    OP_REQUIRES_OK(
+        context, context->GetAttr("is_tf_just_looking", &is_tf_just_looking_));
     OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
     OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
     OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Constructor called for: " << def().name()
-                   << ", is_tf_modifying " << PrintBool(is_tf_just_looking_)
+                   << ", is_tf_just_looking " << PrintBool(is_tf_just_looking_)
                    << ", just_looking " << PrintBool(just_looking_)
                    << ", copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
                    << ng_graph_id_;
@@ -86,7 +86,7 @@ class NGraphAssignOp : public OpKernel {
     ngraph::Event event_compute(oss.str(), name(), "");
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Compute called for: " << def().name()
-                   << ", is_tf_modifying " << PrintBool(is_tf_just_looking_)
+                   << ", is_tf_just_looking " << PrintBool(is_tf_just_looking_)
                    << ", just_looking " << PrintBool(just_looking_)
                    << ", copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
                    << ng_graph_id_;
@@ -97,7 +97,7 @@ class NGraphAssignOp : public OpKernel {
     std::stringstream copy_log_str;
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
                  << " ,Copy_TF " << PrintBool(copy_to_tf_)
-                 << ", is_tf_modifying " << PrintBool(is_tf_just_looking_)
+                 << ", is_tf_just_looking " << PrintBool(is_tf_just_looking_)
                  << ", just_looking " << PrintBool(just_looking_) << "\n";
     int number_of_copies = 0;
 
@@ -177,8 +177,8 @@ REGISTER_OP("NGraphAssign")
     .Attr("T: type")
     .Attr("validate_shape: bool = true")
     .Attr("use_locking: bool = true")
-    .Attr("just_looking: bool = true")
-    .Attr("is_tf_modifying: bool = false")
+    .Attr("just_looking: bool = false")
+    .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 

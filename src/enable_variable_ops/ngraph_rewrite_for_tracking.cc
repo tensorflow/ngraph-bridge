@@ -33,12 +33,12 @@ namespace ngraph_bridge {
 Status RewriteForTracking(Graph* graph, int graph_id) {
   const static std::map<
       const string,
-      const function<Status(Graph * graph, Node * node, Node * *replacement,
-                            const string replacement_node_name,
-                            const string replacement_op_type,
-                            const bool just_looking, const bool is_tf_just_looking,
-                            const bool outputs_ng_supported, const int graph_id,
-                            const bool is_backend_set)>>
+      const function<Status(
+          Graph * graph, Node * node, Node * *replacement,
+          const string replacement_node_name, const string replacement_op_type,
+          const bool just_looking, const bool is_tf_just_looking,
+          const bool outputs_ng_supported, const int graph_id,
+          const bool is_backend_set)>>
       REWRITE_REPLACE_OP_MAP{{"NGraphAssign", ReplaceAssign},
                              {"NGraphVariable", ReplaceVariable}};
 
@@ -96,7 +96,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
       }
 
       if (is_tf_just_looking) {
-        node_new_name += "/tf_modifying";
+        node_new_name += "/tf_just_looking";
       }
 
       if (!outputs_ng_supported) {
@@ -110,9 +110,10 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
       Node* replacement;
 
       // Create and add the replacement node
-      TF_RETURN_IF_ERROR((itr->second)(
-          graph, node, &replacement, node_new_name, node->type_string(),
-          just_looking, is_tf_just_looking, outputs_ng_supported, graph_id, true));
+      TF_RETURN_IF_ERROR((itr->second)(graph, node, &replacement, node_new_name,
+                                       node->type_string(), just_looking,
+                                       is_tf_just_looking, outputs_ng_supported,
+                                       graph_id, true));
 
       TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
       TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));

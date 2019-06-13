@@ -44,12 +44,12 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
       const string,
       const pair<
           string,
-          function<Status(Graph * graph, Node * node, Node * *replacement,
-                          const string replacement_node_name,
-                          const string replacement_op_type,
-                          const bool just_looking, const bool is_tf_just_looking,
-                          const bool outputs_ng_supported, const int graph_id,
-                          const bool is_backend_set)>>>
+          function<Status(
+              Graph * graph, Node * node, Node * *replacement,
+              const string replacement_node_name,
+              const string replacement_op_type, const bool just_looking,
+              const bool is_tf_just_looking, const bool outputs_ng_supported,
+              const int graph_id, const bool is_backend_set)>>>
       CAPTURE_REPLACE_OP_MAP{
           {"ApplyGradientDescent", std::make_pair("NGraphApplyGradientDescent",
                                                   ReplaceApplyGradientDescent)},
