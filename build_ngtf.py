@@ -207,10 +207,17 @@ def main():
     cxx_abi = "0"
 
     if arguments.use_tensorflow_from_location != "":
+        # Some asserts to make sure the directory structure of use_tensorflow_from_location is correct
+        # The location should have: ./artifacts/tensorflow, which is expected to contain one TF whl file, framework.so and cc.so
         print("Using TensorFlow from " + arguments.use_tensorflow_from_location)
-        tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location +
-                                     '/artifacts/tensorflow')
-        tf_whl = locate_tf_whl(tf_whl_loc)
+        # The tf whl should be in use_tensorflow_from_location/artifacts/tensorflow
+        tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location + '/artifacts/tensorflow')
+        possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]
+        assert len(possible_whl) == 1, "Expected 1 TF whl file, but found " + len(possible_whl) 
+        # Make sure there is exactly 1 TF whl
+        tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
+        assert os.path.isfile(tf_whl), "Did not find " + tf_whl
+        # Install the found TF whl file
         command_executor(["pip", "install", "-U", tf_whl])
         cxx_abi = get_tf_cxxabi()
         cwd = os.getcwd()
@@ -220,7 +227,8 @@ def main():
         assert not os.path.isdir(
             tf_in_artifacts), "Did not expect to find " + tf_in_artifacts
         os.mkdir(tf_in_artifacts)
-        copy_tf_to_artifacts(tf_in_artifacts, tf_whl_loc)
+        # This function copies the .so files from use_tensorflow_from_location/artifacts/tensorflow to artifacts/tensorflow
+        copy_tf_to_artifacts(tf_in_artifacts)
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow:
