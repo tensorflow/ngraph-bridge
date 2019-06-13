@@ -75,14 +75,44 @@ class BackendManager {
   static void UnlockBackend(const string& backend_name);
 
   // Backend Config Functions
+  // These functions facilitate getting/setting
+  // of additional backend configurations by abstracting the
+  // backend specific details from the user
+  // They do not validate the backend type or the attribute values
+
+  // Returns the backend specific additional attributes
+  // For e.g.
+  // 1. GetBackendAttributes("CPU")
+  // returns {"ngraph_device_config"}
+  // 2. GetBackendAttributes("TEST")
+  // returns {"ngraph_device_config"}
+  // 3. GetBackendAttributes("NNPI")
+  // returns {"_ngraph_device_id", "_ngraph_ice_cores","_ngraph_max_batch_size"}
   static vector<string> GetOptionalAttributes(const string& backend_name);
 
-  static unordered_map<string, string> GetBackendAttributes(
+  // Given a string, splits the string into the backend name and other
+  // attributes
+  // This does not check whether the string corresponds to a valid backend
+  // For e.g.
+  // 1. GetBackendAttributes("CPU")
+  // returns {{"ngraph_backend", "CPU"}, {"ngraph_device_config", ""}}
+  // 2. GetBackendAttributes("GPU:2")
+  // returns {{"ngraph_backend", "GPU"}, {"ngraph_device_config", "2"}}
+  // 3. GetBackendAttributes("TEST:ME")
+  // returns {{"ngraph_backend", "TEST"}, {"ngraph_device_config", "ME"}}
+  static unordered_map<string, string>
+  GetBackendAttributes(  // SplitBackendConfig
       string backend_config);
 
+  // Given a backend name and list of attributes
+  // joins them into a string to create ngraph backend
+  // For e.g.
+  // 1. GetBackendCreationType("GPU", {"ngraph_device_config", "2"})
+  // returns "GPU:2"
+  // throws an error if the required attributes are not present in the map
   static string GetBackendCreationType(
       const string& backend_name,
-      unordered_map<string, string>& optional_attribute_values);
+      unordered_map<string, string>& optional_attribute_map);
 
   ~BackendManager();
 
