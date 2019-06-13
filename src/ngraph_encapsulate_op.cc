@@ -184,7 +184,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
     // Concatenate the backend_name:backend_config
     try {
-      m_op_backend_name = BackendManager::GetBackendCreationType(
+      m_op_backend_name = BackendManager::GetBackendCreationString(
           backend_name, optional_attribute_map);
     } catch (const std::exception& exp) {
       OP_REQUIRES_OK(ctx, errors::Internal(
