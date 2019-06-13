@@ -211,9 +211,12 @@ def main():
         # The location should have: ./artifacts/tensorflow, which is expected to contain one TF whl file, framework.so and cc.so
         print("Using TensorFlow from " + arguments.use_tensorflow_from_location)
         # The tf whl should be in use_tensorflow_from_location/artifacts/tensorflow
-        tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location + '/artifacts/tensorflow')
+        tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location +
+                                     '/artifacts/tensorflow')
         possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]
-        assert len(possible_whl) == 1, "Expected 1 TF whl file, but found " + len(possible_whl) 
+        assert len(
+            possible_whl
+        ) == 1, "Expected 1 TF whl file, but found " + len(possible_whl)
         # Make sure there is exactly 1 TF whl
         tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
         assert os.path.isfile(tf_whl), "Did not find " + tf_whl
