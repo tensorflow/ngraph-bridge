@@ -241,10 +241,13 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     bool ngraph_not_enabled =
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    if (!already_processed && ngraph_not_enabled) {
+      NGRAPH_VLOG(0) << "Graph will not run through ngraph";
+    }
     if (ngraph_not_enabled || already_processed) {
-      NGRAPH_VLOG(1) << "Not running through nGraph. nGraph not enabled: "
-                     << ngraph_not_enabled
-                     << " Already processed: " << already_processed;
+      NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
+                            (already_processed ? "graph is already preprocessed"
+                                               : "ngraph is disabled");
       NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
