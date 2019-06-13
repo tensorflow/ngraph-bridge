@@ -152,7 +152,7 @@ unordered_map<string, string> BackendManager::GetBackendAttributes(
   return BackendManager::GetBackendConfig(backend_name)->split(backend_config);
 }
 
-string BackendManager::GetBackendCreationType(
+string BackendManager::GetBackendCreationString(
     const string& backend_name,
     unordered_map<string, string>& optional_attribute_map) {
   return BackendManager::GetBackendConfig(backend_name)

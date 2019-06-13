@@ -205,14 +205,15 @@ TEST(BackendManager, GetBackendAttributes) {
   ASSERT_EQ(plaidml_options["_ngraph_device_config"], "device:567:892_34");
 }
 
-TEST(BackendManager, GetBackendCreationType) {
+TEST(BackendManager, GetBackendCreationString) {
   unordered_map<string, string> cpu_map = {{"_ngraph_device_config", ""}};
   unordered_map<string, string> nnpi_map = {{"_ngraph_device_id", "5"}};
   unordered_map<string, string> gpu_map = {{"_ngraph_device_config", "678"}};
 
-  auto cpu_backend = BackendManager::GetBackendCreationType("CPU", cpu_map);
-  auto nnpi_backend = BackendManager::GetBackendCreationType("NNPI", nnpi_map);
-  auto gpu_backend = BackendManager::GetBackendCreationType("GPU", gpu_map);
+  auto cpu_backend = BackendManager::GetBackendCreationString("CPU", cpu_map);
+  auto nnpi_backend =
+      BackendManager::GetBackendCreationString("NNPI", nnpi_map);
+  auto gpu_backend = BackendManager::GetBackendCreationString("GPU", gpu_map);
 
   ASSERT_EQ(cpu_backend, "CPU:");
   ASSERT_EQ(nnpi_backend, "NNPI:5");
@@ -227,20 +228,20 @@ TEST(BackendManager, GetBackendCreationType) {
   unordered_map<string, string> test_missing_config_default = {
       {"_ngraph_device_id", "45"}};
 
-  ASSERT_THROW(BackendManager::GetBackendCreationType("CPU", test_empty_map),
+  ASSERT_THROW(BackendManager::GetBackendCreationString("CPU", test_empty_map),
                std::out_of_range);
-  ASSERT_THROW(BackendManager::GetBackendCreationType("NNPI", test_empty_map),
+  ASSERT_THROW(BackendManager::GetBackendCreationString("NNPI", test_empty_map),
                std::out_of_range);
-  ASSERT_THROW(BackendManager::GetBackendCreationType("GPU", test_empty_map),
+  ASSERT_THROW(BackendManager::GetBackendCreationString("GPU", test_empty_map),
                std::out_of_range);
 
-  ASSERT_THROW(BackendManager::GetBackendCreationType(
+  ASSERT_THROW(BackendManager::GetBackendCreationString(
                    "CPU", test_missing_config_default),
                std::out_of_range);
-  ASSERT_THROW(
-      BackendManager::GetBackendCreationType("NNPI", test_missing_config_nnpi),
-      std::out_of_range);
-  ASSERT_THROW(BackendManager::GetBackendCreationType(
+  ASSERT_THROW(BackendManager::GetBackendCreationString(
+                   "NNPI", test_missing_config_nnpi),
+               std::out_of_range);
+  ASSERT_THROW(BackendManager::GetBackendCreationString(
                    "GPU", test_missing_config_default),
                std::out_of_range);
 }
