@@ -289,7 +289,7 @@ def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
     shutil.copy(tf_cc_fmwk_file, artifacts_dir)
 
     if tf_prebuilt is not None:
-        tf_whl = locate_tf_whl(tf_whl_loc)
+        tf_whl = locate_tf_whl(tf_prebuilt)
         shutil.copy(tf_whl, artifacts_dir)
 
 
