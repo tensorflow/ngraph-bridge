@@ -19,9 +19,9 @@
 
 #include <ostream>
 
-#include "ngraph_log.h"
 #include "tensorflow/core/lib/core/errors.h"
 
+#include "ngraph_log.h"
 using namespace std;
 
 namespace tensorflow {
@@ -30,13 +30,7 @@ namespace ngraph_bridge {
 
 class BackendConfig {
  public:
-  friend class BackendManager;
-
- private:
   BackendConfig() = delete;
-
- protected:
-  // BackendNNPI Config calls this constructor
   BackendConfig(string backend_name);
   unordered_map<string, string> split(string backend_config);
   vector<string> get_optional_attributes();
@@ -44,15 +38,13 @@ class BackendConfig {
   virtual string join(unordered_map<string, string> optional_parameters);
   virtual ~BackendConfig();
 
+ protected:
   string backend_name_;
   vector<string> optional_attributes_;
 };
 
 class BackendNNPIConfig : public BackendConfig {
  public:
-  friend class BackendManager;
-
- private:
   BackendNNPIConfig();
   string join(unordered_map<string, string> optional_parameters);
   virtual ~BackendNNPIConfig();

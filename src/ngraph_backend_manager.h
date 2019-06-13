@@ -126,14 +126,16 @@ class BackendManager {
   static unordered_set<string> ng_supported_backends_;
 
   // map of cached backend config objects
-  static unordered_map<string, BackendConfig*> ng_backendconfig_map_;
+  static unordered_map<string, std::shared_ptr<BackendConfig>>
+      ng_backendconfig_map_;
   static mutex ng_backendconfig_map_mutex_;
 
   // Map of backends and their reference counts
   static std::map<std::string, int> ref_count_each_backend_;
 
   // utility functions
-  static BackendConfig* GetBackendConfig(const string& backend_name);
+  static std::shared_ptr<BackendConfig> GetBackendConfig(
+      const string& backend_name);
 };
 
 }  // namespace ngraph_bridge

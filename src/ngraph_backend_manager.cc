@@ -40,7 +40,8 @@ unordered_set<string> BackendManager::ng_supported_backends_(
 map<std::string, int> BackendManager::ref_count_each_backend_;
 
 mutex BackendManager::ng_backendconfig_map_mutex_;
-unordered_map<string, BackendConfig*> BackendManager::ng_backendconfig_map_;
+unordered_map<string, std::shared_ptr<BackendConfig>>
+    BackendManager::ng_backendconfig_map_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_name_mutex_);
@@ -81,13 +82,6 @@ void BackendManager::ReleaseBackend(const string& backend_name) {
     BackendManager::ng_backend_map_[backend_name]->backend_ptr.reset();
     BackendManager::ng_backend_map_.erase(backend_name);
     NGRAPH_VLOG(2) << "Deleted Backend " << backend_name;
-
-    // Free the Backend Config object for the backend being released
-    free(BackendManager::ng_backendconfig_map_[backend_name]);
-    NGRAPH_VLOG(5) << "Backend Config Map Size"
-                   << BackendManager::ng_backendconfig_map_.size();
-    BackendManager::ng_backendconfig_map_.erase(backend_name);
-    NGRAPH_VLOG(2) << "Deleted Backend Config" << backend_name;
   }
 }
 
@@ -123,17 +117,18 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
 // Backend Config functions
 // BackendConfig is expected to be a readonly class
 // hence only locked at creation and not during later access
-BackendConfig* BackendManager::GetBackendConfig(const string& backend_name) {
+std::shared_ptr<BackendConfig> BackendManager::GetBackendConfig(
+    const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   auto itr = BackendManager::ng_backendconfig_map_.find(backend_name);
   if (itr == BackendManager::ng_backendconfig_map_.end()) {
-    BackendConfig* bconfig = nullptr;
+    std::shared_ptr<BackendConfig> bconfig;
     if (backend_name == "NNPI") {
       NGRAPH_VLOG(3) << "Creating NNPI Backend config";
-      bconfig = new BackendNNPIConfig();
+      bconfig = std::make_shared<BackendNNPIConfig>();
     } else {
       NGRAPH_VLOG(3) << "Creating default Backend config";
-      bconfig = new BackendConfig(backend_name);
+      bconfig = std::make_shared<BackendConfig>(backend_name);
     }
     BackendManager::ng_backendconfig_map_[backend_name] = bconfig;
   }
