@@ -150,7 +150,7 @@ def main():
         ), "Prebuilt TF path " + arguments.use_tensorflow_from_location + " does not exist"
         loc = arguments.use_tensorflow_from_location + '/artifacts/tensorflow'
         assert os.path.isdir(
-            loc), "Could not find artiufacts/tensorflow directory"
+            loc), "Could not find artifacts/tensorflow directory"
         found_whl = False
         found_libtf_fw = False
         found_libtf_cc = False
