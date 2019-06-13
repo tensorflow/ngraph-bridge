@@ -212,6 +212,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       NGRAPH_VLOG(1) << "Setting backend from the enviornment variable "
                         "NGRAPH_TF_BACKEND = "
                      << backend_name;
+    } else {
+      NGRAPH_VLOG(1) << "Setting backend from the BackendManager ";
     }
     // splits into {"ngraph_backend", "_ngraph_device_config"}
     config_map = BackendManager::GetBackendAttributes(
@@ -219,7 +221,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
   }
-  NGRAPH_VLOG(1) << "NGTF_OPTIMIZER: backend_name " << backend_name;
+  NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: backend_name " << backend_name;
 
   // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes, backend_name));

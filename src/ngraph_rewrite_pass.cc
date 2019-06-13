@@ -227,6 +227,8 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       NGRAPH_VLOG(1) << "Setting backend from the enviornment variable "
                         "NGRAPH_TF_BACKEND = "
                      << backend_name;
+    } else {
+      NGRAPH_VLOG(1) << "Setting backend from the BackendManager ";
     }
 
     // splits into {"ngraph_backend", "_ngraph_device_config"}
@@ -234,7 +236,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
         backend_name);  // SplitBackendConfig
     backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
-    NGRAPH_VLOG(1) << "NGraphEncapsulationPass: backend_name " << backend_name;
+    NGRAPH_VLOG(0) << "NGraphEncapsulationPass: backend_name " << backend_name;
 
     // Now Process the Graph
 
