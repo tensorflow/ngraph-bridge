@@ -222,6 +222,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     config_map = BackendManager::GetBackendAttributes(
         backend_name);  // SplitBackendConfig
     backend_name = config_map.at("ngraph_backend");
+    // config_map in EncapsulateClusters is not expected to contain ngraph_backend
     config_map.erase("ngraph_backend");
   }
   NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: backend_name " << backend_name;
