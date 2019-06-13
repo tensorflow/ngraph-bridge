@@ -70,13 +70,9 @@ TEST(GrapplerConfig, RConfig1) {
   graph.ToGraphDef(&item.graph);
   ConfigProto config_proto;
   auto backend_name = AttrValue();
-  backend_name.set_s("NNPI");
-  auto device_id = AttrValue();
-  device_id.set_s("1");
-  auto num_ice_cores = AttrValue();
-  num_ice_cores.set_s("4");
-  auto max_batch_size = AttrValue();
-  max_batch_size.set_s("64");
+  backend_name.set_s("CPU");
+  auto device_config = AttrValue();
+  device_config.set_s("1");
   auto& rewriter_config =
       *config_proto.mutable_graph_options()->mutable_rewrite_options();
   rewriter_config.add_optimizers("ngraph-optimizer");
@@ -85,11 +81,8 @@ TEST(GrapplerConfig, RConfig1) {
   auto* custom_config = rewriter_config.add_custom_optimizers();
   custom_config->set_name("ngraph-optimizer");
   (*custom_config->mutable_parameter_map())["ngraph_backend"] = backend_name;
-  (*custom_config->mutable_parameter_map())["_ngraph_device_id"] = device_id;
-  (*custom_config->mutable_parameter_map())["_ngraph_ice_cores"] =
-      num_ice_cores;
-  (*custom_config->mutable_parameter_map())["_ngraph_max_batch_size"] =
-      max_batch_size;
+  (*custom_config->mutable_parameter_map())["_ngraph_device_config"] =
+      device_config;
 
   // Run grappler
   tensorflow::grappler::MetaOptimizer optimizer(nullptr, config_proto);
@@ -113,18 +106,14 @@ TEST(GrapplerConfig, RConfig1) {
     ng_encap = node;
   }
   ASSERT_NE(ng_encap, nullptr);
-  string ng_backend, ng_device_id, ng_ice_cores, ng_max_batch_size;
+  string ng_backend, ng_device_config;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_ice_cores", &ng_ice_cores));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_max_batch_size",
-                        &ng_max_batch_size));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_config",
+                        &ng_device_config));
 
-  ASSERT_EQ(ng_backend, "NNPI");
-  ASSERT_EQ(ng_device_id, "1");
-  ASSERT_EQ(ng_ice_cores, "4");
-  ASSERT_EQ(ng_max_batch_size, "64");
+  ASSERT_EQ(ng_backend, "CPU");
+  ASSERT_EQ(ng_device_config, "1");
 }
 
 }  // namespace testing
