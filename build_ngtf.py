@@ -231,7 +231,7 @@ def main():
             tf_in_artifacts), "Did not expect to find " + tf_in_artifacts
         os.mkdir(tf_in_artifacts)
         # This function copies the .so files from use_tensorflow_from_location/artifacts/tensorflow to artifacts/tensorflow
-        copy_tf_to_artifacts(tf_in_artifacts)
+        copy_tf_to_artifacts(tf_in_artifacts, tf_whl_loc)
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow:
