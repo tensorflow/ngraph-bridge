@@ -27,13 +27,14 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 ## Linux instructions
 
 
-### Option 1: Use a pre-built nGraph-TensorFlow bridge 
+### Option 1: ~Use a pre-built nGraph-TensorFlow bridge~ 
+### :warning: Not Yet vailable for this version 
 
 1. You can install TensorFlow and nGraph using `virtualenv` or in the system Python location. 
 
-2. Install TensorFlow v1.13.1:
+2. Install TensorFlow v1.14.0rc0:
 
-        pip install -U tensorflow==1.13.1
+        pip install -U tensorflow==1.14.0rc0
 
 3. Install nGraph-TensorFlow bridge:
 
@@ -43,20 +44,21 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 
 To use the latest version build and install nGraph using the following steps: 
 
-1. You need to have `virtualenv` installed on your system to be able build `ngraph-bridge` bridge. The virtualenv is configured and used by the build script but not required for running `ngraph-bridge`. 
+1. You need to have `virtualenv` version **16.0.0** (or lower) installed on your system to be able build `ngraph-bridge` bridge. The virtualenv is configured and used by the build script but not required for running `ngraph-bridge`. 
 
-2. Next run the following Python script to download TensorFlow, and build nGraph and the bridge. Please use Python 3.5:
+2. Please ensure that you have gcc 4.8 version installed on your system. The nGraph bridge links with the TensorFlow libraries that are build with gcc 4.8 version of the toolchain. 
+
+3. Next run the following Python script to download TensorFlow, and build nGraph and the bridge. Please use Python 3.5:
 
         python3 build_ngtf.py --use_prebuilt_tensorflow
 
-3. Now test the build by executing the following commands:
+4. Now test the build by executing the following commands:
 
         source build_cmake/venv-tf-py3/bin/activate
         PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
                 --backend CPU \
                 --artifacts ./build_cmake/artifacts/ \
                 --test_resnet
-
 
 ### Option 3: Build nGraph bridge from source
 
@@ -68,11 +70,10 @@ bridge using the TensorFlow source tree as follows:
 The installation prerequisites are the same as described in the TensorFlow 
 [prepare environment] for linux.
 
-1. TensorFlow uses a build system called "bazel". The version of the `bazel` is determined by the TensorFlow team. For the current version, use [bazel version 0.21.0]. 
+1. TensorFlow uses a build system called "bazel". The version of the `bazel` is determined by the TensorFlow team. For the current version, use [bazel version].
 
-        wget https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-linux-x86_64.sh      
-        chmod +x bazel-0.21.0-installer-linux-x86_64.sh
-        ./bazel-0.21.0-installer-linux-x86_64.sh --user
+        wget https://github.com/bazelbuild/bazel/releases/download/0.25.2/bazel-0.25.2-installer-linux-x86_64.sh      
+        bash bazel-0.25.2-installer-linux-x86_64.sh --user
 
 2. Add and source the ``bin`` path to your ``~/.bashrc`` file in order to be 
    able to call bazel from the user's installation we set up:
@@ -89,10 +90,10 @@ The installation prerequisites are the same as described in the TensorFlow
 
         git clone https://github.com/tensorflow/ngraph-bridge.git
         cd ngraph-bridge
-        git checkout v0.14.0
+        git checkout master
 
    
-2. Next run the following Python script to build TensorFlow, nGraph and the bridge. Please use Python 3.5:
+2. Run the following Python script to build TensorFlow, nGraph and the bridge. Please use Python 3.5:
 
         python3 build_ngtf.py
 
@@ -107,9 +108,14 @@ This command will run all the C++ and python unit tests from the ngraph-bridge s
 4. To use the ngraph-tensorflow bridge, activate this virtual environment to start using nGraph with TensorFlow. 
 
         source build_cmake/venv-tf-py3/bin/activate
+ 
+Alternatively, you can also install the TensorFlow and nGraph bridge outside of virtualenv. The Python `whl` files are located in the `build_cmake/artifacts/` and `build_cmake/artifats/tensorflow` directories, respectively. 
 
-Once the build and installation steps are complete, you can start using TensorFlow 
-with nGraph backends. Please note that you can also install the TensorFlow and nGraph bridge outside of virtualenv. The Python `whl` files are located in the `build_cmake/artifacts/` and `build_cmake/artifats/tensorflow` directories, respectively. Select the help option of `build_ngtf.py` script to learn more about various build options and how to build other backends. 
+:warning: If you build nGraph bridge from source (i.e., Option 3) then chances are you used gcc 5.4 or higher. Howver, TensorFlow available from PyPi is compiled with gcc 4.8. You cannot mix and match an nGraph bridge that is compiled and linked with TensorFlow built from source and runnng with TensorFlow installed from PyPi. This is due to mismatch of the CXX11 ABI. 
+
+So install the TensorFlow from the `artifacts/tensorflow/tensorflow-<VERSION_INFO>.whl` if you have selected option 3 to build ngraph-bridge.
+
+Select the help option of `build_ngtf.py` script to learn more about various build options and how to build other backends. 
 
 ## How to use nGraph with TensorFlow
 
@@ -119,11 +125,12 @@ with nGraph backends. Please note that you can also install the TensorFlow and n
 
    This will produce something like this:
 
-        TensorFlow version:  1.13.1
+        TensorFlow version:  1.14.0-rc0
+        C Compiler version used in building TensorFlow:  7.3.0
         nGraph bridge version: b'0.14.0'
-        nGraph version used for this build: b'0.18.0+c5d52f1'
-        TensorFlow version used for this build: v1.13.1-0-g6612da8951
-        CXX11_ABI flag used for this build: 0
+        nGraph version used for this build: b'0.20.0-rc.0+0995b71'
+        TensorFlow version used for this build: v1.14.0-rc0-0-gf5ce1c00d4
+        CXX11_ABI flag used for this build: 1
         nGraph bridge built with Grappler: False
         nGraph bridge built with Variables and Optimizers Enablement: False
 
@@ -180,7 +187,7 @@ See the full documentation here:  <http://ngraph.nervanasys.com/docs/latest>
 [DSO]:http://csweb.cs.wfu.edu/~torgerse/Kokua/More_SGI/007-2360-010/sgi_html/ch03.html
 [Github issues]: https://github.com/tensorflow/ngraph-bridge/issues
 [pull request]: https://github.com/tensorflow/ngraph-bridge/pulls
-[bazel version 0.21.0]: https://github.com/bazelbuild/bazel/releases/tag/0.21.0
+[bazel version]: https://github.com/bazelbuild/bazel/releases/tag/0.25.2
 [prepare environment]: https://www.tensorflow.org/install/install_sources#prepare_environment_for_linux
 [diagnostics]:diagnostics/README.md
 [examples]:examples/README.md
