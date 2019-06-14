@@ -40,7 +40,7 @@ extern tf::Status LoadGraph(const string& graph_file_name,
                             std::unique_ptr<tf::Session>* session,
                             const tf::SessionOptions& options);
 
-extern tf::Status ReadTensorFromImageFile(const string& file_name,
+extern tf::Status ReadTensorFromImageFile(std::vector<string>& file_name,
                                           const int input_height,
                                           const int input_width,
                                           const float input_mean,
@@ -51,10 +51,10 @@ namespace infer_multiple_networks {
 
 InferenceEngine::InferenceEngine(const string& name, const string& backend)
     : m_name(name) {}
-Status InferenceEngine::Load(const string& network, vector<string>& image_file,
-                             int input_width, int input_height,
-                             float input_mean, float input_std,
-                             const string& input_layer,
+Status InferenceEngine::Load(const string& network,
+                             std::vector<string>& image_file, int input_width,
+                             int input_height, float input_mean,
+                             float input_std, const string& input_layer,
                              const string& output_layer, bool use_NCHW,
                              bool preload_images) {
   // Load the network
@@ -135,6 +135,7 @@ void InferenceEngine::ThreadMain() {
           m_input_std, m_use_NCHW, &resized_tensors));
 
       m_image_to_repeat = resized_tensors[0];
+      // assert(resized_tensors.size() == 1);
       tf::ngraph_bridge::BackendManager::SetBackendName(current_backend);
 
       read_event.Stop();
@@ -150,7 +151,6 @@ void InferenceEngine::ThreadMain() {
     std::vector<Tensor> outputs;
     TF_CHECK_OK(m_session->Run({{m_input_layer, resized_tensor}},
                                {m_output_layer}, {}, &outputs));
-
     infer_event.Stop();
 
     ngraph::Event::write_trace(infer_event);

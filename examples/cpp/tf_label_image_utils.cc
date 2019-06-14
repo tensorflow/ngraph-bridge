@@ -144,7 +144,7 @@ static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
 // Given an image file name, read in the data, try to decode it as an image,
 // resize it to the requested size, and then scale the values as desired.
 //-----------------------------------------------------------------------------
-Status ReadTensorFromImageFile(vector<string>& file_names,
+Status ReadTensorFromImageFile(std::vector<string>& file_names,
                                const int input_height, const int input_width,
                                const float input_mean, const float input_std,
                                bool use_NCHW,
@@ -206,12 +206,12 @@ Status ReadTensorFromImageFile(vector<string>& file_names,
     if (use_NCHW) {
       auto converted_input = Transpose(root, resized, {0, 3, 1, 2});
       // Subtract the mean and divide by the scale.
-      div = Div(root.WithOpName(output_name),
+      div = Div(root.WithOpName("output_" + std::to_string(i)),
                 Sub(root, converted_input, {input_mean}), {input_std});
     } else {
       // Subtract the mean and divide by the scale.
-      div = Div(root.WithOpName(output_name), Sub(root, resized, {input_mean}),
-                {input_std});
+      div = Div(root.WithOpName("output_" + std::to_string(i)),
+                Sub(root, resized, {input_mean}), {input_std});
     }
     div_tensors.push_back(div);
   }

@@ -23,6 +23,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/public/session.h"
@@ -44,7 +45,7 @@ class InferenceEngine {
   InferenceEngine(const string& name, const string& backend);
   ~InferenceEngine();
 
-  Status Load(const string& network, vector<string>& image_file,
+  Status Load(const string& network, std::vector<string>& image_file,
               int input_width, int input_height, float input_mean,
               float input_std, const string& input_layer,
               const string& output_layer, bool use_NCHW, bool preload_images);
@@ -64,7 +65,7 @@ class InferenceEngine {
   std::function<void(int)> m_step_callback{nullptr};
 
   // Image related info
-  string m_image_file;
+  std::vector<string> m_image_file;
   int m_input_width;
   int m_input_height;
   float m_input_mean;
