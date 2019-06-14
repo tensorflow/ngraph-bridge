@@ -1,5 +1,5 @@
 {
-    "default": {
+    "default_tf113": {
         "logparse": {
             "0": {
                 "num_ng_clusters": 40,
