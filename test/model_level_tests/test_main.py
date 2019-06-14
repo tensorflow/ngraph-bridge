@@ -238,7 +238,7 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed):
                             parsed_vals, expected.get('logparse', {}))
                         if not passed:
                             print('Failed in test ' + flname +
-                                '. Help message: ' + fail_help_string)
+                                  '. Help message: ' + fail_help_string)
                             failed_tests.append(flname)
                             continue
                         if 'time' in expected:
@@ -246,12 +246,12 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed):
                             # TODO: decide this criteria. time can be pretty variable
                             # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
                             time_check = (actual_runtime - expected['time']
-                                        ) / expected['time'] < 0.1
+                                         ) / expected['time'] < 0.1
                             if not time_check:
                                 print("Expected run time for test " + flname +
-                                    " is " + str(expected['time']) +
-                                    " but it actually took " +
-                                    str(actual_runtime))
+                                      " is " + str(expected['time']) +
+                                      " but it actually took " +
+                                      str(actual_runtime))
                                 failed_tests.append(flname)
                                 continue
                     passed_tests.append(flname)
@@ -281,7 +281,6 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed):
         # TODO: check throughput/latency
     except Exception as e:
         print(e)
-        return passed_tests, failed_tests, skipped_tests
     finally:
         if (os.path.isdir(repo_dl_loc)):
             command_executor('rm -rf ' + repo_dl_loc)

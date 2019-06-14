@@ -1,31 +1,9 @@
 {
-    "grappler": {
-        "logparse": {
-            "0":{
-            "TEST: run-a3c.sh": "True",
-            "TEST: run-dcgan.sh": "False",
-            "TEST: run-densenet.sh": "False"
-            }
-        },
-        "time": 45
-    },
     "default": {
         "logparse": {
-            "0":{
             "TEST: run-a3c.sh": "True",
             "TEST: run-dcgan.sh": "True",
             "TEST: run-densenet.sh": "False"
-            }
-        },
-        "time": 45
-    },
-    "default_tf113": {
-        "logparse": {
-            "0":{
-            "TEST: run-a3c.sh": "True",
-            "TEST: run-dcgan.sh": "True",
-            "TEST: run-densenet.sh": "False"
-            }
         },
         "time": 45
     }
