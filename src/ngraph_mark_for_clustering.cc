@@ -267,12 +267,23 @@ Status MarkForClustering(Graph* graph,
           SimpleConfirmationFunction();
       confirmation_function_map["FusedBatchNormV2"] =
           SimpleConfirmationFunction();
+      confirmation_function_map["FusedBatchNormV3"] =
+          SimpleConfirmationFunction();
       confirmation_function_map["FusedBatchNormGrad"] = [](Node* n,
                                                            bool* result) {
         TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
         return Status::OK();
       };
+      confirmation_function_map["FusedBatchNormGradV3"] = [](Node* n,
+                                                             bool* result) {
+        TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
+        return Status::OK();
+      };
       confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
+      confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
+      confirmation_function_map["_FusedMatMul"] =
+          SimpleConfirmationFunction();  // TODO accept under all conditions?
+                                         // check?
       confirmation_function_map["Greater"] = SimpleConfirmationFunction();
       confirmation_function_map["GreaterEqual"] = SimpleConfirmationFunction();
 #if defined NGRAPH_DISTRIBUTED
@@ -435,14 +446,20 @@ Status MarkForClustering(Graph* graph,
       type_constraint_map["FloorDiv"]["T"] = NGraphNumericDTypes();
       type_constraint_map["FloorMod"]["T"] = NGraphNumericDTypes();
       type_constraint_map["FusedBatchNorm"]["T"] = NGraphNumericDTypes();
-      // TODO (mingshan): FusedBatchNormV2 supports DT_HALF,DT_BFLOAT16,
+      // TODO (mingshan): FusedBatchNormV2, V3 supports DT_HALF,DT_BFLOAT16,
       // DT_FLOAT
       type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
+      type_constraint_map["FusedBatchNormV3"]["T"] = {DT_FLOAT};
       type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["GatherNd"]["Tparams"] = {
+          DT_FLOAT};  // NGraphDTypes();
+      type_constraint_map["GatherNd"]["Tindices"] = NGraphIndexDTypes();
+      type_constraint_map["FusedBatchNormGradV3"]["T"] = NGraphNumericDTypes();
       type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
       type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
       type_constraint_map["GatherV2"]["Taxis"] = NGraphIndexDTypes();
       type_constraint_map["_FusedConv2D"]["T"] = NGraphRealDTypes();
+      type_constraint_map["_FusedMatMul"]["T"] = NGraphRealDTypes();
       type_constraint_map["Greater"]["T"] = NGraphDTypes();
       type_constraint_map["GreaterEqual"]["T"] = NGraphDTypes();
 #if defined NGRAPH_DISTRIBUTED
@@ -579,6 +596,8 @@ Status MarkForClustering(Graph* graph,
       set_attributes_map["ArgMin"] = SetStaticInputs({1});
       set_attributes_map["AvgPoolGrad"] = SetStaticInputs({0});
       set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
+      set_attributes_map["CombinedNonMaxSuppression"] =
+          SetStaticInputs({2, 3, 4, 5});
       set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
       set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
       set_attributes_map["ExpandDims"] = SetStaticInputs({1});
@@ -653,6 +672,12 @@ Status MarkForClustering(Graph* graph,
   };
 
   confirmation_function_map["NonMaxSuppressionV4"] = [&current_backend](
+      Node* n, bool* result) {
+    *result = (current_backend == "NNPI");
+    return Status::OK();
+  };
+
+  confirmation_function_map["CombinedNonMaxSuppression"] = [&current_backend](
       Node* n, bool* result) {
     *result = (current_backend == "NNPI");
     return Status::OK();

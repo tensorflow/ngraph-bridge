@@ -18,7 +18,7 @@
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
       
     label: ":hammer_and_wrench: Build"
-    timeout_in_minutes: 30
+    timeout_in_minutes: 60
     agents:
     - "queue=gpu"
     parallelism: 1
@@ -40,7 +40,7 @@
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install psutil && pip install -U \
-        /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-1.13.1-cp??-cp??m-linux_x86_64.whl
+        /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-1.14.0rc0-cp??-cp??m-linux_x86_64.whl
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
       
     label: ":gear: Install"
@@ -53,7 +53,7 @@
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install pytest
-      PYTHONPATH=`pwd`:`pwd`/tools python3 test/ci/buildkite/test_runner.py \
+      PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
         --backend GPU \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_python
     
@@ -72,7 +72,7 @@
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_tf_python
     
     label: ":python: TensorFlow Pytest"
-    timeout_in_minutes: 30
+    timeout_in_minutes: 60
     agents:
     - "queue=gpu"
 

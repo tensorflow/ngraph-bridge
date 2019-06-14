@@ -29,6 +29,21 @@ import platform
 import shlex
 
 
+def get_tf_cxxabi():
+    import tensorflow as tf
+    print('Version information:')
+    print('TensorFlow version: ', tf.__version__)
+    print('C Compiler version used in building TensorFlow: ',
+          tf.__compiler_version__)
+    return str(tf.__cxx11_abi_flag__)
+
+
+def is_venv():
+    # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
+    return (hasattr(sys, 'real_prefix') or
+            (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
+
+
 def command_executor(cmd, verbose=False, msg=None, stdout=None):
     '''
     Executes the command.
@@ -203,6 +218,11 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
         "bazel",
         "build",
         "--config=opt",
+        "--config=noaws",
+        "--config=nohdfs",
+        "--config=noignite",
+        "--config=nokafka",
+        "--config=nonccl",
         "//tensorflow/tools/pip_package:build_pip_package",
     ]
     if verbosity:
@@ -220,30 +240,57 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     print("TF Wheel: %s" % tf_wheel_files[0])
 
     # Now build the TensorFlow C++ library
-    cmd = ["bazel", "build", "--config=opt", "//tensorflow:libtensorflow_cc.so"]
+    cmd = [
+        "bazel", "build", "--config=opt", "--config=noaws", "--config=nohdfs",
+        "--config=noignite", "--config=nokafka", "--config=nonccl",
+        "//tensorflow:libtensorflow_cc.so.1"
+    ]
     command_executor(cmd)
 
-    # Remove just in case
+    copy_tf_to_artifacts(artifacts_dir, None)
+
+    # popd
+    os.chdir(pwd)
+
+
+def locate_tf_whl(tf_whl_loc):
+    possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]
+    assert len(possible_whl
+              ) == 1, "Expected 1 TF whl file, but found " + len(possible_whl)
+    tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
+    assert os.path.isfile(tf_whl), "Did not find " + tf_whl
+    return tf_whl
+
+
+def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
+    tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
+    if (platform.system() == 'Darwin'):
+        tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
     try:
-        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so")
-        os.remove(doomed_file)
-        doomed_file = os.path.join(artifacts_dir, "libtensorflow_framework.so")
-        os.remove(doomed_file)
+        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.1")
+        os.unlink(doomed_file)
+        doomed_file = os.path.join(artifacts_dir, tf_fmwk_lib_name)
+        os.unlink(doomed_file)
     except OSError:
         print("Cannot remove: %s" % doomed_file)
         pass
 
     # Now copy the TF libraries
-    tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so"
+    if tf_prebuilt is None:
+        tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.1"
+        tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
+    else:
+        tf_cc_lib_file = os.path.abspath(tf_prebuilt + '/libtensorflow_cc.so.1')
+        tf_cc_fmwk_file = os.path.abspath(tf_prebuilt + '/' + tf_fmwk_lib_name)
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)
 
-    tf_cc_fmwk_file = "bazel-bin/tensorflow/libtensorflow_framework.so"
     print("Copying %s to %s" % (tf_cc_fmwk_file, artifacts_dir))
     shutil.copy(tf_cc_fmwk_file, artifacts_dir)
 
-    # popd
-    os.chdir(pwd)
+    if tf_prebuilt is not None:
+        tf_whl = locate_tf_whl(tf_prebuilt)
+        shutil.copy(tf_whl, artifacts_dir)
 
 
 def install_tensorflow(venv_dir, artifacts_dir):
@@ -374,6 +421,9 @@ def download_repo(target_name, repo, version):
     # checkout the specified branch
     call(["git", "fetch"])
     command_executor(["git", "checkout", version])
+
+    # Get the latest if applicable
+    call(["git", "pull"])
     os.chdir(pwd)
 
 
