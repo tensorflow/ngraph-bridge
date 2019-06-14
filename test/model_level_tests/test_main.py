@@ -231,9 +231,12 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed):
                                 separators=(',', ': ')))
                     # If expected.json is present, run some extra tests. If not present we deem the test passed if it ran apply_patch_and_test without raising any errors
                     if expected_json_present:
-                        expected = get_expected_from_json(
-                            expected_json_file, configuration,
-                            not custom_parser_present)
+                        try:
+                            expected = get_expected_from_json(
+                                expected_json_file, configuration,
+                                not custom_parser_present)
+                        except:
+                            assert False, 'Failed to parse ' + expected_json_file
                         passed, fail_help_string = compare_parsed_values(
                             parsed_vals, expected.get('logparse', {}))
                         if not passed:
@@ -281,6 +284,7 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed):
         # TODO: check throughput/latency
     except Exception as e:
         print(e)
+        return passed_tests, failed_tests, skipped_tests
     finally:
         if (os.path.isdir(repo_dl_loc)):
             command_executor('rm -rf ' + repo_dl_loc)

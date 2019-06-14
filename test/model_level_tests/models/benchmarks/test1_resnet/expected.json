@@ -1,5 +1,35 @@
 {
-    "default":
+    "default": {
+        "logparse": {
+            "0": {
+                "num_ng_clusters": 15,
+                "num_nodes_in_graph": 1037,
+                "num_nodes_marked_for_clustering": 445
+            },
+            "1": {
+                "num_ng_clusters": 1,
+                "num_nodes_in_graph": 11,
+                "num_nodes_marked_for_clustering": 6
+            },
+            "2": {
+                "num_ng_clusters": 1,
+                "num_nodes_in_graph": 548,
+                "num_nodes_marked_for_clustering": 4
+            },
+            "3": {
+                "num_ng_clusters": 0,
+                "num_nodes_in_graph": 3,
+                "num_nodes_marked_for_clustering": 1
+            },
+            "4": {
+                "num_ng_clusters": 0,
+                "num_nodes_in_graph": 4,
+                "num_nodes_marked_for_clustering": 0
+            }
+        },
+        "time": 22
+    },
+    "default_tf113":
     {
         "logparse":{
             "4": 
