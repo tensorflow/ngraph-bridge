@@ -13,7 +13,7 @@ sess = tf.Session()
 sess.run(out0, feed_dict = {in0:[2,3], in1:[4,5]})
 ```
 
-The "normal" mode latches onto `Tensorflow` operations by registering `GraphOptimizationPass`s such as `NGraphRewritePass` and `NGraphVariableCapturePass`. It also register a custom op `NGraphEncapsulate`. Note that the graph rewriting and the actual execution all happens when `session.run` is called
+The "normal" mode latches onto `Tensorflow` operations by registering `GraphOptimizationPass`es such as `NGraphRewritePass` and `NGraphVariableCapturePass`. It also register a custom op `NGraphEncapsulate`. Note that the graph rewriting and the actual execution all happens when `session.run` is called
 
 
 ### Introducing `Grappler`
