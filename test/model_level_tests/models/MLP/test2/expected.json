@@ -1,5 +1,20 @@
 {
-    "default":
+    "grappler": {
+        "logparse": {
+            "0": {
+                "num_ng_clusters": 0,
+                "num_nodes_in_graph": 83,
+                "num_nodes_marked_for_clustering": 0
+            },
+            "1": {
+                "num_ng_clusters": 21,
+                "num_nodes_in_graph": 478,
+                "num_nodes_marked_for_clustering": 387
+            }
+        },
+        "time": 13
+    },
+    "default_tf113":
     {
         "logparse":
         {
@@ -18,7 +33,7 @@
         },
         "time": 13.0
     },
-    "grappler":
+    "grappler_tf113":
     {
         "logparse":
         {
