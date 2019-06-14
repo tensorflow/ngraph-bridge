@@ -72,6 +72,12 @@ TEST(BackendManager, GetSupportedBackendNames) {
 
   vector<string> ng_backends =
       ng::runtime::BackendManager::get_registered_backends();
+
+  NGRAPH_VLOG(5) << "nGraph Supported Backends";
+  for (auto backend : ng_backends) {
+    NGRAPH_VLOG(5) << backend;
+  }
+
   ASSERT_EQ(ng_tf_backends.size(), ng_backends.size());
 
   for (auto backend : ng_backends) {

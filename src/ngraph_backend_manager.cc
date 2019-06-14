@@ -26,6 +26,7 @@ namespace ngraph_bridge {
 BackendManager::~BackendManager() {
   NGRAPH_VLOG(2) << "BackendManager::~BackendManager() DONE";
 }
+
 // initialize backend manager
 string BackendManager::ng_backend_name_ = "CPU";
 mutex BackendManager::ng_backend_name_mutex_;
@@ -35,6 +36,18 @@ vector<string> ng_supported_backends =
     ng::runtime::BackendManager::get_registered_backends();
 unordered_set<string> BackendManager::ng_supported_backends_(
     ng_supported_backends.begin(), ng_supported_backends.end());
+
+// std::cout<<"**** Print ngraph backends "<<std::endl;
+// for(auto bname: ng_supported_backends){
+//   std::cout<< bname <<std::endl;
+// }
+
+// cout<<"Print ngtf backends "<<endl;
+// for(auto bname: ng_supported_backends){
+//   cout<< bname <<endl;  
+// }
+
+
 
 std::map<std::string, int> BackendManager::ref_count_each_backend_;
 
