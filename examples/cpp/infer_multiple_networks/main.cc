@@ -89,7 +89,7 @@ void PrintVersion() {
 }
 
 int main(int argc, char** argv) {
-  string image = "grace_hopper.jpg";
+  vector<string> image(12, "grace_hopper.jpg");
   string graph = "inception_v3_2016_08_28_frozen.pb";
   string labels = "";
   int input_width = 299;

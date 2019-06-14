@@ -51,7 +51,7 @@ namespace infer_multiple_networks {
 
 InferenceEngine::InferenceEngine(const string& name, const string& backend)
     : m_name(name) {}
-Status InferenceEngine::Load(const string& network, const string& image_file,
+Status InferenceEngine::Load(const string& network, vector<string>& image_file,
                              int input_width, int input_height,
                              float input_mean, float input_std,
                              const string& input_layer,

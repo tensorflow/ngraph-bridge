@@ -44,10 +44,10 @@ class InferenceEngine {
   InferenceEngine(const string& name, const string& backend);
   ~InferenceEngine();
 
-  Status Load(const string& network, const string& image_file, int input_width,
-              int input_height, float input_mean, float input_std,
-              const string& input_layer, const string& output_layer,
-              bool use_NCHW, bool preload_images);
+  Status Load(const string& network, vector<string>& image_file,
+              int input_width, int input_height, float input_mean,
+              float input_std, const string& input_layer,
+              const string& output_layer, bool use_NCHW, bool preload_images);
 
   Status Start();
   Status Start(const std::function<void(int)>& step_callback);
