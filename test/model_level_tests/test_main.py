@@ -208,6 +208,7 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed):
                     expected_json_file = sub_test_dir + '/expected.json'
                     expected_json_present = os.path.isfile(expected_json_file)
                     if print_parsed or expected_json_present:
+                        # parse logs in this case
                         if custom_parser_present:
                             sys.path.insert(0, os.path.abspath(sub_test_dir))
                             from custom_log_parser import custom_parse_logs
@@ -215,20 +216,21 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed):
                             sys.path.pop(0)
                         else:
                             parsed_vals = parse_logs(so)
-                        to_be_printed = {
-                            configuration: {
-                                'logparse': parsed_vals,
-                                'time': tend - tstart
+                        if print_parsed:
+                            to_be_printed = {
+                                configuration: {
+                                    'logparse': parsed_vals,
+                                    'time': tend - tstart
+                                }
                             }
-                        }
-                        replaced_single_with_double_quotes = json.loads(
-                            to_be_printed.__str__().replace("\'", "\""))
-                        print(
-                            json.dumps(
-                                replaced_single_with_double_quotes,
-                                sort_keys=True,
-                                indent=4,
-                                separators=(',', ': ')))
+                            replaced_single_with_double_quotes = json.loads(
+                                to_be_printed.__str__().replace("\'", "\""))
+                            print(
+                                json.dumps(
+                                    replaced_single_with_double_quotes,
+                                    sort_keys=True,
+                                    indent=4,
+                                    separators=(',', ': ')))
                     # If expected.json is present, run some extra tests. If not present we deem the test passed if it ran apply_patch_and_test without raising any errors
                     if expected_json_present:
                         try:
