@@ -139,8 +139,8 @@ def main():
     build_dir = 'build_cmake'
 
     assert not (
-        arguments.use_tensorflow_from_location != '' and
-        arguments.use_prebuilt_tensorflow
+        arguments.use_tensorflow_from_location != ''
+        and arguments.use_prebuilt_tensorflow
     ), "use_tensorflow_from_location and use_prebuilt_tensorflow should not be used together"
 
     if arguments.use_tensorflow_from_location != '':
@@ -207,9 +207,12 @@ def main():
     cxx_abi = "0"
 
     if arguments.use_tensorflow_from_location != "":
-        # Some asserts to make sure the directory structure of use_tensorflow_from_location is correct
-        # The location should have: ./artifacts/tensorflow, which is expected to contain one TF whl file, framework.so and cc.so
-        print("Using TensorFlow from " + arguments.use_tensorflow_from_location)
+        # Some asserts to make sure the directory structure of 
+        # use_tensorflow_from_location is correct. The location 
+        # should have: ./artifacts/tensorflow, which is expected 
+        # to contain one TF whl file, framework.so and cc.so
+        print("Using TensorFlow from " +
+              arguments.use_tensorflow_from_location)
         # The tf whl should be in use_tensorflow_from_location/artifacts/tensorflow
         tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location +
                                      '/artifacts/tensorflow')
@@ -227,11 +230,14 @@ def main():
         os.chdir(tf_whl_loc)
         tf_in_artifacts = os.path.join(
             os.path.abspath(artifacts_location), "tensorflow")
-        assert not os.path.isdir(
-            tf_in_artifacts), "Did not expect to find " + tf_in_artifacts
-        os.mkdir(tf_in_artifacts)
-        # This function copies the .so files from use_tensorflow_from_location/artifacts/tensorflow to artifacts/tensorflow
-        copy_tf_to_artifacts(tf_in_artifacts, tf_whl_loc)
+        if os.path.isdir(tf_in_artifacts):
+            print("TensorFlow already exists in artifacts. Using that")
+        else:
+            os.mkdir(tf_in_artifacts)
+            # This function copies the .so files from 
+            # use_tensorflow_from_location/artifacts/tensorflow to 
+            # artifacts/tensorflow
+            copy_tf_to_artifacts(tf_in_artifacts, tf_whl_loc)
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow:
@@ -278,6 +284,7 @@ def main():
         "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
         "-DNGRAPH_DEX_ONLY=TRUE",
         "-DNGRAPH_DEBUG_ENABLE=NO",
+        "-DNGRAPH_UNIT_TEST_ENABLE=NO",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
     ]
@@ -300,8 +307,9 @@ def main():
         "-DNGRAPH_TOOLS_ENABLE=" +
         flag_string_map[platform.system() != 'Darwin']
     ])
-    ngraph_cmake_flags.extend(
-        ["-DNGRAPH_GPU_ENABLE=" + flag_string_map[arguments.build_gpu_backend]])
+    ngraph_cmake_flags.extend([
+        "-DNGRAPH_GPU_ENABLE=" + flag_string_map[arguments.build_gpu_backend]
+    ])
     ngraph_cmake_flags.extend([
         "-DNGRAPH_PLAIDML_ENABLE=" +
         flag_string_map[arguments.build_plaidml_backend]
@@ -310,10 +318,10 @@ def main():
         "-DNGRAPH_INTELGPU_ENABLE=" +
         flag_string_map[arguments.build_intelgpu_backend]
     ])
-    ngraph_cmake_flags.extend([
-        "-DNGRAPH_UNIT_TEST_ENABLE=" +
-        flag_string_map[not arguments.use_prebuilt_tensorflow]
-    ])
+    # ngraph_cmake_flags.extend([
+    #     "-DNGRAPH_UNIT_TEST_ENABLE=" +
+    #     flag_string_map[not arguments.use_prebuilt_tensorflow]
+    # ])
 
     build_ngraph(build_dir, ngraph_src_dir, ngraph_cmake_flags, verbosity)
 
@@ -331,21 +339,33 @@ def main():
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
-    if not arguments.use_prebuilt_tensorflow:
-        if arguments.use_tensorflow_from_location:
-            ngraph_tf_cmake_flags.extend([
-                "-DTF_SRC_DIR=" + os.path.abspath(
-                    arguments.use_tensorflow_from_location + '/tensorflow')
-            ])
-        else:
-            ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
-        ngraph_tf_cmake_flags.extend([
-            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
-                                                    "tensorflow")
-        ])
+    # if not arguments.use_prebuilt_tensorflow:
+    #     if arguments.use_tensorflow_from_location:
+    #         ngraph_tf_cmake_flags.extend([
+    #             "-DTF_SRC_DIR=" + os.path.abspath(
+    #                 arguments.use_tensorflow_from_location + '/tensorflow')
+    #         ])
+    #     else:
+    #         ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
+    #     ngraph_tf_cmake_flags.extend([
+    #         "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
+    #                                                 "tensorflow")
+    #     ])
 
-    if ((arguments.distributed_build == "OMPI") or
-        (arguments.distributed_build == "MLSL")):
+    if arguments.use_tensorflow_from_location:
+        ngraph_tf_cmake_flags.extend([
+            "-DTF_SRC_DIR=" + os.path.abspath(
+                arguments.use_tensorflow_from_location + '/tensorflow')
+        ])
+    else:
+        ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
+    ngraph_tf_cmake_flags.extend([
+        "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
+                                                "tensorflow")
+    ])
+
+    if ((arguments.distributed_build == "OMPI")
+            or (arguments.distributed_build == "MLSL")):
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=TRUE"])
     else:
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=FALSE"])
@@ -394,7 +414,8 @@ def main():
         import ngraph_bridge
         if not ngraph_bridge.is_grappler_enabled():
             raise Exception(
-                "Build failed: 'use_grappler_optimizer' specified but not used")
+                "Build failed: 'use_grappler_optimizer' specified but not used"
+            )
 
     print('\033[1;32mBuild successful\033[0m')
     os.chdir(pwd)
