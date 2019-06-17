@@ -359,7 +359,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--run_logparse_tests',
+        '--run_basic_tests',
         action='store_true',
         help='Perform type A tests (Log parsing)')
     parser.add_argument(  # TODO: revisit this flag
@@ -416,8 +416,8 @@ if __name__ == '__main__':
         exit(0)
 
     assert (
-        args.run_logparse_tests or args.run_functional_tests
-    ), 'No type of test enabled. Please choose --run_logparse_tests, --functional or both'
+        args.run_basic_tests or args.run_functional_tests
+    ), 'No type of test enabled. Please choose --run_basic_tests, --run_functional_tests or both'
 
     requested_test_suites = os.listdir(
         'models') if args.models == '' else args.models.split(',')
@@ -436,7 +436,7 @@ if __name__ == '__main__':
     for test_suite in requested_test_suites:
         print('Testing model/test-suite: ' + test_suite)
         if test_suite not in disabled_test_suite:
-            if args.run_logparse_tests:
+            if args.run_basic_tests:
                 passed_tests_in_suite, failed_tests_in_suite, skipped_tests_in_suite = run_test_suite(
                     './models/' + test_suite, args.configuration,
                     disabled_sub_test.get(test_suite, []), args.print_parsed)
@@ -444,7 +444,7 @@ if __name__ == '__main__':
                 failed_tests[test_suite] = failed_tests_in_suite
                 skipped_tests[test_suite] = skipped_tests_in_suite
             if args.run_functional_tests:
-                print('Functional tests not implemented yet!!')
+                assert False, 'Functional tests not implemented yet!!'
     print_format = lambda d: '\n'.join(
         ['\n\t'.join([k] + d[k]) for k in d if len(d[k]) > 0])
     print('Passed:\n' + '\033[92m' + print_format(passed_tests) + '\033[0m')

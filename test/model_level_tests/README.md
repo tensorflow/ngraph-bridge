@@ -57,11 +57,11 @@ Note that you can get the expected json file when you are adding a new model by 
 
 ## Features and sample uses
 
-1. **Running model(s)**: For example if you run `python test_main.py --run_logparse_tests --models MLP,MLP_fail_0`, you can specify which models to run using the `--models` flag. The argument to `--models` is a comma separated list (if it has >1 items). If `--models` is not passed then all the test suites are run. The final output is displayed as passed, skipped or failed tests as shown in the image below. 
+1. **Running model(s)**: For example if you run `python test_main.py --run_basic_tests --models MLP,MLP_fail_0`, you can specify which models to run using the `--models` flag. The argument to `--models` is a comma separated list (if it has >1 items). If `--models` is not passed then all the test suites are run. The final output is displayed as passed, skipped or failed tests as shown in the image below. 
 <img src="./resources/end_of_tests.png" height="104" width="121">
 
 2. **Disabling test suites or sub-tests**: Using the `--disable` flag you can disable whole test suites or certain subtests of certain test suites. For example: `--disable "MLP.test1,MLP_fail_2"` would disable test suite `MLP_fail_2` and sub-test `MLP.test1` (but it would run other tests in `MLP` test suite). Sub tests can also be disabled if their directory name has `disabled` in it, for example `MLP/test3_disabled`
-3. **Listing tests**: Adding `--list` will produce a list of available tests. It can be coupled with the `--models` and `--disable` flag to get a list of tests that will be run if `--list` is not present. For example the command `python test_main.py --run_logparse_tests --models MLP_custom_logparser,MLP,MLP_fail_1,MLP_fail_2 --list --disable "MLP.test1,MLP_fail_2"` prints the following. 
+3. **Listing tests**: Adding `--list` will produce a list of available tests. It can be coupled with the `--models` and `--disable` flag to get a list of tests that will be run if `--list` is not present. For example the command `python test_main.py --run_basic_tests --models MLP_custom_logparser,MLP,MLP_fail_1,MLP_fail_2 --list --disable "MLP.test1,MLP_fail_2"` prints the following. 
 <img src="./resources/list.png" height="415" width="350">
 
 4. **Testing if a model runs**: If `expected.json` is not present just running the test to completion is considered a pass
