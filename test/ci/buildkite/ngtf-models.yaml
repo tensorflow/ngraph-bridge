@@ -1,0 +1,7 @@
+- command: |
+python test_main.py --models benchmarks,MLP,ngraph-models,nmt,tfmodels,unet --run_logparse_tests
+label: ":goal_net: Network tests"
+timeout_in_minutes: 40
+agents:
+    - "queue=cpu"
+parallelism: 1
