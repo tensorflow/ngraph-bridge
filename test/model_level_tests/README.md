@@ -90,6 +90,8 @@ On CPU:
 | unet | ?? | :heavy_multiplication_x: | ?? | :heavy_check_mark: | unet
 | ssd mobilenet v1 | ?? | :heavy_multiplication_x: | ?? | :heavy_check_mark: | tfmodels
 | nmt |  :heavy_check_mark: | :heavy_multiplication_x: |  :heavy_check_mark: | :heavy_multiplication_x: | nmt
+| bert |  :heavy_check_mark: | :heavy_multiplication_x: |  :heavy_check_mark: | :heavy_multiplication_x: | bert
+| minigo |  :heavy_check_mark: | :heavy_multiplication_x: |  :heavy_check_mark: | :heavy_multiplication_x: | minigo
 
 On Interpreter:
 
