@@ -32,23 +32,6 @@ string BackendManager::ng_backend_name_ = "CPU";
 mutex BackendManager::ng_backend_name_mutex_;
 map<string, Backend*> BackendManager::ng_backend_map_;
 mutex BackendManager::ng_backend_map_mutex_;
-vector<string> ng_supported_backends =
-    ng::runtime::BackendManager::get_registered_backends();
-unordered_set<string> BackendManager::ng_supported_backends_(
-    ng_supported_backends.begin(), ng_supported_backends.end());
-
-// std::cout<<"**** Print ngraph backends "<<std::endl;
-// for(auto bname: ng_supported_backends){
-//   std::cout<< bname <<std::endl;
-// }
-
-// cout<<"Print ngtf backends "<<endl;
-// for(auto bname: ng_supported_backends){
-//   cout<< bname <<endl;  
-// }
-
-
-
 std::map<std::string, int> BackendManager::ref_count_each_backend_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
@@ -61,14 +44,24 @@ Status BackendManager::SetBackendName(const string& backend_name) {
   return Status::OK();
 }
 
-void BackendManager::CreateBackend(const string& backend_name) {
+Status BackendManager::CreateBackend(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   auto itr = BackendManager::ng_backend_map_.find(backend_name);
   // if backend does not exist create it
   if (itr == BackendManager::ng_backend_map_.end()) {
     Backend* bend = new Backend;
-    std::shared_ptr<ng::runtime::Backend> bend_ptr =
-        ng::runtime::Backend::create(backend_name);
+    std::shared_ptr<ng::runtime::Backend> bend_ptr;
+    try {
+      bend_ptr = ng::runtime::Backend::create(backend_name);
+    } catch (const std::exception& e) {
+      return errors::Internal("Could not create backend of type ", backend_name,
+                              ". Got exception ", e.what());
+    }
+
+    if (bend_ptr == nullptr) {
+      return errors::Internal("Could not create backend of type ",
+                              backend_name);
+    }
     bend->backend_ptr = std::move(bend_ptr);
     BackendManager::ng_backend_map_[backend_name] = bend;
     BackendManager::ref_count_each_backend_[backend_name] = 0;
@@ -78,6 +71,7 @@ void BackendManager::CreateBackend(const string& backend_name) {
   NGRAPH_VLOG(2) << "BackendManager::CreateBackend(): " << backend_name
                  << " ref_count: "
                  << BackendManager::ref_count_each_backend_[backend_name];
+  return Status::OK();
 }
 
 void BackendManager::ReleaseBackend(const string& backend_name) {
@@ -109,17 +103,24 @@ void BackendManager::UnlockBackend(const string& backend_name) {
 }
 
 // Returns the nGraph supported backend names
-unordered_set<string> BackendManager::GetSupportedBackendNames() {
-  return ng_supported_backends_;
+vector<string> BackendManager::GetSupportedBackendNames() {
+  return ng::runtime::BackendManager::get_registered_backends();
+}
+
+size_t BackendManager::GetNumOfSupportedBackends() {
+  return ng::runtime::BackendManager::get_registered_backends().size();
 }
 
 bool BackendManager::IsSupportedBackend(const string& backend_name) {
-  auto itr = BackendManager::ng_supported_backends_.find(
-      backend_name.substr(0, backend_name.find(':')));
-  if (itr == BackendManager::ng_supported_backends_.end()) {
+  auto status = BackendManager::CreateBackend(backend_name);
+  if (status != Status::OK()) {
     return false;
   }
   return true;
+};
+
+string BackendManager::GetCurrentlySetBackendName() {
+  return BackendManager::ng_backend_name_;
 };
 
 }  // namespace ngraph_bridge

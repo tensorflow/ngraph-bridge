@@ -62,8 +62,7 @@ TEST(BackendManager, SetBackend) {
 
 // Test GetSupportedBackendNames
 TEST(BackendManager, GetSupportedBackendNames) {
-  unordered_set<string> ng_tf_backends =
-      BackendManager::GetSupportedBackendNames();
+  vector<string> ng_tf_backends = BackendManager::GetSupportedBackendNames();
 
   NGRAPH_VLOG(5) << "Supported Backends";
   for (auto backend : ng_tf_backends) {
@@ -79,11 +78,7 @@ TEST(BackendManager, GetSupportedBackendNames) {
   }
 
   ASSERT_EQ(ng_tf_backends.size(), ng_backends.size());
-
-  for (auto backend : ng_backends) {
-    auto itr = ng_tf_backends.find(backend);
-    ASSERT_NE(itr, ng_tf_backends.end());
-  }
+  ASSERT_EQ(ng_tf_backends, ng_backends);
 }
 
 // Test Backend Assignment

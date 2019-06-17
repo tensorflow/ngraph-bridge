@@ -45,25 +45,24 @@ struct Backend {
 class BackendManager {
  public:
   // Returns the backend name currently set
-  static string GetCurrentlySetBackendName() {
-    return BackendManager::ng_backend_name_;
-  };
+  static string GetCurrentlySetBackendName();
 
   // Returns the nGraph supported backend names
-  static unordered_set<string> GetSupportedBackendNames();
+  static vector<string> GetSupportedBackendNames();
 
-  static size_t GetNumOfSupportedBackends() {
-    return ng_supported_backends_.size();
-  }
+  // Returns number of supported backends
+  static size_t GetNumOfSupportedBackends();
+
   static bool IsSupportedBackend(const string& backend_name);
 
   static Status SetBackendName(const string& backend_name);
 
-  static void CreateBackend(const string& backend_name);
+  static Status CreateBackend(const string& backend_name);
 
   static void ReleaseBackend(const string& backend_name);
 
   // Returns a backend pointer of the type specified by the backend name
+  // The backend must have already been created (use CreateBackend(...))
   static ng::runtime::Backend* GetBackend(const string& backend_name);
 
   // LockBackend
@@ -77,11 +76,10 @@ class BackendManager {
  private:
   static string ng_backend_name_;  // currently set backend name
   static mutex ng_backend_name_mutex_;
+
   // map of cached backend objects
   static map<string, Backend*> ng_backend_map_;
   static mutex ng_backend_map_mutex_;
-  // set of backends supported by nGraph
-  static unordered_set<string> ng_supported_backends_;
 
   // Map of backends and their reference counts
   static std::map<std::string, int> ref_count_each_backend_;
