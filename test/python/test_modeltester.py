@@ -35,6 +35,6 @@ class TestModelTester(NgraphTest):
         os.chdir('../model_level_tests/')
         try:
             command_executor(
-                "python test_main.py --run_logparse_tests --models MLP")
+                "python test_main.py --run_basic_tests --models MLP")
         finally:
             os.chdir(cwd)
