@@ -1,5 +1,7 @@
 - command: |
+cd test/model_level_tests
 python test_main.py --models benchmarks,MLP,ngraph-models,nmt,tfmodels,unet --run_logparse_tests
+cd ../..
 label: ":goal_net: Network tests"
 timeout_in_minutes: 40
 agents:
