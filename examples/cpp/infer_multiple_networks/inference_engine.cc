@@ -40,7 +40,7 @@ extern tf::Status LoadGraph(const string& graph_file_name,
                             std::unique_ptr<tf::Session>* session,
                             const tf::SessionOptions& options);
 
-extern tf::Status ReadTensorFromImageFile(std::vector<string>& file_name,
+extern tf::Status ReadTensorFromImageFile(const std::vector<string>& file_name,
                                           const int input_height,
                                           const int input_width,
                                           const float input_mean,
