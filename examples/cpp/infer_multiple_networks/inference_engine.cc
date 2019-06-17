@@ -74,8 +74,9 @@ Status InferenceEngine::Load(const string& network, const string& image_file,
   // Preload the image is requested
   if (m_preload_images) {
     // Set the CPU as the backend before these ops
-    string current_backend =
-        tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName();
+    string current_backend;
+    TF_CHECK_OK(tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(
+        &current_backend));
     tf::ngraph_bridge::BackendManager::SetBackendName("CPU");
     std::vector<tf::Tensor> resized_tensors;
     TF_CHECK_OK(ReadTensorFromImageFile(
@@ -125,8 +126,9 @@ void InferenceEngine::ThreadMain() {
       cout << "[" << m_name << "] " << step_count << ": Reading image\n";
       ngraph::Event read_event("Read", "", "");
 
-      string current_backend =
-          tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName();
+      string current_backend;
+      TF_CHECK_OK(tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(
+          &current_backend));
       tf::ngraph_bridge::BackendManager::SetBackendName("CPU");
 
       std::vector<tf::Tensor> resized_tensors;
