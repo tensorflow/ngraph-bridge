@@ -252,6 +252,81 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     # popd
     os.chdir(pwd)
 
+def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
+
+    pwd = os.getcwd()
+
+    base = sys.prefix
+    python_lib_path = os.path.join(base, 'lib', 'python%s' % sys.version[:3],
+                                   'site-packages')
+    python_executable = os.path.join(base, "bin", "python")
+
+    print("PYTHON_BIN_PATH: " + python_executable)
+
+    src_dir = os.path.abspath(src_dir)
+    print("SOURCE DIR: " + src_dir)
+
+    # Update the artifacts directory
+    artifacts_dir = os.path.join(os.path.abspath(artifacts_dir), "tensorflow")
+    print("ARTIFACTS DIR: %s" % artifacts_dir)
+
+    os.chdir(src_dir)
+
+    # Set the TensorFlow configuration related variables
+    os.environ["PYTHON_BIN_PATH"] = python_executable
+    os.environ["PYTHON_LIB_PATH"] = python_lib_path
+    os.environ["TF_NEED_IGNITE"] = "0"
+    if (platform.system() == 'Darwin'):
+        os.environ["TF_ENABLE_XLA"] = "0"
+        os.environ["TF_CONFIGURE_IOS"] = "0"
+    else:
+        os.environ["TF_ENABLE_XLA"] = "1"
+    os.environ["TF_NEED_OPENCL_SYCL"] = "0"
+    os.environ["TF_NEED_COMPUTECPP"] = "0"
+    os.environ["TF_NEED_ROCM"] = "0"
+    os.environ["TF_NEED_MPI"] = "0"
+    os.environ["TF_NEED_CUDA"] = "0"
+    os.environ["TF_DOWNLOAD_CLANG"] = "0"
+    os.environ["TF_SET_ANDROID_WORKSPACE"] = "0"
+    os.environ["CC_OPT_FLAGS"] = "-march=" + target_arch
+
+    command_executor("./configure")
+
+    # Get the name of the TensorFlow pip package
+    # tf_wheel_files = glob.glob(os.path.join(artifacts_dir, "tensorflow-*.whl"))
+    # print("TF Wheel: %s" % tf_wheel_files[0])
+
+    # Now build the TensorFlow C++ library
+    cmd = [
+        "bazel", "build", "--config=opt", "--config=noaws", "--config=nohdfs",
+        "--config=noignite", "--config=nokafka", "--config=nonccl",
+        "//tensorflow:libtensorflow_cc.so.1"
+    ]
+    command_executor(cmd)
+    copy_tf_cc_lib_to_artifacts(artifacts_dir, None)
+
+    # popd
+    os.chdir(pwd)
+
+def copy_tf_cc_lib_to_artifacts(artifacts_dir, tf_prebuilt):
+    tf_cc_lib_name = 'libtensorflow_cc.so.1'
+    if (platform.system() == 'Darwin'):
+        tf_cc_lib_name = 'libtensorflow_cc.1.dylib'
+    try:
+        doomed_file = os.path.join(artifacts_dir, tf_cc_lib_name)
+        os.unlink(doomed_file)
+    except OSError:
+        print("Cannot remove: %s" % doomed_file)
+        pass
+
+    # Now copy the TF libraries
+    if tf_prebuilt is None:
+        tf_cc_lib_file = "bazel-bin/tensorflow/" + tf_cc_lib_name
+    else:
+        tf_cc_lib_file = os.path.abspath(tf_prebuilt + '/' + tf_cc_lib_name)
+
+    print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
+    shutil.copy(tf_cc_lib_file, artifacts_dir)
 
 def locate_tf_whl(tf_whl_loc):
     possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]

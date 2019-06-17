@@ -141,7 +141,8 @@ def main():
     assert not (
         arguments.use_tensorflow_from_location != ''
         and arguments.use_prebuilt_tensorflow
-    ), "use_tensorflow_from_location and use_prebuilt_tensorflow should not be used together"
+    ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\" "
+    "cannot be used together."
 
     if arguments.use_tensorflow_from_location != '':
         # Check if the prebuilt folder has necessary files
@@ -183,6 +184,10 @@ def main():
 
     artifacts_location = os.path.abspath(artifacts_location)
     print("ARTIFACTS location: " + artifacts_location)
+
+    #If artifacts doesn't exist create
+    if not os.path.isdir(artifacts_location):
+        os.mkdir(artifacts_location)
 
     #install virtualenv
     install_virtual_env(venv_dir)
@@ -242,10 +247,29 @@ def main():
     else:
         if arguments.use_prebuilt_tensorflow:
             print("Using existing TensorFlow")
+            print("DOWNLOADING TF: PWD", os.getcwd())
             command_executor(
                 ["pip", "install", "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
+
+            # Now download the source 
+            tf_src_dir = os.path.join(artifacts_location, "tensorflow")
+            if not os.path.isdir(tf_src_dir):
+                # Download
+                pwd_now = os.getcwd()
+                os.chdir(artifacts_location)
+                print("DOWNLOADING TF: PWD", os.getcwd())
+                download_repo("tensorflow",
+                                "https://github.com/tensorflow/tensorflow.git",
+                                tf_version)
+                os.chdir(pwd_now)
+
+            # Now build the libtensorflow_cc.so - the C++ library 
+            build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch, verbosity)
+
         else:
+            ###### TODO
+            ###### Remove this option
             if not arguments.skip_tensorflow_build:
                 print("Building TensorFlow")
                 # Download TensorFlow
@@ -325,12 +349,10 @@ def main():
 
     build_ngraph(build_dir, ngraph_src_dir, ngraph_cmake_flags, verbosity)
 
-    # Next build CMAKE options for the bridge
-    tf_src_dir = os.path.abspath("tensorflow")
-
     ngraph_tf_cmake_flags = [
         "-DNGRAPH_TF_INSTALL_PREFIX=" + artifacts_location,
         "-DUSE_PRE_BUILT_NGRAPH=ON",
+        "-DUNIT_TEST_ENABLE=ON",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
         "-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location,
@@ -339,18 +361,32 @@ def main():
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
-    # if not arguments.use_prebuilt_tensorflow:
-    #     if arguments.use_tensorflow_from_location:
-    #         ngraph_tf_cmake_flags.extend([
-    #             "-DTF_SRC_DIR=" + os.path.abspath(
-    #                 arguments.use_tensorflow_from_location + '/tensorflow')
-    #         ])
-    #     else:
-    #         ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
-    #     ngraph_tf_cmake_flags.extend([
-    #         "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
-    #                                                 "tensorflow")
-    #     ])
+    if not arguments.use_prebuilt_tensorflow:
+        if arguments.use_tensorflow_from_location:
+            ngraph_tf_cmake_flags.extend([
+                "-DTF_SRC_DIR=" + os.path.abspath(
+                    arguments.use_tensorflow_from_location + '/tensorflow')
+            ])
+        else:
+            ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
+        ngraph_tf_cmake_flags.extend([
+            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
+                                                    "tensorflow")
+        ])
+
+    # Next build CMAKE options for the bridge
+    # tf_src_dir = os.path.join(artifacts_location, "tensorflow")
+    # if not os.path.isdir(tf_src_dir):
+    #     # Download
+    #     pwd_now = os.getcwd()
+    #     os.chdir(artifacts_location)
+    #     print("DOWNLOADING TF: PWD", os.getcwd())
+    #     download_repo("tensorflow",
+    #                     "https://github.com/tensorflow/tensorflow.git",
+    #                     tf_version)
+    #     os.chdir(pwd_now)
+    #tf_src_dir = os.path.abspath("tensorflow")
+    print("TF_SRC: ", tf_src_dir )
 
     if arguments.use_tensorflow_from_location:
         ngraph_tf_cmake_flags.extend([
@@ -358,7 +394,13 @@ def main():
                 arguments.use_tensorflow_from_location + '/tensorflow')
         ])
     else:
+        # Download TF source if it doesn't exist
+        if not os.path.isdir(tf_src_dir):
+            # Download TF source
+            pass
+        print("TF_SRC_DIR: ", tf_src_dir )
         ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
+
     ngraph_tf_cmake_flags.extend([
         "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
                                                 "tensorflow")
@@ -370,10 +412,10 @@ def main():
     else:
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=FALSE"])
 
-    ngraph_tf_cmake_flags.extend([
-        "-DUNIT_TEST_ENABLE=" +
-        flag_string_map[not arguments.use_prebuilt_tensorflow]
-    ])
+    # ngraph_tf_cmake_flags.extend([
+    #     "-DUNIT_TEST_ENABLE=" +
+    #     flag_string_map[not arguments.use_prebuilt_tensorflow]
+    # ])
     ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=" +
         flag_string_map[arguments.enable_variables_and_optimizers]
