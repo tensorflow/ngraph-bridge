@@ -45,7 +45,8 @@ struct Backend {
 class BackendManager {
  public:
   // Returns the backend name currently set
-  static string GetCurrentlySetBackendName();
+  // If env variable NGRAPH_TF_BACKEND is set it has precedence
+  static Status GetCurrentlySetBackendName(string* backend);
 
   // Returns the nGraph supported backend names
   static vector<string> GetSupportedBackendNames();

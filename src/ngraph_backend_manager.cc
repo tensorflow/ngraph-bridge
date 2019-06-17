@@ -119,8 +119,23 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
   return true;
 };
 
-string BackendManager::GetCurrentlySetBackendName() {
-  return BackendManager::ng_backend_name_;
+Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
+  const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+
+  // NGRAPH_TF_BACKEND is not set
+  if (ng_backend_env_value == nullptr) {
+    *backend_name = BackendManager::ng_backend_name_;
+    return Status::OK();
+  }
+
+  // NGRAPH_TF_BACKEND is set
+  string backend_env = std::string(ng_backend_env_value);
+  if (backend_env.empty() || !BackendManager::IsSupportedBackend(backend_env)) {
+    return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
+                            " is not supported");
+  }
+  *backend_name = backend_env;
+  return Status::OK();
 };
 
 }  // namespace ngraph_bridge
