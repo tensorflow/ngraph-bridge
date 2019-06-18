@@ -239,16 +239,6 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     tf_wheel_files = glob.glob(os.path.join(artifacts_dir, "tensorflow-*.whl"))
     print("TF Wheel: %s" % tf_wheel_files[0])
 
-    # Now build the TensorFlow C++ library
-    cmd = [
-        "bazel", "build", "--config=opt", "--config=noaws", "--config=nohdfs",
-        "--config=noignite", "--config=nokafka", "--config=nonccl",
-        "//tensorflow:libtensorflow_cc.so.1"
-    ]
-    command_executor(cmd)
-
-    copy_tf_to_artifacts(artifacts_dir, None)
-
     # popd
     os.chdir(pwd)
 
@@ -291,10 +281,6 @@ def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
     os.environ["CC_OPT_FLAGS"] = "-march=" + target_arch
 
     command_executor("./configure")
-
-    # Get the name of the TensorFlow pip package
-    # tf_wheel_files = glob.glob(os.path.join(artifacts_dir, "tensorflow-*.whl"))
-    # print("TF Wheel: %s" % tf_wheel_files[0])
 
     # Now build the TensorFlow C++ library
     cmd = [
@@ -512,3 +498,10 @@ def apply_patch(patch_file):
     # will fail
     assert cmd.returncode == 0 or 'patch detected!  Skipping patch' in str(
         printed_lines[0]), "Error applying the patch."
+
+def get_gcc_version():
+    cmd = subprocess.Popen('gcc -dumpversion', shell=True, 
+        stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+    output = cmd.communicate()[0].rstrip()
+    return output
+

@@ -17,7 +17,6 @@
 
 from tools.build_utils import *
 
-
 def main():
     '''
     Builds TensorFlow, ngraph, and ngraph-tf for python 3
@@ -108,11 +107,6 @@ def main():
         + ngraph_version + ")\n",
         action="store")
 
-    parser.add_argument(
-        '--skip_tensorflow_build',
-        help="Use TensorFlow that's already installed" +
-        "(do not build or install) \n",
-        action="store_true")
     parser.add_argument(
         '--use_tensorflow_from_location',
         help=
@@ -224,7 +218,7 @@ def main():
         possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]
         assert len(
             possible_whl
-        ) == 1, "Expected 1 TF whl file, but found " + len(possible_whl)
+        ) == 1, "Expected one TF whl file, but found " + len(possible_whl)
         # Make sure there is exactly 1 TF whl
         tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
         assert os.path.isfile(tf_whl), "Did not find " + tf_whl
@@ -246,8 +240,16 @@ def main():
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow:
+            # Check if the gcc version is 4.8 
+            if (platform.system() != 'Darwin'):
+                gcc_ver = get_gcc_version()
+                if '4.8' not in gcc_ver:
+                    raise Exception(
+                        "Need GCC 4.8 to build using prebuilt TensorFlow\n"
+                        "Gcc version installed: " + gcc_ver
+                    )
+
             print("Using existing TensorFlow")
-            print("DOWNLOADING TF: PWD", os.getcwd())
             command_executor(
                 ["pip", "install", "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
@@ -268,25 +270,23 @@ def main():
             build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch, verbosity)
 
         else:
-            ###### TODO
-            ###### Remove this option
-            if not arguments.skip_tensorflow_build:
-                print("Building TensorFlow")
-                # Download TensorFlow
-                download_repo("tensorflow",
-                              "https://github.com/tensorflow/tensorflow.git",
-                              tf_version)
+            print("Building TensorFlow from source")
+            # Download TensorFlow
+            download_repo("tensorflow",
+                            "https://github.com/tensorflow/tensorflow.git",
+                            tf_version)
 
-                # Build TensorFlow
-                build_tensorflow(venv_dir, "tensorflow", artifacts_location,
-                                 target_arch, verbosity)
+            # Build TensorFlow
+            build_tensorflow(venv_dir, "tensorflow", artifacts_location,
+                                target_arch, verbosity)
 
-                # Install tensorflow
-                # Note that if gcc 4.8 is used for building TensorFlow this flag
-                # will be 0
-                cxx_abi = install_tensorflow(venv_dir, artifacts_location)
-            else:
-                cxx_abi = get_tf_cxxabi()
+            # Now build the libtensorflow_cc.so - the C++ library 
+            build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch, verbosity)
+
+            # Install tensorflow to our own virtual env
+            # Note that if gcc 4.8 is used for building TensorFlow this flag
+            # will be 0
+            cxx_abi = install_tensorflow(venv_dir, artifacts_location)
 
     # Download nGraph if required.
     ngraph_src_dir = './ngraph'
@@ -342,10 +342,6 @@ def main():
         "-DNGRAPH_INTELGPU_ENABLE=" +
         flag_string_map[arguments.build_intelgpu_backend]
     ])
-    # ngraph_cmake_flags.extend([
-    #     "-DNGRAPH_UNIT_TEST_ENABLE=" +
-    #     flag_string_map[not arguments.use_prebuilt_tensorflow]
-    # ])
 
     build_ngraph(build_dir, ngraph_src_dir, ngraph_cmake_flags, verbosity)
 
@@ -375,19 +371,6 @@ def main():
         ])
 
     # Next build CMAKE options for the bridge
-    # tf_src_dir = os.path.join(artifacts_location, "tensorflow")
-    # if not os.path.isdir(tf_src_dir):
-    #     # Download
-    #     pwd_now = os.getcwd()
-    #     os.chdir(artifacts_location)
-    #     print("DOWNLOADING TF: PWD", os.getcwd())
-    #     download_repo("tensorflow",
-    #                     "https://github.com/tensorflow/tensorflow.git",
-    #                     tf_version)
-    #     os.chdir(pwd_now)
-    #tf_src_dir = os.path.abspath("tensorflow")
-    print("TF_SRC: ", tf_src_dir )
-
     if arguments.use_tensorflow_from_location:
         ngraph_tf_cmake_flags.extend([
             "-DTF_SRC_DIR=" + os.path.abspath(
@@ -412,10 +395,6 @@ def main():
     else:
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=FALSE"])
 
-    # ngraph_tf_cmake_flags.extend([
-    #     "-DUNIT_TEST_ENABLE=" +
-    #     flag_string_map[not arguments.use_prebuilt_tensorflow]
-    # ])
     ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=" +
         flag_string_map[arguments.enable_variables_and_optimizers]
