@@ -451,6 +451,7 @@ if __name__ == '__main__':
     print('Skipped:\n' + '\033[93m' + print_format(skipped_tests) + '\033[0m')
     print('Failed:\n' + '\033[91m' + print_format(failed_tests) + '\033[0m')
 
+# TODO add a test comparing with TF run?
 # TODO verbose or quiet?
 
 # TODO: what happens in case of shrestha's change. maybe expected number of clusters etc is different for normal path and var-opt path. Can be taken care of by --configuration. However user will have to decide if grappler, then use this config. it could possibly be auto-detected
