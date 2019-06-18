@@ -103,7 +103,7 @@ class BackendManager {
   // returns {{"ngraph_backend", "TEST"}, {"_ngraph_device_config", "ME"}}
   static unordered_map<string, string>
   GetBackendAttributeValues(  // SplitBackendConfig
-      string backend_config);
+      const string& backend_config);
 
   // Given a backend name and list of attributes
   // joins them into a string to create ngraph backend
@@ -113,7 +113,7 @@ class BackendManager {
   // throws an error if the required attributes are not present in the map
   static string GetBackendCreationString(
       const string& backend_name,
-      unordered_map<string, string>& additional_attribute_map);
+      const unordered_map<string, string>& additional_attribute_map);
 
   ~BackendManager();
 

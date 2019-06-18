@@ -143,7 +143,7 @@ vector<string> BackendManager::GetBackendAdditionalAttributes(
 }
 
 unordered_map<string, string> BackendManager::GetBackendAttributeValues(
-    string backend_config) {
+    const string& backend_config) {
   unordered_map<string, string> backend_parameters;
 
   string backend_name = backend_config.substr(0, backend_config.find(':'));
@@ -154,7 +154,7 @@ unordered_map<string, string> BackendManager::GetBackendAttributeValues(
 
 string BackendManager::GetBackendCreationString(
     const string& backend_name,
-    unordered_map<string, string>& additional_attribute_map) {
+    const unordered_map<string, string>& additional_attribute_map) {
   return BackendManager::GetBackendConfig(backend_name)
       ->Join(additional_attribute_map);
 }

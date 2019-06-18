@@ -178,7 +178,7 @@ class NGraphEncapsulateOp : public OpKernel {
       std::string val;
       // If an attribute does not exist, TF will return a non-ok status
       OP_REQUIRES_OK(ctx, ctx->GetAttr<string>(additional_attributes[i], &val));
-      additional_attribute_map.insert({additional_attribute_map[i], val});
+      additional_attribute_map.insert({additional_attributes[i], val});
     }
 
     // Concatenate the backend_name:backend_config

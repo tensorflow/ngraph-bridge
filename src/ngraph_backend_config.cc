@@ -22,14 +22,14 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-BackendConfig::BackendConfig(string backend_name) {
+BackendConfig::BackendConfig(const string& backend_name) {
   NGRAPH_VLOG(3) << "BackendConfig() ";
   backend_name_ = backend_name;
   additional_attributes_ = {"_ngraph_device_config"};
 }
 
 string BackendConfig::Join(
-    unordered_map<string, string> additional_parameters) {
+    const unordered_map<string, string>& additional_parameters) {
   // If _ngraph_device_config is not found
   // throw an error
   try {
@@ -41,7 +41,8 @@ string BackendConfig::Join(
          additional_parameters.at("_ngraph_device_config");
 }
 
-unordered_map<string, string> BackendConfig::Split(string backend_config) {
+unordered_map<string, string> BackendConfig::Split(
+    const string& backend_config) {
   unordered_map<string, string> backend_parameters;
 
   int delimiter_index = backend_config.find(':');
@@ -78,7 +79,7 @@ BackendNNPIConfig::BackendNNPIConfig() : BackendConfig("NNPI") {
 }
 
 string BackendNNPIConfig::Join(
-    unordered_map<string, string> additional_parameters) {
+    const unordered_map<string, string>& additional_parameters) {
   // If _ngraph_device_id is not found
   // throw an error
   try {
