@@ -23,6 +23,7 @@
   - wait
 
   - command: |
+       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-1.14.0rc0-cp36-cp36m-linux_x86_64.whl
        source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate
        cd test/model_level_tests; python test_main.py --models benchmarks,MLP,ngraph-models,nmt,tfmodels,unet --run_basic_tests; cd ../..
 
