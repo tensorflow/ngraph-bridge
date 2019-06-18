@@ -31,3 +31,10 @@
     agents:
     - "queue=cpu"
     parallelism: 1
+
+  - wait
+  - command: |
+      rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
+    label: ":wastebasket: Cleanup"
+    agents:
+    - "queue=cpu_tf_1.14"
