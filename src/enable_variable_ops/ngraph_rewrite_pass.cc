@@ -266,8 +266,8 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
                                 " is not supported");
       }
       backend_name = backend_env;
-      NGRAPH_VLOG(1) << "Setting backend from the enviornment variable "
-                        "NGRAPH_TF_BACKEND = "
+      NGRAPH_VLOG(1) << "Overriding backend using the enviornment variable "
+                        "to "
                      << backend_name;
     } else {
       NGRAPH_VLOG(1) << "Setting backend from the BackendManager ";
@@ -278,7 +278,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
         backend_name);  // SplitBackendConfig
     backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
-    NGRAPH_VLOG(0) << "NGraphEncapsulationPass: backend_name " << backend_name;
+    NGRAPH_VLOG(0) << "NGraph using backend: " << backend_name;
 
     // Now Process the Graph
 

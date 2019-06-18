@@ -91,7 +91,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
   bool already_processed = IsProcessedByNgraphPass(&graph);
   if (!already_processed && ngraph_not_enabled) {
-    NGRAPH_VLOG(0) << "Graph will not run through ngraph";
+    NGRAPH_VLOG(0) << "NGraph is available but disabled.";
   }
   if (ngraph_not_enabled || already_processed) {
     NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
@@ -212,8 +212,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                 " is not supported");
       }
       backend_name = backend_env;
-      NGRAPH_VLOG(1) << "Setting backend from the enviornment variable "
-                        "NGRAPH_TF_BACKEND = "
+      NGRAPH_VLOG(1) << "Overriding backend using the enviornment variable "
+                        "to "
                      << backend_name;
     } else {
       NGRAPH_VLOG(1) << "Setting backend from the BackendManager ";
@@ -226,7 +226,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     // ngraph_backend
     config_map.erase("ngraph_backend");
   }
-  NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: backend_name " << backend_name;
+  NGRAPH_VLOG(0) << "NGraph using backend: " << backend_name;
 
   // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes, backend_name));

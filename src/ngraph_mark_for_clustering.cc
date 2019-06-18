@@ -137,7 +137,7 @@ static ConfirmationFunction SimpleConfirmationFunction() {
 // Main entry point for the marking pass.
 //
 Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
-                         std::string current_backend) {
+                         const string& current_backend) {
   //
   // A map of op types (e.g. "Add") to type constraint maps. For (fake)
   // example:
@@ -824,7 +824,7 @@ Status GetNodeBackend(const Node* node, string* backend_name) {
 // Can be extended to check the TF Device placement and/or user specified
 // backend
 // and accordingly assign backend
-void SetNodeBackend(Node* node, string& backend_name) {
+void SetNodeBackend(Node* node, const string& backend_name) {
   NGRAPH_VLOG(5) << "Setting backend " << node->name() << " " << backend_name;
   node->AddAttr("_ngraph_backend", backend_name);
 }
