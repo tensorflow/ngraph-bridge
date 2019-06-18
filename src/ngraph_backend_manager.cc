@@ -40,7 +40,7 @@ unordered_set<string> BackendManager::ng_supported_backends_(
 map<std::string, int> BackendManager::ref_count_each_backend_;
 
 mutex BackendManager::ng_backendconfig_map_mutex_;
-unordered_map<string, std::shared_ptr<BackendConfig>>
+unordered_map<string, std::unique_ptr<BackendConfig>>
     BackendManager::ng_backendconfig_map_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
@@ -114,26 +114,25 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
   return true;
 };
 
-// Backend Config functions
-// BackendConfig is expected to be a readonly class
-// hence only locked at creation and not during later access
-std::shared_ptr<BackendConfig> BackendManager::GetBackendConfig(
+// // Backend Config functions
+// // BackendConfig is expected to be a readonly class
+// // hence only locked at creation and not during later access
+std::unique_ptr<BackendConfig>& BackendManager::GetBackendConfig(
     const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   auto itr = BackendManager::ng_backendconfig_map_.find(backend_name);
   if (itr == BackendManager::ng_backendconfig_map_.end()) {
-    std::shared_ptr<BackendConfig> bconfig;
     if (backend_name == "NNPI") {
-      NGRAPH_VLOG(3) << "Creating NNPI Backend config";
-      bconfig = std::make_shared<BackendNNPIConfig>();
+      BackendManager::ng_backendconfig_map_.insert(std::make_pair(
+          backend_name,
+          std::unique_ptr<BackendNNPIConfig>(new BackendNNPIConfig())));
     } else {
-      NGRAPH_VLOG(3) << "Creating default Backend config";
-      bconfig = std::make_shared<BackendConfig>(backend_name);
+      BackendManager::ng_backendconfig_map_.insert(std::make_pair(
+          backend_name,
+          std::unique_ptr<BackendConfig>(new BackendConfig(backend_name))));
     }
-    BackendManager::ng_backendconfig_map_[backend_name] = bconfig;
   }
-
-  return BackendManager::ng_backendconfig_map_[backend_name];
+  return BackendManager::ng_backendconfig_map_.at(backend_name);
 }
 
 vector<string> BackendManager::GetBackendAdditionalAttributes(
