@@ -242,6 +242,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
     # popd
     os.chdir(pwd)
 
+
 def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
 
     pwd = os.getcwd()
@@ -294,6 +295,7 @@ def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
     # popd
     os.chdir(pwd)
 
+
 def copy_tf_cc_lib_to_artifacts(artifacts_dir, tf_prebuilt):
     tf_cc_lib_name = 'libtensorflow_cc.so.1'
     if (platform.system() == 'Darwin'):
@@ -313,6 +315,7 @@ def copy_tf_cc_lib_to_artifacts(artifacts_dir, tf_prebuilt):
 
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)
+
 
 def locate_tf_whl(tf_whl_loc):
     possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]
@@ -499,31 +502,46 @@ def apply_patch(patch_file):
     assert cmd.returncode == 0 or 'patch detected!  Skipping patch' in str(
         printed_lines[0]), "Error applying the patch."
 
+
 def get_gcc_version():
-    cmd = subprocess.Popen('gcc -dumpversion', shell=True, 
-        stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+    cmd = subprocess.Popen(
+        'gcc -dumpversion',
+        shell=True,
+        stdout=subprocess.PIPE,
+        bufsize=1,
+        universal_newlines=True)
     output = cmd.communicate()[0].rstrip()
     return output
 
+
 def get_cmake_version():
-    cmd = subprocess.Popen('cmake --version', shell=True, 
-        stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+    cmd = subprocess.Popen(
+        'cmake --version',
+        shell=True,
+        stdout=subprocess.PIPE,
+        bufsize=1,
+        universal_newlines=True)
     output = cmd.communicate()[0].rstrip()
     # The cmake version format is: "cmake version a.b.c"
     version_tuple = output.split()[2].split('.')
     return version_tuple
 
+
 def get_bazel_version():
-    cmd = subprocess.Popen('bazel version', shell=True, 
-        stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
-    # The bazel version format is a multi line output: 
+    cmd = subprocess.Popen(
+        'bazel version',
+        shell=True,
+        stdout=subprocess.PIPE,
+        bufsize=1,
+        universal_newlines=True)
+    # The bazel version format is a multi line output:
     #
     # Build label: 0.24.1
     # Build target: bazel-out/k8-opt/bin/src/main/java/com/...
     # Build time: Tue Apr 2 16:29:26 2019 (1554222566)
     # Build timestamp: 1554222566
     # Build timestamp as int: 1554222566
-    # 
+    #
     output = cmd.communicate()[0].splitlines()[0].strip()
     output = output.split(':')[1].strip()
 

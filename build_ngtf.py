@@ -17,24 +17,22 @@
 
 from tools.build_utils import *
 
+
 def version_check(use_prebuilt_tensorflow):
     # Check pre-reqisites
     if use_prebuilt_tensorflow:
-        # Check if the gcc version is 4.8 
+        # Check if the gcc version is 4.8
         if (platform.system() != 'Darwin'):
             gcc_ver = get_gcc_version()
             if '4.8' not in gcc_ver:
                 raise Exception(
                     "Need GCC 4.8 to build using prebuilt TensorFlow\n"
-                    "Gcc version installed: " + gcc_ver
-                )
+                    "Gcc version installed: " + gcc_ver)
     # Check cmake version
     cmake_ver = get_cmake_version()
     if (int(cmake_ver[0]) < 3 or int(cmake_ver[1]) < 4):
-        raise Exception(
-            "Need minimum cmake version 3.4\n"
-            "Got: " + '.'.join(cmake_ver)
-        )
+        raise Exception("Need minimum cmake version 3.4\n"
+                        "Got: " + '.'.join(cmake_ver))
 
     # Check bazel version
     bazel_ver = get_bazel_version()
@@ -44,9 +42,9 @@ def version_check(use_prebuilt_tensorflow):
             got_correct_bazel_version = True
 
     if not got_correct_bazel_version:
-        raise Exception(
-            "Need bazel 0.24.1 < version < 0.25.2 \n" + 
-            "Got: " + '.'.join(bazel_ver))
+        raise Exception("Need bazel 0.24.1 < version < 0.25.2 \n" + "Got: " +
+                        '.'.join(bazel_ver))
+
 
 def main():
     '''
@@ -167,8 +165,8 @@ def main():
     build_dir = 'build_cmake'
 
     assert not (
-        arguments.use_tensorflow_from_location != ''
-        and arguments.use_prebuilt_tensorflow
+        arguments.use_tensorflow_from_location != '' and
+        arguments.use_prebuilt_tensorflow
     ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\" "
     "cannot be used together."
 
@@ -240,12 +238,11 @@ def main():
     cxx_abi = "0"
 
     if arguments.use_tensorflow_from_location != "":
-        # Some asserts to make sure the directory structure of 
-        # use_tensorflow_from_location is correct. The location 
-        # should have: ./artifacts/tensorflow, which is expected 
+        # Some asserts to make sure the directory structure of
+        # use_tensorflow_from_location is correct. The location
+        # should have: ./artifacts/tensorflow, which is expected
         # to contain one TF whl file, framework.so and cc.so
-        print("Using TensorFlow from " +
-              arguments.use_tensorflow_from_location)
+        print("Using TensorFlow from " + arguments.use_tensorflow_from_location)
         # The tf whl should be in use_tensorflow_from_location/artifacts/tensorflow
         tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location +
                                      '/artifacts/tensorflow')
@@ -267,8 +264,8 @@ def main():
             print("TensorFlow already exists in artifacts. Using that")
         else:
             os.mkdir(tf_in_artifacts)
-            # This function copies the .so files from 
-            # use_tensorflow_from_location/artifacts/tensorflow to 
+            # This function copies the .so files from
+            # use_tensorflow_from_location/artifacts/tensorflow to
             # artifacts/tensorflow
             copy_tf_to_artifacts(tf_in_artifacts, tf_whl_loc)
         os.chdir(cwd)
@@ -279,7 +276,7 @@ def main():
                 ["pip", "install", "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
 
-            # Copy the libtensorflow_framework.so to the artifacts so that 
+            # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
             tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
             if (platform.system() == 'Darwin'):
@@ -287,10 +284,10 @@ def main():
             import tensorflow as tf
             tf_lib_dir = tf.sysconfig.get_lib()
             shutil.copy(
-                os.path.join(tf_lib_dir, tf_fmwk_lib_name), 
+                os.path.join(tf_lib_dir, tf_fmwk_lib_name),
                 os.path.join(artifacts_location, "tensorflow"))
 
-            # Now download the source 
+            # Now download the source
             tf_src_dir = os.path.join(artifacts_location, "tensorflow")
             if not os.path.isdir(tf_src_dir):
                 # Download
@@ -298,26 +295,28 @@ def main():
                 os.chdir(artifacts_location)
                 print("DOWNLOADING TF: PWD", os.getcwd())
                 download_repo("tensorflow",
-                                "https://github.com/tensorflow/tensorflow.git",
-                                tf_version)
+                              "https://github.com/tensorflow/tensorflow.git",
+                              tf_version)
                 os.chdir(pwd_now)
 
-            # Now build the libtensorflow_cc.so - the C++ library 
-            build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch, verbosity)
+            # Now build the libtensorflow_cc.so - the C++ library
+            build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch,
+                                verbosity)
 
         else:
             print("Building TensorFlow from source")
             # Download TensorFlow
             download_repo("tensorflow",
-                            "https://github.com/tensorflow/tensorflow.git",
-                            tf_version)
+                          "https://github.com/tensorflow/tensorflow.git",
+                          tf_version)
 
             # Build TensorFlow
             build_tensorflow(venv_dir, "tensorflow", artifacts_location,
-                                target_arch, verbosity)
+                             target_arch, verbosity)
 
-            # Now build the libtensorflow_cc.so - the C++ library 
-            build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch, verbosity)
+            # Now build the libtensorflow_cc.so - the C++ library
+            build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch,
+                                verbosity)
 
             # Install tensorflow to our own virtual env
             # Note that if gcc 4.8 is used for building TensorFlow this flag
@@ -367,9 +366,8 @@ def main():
         "-DNGRAPH_TOOLS_ENABLE=" +
         flag_string_map[platform.system() != 'Darwin']
     ])
-    ngraph_cmake_flags.extend([
-        "-DNGRAPH_GPU_ENABLE=" + flag_string_map[arguments.build_gpu_backend]
-    ])
+    ngraph_cmake_flags.extend(
+        ["-DNGRAPH_GPU_ENABLE=" + flag_string_map[arguments.build_gpu_backend]])
     ngraph_cmake_flags.extend([
         "-DNGRAPH_PLAIDML_ENABLE=" +
         flag_string_map[arguments.build_plaidml_backend]
@@ -417,7 +415,7 @@ def main():
         if not os.path.isdir(tf_src_dir):
             # Download TF source
             pass
-        print("TF_SRC_DIR: ", tf_src_dir )
+        print("TF_SRC_DIR: ", tf_src_dir)
         ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
 
     ngraph_tf_cmake_flags.extend([
@@ -425,8 +423,8 @@ def main():
                                                 "tensorflow")
     ])
 
-    if ((arguments.distributed_build == "OMPI")
-            or (arguments.distributed_build == "MLSL")):
+    if ((arguments.distributed_build == "OMPI") or
+        (arguments.distributed_build == "MLSL")):
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=TRUE"])
     else:
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=FALSE"])
@@ -454,14 +452,14 @@ def main():
 
     # Copy the TensorFlow Python code tree to artifacts directory so that they can
     # be used for running TensorFlow Python unit tests
-    base_dir = build_dir_abs if (
-        arguments.use_tensorflow_from_location == ''
-    ) else arguments.use_tensorflow_from_location
+    base_dir = build_dir_abs if (arguments.use_tensorflow_from_location == ''
+                                ) else arguments.use_tensorflow_from_location
 
     command_executor([
         'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
         os.path.join(artifacts_location, "tensorflow")
-    ], verbose=True)
+    ],
+                     verbose=True)
 
     # Run a quick test
     install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
@@ -471,8 +469,7 @@ def main():
         import ngraph_bridge
         if not ngraph_bridge.is_grappler_enabled():
             raise Exception(
-                "Build failed: 'use_grappler_optimizer' specified but not used"
-            )
+                "Build failed: 'use_grappler_optimizer' specified but not used")
 
     print('\033[1;32mBuild successful\033[0m')
     os.chdir(pwd)
