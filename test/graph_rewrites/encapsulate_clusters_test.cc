@@ -18,6 +18,7 @@
 #include "gtest/gtest.h"
 #include "ngraph_cluster_manager.h"
 #include "ngraph_encapsulate_clusters.h"
+#include "version.h"
 #include "tensorflow/core/graph/node_builder.h"
 
 using namespace std;
@@ -112,6 +113,85 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   auto expected = multiset<string>{"Const", "Add", "Const"};
   ASSERT_EQ(present, expected);
   free(fdeflib_new);
+}
+
+
+
+
+TEST(EncapsulateClusters, AOT) {
+  NGraphClusterManager::EvictAllClusters();
+  Graph g(OpRegistry::Global());
+
+  int cluster_idx = NGraphClusterManager::NewCluster();
+
+  Node* node1;
+  Node* node2;
+
+  if (ngraph_tf_is_grappler_enabled()) {
+    ASSERT_OK(NodeBuilder("node1", "Placeholder")
+                  .Attr("dtype", DT_FLOAT)
+                  .Finalize(&g, &node1));
+    ASSERT_OK(NodeBuilder("node2", "Placeholder")
+                  .Attr("dtype", DT_FLOAT)
+                  .Finalize(&g, &node2));
+  } else {
+    ASSERT_OK(NodeBuilder("node1", "_Arg")
+                  .Attr("index", 0)
+                  .Attr("T", DT_FLOAT)
+                  .Finalize(&g, &node1));
+    ASSERT_OK(NodeBuilder("node2", "_Arg")
+                  .Attr("index", 0)
+                  .Attr("T", DT_FLOAT)
+                  .Finalize(&g, &node2));
+  }
+
+  Node* node3;
+  ASSERT_OK(NodeBuilder("node3", "Add")
+                .Input(node1, 0)
+                .Input(node2, 0)
+                .Attr("T", DT_FLOAT)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx)
+                .Attr("_ngraph_backend", "CPU")
+                .Finalize(&g, &node3));
+
+  Node* source = g.source_node();
+  Node* sink = g.sink_node();
+  g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+  g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+
+  int num_cases = 1;
+  for (int i = 0; i < num_cases; i++){
+    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, {}));
+
+    int num_encapsulates = 0;
+    int num_tf_nodes = 0;
+    for (auto itr : g.nodes()) {
+      auto node_type = itr->type_string();
+      num_encapsulates += (node_type == "NGraphEncapsulate" ? 1 : 0);
+      num_tf_nodes += ((node_type == "Add" || node_type == "Const") ? 1 : 0);
+    }
+
+    ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
+
+    // No Add or Const nodes left in the graph
+    ASSERT_EQ(num_tf_nodes, 0);
+
+    // TODO: assert that a json is created
+    for (auto itr : g.nodes()) {
+      if (itr->type_string() == "NGraphEncapsulate"){
+        string aot_info;
+        ASSERT_OK(GetNodeAttr(itr->attrs(), "_ngraph_aot", &aot_info));
+        cout << "AOT INFO: " << aot_info << "\n";
+      }
+    }
+  }
+
+  free(fdeflib_new);
+  
 }
 }
 }

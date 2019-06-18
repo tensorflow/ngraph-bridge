@@ -651,6 +651,22 @@ Status EncapsulateClusters(
 
     if (can_aot) {
       // TODO: call TranslateGraph
+      cout << "node_shapes_for_compilation.size(): " << node_shapes_for_compilation.size() << "\n";
+      cout << "inputs_found.size(): " << inputs_found.size() << "\n";
+      for (auto itr : node_shapes_for_compilation){
+        cout << itr.first << ": ";
+        for (itr1 : itr.second){ // iterate over the set
+          for (itr2 : itr1) {
+            cout << itr2 << ",";
+          }
+        }
+        cout << "\n";
+      }
+      for (auto node : graph->op_nodes()) {
+        if (node->type_string() == "NGraphEncapsulate") {
+          node->AddAttr("_ngraph_aot", "TODO:fillmein");
+        }
+      }
     }
   }
 
