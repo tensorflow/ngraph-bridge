@@ -162,26 +162,26 @@ TEST(BackendManager, BackendClustering) {
   ASSERT_NE(A_cluster, B_cluster);
 }
 
-TEST(BackendManager, BackendConfigGetOptionalAttributes) {
+TEST(BackendManager, GetBackendAdditionalAttributes) {
   vector<string> default_backend_optional_attrs = {"_ngraph_device_config"};
   vector<string> nnpi_backend_optional_attrs = {
       "_ngraph_device_id", "_ngraph_ice_cores", "_ngraph_max_batch_size"};
 
-  auto cpu_options = BackendManager::GetOptionalAttributes("CPU");
-  auto nnpi_options = BackendManager::GetOptionalAttributes("NNPI");
-  auto gpu_options = BackendManager::GetOptionalAttributes("GPU");
+  auto cpu_options = BackendManager::GetBackendAdditionalAttributes("CPU");
+  auto nnpi_options = BackendManager::GetBackendAdditionalAttributes("NNPI");
+  auto gpu_options = BackendManager::GetBackendAdditionalAttributes("GPU");
 
   ASSERT_EQ(cpu_options, default_backend_optional_attrs);
   ASSERT_EQ(nnpi_options, nnpi_backend_optional_attrs);
   ASSERT_EQ(gpu_options, default_backend_optional_attrs);
 }
 
-TEST(BackendManager, GetBackendAttributes) {
-  auto cpu_options = BackendManager::GetBackendAttributes("CPU");
-  auto nnpi_options = BackendManager::GetBackendAttributes("NNPI:3,5,6");
-  auto gpu_options = BackendManager::GetBackendAttributes("GPU:5");
+TEST(BackendManager, GetBackendAttributeValues) {
+  auto cpu_options = BackendManager::GetBackendAttributeValues("CPU");
+  auto nnpi_options = BackendManager::GetBackendAttributeValues("NNPI:3,5,6");
+  auto gpu_options = BackendManager::GetBackendAttributeValues("GPU:5");
   auto plaidml_options =
-      BackendManager::GetBackendAttributes("PLAIDML:device:567:892_34");
+      BackendManager::GetBackendAttributeValues("PLAIDML:device:567:892_34");
 
   ASSERT_NE(cpu_options.find("ngraph_backend"), cpu_options.end());
   ASSERT_NE(cpu_options.find("_ngraph_device_config"), cpu_options.end());

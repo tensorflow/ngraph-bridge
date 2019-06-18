@@ -45,14 +45,14 @@ Status NgraphOptimizer::Init(
   if (params.count("ngraph_backend")) {
     config_backend_name = params.at("ngraph_backend").s();
     NGRAPH_VLOG(3) << config_backend_name;
-    std::vector<std::string> optional_attributes =
-        BackendManager::GetOptionalAttributes(config_backend_name);
-    for (int i = 0; i < optional_attributes.size(); i++) {
-      if (params.count(optional_attributes[i])) {
-        config_map[optional_attributes[i]] =
-            params.at(optional_attributes[i]).s();
-        NGRAPH_VLOG(3) << optional_attributes[i] << " "
-                       << config_map[optional_attributes[i]];
+    std::vector<std::string> additional_attributes =
+        BackendManager::GetBackendAdditionalAttributes(config_backend_name);
+    for (int i = 0; i < additional_attributes.size(); i++) {
+      if (params.count(additional_attributes[i])) {
+        config_map[additional_attributes[i]] =
+            params.at(additional_attributes[i]).s();
+        NGRAPH_VLOG(3) << additional_attributes[i] << " "
+                       << config_map[additional_attributes[i]];
       }
     }
   } else {
@@ -219,7 +219,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       NGRAPH_VLOG(1) << "Setting backend from the BackendManager ";
     }
     // splits into {"ngraph_backend", "_ngraph_device_config"}
-    config_map = BackendManager::GetBackendAttributes(
+    config_map = BackendManager::GetBackendAttributeValues(
         backend_name);  // SplitBackendConfig
     backend_name = config_map.at("ngraph_backend");
     // config_map in EncapsulateClusters is not expected to contain

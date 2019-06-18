@@ -32,21 +32,21 @@ class BackendConfig {
  public:
   BackendConfig() = delete;
   BackendConfig(string backend_name);
-  unordered_map<string, string> split(string backend_config);
-  vector<string> get_optional_attributes();
+  unordered_map<string, string> Split(string backend_config);
+  vector<string> GetAdditionalAttributes();
 
-  virtual string join(unordered_map<string, string> optional_parameters);
+  virtual string Join(unordered_map<string, string> additional_parameters);
   virtual ~BackendConfig();
 
  protected:
   string backend_name_;
-  vector<string> optional_attributes_;
+  vector<string> additional_attributes_;
 };
 
 class BackendNNPIConfig : public BackendConfig {
  public:
   BackendNNPIConfig();
-  string join(unordered_map<string, string> optional_parameters);
+  string Join(unordered_map<string, string> additional_parameters);
   virtual ~BackendNNPIConfig();
 };
 

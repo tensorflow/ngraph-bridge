@@ -136,27 +136,27 @@ std::shared_ptr<BackendConfig> BackendManager::GetBackendConfig(
   return BackendManager::ng_backendconfig_map_[backend_name];
 }
 
-vector<string> BackendManager::GetOptionalAttributes(
+vector<string> BackendManager::GetBackendAdditionalAttributes(
     const string& backend_name) {
   return BackendManager::GetBackendConfig(backend_name)
-      ->get_optional_attributes();
+      ->GetAdditionalAttributes();
 }
 
-unordered_map<string, string> BackendManager::GetBackendAttributes(
+unordered_map<string, string> BackendManager::GetBackendAttributeValues(
     string backend_config) {
   unordered_map<string, string> backend_parameters;
 
   string backend_name = backend_config.substr(0, backend_config.find(':'));
   NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
 
-  return BackendManager::GetBackendConfig(backend_name)->split(backend_config);
+  return BackendManager::GetBackendConfig(backend_name)->Split(backend_config);
 }
 
 string BackendManager::GetBackendCreationString(
     const string& backend_name,
-    unordered_map<string, string>& optional_attribute_map) {
+    unordered_map<string, string>& additional_attribute_map) {
   return BackendManager::GetBackendConfig(backend_name)
-      ->join(optional_attribute_map);
+      ->Join(additional_attribute_map);
 }
 
 }  // namespace ngraph_bridge

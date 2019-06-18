@@ -82,26 +82,27 @@ class BackendManager {
 
   // Returns the backend specific additional attributes
   // For e.g.
-  // 1. GetBackendAttributes("CPU")
+  // 1. GetBackendAdditionalAttributes("CPU")
   // returns {"_ngraph_device_config"}
-  // 2. GetBackendAttributes("TEST")
+  // 2. GetBackendAdditionalAttributes("TEST")
   // returns {"_ngraph_device_config"}
-  // 3. GetBackendAttributes("NNPI")
+  // 3. GetBackendAdditionalAttributes("NNPI")
   // returns {"_ngraph_device_id", "_ngraph_ice_cores","_ngraph_max_batch_size"}
-  static vector<string> GetOptionalAttributes(const string& backend_name);
+  static vector<string> GetBackendAdditionalAttributes(
+      const string& backend_name);
 
   // Given a string, splits the string into the backend name and other
   // attributes
   // This does not check whether the string corresponds to a valid backend
   // For e.g.
-  // 1. GetBackendAttributes("CPU")
+  // 1. GetBackendAttributeValues("CPU")
   // returns {{"ngraph_backend", "CPU"}, {"_ngraph_device_config", ""}}
-  // 2. GetBackendAttributes("GPU:2")
+  // 2. GetBackendAttributeValues("GPU:2")
   // returns {{"ngraph_backend", "GPU"}, {"_ngraph_device_config", "2"}}
-  // 3. GetBackendAttributes("TEST:ME")
+  // 3. GetBackendAttributeValues("TEST:ME")
   // returns {{"ngraph_backend", "TEST"}, {"_ngraph_device_config", "ME"}}
   static unordered_map<string, string>
-  GetBackendAttributes(  // SplitBackendConfig
+  GetBackendAttributeValues(  // SplitBackendConfig
       string backend_config);
 
   // Given a backend name and list of attributes
@@ -112,7 +113,7 @@ class BackendManager {
   // throws an error if the required attributes are not present in the map
   static string GetBackendCreationString(
       const string& backend_name,
-      unordered_map<string, string>& optional_attribute_map);
+      unordered_map<string, string>& additional_attribute_map);
 
   ~BackendManager();
 
