@@ -242,7 +242,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
     if (!already_processed && ngraph_not_enabled) {
-      NGRAPH_VLOG(0) << "Graph will not run through ngraph";
+      NGRAPH_VLOG(0) << "NGraph is available but disabled.";
     }
     if (ngraph_not_enabled || already_processed) {
       NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +

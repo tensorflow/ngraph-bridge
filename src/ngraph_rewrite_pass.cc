@@ -127,6 +127,9 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
     bool ngraph_not_enabled =
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    if (!already_processed && ngraph_not_enabled) {
+      NGRAPH_VLOG(0) << "NGraph is available but disabled.";
+    }
     if (ngraph_not_enabled || already_processed) {
       // In the case that we run a network with ngraph, cluster manager gets
       // populated. Then we run a new network, it repopulates the cluster
@@ -138,9 +141,9 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
       // cluster manager is not overwritten. Which would mean that cluster
       // manager contains stale data from a previous run. Hence evicting cluster
       // manager when rewrite passes are not run.
-      NGRAPH_VLOG(1) << "Not running through nGraph. nGraph not enabled: "
-                     << ngraph_not_enabled
-                     << " Already processed: " << already_processed;
+      NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
+                            (already_processed ? "graph is already preprocessed"
+                                               : "ngraph is disabled");
       NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
@@ -203,7 +206,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
     if (!already_processed && ngraph_not_enabled) {
-      NGRAPH_VLOG(0) << "Graph will not run through ngraph";
+      NGRAPH_VLOG(0) << "NGraph is available but disabled.";
     }
     if (ngraph_not_enabled || already_processed) {
       NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
