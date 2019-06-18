@@ -274,19 +274,21 @@ def main():
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow:
-            # Check if the gcc version is 4.8 
-            if (platform.system() != 'Darwin'):
-                gcc_ver = get_gcc_version()
-                if '4.8' not in gcc_ver:
-                    raise Exception(
-                        "Need GCC 4.8 to build using prebuilt TensorFlow\n"
-                        "Gcc version installed: " + gcc_ver
-                    )
-
             print("Using existing TensorFlow")
             command_executor(
                 ["pip", "install", "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
+
+            # Copy the libtensorflow_framework.so to the artifacts so that 
+            # we can run c++ tests from that location later
+            tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
+            if (platform.system() == 'Darwin'):
+                tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
+            import tensorflow as tf
+            tf_lib_dir = tf.sysconfig.get_lib()
+            shutil.copy(
+                os.path.join(tf_lib_dir, tf_fmwk_lib_name), 
+                os.path.join(artifacts_location, "tensorflow"))
 
             # Now download the source 
             tf_src_dir = os.path.join(artifacts_location, "tensorflow")
@@ -452,14 +454,14 @@ def main():
 
     # Copy the TensorFlow Python code tree to artifacts directory so that they can
     # be used for running TensorFlow Python unit tests
-    if not arguments.use_prebuilt_tensorflow:
-        base_dir = build_dir_abs if (
-            arguments.use_tensorflow_from_location == ''
-        ) else arguments.use_tensorflow_from_location
-        command_executor([
-            'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
-            os.path.join(artifacts_location, "tensorflow")
-        ])
+    base_dir = build_dir_abs if (
+        arguments.use_tensorflow_from_location == ''
+    ) else arguments.use_tensorflow_from_location
+
+    command_executor([
+        'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
+        os.path.join(artifacts_location, "tensorflow")
+    ], verbose=True)
 
     # Run a quick test
     install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
