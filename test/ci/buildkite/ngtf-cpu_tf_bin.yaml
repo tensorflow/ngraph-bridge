@@ -22,19 +22,19 @@
     agents:
     - "queue=cpu_tf_bin"
     parallelism: 1
-  # - wait
+  - wait
 
-  # - command: |
-  #     source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
-  #     python3 build_ngtf.py --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
-  #     --use_prebuilt_tensorflow 
+  - command: |
+      source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
+      python3 build_ngtf.py --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
+      --use_prebuilt_tensorflow 
       
-  #   label: ":hammer_and_wrench: Build"
-  #   timeout_in_minutes: 60
-  #   agents:
-  #   - "queue=cpu_tf_bin"
-  #   parallelism: 1
-  # - wait
+    label: ":hammer_and_wrench: Build"
+    timeout_in_minutes: 60
+    agents:
+    - "queue=cpu_tf_bin"
+    parallelism: 1
+  - wait
 
   # - command: |
   #     source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
