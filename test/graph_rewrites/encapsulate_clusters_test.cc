@@ -163,9 +163,12 @@ TEST(EncapsulateClusters, AOT) {
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
-  int num_cases = 1;
+  std::vector<std::map<std::string, set<vector<int>>>> node_shapes_hints_vect = {
+    {}
+  };
+  int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++){
-    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, {}));
+    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, node_shapes_hints_vect[i]));
 
     int num_encapsulates = 0;
     int num_tf_nodes = 0;
@@ -193,6 +196,12 @@ TEST(EncapsulateClusters, AOT) {
   free(fdeflib_new);
   
 }
+
+// TODO: more test cases:
+// what of scalar inputs. placeholder shape is {}?
+// add a test with 2 encs. should fail for now
+// Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2] with [2,4]?
+//
 }
 }
 }
