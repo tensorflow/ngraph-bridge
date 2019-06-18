@@ -17,6 +17,37 @@
 
 from tools.build_utils import *
 
+def version_check(use_prebuilt_tensorflow):
+    # Check pre-reqisites
+    if use_prebuilt_tensorflow:
+        # Check if the gcc version is 4.8 
+        if (platform.system() != 'Darwin'):
+            gcc_ver = get_gcc_version()
+            if '4.8' not in gcc_ver:
+                raise Exception(
+                    "Need GCC 4.8 to build using prebuilt TensorFlow\n"
+                    "Gcc version installed: " + gcc_ver
+                )
+    # Check cmake version
+    cmake_ver = get_cmake_version()
+    if (int(cmake_ver[0]) < 3 or int(cmake_ver[1]) < 4):
+        raise Exception(
+            "Need minimum cmake version 3.4\n"
+            "Got: " + '.'.join(cmake_ver)
+        )
+
+    # Check bazel version
+    bazel_ver = get_bazel_version()
+    got_correct_bazel_version = False
+    if (int(bazel_ver[1]) >= 24 and int(bazel_ver[1]) <= 25):
+        if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
+            got_correct_bazel_version = True
+
+    if not got_correct_bazel_version:
+        raise Exception(
+            "Need bazel 0.24.1 < version < 0.25.2 \n" + 
+            "Got: " + '.'.join(bazel_ver))
+
 def main():
     '''
     Builds TensorFlow, ngraph, and ngraph-tf for python 3
@@ -110,7 +141,8 @@ def main():
     parser.add_argument(
         '--use_tensorflow_from_location',
         help=
-        "Use TensorFlow from a directory where it was already built and stored. This location is expected to be populated by build_tf.py\n",
+        "Use TensorFlow from a directory where it was already built and stored.\n"
+        "This location is expected to be populated by build_tf.py\n",
         action="store",
         default='')
 
@@ -128,6 +160,8 @@ def main():
     #-------------------------------
     # Recipe
     #-------------------------------
+
+    version_check(arguments.use_prebuilt_tensorflow)
 
     # Default directories
     build_dir = 'build_cmake'

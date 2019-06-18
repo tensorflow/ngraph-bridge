@@ -505,3 +505,27 @@ def get_gcc_version():
     output = cmd.communicate()[0].rstrip()
     return output
 
+def get_cmake_version():
+    cmd = subprocess.Popen('cmake --version', shell=True, 
+        stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+    output = cmd.communicate()[0].rstrip()
+    # The cmake version format is: "cmake version a.b.c"
+    version_tuple = output.split()[2].split('.')
+    return version_tuple
+
+def get_bazel_version():
+    cmd = subprocess.Popen('bazel version', shell=True, 
+        stdout=subprocess.PIPE, bufsize=1, universal_newlines=True)
+    # The bazel version format is a multi line output: 
+    #
+    # Build label: 0.24.1
+    # Build target: bazel-out/k8-opt/bin/src/main/java/com/...
+    # Build time: Tue Apr 2 16:29:26 2019 (1554222566)
+    # Build timestamp: 1554222566
+    # Build timestamp as int: 1554222566
+    # 
+    output = cmd.communicate()[0].splitlines()[0].strip()
+    output = output.split(':')[1].strip()
+
+    version_tuple = output.split('.')
+    return version_tuple
