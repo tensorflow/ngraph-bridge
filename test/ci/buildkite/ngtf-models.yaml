@@ -6,7 +6,7 @@
     label: ":gear: Setup"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_tf_1.14"
+    - "queue=cpu"
     parallelism: 1
   - wait
 
@@ -18,7 +18,7 @@
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
     agents:
-    - "queue=cpu_tf_1.14"
+    - "queue=cpu"
     parallelism: 1
   - wait
 
@@ -37,4 +37,4 @@
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
     agents:
-    - "queue=cpu_tf_1.14"
+    - "queue=cpu"
