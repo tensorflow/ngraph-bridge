@@ -272,6 +272,19 @@ def main():
     else:
         if arguments.use_prebuilt_tensorflow:
             print("Using existing TensorFlow")
+            # Frst download the source. This will create the tensorfow directory as needed
+            tf_src_dir = os.path.join(artifacts_location, "tensorflow")
+            print("TF_SRC_DIR: ", tf_src_dir)
+            # Download
+            pwd_now = os.getcwd()
+            os.chdir(artifacts_location)
+            print("DOWNLOADING TF: PWD", os.getcwd())
+            download_repo("tensorflow",
+                          "https://github.com/tensorflow/tensorflow.git",
+                          tf_version)
+            os.chdir(pwd_now)
+
+            # Next install the tensorflow python packge
             command_executor(
                 ["pip", "install", "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
@@ -283,21 +296,15 @@ def main():
                 tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
             import tensorflow as tf
             tf_lib_dir = tf.sysconfig.get_lib()
-            shutil.copy(
-                os.path.join(tf_lib_dir, tf_fmwk_lib_name),
-                os.path.join(artifacts_location, "tensorflow"))
+            tf_lib_file = os.path.join(tf_lib_dir, tf_fmwk_lib_name)
+            print("SYSCFG LIB: ", tf_lib_file)
 
-            # Now download the source
-            tf_src_dir = os.path.join(artifacts_location, "tensorflow")
-            if not os.path.isdir(tf_src_dir):
-                # Download
-                pwd_now = os.getcwd()
-                os.chdir(artifacts_location)
-                print("DOWNLOADING TF: PWD", os.getcwd())
-                download_repo("tensorflow",
-                              "https://github.com/tensorflow/tensorflow.git",
-                              tf_version)
-                os.chdir(pwd_now)
+            dst_dir = os.path.join(artifacts_location, "tensorflow")
+            if not os.path.isdir(dst_dir):
+                os.mkdir(dst_dir)
+
+            dst = os.path.join(dst_dir, tf_fmwk_lib_name)
+            shutil.copyfile(tf_lib_file, dst)
 
             # Now build the libtensorflow_cc.so - the C++ library
             build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch,
@@ -309,7 +316,7 @@ def main():
             download_repo("tensorflow",
                           "https://github.com/tensorflow/tensorflow.git",
                           tf_version)
-
+            tf_src_dir = os.path.join(os.getcwd(), "tensorflow")
             # Build TensorFlow
             build_tensorflow(venv_dir, "tensorflow", artifacts_location,
                              target_arch, verbosity)
