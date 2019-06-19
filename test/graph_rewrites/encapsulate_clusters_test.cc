@@ -200,7 +200,9 @@ TEST(EncapsulateClusters, AOT) {
 // add a test with 2 encs. should fail for now
 // Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2] with
 // [2,4]?
-//
+// Encapsulate being fed by another enc
+// 2 encapsulates, but both are attached to inputs, so we can AOT
+// Have a test where enc is fed by a const and a placeholder
 }
 }
 }

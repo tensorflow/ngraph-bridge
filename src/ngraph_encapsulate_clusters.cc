@@ -658,6 +658,25 @@ Status EncapsulateClusters(
       }
       for (auto node : graph->op_nodes()) {
         if (node->type_string() == "NGraphEncapsulate") {
+          // Check inputs of the encapsulates. They can only be fed by fully concrete shapes (after going through the shape hints) or consts
+          std::vector<int32> st_inputs;
+          GetStaticInputs(node, &st_inputs);
+          if (st_inputs.size() != 0) {
+            return errors::Internal("AOT requested. Found an encapsulate with static inputs, but that is not supported");
+          }
+
+          for (auto in_node_itr : node->in_nodes()){
+            bool found = node_shapes_for_compilation.find(in_node_itr->name()) != node_shapes_for_compilation.end();
+            if (in_node_itr->type_string() != "Const" && !found){
+              return errors::Internal("AOT requested. Found an encapsulate that has a non-concrete input");
+            }
+          }
+          // static_input_map is empty. Cannot AOT if encapsulates have static inputs
+          std::vector<const Tensor*> static_input_map;
+          std::shared_ptr<ngraph::Function> ng_function;
+          //std::vector<TensorShape>& input_shapes,
+          //TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
+          //                                       &m_graph, ng_function));
           node->AddAttr("_ngraph_aot", "TODO:fillmein");
         }
       }
