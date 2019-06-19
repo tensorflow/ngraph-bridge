@@ -656,6 +656,7 @@ Status EncapsulateClusters(
         }
         cout << "\n";
       }
+      
       for (auto node : graph->op_nodes()) {
         if (node->type_string() == "NGraphEncapsulate") {
           // Check inputs of the encapsulates. They can only be fed by fully concrete shapes (after going through the shape hints) or consts
@@ -664,22 +665,28 @@ Status EncapsulateClusters(
           if (st_inputs.size() != 0) {
             return errors::Internal("AOT requested. Found an encapsulate with static inputs, but that is not supported");
           }
-
           for (auto in_node_itr : node->in_nodes()){
-            bool found = node_shapes_for_compilation.find(in_node_itr->name()) != node_shapes_for_compilation.end();
-            if (in_node_itr->type_string() != "Const" && !found){
+            auto found_itr = node_shapes_for_compilation.find(in_node_itr->name());
+            if (found_itr == node_shapes_for_compilation.end()){
               return errors::Internal("AOT requested. Found an encapsulate that has a non-concrete input");
             }
           }
-          // static_input_map is empty. Cannot AOT if encapsulates have static inputs
-          std::vector<const Tensor*> static_input_map;
-          std::shared_ptr<ngraph::Function> ng_function;
-          //std::vector<TensorShape>& input_shapes,
-          //TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
-          //                                       &m_graph, ng_function));
+          
+          // TODO remove me
           node->AddAttr("_ngraph_aot", "TODO:fillmein");
         }
       }
+
+      // static_input_map is empty. Cannot AOT if encapsulates have static inputs
+      std::vector<const Tensor*> static_input_map;
+      std::shared_ptr<ngraph::Function> ng_function;
+      std::vector<TensorShape> input_shapes;
+      //TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
+      //                                       &m_graph, ng_function));
+      // TODO: create cartesian product of possible input shapes and compile for each
+      // For example if an enc has 2 inps, A and B.. and A has shape hints {(2,2), (3,3)}, while B has shape hints {(4,), (5,), (6,)}, then we have to compile 2x3=6 functions
+      // This sounds problematic. maybe users want to specify some shapes of A go with some shapes of B.
+      // TODO: rethink above problem. Maybe, shape hints should come for all inputs as a group, and there are many such groups
     }
   }
 
