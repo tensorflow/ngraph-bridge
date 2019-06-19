@@ -92,6 +92,7 @@ On CPU:
 | nmt |  :heavy_check_mark: | :heavy_multiplication_x: |  :heavy_check_mark: | :heavy_multiplication_x: | nmt
 | bert |  :heavy_check_mark: | :heavy_multiplication_x: |  :heavy_check_mark: | :heavy_multiplication_x: | bert
 | minigo |  :heavy_check_mark: | :heavy_multiplication_x: |  :heavy_check_mark: | :heavy_multiplication_x: | minigo
+| transformer-lt |  :heavy_check_mark: | :heavy_multiplication_x: |  :heavy_multiplication_x: | :heavy_multiplication_x: | tfmodels
 
 On Interpreter:
 
