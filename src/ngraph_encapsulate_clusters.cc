@@ -74,7 +74,7 @@ static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
-    std::map<std::string, set<vector<int>>> node_shapes_hints) {
+    AOTInfo aot_info) {
   // A map from cluster indices to the expected device name for nodes
   // in that cluster.
   std::map<int, std::string> device_name_map;
@@ -509,8 +509,9 @@ Status EncapsulateClusters(
   }
 
   // Pass 8:
-  bool aot_requested = true;
-  // By default for both grappler or non-grappler passes, try to AOT
+  bool aot_requested;
+  std::map<std::string, set<vector<int>>> node_shapes_hints;
+  std::tie(aot_requested, node_shapes_hints) = aot_info;
   if (aot_requested) {
     string input_node_type =
         ngraph_tf_is_grappler_enabled() ? "Placeholder" : "_Arg";
@@ -560,10 +561,9 @@ Status EncapsulateClusters(
     std::map<std::string, set<vector<int>>> node_shapes_for_compilation;
     std::set<std::string> inputs_found;
     for (auto node : graph->op_nodes()) {
-      // Assume that shapes are provided only for placeholders
+      // Assumes that shapes are provided only for placeholders not for _Arg (TODO: this may be incorrect)
       // Note sometimes, maybe the placeholder itself has the shape. we can AOT
-      // in
-      // that case
+      // in that case
       if (node->type_string() == input_node_type) {
         inputs_found.insert(node->name());
         NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("

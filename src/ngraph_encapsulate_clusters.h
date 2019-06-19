@@ -22,9 +22,11 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+typedef std::pair<bool, std::map<std::string, set<vector<int>>>> AOTInfo;
+
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
-    std::map<std::string, set<vector<int>>> node_shapes_hints);
+    AOTInfo aot_info);
 
 }  // namespace ngraph_bridge
 
