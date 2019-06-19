@@ -508,7 +508,8 @@ def base_build():
 
 
 def run_in_docker():
-    command_executor(["docker", "run", "-v", "$(pwd):/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c", "./build_ngtf.sh"])
+    pwd = os.getcwd()
+    command_executor(["docker", "run", "-v", pwd+":/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c", "./build_ngtf.sh"])
 
 
 def get_gcc_version():
