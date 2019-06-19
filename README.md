@@ -19,6 +19,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 
 *   [Build using Linux](#linux-instructions)
 *   [Build using OS X](#using-os-x)
+*   [Build in docker](#build-in-docker)
 *   [Debugging](#debugging)
 *   [Support](#support)
 *   [How to Contribute](#how-to-contribute)
@@ -128,6 +129,20 @@ note that the Python setup is not always the same across various Mac OS versions
 instructions recommend using Homebrew and often people use Pyenv. There is also Anaconda/Miniconda 
 which some users prefer. Ensure that you can build TenorFlow successfully on OS X with a suitable 
 Python environment prior to building nGraph.  
+
+## Build in docker
+
+Building within docker provides an consistent environment regardless of what os your building on, including python3, tensorflow and ngraph-bridge. Using docker as the build environment where your current ngraph-bridge clone is mounted within docker simplifies building and removes the possibility of build errors occuring due to os or tooling differences.
+
+This option uses the tensorflow/tensorflow:devel-py3 as the parent image and builds a base ngtf image making it available locally as ngtf. 
+
+        ./build_ngtf.py --build_base
+
+After running the above command, build_ngtf.py can be invoked with --run-in-docker and other commonly used args
+
+        ./build_ngtf.py --run_in_docker --use_prebuilt_tensorflow --enable_variables_and_optimizers --skip_tensorflow_build
+
+Note that this can be run on mac-os or linux and builds the same files under ngraph-bridge.
 
 ## Debugging
 
