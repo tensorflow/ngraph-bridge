@@ -41,10 +41,22 @@ void DeactivateNGraph() {
   setenv("NGRAPH_TF_DISABLE", "1", 1);
 }
 
-// Backend set
-bool IsNGraphTFBackendSet() {}
+// NGRAPH_TF_BACKEND related
+bool IsNGraphTFBackendSet() {
+  const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+  return (ng_backend_env_value != nullptr);
+}
 
-string GetNGraphTFBackend() {}
+string GetNGraphTFBackend() {
+  const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+  return std::string(ng_backend_env_value);
+}
+
+void UnsetNGraphTFBackend() { unsetenv("NGRAPH_TF_BACKEND"); }
+
+void SetNGraphTFBackend(const string& backend_name) {
+  setenv("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", backend_name.c_str(), 1);
+}
 
 // Input x will be used as an anchor
 // Actual value assigned equals to x * i
