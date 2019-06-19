@@ -103,12 +103,6 @@ node {
     }
   }
   attr {
-    key: "_ngraph_device_config"
-    value {
-      s: ""
-    }
-  }
-  attr {
     key: "ngraph_cluster"
     value {
       i: 0
