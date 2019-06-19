@@ -89,18 +89,18 @@ void PrintVersion() {
 }
 
 int main(int argc, char** argv) {
-  vector<string> image(12, "grace_hopper.jpg");
-  string graph = "inception_v3_2016_08_28_frozen.pb";
+  vector<string> image(12, "3.png");
+  string graph = "mnist_inference_quantized_trained_12212018.pb";
   string labels = "";
-  int input_width = 299;
-  int input_height = 299;
+  int input_width = 28;
+  int input_height = 28;
   float input_mean = 0.0;
-  float input_std = 255;
-  string input_layer = "input";
-  string output_layer = "InceptionV3/Predictions/Reshape_1";
+  float input_std = 1;
+  string input_layer = "Placeholder";
+  string output_layer = "softmax/Softmax";
   bool use_NCHW = false;
   bool preload_images = true;
-
+  int wanted_channels = 1;
   int iteration_count = 10;
 
   // TODO[Sindhu]:Commenting for now since we are passing a vector of images,
@@ -149,17 +149,17 @@ int main(int argc, char** argv) {
   PrintVersion();
 
   infer_multiple_networks::InferenceEngine infer_engine_1("engine_1", "CPU:0");
-  TF_CHECK_OK(infer_engine_1.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
+  TF_CHECK_OK(infer_engine_1.Load(
+      graph, image, input_width, input_height, input_mean, input_std,
+      input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
   infer_multiple_networks::InferenceEngine infer_engine_2("engine_2", "CPU:0");
-  TF_CHECK_OK(infer_engine_2.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
+  TF_CHECK_OK(infer_engine_2.Load(
+      graph, image, input_width, input_height, input_mean, input_std,
+      input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
   infer_multiple_networks::InferenceEngine infer_engine_3("engine_3", "CPU:0");
-  TF_CHECK_OK(infer_engine_3.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
+  TF_CHECK_OK(infer_engine_3.Load(
+      graph, image, input_width, input_height, input_mean, input_std,
+      input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
 
   bool engine_1_running = true;
   infer_engine_1.Start([&](int step_count) {

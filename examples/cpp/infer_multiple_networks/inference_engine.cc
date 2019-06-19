@@ -40,11 +40,12 @@ extern tf::Status LoadGraph(const string& graph_file_name,
                             std::unique_ptr<tf::Session>* session,
                             const tf::SessionOptions& options);
 
-extern tf::Status ReadTensorFromImageFile(const std::vector<string>& file_name,
+extern tf::Status ReadTensorFromImageFile(const std::vector<string>& file_names,
                                           const int input_height,
                                           const int input_width,
                                           const float input_mean,
                                           const float input_std, bool use_NCHW,
+                                          const int wanted_channels,
                                           std::vector<tf::Tensor>* out_tensors);
 
 namespace infer_multiple_networks {
@@ -52,16 +53,16 @@ namespace infer_multiple_networks {
 InferenceEngine::InferenceEngine(const string& name, const string& backend)
     : m_name(name) {}
 Status InferenceEngine::Load(const string& network,
-                             std::vector<string>& image_file, int input_width,
+                             std::vector<string>& image_files, int input_width,
                              int input_height, float input_mean,
                              float input_std, const string& input_layer,
                              const string& output_layer, bool use_NCHW,
-                             bool preload_images) {
+                             bool preload_images, const int wanted_channels) {
   // Load the network
   TF_CHECK_OK(CreateSession(network, m_session));
 
   // Save the input related information
-  m_image_file = image_file;
+  m_image_files = image_files;
   m_input_width = input_width;
   m_input_height = input_height;
   m_input_mean = input_mean;
@@ -70,6 +71,7 @@ Status InferenceEngine::Load(const string& network,
   m_output_layer = output_layer;
   m_use_NCHW = use_NCHW;
   m_preload_images = preload_images;
+  m_wanted_channels = wanted_channels;
 
   // Preload the image is requested
   if (m_preload_images) {
@@ -79,8 +81,8 @@ Status InferenceEngine::Load(const string& network,
     tf::ngraph_bridge::BackendManager::SetBackendName("CPU");
     std::vector<tf::Tensor> resized_tensors;
     TF_CHECK_OK(ReadTensorFromImageFile(
-        m_image_file, m_input_height, m_input_width, m_input_mean, m_input_std,
-        m_use_NCHW, &resized_tensors));
+        m_image_files, m_input_height, m_input_width, m_input_mean, m_input_std,
+        m_use_NCHW, m_wanted_channels, &resized_tensors));
     m_image_to_repeat = resized_tensors[0];
     tf::ngraph_bridge::BackendManager::SetBackendName(current_backend);
   }
@@ -131,8 +133,8 @@ void InferenceEngine::ThreadMain() {
 
       std::vector<tf::Tensor> resized_tensors;
       TF_CHECK_OK(ReadTensorFromImageFile(
-          m_image_file, m_input_height, m_input_width, m_input_mean,
-          m_input_std, m_use_NCHW, &resized_tensors));
+          m_image_files, m_input_height, m_input_width, m_input_mean,
+          m_input_std, m_use_NCHW, m_wanted_channels, &resized_tensors));
 
       m_image_to_repeat = resized_tensors[0];
       // assert(resized_tensors.size() == 1);

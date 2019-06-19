@@ -47,6 +47,7 @@ extern tf::Status ReadTensorFromImageFile(const std::vector<string>& file_name,
                                           const int input_width,
                                           const float input_mean,
                                           const float input_std, bool use_NCHW,
+                                          const int wanted_channels,
                                           std::vector<tf::Tensor>* out_tensors);
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
@@ -146,6 +147,7 @@ int main(int argc, char** argv) {
   string input_layer = "input";
   string output_layer = "resnet_v1_50/predictions/Softmax";
   bool use_NCHW = true;
+  int wanted_channels = 3;
 
   // TODO[Sindhu]:Commenting for now since we are passing a vector of images,
   // need to update later.
@@ -221,7 +223,7 @@ int main(int argc, char** argv) {
         std::vector<tf::Tensor> resized_tensors;
         tf::Status read_tensor_status = ReadTensorFromImageFile(
             image, input_height, input_width, input_mean, input_std, use_NCHW,
-            &resized_tensors);
+            wanted_channels, &resized_tensors);
 
         if (!read_tensor_status.ok()) {
           LOG(ERROR) << read_tensor_status;

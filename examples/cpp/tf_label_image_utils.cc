@@ -147,7 +147,7 @@ static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
 Status ReadTensorFromImageFile(const std::vector<string>& file_names,
                                const int input_height, const int input_width,
                                const float input_mean, const float input_std,
-                               bool use_NCHW,
+                               bool use_NCHW, const int wanted_channels,
                                std::vector<Tensor>* out_tensors) {
   auto root = tensorflow::Scope::NewRootScope();
   using namespace ::tensorflow::ops;  // NOLINT(build/namespaces)
@@ -171,7 +171,6 @@ Status ReadTensorFromImageFile(const std::vector<string>& file_names,
     inputs.push_back({"input_" + std::to_string(i), input});
 
     // Now try to figure out what kind of file it is and decode it.
-    const int wanted_channels = 3;
     tensorflow::Output image_reader;
     if (tensorflow::str_util::EndsWith(file_names[i], ".png")) {
       image_reader = DecodePng(root.WithOpName("png_reader"), file_reader,
