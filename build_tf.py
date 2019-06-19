@@ -41,7 +41,19 @@ def main():
         help=
         "Architecture flag to use (e.g., haswell, core-avx2 etc. Default \'native\'\n",
         default="native")
+    parser.add_argument(
+        '--run_in_docker',
+        help="run in docker\n",
+        action="store_true")
     arguments = parser.parse_args()
+
+    if (arguments.run_in_docker):
+        cmd = ["/usr/bin/docker", "run", "-v", root_pwd+":/tf", "-w", "/tf", "tf", "sh", "-c", "./build_tf.py"]
+        for arg in args:
+            if arg != "run_in_docker":
+                cmd.append("--"+arg)
+                cmd.append(args[arg])
+        command_executor(cmd)
 
     assert not os.path.isdir(
         arguments.output_dir), arguments.output_dir + " already exists"

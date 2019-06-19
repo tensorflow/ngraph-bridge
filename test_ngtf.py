@@ -49,7 +49,6 @@ def main():
     parser.add_argument(
         '--run_in_docker',
         help="Runs the command in docker.\n",
-        default=false,
         action="store_true")
 
     arguments = parser.parse_args()
