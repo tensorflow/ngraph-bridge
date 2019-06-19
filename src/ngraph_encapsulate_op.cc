@@ -174,7 +174,7 @@ class NGraphEncapsulateOp : public OpKernel {
     std::vector<std::string> additional_attributes =
         BackendManager::GetBackendAdditionalAttributes(backend_name);
     std::unordered_map<std::string, std::string> additional_attribute_map;
-    for (int i = 0; i < additional_attributes.size(); i++) {
+    for (unsigned int i = 0; i < additional_attributes.size(); i++) {
       std::string val;
       // If an attribute does not exist, TF will return a non-ok status
       OP_REQUIRES_OK(ctx, ctx->GetAttr<string>(additional_attributes[i], &val));
@@ -239,7 +239,7 @@ class NGraphEncapsulateOp : public OpKernel {
   static void TensorDataToStream(std::ostream& ostream, int64 n_elements,
                                  const char* data) {
     const T* data_T = reinterpret_cast<const T*>(data);
-    for (size_t i = 0; i < n_elements; i++) {
+    for (size_t i = 0; i < (unsigned)n_elements; i++) {
       ostream << data_T[i] << ",";
     }
   }
@@ -388,7 +388,7 @@ class NGraphEncapsulateOp : public OpKernel {
         my_function_cache_depth_in_items = atoi(cache_depth_specified);
       }
 
-      if (m_ng_exec_map.size() >= my_function_cache_depth_in_items) {
+      if (m_ng_exec_map.size() >= (unsigned)my_function_cache_depth_in_items) {
         int input_tensors_bytes_free = 0;
         evicted_ng_exec = m_ng_exec_map[m_lru.back()];
         m_ng_exec_map.erase(m_lru.back());
@@ -553,7 +553,7 @@ class NGraphEncapsulateOp : public OpKernel {
     int number_of_copies = 0;
 #endif
 
-    for (int i = 0; i < input_shapes.size(); i++) {
+    for (unsigned int i = 0; i < input_shapes.size(); i++) {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
       bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
           m_graph_id, def().name(), i);
@@ -643,7 +643,7 @@ class NGraphEncapsulateOp : public OpKernel {
     output_caches.resize(ng_exec->get_results().size());
     // ngraph executable returns get_results, using that to get the tensor shape
     // and element type.
-    for (auto i = 0; i < ng_exec->get_results().size(); i++) {
+    for (auto i = 0; (unsigned)i < ng_exec->get_results().size(); i++) {
       auto ng_element = ng_exec->get_results()[i];
       auto ng_shape = ng_element->get_shape();
       auto ng_element_type = ng_element->get_element_type();
@@ -875,7 +875,7 @@ class NGraphEncapsulateOp : public OpKernel {
     // Mark input tensors as fresh for the next time around.
     // Note: these ng_tensors are being marked fresh so that in the next
     // iteration if this encapsulate finds the tensor fresh, then it will use it
-    for (int i = 0; i < input_shapes.size(); i++) {
+    for (unsigned int i = 0; i < input_shapes.size(); i++) {
       void* src_ptr = (void*)DMAHelper::base(&ctx->input(i));
       m_freshness_tracker->MarkFresh(src_ptr, ng_exec);
     }

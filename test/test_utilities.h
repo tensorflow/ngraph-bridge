@@ -62,7 +62,7 @@ template <typename T>
 void AssignInputValues(Tensor& A, vector<T> x) {
   auto A_flat = A.flat<T>();
   auto A_flat_data = A_flat.data();
-  assert(A_flat.size() == x.size());
+  assert((unsigned)A_flat.size() == x.size());
   for (int i = 0; i < A_flat.size(); i++) {
     A_flat_data[i] = x[i];
   }

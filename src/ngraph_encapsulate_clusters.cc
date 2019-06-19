@@ -453,7 +453,7 @@ Status EncapsulateClusters(
     for (size_t i = 0; i < inputs.size(); ++i) {
       const Edge* edge = inputs[i];
       if (edge == nullptr) {
-        if (i < node->requested_inputs().size()) {
+        if (i < (unsigned)node->requested_inputs().size()) {
           original_def.add_input(node->requested_inputs()[i]);
         } else {
           original_def.add_input("");

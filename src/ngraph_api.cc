@@ -35,11 +35,11 @@ size_t ngraph_backends_len() { return BackendsLen(); }
 
 bool ngraph_list_backends(char** backends, int backends_len) {
   const auto ngraph_backends = ListBackends();
-  if (backends_len != ngraph_backends.size()) {
+  if ((unsigned)backends_len != ngraph_backends.size()) {
     return false;
   }
 
-  for (size_t idx = 0; idx < backends_len; idx++) {
+  for (size_t idx = 0; idx < (unsigned)backends_len; idx++) {
     backends[idx] = strdup(ngraph_backends[idx].c_str());
   }
   return true;
