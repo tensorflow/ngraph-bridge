@@ -135,7 +135,10 @@ std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
 }
 
 int main(int argc, char** argv) {
-  std::vector<string> image(12, "image_00000.png");
+  // parameters below need to modified as per model
+  string image = "image_00000.png";
+  // Size of the vector images will be batch size
+  std::vector<string> images(12, image);
   string graph =
       "resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_"
       "fullyquantized_02122019.pb";
@@ -149,37 +152,35 @@ int main(int argc, char** argv) {
   bool use_NCHW = true;
   int wanted_channels = 3;
 
-  // TODO[Sindhu]:Commenting for now since we are passing a vector of images,
-  // need to update later.
-  // std::vector<tf::Flag> flag_list = {
-  //     tf::Flag("image", &image, "image to be processed"),
-  //     tf::Flag("graph", &graph, "graph to be executed"),
-  //     tf::Flag("labels", &labels, "name of file containing labels"),
-  //     tf::Flag("input_width", &input_width,
-  //              "resize image to this width in pixels"),
-  //     tf::Flag("input_height", &input_height,
-  //              "resize image to this height in pixels"),
-  //     tf::Flag("input_mean", &input_mean, "scale pixel values to this mean"),
-  //     tf::Flag("input_std", &input_std,
-  //              "scale pixel values to this std deviation"),
-  //     tf::Flag("input_layer", &input_layer, "name of input layer"),
-  //     tf::Flag("output_layer", &output_layer, "name of output layer"),
-  //     tf::Flag("use_NCHW", &use_NCHW, "Input data in NCHW format"),
-  // };
+  std::vector<tf::Flag> flag_list = {
+      tf::Flag("image", &image, "image to be processed"),
+      tf::Flag("graph", &graph, "graph to be executed"),
+      tf::Flag("labels", &labels, "name of file containing labels"),
+      tf::Flag("input_width", &input_width,
+               "resize image to this width in pixels"),
+      tf::Flag("input_height", &input_height,
+               "resize image to this height in pixels"),
+      tf::Flag("input_mean", &input_mean, "scale pixel values to this mean"),
+      tf::Flag("input_std", &input_std,
+               "scale pixel values to this std deviation"),
+      tf::Flag("input_layer", &input_layer, "name of input layer"),
+      tf::Flag("output_layer", &output_layer, "name of output layer"),
+      tf::Flag("use_NCHW", &use_NCHW, "Input data in NCHW format"),
+  };
 
-  // string usage = tensorflow::Flags::Usage(argv[0], flag_list);
-  // const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
-  // if (!parse_result) {
-  //   std::cout << usage;
-  //   return -1;
-  // }
+  string usage = tensorflow::Flags::Usage(argv[0], flag_list);
+  const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
+  if (!parse_result) {
+    std::cout << usage;
+    return -1;
+  }
 
-  // // We need to call this to set up global state for TensorFlow.
-  // tensorflow::port::InitMain(argv[0], &argc, &argv);
-  // if (argc > 1) {
-  //   std::cout << "Error: Unknown argument " << argv[1] << "\n" << usage;
-  //   return -1;
-  // }
+  // We need to call this to set up global state for TensorFlow.
+  tensorflow::port::InitMain(argv[0], &argc, &argv);
+  if (argc > 1) {
+    std::cout << "Error: Unknown argument " << argv[1] << "\n" << usage;
+    return -1;
+  }
 
   const char* backend = "CPU";
   int num_images_for_each_thread = 10;
@@ -222,7 +223,7 @@ int main(int argc, char** argv) {
         // Read image
         std::vector<tf::Tensor> resized_tensors;
         tf::Status read_tensor_status = ReadTensorFromImageFile(
-            image, input_height, input_width, input_mean, input_std, use_NCHW,
+            images, input_height, input_width, input_mean, input_std, use_NCHW,
             wanted_channels, &resized_tensors);
 
         if (!read_tensor_status.ok()) {

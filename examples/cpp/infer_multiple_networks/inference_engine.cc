@@ -137,7 +137,6 @@ void InferenceEngine::ThreadMain() {
           m_input_std, m_use_NCHW, m_wanted_channels, &resized_tensors));
 
       m_image_to_repeat = resized_tensors[0];
-      // assert(resized_tensors.size() == 1);
       tf::ngraph_bridge::BackendManager::SetBackendName(current_backend);
 
       read_event.Stop();

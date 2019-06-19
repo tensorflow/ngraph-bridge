@@ -89,7 +89,10 @@ void PrintVersion() {
 }
 
 int main(int argc, char** argv) {
-  vector<string> image(12, "3.png");
+  // parameters below need to modified as per model
+  string image = "3.png";
+  // Size of the vector images will be batch size
+  vector<string> images(12, image);
   string graph = "mnist_inference_quantized_trained_12212018.pb";
   string labels = "";
   int input_width = 28;
@@ -103,41 +106,39 @@ int main(int argc, char** argv) {
   int wanted_channels = 1;
   int iteration_count = 10;
 
-  // TODO[Sindhu]:Commenting for now since we are passing a vector of images,
-  // need to update later.
-  // std::vector<tf::Flag> flag_list = {
-  //     tf::Flag("image", &image, "image to be processed"),
-  //     tf::Flag("graph", &graph, "graph to be executed"),
-  //     tf::Flag("labels", &labels, "name of file containing labels"),
-  //     tf::Flag("input_width", &input_width,
-  //              "resize image to this width in pixels"),
-  //     tf::Flag("input_height", &input_height,
-  //              "resize image to this height in pixels"),
-  //     tf::Flag("input_mean", &input_mean, "scale pixel values to this mean"),
-  //     tf::Flag("input_std", &input_std,
-  //              "scale pixel values to this std deviation"),
-  //     tf::Flag("input_layer", &input_layer, "name of input layer"),
-  //     tf::Flag("output_layer", &output_layer, "name of output layer"),
-  //     tf::Flag("use_NCHW", &use_NCHW, "Input data in NCHW format"),
-  //     tf::Flag("iteration_count", &iteration_count,
-  //              "How many times to repeat the inference"),
-  //     tf::Flag("preload_images", &preload_images,
-  //              "Repeat the same image for inference"),
-  // };
+  std::vector<tf::Flag> flag_list = {
+      tf::Flag("image", &image, "image to be processed"),
+      tf::Flag("graph", &graph, "graph to be executed"),
+      tf::Flag("labels", &labels, "name of file containing labels"),
+      tf::Flag("input_width", &input_width,
+               "resize image to this width in pixels"),
+      tf::Flag("input_height", &input_height,
+               "resize image to this height in pixels"),
+      tf::Flag("input_mean", &input_mean, "scale pixel values to this mean"),
+      tf::Flag("input_std", &input_std,
+               "scale pixel values to this std deviation"),
+      tf::Flag("input_layer", &input_layer, "name of input layer"),
+      tf::Flag("output_layer", &output_layer, "name of output layer"),
+      tf::Flag("use_NCHW", &use_NCHW, "Input data in NCHW format"),
+      tf::Flag("iteration_count", &iteration_count,
+               "How many times to repeat the inference"),
+      tf::Flag("preload_images", &preload_images,
+               "Repeat the same image for inference"),
+  };
 
-  // string usage = tensorflow::Flags::Usage(argv[0], flag_list);
-  // const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
-  // if (!parse_result) {
-  //   std::cout << usage;
-  //   return -1;
-  // }
+  string usage = tensorflow::Flags::Usage(argv[0], flag_list);
+  const bool parse_result = tensorflow::Flags::Parse(&argc, argv, flag_list);
+  if (!parse_result) {
+    std::cout << usage;
+    return -1;
+  }
 
   // We need to call this to set up global state for TensorFlow.
-  // tensorflow::port::InitMain(argv[0], &argc, &argv);
-  // if (argc > 1) {
-  //   std::cout << "Error: Unknown argument " << argv[1] << "\n" << usage;
-  //   return -1;
-  // }
+  tensorflow::port::InitMain(argv[0], &argc, &argv);
+  if (argc > 1) {
+    std::cout << "Error: Unknown argument " << argv[1] << "\n" << usage;
+    return -1;
+  }
 
   const char* backend = "CPU";
   if (SetNGraphBackend(backend) != tf::Status::OK()) {
@@ -150,15 +151,15 @@ int main(int argc, char** argv) {
 
   infer_multiple_networks::InferenceEngine infer_engine_1("engine_1", "CPU:0");
   TF_CHECK_OK(infer_engine_1.Load(
-      graph, image, input_width, input_height, input_mean, input_std,
+      graph, images, input_width, input_height, input_mean, input_std,
       input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
   infer_multiple_networks::InferenceEngine infer_engine_2("engine_2", "CPU:0");
   TF_CHECK_OK(infer_engine_2.Load(
-      graph, image, input_width, input_height, input_mean, input_std,
+      graph, images, input_width, input_height, input_mean, input_std,
       input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
   infer_multiple_networks::InferenceEngine infer_engine_3("engine_3", "CPU:0");
   TF_CHECK_OK(infer_engine_3.Load(
-      graph, image, input_width, input_height, input_mean, input_std,
+      graph, images, input_width, input_height, input_mean, input_std,
       input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
 
   bool engine_1_running = true;

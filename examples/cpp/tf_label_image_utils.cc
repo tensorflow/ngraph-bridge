@@ -214,7 +214,11 @@ Status ReadTensorFromImageFile(const std::vector<string>& file_names,
     }
     div_tensors.push_back(div);
   }
-  Concat(root.WithOpName(output_name), div_tensors, 0);
+
+  // skipping concat for a single image
+  if (file_names.size() > 1) {
+    Concat(root.WithOpName(output_name), div_tensors, 0);
+  }
 
   // This runs the GraphDef network definition that we've just constructed, and
   // returns the results in the output tensor.
@@ -231,7 +235,9 @@ Status ReadTensorFromImageFile(const std::vector<string>& file_names,
   std::unique_ptr<tensorflow::Session> session(
       tensorflow::NewSession(tensorflow::SessionOptions()));
   TF_RETURN_IF_ERROR(session->Create(graph));
-  TF_RETURN_IF_ERROR(session->Run({inputs}, {output_name}, {}, out_tensors));
+  TF_RETURN_IF_ERROR(
+      session->Run({inputs}, {file_names.size() > 1 ? output_name : "output_0"},
+                   {}, out_tensors));
   tensorflow::ngraph_bridge::config::ngraph_enable();
 
   return Status::OK();
