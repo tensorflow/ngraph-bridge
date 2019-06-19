@@ -508,7 +508,7 @@ def build_in_docker(args):
     vargs = vars(args)
     for arg in vargs:
         if arg != "build_in_docker":
-            cmd.append("--"+arg+"="+vargs[arg])
+            cmd.append("--"+arg+"="+str(vargs[arg]))
     command_executor(cmd)
 
 
@@ -518,7 +518,7 @@ def run_in_docker(args):
     vargs = vars(args)
     for arg in vargs:
         if arg != "run_in_docker":
-            cmd.append("--"+arg+"="+vargs[arg])
+            cmd.append("--"+arg+"="+str(vargs[arg]))
     command_executor(cmd)
 
 
