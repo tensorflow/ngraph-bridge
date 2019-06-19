@@ -26,7 +26,6 @@ RUN ln -f -s /usr/bin/g++-4.8 /usr/bin/g++ || true
 RUN which gcc && gcc --version || true
 RUN which c++ && c++ --version || true
 
-
 RUN updatedb
 RUN pip3 install --upgrade pip setuptools virtualenv==16.1.0
 RUN pip3 install --upgrade pytest
@@ -36,5 +35,7 @@ RUN dpkg -i bazel_${BAZEL_VERSION}-linux-x86_64.deb || true
 
 COPY . .
 
-#RUN build_ngtf.py
+RUN python3 build_ngtf.py --use_prebuilt_tensorflow --debug_build --enable_variables_and_optimizers
+RUN echo Done
+
 CMD ["/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait"]
