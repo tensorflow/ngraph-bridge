@@ -146,7 +146,7 @@ def main():
         default='')
 
     parser.add_argument(
-        '--build_in_docker',
+        '--build_base',
         help="Builds a base ngtf image in docker\n",
         action="store_true")
 
@@ -158,10 +158,11 @@ def main():
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
 
-    if (arguments.build_in_docker):
-        build_in_docker(arguments)
+    if arguments.build_base:
+        build_base(arguments)
+        return
 
-    if (arguments.run_in_docker):
+    if arguments.run_in_docker:
         run_in_docker(arguments)
 
     if (arguments.debug_build):

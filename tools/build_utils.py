@@ -503,22 +503,20 @@ def apply_patch(patch_file):
         printed_lines[0]), "Error applying the patch."
 
 
-def build_in_docker(args):
+def build_base(args):
     cmd = ["docker", "build", "--tag", "ngtf", "."]
-    vargs = vars(args)
-    for arg in vargs:
-        if arg != "build_in_docker":
-            cmd.append("--"+arg+"="+str(vargs[arg]))
     command_executor(cmd)
 
 
 def run_in_docker(args):
     pwd = os.getcwd()
-    cmd = ["docker", "run", "-v", pwd+":/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c", "./build_ngtf.sh"]
+    buildcmd = "./build_ngtf.sh"
+    cmd = ["docker", "run", "-v", pwd+":/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c"]
     vargs = vars(args)
     for arg in vargs:
         if arg != "run_in_docker":
-            cmd.append("--"+arg+"="+str(vargs[arg]))
+            buildcmd += " --"+arg+"="+str(vargs[arg])
+    cmd.append(buildcmd)
     command_executor(cmd)
 
 
