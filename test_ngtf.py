@@ -61,10 +61,10 @@ def main():
 
     if (arguments.run_in_docker):
         cmd = ["/usr/bin/docker", "run", "-v", root_pwd+":/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c", "./test_ngtf.sh"]
-        for arg in args:
+        vargs = vars(args)
+        for arg in vargs:
             if arg != "run_in_docker":
-                cmd.append("--"+arg)
-                cmd.append(args[arg])
+                cmd.append("--"+arg+"="+vargs[arg])
         command_executor(cmd)
 
     # Constants

@@ -49,10 +49,10 @@ def main():
 
     if (arguments.run_in_docker):
         cmd = ["/usr/bin/docker", "run", "-v", root_pwd+":/tf", "-w", "/tf", "tf", "sh", "-c", "./build_tf.py"]
-        for arg in args:
+        vargs = vars(args)
+        for arg in vargs:
             if arg != "run_in_docker":
-                cmd.append("--"+arg)
-                cmd.append(args[arg])
+                cmd.append("--"+arg+"="+vargs[arg])
         command_executor(cmd)
 
     assert not os.path.isdir(
