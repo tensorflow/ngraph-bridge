@@ -164,6 +164,7 @@ def main():
 
     if arguments.run_in_docker:
         run_in_docker(arguments)
+        return
 
     if (arguments.debug_build):
         print("Building in DEBUG mode\n")

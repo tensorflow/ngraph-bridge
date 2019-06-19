@@ -510,7 +510,7 @@ def build_base(args):
 
 def run_in_docker(args):
     pwd = os.getcwd()
-    buildcmd = "./build_ngtf.sh"
+    buildcmd = "./build_ngtf.py"
     cmd = ["docker", "run", "-v", pwd+":/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c"]
     vargs = vars(args)
     for arg in vargs:
