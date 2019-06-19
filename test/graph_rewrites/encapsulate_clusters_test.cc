@@ -18,8 +18,8 @@
 #include "gtest/gtest.h"
 #include "ngraph_cluster_manager.h"
 #include "ngraph_encapsulate_clusters.h"
-#include "version.h"
 #include "tensorflow/core/graph/node_builder.h"
+#include "version.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -115,9 +115,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   free(fdeflib_new);
 }
 
-
-
-
 TEST(EncapsulateClusters, AOT) {
   NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
@@ -163,12 +160,13 @@ TEST(EncapsulateClusters, AOT) {
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
-  std::vector<std::map<std::string, set<vector<int>>>> node_shapes_hints_vect = {
-    {}
-  };
+  std::vector<std::map<std::string, set<vector<int>>>> node_shapes_hints_vect =
+      {{}, {{"node1", {{2, 2}}}, {"node2", {{2, 2}}}}};
+  std::vector<bool> did_aot = {false, true};
   int num_cases = node_shapes_hints_vect.size();
-  for (int i = 0; i < num_cases; i++){
-    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, node_shapes_hints_vect[i]));
+  for (int i = 0; i < num_cases; i++) {
+    ASSERT_OK(
+        EncapsulateClusters(&g, 0, fdeflib_new, node_shapes_hints_vect[i]));
 
     int num_encapsulates = 0;
     int num_tf_nodes = 0;
@@ -185,22 +183,23 @@ TEST(EncapsulateClusters, AOT) {
 
     // TODO: assert that a json is created
     for (auto itr : g.nodes()) {
-      if (itr->type_string() == "NGraphEncapsulate"){
+      if (itr->type_string() == "NGraphEncapsulate") {
         string aot_info;
-        ASSERT_OK(GetNodeAttr(itr->attrs(), "_ngraph_aot", &aot_info));
-        cout << "AOT INFO: " << aot_info << "\n";
+        bool found = GetNodeAttr(itr->attrs(), "_ngraph_aot", &aot_info) ==
+                     tensorflow::Status::OK();
+        ASSERT_TRUE(found == did_aot[i]);
       }
     }
   }
 
   free(fdeflib_new);
-  
 }
 
 // TODO: more test cases:
 // what of scalar inputs. placeholder shape is {}?
 // add a test with 2 encs. should fail for now
-// Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2] with [2,4]?
+// Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2] with
+// [2,4]?
 //
 }
 }

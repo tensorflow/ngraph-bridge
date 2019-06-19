@@ -509,20 +509,13 @@ Status EncapsulateClusters(
   }
 
   // Pass 8:
-  // TODO remove this
-  /*
-  std::map<std::string, set<vector<int>>> node_shapes_hints;
-  node_shapes_hints["inp1"] = {{2}};
-  node_shapes_hints["inp2"] = {{2, 3}};
-  node_shapes_hints["inp3"] = {{2, 3}, {4, 3}};
-  node_shapes_hints["inp4"] = {{5}};  // incorrect
-  */
-
   bool aot_requested = true;
   // By default for both grappler or non-grappler passes, try to AOT
   if (aot_requested) {
     string input_node_type =
         ngraph_tf_is_grappler_enabled() ? "Placeholder" : "_Arg";
+    string shape_field_key =
+        ngraph_tf_is_grappler_enabled() ? "_output_shapes" : "shape";
     // In case of grappler, we have Placeholder, which might contain shape info,
     // so it is possible we can aot without any provided shapes
     // in normal pass its args. unless shapes are provided there is no chance of
@@ -576,7 +569,11 @@ Status EncapsulateClusters(
         NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
                        << node->type_string()
                        << "): " << node->attrs().SummarizeNode();
-        auto shape_field = node->attrs().Find("shape");
+        auto shape_field = node->attrs().Find(shape_field_key);
+        // TODO: maybe should be _output_shapes for _Arg.
+        // TODO: node->attrs().Find("shape") for _Arg. Thought that _Arg does
+        // not have an attribute called "shape" but now will need to revisit
+        // that assumption
         set<vector<int>> final_shapes;
         auto shape_hints_for_node = get_shapes(node);
         if (shape_field != nullptr) {
@@ -634,7 +631,6 @@ Status EncapsulateClusters(
         } else {
           // TODO: necessarily break? Maybe some things can be AOT, others maybe
           // not
-          can_aot = false;
           break;
         }
       }
@@ -651,11 +647,9 @@ Status EncapsulateClusters(
 
     if (can_aot) {
       // TODO: call TranslateGraph
-      cout << "node_shapes_for_compilation.size(): " << node_shapes_for_compilation.size() << "\n";
-      cout << "inputs_found.size(): " << inputs_found.size() << "\n";
-      for (auto itr : node_shapes_for_compilation){
+      for (auto itr : node_shapes_for_compilation) {
         cout << itr.first << ": ";
-        for (itr1 : itr.second){ // iterate over the set
+        for (itr1 : itr.second) {  // iterate over the set
           for (itr2 : itr1) {
             cout << itr2 << ",";
           }
@@ -670,7 +664,7 @@ Status EncapsulateClusters(
     }
   }
 
-  // Pass 8 (optional, only run if environment variable
+  // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and
   // make sure we can construct a graph from it.
   if (std::getenv("NGRAPH_TF_DUMP_CLUSTERS")) {
