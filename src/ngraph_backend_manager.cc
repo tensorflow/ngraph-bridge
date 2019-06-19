@@ -120,6 +120,9 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
   if (status != Status::OK()) {
     return false;
   }
+  // The call to create backend increases the ref count
+  // so releasing the backend here
+  BackendManager::ReleaseBackend(backend_name);
   return true;
 };
 
