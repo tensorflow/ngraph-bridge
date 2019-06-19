@@ -196,7 +196,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // Precedence Order: RewriteConfig > Env Variable > BackendManager
   string backend_name;
   if (!config_backend_name.empty()) {
-    if (!BackendManager::IsSupportedBackend(backend_name)) {
+    if (!BackendManager::IsSupportedBackend(config_backend_name)) {
       return errors::Internal("NGRAPH_TF_BACKEND: ", config_backend_name,
                               " is not supported");
     }

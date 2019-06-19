@@ -41,6 +41,11 @@ void DeactivateNGraph() {
   setenv("NGRAPH_TF_DISABLE", "1", 1);
 }
 
+// Backend set
+bool IsNGraphTFBackendSet() {}
+
+string GetNGraphTFBackend() {}
+
 // Input x will be used as an anchor
 // Actual value assigned equals to x * i
 void AssignInputValuesAnchor(Tensor& A, float x) {

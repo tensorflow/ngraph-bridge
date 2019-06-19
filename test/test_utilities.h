@@ -36,6 +36,10 @@ namespace testing {
 void ActivateNGraph();
 void DeactivateNGraph();
 
+// Backend set
+bool IsNGraphTFBackendSet();
+string GetNGraphTFBackend();
+
 // Print Functions
 void PrintTensor(const Tensor& T1);
 void PrintTensorAllValues(
