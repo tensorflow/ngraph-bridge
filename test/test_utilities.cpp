@@ -49,13 +49,15 @@ bool IsNGraphTFBackendSet() {
 
 string GetNGraphTFBackend() {
   const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+  NGRAPH_VLOG(5) << "Got NG TF BACKEND " << std::string(ng_backend_env_value);
   return std::string(ng_backend_env_value);
 }
 
 void UnsetNGraphTFBackend() { unsetenv("NGRAPH_TF_BACKEND"); }
 
 void SetNGraphTFBackend(const string& backend_name) {
-  setenv("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", backend_name.c_str(), 1);
+  setenv("NGRAPH_TF_BACKEND", backend_name.c_str(), 1);
+  NGRAPH_VLOG(5) << "Set NG TF BACKEND " << backend_name;
 }
 
 // Input x will be used as an anchor

@@ -50,6 +50,13 @@ putting all the nodes in the same cluster.
 
 // Test SetBackendAPI
 TEST(BackendManager, SetBackend) {
+  bool is_backend_env_set = IsNGraphTFBackendSet();
+  string backend_env;
+  if (is_backend_env_set) {
+    backend_env = GetNGraphTFBackend();
+    UnsetNGraphTFBackend();
+  }
+
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
   string cpu_backend;
   ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&cpu_backend));
@@ -63,8 +70,60 @@ TEST(BackendManager, SetBackend) {
   ASSERT_EQ(current_backend, "INTERPRETER");
 
   ASSERT_NOT_OK(BackendManager::SetBackendName("temp"));
-  // Setting again as clean up
+
+  // Clean Up
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
+
+  // reset
+  if (is_backend_env_set) {
+    SetNGraphTFBackend(backend_env);
+  }
+}
+
+// Test GetCurrentlySetBackendNameAPI
+// Test with env variable set
+TEST(BackendManager, GetCurrentlySetBackendName) {
+  bool is_backend_env_set = IsNGraphTFBackendSet();
+  string backend_env;
+  if (is_backend_env_set) {
+    backend_env = GetNGraphTFBackend();
+    UnsetNGraphTFBackend();
+  }
+
+  string cpu_backend = "CPU";
+  string intp_backend = "INTERPRETER";
+
+  // set backend to interpreter and env variable to CPU
+  // expected CPU
+  ASSERT_OK(BackendManager::SetBackendName(intp_backend));
+  SetNGraphTFBackend(cpu_backend);
+  string backend;
+  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+  ASSERT_EQ(cpu_backend, backend);
+
+  // unset env variable
+  // expected interpreter
+  UnsetNGraphTFBackend();
+  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+  ASSERT_EQ(intp_backend, backend);
+
+  // set env variable to DUMMY
+  // expected ERROR
+  SetNGraphTFBackend("DUMMY");
+  ASSERT_NOT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+
+  // set env variable to ""
+  // expected ERROR
+  SetNGraphTFBackend("");
+  ASSERT_NOT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+
+  // Clean up
+  UnsetNGraphTFBackend();
+  ASSERT_OK(BackendManager::SetBackendName("CPU"));
+  // reset
+  if (is_backend_env_set) {
+    SetNGraphTFBackend(backend_env);
+  }
 }
 
 // Test GetSupportedBackendNames
@@ -89,8 +148,8 @@ TEST(BackendManager, GetSupportedBackendNames) {
 }
 
 // Test Backend Assignment
+// The backend passed to MarkForClustering is attached to the nodes
 TEST(BackendManager, BackendAssignment) {
-  ASSERT_OK(BackendManager::SetBackendName("CPU"));
   Scope root = Scope::NewRootScope();
   auto A = ops::Const(root.WithOpName("A"), {1.0f, 1.0f});
   auto B = ops::Const(root.WithOpName("B"), {1.0f, 1.0f});
@@ -101,10 +160,8 @@ TEST(BackendManager, BackendAssignment) {
 
   std::set<string> skip_these_nodes = {};
 
-  // Set backend 1
-  string backend1 = "INTERPRETER";
-  ASSERT_OK(BackendManager::SetBackendName(backend1));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, backend1));
+  string dummy_backend = "DUMMY";
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, dummy_backend));
   std::map<std::string, Node*> node_map;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
@@ -117,25 +174,12 @@ TEST(BackendManager, BackendAssignment) {
 
   ASSERT_EQ(bA, bB);
   ASSERT_EQ(bA, bR);
-  ASSERT_EQ(bA, backend1);
-
-  // Set backend 2
-  string backend2 = "CPU";
-  ASSERT_OK(BackendManager::SetBackendName(backend2));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, backend2));
-
-  ASSERT_OK(GetNodeBackend(node_map["A"], &bA));
-  ASSERT_OK(GetNodeBackend(node_map["B"], &bB));
-  ASSERT_OK(GetNodeBackend(node_map["R"], &bR));
-
-  ASSERT_EQ(bA, bB);
-  ASSERT_EQ(bA, bR);
-  ASSERT_EQ(bA, backend2);
+  ASSERT_EQ(bA, dummy_backend);
 }
 
 // Test Backend Clustering
+// Nodes with different backends are not clustered together
 TEST(BackendManager, BackendClustering) {
-  ASSERT_OK(BackendManager::SetBackendName("CPU"));
   Scope root = Scope::NewRootScope();
   auto A = ops::Const(root.WithOpName("A"), {1.0f, 1.0f});
   auto B = ops::Const(root.WithOpName("B"), {1.0f, 1.0f});
@@ -146,16 +190,16 @@ TEST(BackendManager, BackendClustering) {
 
   std::set<string> skip_these_nodes = {};
 
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
-
-  string backend1 = "INTERPRETER";
+  string dummy_backendA = "DUMMYA";
+  string dummy_backendB = "DUMMYB";
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, dummy_backendA));
 
   std::map<std::string, Node*> node_map;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
   }
 
-  SetNodeBackend(node_map["B"], backend1);
+  SetNodeBackend(node_map["B"], dummy_backendB);
   ASSERT_OK(AssignClusters(&graph));
 
   int A_cluster, B_cluster, R_cluster;
