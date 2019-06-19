@@ -503,6 +503,14 @@ def apply_patch(patch_file):
         printed_lines[0]), "Error applying the patch."
 
 
+def base_build():
+    command_executor(["docker", "build", "--tag", "ngtf", "."])
+
+
+def run_in_docker():
+    command_executor(["docker", "run", "-v", "$(pwd):/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c", "./build_ngtf.sh"])
+
+
 def get_gcc_version():
     cmd = subprocess.Popen(
         'gcc -dumpversion',

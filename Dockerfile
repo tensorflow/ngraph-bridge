@@ -33,9 +33,9 @@ ARG BAZEL_VERSION=0.24.1
 RUN wget --no-verbose -c https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel_${BAZEL_VERSION}-linux-x86_64.deb
 RUN dpkg -i bazel_${BAZEL_VERSION}-linux-x86_64.deb || true
 
-COPY . .
+#COPY . .
 
-RUN python3 build_ngtf.py --use_prebuilt_tensorflow --debug_build --enable_variables_and_optimizers
-RUN echo Done
+#RUN python3 build_ngtf.py --use_prebuilt_tensorflow --debug_build --enable_variables_and_optimizers
+#RUN echo Done
 
-CMD ["/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait"]
+#CMD ["/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait"]

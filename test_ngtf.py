@@ -24,7 +24,7 @@ import glob
 import platform
 from distutils.sysconfig import get_python_lib
 
-#from tools.build_utils import load_venv, command_executor
+from tools.build_utils import command_executor
 from tools.test_utils import *
 from tools.build_utils import download_repo
 
@@ -46,6 +46,11 @@ def main():
         help="Builds and tests the examples.\n",
         action="store_true")
 
+    parser.add_argument(
+        '--run_in_docker',
+        help="Runs the command in docker.\n",
+        action="store_false")
+
     arguments = parser.parse_args()
 
     #-------------------------------
@@ -53,6 +58,9 @@ def main():
     #-------------------------------
 
     root_pwd = os.getcwd()
+
+    if (arguments.run_in_docker):
+        command_executor(["docker", "run", "-v", root_pwd+":/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c", "./test_ngtf.sh"])
 
     # Constants
     build_dir = 'build_cmake'
