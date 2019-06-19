@@ -61,8 +61,9 @@ endif()
 
 target_link_libraries(
     infer_multiple_networks -Wl,--whole-archive
-    ngraph_bridge_static -Wl,--no-whole-archive
-    ngraph_lib
+    ngraph_bridge_static 
+    ngraph_lib_static -Wl,--no-whole-archive
+    dl
     pthread
     ${TensorFlow_FRAMEWORK_LIBRARY}
     tensorflow_cc_lib

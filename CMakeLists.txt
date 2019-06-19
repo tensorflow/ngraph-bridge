@@ -130,7 +130,7 @@ endif()
 if(APPLE)
     set(LIBNGRAPH_SO "libngraph.dylib")
 else()
-    set(LIBNGRAPH_SO "libngraph.so")
+    set(LIBNGRAPH_A "libngraph.a")
 endif(APPLE)
 
 # Build options
@@ -263,19 +263,19 @@ set(NGRAPH_INSTALL_DIR ${NGRAPH_ARTIFACTS_DIR})
 
 
 if(OS_VERSION STREQUAL "\"centos\"")
-	set(NGRAPH_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/${LIBNGRAPH_SO})
+    set(NGRAPH_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib64/${LIBNGRAPH_A})
 else()
-	set(NGRAPH_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/${LIBNGRAPH_SO})
+    set(NGRAPH_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib/${LIBNGRAPH_A})
 endif()
 
-add_library(ngraph_lib SHARED IMPORTED)
+add_library(ngraph_lib_static STATIC IMPORTED)
 set_target_properties(
-    ngraph_lib
+    ngraph_lib_static
     PROPERTIES IMPORTED_LOCATION
-    ${NGRAPH_IMPORTED_LOCATION}
+    ${NGRAPH_IMPORTED_LOCATION_STATIC}
 )
 
-add_dependencies(ngraph_lib ext_ngraph)
+add_dependencies(ngraph_lib_static ext_ngraph)
 
 # Add the directories to be built
 add_subdirectory(third-party)

@@ -280,6 +280,7 @@ def main():
         "-DNGRAPH_DEBUG_ENABLE=NO",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
+        "-DNGRAPH_STATIC_LIB_ENABLE=TRUE",
     ]
 
     if arguments.debug_build:
