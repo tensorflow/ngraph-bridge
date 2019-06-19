@@ -129,6 +129,7 @@ Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
   // NGRAPH_TF_BACKEND is not set
   if (ng_backend_env_value == nullptr) {
     *backend_name = BackendManager::ng_backend_name_;
+    NGRAPH_VLOG(1) << "Using the currently set backend " << (*backend_name);
     return Status::OK();
   }
 
@@ -138,7 +139,11 @@ Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
     return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
                             " is not supported");
   }
+
   *backend_name = backend_env;
+  NGRAPH_VLOG(1) << "Overriding backend using the enviornment variable "
+                    "to "
+                 << (*backend_name);
   return Status::OK();
 };
 
