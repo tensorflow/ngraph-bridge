@@ -513,14 +513,16 @@ def start_container(workingdir, args):
     u = os.getuid()
     g = os.getgid()
     start = ["docker", "run", "--name", "ngtf", "-u", str(u)+":"+str(g), "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-w", workingdir, "-d", "-t", "ngtf"]
-    command_executor(start)
+    command_executor(start, stdout=open(os.devnull,"w"))
+    print('container started')
 
 
 def stop_container(args):
     stop = ["docker", "stop", "ngtf"]
-    command_executor(stop)
+    command_executor(stop, stdout=open(os.devnull,"w"))
     rm = ["docker", "rm", "ngtf"]
-    command_executor(rm)
+    command_executor(rm, stdout=open(os.devnull,"w"))
+    print('container stopped')
 
 
 def run_in_docker(buildcmd, args):
