@@ -31,3 +31,5 @@ RUN pip3 install --upgrade pytest
 ARG BAZEL_VERSION=0.24.1
 RUN wget --no-verbose -c https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel_${BAZEL_VERSION}-linux-x86_64.deb
 RUN dpkg -i bazel_${BAZEL_VERSION}-linux-x86_64.deb || true
+
+ENTRYPOINT ["/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait"]
