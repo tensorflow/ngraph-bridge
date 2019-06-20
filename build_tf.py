@@ -70,7 +70,7 @@ def main():
         return
 
     if arguments.run_in_docker:
-        run_in_docker("/ngtf//build_tf.py", arguments)
+        run_in_docker("/ngtf/build_tf.py", arguments)
         return
 
     if arguments.run_in_docker == False:
