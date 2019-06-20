@@ -523,8 +523,8 @@ def stop_container(args):
 
 def run_in_docker(buildcmd, args):
     pwd = os.getcwd()
-    u = command_executor('/usr/bin/id -u')
-    g = command_executor('/usr/bin/id -g')
+    u = os.getuid()
+    g = os.getgid()
     cmd = ["docker", "exec", "-u", str(u)+":"+str(g), "-it", "ngtf", "sh", "-c"]
     vargs = vars(args)
     for arg in vargs:
