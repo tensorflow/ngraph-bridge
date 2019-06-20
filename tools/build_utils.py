@@ -541,7 +541,7 @@ def run_in_docker(buildcmd, workingdir, args):
     cmd = ["docker", "exec", "-e" "IN_DOCKER=true", "-e", "USER="+os.getlogin(), "-e", "TEST_TMPDIR="+workingdir, "-u", str(u)+":"+str(g), "-it", "ngtf"]
     vargs = vars(args)
     for arg in vargs:
-        if arg not in ["run_in_docker", "start_container", "build_base", "stop_container"]:
+        if arg not in ["run_in_docker", "build_base", "stop_container"]:
             buildcmd += " --"+arg+"='"+str(vargs[arg])+"'"
     cmd.append(buildcmd)
     command_executor(cmd)
