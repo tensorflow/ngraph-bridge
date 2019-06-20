@@ -46,10 +46,6 @@ def main():
         help="Builds a base container image\n",
         action="store_true")
     parser.add_argument(
-        '--build_base',
-        help="Builds a base ngtf image in docker\n",
-        action="store_true")
-    parser.add_argument(
         '--start_container',
         help="Starts the docker container\n",
         action="store_true")
