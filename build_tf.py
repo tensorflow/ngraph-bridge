@@ -69,16 +69,21 @@ def main():
         stop_container(arguments)
         return
 
+    if os.getenv("IN_DOCKER") == None:
+        assert not os.path.isdir(
+            arguments.output_dir), arguments.output_dir + " already exists"
+        os.mkdir(arguments.output_dir)
+        os.chdir(arguments.output_dir)
+
+        # Download TensorFlow
+        download_repo("tensorflow", "https://github.com/tensorflow/tensorflow.git",
+                      arguments.tf_version)
+
     if arguments.run_in_docker:
         run_in_docker("/ngtf/build_tf.py", arguments)
         return
 
     if os.getenv("IN_DOCKER") == None:
-        assert not os.path.isdir(
-            arguments.output_dir), arguments.output_dir + " already exists"
-        os.mkdir(arguments.output_dir)
-    os.chdir(arguments.output_dir)
-    if arguments.run_in_docker == False:
         assert not is_venv(
         ), "Please deactivate virtual environment before running this script"
 
@@ -87,10 +92,6 @@ def main():
     install_virtual_env(venv_dir)
     load_venv(venv_dir)
     setup_venv(venv_dir)
-
-    # Download TensorFlow
-    download_repo("tensorflow", "https://github.com/tensorflow/tensorflow.git",
-                  arguments.tf_version)
 
     # Build TensorFlow
     build_tensorflow(venv_dir, "tensorflow", 'artifacts', arguments.target_arch,
