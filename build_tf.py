@@ -73,7 +73,7 @@ def main():
         run_in_docker("/ngtf/build_tf.py", arguments)
         return
 
-    if arguments.run_in_docker == False:
+    if os.getenv("IN_DOCKER") == None:
         assert not os.path.isdir(
             arguments.output_dir), arguments.output_dir + " already exists"
         os.mkdir(arguments.output_dir)
