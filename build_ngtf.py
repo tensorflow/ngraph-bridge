@@ -459,14 +459,36 @@ def main():
 
     # Copy the TensorFlow Python code tree to artifacts directory so that they can
     # be used for running TensorFlow Python unit tests
-    base_dir = build_dir_abs if (arguments.use_tensorflow_from_location == ''
-                                ) else arguments.use_tensorflow_from_location
+    # 
+    # There are four possibilities:
+    # 1. use_tensorflow_from_location is not defined
+    #   2. In that case use_prebuilt_tensorflow is defined 
+    #       In this case we copy the entire tensorflow source to the artifacts
+    #       So all we have to do is to create a symbolic link 
+    #       3. OR use_prebuilt_tensorflow is not defined
+    # 4. use_tensorflow_from_location is defined 
+    if arguments.use_tensorflow_from_location == '':
+        # Case 1
+        if arguments.use_prebuilt_tensorflow:
+            # Case 2
+            base_dir = None
+        else:
+            # Case 3
+            base_dir = build_dir_abs
+    else:
+        # Case 4
+        base_dir = arguments.use_tensorflow_from_location
 
-    command_executor([
-        'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
-        os.path.join(artifacts_location, "tensorflow")
-    ],
-                     verbose=True)
+    if base_dir != None:
+        command_executor([
+            'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
+            os.path.join(artifacts_location, "tensorflow")
+        ], verbose=True)
+    else:
+        # Create a sym-link to 
+        link_src = os.path.join(artifacts_location, "tensorflow/tensorflow/python")
+        link_dst = os.path.join(artifacts_location, "tensorflow/python")
+        command_executor(['ln', '-s', link_src, link_dst], verbose=True)
 
     # Run a quick test
     install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
