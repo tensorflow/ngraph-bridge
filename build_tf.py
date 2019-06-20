@@ -47,20 +47,23 @@ def main():
         action="store_true")
     arguments = parser.parse_args()
 
-    if (arguments.run_in_docker):
-        cmd = ["/usr/bin/docker", "run", "-v", root_pwd+":/tf", "-w", "/tf", "tf", "sh", "-c", "./build_tf.py"]
-        vargs = vars(args)
-        for arg in vargs:
-            if arg != "run_in_docker":
-                cmd.append("--"+arg+"="+str(vargs[arg]))
-        command_executor(cmd)
-
     assert not os.path.isdir(
         arguments.output_dir), arguments.output_dir + " already exists"
     os.mkdir(arguments.output_dir)
     os.chdir(arguments.output_dir)
     assert not is_venv(
     ), "Please deactivate virtual environment before running this script"
+
+    if (arguments.run_in_docker):
+        root_pwd = os.getcwd()
+        cmd = ["/usr/bin/docker", "run", "-v", root_pwd+":/tf", "-w", "/tf", "tf", "sh", "-c", "./build_tf.py"]
+        vargs = vars(arguments)
+        for arg in vargs:
+            if arg == "output_dir":
+                cmd.append("--"+arg+"="+"/tf")
+            if arg != "run_in_docker":
+                cmd.append("--"+arg+"="+str(vargs[arg]))
+        command_executor(cmd)
 
     venv_dir = './venv3/'
 
