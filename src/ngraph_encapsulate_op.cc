@@ -110,7 +110,7 @@ class NGraphEncapsulateOp : public OpKernel {
       const auto get_func_sig = [&flib](const string& op, const OpDef** sig) {
         return flib.LookUpOpDef(op, sig);
       };
-      FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody);
+      OP_REQUIRES_OK(ctx, FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody));
       CopyGraph(*fnbody->graph, &m_graph);
     } else {
       GraphConstructorOptions opts;

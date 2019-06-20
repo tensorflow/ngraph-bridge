@@ -4578,7 +4578,7 @@ static Status TranslateTopKV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   shared_ptr<ngraph::Node> ng_input;
-  ValidateInputCount(op, 2);
+  TF_RETURN_IF_ERROR(ValidateInputCount(op, 2));
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
 
   size_t k_axis = ng_input->get_shape().size() - 1;
@@ -4592,7 +4592,7 @@ static Status TranslateTopKV2Op(
 
   // sorted = false is not supported right now, it falls back to TF if set to
   // false.
-  GetNodeAttr(op->attrs(), "sorted", &sorted);
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "sorted", &sorted));
 
   // index element type - currently only int32 or int64 are supported by
   // ngraph
