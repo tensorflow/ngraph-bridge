@@ -40,22 +40,13 @@ namespace testing {
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 /*
-These tests test the Backend Handling by the bridge
-Since the backend is set globaly the setting of NGRAPH_TF_BACKEND might cause
-some tests to fail
-For e.g. "BackendCLustering" test would fail If the NGRAPH_TF_BACKEND is set to
-INTERPRETER the nodes going to CPU also go to interpreter
-putting all the nodes in the same cluster.
+These tests test the Backend Handling by the bridge.
 */
 
 // Test SetBackendAPI
 TEST(BackendManager, SetBackend) {
-  bool is_backend_env_set = IsNGraphTFBackendSet();
-  string backend_env;
-  if (is_backend_env_set) {
-    backend_env = GetNGraphTFBackend();
-    UnsetNGraphTFBackend();
-  }
+  // If NGRAPH_TF_BACKEND is set, unset it
+  const unordered_map<string, string>& env_map = StoreEnv();
 
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
   string cpu_backend;
@@ -73,22 +64,15 @@ TEST(BackendManager, SetBackend) {
 
   // Clean Up
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
-
-  // reset
-  if (is_backend_env_set) {
-    SetNGraphTFBackend(backend_env);
-  }
+  // If NGRAPH_TF_BACKEND was set, set it back
+  RestoreEnv(env_map);
 }
 
 // Test GetCurrentlySetBackendNameAPI
 // Test with env variable set
 TEST(BackendManager, GetCurrentlySetBackendName) {
-  bool is_backend_env_set = IsNGraphTFBackendSet();
-  string backend_env;
-  if (is_backend_env_set) {
-    backend_env = GetNGraphTFBackend();
-    UnsetNGraphTFBackend();
-  }
+  // If NGRAPH_TF_BACKEND is set, unset it
+  const unordered_map<string, string>& env_map = StoreEnv();
 
   string cpu_backend = "CPU";
   string intp_backend = "INTERPRETER";
@@ -120,10 +104,9 @@ TEST(BackendManager, GetCurrentlySetBackendName) {
   // Clean up
   UnsetNGraphTFBackend();
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
-  // reset
-  if (is_backend_env_set) {
-    SetNGraphTFBackend(backend_env);
-  }
+  // restore
+  // If NGRAPH_TF_BACKEND was set, set it back
+  RestoreEnv(env_map);
 }
 
 // Test GetSupportedBackendNames

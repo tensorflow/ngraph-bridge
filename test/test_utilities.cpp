@@ -41,6 +41,48 @@ void DeactivateNGraph() {
   setenv("NGRAPH_TF_DISABLE", "1", 1);
 }
 
+// EnvVariable Utilities
+bool IsEnvVariableSet(const string& env_var_name) {
+  const char* ng_backend_env_value = std::getenv(env_var_name.c_str());
+  return (ng_backend_env_value != nullptr);
+}
+
+string GetEnvVariable(const string& env_var_name) {
+  const char* ng_backend_env_value = std::getenv(env_var_name.c_str());
+  NGRAPH_VLOG(5) << "Got Env Variable " << env_var_name << " : "
+                 << std::string(ng_backend_env_value);
+  return std::string(ng_backend_env_value);
+}
+
+void UnsetEnvVariable(const string& env_var_name) {
+  NGRAPH_VLOG(5) << "Unsetting " << env_var_name;
+  unsetenv(env_var_name.c_str());
+}
+
+void SetEnvVariable(const string& env_var_name, const string& env_var_val) {
+  setenv(env_var_name.c_str(), env_var_val.c_str(), 1);
+  NGRAPH_VLOG(5) << "Setting Env Variable " << env_var_name << " : "
+                 << env_var_val;
+}
+
+// Store/Restore Env Variables
+unordered_map<string, string> StoreEnv() {
+  unordered_map<string, string> env_map;
+  if (IsNGraphTFBackendSet()) {
+    env_map["NGRAPH_TF_BACKEND"] = GetNGraphTFBackend();
+    NGRAPH_VLOG(5) << "Adding to map NG TF BACKEND "
+                   << env_map["NGRAPH_TF_BACKEND"];
+    UnsetNGraphTFBackend();
+  }
+  return env_map;
+}
+
+void RestoreEnv(const unordered_map<string, string>& map) {
+  for (auto itr : map) {
+    setenv(itr.first.c_str(), itr.second.c_str(), 1);
+  }
+}
+
 // NGRAPH_TF_BACKEND related
 bool IsNGraphTFBackendSet() {
   const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
@@ -53,7 +95,10 @@ string GetNGraphTFBackend() {
   return std::string(ng_backend_env_value);
 }
 
-void UnsetNGraphTFBackend() { unsetenv("NGRAPH_TF_BACKEND"); }
+void UnsetNGraphTFBackend() {
+  NGRAPH_VLOG(5) << "Unsetting NG TF BACKEND ";
+  unsetenv("NGRAPH_TF_BACKEND");
+}
 
 void SetNGraphTFBackend(const string& backend_name) {
   setenv("NGRAPH_TF_BACKEND", backend_name.c_str(), 1);
