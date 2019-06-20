@@ -44,7 +44,7 @@ def is_venv():
             (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
 
 
-def command_executor(cmd, verbose=False, msg=None, stdout=None):
+def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
     '''
     Executes the command.
     Example: 
@@ -56,7 +56,7 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None):
     if verbose:
         tag = 'Running COMMAND: ' if msg is None else msg
         print(tag + cmd)
-    if (call(shlex.split(cmd), stdout=stdout) != 0):
+    if (call(shlex.split(cmd), stdout=stdout, stderr=stderr) != 0):
         raise Exception("Error running command: " + cmd)
 
 
@@ -513,16 +513,22 @@ def start_container(workingdir, args):
     u = os.getuid()
     g = os.getgid()
     start = ["docker", "run", "--name", "ngtf", "-u", str(u)+":"+str(g), "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-w", workingdir, "-d", "-t", "ngtf"]
-    command_executor(start, stdout=open(os.devnull,"w"))
-    print('container started')
+    try:
+        command_executor(start, stdout=open(os.devnull,"w"), stderr=open(os.devnull, "w"))
+        print('container started')
+    except Exception as exc:
+        print(f"caught exception: {str(exc)}")
 
 
 def stop_container(args):
-    stop = ["docker", "stop", "ngtf"]
-    command_executor(stop, stdout=open(os.devnull,"w"))
-    rm = ["docker", "rm", "ngtf"]
-    command_executor(rm, stdout=open(os.devnull,"w"))
-    print('container stopped')
+    try:
+        stop = ["docker", "stop", "ngtf"]
+        command_executor(stop, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+        rm = ["docker", "rm", "ngtf"]
+        command_executor(rm, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+        print('container stopped')
+    except Exception as exc:
+        print(f"caught exception: {str(exc)}")
 
 
 def run_in_docker(buildcmd, args):
