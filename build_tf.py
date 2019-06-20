@@ -28,14 +28,12 @@ def main():
         '--tf_version',
         type=str,
         help="TensorFlow tag/branch/SHA\n",
-        action="store",
-        required=True)
+        action="store")
     parser.add_argument(
         '--output_dir',
         type=str,
         help="Location where TensorFlow build will happen\n",
-        action="store",
-        required=True)
+        action="store")
     parser.add_argument(
         '--target_arch',
         help=
