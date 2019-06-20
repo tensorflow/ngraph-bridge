@@ -35,11 +35,11 @@
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/util/device_name_utils.h"
 
+#include "../logging/ngraph_log.h"
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_cluster_manager.h"
 #include "ngraph_encapsulate_clusters.h"
-#include "../logging/ngraph_log.h"
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_utils.h"
@@ -406,8 +406,9 @@ Status EncapsulateClusters(
       int cluster_output;
       std::tie(cluster_idx, cluster_output) = it->second;
 
-      Status status = graph->UpdateEdge(cluster_node_map[cluster_idx], cluster_output,
-                        edge->dst(), edge->dst_input());
+      Status status =
+          graph->UpdateEdge(cluster_node_map[cluster_idx], cluster_output,
+                            edge->dst(), edge->dst_input());
       TF_RETURN_IF_ERROR(status);
     }
   }
