@@ -510,7 +510,9 @@ def build_base(args):
 
 def start_container(workingdir, args):
     pwd = os.getcwd()
-    start = ["docker", "run", "--name", "ngtf", "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-w", workingdir, "-d", "-t", "ngtf"]
+    u = os.getuid()
+    g = os.getgid()
+    start = ["docker", "run", "--name", "ngtf", "-u", str(u)+":"+str(g), "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-w", workingdir, "-d", "-t", "ngtf"]
     command_executor(start)
 
 
