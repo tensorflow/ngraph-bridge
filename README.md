@@ -132,7 +132,7 @@ Python environment prior to building nGraph.
 
 ## Build in docker
 
-Building within docker provides an consistent environment regardless of what os your building on, including python3, tensorflow and ngraph-bridge. Using docker as the build environment where your current ngraph-bridge clone is mounted within docker simplifies building and removes the possibility of build errors occuring due to os or tooling differences.
+Building within docker provides an consistent environment regardless of what os your on, where the environment includes python3.5, tensorflow and ngraph-bridge. Using docker as the build environment mounts your current ngraph-bridge directory in docker and calls `docker run build_ngtf.py ...`. This provides a consistent build environment while allow the build artifacts to be output to your ngraph-bridge directory tree.
 
 This option uses the tensorflow/tensorflow:devel-py3 as the parent image and builds a base ngtf image making it available locally as ngtf. 
 
