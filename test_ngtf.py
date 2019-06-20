@@ -24,7 +24,7 @@ import glob
 import platform
 from distutils.sysconfig import get_python_lib
 
-from tools.build_utils import command_executor
+from tools.build_utils import *
 from tools.test_utils import *
 from tools.build_utils import download_repo
 
@@ -60,12 +60,9 @@ def main():
     root_pwd = os.getcwd()
 
     if (arguments.run_in_docker):
-        cmd = ["/usr/bin/docker", "run", "-v", root_pwd+":/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c", "./test_ngtf.sh"]
-        vargs = vars(args)
-        for arg in vargs:
-            if arg != "run_in_docker":
-                cmd.append("--"+arg+"="+str(vargs[arg]))
-        command_executor(cmd)
+        start_container("/ngtf")
+        run_in_docker("/ngtf/test_ngtf.py", "/ngtf", arguments)
+        return
 
     # Constants
     build_dir = 'build_cmake'
