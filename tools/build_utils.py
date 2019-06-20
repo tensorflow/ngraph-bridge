@@ -544,7 +544,7 @@ def run_in_docker(buildcmd, workingdir, args):
         if arg not in ["run_in_docker", "build_base", "stop_container"]:
             if arg == "use_tensorflow_from_location":
                 buildcmd += " --"+arg+"=/"+str(vargs[arg])
-            elif vargs[arg] not in ["False", "None"]:
+            elif vargs[arg] not in [False, None]:
                 buildcmd += " --"+arg+"="+str(vargs[arg])
     cmd.append(buildcmd)
     command_executor(cmd)
