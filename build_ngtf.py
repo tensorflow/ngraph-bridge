@@ -459,14 +459,14 @@ def main():
 
     # Copy the TensorFlow Python code tree to artifacts directory so that they can
     # be used for running TensorFlow Python unit tests
-    # 
+    #
     # There are four possibilities:
     # 1. use_tensorflow_from_location is not defined
-    #   2. In that case use_prebuilt_tensorflow is defined 
+    #   2. In that case use_prebuilt_tensorflow is defined
     #       In this case we copy the entire tensorflow source to the artifacts
-    #       So all we have to do is to create a symbolic link 
+    #       So all we have to do is to create a symbolic link
     #       3. OR use_prebuilt_tensorflow is not defined
-    # 4. use_tensorflow_from_location is defined 
+    # 4. use_tensorflow_from_location is defined
     if arguments.use_tensorflow_from_location == '':
         # Case 1
         if arguments.use_prebuilt_tensorflow:
@@ -483,10 +483,12 @@ def main():
         command_executor([
             'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
             os.path.join(artifacts_location, "tensorflow")
-        ], verbose=True)
+        ],
+                         verbose=True)
     else:
-        # Create a sym-link to 
-        link_src = os.path.join(artifacts_location, "tensorflow/tensorflow/python")
+        # Create a sym-link to
+        link_src = os.path.join(artifacts_location,
+                                "tensorflow/tensorflow/python")
         link_dst = os.path.join(artifacts_location, "tensorflow/python")
         command_executor(['ln', '-s', link_src, link_dst], verbose=True)
 
