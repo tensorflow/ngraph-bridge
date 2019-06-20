@@ -510,10 +510,6 @@ def build_base(args):
 
 def start_container(args):
     pwd = os.getcwd()
-    stop = ["docker", "stop", "ngtf"]
-    command_executor(stop)
-    rm = ["docker", "rm", "ngtf"]
-    command_executor(rm)
     start = ["docker", "run", "--name", "ngtf", "-v", pwd+":/ngtf", "-w", "/ngtf", "-d", "-t", "ngtf"]
     command_executor(start)
 
