@@ -172,6 +172,14 @@ def main():
         build_base(arguments)
         return
 
+    if arguments.start_container:
+        start_container(arguments)
+        return
+
+    if arguments.stop_container:
+        stop_container(arguments)
+        return
+
     if arguments.run_in_docker:
         run_in_docker(arguments)
         return
