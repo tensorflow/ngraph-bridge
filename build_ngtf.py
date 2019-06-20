@@ -283,7 +283,7 @@ def main():
         tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
         assert os.path.isfile(tf_whl), "Did not find " + tf_whl
         # Install the found TF whl file
-        command_executor(["pip", "install", "-U", tf_whl])
+        command_executor(["pip", "install", "--cache-dir="+os.getcwd(), "-U", tf_whl])
         cxx_abi = get_tf_cxxabi()
         cwd = os.getcwd()
         os.chdir(tf_whl_loc)
@@ -315,7 +315,7 @@ def main():
 
             # Next install the tensorflow python packge
             command_executor(
-                ["pip", "install", "-U", "tensorflow==" + tf_version])
+                ["pip", "install", "--cache-dir="+os.getcwd(), "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
 
             # Copy the libtensorflow_framework.so to the artifacts so that
@@ -400,7 +400,7 @@ def main():
         ngraph_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=OFF"])
 
     if arguments.build_plaidml_backend:
-        command_executor(["pip", "install", "-U", "plaidML"])
+        command_executor(["pip", "install", "--cache-dir="+os.getcwd(), "-U", "plaidML"])
 
     flag_string_map = {True: 'YES', False: 'NO'}
     ngraph_cmake_flags.extend([

@@ -170,7 +170,7 @@ def setup_venv(venv_dir):
     command_executor(package_list)
 
     # Print the current packages
-    command_executor(["pip", "list"])
+    command_executor(["pip", "--cache-dir="+os.getcwd(), "list"])
 
 
 def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
