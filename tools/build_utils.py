@@ -522,6 +522,14 @@ def start_container(workingdir):
         print("caught exception: "+msg)
 
 
+def rm_container():
+    try:
+        rm = ["docker", "rm", "ngtf"]
+        command_executor(rm, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+    except Exception as exc:
+        msg = str(exc)
+        print("caught exception: "+msg)
+
 def stop_container():
     try:
         stop = ["docker", "stop", "ngtf"]

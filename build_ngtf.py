@@ -172,6 +172,7 @@ def main():
         return
 
     if arguments.run_in_docker:
+        rm_container()
         start_container("/ngtf")
         run_in_docker("/ngtf/build_ngtf.py", "/ngtf", arguments)
         return
@@ -292,7 +293,7 @@ def main():
         if os.path.isdir(tf_in_artifacts):
             print("TensorFlow already exists in artifacts. Using that")
         else:
-            os.mkdir(tf_in_artifacts)
+            os.makedirs(tf_in_artifacts)
             # This function copies the .so files from
             # use_tensorflow_from_location/artifacts/tensorflow to
             # artifacts/tensorflow
