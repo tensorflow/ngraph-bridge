@@ -25,7 +25,7 @@
 #include <ostream>
 #include <vector>
 
-#include "../logging/ngraph_log.h"
+#include "ngraph_log.h"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/runtime/backend_manager.hpp"
 #include "tensorflow/core/lib/core/errors.h"

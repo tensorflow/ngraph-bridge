@@ -21,7 +21,7 @@
 
 #include "tensorflow/core/lib/core/errors.h"
 
-#include "../logging/ngraph_log.h"
+#include "ngraph_log.h"
 using namespace std;
 
 namespace tensorflow {

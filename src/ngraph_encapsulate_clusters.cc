@@ -35,7 +35,7 @@
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/util/device_name_utils.h"
 
-#include "../logging/ngraph_log.h"
+#include "ngraph_log.h"
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_cluster_manager.h"

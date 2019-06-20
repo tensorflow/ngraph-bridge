@@ -21,7 +21,7 @@
 
 #include "ngraph/ngraph.hpp"
 
-#include "../logging/ngraph_log.h"
+#include "ngraph_log.h"
 
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/graph/graph.h"

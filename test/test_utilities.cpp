@@ -19,7 +19,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
-#include "../logging/ngraph_log.h"
+#include "ngraph_log.h"
 
 using namespace std;
 
