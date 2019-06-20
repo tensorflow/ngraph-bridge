@@ -508,10 +508,26 @@ def build_base(args):
     command_executor(cmd)
 
 
+def start_container(args):
+    stop = ["docker", "stop", "ngtf"]
+    command_executor(stop)
+    rm = ["docker", "rm", "ngtf"]
+    command_executor(rm)
+    start = ["docker", "run", "--name", "ngtf", "-v", pwd+":/ngtf", "-w", "/ngtf", "-d", "-t", "ngtf"]
+    command_executor(start)
+
+
+def stop_container(args):
+    stop = ["docker", "stop", "ngtf"]
+    command_executor(stop)
+    rm = ["docker", "rm", "ngtf"]
+    command_executor(rm)
+
+
 def run_in_docker(args):
     pwd = os.getcwd()
     buildcmd = "./build_ngtf.py"
-    cmd = ["docker", "run", "--name", "ngtf", "-v", pwd+":/ngtf", "-w", "/ngtf", "ngtf", "sh", "-c"]
+    cmd = ["docker", "exec", "-it", "ngtf", "sh", "-c"]
     vargs = vars(args)
     for arg in vargs:
         if arg != "run_in_docker":

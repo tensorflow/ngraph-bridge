@@ -151,6 +151,16 @@ def main():
         action="store_true")
 
     parser.add_argument(
+        '--start_container',
+        help="Starts the docker container\n",
+        action="store_true")
+
+    parser.add_argument(
+        '--stop_container',
+        help="Stops the docker container\n",
+        action="store_true")
+
+    parser.add_argument(
         '--run_in_docker',
         help="Runs build_ngtf.py in a Dockerfile\n",
         action="store_true")
