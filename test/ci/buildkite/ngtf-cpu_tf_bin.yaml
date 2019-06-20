@@ -59,17 +59,6 @@
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
-      pip install psutil && pip install -U \
-        /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-1.14.0rc0-cp36-cp36m-linux_x86_64.whl
-      pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
-      
-    label: ":gear: Install"
-    timeout_in_minutes: 30
-    agents:
-    - "queue=cpu_tf_bin"
-  - wait
-  - command: |
-      source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install pytest
       PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_python
