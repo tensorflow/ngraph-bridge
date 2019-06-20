@@ -146,6 +146,7 @@ def setup_venv(venv_dir):
     # Install the pip packages
     package_list = [
         "pip",
+        "--cache-dir="+os.getcwd(),
         "install",
         "-U",
         "pip",
@@ -517,7 +518,8 @@ def start_container(workingdir):
         command_executor(start, stdout=open(os.devnull,"w"), stderr=open(os.devnull, "w"))
         print('container started')
     except Exception as exc:
-        print(f"caught exception: {str(exc)}")
+        msg = str(exc)
+        print("caught exception: "+msg)
 
 
 def stop_container():
@@ -528,14 +530,15 @@ def stop_container():
         command_executor(rm, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
         print('container stopped')
     except Exception as exc:
-        print(f"caught exception: {str(exc)}")
+        msg = str(exc)
+        print("caught exception: "+msg)
 
 
-def run_in_docker(buildcmd, args):
+def run_in_docker(buildcmd, workingdir, args):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
-    cmd = ["docker", "exec", "-e" "IN_DOCKER=true", "-u", str(u)+":"+str(g), "-it", "ngtf"]
+    cmd = ["docker", "exec", "-e" "IN_DOCKER=true", "-e", "USER="+os.getlogin(), "-e", "TEST_TMPDIR="+workingdir, "-u", str(u)+":"+str(g), "-it", "ngtf"]
     vargs = vars(args)
     for arg in vargs:
         if arg not in ["run_in_docker", "start_container", "build_base", "stop_container"]:

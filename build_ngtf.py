@@ -181,7 +181,7 @@ def main():
         return
 
     if arguments.run_in_docker:
-        run_in_docker("./build_ngtf.py", arguments)
+        run_in_docker("./build_ngtf.py", "/ngtf", arguments)
         return
 
     if (arguments.debug_build):

@@ -62,18 +62,19 @@ def main():
         return
 
     if os.getenv("IN_DOCKER") == None:
-        assert not os.path.isdir(
-            arguments.output_dir), arguments.output_dir + " already exists"
-        os.mkdir(arguments.output_dir)
-        os.chdir(arguments.output_dir)
+        if not os.path.isdir(arguments.output_dir):
+            pwd = os.getcwd()
+            os.mkdir(arguments.output_dir)
+            os.chdir(arguments.output_dir)
 
-        # Download TensorFlow
-        download_repo("tensorflow", "https://github.com/tensorflow/tensorflow.git",
-                      arguments.tf_version)
+            # Download TensorFlow
+            download_repo("tensorflow", "https://github.com/tensorflow/tensorflow.git",
+                          arguments.tf_version)
+            os.chdir(pwd)
 
     if arguments.run_in_docker:
         start_container("/tf")
-        run_in_docker("/ngtf/build_tf.py", arguments)
+        run_in_docker("/ngtf/build_tf.py", "/tf", arguments)
         return
 
     if os.getenv("IN_DOCKER") == None:
