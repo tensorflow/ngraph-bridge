@@ -546,6 +546,10 @@ def run_in_docker(buildcmd, workingdir, args):
                 buildcmd += " --"+arg+"=/"+str(vargs[arg])
             elif vargs[arg] not in [False, None]:
                 buildcmd += " --"+arg+"="+str(vargs[arg])
+            elif vargs[arg] == True:
+                buildcmd += " --" + arg
+            else:
+                buildcmd += " --"+arg+"="+str(vargs[arg])
     cmd.append(buildcmd)
     command_executor(cmd)
 
