@@ -70,28 +70,17 @@ def main():
         return
 
     if arguments.run_in_docker:
-        run_in_docker("./build_tf.py", arguments)
+        run_in_docker("/ngtf//build_tf.py", arguments)
         return
 
-    assert not os.path.isdir(
-        arguments.output_dir), arguments.output_dir + " already exists"
-    os.mkdir(arguments.output_dir)
+    if arguments.run_in_docker == False:
+        assert not os.path.isdir(
+            arguments.output_dir), arguments.output_dir + " already exists"
+        os.mkdir(arguments.output_dir)
     os.chdir(arguments.output_dir)
     if arguments.run_in_docker == False:
         assert not is_venv(
         ), "Please deactivate virtual environment before running this script"
-
-    if (arguments.run_in_docker):
-        root_pwd = os.getcwd()
-        cmd = ["/usr/bin/docker", "run", "-v", root_pwd+":/tf", "-w", "/tf", "tf", "sh", "-c", "./build_tf.py"]
-        vargs = vars(arguments)
-        for arg in vargs:
-            if arg == "output_dir":
-                cmd.append("--"+arg+"="+"/tf")
-            if arg != "run_in_docker":
-                cmd.append("--"+arg+"="+str(vargs[arg]))
-        command_executor(cmd)
-        return
 
     venv_dir = './venv3/'
 
