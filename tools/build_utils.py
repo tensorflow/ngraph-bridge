@@ -535,11 +535,11 @@ def run_in_docker(buildcmd, args):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
-    cmd = ["docker", "exec", "-e" "IN_DOCKER=true", "-u", str(u)+":"+str(g), "-it", "ngtf", "sh", "-c"]
+    cmd = ["docker", "exec", "-e" "IN_DOCKER=true", "-u", str(u)+":"+str(g), "-it", "ngtf"]
     vargs = vars(args)
     for arg in vargs:
         if arg != "run_in_docker":
-            buildcmd += " --"+arg+"="+str(vargs[arg])
+            buildcmd += " --"+arg+"='"+str(vargs[arg])+"'"
     cmd.append(buildcmd)
     command_executor(cmd)
 
