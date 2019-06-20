@@ -44,10 +44,6 @@ def main():
         help="Builds a base container image\n",
         action="store_true")
     parser.add_argument(
-        '--start_container',
-        help="Starts the docker container\n",
-        action="store_true")
-    parser.add_argument(
         '--stop_container',
         help="Stops the docker container\n",
         action="store_true")
@@ -61,12 +57,8 @@ def main():
         build_base(arguments)
         return
 
-    if arguments.start_container:
-        start_container("/tf", arguments)
-        return
-
     if arguments.stop_container:
-        stop_container(arguments)
+        stop_container()
         return
 
     if os.getenv("IN_DOCKER") == None:
@@ -80,6 +72,7 @@ def main():
                       arguments.tf_version)
 
     if arguments.run_in_docker:
+        start_container("/tf")
         run_in_docker("/ngtf/build_tf.py", arguments)
         return
 

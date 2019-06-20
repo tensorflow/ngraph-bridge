@@ -508,7 +508,7 @@ def build_base(args):
     command_executor(cmd)
 
 
-def start_container(workingdir, args):
+def start_container(workingdir):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
@@ -520,7 +520,7 @@ def start_container(workingdir, args):
         print(f"caught exception: {str(exc)}")
 
 
-def stop_container(args):
+def stop_container():
     try:
         stop = ["docker", "stop", "ngtf"]
         command_executor(stop, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
