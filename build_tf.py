@@ -42,17 +42,50 @@ def main():
         "Architecture flag to use (e.g., haswell, core-avx2 etc. Default \'native\'\n",
         default="native")
     parser.add_argument(
+        '--build_base',
+        help="Builds a base container image\n",
+        action="store_true")
+    parser.add_argument(
+        '--build_base',
+        help="Builds a base ngtf image in docker\n",
+        action="store_true")
+    parser.add_argument(
+        '--start_container',
+        help="Starts the docker container\n",
+        action="store_true")
+    parser.add_argument(
+        '--stop_container',
+        help="Stops the docker container\n",
+        action="store_true")
+    parser.add_argument(
         '--run_in_docker',
         help="run in docker\n",
         action="store_true")
     arguments = parser.parse_args()
 
+    if arguments.build_base:
+        build_base(arguments)
+        return
+
+    if arguments.start_container:
+        start_container("/tf", arguments)
+        return
+
+    if arguments.stop_container:
+        stop_container(arguments)
+        return
+
+    if arguments.run_in_docker:
+        run_in_docker("./build_tf.py", arguments)
+        return
+
     assert not os.path.isdir(
         arguments.output_dir), arguments.output_dir + " already exists"
     os.mkdir(arguments.output_dir)
     os.chdir(arguments.output_dir)
-    assert not is_venv(
-    ), "Please deactivate virtual environment before running this script"
+    if arguments.run_in_docker == False:
+        assert not is_venv(
+        ), "Please deactivate virtual environment before running this script"
 
     if (arguments.run_in_docker):
         root_pwd = os.getcwd()
@@ -64,6 +97,7 @@ def main():
             if arg != "run_in_docker":
                 cmd.append("--"+arg+"="+str(vargs[arg]))
         command_executor(cmd)
+        return
 
     venv_dir = './venv3/'
 

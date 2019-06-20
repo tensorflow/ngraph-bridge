@@ -508,9 +508,9 @@ def build_base(args):
     command_executor(cmd)
 
 
-def start_container(args):
+def start_container(workingdir, args):
     pwd = os.getcwd()
-    start = ["docker", "run", "--name", "ngtf", "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-w", "/ngtf", "-d", "-t", "ngtf"]
+    start = ["docker", "run", "--name", "ngtf", "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-w", workingdir, "-d", "-t", "ngtf"]
     command_executor(start)
 
 
@@ -521,9 +521,8 @@ def stop_container(args):
     command_executor(rm)
 
 
-def run_in_docker(args):
+def run_in_docker(buildcmd, args):
     pwd = os.getcwd()
-    buildcmd = "./build_ngtf.py"
     cmd = ["docker", "exec", "-it", "ngtf", "sh", "-c"]
     vargs = vars(args)
     for arg in vargs:

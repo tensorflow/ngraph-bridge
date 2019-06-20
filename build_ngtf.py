@@ -173,7 +173,7 @@ def main():
         return
 
     if arguments.start_container:
-        start_container(arguments)
+        start_container("/ngtf", arguments)
         return
 
     if arguments.stop_container:
@@ -181,7 +181,7 @@ def main():
         return
 
     if arguments.run_in_docker:
-        run_in_docker(arguments)
+        run_in_docker("./build_ngtf.py", arguments)
         return
 
     if (arguments.debug_build):
