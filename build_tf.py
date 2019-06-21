@@ -75,8 +75,8 @@ def main():
     if arguments.run_in_docker:
         if check_container() == True:
             stop_container()
-        start_container("/tf")
-        run_in_docker("/ngtf/build_tf.py", "/tf", arguments)
+        start_container("/tf", ".cache/tf")
+        run_in_docker("/ngtf/build_tf.py", ".cache/tf", arguments)
         return
 
     if os.getenv("IN_DOCKER") == None:

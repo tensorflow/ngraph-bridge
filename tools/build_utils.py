@@ -538,11 +538,14 @@ def build_base(args):
     command_executor(cmd)
 
 
-def start_container(workingdir):
+def start_container(workingdir, cachedir):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
-    start = ["docker", "run", "--name", "ngtf", "-u", str(u)+":"+str(g), "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-w", workingdir, "-d", "-t", "ngtf"]
+    abscachedir = os.path.abspath(cachedir)
+    if os.path.isdir(abscachedir) == False:
+        os.makedirs(abscachedir)
+    start = ["docker", "run", "--name", "ngtf", "-u", str(u)+":"+str(g), "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-v", pwd+"/"+cachedir+":/bazel/"+cachedir, "-w", workingdir, "-d", "-t", "ngtf"]
     try:
         command_executor(start, stdout=open(os.devnull,"w"), stderr=open(os.devnull, "w"))
     except Exception as exc:
@@ -568,11 +571,12 @@ def stop_container():
         print("caught exception: "+msg)
 
 
-def run_in_docker(buildcmd, workingdir, args):
+def run_in_docker(buildcmd, cachedir, args):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
-    cmd = ["docker", "exec", "-e" "IN_DOCKER=true", "-e", "USER="+os.getlogin(), "-e", "TEST_TMPDIR="+workingdir, "-u", str(u)+":"+str(g), "-it", "ngtf"]
+    abscachedir = "/bazel/"+cachedir
+    cmd = ["docker", "exec", "-e" "IN_DOCKER=true", "-e", "USER="+os.getlogin(), "-e", "TEST_TMPDIR="+abscachedir, "-u", str(u)+":"+str(g), "-it", "ngtf"]
     vargs = vars(args)
     for arg in vargs:
         if arg not in ["run_in_docker", "build_base", "stop_container"]:
