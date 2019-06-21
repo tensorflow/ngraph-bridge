@@ -92,6 +92,10 @@ def main():
     # Build TensorFlow
     build_tensorflow(venv_dir, "tensorflow", 'artifacts', arguments.target_arch,
                      False)
+    # idempotent
+    if os.path.isdir('./artifacts/tensorflow/python'):
+        shutil.rmtree('./artifacts/tensorflow/python', ignore_errors=True, onerror=None)
+
     shutil.copytree('./tensorflow/tensorflow/python',
                     './artifacts/tensorflow/python')
     print('To build ngraph-bridge using this prebuilt tensorflow, use:')
