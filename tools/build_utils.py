@@ -544,13 +544,14 @@ def start_container(workingdir):
     u = os.getuid()
     g = os.getgid()
     cachedir = ".cache/bazel"
+    parentdir = os.path.dirname(cachedir)
     abscachedir = os.path.abspath(cachedir)
     if os.path.isdir(abscachedir) == False:
         os.makedirs(abscachedir)
     start = [
         "docker", "run", "--name", "ngtf", "-u",
         str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
-        "-v", pwd + "/" + cachedir + ":/root/" + cachedir, "-w", workingdir,
+        "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-w", workingdir,
         "-d", "-t", "ngtf"
     ]
     try:
@@ -588,7 +589,8 @@ def run_in_docker(buildcmd, args):
     g = os.getgid()
     cmd = [
         "docker", "exec", "-e"
-        "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-u",
+        "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-e",
+        "TEST_TMPDIR=/bazel/.cache/bazel", "-u",
         str(u) + ":" + str(g), "-it", "ngtf"
     ]
     vargs = vars(args)
