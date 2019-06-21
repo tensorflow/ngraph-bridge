@@ -22,7 +22,6 @@ import sys
 import shutil
 import glob
 import platform
-from distutils.sysconfig import get_python_lib
 
 from tools.build_utils import *
 from tools.test_utils import *
