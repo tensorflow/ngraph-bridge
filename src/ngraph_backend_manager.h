@@ -65,6 +65,8 @@ class BackendManager {
 
   static void ReleaseBackend(const string& backend_name);
 
+  static void SetConfig(const string& backend_name, std::unordered_map<std::string, std::string> additional_attributes);
+
   // Returns a backend pointer of the type specified by the backend name
   static ng::runtime::Backend* GetBackend(const string& backend_name);
 
