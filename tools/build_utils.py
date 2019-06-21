@@ -40,8 +40,8 @@ def get_tf_cxxabi():
 
 def is_venv():
     # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
-    return (hasattr(sys, 'real_prefix')
-            or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
+    return (hasattr(sys, 'real_prefix') or
+            (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
 
 
 def command_executor(cmd, verbose=False, msg=None, stdout=None):
@@ -140,8 +140,7 @@ def setup_venv(venv_dir):
         call([
             "curl",
             "https://bootstrap.pypa.io/get-pip.py",
-        ],
-             stdout=get_pip)
+        ], stdout=get_pip)
         call(["python3", "./get-pip.py"])
 
     # Install the pip packages
@@ -321,7 +320,7 @@ def copy_tf_cc_lib_to_artifacts(artifacts_dir, tf_prebuilt):
 def locate_tf_whl(tf_whl_loc):
     possible_whl = [i for i in os.listdir(tf_whl_loc) if '.whl' in i]
     assert len(possible_whl
-               ) == 1, "Expected 1 TF whl file, but found " + len(possible_whl)
+              ) == 1, "Expected 1 TF whl file, but found " + len(possible_whl)
     tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
     assert os.path.isfile(tf_whl), "Did not find " + tf_whl
     return tf_whl
@@ -345,8 +344,7 @@ def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
         tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.1"
         tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
     else:
-        tf_cc_lib_file = os.path.abspath(tf_prebuilt +
-                                         '/libtensorflow_cc.so.1')
+        tf_cc_lib_file = os.path.abspath(tf_prebuilt + '/libtensorflow_cc.so.1')
         tf_cc_fmwk_file = os.path.abspath(tf_prebuilt + '/' + tf_fmwk_lib_name)
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)

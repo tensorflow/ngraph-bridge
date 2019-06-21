@@ -166,8 +166,8 @@ def main():
     build_dir = 'build_cmake'
 
     assert not (
-        arguments.use_tensorflow_from_location != ''
-        and arguments.use_prebuilt_tensorflow
+        arguments.use_tensorflow_from_location != '' and
+        arguments.use_prebuilt_tensorflow
     ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\" "
     "cannot be used together."
 
@@ -243,8 +243,7 @@ def main():
         # use_tensorflow_from_location is correct. The location
         # should have: ./artifacts/tensorflow, which is expected
         # to contain one TF whl file, framework.so and cc.so
-        print("Using TensorFlow from " +
-              arguments.use_tensorflow_from_location)
+        print("Using TensorFlow from " + arguments.use_tensorflow_from_location)
         # The tf whl should be in use_tensorflow_from_location/artifacts/tensorflow
         tf_whl_loc = os.path.abspath(arguments.use_tensorflow_from_location +
                                      '/artifacts/tensorflow')
@@ -332,9 +331,10 @@ def main():
             # will be 0
             cxx_abi = install_tensorflow(venv_dir, artifacts_location)
 
-    assert (not arguments.use_prebuilt_tensorflow) \
-        or (arguments.use_prebuilt_tensorflow and cxx_abi==0), \
-        "Expected cxx_abi to be 0 when using 'use_prebuilt_tensorflow'"
+    if cxx_abi == 0:
+        if not arguments.use_prebuilt_tensorflow:
+            raise Exception(
+                "Expected cxx_abi to be 0 when using 'use_prebuilt_tensorflow'")
 
     # Download nGraph if required.
     ngraph_src_dir = './ngraph'
@@ -379,9 +379,8 @@ def main():
         "-DNGRAPH_TOOLS_ENABLE=" +
         flag_string_map[platform.system() != 'Darwin']
     ])
-    ngraph_cmake_flags.extend([
-        "-DNGRAPH_GPU_ENABLE=" + flag_string_map[arguments.build_gpu_backend]
-    ])
+    ngraph_cmake_flags.extend(
+        ["-DNGRAPH_GPU_ENABLE=" + flag_string_map[arguments.build_gpu_backend]])
     ngraph_cmake_flags.extend([
         "-DNGRAPH_PLAIDML_ENABLE=" +
         flag_string_map[arguments.build_plaidml_backend]
@@ -433,8 +432,8 @@ def main():
                                                 "tensorflow")
     ])
 
-    if ((arguments.distributed_build == "OMPI")
-            or (arguments.distributed_build == "MLSL")):
+    if ((arguments.distributed_build == "OMPI") or
+        (arguments.distributed_build == "MLSL")):
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=TRUE"])
     else:
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=FALSE"])
@@ -503,8 +502,7 @@ def main():
         import ngraph_bridge
         if not ngraph_bridge.is_grappler_enabled():
             raise Exception(
-                "Build failed: 'use_grappler_optimizer' specified but not used"
-            )
+                "Build failed: 'use_grappler_optimizer' specified but not used")
 
     print('\033[1;32mBuild successful\033[0m')
     os.chdir(pwd)
