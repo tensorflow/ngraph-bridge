@@ -73,6 +73,8 @@ def main():
             os.chdir(pwd)
 
     if arguments.run_in_docker:
+        if check_container() == True:
+            stop_container()
         start_container("/tf")
         run_in_docker("/ngtf/build_tf.py", "/tf", arguments)
         return

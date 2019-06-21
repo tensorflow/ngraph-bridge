@@ -21,7 +21,7 @@ from argparse import RawTextHelpFormatter
 import errno
 import os
 import subprocess
-from subprocess import check_output, call
+from subprocess import check_output, call, Popen, PIPE
 import sys
 import shutil
 import glob
@@ -126,6 +126,19 @@ def load_venv(venv_dir):
         dict(__file__=activate_this_file), dict(__file__=activate_this_file))
 
     return venv_dir
+
+
+def get_exitcode_stdout_stderr(cmd):
+    """
+    Execute the external command and get its exitcode, stdout and stderr.
+    """
+    args = shlex.split(cmd)
+
+    proc = Popen(args, stdout=PIPE, stderr=PIPE)
+    out, err = proc.communicate()
+    exitcode = proc.returncode
+    #
+    return exitcode, out, err
 
 
 def setup_venv(venv_dir):
@@ -516,19 +529,17 @@ def start_container(workingdir):
     start = ["docker", "run", "--name", "ngtf", "-u", str(u)+":"+str(g), "-v", pwd+":/ngtf", "-v", pwd+"/tf:/tf", "-w", workingdir, "-d", "-t", "ngtf"]
     try:
         command_executor(start, stdout=open(os.devnull,"w"), stderr=open(os.devnull, "w"))
-        print('container started')
     except Exception as exc:
         msg = str(exc)
         print("caught exception: "+msg)
 
 
-def rm_container():
-    try:
-        rm = ["docker", "rm", "ngtf"]
-        command_executor(rm, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
-    except Exception as exc:
-        msg = str(exc)
-        print("caught exception: "+msg)
+def check_container():
+     exitcode, out, err = get_exitcode_stdout_stderr("docker inspect -f '{{.State.Running}}' ngtf")
+     if exitcode == 0:
+         return True
+     return False
+
 
 def stop_container():
     try:
@@ -536,7 +547,6 @@ def stop_container():
         command_executor(stop, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
         rm = ["docker", "rm", "ngtf"]
         command_executor(rm, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
-        print('container stopped')
     except Exception as exc:
         msg = str(exc)
         print("caught exception: "+msg)
