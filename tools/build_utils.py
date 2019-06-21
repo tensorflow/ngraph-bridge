@@ -543,13 +543,14 @@ def start_container(workingdir, cachedir):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
+    parentdir = os.path.dirname(cachedir)
     abscachedir = os.path.abspath(cachedir)
     if os.path.isdir(abscachedir) == False:
         os.makedirs(abscachedir)
     start = [
         "docker", "run", "--name", "ngtf", "-u",
         str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
-        "-v", pwd + "/" + cachedir + ":/bazel/" + cachedir, "-w", workingdir,
+        "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-w", workingdir,
         "-d", "-t", "ngtf"
     ]
     try:
