@@ -191,7 +191,7 @@ Status ReadTensorFromImageFile(const std::vector<string>& file_names,
     auto float_caster = Cast(root.WithOpName("float_caster"), image_reader,
                              tensorflow::DT_FLOAT);
     // The convention for image ops in TensorFlow is that all images are
-    // eƒixpected
+    // expected
     // to be in batches, so that they're four-dimensional arrays with indices of
     // [batch, height, width, channel]. Because we only have a single image, we
     // have to add a batch dimension of 1 to the start with ExpandDims().

@@ -45,11 +45,11 @@ class InferenceEngine {
   InferenceEngine(const string& name, const string& backend);
   ~InferenceEngine();
 
-  Status Load(const string& network, std::vector<string>& image_files,
-              int input_width, int input_height, float input_mean,
-              float input_std, const string& input_layer,
-              const string& output_layer, bool use_NCHW, bool preload_images,
-              int input_channels);
+  Status Load(const string& network, const std::vector<string>& image_files,
+              const int& input_width, const int& input_height,
+              const float& input_mean, const float& input_std,
+              const string& input_layer, const string& output_layer,
+              bool use_NCHW, bool preload_images, const int& input_channels);
 
   Status Start();
   Status Start(const std::function<void(int)>& step_callback);
