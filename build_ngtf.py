@@ -292,7 +292,7 @@ def main():
         # Install the found TF whl file
         cmdpart = ["pip", "install"]
         if os.getenv("IN_DOCKER") != None:
-            cmdpart.append("--cache-dir="+os.getcwd())
+            cmdpart.append("--cache-dir=" + os.getcwd())
         cmd = cmdpart + ["-U", tf_whl]
         command_executor(cmd)
         cxx_abi = get_tf_cxxabi()
@@ -327,7 +327,7 @@ def main():
             # Next install the tensorflow python packge
             cmdpart = ["pip", "install"]
             if os.getenv("IN_DOCKER") != None:
-                cmdpart.append("--cache-dir="+os.getcwd())
+                cmdpart.append("--cache-dir=" + os.getcwd())
             cmd = cmdpart + ["-U", "tensorflow==" + tf_version]
             command_executor(cmd)
             cxx_abi = get_tf_cxxabi()
@@ -420,7 +420,7 @@ def main():
     if arguments.build_plaidml_backend:
         cmdpart = ["pip", "install"]
         if os.getenv("IN_DOCKER") != None:
-            cmdpart.append("--cache-dir="+os.getcwd())
+            cmdpart.append("--cache-dir=" + os.getcwd())
         cmd = cmdpart + ["-U", "plaidML"]
         command_executor(cmd)
 
