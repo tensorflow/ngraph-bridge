@@ -137,15 +137,15 @@ Building within docker provides an consistent environment regardless of what os 
         ./build_tf.py --build_base
         ./build_ngtf.py --build_base
 
-This option will build a base container image. This base container image is used as the build environment. It call be called from either scripts
+The `--build_base` option above will build a base container image. This base container image is used as the build environment. It call be called from either scripts
 
 	./build_tf.py --run_in_docker --tf_version v1.14.0-rc0 --output_dir tf
 
-This option will checkout tensorflow under ./tf, mount ./tf to /tf and build tensorflow in the docker container
+The `--run_in_docker` option above will checkout tensorflow under ./tf, mount ./tf to /tf and build tensorflow in the docker container
 
 	./build_ngtf.py --run_in_docker --use_tensorflow_from_location tf --enable_variables_and_optimizers
 
-This option will mount ./tf to /tf and build ngtf in the docker container passing in the flags --enable_variables_and_optimizers
+The `--run_in_docker` option above will mount ./tf to /tf, . to /ngtf and build ngtf in the docker container passing in the remaining flags --enable_variables_and_optimizers
 
 Note that the above scripts can be run on mac-os or linux and they build the same artifacts under ngraph-bridge.
 
