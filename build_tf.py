@@ -98,9 +98,13 @@ def main():
 
     shutil.copytree('./tensorflow/tensorflow/python',
                     './artifacts/tensorflow/python')
+
+    output_dir = arguments.output_dir
+    if os.getenv("IN_DOCKER") == None:
+        output_dir = os.path.abspath(output_dir)
+
     print('To build ngraph-bridge using this prebuilt tensorflow, use:')
-    print('./build_ngtf.py --use_tensorflow_from_location ' +
-          os.path.abspath(arguments.output_dir))
+    print('./build_ngtf.py --use_tensorflow_from_location ' + output_dir)
 
 
 if __name__ == '__main__':
