@@ -49,7 +49,7 @@ class InferenceEngine {
               int input_width, int input_height, float input_mean,
               float input_std, const string& input_layer,
               const string& output_layer, bool use_NCHW, bool preload_images,
-              int wanted_channels);
+              int input_channels);
 
   Status Start();
   Status Start(const std::function<void(int)>& step_callback);
@@ -75,7 +75,7 @@ class InferenceEngine {
   string m_output_layer;
   bool m_use_NCHW;
   bool m_preload_images;
-  int m_wanted_channels;
+  int m_input_channels;
   Tensor m_image_to_repeat;
 };
 

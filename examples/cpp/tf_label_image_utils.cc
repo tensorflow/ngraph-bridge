@@ -147,7 +147,7 @@ static Status ReadEntireFile(tensorflow::Env* env, const string& filename,
 Status ReadTensorFromImageFile(const std::vector<string>& file_names,
                                const int input_height, const int input_width,
                                const float input_mean, const float input_std,
-                               bool use_NCHW, const int wanted_channels,
+                               bool use_NCHW, const int input_channels,
                                std::vector<Tensor>* out_tensors) {
   auto root = tensorflow::Scope::NewRootScope();
   using namespace ::tensorflow::ops;  // NOLINT(build/namespaces)
@@ -174,7 +174,7 @@ Status ReadTensorFromImageFile(const std::vector<string>& file_names,
     tensorflow::Output image_reader;
     if (tensorflow::str_util::EndsWith(file_names[i], ".png")) {
       image_reader = DecodePng(root.WithOpName("png_reader"), file_reader,
-                               DecodePng::Channels(wanted_channels));
+                               DecodePng::Channels(input_channels));
     } else if (tensorflow::str_util::EndsWith(file_names[i], ".gif")) {
       // gif decoder returns 4-D tensor, remove the first dim
       image_reader =
@@ -185,7 +185,7 @@ Status ReadTensorFromImageFile(const std::vector<string>& file_names,
     } else {
       // Assume if it's neither a PNG nor a GIF then it must be a JPEG.
       image_reader = DecodeJpeg(root.WithOpName("jpeg_reader"), file_reader,
-                                DecodeJpeg::Channels(wanted_channels));
+                                DecodeJpeg::Channels(input_channels));
     }
     // Now cast the image data to float so we can do normal math on it.
     auto float_caster = Cast(root.WithOpName("float_caster"), image_reader,

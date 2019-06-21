@@ -91,8 +91,9 @@ void PrintVersion() {
 int main(int argc, char** argv) {
   // parameters below need to modified as per model
   string image = "3.png";
-  // Size of the vector images will be batch size
-  vector<string> images(12, image);
+  int batch_size = 12;
+  // Vector size is same as the batch size, populating with single image
+  vector<string> images(batch_size, image);
   string graph = "mnist_inference_quantized_trained_12212018.pb";
   string labels = "";
   int input_width = 28;
@@ -103,7 +104,7 @@ int main(int argc, char** argv) {
   string output_layer = "softmax/Softmax";
   bool use_NCHW = false;
   bool preload_images = true;
-  int wanted_channels = 1;
+  int input_channels = 1;
   int iteration_count = 10;
 
   std::vector<tf::Flag> flag_list = {
@@ -152,15 +153,15 @@ int main(int argc, char** argv) {
   infer_multiple_networks::InferenceEngine infer_engine_1("engine_1", "CPU:0");
   TF_CHECK_OK(infer_engine_1.Load(
       graph, images, input_width, input_height, input_mean, input_std,
-      input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
+      input_layer, output_layer, use_NCHW, preload_images, input_channels));
   infer_multiple_networks::InferenceEngine infer_engine_2("engine_2", "CPU:0");
   TF_CHECK_OK(infer_engine_2.Load(
       graph, images, input_width, input_height, input_mean, input_std,
-      input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
+      input_layer, output_layer, use_NCHW, preload_images, input_channels));
   infer_multiple_networks::InferenceEngine infer_engine_3("engine_3", "CPU:0");
   TF_CHECK_OK(infer_engine_3.Load(
       graph, images, input_width, input_height, input_mean, input_std,
-      input_layer, output_layer, use_NCHW, preload_images, wanted_channels));
+      input_layer, output_layer, use_NCHW, preload_images, input_channels));
 
   bool engine_1_running = true;
   infer_engine_1.Start([&](int step_count) {

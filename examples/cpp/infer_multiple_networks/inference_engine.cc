@@ -45,7 +45,7 @@ extern tf::Status ReadTensorFromImageFile(const std::vector<string>& file_names,
                                           const int input_width,
                                           const float input_mean,
                                           const float input_std, bool use_NCHW,
-                                          const int wanted_channels,
+                                          const int input_channels,
                                           std::vector<tf::Tensor>* out_tensors);
 
 namespace infer_multiple_networks {
@@ -57,7 +57,7 @@ Status InferenceEngine::Load(const string& network,
                              int input_height, float input_mean,
                              float input_std, const string& input_layer,
                              const string& output_layer, bool use_NCHW,
-                             bool preload_images, const int wanted_channels) {
+                             bool preload_images, const int input_channels) {
   // Load the network
   TF_CHECK_OK(CreateSession(network, m_session));
 
@@ -71,7 +71,7 @@ Status InferenceEngine::Load(const string& network,
   m_output_layer = output_layer;
   m_use_NCHW = use_NCHW;
   m_preload_images = preload_images;
-  m_wanted_channels = wanted_channels;
+  m_input_channels = input_channels;
 
   // Preload the image is requested
   if (m_preload_images) {
@@ -82,7 +82,7 @@ Status InferenceEngine::Load(const string& network,
     std::vector<tf::Tensor> resized_tensors;
     TF_CHECK_OK(ReadTensorFromImageFile(
         m_image_files, m_input_height, m_input_width, m_input_mean, m_input_std,
-        m_use_NCHW, m_wanted_channels, &resized_tensors));
+        m_use_NCHW, m_input_channels, &resized_tensors));
     m_image_to_repeat = resized_tensors[0];
     tf::ngraph_bridge::BackendManager::SetBackendName(current_backend);
   }
@@ -134,7 +134,7 @@ void InferenceEngine::ThreadMain() {
       std::vector<tf::Tensor> resized_tensors;
       TF_CHECK_OK(ReadTensorFromImageFile(
           m_image_files, m_input_height, m_input_width, m_input_mean,
-          m_input_std, m_use_NCHW, m_wanted_channels, &resized_tensors));
+          m_input_std, m_use_NCHW, m_input_channels, &resized_tensors));
 
       m_image_to_repeat = resized_tensors[0];
       tf::ngraph_bridge::BackendManager::SetBackendName(current_backend);

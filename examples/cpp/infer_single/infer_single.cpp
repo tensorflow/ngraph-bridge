@@ -47,7 +47,7 @@ extern tf::Status ReadTensorFromImageFile(const std::vector<string>& file_name,
                                           const int input_width,
                                           const float input_mean,
                                           const float input_std, bool use_NCHW,
-                                          const int wanted_channels,
+                                          const int input_channels,
                                           std::vector<tf::Tensor>* out_tensors);
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
@@ -137,8 +137,9 @@ std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
 int main(int argc, char** argv) {
   // parameters below need to modified as per model
   string image = "image_00000.png";
-  // Size of the vector images will be batch size
-  std::vector<string> images(12, image);
+  int batch_size = 12;
+  // Vector size is same as the batch size, populating with single image
+  std::vector<string> images(batch_size, image);
   string graph =
       "resnet50_nchw_optimized_frozen_resnet_v1_50_nchw_cifar_fullytrained_"
       "fullyquantized_02122019.pb";
@@ -150,7 +151,7 @@ int main(int argc, char** argv) {
   string input_layer = "input";
   string output_layer = "resnet_v1_50/predictions/Softmax";
   bool use_NCHW = true;
-  int wanted_channels = 3;
+  int input_channels = 3;
 
   std::vector<tf::Flag> flag_list = {
       tf::Flag("image", &image, "image to be processed"),
@@ -224,7 +225,7 @@ int main(int argc, char** argv) {
         std::vector<tf::Tensor> resized_tensors;
         tf::Status read_tensor_status = ReadTensorFromImageFile(
             images, input_height, input_width, input_mean, input_std, use_NCHW,
-            wanted_channels, &resized_tensors);
+            input_channels, &resized_tensors);
 
         if (!read_tensor_status.ok()) {
           LOG(ERROR) << read_tensor_status;
