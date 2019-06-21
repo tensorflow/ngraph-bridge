@@ -539,18 +539,18 @@ def build_base(args):
     command_executor(cmd)
 
 
-def start_container(workingdir, cachedir):
+def start_container(workingdir):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
-    parentdir = os.path.dirname(cachedir)
+    cachedir = ".cache/bazel"
     abscachedir = os.path.abspath(cachedir)
     if os.path.isdir(abscachedir) == False:
         os.makedirs(abscachedir)
     start = [
         "docker", "run", "--name", "ngtf", "-u",
         str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
-        "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-w", workingdir,
+        "-v", pwd + "/" + cachedir + ":/root/" + cachedir, "-w", workingdir,
         "-d", "-t", "ngtf"
     ]
     try:
@@ -582,15 +582,13 @@ def stop_container():
         print("caught exception: " + msg)
 
 
-def run_in_docker(buildcmd, cachedir, args):
+def run_in_docker(buildcmd, args):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
-    abscachedir = "/bazel/" + cachedir
     cmd = [
         "docker", "exec", "-e"
-        "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-e",
-        "TEST_TMPDIR=" + abscachedir, "-u",
+        "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-u",
         str(u) + ":" + str(g), "-it", "ngtf"
     ]
     vargs = vars(args)
