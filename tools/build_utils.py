@@ -157,10 +157,10 @@ def setup_venv(venv_dir):
         call(["python3", "./get-pip.py"])
 
     # Install the pip packages
+    cmdpart = ["pip", "install"]
+    if os.getenv("IN_DOCKER") != None:
+        cmdpart.append("--cache-dir="+os.getcwd())
     package_list = [
-        "pip",
-        "--cache-dir="+os.getcwd(),
-        "install",
         "-U",
         "pip",
         "setuptools",
@@ -180,10 +180,14 @@ def setup_venv(venv_dir):
         "--no-deps",
         "yapf==0.26.0",
     ]
-    command_executor(package_list)
+    cmd = cmdpart + package_list
+    command_executor(cmd)
 
     # Print the current packages
-    command_executor(["pip", "--cache-dir="+os.getcwd(), "list"])
+    cmd = ["pip", "list"]
+    if os.getenv("IN_DOCKER") != None:
+        cmd.append("--cache-dir="+os.getcwd())
+    command_executor(cmd)
 
 
 def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
@@ -415,7 +419,11 @@ def build_ngraph_tf(build_dir, artifacts_location, ngtf_src_loc, venv_dir,
     # Load the virtual env
     load_venv(venv_dir)
 
-    command_executor(["pip", "list"])
+    cmdpart = ["pip"]
+    if os.getenv("IN_DOCKER") != None:
+        cmdpart.append("--cache-dir="+pwd)
+    cmd = cmdpart + ["list"]
+    command_executor(cmd)
 
     # Get the absolute path for the artifacts
     artifacts_location = os.path.abspath(artifacts_location)
