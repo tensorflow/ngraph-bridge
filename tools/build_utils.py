@@ -389,7 +389,11 @@ def install_tensorflow(venv_dir, artifacts_dir):
             "artifacts directory contains more than 1 version of tensorflow wheel"
         )
 
-    command_executor(["pip", "install", "-U", tf_wheel_files[0]])
+    cmdpart = ["pip", "install"]
+    if os.getenv("IN_DOCKER") != None:
+        cmdpart.append("--cache-dir="+pwd)
+    cmd = cmdpart + ["-U", tf_wheel_files[0]]
+    command_executor(cmd)
 
     cxx_abi = "0"
     if (platform.system() == 'Linux'):
@@ -474,7 +478,11 @@ def install_ngraph_tf(venv_dir, ngtf_pip_whl):
     # Load the virtual env
     load_venv(venv_dir)
 
-    command_executor(["pip", "install", "-U", ngtf_pip_whl])
+    cmdpart = ["pip", "install"]
+    if os.getenv("IN_DOCKER") != None:
+        cmdpart.append("--cache-dir="+os.getcwd())
+    cmd = cmdpart + ["-U", ngtf_pip_whl]
+    command_executor(cmd)
 
     import tensorflow as tf
     print('\033[1;34mVersion information\033[0m')
