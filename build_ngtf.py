@@ -151,6 +151,11 @@ def main():
         action="store_true")
 
     parser.add_argument(
+        '--start_container',
+        help="Starts the docker container\n",
+        action="store_true")
+
+    parser.add_argument(
         '--stop_container',
         help="Stops the docker container\n",
         action="store_true")
@@ -167,6 +172,10 @@ def main():
         build_base(arguments)
         return
 
+    if arguments.start_container:
+        start_container("/ngtf")
+        return
+
     if arguments.stop_container:
         stop_container()
         return
@@ -174,8 +183,8 @@ def main():
     if arguments.run_in_docker:
         if check_container() == True:
             stop_container()
-        start_container("/ngtf", ".cache/ngtf")
-        run_in_docker("/ngtf/build_ngtf.py", ".cache/ngtf", arguments)
+        start_container("/ngtf")
+        run_in_docker("/ngtf/build_ngtf.py", arguments)
         return
 
     if (arguments.debug_build):
