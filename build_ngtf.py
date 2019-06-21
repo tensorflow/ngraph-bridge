@@ -285,10 +285,10 @@ def main():
         tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
         assert os.path.isfile(tf_whl), "Did not find " + tf_whl
         # Install the found TF whl file
-        cmd = ["pip", "install"]
+        cmdpart = ["pip", "install"]
         if os.getenv("IN_DOCKER") != None:
-            cmd.append("--cache-dir="+os.getcwd())
-        cmd.append("-U", tf_whl)
+            cmdpart.append("--cache-dir="+os.getcwd())
+        cmd = cmdpart + ["-U", tf_whl]
         command_executor(cmd)
         cxx_abi = get_tf_cxxabi()
         cwd = os.getcwd()
@@ -320,10 +320,10 @@ def main():
             os.chdir(pwd_now)
 
             # Next install the tensorflow python packge
-            cmd = ["pip", "install"]
+            cmdpart = ["pip", "install"]
             if os.getenv("IN_DOCKER") != None:
-                cmd.append("--cache-dir="+os.getcwd())
-            cmd.append("-U", "tensorflow==" + tf_version)
+                cmdpart.append("--cache-dir="+os.getcwd())
+            cmd = cmdpart + ["-U", "tensorflow==" + tf_version]
             command_executor(cmd)
             cxx_abi = get_tf_cxxabi()
 
@@ -409,10 +409,10 @@ def main():
         ngraph_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=OFF"])
 
     if arguments.build_plaidml_backend:
-        cmd = ["pip", "install"]
+        cmdpart = ["pip", "install"]
         if os.getenv("IN_DOCKER") != None:
-            cmd.append("--cache-dir="+os.getcwd())
-        cmd.append("-U", "plaidML")
+            cmdpart.append("--cache-dir="+os.getcwd())
+        cmd = cmdpart + ["-U", "plaidML"]
         command_executor(cmd)
 
     flag_string_map = {True: 'YES', False: 'NO'}
