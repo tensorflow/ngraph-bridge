@@ -145,8 +145,38 @@ def main():
         action="store",
         default='')
 
+    parser.add_argument(
+        '--build_base',
+        help="Builds a base ngtf image in docker\n",
+        action="store_true")
+
+    parser.add_argument(
+        '--stop_container',
+        help="Stops the docker container\n",
+        action="store_true")
+
+    parser.add_argument(
+        '--run_in_docker',
+        help="Runs build_ngtf.py in a Dockerfile\n",
+        action="store_true")
+
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
+
+    if arguments.build_base:
+        build_base(arguments)
+        return
+
+    if arguments.stop_container:
+        stop_container()
+        return
+
+    if arguments.run_in_docker:
+        if check_container() == True:
+            stop_container()
+        start_container("/ngtf", ".cache/ngtf")
+        run_in_docker("/ngtf/build_ngtf.py", ".cache/ngtf", arguments)
+        return
 
     if (arguments.debug_build):
         print("Building in DEBUG mode\n")
@@ -255,7 +285,11 @@ def main():
         tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
         assert os.path.isfile(tf_whl), "Did not find " + tf_whl
         # Install the found TF whl file
-        command_executor(["pip", "install", "-U", tf_whl])
+        cmdpart = ["pip", "install"]
+        if os.getenv("IN_DOCKER") != None:
+            cmdpart.append("--cache-dir="+os.getcwd())
+        cmd = cmdpart + ["-U", tf_whl]
+        command_executor(cmd)
         cxx_abi = get_tf_cxxabi()
         cwd = os.getcwd()
         os.chdir(tf_whl_loc)
@@ -264,7 +298,7 @@ def main():
         if os.path.isdir(tf_in_artifacts):
             print("TensorFlow already exists in artifacts. Using that")
         else:
-            os.mkdir(tf_in_artifacts)
+            os.makedirs(tf_in_artifacts)
             # This function copies the .so files from
             # use_tensorflow_from_location/artifacts/tensorflow to
             # artifacts/tensorflow
@@ -286,8 +320,11 @@ def main():
             os.chdir(pwd_now)
 
             # Next install the tensorflow python packge
-            command_executor(
-                ["pip", "install", "-U", "tensorflow==" + tf_version])
+            cmdpart = ["pip", "install"]
+            if os.getenv("IN_DOCKER") != None:
+                cmdpart.append("--cache-dir="+os.getcwd())
+            cmd = cmdpart + ["-U", "tensorflow==" + tf_version]
+            command_executor(cmd)
             cxx_abi = get_tf_cxxabi()
 
             # Copy the libtensorflow_framework.so to the artifacts so that
@@ -372,7 +409,11 @@ def main():
         ngraph_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=OFF"])
 
     if arguments.build_plaidml_backend:
-        command_executor(["pip", "install", "-U", "plaidML"])
+        cmdpart = ["pip", "install"]
+        if os.getenv("IN_DOCKER") != None:
+            cmdpart.append("--cache-dir="+os.getcwd())
+        cmd = cmdpart + ["-U", "plaidML"]
+        command_executor(cmd)
 
     flag_string_map = {True: 'YES', False: 'NO'}
     ngraph_cmake_flags.extend([

@@ -24,7 +24,6 @@ import shutil
 import glob
 import platform
 import subprocess
-from distutils.sysconfig import get_python_lib
 
 from tools.build_utils import load_venv, command_executor, apply_patch
 

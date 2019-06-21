@@ -21,7 +21,7 @@ from argparse import RawTextHelpFormatter
 import errno
 import os
 import subprocess
-from subprocess import check_output, call
+from subprocess import check_output, call, Popen, PIPE
 import sys
 import shutil
 import glob
@@ -128,6 +128,19 @@ def load_venv(venv_dir):
     return venv_dir
 
 
+def get_exitcode_stdout_stderr(cmd):
+    """
+    Execute the external command and get its exitcode, stdout and stderr.
+    """
+    args = shlex.split(cmd)
+
+    proc = Popen(args, stdout=PIPE, stderr=PIPE)
+    out, err = proc.communicate()
+    exitcode = proc.returncode
+    #
+    return exitcode, out, err
+
+
 def setup_venv(venv_dir):
     load_venv(venv_dir)
 
@@ -144,9 +157,10 @@ def setup_venv(venv_dir):
         call(["python3", "./get-pip.py"])
 
     # Install the pip packages
+    cmdpart = ["pip", "install"]
+    if os.getenv("IN_DOCKER") != None:
+        cmdpart.append("--cache-dir=" + os.getcwd())
     package_list = [
-        "pip",
-        "install",
         "-U",
         "pip",
         "setuptools",
@@ -166,10 +180,14 @@ def setup_venv(venv_dir):
         "--no-deps",
         "yapf==0.26.0",
     ]
-    command_executor(package_list)
+    cmd = cmdpart + package_list
+    command_executor(cmd)
 
     # Print the current packages
-    command_executor(["pip", "list"])
+    cmd = ["pip", "list"]
+    if os.getenv("IN_DOCKER") != None:
+        cmd.append("--cache-dir=" + os.getcwd())
+    command_executor(cmd)
 
 
 def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
@@ -376,7 +394,11 @@ def install_tensorflow(venv_dir, artifacts_dir):
             "artifacts directory contains more than 1 version of tensorflow wheel"
         )
 
-    command_executor(["pip", "install", "-U", tf_wheel_files[0]])
+    cmdpart = ["pip", "install"]
+    if os.getenv("IN_DOCKER") != None:
+        cmdpart.append("--cache-dir=" + pwd)
+    cmd = cmdpart + ["-U", tf_wheel_files[0]]
+    command_executor(cmd)
 
     cxx_abi = "0"
     if (platform.system() == 'Linux'):
@@ -398,7 +420,11 @@ def build_ngraph_tf(build_dir, artifacts_location, ngtf_src_loc, venv_dir,
     # Load the virtual env
     load_venv(venv_dir)
 
-    command_executor(["pip", "list"])
+    cmdpart = ["pip"]
+    if os.getenv("IN_DOCKER") != None:
+        cmdpart.append("--cache-dir=" + pwd)
+    cmd = cmdpart + ["list"]
+    command_executor(cmd)
 
     # Get the absolute path for the artifacts
     artifacts_location = os.path.abspath(artifacts_location)
@@ -461,7 +487,11 @@ def install_ngraph_tf(venv_dir, ngtf_pip_whl):
     # Load the virtual env
     load_venv(venv_dir)
 
-    command_executor(["pip", "install", "-U", ngtf_pip_whl])
+    cmdpart = ["pip", "install"]
+    if os.getenv("IN_DOCKER") != None:
+        cmdpart.append("--cache-dir=" + os.getcwd())
+    cmd = cmdpart + ["-U", ngtf_pip_whl]
+    command_executor(cmd)
 
     import tensorflow as tf
     print('\033[1;34mVersion information\033[0m')
@@ -502,6 +532,79 @@ def apply_patch(patch_file):
     # will fail
     assert cmd.returncode == 0 or 'patch detected!  Skipping patch' in str(
         printed_lines[0]), "Error applying the patch."
+
+
+def build_base(args):
+    cmd = ["docker", "build", "--tag", "ngtf", "."]
+    command_executor(cmd)
+
+
+def start_container(workingdir, cachedir):
+    pwd = os.getcwd()
+    u = os.getuid()
+    g = os.getgid()
+    abscachedir = os.path.abspath(cachedir)
+    if os.path.isdir(abscachedir) == False:
+        os.makedirs(abscachedir)
+    start = [
+        "docker", "run", "--name", "ngtf", "-u",
+        str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
+        "-v", pwd + "/" + cachedir + ":/bazel/" + cachedir, "-w", workingdir,
+        "-d", "-t", "ngtf"
+    ]
+    try:
+        command_executor(
+            start, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+    except Exception as exc:
+        msg = str(exc)
+        print("caught exception: " + msg)
+
+
+def check_container():
+    exitcode, out, err = get_exitcode_stdout_stderr(
+        "docker inspect -f '{{.State.Running}}' ngtf")
+    if exitcode == 0:
+        return True
+    return False
+
+
+def stop_container():
+    try:
+        stop = ["docker", "stop", "ngtf"]
+        command_executor(
+            stop, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+        rm = ["docker", "rm", "ngtf"]
+        command_executor(
+            rm, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+    except Exception as exc:
+        msg = str(exc)
+        print("caught exception: " + msg)
+
+
+def run_in_docker(buildcmd, cachedir, args):
+    pwd = os.getcwd()
+    u = os.getuid()
+    g = os.getgid()
+    abscachedir = "/bazel/" + cachedir
+    cmd = [
+        "docker", "exec", "-e"
+        "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-e",
+        "TEST_TMPDIR=" + abscachedir, "-u",
+        str(u) + ":" + str(g), "-it", "ngtf"
+    ]
+    vargs = vars(args)
+    for arg in vargs:
+        if arg not in ["run_in_docker", "build_base", "stop_container"]:
+            if arg == "use_tensorflow_from_location":
+                buildcmd += " --" + arg + "=/" + str(vargs[arg])
+            elif vargs[arg] in [False, None]:
+                pass
+            elif vargs[arg] == True:
+                buildcmd += " --" + arg
+            else:
+                buildcmd += " --" + arg + "=" + str(vargs[arg])
+    cmd.append(buildcmd)
+    command_executor(cmd)
 
 
 def get_gcc_version():
