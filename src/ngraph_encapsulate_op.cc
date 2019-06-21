@@ -610,15 +610,14 @@ class NGraphEncapsulateOp : public OpKernel {
           input_copy_events.push_back(std::move(event_copy_input_next));
 
         } catch (const std::exception& exp) {
-          OP_REQUIRES(
-              ctx, false,
-              errors::Internal(
-                  "Caught exception while transferring tensor data to nGraph: ",
-                  exp.what(), "\n"));
+          Status status = errors::Internal(
+              "Caught exception while transferring tensor data to nGraph: ",
+              exp.what(), "\n");
+          OP_REQUIRES(ctx, false, status);
         } catch (...) {
-          OP_REQUIRES(ctx, false,
-                      errors::Internal(
-                          "Error in transferring tensor data to nGraph\n"));
+          Status status =
+              errors::Internal("Error in transferring tensor data to nGraph\n");
+          OP_REQUIRES(ctx, false, status);
         }
       }
       input_caches[i] = std::make_pair(current_src_ptr, current_ng_tensor);
@@ -854,15 +853,14 @@ class NGraphEncapsulateOp : public OpKernel {
         ngraph::Event::write_trace(*next.get());
       }
     } catch (const std::exception& exp) {
-      OP_REQUIRES(
-          ctx, false,
-          errors::Internal(
-              "Caught exception while transferring tensor data to host: ",
-              exp.what(), "\n"));
+      Status status = errors::Internal(
+          "Caught exception while transferring tensor data to host: ",
+          exp.what(), "\n");
+      OP_REQUIRES(ctx, false, status);
     } catch (...) {
-      OP_REQUIRES(
-          ctx, false,
-          errors::Internal("Error in transferring tensor data to host\n"));
+      Status status =
+          errors::Internal("Error in transferring tensor data to host\n");
+      OP_REQUIRES(ctx, false, status);
     }
     event_copy_output.Stop();
 

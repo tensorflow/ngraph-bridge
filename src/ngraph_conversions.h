@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include "ngraph_log.h"
 #include "ngraph_builder.h"
+#include "ngraph_log.h"
 
 namespace tensorflow {
 
