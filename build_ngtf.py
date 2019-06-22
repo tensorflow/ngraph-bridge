@@ -294,10 +294,10 @@ def main():
         tf_whl = os.path.abspath(tf_whl_loc + '/' + possible_whl[0])
         assert os.path.isfile(tf_whl), "Did not find " + tf_whl
         # Install the found TF whl file
-        cmdpart = ["pip", "install"]
+        cmdpart = ["pip"]
         if os.getenv("IN_DOCKER") != None:
             cmdpart.append("--cache-dir=" + os.getcwd())
-        cmd = cmdpart + ["-U", tf_whl]
+        cmd = cmdpart + ["install", "-U", tf_whl]
         command_executor(cmd)
         cxx_abi = get_tf_cxxabi()
         cwd = os.getcwd()

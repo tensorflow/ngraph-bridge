@@ -157,10 +157,11 @@ def setup_venv(venv_dir):
         call(["python3", "./get-pip.py"])
 
     # Install the pip packages
-    cmdpart = ["pip", "install"]
+    cmdpart = ["pip"]
     if os.getenv("IN_DOCKER") != None:
         cmdpart.append("--cache-dir=" + os.getcwd())
     package_list = [
+        "install",
         "-U",
         "pip",
         "setuptools",
@@ -394,10 +395,10 @@ def install_tensorflow(venv_dir, artifacts_dir):
             "artifacts directory contains more than 1 version of tensorflow wheel"
         )
 
-    cmdpart = ["pip", "install"]
+    cmdpart = ["pip"]
     if os.getenv("IN_DOCKER") != None:
         cmdpart.append("--cache-dir=" + pwd)
-    cmd = cmdpart + ["-U", tf_wheel_files[0]]
+    cmd = cmdpart + ["install", "-U", tf_wheel_files[0]]
     command_executor(cmd)
 
     cxx_abi = "0"
@@ -487,10 +488,10 @@ def install_ngraph_tf(venv_dir, ngtf_pip_whl):
     # Load the virtual env
     load_venv(venv_dir)
 
-    cmdpart = ["pip", "install"]
+    cmdpart = ["pip"]
     if os.getenv("IN_DOCKER") != None:
         cmdpart.append("--cache-dir=" + os.getcwd())
-    cmd = cmdpart + ["-U", ngtf_pip_whl]
+    cmd = cmdpart + ["install", "-U", ngtf_pip_whl]
     command_executor(cmd)
 
     import tensorflow as tf
