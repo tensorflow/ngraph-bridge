@@ -41,12 +41,10 @@ extern tf::Status LoadGraph(const string& graph_file_name,
                             std::unique_ptr<tf::Session>* session,
                             const tf::SessionOptions& options);
 
-extern tf::Status ReadTensorFromImageFile(const string& file_name,
-                                          const int input_height,
-                                          const int input_width,
-                                          const float input_mean,
-                                          const float input_std, bool use_NCHW,
-                                          std::vector<tf::Tensor>* out_tensors);
+extern tf::Status ReadTensorFromImageFile(
+    const string& file_name, const int input_chan, const int input_height,
+    const int input_width, const float input_mean, const float input_std,
+    bool use_NCHW, std::vector<tf::Tensor>* out_tensors);
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
                                  const string& labels_file_name);
@@ -215,10 +213,11 @@ int main(int argc, char** argv) {
         ngraph::Event read_event(oss.str(), "Image reading", "");
 
         // Read image
+        int input_chan = 3;
         std::vector<tf::Tensor> resized_tensors;
         tf::Status read_tensor_status = ReadTensorFromImageFile(
-            image, input_height, input_width, input_mean, input_std, use_NCHW,
-            &resized_tensors);
+            image, input_chan, input_height, input_width, input_mean, input_std,
+            use_NCHW, &resized_tensors);
 
         if (!read_tensor_status.ok()) {
           LOG(ERROR) << read_tensor_status;

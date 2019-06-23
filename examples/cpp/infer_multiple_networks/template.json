@@ -1,0 +1,36 @@
+{
+    "models" :[
+    {
+        "id":0,
+        "graph": "/path/to/the/frozen_graph0.pb",
+        "backend": "your_reference_backend",
+        "input_tensor_name": "input_tensor_name",
+        "output_tensor_name":"output_tensor_name",
+        "label_file": "/path/to/the/label_file.txt",
+        "image_list": "/path/to/the/image_file.txt or image_file.png",
+        "image_format": "NCHW/NHWC",
+        "image_mean": 128,
+        "image_std": 255,
+        "input_dimension" : [3,224,224],
+        "batch_size": 12
+    },
+    {
+        "id":1,
+        "graph": "/path/to/the/frozen_graph1.pb",
+        "backend": "your_reference_backend",
+        "input_tensor_name": "input_tensor_name",
+        "output_tensor_name":"output_tensor_name",
+        "label_file": "/path/to/the/label_file.txt",
+        "image_list": "/path/to/the/image_file.txt or image_file.png",
+        "image_format": "NCHW/NHWC",
+        "image_mean": 128,
+        "image_std": 255,
+        "input_dimension" : [3,224,224],
+        "batch_size": 12
+    }
+    ],
+    "profiles":[
+        {"name":"engine0", "model_order":[0,0,0,1,1,1,1], "loop":10},
+        {"name":"engine1", "model_order":[1,1,1,1,0,0,0], "loop":10}
+    ]
+}

@@ -36,9 +36,13 @@
 #include "ngraph_backend_manager.h"
 #include "version.h"
 
+#include "config_setting.h"
 #include "inference_engine.h"
 
 using namespace std;
+using namespace config_setting;
+using namespace infer_multiple_networks;
+
 namespace tf = tensorflow;
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
@@ -89,38 +93,10 @@ void PrintVersion() {
 }
 
 int main(int argc, char** argv) {
-  string image = "grace_hopper.jpg";
-  string graph = "inception_v3_2016_08_28_frozen.pb";
-  string labels = "";
-  int input_width = 299;
-  int input_height = 299;
-  float input_mean = 0.0;
-  float input_std = 255;
-  string input_layer = "input";
-  string output_layer = "InceptionV3/Predictions/Reshape_1";
-  bool use_NCHW = false;
-  bool preload_images = true;
-
-  int iteration_count = 10;
+  string json_file = "data/template1.json";
 
   std::vector<tf::Flag> flag_list = {
-      tf::Flag("image", &image, "image to be processed"),
-      tf::Flag("graph", &graph, "graph to be executed"),
-      tf::Flag("labels", &labels, "name of file containing labels"),
-      tf::Flag("input_width", &input_width,
-               "resize image to this width in pixels"),
-      tf::Flag("input_height", &input_height,
-               "resize image to this height in pixels"),
-      tf::Flag("input_mean", &input_mean, "scale pixel values to this mean"),
-      tf::Flag("input_std", &input_std,
-               "scale pixel values to this std deviation"),
-      tf::Flag("input_layer", &input_layer, "name of input layer"),
-      tf::Flag("output_layer", &output_layer, "name of output layer"),
-      tf::Flag("use_NCHW", &use_NCHW, "Input data in NCHW format"),
-      tf::Flag("iteration_count", &iteration_count,
-               "How many times to repeat the inference"),
-      tf::Flag("preload_images", &preload_images,
-               "Repeat the same image for inference"),
+      tf::Flag("json_file", &json_file, "config file to be loaded"),
   };
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -137,55 +113,18 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  // const char* backend = "CPU";
-  // if (SetNGraphBackend(backend) != tf::Status::OK()) {
-  //   std::cout << "Error: Cannot set the backend: " << backend << std::endl;
-  //   return -1;
-  // }
-
   std::cout << "Component versions\n";
   PrintVersion();
 
-  infer_multiple_networks::InferenceEngine infer_engine_1("engine_1", "CPU:0");
-  TF_CHECK_OK(infer_engine_1.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
-  infer_multiple_networks::InferenceEngine infer_engine_2("engine_2", "CPU:0");
-  TF_CHECK_OK(infer_engine_2.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
-  infer_multiple_networks::InferenceEngine infer_engine_3("engine_3", "CPU:0");
-  TF_CHECK_OK(infer_engine_3.Load(graph, image, input_width, input_height,
-                                  input_mean, input_std, input_layer,
-                                  output_layer, use_NCHW, preload_images));
+  infer_multiple_networks::InferenceManager* infer_mgr =
+      InferenceManager::getInstance();
+  infer_mgr->LoadConfig(json_file);
+  infer_mgr->LoadNetworks();
 
-  bool engine_1_running = true;
-  infer_engine_1.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      infer_engine_1.Stop();
-      engine_1_running = false;
-    }
-  });
+  // Start inference
+  infer_mgr->Start();
 
-  bool engine_2_running = true;
-  infer_engine_2.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      infer_engine_2.Stop();
-      engine_2_running = false;
-    }
-  });
-
-  bool engine_3_running = true;
-  infer_engine_3.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      infer_engine_3.Stop();
-      engine_3_running = false;
-    }
-  });
-
-  while (engine_1_running || engine_2_running || engine_3_running) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  }
+  infer_mgr->WaitForDone();
 
   std::cout << "Done" << std::endl;
   return 0;

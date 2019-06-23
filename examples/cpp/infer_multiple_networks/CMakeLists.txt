@@ -14,6 +14,7 @@
 # limitations under the License.
 # ******************************************************************************
 
+include(external_json.cmake)
 include_directories(${TensorFlow_INCLUDE_DIR})
 include_directories(${TensorFlow_INCLUDE_DIR}/external/nsync/public)
 
@@ -43,6 +44,8 @@ set(SRC
     main.cc
     inference_engine.h
     inference_engine.cc
+    config_setting.h
+    config_setting.cc
     ../tf_label_image_utils.cc
 )
 
@@ -50,6 +53,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 message(STATUS "Compile Flags: ${CMAKE_CXX_FLAGS}")
 message(STATUS "Shared Link Flags: ${CMAKE_SHARED_LINKER_FLAGS}")
+
 
 add_executable(infer_multiple_networks ${SRC})
 message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
@@ -66,6 +70,7 @@ target_link_libraries(
     pthread
     ${TensorFlow_FRAMEWORK_LIBRARY}
     tensorflow_cc_lib
+    libjson
 )
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
