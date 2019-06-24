@@ -14,7 +14,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
-import argparse
+import argcomplete, argparse
 import errno
 import os
 from subprocess import check_output, call
@@ -55,6 +55,7 @@ def main():
         help="Runs the command in docker.\n",
         action="store_true")
 
+    argcomplete.autocomplete(parser)
     arguments = parser.parse_args()
 
     #-------------------------------
