@@ -595,13 +595,12 @@ def run_in_docker(buildcmd, args):
         "TEST_TMPDIR=/bazel/.cache/bazel", "-u",
         str(u) + ":" + str(g), "ngtf"
     ]
-    #        str(u) + ":" + str(g), "-it", "ngtf"
-
     vargs = vars(args)
     for arg in vargs:
         if arg not in ["run_in_docker", "build_base", "stop_container"]:
-            if arg == "use_tensorflow_from_location" and vargs[arg] != '':
-                buildcmd += " --" + arg + "=/" + str(vargs[arg])
+            if arg == "use_tensorflow_from_location":
+                if vargs[arg] != '':
+                    buildcmd += " --" + arg + "=/" + str(vargs[arg])
             elif vargs[arg] in [False, None]:
                 pass
             elif vargs[arg] == True:
@@ -609,6 +608,8 @@ def run_in_docker(buildcmd, args):
             else:
                 buildcmd += " --" + arg + "=" + str(vargs[arg])
     cmd.append(buildcmd)
+    if args.verbose_build:
+        print(' '.join(cmd))
     command_executor(cmd)
 
 
