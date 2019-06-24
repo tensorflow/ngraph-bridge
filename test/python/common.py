@@ -99,7 +99,7 @@ class NgraphTest(object):
     # sets the env variable
     def set_env_variable(self, env_var, env_var_val):
         os.putenv(env_var, env_var_val)
-        print("Setting env backend", env_var, " to ", env_var_val)
+        print("Setting env variable ", env_var, " to ", env_var_val)
 
     # store env variables
     def store_env_variables(self):

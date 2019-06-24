@@ -48,18 +48,24 @@ class BackendManager {
  public:
   // Returns the backend name currently set
   // If env variable NGRAPH_TF_BACKEND is set it has precedence
+  // over the BackendManager backend ng_backend_name_
   static Status GetCurrentlySetBackendName(string* backend);
 
   // Returns the nGraph supported backend names
   static vector<string> GetSupportedBackendNames();
 
-  // Returns number of supported backends
+  // Returns number of nGraph supported backends
   static size_t GetNumOfSupportedBackends();
 
+  // Returns True if the backend is supported or not
+  // Tries to create a backend with backend_name string to determine whether
+  // supported or not
   static bool IsSupportedBackend(const string& backend_name);
 
+  // Set the BackendManager backend ng_backend_name_
   static Status SetBackendName(const string& backend_name);
 
+  // Creates backend of backend_name type
   static Status CreateBackend(const string& backend_name);
 
   static void ReleaseBackend(const string& backend_name);
