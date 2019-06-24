@@ -600,7 +600,7 @@ def run_in_docker(buildcmd, args):
     vargs = vars(args)
     for arg in vargs:
         if arg not in ["run_in_docker", "build_base", "stop_container"]:
-            if arg == "use_tensorflow_from_location":
+            if arg == "use_tensorflow_from_location" and vargs[arg] != None:
                 buildcmd += " --" + arg + "=/" + str(vargs[arg])
             elif vargs[arg] in [False, None]:
                 pass
