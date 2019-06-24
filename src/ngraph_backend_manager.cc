@@ -144,7 +144,7 @@ Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
   }
 
   *backend_name = backend_env;
-  NGRAPH_VLOG(1) << "Overriding backend using the enviornment variable "
+  NGRAPH_VLOG(1) << "Overriding backend using the environment variable "
                     "to "
                  << (*backend_name);
   return Status::OK();
