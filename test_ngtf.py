@@ -14,7 +14,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
-import argcomplete, argparse
 import errno
 import os
 from subprocess import check_output, call
@@ -24,6 +23,7 @@ import glob
 import platform
 
 from tools.build_utils import *
+import argcomplete, argparse
 from tools.test_utils import *
 from tools.build_utils import download_repo
 
@@ -34,7 +34,7 @@ def main():
     running build_ngtf.py which builds the ngraph-tensorflow-bridge
     and installs it to a virtual environment that would be used by this script.
     '''
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
     parser.add_argument(
         '--test_examples',
         help="Builds and tests the examples.\n",
