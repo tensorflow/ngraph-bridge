@@ -552,7 +552,8 @@ def start_container(workingdir):
     start = [
         "docker", "run", "--name", "ngtf", "-u",
         str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
-        "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-w", workingdir,
+        "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-v", 
+        "/etc/passwd:/etc/passwd", "-w", workingdir,
         "-d", "-t", "ngtf"
     ]
     try:
@@ -592,8 +593,10 @@ def run_in_docker(buildcmd, args):
         "docker", "exec", "-e"
         "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-e",
         "TEST_TMPDIR=/bazel/.cache/bazel", "-u",
-        str(u) + ":" + str(g), "-it", "ngtf"
+        str(u) + ":" + str(g), "ngtf"
     ]
+    #        str(u) + ":" + str(g), "-it", "ngtf"
+
     vargs = vars(args)
     for arg in vargs:
         if arg not in ["run_in_docker", "build_base", "stop_container"]:
