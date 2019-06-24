@@ -608,9 +608,10 @@ def run_in_docker(buildcmd, args):
             else:
                 buildcmd += " --" + arg + "=" + str(vargs[arg])
     cmd.append(buildcmd)
-    if args.verbose_build:
-        print(' '.join(cmd))
-    command_executor(cmd)
+    verbose = False
+    if 'verbose_build' in vargs:
+      verbose = True
+    command_executor(cmd, verbose=verbose)
 
 
 def get_gcc_version():
