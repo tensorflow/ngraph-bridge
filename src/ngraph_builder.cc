@@ -1816,7 +1816,7 @@ static Status TranslateBroadcastDistributedOp(
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
 
-   auto ng_broadcast_distributed =
+  auto ng_broadcast_distributed =
       ConstructNgNode<ng::op::BroadcastDistributed>(op->name(), ng_input);
   SaveNgOp(ng_op_map, op->name(), ng_broadcast_distributed);
   return Status::OK();

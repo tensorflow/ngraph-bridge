@@ -380,21 +380,21 @@ void OpControlOrder(const std::shared_ptr<ngraph::Function>& ng_function,
     if (node->description() == op_name) {
       op_list.push_back(node);
     }
-    }
-    // Sort the allreduce ops according to the TF names
-    std::sort(op_list.begin(), op_list.end(),
-              [](const shared_ptr<ng::Node>& x, const shared_ptr<ng::Node>& y) {
-                return x->get_friendly_name() < y->get_friendly_name();
-              });
-    // Add control dependency in for the allreduce ops
-    if (op_list.size() > 1) {
-      for (size_t i = 1; i < op_list.size(); ++i) {
-        auto pre_node = op_list[i - 1];
-        auto cur_node = op_list[i];
-        cur_node->add_control_dependency(pre_node);
-      }
+  }
+  // Sort the allreduce ops according to the TF names
+  std::sort(op_list.begin(), op_list.end(),
+            [](const shared_ptr<ng::Node>& x, const shared_ptr<ng::Node>& y) {
+              return x->get_friendly_name() < y->get_friendly_name();
+            });
+  // Add control dependency in for the allreduce ops
+  if (op_list.size() > 1) {
+    for (size_t i = 1; i < op_list.size(); ++i) {
+      auto pre_node = op_list[i - 1];
+      auto cur_node = op_list[i];
+      cur_node->add_control_dependency(pre_node);
     }
   }
+}
 }
 
 bool IsProcessedByNgraphPass(Graph* g) {
