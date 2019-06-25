@@ -85,21 +85,25 @@ void BackendManager::ReleaseBackend(const string& backend_name) {
   }
 }
 
-void BackendManager::SetConfig(const string& backend_name, std::unordered_map<std::string, std::string> additional_attributes_map) {
+void BackendManager::SetConfig(
+    const string& backend_name,
+    std::unordered_map<std::string, std::string> additional_attributes_map) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   ng::runtime::Backend* bend = GetBackend(backend_name);
   NGRAPH_VLOG(2) << "BackendManager::SetConfig() " << backend_name;
   std::string error;
   std::map<std::string, std::string> device_config_map;
-  for (auto i = additional_attributes_map.begin(); i != additional_attributes_map.end(); i++) {
+  for (auto i = additional_attributes_map.begin();
+       i != additional_attributes_map.end(); i++) {
     // Since _ngraph_device_id is sent as part of the backend creation string
     // while creating the backend, we do not need to send it here.
     if (i->first != "_ngraph_device_id") {
       device_config_map.insert({i->first, i->second});
     }
   }
-  if(!bend->set_config(device_config_map, error)) {
-    NGRAPH_VLOG(2) << "BackendManager::SetConfig(): Could not set config. " << error;
+  if (!bend->set_config(device_config_map, error)) {
+    NGRAPH_VLOG(2) << "BackendManager::SetConfig(): Could not set config. "
+                   << error;
   }
 }
 
