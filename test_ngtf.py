@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# PYTHON_ARGCOMPLETE_OK
 # ==============================================================================
 #  Copyright 2018-2019 Intel Corporation
 #
@@ -24,7 +23,7 @@ import glob
 import platform
 
 from tools.build_utils import *
-import argcomplete, argparse
+import argparse
 from tools.test_utils import *
 from tools.build_utils import download_repo
 
@@ -56,7 +55,6 @@ def main():
         help="Runs the command in docker.\n",
         action="store_true")
 
-    argcomplete.autocomplete(parser)
     arguments = parser.parse_args()
 
     #-------------------------------

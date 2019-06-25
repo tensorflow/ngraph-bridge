@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# PYTHON_ARGCOMPLETE_OK
 # ==============================================================================
 #  Copyright 2018-2019 Intel Corporation
 #
@@ -17,7 +16,7 @@
 # ==============================================================================
 
 from tools.build_utils import *
-import argcomplete, argparse
+import argparse
 
 
 def version_check(use_prebuilt_tensorflow):
@@ -174,7 +173,6 @@ def main():
         action="store_true")
 
     # Done with the options. Now parse the commandline
-    argcomplete.autocomplete(parser)
     arguments = parser.parse_args()
 
     if arguments.build_base:
