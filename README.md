@@ -159,20 +159,15 @@ Prerequisites:
   activate-global-python-argcomplete
 ```
 
-Building in docker provides a consistent environment regardless of what OS you're on, where the environment includes python3.5, tooling, tensorflow and ngraph-bridge. Using docker as the build environment is integrated into the following scripts: build_tf.py, build_ngtf.py and test_ngtf.py. If these scripts are called with the option `--run_in_docker` they will reinvoke themselves within a docker container that has mounted the tensorflow and ngraph-bridge directories. Running within docker provides a consistent build environment while allowing the build artifacts to be output to the docker host's directories. Usage for each scripts is shown below:
+Building in docker provides a consistent environment regardless of what OS you're on, where the environment includes python3.5, tooling, tensorflow and ngraph-bridge. Using docker as the build environment is integrated into the following scripts: build_ngtf.py and test_ngtf.py. If these scripts are called with the option `--run_in_docker` they will reinvoke themselves within a docker container that has mounted the tensorflow and ngraph-bridge directories. Running within docker provides a consistent build environment while allowing the build artifacts to be output to the docker host's directories. Usage for each scripts is shown below:
 
-        ./build_tf.py --build_base
         ./build_ngtf.py --build_base
 
 The `--build_base` option above will build a base container image. This base container image is used as the build environment. It can be called from either scripts
 
-	./build_tf.py --run_in_docker --tf_version v1.14.0-rc0 --output_dir tf
+	./build_ngtf.py --run_in_docker --tf_version v1.13.1 --ngraph_version v0.21.0
 
-The `--run_in_docker` option above will checkout tensorflow under ./tf, mount ./tf as /tf and build tensorflow in the docker container
-
-	./build_ngtf.py --run_in_docker --use_tensorflow_from_location tf --enable_variables_and_optimizers
-
-The `--run_in_docker` option above will mount ./tf as /tf, . as /ngtf and build ngraph-bridge in the docker container passing in the remaining flags.
+The `--run_in_docker` option above will build tensorflow and ngraph under your current ngraph-bridge clone.
 
 Note that the above scripts can be run on mac-os or linux and they build the same artifacts under ngraph-bridge.
 
