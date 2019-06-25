@@ -552,9 +552,8 @@ def start_container(workingdir):
     start = [
         "docker", "run", "--name", "ngtf", "-u",
         str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
-        "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-v", 
-        "/etc/passwd:/etc/passwd", "-w", workingdir,
-        "-d", "-t", "ngtf"
+        "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-v",
+        "/etc/passwd:/etc/passwd", "-w", workingdir, "-d", "-t", "ngtf"
     ]
     try:
         command_executor(
@@ -610,7 +609,7 @@ def run_in_docker(buildcmd, args):
     cmd.append(buildcmd)
     verbose = False
     if 'verbose_build' in vargs:
-      verbose = True
+        verbose = True
     command_executor(cmd, verbose=verbose)
 
 

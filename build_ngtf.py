@@ -135,8 +135,7 @@ def main():
     parser.add_argument(
         '--tf_version',
         type=str,
-        help="tensorflow version to use. (Default: "
-        + tf_version + ")\n",
+        help="tensorflow version to use. (Default: " + tf_version + ")\n",
         action="store")
 
     parser.add_argument(
