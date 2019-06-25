@@ -133,6 +133,13 @@ def main():
         action="store")
 
     parser.add_argument(
+        '--tf_version',
+        type=str,
+        help="tensorflow version to use. (Default: "
+        + tf_version + ")\n",
+        action="store")
+
+    parser.add_argument(
         '--ngraph_version',
         type=str,
         help="nGraph version to use. Overridden by --ngraph_src_dir. (Default: "
