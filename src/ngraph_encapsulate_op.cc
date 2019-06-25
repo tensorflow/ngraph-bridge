@@ -176,8 +176,12 @@ class NGraphEncapsulateOp : public OpKernel {
     std::unordered_map<std::string, std::string> additional_attribute_map;
     for (unsigned int i = 0; i < additional_attributes.size(); i++) {
       std::string val;
+      // Append _ngraph_ to the additional attributes since they 
+      // are added as optional attributes with a `ngraph` prefix
+      // to the encapsulate node
+      std::string attr = "_ngraph_" + additional_attributes[i];
       // If an attribute does not exist, TF will return a non-ok status
-      OP_REQUIRES_OK(ctx, ctx->GetAttr<string>(additional_attributes[i], &val));
+      OP_REQUIRES_OK(ctx, ctx->GetAttr<string>(attr, &val));
       additional_attribute_map.insert({additional_attributes[i], val});
     }
 

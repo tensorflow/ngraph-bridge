@@ -25,7 +25,7 @@ namespace ngraph_bridge {
 BackendConfig::BackendConfig(const string& backend_name) {
   NGRAPH_VLOG(3) << "BackendConfig() ";
   backend_name_ = backend_name;
-  additional_attributes_ = {"_ngraph_device_config"};
+  additional_attributes_ = {"device_config"};
 }
 
 string BackendConfig::Join(
@@ -33,12 +33,12 @@ string BackendConfig::Join(
   // If _ngraph_device_config is not found
   // throw an error
   try {
-    additional_parameters.at("_ngraph_device_config");
+    additional_parameters.at("device_config");
   } catch (std::out_of_range e1) {
-    throw std::out_of_range("Attribute _ngraph_device_config not found");
+    throw std::out_of_range("Attribute device_config not found");
   }
   return backend_name_ + ":" +
-         additional_parameters.at("_ngraph_device_config");
+         additional_parameters.at("device_config");
 }
 
 unordered_map<string, string> BackendConfig::Split(
@@ -74,8 +74,8 @@ BackendConfig::~BackendConfig() {
 
 // BackendNNPIConfig
 BackendNNPIConfig::BackendNNPIConfig() : BackendConfig("NNPI") {
-  additional_attributes_ = {"_ngraph_device_id", "_ngraph_ice_cores",
-                            "_ngraph_max_batch_size"};
+  additional_attributes_ = {"device_id", "ice_cores",
+                            "max_batch_size"};
 }
 
 string BackendNNPIConfig::Join(
@@ -83,11 +83,11 @@ string BackendNNPIConfig::Join(
   // If _ngraph_device_id is not found
   // throw an error
   try {
-    additional_parameters.at("_ngraph_device_id");
+    additional_parameters.at("device_id");
   } catch (std::out_of_range e1) {
-    throw std::out_of_range("Attribute _ngraph_device_id not found");
+    throw std::out_of_range("Attribute device_id not found");
   }
-  return backend_name_ + ":" + additional_parameters.at("_ngraph_device_id");
+  return backend_name_ + ":" + additional_parameters.at("device_id");
 
   // Once the backend api for the other attributes like ice cores
   // and max batch size is fixed we change this
@@ -99,7 +99,7 @@ BackendNNPIConfig::~BackendNNPIConfig() {
 
 // BackendInterpreterConfig
 BackendInterpreterConfig::BackendInterpreterConfig() : BackendConfig("Interpreter") {
-  additional_attributes_ = {"_ngraph_test_echo"};
+  additional_attributes_ = {"test_echo"};
 }
 
 string BackendInterpreterConfig::Join(
@@ -111,21 +111,22 @@ string BackendInterpreterConfig::Join(
   // and max batch size is fixed we change this
 }
 
-unordered_map<string, string> BackendInterpreterConfig::Split(
-    const string& backend_config) {
+unordered_map<string, string> BackendInterpreterConfig::Split(const string& backend_config) {
   unordered_map<string, string> backend_parameters;
 
   int delimiter_index = backend_config.find(':');
   if (delimiter_index < 0) {
     // ":" not found
     backend_parameters["ngraph_backend"] = backend_config;
-    backend_parameters["_ngraph_test_echo"] = "";
+    backend_parameters["device_config"] = "";
   } else {
     backend_parameters["ngraph_backend"] =
         backend_config.substr(0, delimiter_index);
-    backend_parameters["_ngraph_test_echo"] =
+    backend_parameters["test_echo"] =
         backend_config.substr(delimiter_index + 1);
   }
+  backend_parameters["test_echo"] = "";
+}
 
 BackendInterpreterConfig::~BackendInterpreterConfig() {
   NGRAPH_VLOG(3) << "BackendInterpreterConfig::~BackendInterpreterConfig() DONE";

@@ -49,10 +49,10 @@ Status NgraphOptimizer::Init(
         BackendManager::GetBackendAdditionalAttributes(config_backend_name);
     for (int i = 0; i < additional_attributes.size(); i++) {
       if (params.count(additional_attributes[i])) {
-        config_map[additional_attributes[i]] =
+        config_map["_ngraph_" + additional_attributes[i]] =
             params.at(additional_attributes[i]).s();
         NGRAPH_VLOG(3) << additional_attributes[i] << " "
-                       << config_map[additional_attributes[i]];
+                       << config_map["_ngraph_" + additional_attributes[i]];
       }
     }
   } else {
