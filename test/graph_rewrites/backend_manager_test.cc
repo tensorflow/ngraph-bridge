@@ -162,6 +162,7 @@ TEST(BackendManager, BackendClustering) {
   ASSERT_NE(A_cluster, B_cluster);
 }
 
+// Test GetBackendAdditionalAttributes API
 TEST(BackendManager, GetBackendAdditionalAttributes) {
   vector<string> default_backend_optional_attrs = {"_ngraph_device_config"};
   vector<string> nnpi_backend_optional_attrs = {
@@ -176,6 +177,7 @@ TEST(BackendManager, GetBackendAdditionalAttributes) {
   ASSERT_EQ(gpu_options, default_backend_optional_attrs);
 }
 
+// Test GetBackendAttributeValues API
 TEST(BackendManager, GetBackendAttributeValues) {
   auto cpu_options = BackendManager::GetBackendAttributeValues("CPU");
   auto nnpi_options = BackendManager::GetBackendAttributeValues("NNPI:3,5,6");
@@ -205,6 +207,7 @@ TEST(BackendManager, GetBackendAttributeValues) {
   ASSERT_EQ(plaidml_options["_ngraph_device_config"], "device:567:892_34");
 }
 
+// Test GetBackendCreationString API
 TEST(BackendManager, GetBackendCreationString) {
   unordered_map<string, string> cpu_map = {{"_ngraph_device_config", ""}};
   unordered_map<string, string> nnpi_map = {{"_ngraph_device_id", "5"}};

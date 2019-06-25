@@ -92,6 +92,11 @@ void BackendManager::SetConfig(
   ng::runtime::Backend* bend = GetBackend(backend_name);
   NGRAPH_VLOG(2) << "BackendManager::SetConfig() " << backend_name;
   std::string error;
+  // TODO: Figure out a better solution to this
+  // For now just removing _ngraph_ from the attribute name
+  // since ngraph expects them without it.
+  // Also, ngraph expects an ordered map so need to convert
+  // the unordered map to an ordered one.
   std::map<std::string, std::string> device_config_map;
   for (auto i = additional_attributes_map.begin();
        i != additional_attributes_map.end(); i++) {
@@ -101,7 +106,11 @@ void BackendManager::SetConfig(
       device_config_map.insert({i->first, i->second});
     }
   }
-  if (!bend->set_config(device_config_map, error)) {
+
+  // sending all the additional attributes to the backend
+  // it is backend's responsibility to find the one's it needs
+  // similar to the implementation for the Interpreter backend
+  if (!bend->set_config(additional_attributes_map, error)) {
     NGRAPH_VLOG(2) << "BackendManager::SetConfig(): Could not set config. "
                    << error;
   }

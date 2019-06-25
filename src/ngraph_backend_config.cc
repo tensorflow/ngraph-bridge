@@ -97,5 +97,39 @@ BackendNNPIConfig::~BackendNNPIConfig() {
   NGRAPH_VLOG(3) << "BackendNNPIConfig::~BackendNNPIConfig() DONE";
 };
 
+// BackendInterpreterConfig
+BackendInterpreterConfig::BackendInterpreterConfig() : BackendConfig("Interpreter") {
+  additional_attributes_ = {"_ngraph_test_echo"};
+}
+
+string BackendInterpreterConfig::Join(
+    const unordered_map<string, string>& additional_parameters) {
+  NGRAPH_VLOG(3) << "BackendInterpreterConfig::Join - return the backend name";
+  return backend_name_;
+
+  // Once the backend api for the other attributes like ice cores
+  // and max batch size is fixed we change this
+}
+
+unordered_map<string, string> BackendInterpreterConfig::Split(
+    const string& backend_config) {
+  unordered_map<string, string> backend_parameters;
+
+  int delimiter_index = backend_config.find(':');
+  if (delimiter_index < 0) {
+    // ":" not found
+    backend_parameters["ngraph_backend"] = backend_config;
+    backend_parameters["_ngraph_test_echo"] = "";
+  } else {
+    backend_parameters["ngraph_backend"] =
+        backend_config.substr(0, delimiter_index);
+    backend_parameters["_ngraph_test_echo"] =
+        backend_config.substr(delimiter_index + 1);
+  }
+
+BackendInterpreterConfig::~BackendInterpreterConfig() {
+  NGRAPH_VLOG(3) << "BackendInterpreterConfig::~BackendInterpreterConfig() DONE";
+};
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
