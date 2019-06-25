@@ -395,7 +395,6 @@ void OpControlOrder(const std::shared_ptr<ngraph::Function>& ng_function,
     }
   }
 }
-}
 
 bool IsProcessedByNgraphPass(Graph* g) {
   // TODO: place a dummy node as a marker
