@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 # ==============================================================================
 #  Copyright 2018-2019 Intel Corporation
 #
