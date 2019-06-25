@@ -63,6 +63,10 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/capture_variables.cc)
 endif()
 
+if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+    list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 message(STATUS "Compile Flags: ${CMAKE_CXX_FLAGS}")
@@ -99,6 +103,7 @@ target_link_libraries(
 )
 
 add_subdirectory(python)
+add_subdirectory(model_level_tests)
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
@@ -124,4 +129,9 @@ install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
     FILES_MATCHING PATTERN "*.pb"
+)
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
 )

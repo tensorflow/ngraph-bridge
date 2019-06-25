@@ -168,8 +168,28 @@ class NGraphEncapsulateOp : public OpKernel {
     }
 
     // Set the backend type for the op
-    OP_REQUIRES_OK(ctx,
-                   ctx->GetAttr<string>("ngraph_backend", &m_op_backend_name));
+    std::string backend_name;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &backend_name));
+    // Get the optional attributes
+    std::vector<std::string> additional_attributes =
+        BackendManager::GetBackendAdditionalAttributes(backend_name);
+    std::unordered_map<std::string, std::string> additional_attribute_map;
+    for (int i = 0; i < additional_attributes.size(); i++) {
+      std::string val;
+      // If an attribute does not exist, TF will return a non-ok status
+      OP_REQUIRES_OK(ctx, ctx->GetAttr<string>(additional_attributes[i], &val));
+      additional_attribute_map.insert({additional_attributes[i], val});
+    }
+
+    // Concatenate the backend_name:backend_config
+    try {
+      m_op_backend_name = BackendManager::GetBackendCreationString(
+          backend_name, additional_attribute_map);
+    } catch (const std::exception& exp) {
+      OP_REQUIRES_OK(ctx, errors::Internal(
+                              "Caught exception while creating backend string ",
+                              exp.what(), "\n"));
+    }
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
     BackendManager::CreateBackend(m_op_backend_name);
     event.Stop();
@@ -538,12 +558,13 @@ class NGraphEncapsulateOp : public OpKernel {
       bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
           m_graph_id, def().name(), i);
 
+      // If the input is from a Variable node, we are dealing with later
+      // just add a nullptr to the ng_inputs vector.
       if (ref_exists) {
         NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from Variable Node";
         ng_inputs.push_back(nullptr);
         continue;
       }
-
       NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from non Variable Node";
 #endif
       ng::Shape ng_shape(input_shapes[i].dims());
@@ -675,6 +696,7 @@ class NGraphEncapsulateOp : public OpKernel {
     ngraph::Event event_input_check_in_catalog(
         "Get Variable Inputs from Resource Manager", name(), "");
 
+    // Dealing with the input from Variable nodes here
     for (int input_index = 0; input_index < input_shapes.size();
          input_index++) {
       bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
@@ -699,6 +721,9 @@ class NGraphEncapsulateOp : public OpKernel {
         copy_log_str << "Var_Sync[" << input_index << "] ";
       }
 
+      void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
+      bool is_stale = !m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec);
+      var->ng_tensor()->set_stale(is_stale);
       ng_inputs[input_index] = var->ng_tensor();
 
       var->Unref();
@@ -941,7 +966,6 @@ class NGraphEncapsulateOp : public OpKernel {
                  (!tf_tensor_has_changed &&
                   !m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec));
     }
-
     // create a new ng tensor or use the last one
     std::shared_ptr<ng::runtime::Tensor> current_ng_tensor;
     if (need_new_tensor_creation) {
