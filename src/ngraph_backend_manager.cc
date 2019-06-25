@@ -85,6 +85,37 @@ void BackendManager::ReleaseBackend(const string& backend_name) {
   }
 }
 
+void BackendManager::SetConfig(
+    const string& backend_name,
+    std::unordered_map<std::string, std::string> additional_attributes_map) {
+  std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
+  ng::runtime::Backend* bend = GetBackend(backend_name);
+  NGRAPH_VLOG(2) << "BackendManager::SetConfig() " << backend_name;
+  std::string error;
+  // TODO: Figure out a better solution to this
+  // For now just removing _ngraph_ from the attribute name
+  // since ngraph expects them without it.
+  // Also, ngraph expects an ordered map so need to convert
+  // the unordered map to an ordered one.
+  std::map<std::string, std::string> device_config_map;
+  for (auto i = additional_attributes_map.begin();
+       i != additional_attributes_map.end(); i++) {
+    // Since _ngraph_device_id is sent as part of the backend creation string
+    // while creating the backend, we do not need to send it here.
+    if (i->first != "_ngraph_device_id") {
+      device_config_map.insert({i->first, i->second});
+    }
+  }
+
+  // sending all the additional attributes to the backend
+  // it is backend's responsibility to find the one's it needs
+  // similar to the implementation for the Interpreter backend
+  if (!bend->set_config(additional_attributes_map, error)) {
+    NGRAPH_VLOG(2) << "BackendManager::SetConfig(): Could not set config. "
+                   << error;
+  }
+}
+
 // Returns a backend pointer of the type specified by the backend name
 ng::runtime::Backend* BackendManager::GetBackend(const string& backend_name) {
   return BackendManager::ng_backend_map_.at(backend_name)->backend_ptr.get();
