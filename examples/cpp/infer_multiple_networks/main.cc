@@ -90,21 +90,21 @@ void PrintVersion() {
 
 int main(int argc, char** argv) {
   // parameters below need to modified as per model
-  string image = "3.png";
-  int batch_size = 12;
+  string image = "grace_hopper.jpg";
+  int batch_size = 1;
   // Vector size is same as the batch size, populating with single image
   vector<string> images(batch_size, image);
-  string graph = "mnist_inference_quantized_trained_12212018.pb";
+  string graph = "inception_v3_2016_08_28_frozen.pb";
   string labels = "";
-  int input_width = 28;
-  int input_height = 28;
+  int input_width = 299;
+  int input_height = 299;
   float input_mean = 0.0;
-  float input_std = 1;
-  string input_layer = "Placeholder";
-  string output_layer = "softmax/Softmax";
+  float input_std = 255;
+  string input_layer = "input";
+  string output_layer = "InceptionV3/Predictions/Reshape_1";
   bool use_NCHW = false;
   bool preload_images = true;
-  int input_channels = 1;
+  int input_channels = 3;
   int iteration_count = 10;
 
   std::vector<tf::Flag> flag_list = {

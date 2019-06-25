@@ -54,11 +54,11 @@ InferenceEngine::InferenceEngine(const string& name, const string& backend)
     : m_name(name) {}
 Status InferenceEngine::Load(const string& network,
                              const std::vector<string>& image_files,
-                             const int& input_width, const int& input_height,
-                             const float& input_mean, const float& input_std,
+                             int input_width, int input_height,
+                             float input_mean, float input_std,
                              const string& input_layer,
                              const string& output_layer, bool use_NCHW,
-                             bool preload_images, const int& input_channels) {
+                             bool preload_images, int input_channels) {
   // Load the network
   TF_CHECK_OK(CreateSession(network, m_session));
 

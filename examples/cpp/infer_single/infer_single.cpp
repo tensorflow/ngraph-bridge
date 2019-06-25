@@ -137,7 +137,7 @@ std::unique_ptr<tf::Session> CreateSession(const string& graph_filename) {
 int main(int argc, char** argv) {
   // parameters below need to modified as per model
   string image = "image_00000.png";
-  int batch_size = 12;
+  int batch_size = 1;
   // Vector size is same as the batch size, populating with single image
   std::vector<string> images(batch_size, image);
   string graph =
