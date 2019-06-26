@@ -47,7 +47,7 @@ Status NgraphOptimizer::Init(
     NGRAPH_VLOG(3) << config_backend_name;
     std::vector<std::string> additional_attributes =
         BackendManager::GetBackendAdditionalAttributes(config_backend_name);
-    for (unsigned int i = 0; i < additional_attributes.size(); i++) {
+    for (size_t i = 0; i < additional_attributes.size(); i++) {
       if (params.count(additional_attributes[i])) {
         config_map[additional_attributes[i]] =
             params.at(additional_attributes[i]).s();
@@ -108,7 +108,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   std::set<string> nodes_to_preserve;
 
   // Feed Nodes
-  for (unsigned int i = 0; i < item.feed.size(); i++) {
+  for (size_t i = 0; i < item.feed.size(); i++) {
     nodes_to_preserve.insert(item.feed[i].first);
   }
 

@@ -39,6 +39,7 @@
 #include "ngraph/distributed.hpp"
 #endif
 
+using tensorflow::int32;
 using namespace std;
 namespace ng = ngraph;
 
@@ -51,8 +52,8 @@ static bool VecStrCmp(const std::vector<string>& a,
   return a == b;
 }
 
-static Status ValidateInputCount(const Node* op, size_t count) {
-  if ((unsigned)op->num_inputs() != count) {
+static Status ValidateInputCount(const Node* op, tensorflow::int32 count) {
+  if (op->num_inputs() != count) {
     return errors::InvalidArgument("\"", op->name(), "\" requires ", count,
                                    " input(s), got ", op->num_inputs(),
                                    " instead");
@@ -60,8 +61,8 @@ static Status ValidateInputCount(const Node* op, size_t count) {
   return Status::OK();
 }
 
-static Status ValidateInputCountMin(const Node* op, size_t count) {
-  if ((unsigned)op->num_inputs() < count) {
+static Status ValidateInputCountMin(const Node* op, tensorflow::int32 count) {
+  if (op->num_inputs() < count) {
     return errors::InvalidArgument("\"", op->name(), "\" requires at least ",
                                    count, " input(s), got ", op->num_inputs(),
                                    " instead");
@@ -699,7 +700,7 @@ static Status TranslateAvgPoolGradOp(
   NGRAPH_VLOG(3) << tf_data_format;
 
   ng::Shape ng_orig_input_shape;
-  for (unsigned int i = 0; i < tf_orig_input_shape_vec.size(); i++) {
+  for (size_t i = 0; i < tf_orig_input_shape_vec.size(); i++) {
     ng_orig_input_shape.push_back(tf_orig_input_shape_vec[i]);
   }
 
@@ -815,7 +816,7 @@ static Status TranslateBatchMatMulOp(
     } else {
       // Find the compound size for dim1 so as to reshape to 3D
       size_t compound_size = 1;
-      for (unsigned int i = 0; i < out_axes.size(); i++) {
+      for (size_t i = 0; i < out_axes.size(); i++) {
         compound_size *= ng_lhs_shape[i];
       }
 
@@ -876,13 +877,13 @@ static Status TranslateBatchMatMulOp(
           ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs);
 
       size_t compound_size = 1;
-      for (unsigned int i = 0; i < out_axes.size(); i++) {
+      for (size_t i = 0; i < out_axes.size(); i++) {
         compound_size *= output_shape[i];
       }
       auto dot_axes = out_axes;
       dot_axes.push_back(n_dims - 2);
       dot_axes.push_back(n_dims - 1);
-      for (unsigned int i = 0; i < out_axes.size(); i++) {
+      for (size_t i = 0; i < out_axes.size(); i++) {
         dot_axes.push_back(n_dims + i);
       }
       ng::Shape dot_shape = {compound_size, ng_lhs_shape[n_dims - 2],
@@ -2252,13 +2253,13 @@ static Status TranslateGatherV2Op(
   // Negative axis is supported. Accounting for that
   auto ng_input_shape = ng_input->get_shape();
   size_t ng_input_rank = ng_input_shape.size();
-  int axis;
+  size_t axis;
   if (tf_axis[0] >= 0) {
     axis = tf_axis[0];
   } else {
     axis = tf_axis[0] + ng_input_rank;
   }
-  if (axis < 0 || (unsigned)axis >= ng_input_rank) {
+  if (axis < 0 || axis >= ng_input_rank) {
     return errors::InvalidArgument("Expected axis in the range [-",
                                    ng_input_rank, ", ", ng_input_rank,
                                    "), but got ", tf_axis[0]);
@@ -2480,7 +2481,7 @@ static Status TranslateL2LossOp(
 
   size_t input_rank = ng_input->get_shape().size();
   ng::AxisSet axes;
-  for (auto i = 0; (unsigned)i < input_rank; ++i) {
+  for (size_t i = 0; i < input_rank; ++i) {
     axes.insert(i);
   }
 
@@ -2941,7 +2942,7 @@ static Status TranslatePackOp(
 
   ng::NodeVector ng_concat_inputs;
 
-  for (size_t i = 0; i < (unsigned)op->num_inputs(); ++i) {
+  for (tensorflow::int32 i = 0; i < op->num_inputs(); ++i) {
     shared_ptr<ng::Node> ng_input;
     TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, i, &ng_input));
     ng_concat_inputs.push_back(ng_input);
@@ -2961,8 +2962,8 @@ static Status TranslatePackOp(
 
   // if inputs shape is (2, 3, 4), and axis is 1, then we want
   // to create output_shape (2, num_inputs, 3, 4)
-  for (size_t i = 0; i < input_rank; ++i) {
-    output_shape[(i < (unsigned)concat_axis) ? i : i + 1] = input_shape[i];
+  for (auto i = 0; i < input_rank; ++i) {
+    output_shape[(i < concat_axis) ? i : i + 1] = input_shape[i];
   }
   output_shape[concat_axis] = op->num_inputs();
 
@@ -3650,7 +3651,7 @@ static Status TranslateShapeOp(
   auto shape = ng::Shape(1, rank);
 
   std::vector<int> values(rank);
-  for (unsigned int i = 0; i < rank; i++) {
+  for (auto i = 0; i < rank; i++) {
     values[i] = input_shape[i];
   }
   SaveNgOp(ng_op_map, op->name(),
@@ -4073,7 +4074,7 @@ static Status TranslateSplitVOp(
 
   // Find out the total length of the splits and locate -1 's index, if any
   bool has_one_neg = false;
-  for (unsigned int i = 0; i < lengths.size(); ++i) {
+  for (size_t i = 0; i < lengths.size(); ++i) {
     if (lengths[i] != -1) {
       length += lengths[i];
     } else {
@@ -4101,7 +4102,7 @@ static Status TranslateSplitVOp(
   int cursor = 0;
 
   if (lengths.size() != 1) {
-    for (unsigned int i = 0; i < lengths.size(); ++i) {
+    for (size_t i = 0; i < lengths.size(); ++i) {
       lower[split_dim] = cursor;
       cursor += lengths[i];
       upper[split_dim] = cursor;
@@ -4147,7 +4148,7 @@ static Status TranslateSqueezeOp(
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "squeeze_dims", &tf_axis));
 
   // If input dimension is negative, make it positive
-  for (unsigned int i = 0; i < tf_axis.size(); i++) {
+  for (size_t i = 0; i < tf_axis.size(); i++) {
     tf_axis[i] = tf_axis[i] < 0 ? (int32)(input_dims) + tf_axis[i] : tf_axis[i];
   }
 
@@ -4428,7 +4429,7 @@ static Status TranslateStridedSliceOp(
                                                  // vector<bool>, but it is
                                                  // optimized, so tie won't
                                                  // work. Hence using size_t
-  for (unsigned int dim_idx = 0; dim_idx < begin_vec.size(); dim_idx++) {
+  for (size_t dim_idx = 0; dim_idx < begin_vec.size(); dim_idx++) {
     std::tie(ng_begin_vec[dim_idx], ng_end_vec[dim_idx], ng_stride_vec[dim_idx],
              ng_needs_reversal[dim_idx]) =
         tf_to_ng(begin_vec[dim_idx], end_vec[dim_idx], stride_vec[dim_idx],
@@ -4439,7 +4440,7 @@ static Status TranslateStridedSliceOp(
 
   // filter out negative stride dimensions
   vector<size_t> neg_strides;
-  for (unsigned int dim_idx = 0; dim_idx < in_rank; dim_idx++) {
+  for (size_t dim_idx = 0; dim_idx < in_rank; dim_idx++) {
     if (ng_needs_reversal[dim_idx]) {
       neg_strides.push_back(dim_idx);
     }
@@ -4464,7 +4465,7 @@ static Status TranslateStridedSliceOp(
     // Note: do not use rank instead of ng_begin_vec.size()
     // since ng_begin_vec.size() can be less than rank, and
     // shrink_mask will have atmost ng_begin_vec.size() elements
-    for (unsigned int i = 0; i < ng_begin_vec.size(); i++) {
+    for (size_t i = 0; i < ng_begin_vec.size(); i++) {
       if ((shrink_axis_mask & 1) != 1) {
         output_shape.push_back(ng_end_vec[i] - ng_begin_vec[i]);
       } else {
@@ -4543,7 +4544,7 @@ static Status TranslateTileOp(
   std::shared_ptr<ng::Node> ng_output = ng_input;
   ng::Shape output_shape = ng_input_shape;
   bool is_empty = false;
-  for (unsigned int i = 0; i < ng_input_shape.size(); i++) {
+  for (size_t i = 0; i < ng_input_shape.size(); i++) {
     if (multiples[i] == 0) {
       is_empty = true;
     }
@@ -4555,7 +4556,7 @@ static Status TranslateTileOp(
                  op->name(), ng_input->get_element_type(), output_shape,
                  std::vector<std::string>(ng::shape_size(output_shape), "0")));
   } else {
-    for (unsigned int i = 0; i < ng_input_shape.size(); i++) {
+    for (size_t i = 0; i < ng_input_shape.size(); i++) {
       if (multiples[i] < 0) {
         return errors::InvalidArgument("Expected multiples[", i,
                                        "] >= 0, but got ", multiples[i]);
@@ -4630,11 +4631,11 @@ static Status TranslateTransposeOp(
   auto ng_input_rank = ng_input->get_shape().size();
   vector<bool> count(ng_input_rank, false);
   for (auto p : permutation) {
-    if (0 <= p && (unsigned)p < ng_input_rank) {
+    if (0 <= p && p < ng_input_rank) {
       count[p] = true;
     }
   }
-  for (unsigned int i = 0; i < ng_input_rank; i++) {
+  for (auto i = 0; i < ng_input_rank; i++) {
     if (!count[i]) {
       return errors::InvalidArgument(i, " is missing from {",
                                      ng::join(permutation), "}.");
@@ -4681,7 +4682,7 @@ static Status TranslateUnpackOp(
 
   ng::Shape output_shape;
   for (size_t i = 0; i < input_rank; ++i) {
-    if (i != (unsigned)unpack_axis) {
+    if (i != unpack_axis) {
       output_shape.push_back(input_shape[i]);
     }
   }
