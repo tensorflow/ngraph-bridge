@@ -30,8 +30,7 @@ BackendConfig::BackendConfig(const string& backend_name) {
 
 string BackendConfig::Join(
     const unordered_map<string, string>& additional_parameters) {
-  // If _ngraph_device_config is not found
-  // throw an error
+  // If device_config is not found throw an error
   try {
     additional_parameters.at("device_config");
   } catch (std::out_of_range e1) {
@@ -78,8 +77,7 @@ BackendNNPIConfig::BackendNNPIConfig() : BackendConfig("NNPI") {
 
 string BackendNNPIConfig::Join(
     const unordered_map<string, string>& additional_parameters) {
-  // If _ngraph_device_id is not found
-  // throw an error
+  // If device_id is not found throw an error
   try {
     additional_parameters.at("device_id");
   } catch (std::out_of_range e1) {
@@ -97,7 +95,7 @@ BackendNNPIConfig::~BackendNNPIConfig() {
 
 // BackendInterpreterConfig
 BackendInterpreterConfig::BackendInterpreterConfig()
-    : BackendConfig("Interpreter") {
+    : BackendConfig("INTERPRETER") {
   additional_attributes_ = {"test_echo"};
 }
 
@@ -118,14 +116,15 @@ unordered_map<string, string> BackendInterpreterConfig::Split(
   if (delimiter_index < 0) {
     // ":" not found
     backend_parameters["ngraph_backend"] = backend_config;
-    backend_parameters["device_config"] = "";
+    backend_parameters["_ngraph_test_echo"] = "";
   } else {
     backend_parameters["ngraph_backend"] =
         backend_config.substr(0, delimiter_index);
-    backend_parameters["test_echo"] =
+    backend_parameters["_ngraph_test_echo"] =
         backend_config.substr(delimiter_index + 1);
   }
-  backend_parameters["test_echo"] = "";
+
+  return backend_parameters;
 }
 
 BackendInterpreterConfig::~BackendInterpreterConfig() {

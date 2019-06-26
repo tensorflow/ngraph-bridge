@@ -147,6 +147,11 @@ std::unique_ptr<BackendConfig>& BackendManager::GetBackendConfig(
       BackendManager::ng_backendconfig_map_.insert(std::make_pair(
           backend_name,
           std::unique_ptr<BackendNNPIConfig>(new BackendNNPIConfig())));
+    }
+    if (backend_name == "INTERPRETER") {
+      BackendManager::ng_backendconfig_map_.insert(std::make_pair(
+          backend_name, std::unique_ptr<BackendInterpreterConfig>(
+                            new BackendInterpreterConfig())));
     } else {
       BackendManager::ng_backendconfig_map_.insert(std::make_pair(
           backend_name,

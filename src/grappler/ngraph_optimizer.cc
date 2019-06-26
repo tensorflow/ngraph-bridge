@@ -47,7 +47,7 @@ Status NgraphOptimizer::Init(
     NGRAPH_VLOG(3) << config_backend_name;
     std::vector<std::string> additional_attributes =
         BackendManager::GetBackendAdditionalAttributes(config_backend_name);
-    for (int i = 0; i < additional_attributes.size(); i++) {
+    for (size_t i = 0; i < additional_attributes.size(); i++) {
       if (params.count(additional_attributes[i])) {
         config_map["_ngraph_" + additional_attributes[i]] =
             params.at(additional_attributes[i]).s();

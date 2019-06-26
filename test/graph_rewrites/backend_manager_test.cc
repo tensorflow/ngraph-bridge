@@ -224,10 +224,10 @@ TEST(BackendManager, GetBackendCreationString) {
 
   // throw errors
   unordered_map<string, string> test_empty_map = {};
-  // "_ngraph_device_config" is not valid for NNPI
+  // "device_config" is not valid for NNPI
   unordered_map<string, string> test_missing_config_nnpi = {
       {"device_config", "345"}};
-  // "_ngraph_device_id" is not valid for default configs
+  // "device_id" is not valid for default configs
   unordered_map<string, string> test_missing_config_default = {
       {"device_id", "45"}};
 
