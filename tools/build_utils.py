@@ -51,7 +51,7 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
       - command_executor('ls -lrt')
       - command_executor(['ls', '-lrt'])
     '''
-    if type(cmd) == type([]):  #if its a list, convert to string
+    if type(cmd) == type([]):  # if its a list, convert to string
         cmd = ' '.join(cmd)
     if verbose:
         tag = 'Running COMMAND: ' if msg is None else msg
@@ -192,7 +192,6 @@ def setup_venv(venv_dir):
 
 
 def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
-
     base = sys.prefix
     python_lib_path = os.path.join(base, 'lib', 'python%s' % sys.version[:3],
                                    'site-packages')
@@ -263,7 +262,6 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
 
 
 def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
-
     pwd = os.getcwd()
 
     base = sys.prefix
@@ -317,8 +315,8 @@ def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
 
 def copy_tf_cc_lib_to_artifacts(artifacts_dir, tf_prebuilt):
     tf_cc_lib_name = 'libtensorflow_cc.so.1'
-    #if (platform.system() == 'Darwin'):
-    #tf_cc_lib_name = 'libtensorflow_cc.1.dylib'
+    # if (platform.system() == 'Darwin'):
+    # tf_cc_lib_name = 'libtensorflow_cc.1.dylib'
     try:
         doomed_file = os.path.join(artifacts_dir, tf_cc_lib_name)
         os.unlink(doomed_file)
@@ -378,7 +376,6 @@ def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
 
 
 def install_tensorflow(venv_dir, artifacts_dir):
-
     # Load the virtual env
     load_venv(venv_dir)
 
@@ -504,7 +501,6 @@ def install_ngraph_tf(venv_dir, ngtf_pip_whl):
 
 
 def download_repo(target_name, repo, version):
-
     # First download to a temp folder
     call(["git", "clone", repo, target_name])
 
@@ -588,8 +584,19 @@ def run_in_docker(buildcmd, args):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
+    proxy = ""
+    if "ALL_PROXY" in os.environ:
+        proxy += "-eALL_PROXY=" + os.environ["ALL_PROXY"]
+    if "http_proxy" in os.environ:
+        proxy += " -ehttp_proxy=" + os.environ["http_proxy"]
+    if "HTTP_PROXY" in os.environ:
+        proxy += " -eHTTP_PROXY" + os.environ["HTTP_PROXY"]
+    if "https_proxy" in os.environ:
+        proxy += " -e https_proxy=" + os.environ["https_proxy"]
+    if "HTTPS_PROXY" in os.environ:
+        proxy += " -e HTTPS_PROXY=" + os.environ["HTTPS_PROXY"]
     cmd = [
-        "docker", "exec", "-e"
+        "docker", "exec", proxy, "-e"
         "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-e",
         "TEST_TMPDIR=/bazel/.cache/bazel", "-u",
         str(u) + ":" + str(g), "ngtf"
