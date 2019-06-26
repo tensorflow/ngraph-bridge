@@ -47,7 +47,8 @@ class BackendConfig {
 class BackendNNPIConfig : public BackendConfig {
  public:
   BackendNNPIConfig();
-  string Join(const unordered_map<string, string>& additional_parameters) override;
+  string Join(
+      const unordered_map<string, string>& additional_parameters) override;
   virtual ~BackendNNPIConfig();
 };
 
@@ -55,7 +56,8 @@ class BackendInterpreterConfig : public BackendConfig {
  public:
   BackendInterpreterConfig();
   unordered_map<string, string> Split(const string& backend_config) override;
-  string Join(const unordered_map<string, string>& additional_parameters) override;
+  string Join(
+      const unordered_map<string, string>& additional_parameters) override;
   virtual ~BackendInterpreterConfig();
 };
 

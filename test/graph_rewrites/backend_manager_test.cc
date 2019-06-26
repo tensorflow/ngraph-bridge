@@ -165,8 +165,8 @@ TEST(BackendManager, BackendClustering) {
 // Test GetBackendAdditionalAttributes API
 TEST(BackendManager, GetBackendAdditionalAttributes) {
   vector<string> default_backend_optional_attrs = {"device_config"};
-  vector<string> nnpi_backend_optional_attrs = {
-      "device_id", "ice_cores", "max_batch_size"};
+  vector<string> nnpi_backend_optional_attrs = {"device_id", "ice_cores",
+                                                "max_batch_size"};
 
   auto cpu_options = BackendManager::GetBackendAdditionalAttributes("CPU");
   auto nnpi_options = BackendManager::GetBackendAdditionalAttributes("NNPI");
@@ -248,8 +248,6 @@ TEST(BackendManager, GetBackendCreationString) {
                    "GPU", test_missing_config_default),
                std::out_of_range);
 }
-
-
 
 }  // namespace testing
 }  // namespace ngraph_bridge

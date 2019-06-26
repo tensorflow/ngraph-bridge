@@ -37,8 +37,7 @@ string BackendConfig::Join(
   } catch (std::out_of_range e1) {
     throw std::out_of_range("Attribute device_config not found");
   }
-  return backend_name_ + ":" +
-         additional_parameters.at("device_config");
+  return backend_name_ + ":" + additional_parameters.at("device_config");
 }
 
 unordered_map<string, string> BackendConfig::Split(
@@ -74,8 +73,7 @@ BackendConfig::~BackendConfig() {
 
 // BackendNNPIConfig
 BackendNNPIConfig::BackendNNPIConfig() : BackendConfig("NNPI") {
-  additional_attributes_ = {"device_id", "ice_cores",
-                            "max_batch_size"};
+  additional_attributes_ = {"device_id", "ice_cores", "max_batch_size"};
 }
 
 string BackendNNPIConfig::Join(
@@ -98,7 +96,8 @@ BackendNNPIConfig::~BackendNNPIConfig() {
 };
 
 // BackendInterpreterConfig
-BackendInterpreterConfig::BackendInterpreterConfig() : BackendConfig("Interpreter") {
+BackendInterpreterConfig::BackendInterpreterConfig()
+    : BackendConfig("Interpreter") {
   additional_attributes_ = {"test_echo"};
 }
 
@@ -111,7 +110,8 @@ string BackendInterpreterConfig::Join(
   // and max batch size is fixed we change this
 }
 
-unordered_map<string, string> BackendInterpreterConfig::Split(const string& backend_config) {
+unordered_map<string, string> BackendInterpreterConfig::Split(
+    const string& backend_config) {
   unordered_map<string, string> backend_parameters;
 
   int delimiter_index = backend_config.find(':');
@@ -129,7 +129,8 @@ unordered_map<string, string> BackendInterpreterConfig::Split(const string& back
 }
 
 BackendInterpreterConfig::~BackendInterpreterConfig() {
-  NGRAPH_VLOG(3) << "BackendInterpreterConfig::~BackendInterpreterConfig() DONE";
+  NGRAPH_VLOG(3)
+      << "BackendInterpreterConfig::~BackendInterpreterConfig() DONE";
 };
 
 }  // namespace ngraph_bridge

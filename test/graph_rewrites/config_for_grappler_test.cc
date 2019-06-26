@@ -81,8 +81,7 @@ TEST(GrapplerConfig, RConfig1) {
   auto* custom_config = rewriter_config.add_custom_optimizers();
   custom_config->set_name("ngraph-optimizer");
   (*custom_config->mutable_parameter_map())["ngraph_backend"] = backend_name;
-  (*custom_config->mutable_parameter_map())["device_config"] =
-      device_config;
+  (*custom_config->mutable_parameter_map())["device_config"] = device_config;
 
   // Run grappler
   tensorflow::grappler::MetaOptimizer optimizer(nullptr, config_proto);

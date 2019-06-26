@@ -94,8 +94,8 @@ void BackendManager::SetConfig(
   std::string error;
   std::map<std::string, std::string> device_config_map;
   for (auto i = additional_attributes_map.begin();
-      i != additional_attributes_map.end(); i++) {
-      device_config_map.insert({i->first, i->second});
+       i != additional_attributes_map.end(); i++) {
+    device_config_map.insert({i->first, i->second});
   }
   // sending all the additional attributes to the backend
   // it is backend's responsibility to find the one's it needs

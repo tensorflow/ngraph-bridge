@@ -174,9 +174,9 @@ class NGraphEncapsulateOp : public OpKernel {
     std::vector<std::string> additional_attributes =
         BackendManager::GetBackendAdditionalAttributes(backend_name);
     std::unordered_map<std::string, std::string> additional_attribute_map;
-    for (unsigned int i = 0; i < additional_attributes.size(); i++) {
+    for (size_t i = 0; i < additional_attributes.size(); i++) {
       std::string val;
-      // Append _ngraph_ to the additional attributes since they 
+      // Append _ngraph_ to the additional attributes since they
       // are added as optional attributes with a `ngraph` prefix
       // to the encapsulate node
       std::string attr = "_ngraph_" + additional_attributes[i];
