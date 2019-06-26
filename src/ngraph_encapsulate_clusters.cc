@@ -74,7 +74,7 @@ static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
-    AOTInfo aot_info) {
+    std::unordered_map<std::string, std::string> device_config, AOTInfo aot_info) {
   // A map from cluster indices to the expected device name for nodes
   // in that cluster.
   std::map<int, std::string> device_name_map;
@@ -330,15 +330,24 @@ Status EncapsulateClusters(
     }
 
     Node* n;
-    Status status = NodeBuilder(ss.str(), "NGraphEncapsulate")
-                        .Attr("ngraph_cluster", cluster_idx)
-                        .Attr("ngraph_backend", cluster_backend)
-                        .Attr("Targuments", input_types)
-                        .Attr("Tresults", cluster_output_dt_map[cluster_idx])
-                        .Attr("ngraph_graph_id", graph_id)
-                        .Device(device_name_map[cluster_idx])
-                        .Input(inputs)
-                        .Finalize(graph, &n);
+    NodeBuilder nb = NodeBuilder(ss.str(), "NGraphEncapsulate")
+                         .Attr("ngraph_cluster", cluster_idx)
+                         .Attr("ngraph_backend", cluster_backend)
+                         .Attr("Targuments", input_types)
+                         .Attr("Tresults", cluster_output_dt_map[cluster_idx])
+                         .Attr("ngraph_graph_id", graph_id)
+                         .Device(device_name_map[cluster_idx])
+                         .Input(inputs);
+    if (!device_config.empty()) {
+      NGRAPH_VLOG(3) << "Device config is not empty";
+      for (auto const& i : device_config) {
+        // Adding the optional attributes
+        NGRAPH_VLOG(3) << "Attaching Attribute " << i.first << " Val "
+                       << i.second;
+        nb.Attr(i.first, i.second);
+      }
+    }
+    Status status = nb.Finalize(graph, &n);
     TF_RETURN_IF_ERROR(status);
     n->set_assigned_device_name(device_name_map[cluster_idx]);
 

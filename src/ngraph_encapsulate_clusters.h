@@ -26,7 +26,7 @@ typedef std::pair<bool, std::map<std::string, set<vector<int>>>> AOTInfo;
 
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
-    AOTInfo aot_info);
+    std::unordered_map<std::string, std::string> device_config, AOTInfo aot_info);
 
 }  // namespace ngraph_bridge
 
