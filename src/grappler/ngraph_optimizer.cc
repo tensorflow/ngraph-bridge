@@ -108,7 +108,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   std::set<string> nodes_to_preserve;
 
   // Feed Nodes
-  for (int i = 0; i < item.feed.size(); i++) {
+  for (size_t i = 0; i < item.feed.size(); i++) {
     nodes_to_preserve.insert(item.feed[i].first);
   }
 

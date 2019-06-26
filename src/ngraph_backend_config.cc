@@ -103,9 +103,6 @@ string BackendInterpreterConfig::Join(
     const unordered_map<string, string>& additional_parameters) {
   NGRAPH_VLOG(3) << "BackendInterpreterConfig::Join - return the backend name";
   return backend_name_;
-
-  // Once the backend api for the other attributes like ice cores
-  // and max batch size is fixed we change this
 }
 
 unordered_map<string, string> BackendInterpreterConfig::Split(
@@ -123,7 +120,6 @@ unordered_map<string, string> BackendInterpreterConfig::Split(
     backend_parameters["_ngraph_test_echo"] =
         backend_config.substr(delimiter_index + 1);
   }
-
   return backend_parameters;
 }
 
