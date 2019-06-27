@@ -372,7 +372,7 @@ bool DumpTrackedGraphs() {
          std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
 }
 
-#if defined (NGRAPH_DISTRIBUTED)
+#if defined(NGRAPH_DISTRIBUTED)
 void OpControlOrder(const std::shared_ptr<ngraph::Function>& ng_function,
                     const std::string& op_name) {
   // Get the serialized ops and stored the allreduce ops to a vector and
