@@ -2963,7 +2963,7 @@ static Status TranslatePackOp(
   // if inputs shape is (2, 3, 4), and axis is 1, then we want
   // to create output_shape (2, num_inputs, 3, 4)
   for (size_t i = 0; i < input_rank; ++i) {
-    output_shape[(i < static_cast<unsigned>(concat_axis)) ? i : i + 1] =
+    output_shape[(i < concat_axis) ? i : i + 1] =
         input_shape[i];
   }
   output_shape[concat_axis] = op->num_inputs();
@@ -2971,7 +2971,7 @@ static Status TranslatePackOp(
   ng::AxisVector ng_axis_order(input_rank);
   std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
 
-  if (static_cast<unsigned>(concat_axis) == input_rank) {
+  if (concat_axis == input_rank) {
     // need to add extra dimension before we concatenate
     // along it
     ng::Shape extended_shape = input_shape;
@@ -3765,7 +3765,7 @@ static Status TranslateSliceOp(
     if (lower_vec[i] > upper_vec[i])
       err_stream << "upper < lower: upper = " << upper_vec[i]
                  << ", lower = " << lower_vec[i] << "\n";
-    if (static_cast<unsigned>(upper_vec[i]) > ng_input_shape[i])
+    if (upper_vec[i] > ng_input_shape[i])
       err_stream << "dim < upper: dim = " << ng_input_shape[i]
                  << ", upper = " << upper_vec[i] << "\n";
 
@@ -4091,7 +4091,7 @@ static Status TranslateSplitVOp(
     lengths[idx] = shape[split_dim] - length;
   }
 
-  if ((!has_one_neg && static_cast<unsigned>(length) != shape[split_dim]) ||
+  if ((!has_one_neg && length != shape[split_dim]) ||
       (has_one_neg && lengths[idx] < 0)) {
     return errors::InvalidArgument(
         "The length of size_splits must sum to the value of the dimension "
@@ -4317,7 +4317,7 @@ static Status TranslateStridedSliceOp(
     size_t ng_begin_idx, ng_end_idx;
 
     if (!shrink_mask) {
-      if (clamped_begin_idx == static_cast<unsigned>(clamped_end_idx)) {
+      if (clamped_begin_idx == clamped_end_idx) {
         // Empty due to matching indexes
         ng_begin_idx = clamped_begin_idx;
         // Type safety: clamped_begin_idx == clamped_end_idx implies,
@@ -4681,7 +4681,7 @@ static Status TranslateUnpackOp(
 
   ng::Shape output_shape;
   for (size_t i = 0; i < input_rank; ++i) {
-    if (i != static_cast<unsigned>(unpack_axis)) {
+    if (i != unpack_axis) {
       output_shape.push_back(input_shape[i]);
     }
   }
