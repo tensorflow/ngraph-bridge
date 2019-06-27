@@ -339,7 +339,9 @@ def main():
             cmdpart = ["pip", "install"]
             if os.getenv("IN_DOCKER") != None:
                 cmdpart.append("--cache-dir=" + os.getcwd())
-            cmd = cmdpart + ["-U", "tensorflow==" + arguments.tf_version]
+            if arguments.tf_version:
+                tf_version = arguments.tf_version
+            cmd = cmdpart + ["-U", "tensorflow==" + tf_version]
             command_executor(cmd)
             cxx_abi = get_tf_cxxabi()
 
