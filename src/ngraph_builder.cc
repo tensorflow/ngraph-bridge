@@ -2962,8 +2962,9 @@ static Status TranslatePackOp(
 
   // if inputs shape is (2, 3, 4), and axis is 1, then we want
   // to create output_shape (2, num_inputs, 3, 4)
-  for (auto i = 0; i < input_rank; ++i) {
-    output_shape[(i < concat_axis) ? i : i + 1] = input_shape[i];
+  for (size_t i = 0; i < input_rank; ++i) {
+    output_shape[(i < static_cast<unsigned>(concat_axis)) ? i : i + 1] =
+        input_shape[i];
   }
   output_shape[concat_axis] = op->num_inputs();
 
@@ -3639,7 +3640,7 @@ static Status TranslateShapeOp(
   auto input_shape = ng_input->get_shape();
 
   // the rank of the input tensor which will be the shape to the Constant Op
-  auto rank = input_shape.size();
+  size_t rank = input_shape.size();
 
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
@@ -3651,7 +3652,7 @@ static Status TranslateShapeOp(
   auto shape = ng::Shape(1, rank);
 
   std::vector<int> values(rank);
-  for (auto i = 0; i < rank; i++) {
+  for (size_t i = 0; i < rank; i++) {
     values[i] = input_shape[i];
   }
   SaveNgOp(ng_op_map, op->name(),
@@ -3764,7 +3765,7 @@ static Status TranslateSliceOp(
     if (lower_vec[i] > upper_vec[i])
       err_stream << "upper < lower: upper = " << upper_vec[i]
                  << ", lower = " << lower_vec[i] << "\n";
-    if ((unsigned)upper_vec[i] > ng_input_shape[i])
+    if (static_cast<unsigned>(upper_vec[i]) > ng_input_shape[i])
       err_stream << "dim < upper: dim = " << ng_input_shape[i]
                  << ", upper = " << upper_vec[i] << "\n";
 
@@ -3863,10 +3864,8 @@ static Status TranslateSpaceToDepthOp(
   // Store the strided_slice result for concat
   std::vector<std::shared_ptr<ng::Node>> strided_slice_result;
 
-  for (size_t counter_height = 0; counter_height < (unsigned)block_size;
-       counter_height++) {
-    for (size_t counter_width = 0; counter_width < (unsigned)block_size;
-         counter_width++) {
+  for (int counter_height = 0; counter_height < block_size; counter_height++) {
+    for (int counter_width = 0; counter_width < block_size; counter_width++) {
       std::vector<size_t> begin = {0, 0, 0, 0};
       begin[width_index] = counter_width;
       begin[height_index] = counter_height;
@@ -4631,11 +4630,11 @@ static Status TranslateTransposeOp(
   auto ng_input_rank = ng_input->get_shape().size();
   vector<bool> count(ng_input_rank, false);
   for (auto p : permutation) {
-    if (0 <= p && p < ng_input_rank) {
+    if (0 <= p && p < static_cast<int>(ng_input_rank)) {
       count[p] = true;
     }
   }
-  for (auto i = 0; i < ng_input_rank; i++) {
+  for (size_t i = 0; i < ng_input_rank; i++) {
     if (!count[i]) {
       return errors::InvalidArgument(i, " is missing from {",
                                      ng::join(permutation), "}.");
@@ -4682,7 +4681,7 @@ static Status TranslateUnpackOp(
 
   ng::Shape output_shape;
   for (size_t i = 0; i < input_rank; ++i) {
-    if (i != unpack_axis) {
+    if (i != static_cast<unsigned>(unpack_axis)) {
       output_shape.push_back(input_shape[i]);
     }
   }
