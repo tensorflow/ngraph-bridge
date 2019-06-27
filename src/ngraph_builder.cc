@@ -2971,7 +2971,7 @@ static Status TranslatePackOp(
   ng::AxisVector ng_axis_order(input_rank);
   std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
 
-  if ((unsigned)concat_axis == input_rank) {
+  if (static_cast<unsigned>(concat_axis) == input_rank) {
     // need to add extra dimension before we concatenate
     // along it
     ng::Shape extended_shape = input_shape;
@@ -4022,7 +4022,7 @@ static Status TranslateSplitOp(
   int size = shape[split_dim] / num_split;
   int cursor = 0;
 
-  for (size_t i = 0; i < (unsigned)num_split; ++i) {
+  for (int i = 0; i < num_split; ++i) {
     lower[split_dim] = cursor;
     cursor += size;
     upper[split_dim] = cursor;
@@ -4091,7 +4091,7 @@ static Status TranslateSplitVOp(
     lengths[idx] = shape[split_dim] - length;
   }
 
-  if ((!has_one_neg && (unsigned)length != shape[split_dim]) ||
+  if ((!has_one_neg && static_cast<unsigned>(length) != shape[split_dim]) ||
       (has_one_neg && lengths[idx] < 0)) {
     return errors::InvalidArgument(
         "The length of size_splits must sum to the value of the dimension "
@@ -4317,7 +4317,7 @@ static Status TranslateStridedSliceOp(
     size_t ng_begin_idx, ng_end_idx;
 
     if (!shrink_mask) {
-      if (clamped_begin_idx == (unsigned)clamped_end_idx) {
+      if (clamped_begin_idx == static_cast<unsigned>(clamped_end_idx)) {
         // Empty due to matching indexes
         ng_begin_idx = clamped_begin_idx;
         // Type safety: clamped_begin_idx == clamped_end_idx implies,
