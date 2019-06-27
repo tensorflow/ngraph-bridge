@@ -138,8 +138,6 @@ TEST(GrapplerConfig, RConfig2) {
   ConfigProto config_proto;
   auto backend_name = AttrValue();
   backend_name.set_s("INTERPRETER");
-  auto device_config = AttrValue();
-  device_config.set_s("1");
   auto test_echo = AttrValue();
   test_echo.set_s("5");
   auto& rewriter_config =
@@ -173,7 +171,7 @@ TEST(GrapplerConfig, RConfig2) {
     ng_encap = node;
   }
   ASSERT_NE(ng_encap, nullptr);
-  string ng_backend, ng_device_config, ng_test_echo;
+  string ng_backend, ng_test_echo;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_test_echo", &ng_test_echo));
