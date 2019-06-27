@@ -532,18 +532,6 @@ static Status TranslateQuantizedPoolOp(
   return Status::OK();
 }
 
-static Status TranslateAllreduceOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-
-  auto ng_all_reduce = ConstructNgNode<ng::op::AllReduce>(op->name(), ng_input);
-  SaveNgOp(ng_op_map, op->name(), ng_all_reduce);
-
-  return Status::OK();
-}
-
 static Status TranslateAddNOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -1807,18 +1795,6 @@ static Status TranslateDepthwiseConv2dNativeOp(
 
   BatchToTensorflow(is_nhwc, ng_concat);
   SaveNgOp(ng_op_map, op->name(), ng_concat);
-  return Status::OK();
-}
-
-static Status TranslateBroadcastDistributedOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-
-  auto ng_broadcast_distributed =
-      ConstructNgNode<ng::op::BroadcastDistributed>(op->name(), ng_input);
-  SaveNgOp(ng_op_map, op->name(), ng_broadcast_distributed);
   return Status::OK();
 }
 
@@ -4844,8 +4820,10 @@ const static std::map<
         {"_FusedMatMul", TranslateFusedMatMulOp},
         {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
         {"GreaterEqual", TranslateBinaryOp<ngraph::op::GreaterEq>},
-        {"HorovodAllreduce", TranslateAllreduceOp},
-        {"HorovodBroadcast", TranslateBroadcastDistributedOp},
+#if defined (NGRAPH_DISTRIBUTED)
+        {"HorovodAllreduce", TranslateUnaryOp<ngraph::op::AllReduce>},
+        {"HorovodBroadcast", TranslateUnaryOp<ngraph::op::BroadcastDistributed>},
+#endif
         {"Identity", TranslateIdentityOp},
         {"L2Loss", TranslateL2LossOp},
         {"LogSoftmax", TranslateLogSoftmaxOp},
