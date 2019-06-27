@@ -4627,14 +4627,14 @@ static Status TranslateTransposeOp(
   // - it should not have duplicates,
   // - it should have all the dimensions.
 
-  auto ng_input_rank = ng_input->get_shape().size();
+  int ng_input_rank = ng_input->get_shape().size();
   vector<bool> count(ng_input_rank, false);
   for (auto p : permutation) {
-    if (0 <= p && p < static_cast<int>(ng_input_rank)) {
+    if (0 <= p && p < ng_input_rank) {
       count[p] = true;
     }
   }
-  for (size_t i = 0; i < ng_input_rank; i++) {
+  for (int i = 0; i < ng_input_rank; i++) {
     if (!count[i]) {
       return errors::InvalidArgument(i, " is missing from {",
                                      ng::join(permutation), "}.");
