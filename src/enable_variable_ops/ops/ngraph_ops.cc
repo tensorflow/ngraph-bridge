@@ -14,12 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "tensorflow/core/common_runtime/dma_helper.h"
-#include "tensorflow/core/framework/op.h"
-#include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/framework/resource_mgr.h"
-#include "tensorflow/core/framework/tensor_types.h"
-#include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/common_runtime/optimization_registry.h"
 
 namespace tensorflow {
 
@@ -37,6 +32,18 @@ REGISTER_OP("NGraphAssign")
     .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
+
+// ------------------------------------------------------------------
+REGISTER_OP("NGraphEncapsulate")
+    .Input("args: Targuments")
+    .Attr("Targuments: list(type) >= 0")
+    .Output("results: Tresults")
+    .Attr("Tresults: list(type) >= 0")
+    .Attr("ngraph_cluster: int")
+    .Attr("ngraph_graph_id: int")
+    .Attr("ngraph_backend: string")
+    .SetIsStateful()
+    .Doc("nGraph Encapsulation Op. For use by the nGraph JIT only.");
 
 // ------------------------------------------------------------------
 REGISTER_OP("NGraphVariable")
