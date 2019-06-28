@@ -18,8 +18,8 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/resource_mgr.h"
-#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/framework/tensor_types.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 
 namespace tensorflow {
 
