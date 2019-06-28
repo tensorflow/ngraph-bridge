@@ -40,13 +40,12 @@ set(SRC
    ngraph_cluster_manager.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
-   ops/ngraph_encapsulate_op.cc
+   ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
    ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
    ngraph_rewrite_for_tracking.cc
    ngraph_rewrite_pass.cc
-   ops/ngraph_tracked_variable.cc
    ngraph_tracked_variable.cc
    ngraph_utils.cc
    tf_graphcycles.cc
@@ -67,14 +66,13 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
     list(APPEND SRC enable_variable_ops/ngraph_rewrite_pass.cc)
 
-    list(REMOVE_ITEM SRC ops/ngraph_tracked_variable.cc)
-    list(APPEND SRC enable_variable_ops/ops/ngraph_tracked_variable.cc)
+    list(REMOVE_ITEM SRC ops/ngraph_ops.cc)
+    list(APPEND SRC enable_variable_ops/ops/ngraph_ops.cc)
 
     list(REMOVE_ITEM SRC ngraph_tracked_variable.cc)
     list(APPEND SRC enable_variable_ops/ngraph_tracked_variable.cc)
 
     # new files
-    list(APPEND SRC enable_variable_ops/ops/ngraph_assign_op.cc)
     list(APPEND SRC enable_variable_ops/ngraph_assign_op.cc)
     list(APPEND SRC enable_variable_ops/ngraph_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)

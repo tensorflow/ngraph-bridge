@@ -15,6 +15,8 @@
  *******************************************************************************/
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
+#include "tensorflow/core/common_runtime/function.h"
+#include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/resource_mgr.h"
@@ -24,6 +26,19 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+// ------------------------------------------------------------------
+REGISTER_OP("NGraphEncapsulate")
+    .Input("args: Targuments")
+    .Attr("Targuments: list(type) >= 0")
+    .Output("results: Tresults")
+    .Attr("Tresults: list(type) >= 0")
+    .Attr("ngraph_cluster: int")
+    .Attr("ngraph_graph_id: int")
+    .Attr("ngraph_backend: string")
+    .SetIsStateful()
+    .Doc("nGraph Encapsulation Op. For use by the nGraph JIT only.");
+
+// ------------------------------------------------------------------
 REGISTER_OP("NGraphVariable")
     .Output("ref: Ref(dtype)")
     .Attr("shape: shape")
