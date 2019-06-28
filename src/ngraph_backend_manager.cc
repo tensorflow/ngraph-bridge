@@ -87,7 +87,8 @@ void BackendManager::ReleaseBackend(const string& backend_name) {
 
 void BackendManager::SetConfig(
     const string& backend_name,
-    std::unordered_map<std::string, std::string> additional_attributes_map) {
+    const std::unordered_map<std::string, std::string>&
+        additional_attributes_map) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   ng::runtime::Backend* bend = GetBackend(backend_name);
   NGRAPH_VLOG(2) << "BackendManager::SetConfig() " << backend_name;
