@@ -33,6 +33,6 @@ REGISTER_OP("NGraphVariable")
     .Attr("shared_name: string = ''")
     .SetIsStateful()
     .SetShapeFn(shape_inference::ExplicitShape);
-    
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

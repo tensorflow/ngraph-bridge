@@ -36,6 +36,6 @@ REGISTER_OP("NGraphVariable")
     .Attr("ngraph_graph_id: int")
     .SetIsStateful()
     .SetShapeFn(shape_inference::ExplicitShape);
-    
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
