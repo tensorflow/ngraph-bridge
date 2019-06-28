@@ -2963,8 +2963,7 @@ static Status TranslatePackOp(
   // if inputs shape is (2, 3, 4), and axis is 1, then we want
   // to create output_shape (2, num_inputs, 3, 4)
   for (size_t i = 0; i < input_rank; ++i) {
-    output_shape[(i < concat_axis) ? i : i + 1] =
-        input_shape[i];
+    output_shape[(i < concat_axis) ? i : i + 1] = input_shape[i];
   }
   output_shape[concat_axis] = op->num_inputs();
 

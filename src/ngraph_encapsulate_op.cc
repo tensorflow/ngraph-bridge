@@ -188,8 +188,7 @@ class NGraphEncapsulateOp : public OpKernel {
           backend_name, additional_attribute_map);
     } catch (const std::exception& exp) {
       Status status = errors::Internal(
-                              "Caught exception while creating backend string ",
-                              exp.what(), "\n");
+          "Caught exception while creating backend string ", exp.what(), "\n");
       OP_REQUIRES_OK(ctx, status);
     }
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
