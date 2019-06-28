@@ -60,17 +60,6 @@ using NgFunctionIOCache = std::unordered_map<
 
 namespace ngraph_bridge {
 
-REGISTER_OP("NGraphEncapsulate")
-    .Input("args: Targuments")
-    .Attr("Targuments: list(type) >= 0")
-    .Output("results: Tresults")
-    .Attr("Tresults: list(type) >= 0")
-    .Attr("ngraph_cluster: int")
-    .Attr("ngraph_graph_id: int")
-    .Attr("ngraph_backend: string")
-    .SetIsStateful()
-    .Doc("nGraph Encapsulation Op. For use by the nGraph JIT only.");
-
 class NGraphEncapsulateOp : public OpKernel {
  public:
   //---------------------------------------------------------------------------

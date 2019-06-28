@@ -186,16 +186,6 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   ngraph::Event::write_trace(event_compute);
 }
 
-REGISTER_OP("NGraphVariable")
-    .Output("ref: Ref(dtype)")
-    .Attr("shape: shape")
-    .Attr("dtype: type")
-    .Attr("just_looking: bool = false")
-    .Attr("container: string = ''")
-    .Attr("shared_name: string = ''")
-    .SetIsStateful()
-    .SetShapeFn(shape_inference::ExplicitShape);
-
 REGISTER_KERNEL_BUILDER(Name("NGraphVariable").Device(DEVICE_CPU),
                         NGraphVariableOp);
 
