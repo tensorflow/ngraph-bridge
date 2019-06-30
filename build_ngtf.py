@@ -492,7 +492,7 @@ def main():
         link_src = os.path.join(artifacts_location,
                                 "tensorflow/tensorflow/python")
         link_dst = os.path.join(artifacts_location, "tensorflow/python")
-        command_executor(['ln', '-s', link_src, link_dst], verbose=True)
+        command_executor(['ln', '-sf', link_src, link_dst], verbose=True)
 
     # Run a quick test
     install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
