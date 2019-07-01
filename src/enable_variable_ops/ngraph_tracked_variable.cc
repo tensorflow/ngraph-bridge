@@ -60,19 +60,19 @@ class NGraphVariableOp : public OpKernel {
 
  private:
   int ng_graph_id_;
-  DataType dtype_;
   TensorShape shape_;
-  // If TF is not going to modify the variable
-  // then is_tf_just_looking = true
-  bool is_tf_just_looking_;
+  NGraphFreshnessTracker* tracker_;
   // If the variable is not going to be modified
   // then just_looking = true
   // This is added to keep it consistent with the path where
   // enable_variable_and_optimizers flag is not set and to add the
   // freshness tracking required for the CPU backend.
   bool just_looking_;
+  // If TF is not going to modify the variable
+  // then is_tf_just_looking = true
+  bool is_tf_just_looking_;
   bool copy_to_tf_;
-  NGraphFreshnessTracker* tracker_;
+  DataType dtype_;
   string ng_backend_name_;
   mutex init_mu_;
   ContainerInfo cinfo_ GUARDED_BY(init_mu_);
