@@ -17,7 +17,6 @@
 import pdb, time
 from subprocess import check_output, call, Popen, PIPE
 import json, os, argparse, sys
-from functools import reduce
 import sys
 # expects tools to be present at this relative location. Need access to build_utils
 sys.path.insert(0, os.path.abspath('../../tools'))
@@ -451,9 +450,8 @@ if __name__ == '__main__':
     print('Passed:\n' + '\033[92m' + print_format(passed_tests) + '\033[0m')
     print('Skipped:\n' + '\033[93m' + print_format(skipped_tests) + '\033[0m')
     print('Failed:\n' + '\033[91m' + print_format(failed_tests) + '\033[0m')
-    num_failed_tests = reduce(lambda x, key: x + len(failed_tests[key]),
-                              failed_tests, 0)
-    exit(0 if (num_failed_tests == 0) else 1)
+    all_tests_passed = all([len(failed_tests[k]) == 0 for k in failed_tests])
+    exit(0 if all_tests_passed else 1)
 
 # TODO add a test comparing with TF run?
 # TODO verbose or quiet?
