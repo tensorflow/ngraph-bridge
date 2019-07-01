@@ -17,6 +17,8 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/graph/graph.h"
 
+#include "logging/ngraph_log.h"
+#include "logging/tf_graph_writer.h"
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_backend_manager.h"
@@ -27,8 +29,6 @@
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_rewrite_for_tracking.h"
 #include "ngraph_utils.h"
-#include "logging/ngraph_log.h"
-#include "logging/tf_graph_writer.h"
 
 #include <iomanip>
 

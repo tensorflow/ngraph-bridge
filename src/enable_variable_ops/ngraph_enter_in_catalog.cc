@@ -19,10 +19,10 @@
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/graph.h"
 
+#include "logging/ngraph_log.h"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
 #include "ngraph_catalog.h"
-#include "logging/ngraph_log.h"
 #include "ngraph_utils.h"
 
 using namespace std;

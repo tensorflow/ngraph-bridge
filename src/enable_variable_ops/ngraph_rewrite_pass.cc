@@ -19,6 +19,8 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/graph/graph.h"
 
+#include "logging/ngraph_log.h"
+#include "logging/tf_graph_writer.h"
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_capture_variables.h"
@@ -30,8 +32,6 @@
 #include "ngraph_replace_variable_modifiers.h"
 #include "ngraph_rewrite_for_tracking.h"
 #include "ngraph_utils.h"
-#include "logging/ngraph_log.h"
-#include "logging/tf_graph_writer.h"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"

@@ -26,10 +26,10 @@
 #include "tensorflow/core/platform/tensor_coding.h"
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
 
+#include "logging/ngraph_log.h"
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
-#include "logging/ngraph_log.h"
 
 namespace ng = ngraph;
 using namespace std;

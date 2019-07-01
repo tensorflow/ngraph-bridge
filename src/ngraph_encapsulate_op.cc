@@ -27,6 +27,7 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
+#include "logging/ngraph_log.h"
 #include "ngraph_backend_manager.h"
 #include "ngraph_builder.h"
 #include "ngraph_cluster_manager.h"
@@ -34,7 +35,6 @@
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_timer.h"
 #include "ngraph_utils.h"
-#include "logging/ngraph_log.h"
 
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"

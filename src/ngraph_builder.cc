@@ -15,12 +15,12 @@
  *******************************************************************************/
 
 #include "ngraph_builder.h"
+#include "logging/ngraph_log.h"
 #include "ngraph/op/util/logical_reduction.hpp"
 #include "ngraph_backend_manager.h"
 #include "ngraph_conversions.h"
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_utils.h"
-#include "logging/ngraph_log.h"
 
 #include "ngraph/builder/autobroadcast.hpp"
 #include "ngraph/builder/numpy_transpose.hpp"

@@ -25,17 +25,17 @@
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/grappler/optimizers/custom_graph_optimizer.h"
 
+#include "logging/ngraph_log.h"
+#include "logging/tf_graph_writer.h"
 #include "ngraph_add_identityn.h"
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_capture_variables.h"
 #include "ngraph_deassign_clusters.h"
 #include "ngraph_encapsulate_clusters.h"
-#include "logging/ngraph_log.h"
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_rewrite_for_tracking.h"
 #include "ngraph_utils.h"
-#include "logging/tf_graph_writer.h"
 
 #include <iomanip>
 
