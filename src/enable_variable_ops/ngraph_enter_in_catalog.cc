@@ -22,7 +22,7 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
 #include "ngraph_catalog.h"
-#include "ngraph_log.h"
+#include "logging/ngraph_log.h"
 #include "ngraph_utils.h"
 
 using namespace std;

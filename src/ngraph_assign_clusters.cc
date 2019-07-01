@@ -29,11 +29,11 @@
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
 #include "ngraph_cluster_manager.h"
-#include "ngraph_log.h"
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_utils.h"
 #include "tf_deadness_analysis.h"
 #include "tf_graphcycles.h"
+#include "logging/ngraph_log.h"
 
 using namespace std;
 

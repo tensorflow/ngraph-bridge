@@ -98,7 +98,6 @@ cc_binary(
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
         '-D NGRAPH_TF_USE_GRAPPLER_OPTIMIZER',
         "-I src",
-        "-I logging",
         "-I external/ngraph/src",
     ] + CXX_ABI,
     linkopts = [

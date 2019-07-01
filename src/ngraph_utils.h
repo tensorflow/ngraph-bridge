@@ -29,7 +29,7 @@
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
-#include "ngraph_log.h"
+#include "logging/ngraph_log.h"
 
 namespace ng = ngraph;
 using namespace std;

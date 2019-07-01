@@ -26,12 +26,12 @@
 #include "ngraph_deassign_clusters.h"
 #include "ngraph_encapsulate_clusters.h"
 #include "ngraph_enter_in_catalog.h"
-#include "ngraph_log.h"
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_replace_variable_modifiers.h"
 #include "ngraph_rewrite_for_tracking.h"
 #include "ngraph_utils.h"
-#include "tf_graph_writer.h"
+#include "logging/ngraph_log.h"
+#include "logging/tf_graph_writer.h"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"

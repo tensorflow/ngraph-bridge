@@ -21,7 +21,7 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/node_builder.h"
 
-#include "ngraph_log.h"
+#include "logging/ngraph_log.h"
 
 namespace tensorflow {
 

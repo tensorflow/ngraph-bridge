@@ -277,6 +277,9 @@ set_target_properties(
 
 add_dependencies(ngraph_lib ext_ngraph)
 
+SET(BASEPATH "${CMAKE_SOURCE_DIR}")
+INCLUDE_DIRECTORIES("${BASEPATH}")
+
 # Add the directories to be built
 add_subdirectory(third-party)
 add_subdirectory(logging)
