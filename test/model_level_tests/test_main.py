@@ -469,4 +469,3 @@ if __name__ == '__main__':
 # These tests can be long
 # So we can offer options to do: {1}, {1,2}, {1,2,3}, {3}  (or do we allow options for any combination of tests?)
 # NOTE: Level3 and Level1 test are same (mechanics wise). We have only 2 types of tests, though Level2 is unimplemented for now
-
