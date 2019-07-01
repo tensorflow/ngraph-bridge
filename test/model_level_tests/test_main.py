@@ -434,7 +434,8 @@ if __name__ == '__main__':
     failed_tests = {}
     skipped_tests = {}
     for test_suite in requested_test_suites:
-        print('Testing model/test-suite: ' + test_suite)
+        print('\n' + '=' * 20 + 'Testing model/test-suite: ' + test_suite +
+              '=' * 20)
         if test_suite not in disabled_test_suite:
             if args.run_basic_tests:
                 passed_tests_in_suite, failed_tests_in_suite, skipped_tests_in_suite = run_test_suite(
