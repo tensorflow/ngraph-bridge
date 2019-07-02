@@ -57,6 +57,13 @@ class NGraphEncapsulateOp : public OpKernel {
       std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
+  Status AllocateTensorOutput(
+      OpKernelContext* ctx,
+      std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
+      vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
+      std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
+          output_caches);
   void Compute(OpKernelContext* ctx) override;
 
  private:

@@ -564,6 +564,57 @@ Status NGraphEncapsulateOp::AllocateTensorInput(
   return Status::OK();
 }
 
+Status NGraphEncapsulateOp::AllocateTensorOutput(
+    OpKernelContext* ctx, std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
+    vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
+    std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
+        output_caches) {
+  output_caches = m_ng_exec_output_cache_map[ng_exec];
+  output_caches.resize(ng_exec->get_results().size());
+  // ngraph executable returns get_results, using that to get the tensor shape
+  // and element type.
+  for (auto i = 0; i < ng_exec->get_results().size(); i++) {
+    auto ng_element = ng_exec->get_results()[i];
+    auto ng_shape = ng_element->get_shape();
+    auto ng_element_type = ng_element->get_element_type();
+
+    // Create the TF output tensor
+    vector<int64> dims;
+    for (auto dim : ng_shape) {
+      dims.push_back(dim);
+    }
+    TensorShape tf_shape(dims);
+    Tensor* output_tensor = nullptr;
+    TF_RETURN_IF_ERROR(ctx->allocate_output(i, tf_shape, &output_tensor));
+
+    // Make sure the nGraph-inferred element type agrees with what TensorFlow
+    // expected.
+    ng::element::Type expected_elem_type;
+    TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
+        ctx->expected_output_dtype(i), &expected_elem_type));
+    if (ng_element_type != expected_elem_type) {
+      errors::Internal(
+          "Element type inferred by nGraph does not match "
+          "the element type expected by TensorFlow");
+    }
+    void* last_dst_ptr = output_caches[i].first;
+    std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
+        output_caches[i].second;
+
+    void* current_dst_ptr = DMAHelper::base(output_tensor);
+    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
+        GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
+                           ng_exec, op_backend, ng_element_type, ng_shape);
+
+    current_ng_tensor->set_stale(true);
+    output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
+    ng_outputs.push_back(current_ng_tensor);
+  }
+
+  return Status::OK();
+}
+
 //---------------------------------------------------------------------------
 // OpKernel::Compute
 //---------------------------------------------------------------------------
@@ -632,55 +683,19 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                     "for cluster "
                  << m_ngraph_cluster;
 
-  // Allocate tensors for the output results.
-  ngraph::Event event_alloc_output("Output: maybe create", name(), "");
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
-  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-      output_caches = m_ng_exec_output_cache_map[ng_exec];
-  output_caches.resize(ng_exec->get_results().size());
-  // ngraph executable returns get_results, using that to get the tensor shape
-  // and element type.
-  for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-    auto ng_element = ng_exec->get_results()[i];
-    auto ng_shape = ng_element->get_shape();
-    auto ng_element_type = ng_element->get_element_type();
 
-    // Create the TF output tensor
-    vector<int64> dims;
-    for (auto dim : ng_shape) {
-      dims.push_back(dim);
-    }
-    TensorShape tf_shape(dims);
-    Tensor* output_tensor = nullptr;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
-
-    // Make sure the nGraph-inferred element type agrees with what TensorFlow
-    // expected.
-    ng::element::Type expected_elem_type;
-    OP_REQUIRES_OK(ctx,
-                   TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
-                                                 &expected_elem_type));
-    OP_REQUIRES(
-        ctx, ng_element_type == expected_elem_type,
-        errors::Internal("Element type inferred by nGraph does not match "
-                         "the element type expected by TensorFlow"));
-
-    void* last_dst_ptr = output_caches[i].first;
-    std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
-        output_caches[i].second;
-
-    void* current_dst_ptr = DMAHelper::base(output_tensor);
-    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
-        GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
-                           ng_exec, op_backend, ng_element_type, ng_shape);
-
-    current_ng_tensor->set_stale(true);
-    output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
-    ng_outputs.push_back(current_ng_tensor);
-  }
+  // Allocate tensors for the output results.
+  ngraph::Event event_alloc_output("Output: maybe create", name(), "");
+  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>
+      output_caches;
+  OP_REQUIRES_OK(ctx,
+                 AllocateTensorOutput(ctx, ng_exec, input_shapes, op_backend,
+                                      ng_outputs, output_caches));
 
   event_alloc_output.Stop();
+
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << m_ngraph_cluster;
