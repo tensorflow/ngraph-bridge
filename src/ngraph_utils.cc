@@ -372,6 +372,16 @@ bool DumpTrackedGraphs() {
          std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
 }
 
+bool DumpReplacedModifiersGraphs() {
+  return DumpAllGraphs() ||
+         std::getenv("NGRAPH_TF_DUMP_REPLACEDMODIFIERS_GRAPHS") != nullptr;
+}
+
+bool DumpCatalogedGraphs() {
+  return DumpAllGraphs() ||
+         std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
+}
+
 #if defined(NGRAPH_DISTRIBUTED)
 void OpControlOrder(const std::shared_ptr<ngraph::Function>& ng_function,
                     const std::string& op_name) {

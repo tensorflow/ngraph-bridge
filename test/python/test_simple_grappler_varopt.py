@@ -26,10 +26,12 @@ import tensorflow as tf
 import numpy as np
 from common import NgraphTest
 
+
 class TestSignOperations(NgraphTest):
 
     def test_sign_1d(self):
-        dim1 = 3; dim2 = 4
+        dim1 = 3
+        dim2 = 4
         a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
         x = tf.get_variable('x', [dim1, dim2], initializer=tf.zeros_initializer)
         b = tf.placeholder(tf.float32, shape=(dim1, dim2), name='y')
@@ -41,8 +43,12 @@ class TestSignOperations(NgraphTest):
 
         def run_test(sess):
             sess.run(tf.global_variables_initializer())
-            return sess.run(train_op, feed_dict={a: np.ones((dim1, dim2)), b: np.ones((dim1, dim2))})
+            return sess.run(
+                train_op,
+                feed_dict={
+                    a: np.ones((dim1, dim2)),
+                    b: np.ones((dim1, dim2))
+                })
 
         assert (
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
-
