@@ -41,7 +41,7 @@ class TestSignOperations(NgraphTest):
 
         def run_test(sess):
             sess.run(tf.global_variables_initializer())
-            return sess.run(axpy, feed_dict={a: np.ones((dim1, dim2)), b: np.ones((dim1, dim2))})
+            return sess.run(train_op, feed_dict={a: np.ones((dim1, dim2)), b: np.ones((dim1, dim2))})
 
         assert (
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
