@@ -28,6 +28,7 @@ cc_library(
         "src/ngraph_conversions.h",
         "src/ngraph_deassign_clusters.h",
         "src/ngraph_encapsulate_clusters.h",
+        "src/ngraph_encapsulate_op.h",
         "src/ngraph_freshness_tracker.h",
         "src/ngraph_mark_for_clustering.h",
         "src/ngraph_rewrite_for_tracking.h",
