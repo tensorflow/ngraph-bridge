@@ -28,14 +28,14 @@
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
 #include "ngraph_add_identityn.h"
-#include "ngraph_api.h"
-#include "ngraph_assign_clusters.h"
-#include "ngraph_capture_variables.h"
-#include "ngraph_deassign_clusters.h"
-#include "ngraph_encapsulate_clusters.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_rewrite_for_tracking.h"
-#include "ngraph_utils.h"
+#include "src/ngraph_api.h"
+#include "src/ngraph_assign_clusters.h"
+#include "src/ngraph_capture_variables.h"
+#include "src/ngraph_deassign_clusters.h"
+#include "src/ngraph_encapsulate_clusters.h"
+#include "src/ngraph_mark_for_clustering.h"
+#include "src/ngraph_rewrite_for_tracking.h"
+#include "src/ngraph_utils.h"
 
 #include <iomanip>
 

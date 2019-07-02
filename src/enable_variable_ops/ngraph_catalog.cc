@@ -15,10 +15,10 @@
  *******************************************************************************/
 #include "tensorflow/core/lib/core/errors.h"
 
+#include "logging/ngraph_log.h"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/runtime/backend_manager.hpp"
 #include "ngraph_catalog.h"
-#include "ngraph_log.h"
 
 using namespace std;
 namespace ng = ngraph;

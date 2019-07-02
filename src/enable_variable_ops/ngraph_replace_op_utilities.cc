@@ -18,8 +18,8 @@
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/graph/types.h"
 
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_utils.h"
+#include "src/ngraph_mark_for_clustering.h"
+#include "src/ngraph_utils.h"
 
 using namespace std;
 

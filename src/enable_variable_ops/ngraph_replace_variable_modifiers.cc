@@ -17,11 +17,11 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/node_builder.h"
 
-#include "ngraph_api.h"
 #include "ngraph_capture_variables.h"
 #include "ngraph_replace_op_utilities.h"
 #include "ngraph_replace_variable_modifiers.h"
-#include "ngraph_utils.h"
+#include "src/ngraph_api.h"
+#include "src/ngraph_utils.h"
 
 using namespace std;
 namespace ng = ngraph;

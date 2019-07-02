@@ -15,7 +15,8 @@
  *******************************************************************************/
 
 #include "ngraph_optimizer.h"
-#include "ngraph_cluster_manager.h"
+#include "src/ngraph_backend_manager.h"
+#include "src/ngraph_cluster_manager.h"
 
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
@@ -30,7 +31,6 @@
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
 #endif
-#include "ngraph_backend_manager.h"
 
 #include <iostream>
 
