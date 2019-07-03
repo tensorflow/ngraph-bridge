@@ -28,7 +28,12 @@
 #include "ngraph_add_identityn.h"
 #include "ngraph_api.h"
 #include "ngraph_assign_clusters.h"
-#include "ngraph_capture_variables.h"
+
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+#include "enable_variable_ops/ngraph_enter_in_catalog.h"
+#include "enable_variable_ops/ngraph_replace_variable_modifiers.h"
+#endif
+
 #include "ngraph_deassign_clusters.h"
 #include "ngraph_encapsulate_clusters.h"
 #include "ngraph_log.h"

@@ -15,8 +15,6 @@
  *******************************************************************************/
 
 #include "ngraph_optimizer.h"
-#include "enable_variable_ops/ngraph_enter_in_catalog.h"
-#include "enable_variable_ops/ngraph_replace_variable_modifiers.h"
 #include "ngraph_cluster_manager.h"
 #include "version.h"
 
@@ -167,19 +165,20 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   //
 
   // Do variable capture then, if requested, dump the graphs.
+
   TF_RETURN_IF_ERROR(CaptureVariables(&graph, skip_these_nodes));
   if (DumpCapturedGraphs()) {
     DumpGraphs(graph, idx, "captured", "Graph With Variables Captured");
   }
 
-  if (ngraph_tf_are_variables_enabled()) {
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     // 0. Replace optimizers then, if requested, dump the graphs.
     TF_RETURN_IF_ERROR(ReplaceModifiers(&graph, idx));
     if (DumpReplacedModifiersGraphs()) {
       DumpGraphs(graph, idx, "replaced_modifier",
                  "Graph with Modifiers replaced");
     }
-  }
+#endif
 
   //
   // Encapsulation: Part that rewrites the graph for nGraph operation.
@@ -279,14 +278,14 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                "Graph with Variables Rewritten for Tracking");
   }
 
-  if (ngraph_tf_are_variables_enabled()) {
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     // Enter in catalog then.
     TF_RETURN_IF_ERROR(EnterInCatalog(&graph, idx));
     if (DumpCatalogedGraphs()) {
       DumpGraphs(graph, idx, "cataloged",
                  "Graph with Variables Inputs Entered in Catalog");
     }
-  }
+#endif
 
   // Convert the graph back to Graphdef
   graph.ToGraphDef(output);
