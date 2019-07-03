@@ -16,7 +16,6 @@
 
 #include "ngraph_optimizer.h"
 #include "ngraph_cluster_manager.h"
-#include "version.h"
 
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
@@ -80,10 +79,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // arbitrary integer to avoid filename collisions resulting from subsequent
   // runs of this pass.
   int idx = FreshIndex();
-
-  for (auto node : graph.op_nodes()) {
-    cout << node->name() << "\n";
-  }
 
   // If requested, dump pre-capture graphs.
   if (DumpPrecaptureGraphs()) {
@@ -165,19 +160,18 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   //
 
   // Do variable capture then, if requested, dump the graphs.
-
   TF_RETURN_IF_ERROR(CaptureVariables(&graph, skip_these_nodes));
   if (DumpCapturedGraphs()) {
     DumpGraphs(graph, idx, "captured", "Graph With Variables Captured");
   }
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    // 0. Replace optimizers then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(ReplaceModifiers(&graph, idx));
-    if (DumpReplacedModifiersGraphs()) {
-      DumpGraphs(graph, idx, "replaced_modifier",
-                 "Graph with Modifiers replaced");
-    }
+  // 0. Replace optimizers then, if requested, dump the graphs.
+  TF_RETURN_IF_ERROR(ReplaceModifiers(&graph, idx));
+  if (DumpReplacedModifiersGraphs()) {
+    DumpGraphs(graph, idx, "replaced_modifier",
+               "Graph with Modifiers replaced");
+  }
 #endif
 
   //
@@ -264,7 +258,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-
   TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
@@ -278,12 +271,12 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    // Enter in catalog then.
-    TF_RETURN_IF_ERROR(EnterInCatalog(&graph, idx));
-    if (DumpCatalogedGraphs()) {
-      DumpGraphs(graph, idx, "cataloged",
-                 "Graph with Variables Inputs Entered in Catalog");
-    }
+  // Enter in catalog then.
+  TF_RETURN_IF_ERROR(EnterInCatalog(&graph, idx));
+  if (DumpCatalogedGraphs()) {
+    DumpGraphs(graph, idx, "cataloged",
+               "Graph with Variables Inputs Entered in Catalog");
+  }
 #endif
 
   // Convert the graph back to Graphdef

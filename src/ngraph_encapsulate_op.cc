@@ -803,8 +803,6 @@ class NGraphEncapsulateOp : public OpKernel {
         std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
         std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
 
-        // This is null: dst_ng_tensor
-
         if (ref_exists) {
           NGraphCatalog::AddToEncapOutputTensorMap(key, dst_ng_tensor);
         }
