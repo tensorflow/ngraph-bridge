@@ -804,6 +804,7 @@ class NGraphEncapsulateOp : public OpKernel {
         std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
 
         if (ref_exists) {
+          NGRAPH_VLOG(4) << "Adding in output tensor map " << key;
           NGraphCatalog::AddToEncapOutputTensorMap(key, dst_ng_tensor);
         }
 
