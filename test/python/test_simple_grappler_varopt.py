@@ -51,4 +51,4 @@ class TestSignOperations(NgraphTest):
                 })
 
         assert (
-            self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
+            self.with_ngraph(run_test) == self.without_ngraph(run_test))
