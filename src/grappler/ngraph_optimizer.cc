@@ -69,7 +69,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                  const tensorflow::grappler::GrapplerItem& item,
                                  GraphDef* output) {
   NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
-  NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
+  cout << "\n\nNGTF_OPTIMIZER: grappler item id " << item.id << "\n";
+
 
   // Convert the GraphDef to Graph
   GraphConstructorOptions opts;
@@ -82,6 +83,10 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // arbitrary integer to avoid filename collisions resulting from subsequent
   // runs of this pass.
   int idx = FreshIndex();
+
+  for (auto node : graph.op_nodes()) {
+    cout << node->name() << "\n";
+  }
 
   // If requested, dump pre-capture graphs.
   if (DumpPrecaptureGraphs()) {
@@ -261,6 +266,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  cout << "ng_optimizer.cc:: graphidx: " << idx << "\n";
+
   TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
@@ -310,10 +317,6 @@ void NgraphOptimizer::DumpGraphs(Graph& graph, int idx,
   GraphToPbTextFile(&graph, pbtxt_filename);
 }
 
-int NgraphOptimizer::FreshIndex() {
-  mutex_lock l(s_serial_counter_mutex);
-  return s_serial_counter++;
-}
 
 REGISTER_GRAPH_OPTIMIZER_AS(NgraphOptimizer, "ngraph-optimizer");
 

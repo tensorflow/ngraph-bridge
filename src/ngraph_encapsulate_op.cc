@@ -344,6 +344,7 @@ class NGraphEncapsulateOp : public OpKernel {
     TF_RETURN_IF_ERROR(
         ComputeSignature(ctx, signature_ss, input_shapes, static_input_map));
     signature = signature_ss.str();
+    cout << "ng_enc_op.cc: signature: " << signature << "\n";
 
     if (NGRAPH_VLOG_IS_ON(5)) {
       NGRAPH_VLOG(5) << "Computed signature: " << signature;
@@ -484,6 +485,7 @@ class NGraphEncapsulateOp : public OpKernel {
   // OpKernel::Compute
   //---------------------------------------------------------------------------
   void Compute(OpKernelContext* ctx) override {
+    cout << "\n\nSTART COMPUTE\n\n";
     std::ostringstream oss;
     oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
     ngraph::Event event(oss.str(), name(), "");
@@ -679,6 +681,8 @@ class NGraphEncapsulateOp : public OpKernel {
                              ng_shape);
 
       current_ng_tensor->set_stale(true);
+      cout << "ng_enc_op:: HERE: setting output_caches here: " << i << " " << (current_ng_tensor == nullptr) << "\n";
+      cout << "ng_enc_op:: HERE: setting output_caches here: " << i << " " << (current_dst_ptr == nullptr) << "\n";
       output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
       ng_outputs.push_back(current_ng_tensor);
     }
@@ -796,6 +800,7 @@ class NGraphEncapsulateOp : public OpKernel {
         NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
         m_number_outputs = output_caches.size();
       }
+      cout << "ng_enc_op.cc: output_tensor_count: " << output_tensor_count << "\n";
       for (size_t i = 0; i < output_tensor_count; ++i) {
         string key = NGraphCatalog::CreateNodeKey(m_graph_id, def().name(), i);
         bool ref_exists = NGraphCatalog::ExistsInEncapOutputTensorMap(key);
@@ -803,9 +808,14 @@ class NGraphEncapsulateOp : public OpKernel {
         std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
         std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
 
+        // This is null: dst_ng_tensor
+
         if (ref_exists) {
-          NGRAPH_VLOG(4) << "Adding in output tensor map " << key;
+          cout << "HERE:: Adding in output tensor map " << key << "\n";
+          cout << "ng_enc_op.cc: HERE:: dst_ng_tensor is nullptr: " << (dst_ng_tensor == nullptr) << "\n";
           NGraphCatalog::AddToEncapOutputTensorMap(key, dst_ng_tensor);
+        } else {
+          cout << "NOT ADDING: " << key << "\n";
         }
 
         if (m_op_backend_name != "CPU" &&
@@ -902,6 +912,8 @@ class NGraphEncapsulateOp : public OpKernel {
     ngraph::Event::write_trace(event_execute_function);
     ngraph::Event::write_trace(event_copy_output);
     ngraph::Event::write_trace(event);
+
+    cout << "\n COMPUTE END \n";
 
   }  // end compute
 

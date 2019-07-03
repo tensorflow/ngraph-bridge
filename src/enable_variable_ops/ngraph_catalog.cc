@@ -64,6 +64,7 @@ string NGraphCatalog::CreateNodeKey(int graph_id, string node_name, int index) {
 // Functions for OutputTensorMap
 void NGraphCatalog::AddToEncapOutputTensorMap(
     string key, shared_ptr<ng::runtime::Tensor> ng_val) {
+  cout << "Entering key=" << key << ". Value is nullptr? " << (ng_val==nullptr) << "\n";
   NGraphCatalog::encap_output_tensor_map_[key] = ng_val;
 }
 
@@ -80,6 +81,12 @@ bool NGraphCatalog::ExistsInEncapOutputTensorMap(int graphid, string node_name,
 
 shared_ptr<ng::runtime::Tensor>
 NGraphCatalog::GetTensorFromEncapOutputTensorMap(string key) {
+  cout << "ng_catalog.cc:: Catalog request: " << key << "\n";
+  if (NGraphCatalog::encap_output_tensor_map_.find(key) == NGraphCatalog::encap_output_tensor_map_.end()){
+    cout << "ng_catalog.cc:: NOT FOUND\n";
+  } else {
+    cout << "ng_catalog.cc:: FOUND\n";
+  }
   return NGraphCatalog::encap_output_tensor_map_[key];
 }
 

@@ -131,6 +131,7 @@ class NGraphAssignOp : public OpKernel {
       // Value is from encap
       NGRAPH_VLOG(4) << "NGraphAssign::Getting from catalog: " << valkey;
       auto ng_val = NGraphCatalog::GetTensorFromEncapOutputTensorMap(valkey);
+      cout << "ng_assign_op: ng_val is nullptr: " << (ng_val == nullptr) << "  valkey:: " << valkey << "\n";
       var->update_ng_tensor(ng_val);
     } else {
       NGRAPH_VLOG(4) << "NGraphAssign::Getting from TF : " << valkey;
