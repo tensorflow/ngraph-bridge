@@ -71,7 +71,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
   cout << "\n\nNGTF_OPTIMIZER: grappler item id " << item.id << "\n";
 
-
   // Convert the GraphDef to Graph
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
@@ -316,7 +315,6 @@ void NgraphOptimizer::DumpGraphs(Graph& graph, int idx,
   GraphToDotFile(&graph, dot_filename, title);
   GraphToPbTextFile(&graph, pbtxt_filename);
 }
-
 
 REGISTER_GRAPH_OPTIMIZER_AS(NgraphOptimizer, "ngraph-optimizer");
 

@@ -681,8 +681,10 @@ class NGraphEncapsulateOp : public OpKernel {
                              ng_shape);
 
       current_ng_tensor->set_stale(true);
-      cout << "ng_enc_op:: HERE: setting output_caches here: " << i << " " << (current_ng_tensor == nullptr) << "\n";
-      cout << "ng_enc_op:: HERE: setting output_caches here: " << i << " " << (current_dst_ptr == nullptr) << "\n";
+      cout << "ng_enc_op:: HERE: setting output_caches here: " << i << " "
+           << (current_ng_tensor == nullptr) << "\n";
+      cout << "ng_enc_op:: HERE: setting output_caches here: " << i << " "
+           << (current_dst_ptr == nullptr) << "\n";
       output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
       ng_outputs.push_back(current_ng_tensor);
     }
@@ -800,7 +802,8 @@ class NGraphEncapsulateOp : public OpKernel {
         NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
         m_number_outputs = output_caches.size();
       }
-      cout << "ng_enc_op.cc: output_tensor_count: " << output_tensor_count << "\n";
+      cout << "ng_enc_op.cc: output_tensor_count: " << output_tensor_count
+           << "\n";
       for (size_t i = 0; i < output_tensor_count; ++i) {
         string key = NGraphCatalog::CreateNodeKey(m_graph_id, def().name(), i);
         bool ref_exists = NGraphCatalog::ExistsInEncapOutputTensorMap(key);
@@ -812,7 +815,8 @@ class NGraphEncapsulateOp : public OpKernel {
 
         if (ref_exists) {
           cout << "HERE:: Adding in output tensor map " << key << "\n";
-          cout << "ng_enc_op.cc: HERE:: dst_ng_tensor is nullptr: " << (dst_ng_tensor == nullptr) << "\n";
+          cout << "ng_enc_op.cc: HERE:: dst_ng_tensor is nullptr: "
+               << (dst_ng_tensor == nullptr) << "\n";
           NGraphCatalog::AddToEncapOutputTensorMap(key, dst_ng_tensor);
         } else {
           cout << "NOT ADDING: " << key << "\n";

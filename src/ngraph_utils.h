@@ -325,7 +325,8 @@ bool DumpReplacedModifiersGraphs();
 
 bool DumpCatalogedGraphs();
 
-// Returns a fresh "serial number" to avoid filename collisions in the graph dumps.
+// Returns a fresh "serial number" to avoid filename collisions in the graph
+// dumps.
 int FreshIndex();
 
 #if defined(NGRAPH_DISTRIBUTED)

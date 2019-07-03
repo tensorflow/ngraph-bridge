@@ -50,5 +50,4 @@ class TestSignOperations(NgraphTest):
                     b: np.ones((dim1, dim2))
                 })
 
-        assert (
-            self.with_ngraph(run_test) == self.without_ngraph(run_test))
+        assert (self.with_ngraph(run_test) == self.without_ngraph(run_test))
