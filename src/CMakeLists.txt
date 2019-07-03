@@ -62,8 +62,8 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(REMOVE_ITEM SRC ngraph_rewrite_for_tracking.cc)
     list(APPEND SRC enable_variable_ops/ngraph_rewrite_for_tracking.cc)
 
-    list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_rewrite_pass.cc)
+    #list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
+    #list(APPEND SRC enable_variable_ops/ngraph_rewrite_pass.cc)
 
     list(REMOVE_ITEM SRC ngraph_tracked_variable.cc)
     list(APPEND SRC enable_variable_ops/ngraph_tracked_variable.cc)
