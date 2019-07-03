@@ -67,7 +67,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                  const tensorflow::grappler::GrapplerItem& item,
                                  GraphDef* output) {
   NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
-  cout << "\n\nNGTF_OPTIMIZER: grappler item id " << item.id << "\n";
+  NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
 
   // Convert the GraphDef to Graph
   GraphConstructorOptions opts;
@@ -264,7 +264,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  cout << "ng_optimizer.cc:: graphidx: " << idx << "\n";
 
   TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
   if (DumpEncapsulatedGraphs()) {

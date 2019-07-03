@@ -421,7 +421,6 @@ bool IsProcessedByNgraphPass(Graph* g) {
 int FreshIndex() {
   static std::atomic<int> count(-1);
   count++;
-  cout << "A CALL TO FreshIndex. returning:: " << count << "\n";
   return count;
 }
 
