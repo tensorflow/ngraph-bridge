@@ -53,7 +53,7 @@ class NGraphEncapsulateOp : public OpKernel {
                    ng::runtime::Backend*& op_backend,
                    std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
   Status AllocateTensorInput(
-      OpKernelContext* ctx,
+      std::vector<Tensor> input_tensors,
       std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);

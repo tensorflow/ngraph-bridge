@@ -24,6 +24,7 @@
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
@@ -474,7 +475,8 @@ Status NGraphEncapsulateOp::GetNgExec(
 }
 
 Status NGraphEncapsulateOp::AllocateTensorInput(
-    OpKernelContext* ctx, std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    std::vector<Tensor> input_tensors,
+    std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
   ngraph::Event event_alloc_input("Input: maybe create", name(), "");
@@ -485,7 +487,7 @@ Status NGraphEncapsulateOp::AllocateTensorInput(
   input_caches.resize(input_shapes.size());
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   bool log_copies = false;
-  OP_REQUIRES_OK(ctx, IsNgraphTFLogTensorCopiesEnabled(m_graph_id, log_copies));
+  TF_RETURN_IF_ERROR(IsNgraphTFLogTensorCopiesEnabled(m_graph_id, log_copies));
   std::stringstream copy_log_str;
   copy_log_str << "KERNEL[" << type_string() << "]: " << name() << " ,GraphID "
                << m_graph_id << "\n";
@@ -511,8 +513,8 @@ Status NGraphEncapsulateOp::AllocateTensorInput(
       ng_shape[j] = input_shapes[i].dim_size(j);
     }
     ng::element::Type ng_element_type;
-    TF_RETURN_IF_ERROR(
-        TFDataTypeToNGraphElementType(ctx->input(i).dtype(), &ng_element_type));
+    TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(input_tensors[i].dtype(),
+                                                     &ng_element_type));
 
     // At the first call of the ng_exec, both last_src_ptr and
     // last_ng_tensor shall point to null. Otherwise, they are retrived
@@ -520,7 +522,7 @@ Status NGraphEncapsulateOp::AllocateTensorInput(
     void* last_src_ptr = input_caches[i].first;
     std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
         input_caches[i].second;
-    void* current_src_ptr = (void*)DMAHelper::base(&ctx->input(i));
+    void* current_src_ptr = (void*)DMAHelper::base(&input_tensors[i]);
     std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
         GetCurrentNgTensor(current_src_ptr, last_src_ptr, last_ng_tensor, false,
                            ng_exec, op_backend, ng_element_type, ng_shape);
@@ -637,6 +639,12 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   ng::runtime::Backend* op_backend;
 
+  std::vector<Tensor> input_tensors;
+
+  for (int i = 0; i < ctx->num_inputs(); i++) {
+    input_tensors.push_back(ctx->input(i));
+  }
+
   // Get ngraph executable and inputs information
   OP_REQUIRES_OK(
       ctx, GetNgExec(ctx, input_shapes, static_input_map, op_backend, ng_exec));
@@ -674,7 +682,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
 
-  OP_REQUIRES_OK(ctx, AllocateTensorInput(ctx, ng_exec, input_shapes,
+  OP_REQUIRES_OK(ctx, AllocateTensorInput(input_tensors, ng_exec, input_shapes,
                                           op_backend, ng_inputs));
 
   event_alloc_input.Stop();
