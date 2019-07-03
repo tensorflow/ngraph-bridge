@@ -372,6 +372,7 @@ bool DumpTrackedGraphs() {
          std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
 }
 
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 bool DumpReplacedModifiersGraphs() {
   return DumpAllGraphs() ||
          std::getenv("NGRAPH_TF_DUMP_REPLACEDMODIFIERS_GRAPHS") != nullptr;
@@ -381,6 +382,7 @@ bool DumpCatalogedGraphs() {
   return DumpAllGraphs() ||
          std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
 }
+#endif
 
 #if defined(NGRAPH_DISTRIBUTED)
 void OpControlOrder(const std::shared_ptr<ngraph::Function>& ng_function,
@@ -416,12 +418,6 @@ bool IsProcessedByNgraphPass(Graph* g) {
     if (node->type_string() == "NGraphEncapsulate") return true;
   }
   return false;
-}
-
-int FreshIndex() {
-  static std::atomic<int> count(-1);
-  count++;
-  return count;
 }
 
 }  // namespace ngraph_bridge

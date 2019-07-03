@@ -307,6 +307,11 @@ void NgraphOptimizer::DumpGraphs(Graph& graph, int idx,
   GraphToPbTextFile(&graph, pbtxt_filename);
 }
 
+int NgraphOptimizer::FreshIndex() {
+  mutex_lock l(s_serial_counter_mutex);
+  return s_serial_counter++;
+}
+
 REGISTER_GRAPH_OPTIMIZER_AS(NgraphOptimizer, "ngraph-optimizer");
 
 }  // end namespace ngraph_bridge

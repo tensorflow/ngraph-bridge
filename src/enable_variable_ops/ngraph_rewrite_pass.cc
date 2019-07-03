@@ -83,6 +83,13 @@ class NGraphRewritePass : public GraphOptimizationPass {
     }
   }
 
+  // Returns a fresh "serial number" to avoid filename collisions in the graph
+  // dumps.
+  static int FreshIndex() {
+    mutex_lock l(s_serial_counter_mutex);
+    return s_serial_counter++;
+  }
+
   static bool DumpAllGraphs() {
     return std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr;
   }

@@ -321,13 +321,11 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 bool DumpReplacedModifiersGraphs();
 
 bool DumpCatalogedGraphs();
-
-// Returns a fresh "serial number" to avoid filename collisions in the graph
-// dumps.
-int FreshIndex();
+#endif
 
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order
