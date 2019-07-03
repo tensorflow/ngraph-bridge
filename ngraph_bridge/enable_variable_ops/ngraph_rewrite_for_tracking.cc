@@ -18,8 +18,8 @@
 #include "tensorflow/core/graph/types.h"
 
 #include "ngraph_replace_op_utilities.h"
-#include "src/ngraph_rewrite_for_tracking.h"
-#include "src/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 

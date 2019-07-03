@@ -24,9 +24,9 @@
 
 #include "ngraph/runtime/backend.hpp"
 #include "ngraph_var.h"
-#include "src/ngraph_backend_manager.h"
-#include "src/ngraph_freshness_tracker.h"
-#include "src/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_freshness_tracker.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 #include "ngraph/event_tracing.hpp"
 

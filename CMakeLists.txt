@@ -283,7 +283,7 @@ INCLUDE_DIRECTORIES("${BASEPATH}")
 # Add the directories to be built
 add_subdirectory(third-party)
 add_subdirectory(logging)
-add_subdirectory(src)
+add_subdirectory(ngraph_bridge)
 add_subdirectory(tools)
 
 # The following targets depend on the Tensorflow source code directory

@@ -23,7 +23,7 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
 #include "ngraph_catalog.h"
-#include "src/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 namespace ng = ngraph;

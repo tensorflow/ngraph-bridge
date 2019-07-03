@@ -26,9 +26,9 @@
 
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
-#include "src/ngraph_backend_manager.h"
-#include "src/ngraph_freshness_tracker.h"
-#include "src/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_freshness_tracker.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 namespace ng = ngraph;

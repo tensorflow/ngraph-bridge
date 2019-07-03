@@ -18,9 +18,9 @@
 #include "tensorflow/core/graph/node_builder.h"
 
 #include "ngraph_replace_op_utilities.h"
-#include "src/ngraph_api.h"
-#include "src/ngraph_capture_variables.h"
-#include "src/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_capture_variables.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 
