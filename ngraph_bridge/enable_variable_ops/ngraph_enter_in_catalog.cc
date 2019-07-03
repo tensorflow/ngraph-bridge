@@ -22,8 +22,8 @@
 #include "logging/ngraph_log.h"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
-#include "ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_catalog.h"
 
 using namespace std;
 namespace ng = ngraph;
