@@ -104,7 +104,10 @@ def prepare_argparser(formats):
     convert('savedmodel', 'test_graph_SM' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
     convert('pbtxt', 'test_graph_SM.pbtxt' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
     ''')
-    in_out_groups = [parser.add_argument_group(i) for i in ['input', 'output']]
+    in_out_groups = [
+        parser.add_argument_group(i, j) for i, j in zip(
+            ['input', 'output'], ['Input formats', 'Output formats'])
+    ]
     for grp in in_out_groups:
         inp_out_group = grp.add_mutually_exclusive_group()
         for format in formats[grp.title]:
@@ -113,7 +116,9 @@ def prepare_argparser(formats):
                 "--" + opt_name, help="Location of " + grp.title + " " + format)
     # Note: no other option must begin with "input" or "output"
     parser.add_argument(
-        "--outnodes", help="Comma separated list of output nodes")
+        "--outnodes",
+        help="Comma separated list of output nodes",
+        required=True)
     parser.add_argument(
         "--ngbackend",
         default='CPU',
@@ -130,7 +135,7 @@ def filter_dict(prefix, dictionary):
         filter(lambda x: x.startswith(prefix) and dictionary[x] is not None,
                dictionary))
     assert len(current_format) == 1, "Got " + str(
-        len(current_format)) + " input formats, expected only 1"
+        len(current_format)) + " " + prefix + " formats, expected only 1"
     # [len(prefix):] deletes the initial "input" in the string
     stripped = current_format[0][len(prefix):]
     assert stripped in allowed_formats[
