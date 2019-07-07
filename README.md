@@ -126,7 +126,7 @@ Verify that `ngraph-bridge` installed correctly:
 
     This will produce something like this:
 
-        TensorFlow version:  1.13.1
+        TensorFlow version:  1.14.0
         nGraph bridge version: b'0.14.0'
         nGraph version used for this build: b'0.18.0+c5d52f1'
         TensorFlow version used for this build: v1.13.1-0-g6612da8951
