@@ -199,7 +199,7 @@ By default nGraph runs with a CPU backend. To get the best performance of the CP
                 --input_height=299 --input_width=299 \
                 --labels imagenet_slim_labels.txt 
 
-Where <num_cores> equals the number of cores in your processor. 
+Where `<num_cores>` equals the number of cores in your processor. 
 
 #### Measure the time
 nGraph is a Just In Time (JIT) compiler meaning that the TensorFlow computation graph is compiled to nGraph during the first instance of the execution. From the second time onwards, the execution speeds up significantly. 
