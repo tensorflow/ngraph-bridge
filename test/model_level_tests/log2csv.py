@@ -58,10 +58,7 @@ def transform(input, output, print_header=False):
                     value_line += (throughput + ' ')
                     if print_header:
                         header_line += (test_name + ' ')
-                    # out_fp.write(throughput)
-                    # out_fp.write(' ')
                     print('Result: %s Throughput: %s' % (test_name, throughput))
-                #print('LINE: \"%s\"' % line)
         if print_header:
             out_fp.write(header_line + '\n')
         out_fp.write(value_line)
