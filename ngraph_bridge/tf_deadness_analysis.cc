@@ -36,14 +36,15 @@ File: tensorflow/tensorflow/compiler/jit/deadness_analysis.cc
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_utils.h"
+#include "ngraph_bridge/ngraph_utils.h"
 #if !defined(NGRAPH_TF_DISABLE_DEADNESS_CHECK)
 
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/tensor_id.h"
 #include "tensorflow/core/lib/gtl/flatset.h"
 #include "tensorflow/core/lib/hash/hash.h"
-#include "tf_deadness_analysis.h"
+
+#include "ngraph_bridge/tf_deadness_analysis.h"
 
 // ALGORITHM OVERVIEW
 //

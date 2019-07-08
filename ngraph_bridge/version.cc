@@ -14,10 +14,12 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "version.h"
 #include <iostream>
 #include <string>
+
 #include "ngraph/ngraph.hpp"
+
+#include "ngraph_bridge/version.h"
 
 // nGraph-TensorFlow bridge uses semantic versioning: see http://semver.org/
 

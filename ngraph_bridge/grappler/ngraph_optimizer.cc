@@ -14,10 +14,6 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_optimizer.h"
-#include "ngraph_bridge/ngraph_backend_manager.h"
-#include "ngraph_bridge/ngraph_cluster_manager.h"
-
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/grappler/clusters/cluster.h"
@@ -26,6 +22,10 @@
 #include "tensorflow/core/grappler/optimizers/custom_graph_optimizer_registry.h"
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/platform/protobuf.h"
+
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/grappler/ngraph_optimizer.h"
 
 #include <iomanip>
 #if defined NGRAPH_DISTRIBUTED

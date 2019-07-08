@@ -13,16 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#include "ngraph_utils.h"
 
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-
-#if defined NGRAPH_DISTRIBUTED
-#include "ngraph/distributed.hpp"
-#endif
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/common_runtime/optimization_registry.h"
@@ -34,7 +29,12 @@
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
 
-#include "version.h"
+#if defined NGRAPH_DISTRIBUTED
+#include "ngraph/distributed.hpp"
+#endif
+
+#include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/version.h"
 
 using namespace std;
 namespace ng = ngraph;

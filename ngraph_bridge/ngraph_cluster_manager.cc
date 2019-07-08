@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#include "ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
 
 using namespace std;
 

@@ -20,7 +20,8 @@
 #include "tensorflow/core/graph/graph.h"
 
 #include "ngraph/ngraph.hpp"
-#include "ngraph_catalog.h"
+
+#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 
 using namespace std;
 namespace ng = ngraph;

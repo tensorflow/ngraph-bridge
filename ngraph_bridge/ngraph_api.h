@@ -18,8 +18,9 @@
 #include <string.h>
 #include <vector>
 
-#include "ngraph_backend_manager.h"
 #include "tensorflow/core/lib/core/errors.h"
+
+#include "ngraph_bridge/ngraph_backend_manager.h"
 
 using namespace std;
 

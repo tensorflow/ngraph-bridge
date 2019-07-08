@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_api.h"  // TODO: Importing this first causes a compile error
-#include "ngraph_backend_manager.h"
-#include "ngraph_utils.h"
-#include "ngraph_version_utils.h"
+
 #include "tensorflow/core/graph/graph.h"
+
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_api.h"  // TODO: Importing this first causes a compile error
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_version_utils.h"
+
 using namespace std;
 
 namespace tensorflow {

@@ -37,13 +37,13 @@
 
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
-#include "ngraph_api.h"
-#include "ngraph_assign_clusters.h"
-#include "ngraph_cluster_manager.h"
-#include "ngraph_encapsulate_clusters.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_utils.h"
+#include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 

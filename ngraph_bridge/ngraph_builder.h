@@ -19,12 +19,12 @@
 #include <ostream>
 #include <vector>
 
+#include "tensorflow/core/framework/tensor_shape.h"
+#include "tensorflow/core/graph/graph.h"
+
 #include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
-
-#include "tensorflow/core/framework/tensor_shape.h"
-#include "tensorflow/core/graph/graph.h"
 
 namespace tensorflow {
 

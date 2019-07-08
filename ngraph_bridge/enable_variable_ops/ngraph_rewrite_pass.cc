@@ -29,9 +29,10 @@
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_enter_in_catalog.h"
-#include "ngraph_replace_variable_modifiers.h"
-#include "ngraph_rewrite_for_tracking.h"
+#include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_enter_in_catalog.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
+
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"

@@ -37,7 +37,7 @@ File: tensorflow/tensorflow/compiler/jit/graphcycles/graphcycles.cc
 // (2) When a new edge (x->y) is inserted, do nothing if rank[x] < rank[y].
 // (3) Otherwise: adjust ranks in the neighborhood of x and y.
 
-#include "tf_graphcycles.h"
+#include "ngraph_bridge/tf_graphcycles.h"
 
 #include <algorithm>
 #include <unordered_set>

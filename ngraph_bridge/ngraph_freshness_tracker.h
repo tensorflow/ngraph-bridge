@@ -17,9 +17,10 @@
 #define NGRAPH_FRESHNESS_TRACKER_H_
 
 #include <set>
-#include "ngraph_utils.h"
 
 #include "tensorflow/core/framework/resource_mgr.h"
+
+#include "ngraph_bridge/ngraph_utils.h"
 
 namespace tensorflow {
 

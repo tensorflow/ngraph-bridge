@@ -14,26 +14,26 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_builder.h"
-#include "logging/ngraph_log.h"
-#include "ngraph/op/util/logical_reduction.hpp"
-#include "ngraph_backend_manager.h"
-#include "ngraph_conversions.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_utils.h"
-
-#include "ngraph/builder/autobroadcast.hpp"
-#include "ngraph/builder/numpy_transpose.hpp"
-#include "ngraph/builder/quantization.hpp"
-#include "ngraph/op/argmax.hpp"
-#include "ngraph/op/argmin.hpp"
-
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
 #include "tensorflow/core/framework/tensor_shape.pb_text.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/edgeset.h"
 #include "tensorflow/core/lib/core/errors.h"
+
+#include "ngraph/builder/autobroadcast.hpp"
+#include "ngraph/builder/numpy_transpose.hpp"
+#include "ngraph/builder/quantization.hpp"
+#include "ngraph/op/argmax.hpp"
+#include "ngraph/op/argmin.hpp"
+#include "ngraph/op/util/logical_reduction.hpp"
+
+#include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_builder.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_conversions.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 #if defined(NGRAPH_DISTRIBUTED)
 #include "ngraph/distributed.hpp"

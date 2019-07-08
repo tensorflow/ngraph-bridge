@@ -27,15 +27,6 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
-#include "logging/ngraph_log.h"
-#include "ngraph_backend_manager.h"
-#include "ngraph_builder.h"
-#include "ngraph_cluster_manager.h"
-#include "ngraph_freshness_tracker.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_timer.h"
-#include "ngraph_utils.h"
-
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
 
@@ -43,9 +34,18 @@
 #include "ngraph/distributed.hpp"
 #endif
 
+#include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_builder.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_freshness_tracker.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_timer.h"
+#include "ngraph_bridge/ngraph_utils.h"
+
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "enable_variable_ops/ngraph_catalog.h"
-#include "enable_variable_ops/ngraph_var.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #endif
 
 using namespace std;

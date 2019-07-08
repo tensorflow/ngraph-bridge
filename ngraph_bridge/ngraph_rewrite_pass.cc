@@ -19,22 +19,22 @@
 
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
-#include "ngraph_api.h"
-#include "ngraph_assign_clusters.h"
-#include "ngraph_backend_manager.h"
-#include "ngraph_capture_variables.h"
-#include "ngraph_cluster_manager.h"
-#include "ngraph_deassign_clusters.h"
-#include "ngraph_encapsulate_clusters.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_rewrite_for_tracking.h"
-#include "ngraph_utils.h"
-
-#include <iomanip>
+#include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_capture_variables.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_deassign_clusters.h"
+#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
 #endif
+
+#include <iomanip>
 
 using namespace std;
 

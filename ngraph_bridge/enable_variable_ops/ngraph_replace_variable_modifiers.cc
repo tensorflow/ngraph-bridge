@@ -19,9 +19,9 @@
 
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_capture_variables.h"
-#include "ngraph_replace_op_utilities.h"
-#include "ngraph_replace_variable_modifiers.h"
+#include "ngraph_bridge/ngraph_capture_variables.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
 
 using namespace std;
 namespace ng = ngraph;

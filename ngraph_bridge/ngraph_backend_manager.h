@@ -25,12 +25,13 @@
 #include <ostream>
 #include <vector>
 
-#include "logging/ngraph_log.h"
-#include "ngraph/ngraph.hpp"
-#include "ngraph/runtime/backend_manager.hpp"
 #include "tensorflow/core/lib/core/errors.h"
 
-#include "ngraph_backend_config.h"
+#include "ngraph/ngraph.hpp"
+#include "ngraph/runtime/backend_manager.hpp"
+
+#include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_backend_config.h"
 
 using namespace std;
 namespace ng = ngraph;

@@ -37,7 +37,7 @@ File: tensorflow/tensorflow/compiler/jit/deadness_analysis.h
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_utils.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 #if !defined(NGRAPH_TF_DISABLE_DEADNESS_CHECK)
 #ifndef NGRAPH_TENSORFLOW_COMPILER_JIT_DEADNESS_ANALYSIS_H_

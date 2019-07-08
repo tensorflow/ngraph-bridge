@@ -28,11 +28,11 @@
 #include "tensorflow/core/util/device_name_utils.h"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_api.h"
-#include "ngraph_assign_clusters.h"
-#include "ngraph_deassign_clusters.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_utils.h"
+#include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_deassign_clusters.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 

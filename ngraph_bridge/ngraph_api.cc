@@ -14,7 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_api.h"
+#include "ngraph_bridge/ngraph_api.h"
 
 namespace ng = ngraph;
 
