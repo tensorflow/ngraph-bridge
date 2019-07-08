@@ -65,7 +65,6 @@ cc_binary(
         "ngraph_bridge/ngraph_freshness_tracker.cc",
         "ngraph_bridge/ngraph_mark_for_clustering.cc",
         "ngraph_bridge/ngraph_rewrite_for_tracking.cc",
-        #"ngraph_bridge/ngraph_rewrite_pass.cc",
         "ngraph_bridge/ngraph_tracked_variable.cc",
         "ngraph_bridge/ngraph_utils.cc",
         "ngraph_bridge/tf_deadness_analysis.cc",
