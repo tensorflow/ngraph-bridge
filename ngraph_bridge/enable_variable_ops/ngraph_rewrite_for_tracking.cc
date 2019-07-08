@@ -17,9 +17,9 @@
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/graph/types.h"
 
+#include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 #include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 
 using namespace std;
 

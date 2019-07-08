@@ -29,8 +29,8 @@
 #include "ngraph/op/util/logical_reduction.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_conversions.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"

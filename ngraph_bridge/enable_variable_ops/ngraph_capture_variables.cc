@@ -17,10 +17,10 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/node_builder.h"
 
+#include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 
 using namespace std;
 
