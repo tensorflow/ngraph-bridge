@@ -49,7 +49,7 @@ class NGraphEncapsulateOp : public OpKernel {
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
   Status GetNgExec(std::vector<Tensor> input_tensors,
-                   pair<string, int> ctx_params,
+                   pair<string, int64> ctx_params,
                    std::vector<TensorShape>& input_shapes,
                    std::vector<const Tensor*>& static_input_map,
                    ng::runtime::Backend*& op_backend,
