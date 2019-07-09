@@ -295,7 +295,7 @@ Status NGraphEncapsulateOp::TensorToStream(std::ostream& ostream,
 }
 
 Status NGraphEncapsulateOp::ComputeSignature(
-    std::vector<Tensor> input_tensors, std::vector<TensorShape>& input_shapes,
+    std::vector<Tensor>& input_tensors, std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     std::stringstream& signature_ss) {
   // Get the inputs
@@ -323,7 +323,7 @@ Status NGraphEncapsulateOp::ComputeSignature(
 }
 
 Status NGraphEncapsulateOp::GetNgExec(
-    std::vector<Tensor> input_tensors, pair<string, int64> ctx_params,
+    std::vector<Tensor>& input_tensors, std::pair<string, int64> ctx_params,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     ng::runtime::Backend*& op_backend,
@@ -474,7 +474,7 @@ Status NGraphEncapsulateOp::GetNgExec(
 }
 
 Status NGraphEncapsulateOp::AllocateTensorInput(
-    std::vector<Tensor> input_tensors,
+    std::vector<Tensor>& input_tensors,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
@@ -644,7 +644,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     input_tensors.push_back(ctx->input(i));
   }
 
-  pair<string, int64> ctx_params;
+  std::pair<string, int64> ctx_params;
   ctx_params.first = ctx->op_kernel().name();
   ctx_params.second = ctx->step_id();
 
