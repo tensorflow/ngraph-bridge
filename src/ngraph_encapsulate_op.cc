@@ -295,12 +295,12 @@ Status NGraphEncapsulateOp::TensorToStream(std::ostream& ostream,
 }
 
 Status NGraphEncapsulateOp::ComputeSignature(
-    OpKernelContext* ctx, std::vector<TensorShape>& input_shapes,
+    std::vector<Tensor> input_tensors, std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     std::stringstream& signature_ss) {
   // Get the inputs
-  for (int i = 0; i < ctx->num_inputs(); i++) {
-    const Tensor& input_tensor = ctx->input(i);
+  for (int i = 0; i < input_tensors.size(); i++) {
+    const Tensor& input_tensor = input_tensors[i];
     input_shapes.push_back(input_tensor.shape());
     for (const auto& x : input_tensor.shape()) {
       signature_ss << x.size << ",";
@@ -310,9 +310,9 @@ Status NGraphEncapsulateOp::ComputeSignature(
 
   signature_ss << "/";
 
-  static_input_map.resize(ctx->num_inputs());
-  for (int i = 0; i < ctx->num_inputs(); i++) {
-    const Tensor& input_tensor = ctx->input(i);
+  static_input_map.resize(input_tensors.size());
+  for (int i = 0; i < input_tensors.size(); i++) {
+    const Tensor& input_tensor = input_tensors[i];
     if (m_input_is_static[i]) {
       static_input_map[i] = &input_tensor;
       TF_RETURN_IF_ERROR(TensorToStream(signature_ss, input_tensor));
@@ -323,7 +323,8 @@ Status NGraphEncapsulateOp::ComputeSignature(
 }
 
 Status NGraphEncapsulateOp::GetNgExec(
-    OpKernelContext* ctx, std::vector<TensorShape>& input_shapes,
+    std::vector<Tensor> input_tensors, pair<string, int> ctx_params,
+    std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     ng::runtime::Backend*& op_backend,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec) {
@@ -337,8 +338,8 @@ Status NGraphEncapsulateOp::GetNgExec(
   op_backend = BackendManager::GetBackend(m_op_backend_name);
 
   // Compute Signature
-  TF_RETURN_IF_ERROR(
-      ComputeSignature(ctx, input_shapes, static_input_map, signature_ss));
+  TF_RETURN_IF_ERROR(ComputeSignature(input_tensors, input_shapes,
+                                      static_input_map, signature_ss));
   signature = signature_ss.str();
 
   if (NGRAPH_VLOG_IS_ON(5)) {
@@ -356,7 +357,7 @@ Status NGraphEncapsulateOp::GetNgExec(
     long vm, rss, vm0, rss0;
     MemoryProfile(vm0, rss0);
 
-    NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
+    NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx_params.first;
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                &m_graph, ng_function));
     ng_function->set_friendly_name(name());
@@ -365,14 +366,12 @@ Status NGraphEncapsulateOp::GetNgExec(
 
     // Serialize to nGraph if needed
     if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-      std::string file_name =
-          "tf_function_" + ctx->op_kernel().name() + ".json";
-      NgraphSerialize("tf_function_" + ctx->op_kernel().name() + ".json",
-                      ng_function);
+      std::string file_name = "tf_function_" + ctx_params.first + ".json";
+      NgraphSerialize("tf_function_" + ctx_params.first + ".json", ng_function);
 #if defined NGRAPH_DISTRIBUTED
       int rank_id;
       rank_id = ng::get_distributed_interface()->get_rank();
-      NgraphSerialize("tf_function_" + ctx->op_kernel().name() + "_" +
+      NgraphSerialize("tf_function_" + ctx_params.first + "_" +
                           to_string(rank_id) + ".json",
                       ng_function);
 #endif
@@ -413,8 +412,8 @@ Status NGraphEncapsulateOp::GetNgExec(
       m_ng_exec_output_cache_map.erase(evicted_ng_exec);
       m_lru.pop_back();
       NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << my_instance_id
-                     << " Step_ID: " << ctx->step_id()
-                     << " Cluster: " << ctx->op_kernel().name()
+                     << " Step_ID: " << ctx_params.second
+                     << " Cluster: " << ctx_params.first
                      << " Input Tensors freed: "
                      << input_tensors_bytes_free / (1024 * 1024) << " MB"
                      << " Output Tensors freed: "
@@ -429,13 +428,13 @@ Status NGraphEncapsulateOp::GetNgExec(
 
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
+      NgraphSerialize("tf_function_error_" + ctx_params.first + ".json",
                       ng_function);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
+      NgraphSerialize("tf_function_error_" + ctx_params.first + ".json",
                       ng_function);
       return errors::Internal("Error in compiling op_backend\n");
     }
@@ -453,9 +452,9 @@ Status NGraphEncapsulateOp::GetNgExec(
     auto delta_vm_mem = vm - vm0;
     auto delta_res_mem = rss - rss0;
     NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
-                   << " Step_ID: " << ctx->step_id()
+                   << " Step_ID: " << ctx_params.second
                    << " Cache length: " << m_ng_exec_map.size()
-                   << "  Cluster: " << ctx->op_kernel().name()
+                   << "  Cluster: " << ctx_params.first
                    << " Delta VM: " << delta_vm_mem
                    << "  Delta RSS: " << delta_res_mem
                    << "  Function size: " << function_size
@@ -645,9 +644,13 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     input_tensors.push_back(ctx->input(i));
   }
 
+  pair<string, int> ctx_params;
+  ctx_params.first = ctx->op_kernel().name();
+  ctx_params.second = ctx->step_id();
+
   // Get ngraph executable and inputs information
-  OP_REQUIRES_OK(
-      ctx, GetNgExec(ctx, input_shapes, static_input_map, op_backend, ng_exec));
+  OP_REQUIRES_OK(ctx, GetNgExec(input_tensors, ctx_params, input_shapes,
+                                static_input_map, op_backend, ng_exec));
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
@@ -789,8 +792,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   long vm, rss;
   MemoryProfile(vm, rss);
   NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << my_instance_id
-                 << " Step_ID: " << ctx->step_id()
-                 << " Cluster: " << ctx->op_kernel().name()
+                 << " Step_ID: " << ctx_params.second
+                 << " Cluster: " << ctx_params.first
                  << " Input Tensors created: "
                  << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
                  << " Output Tensors created: "
@@ -898,8 +901,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
       << m_ngraph_cluster;
   NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: " << my_instance_id
-                 << " Step_ID: " << ctx->step_id()
-                 << " Cluster: " << ctx->op_kernel().name()
+                 << " Step_ID: " << ctx_params.second
+                 << " Cluster: " << ctx_params.first
                  << " Time-Compute: " << compute_time.ElapsedInMS()
                  << " Function-Create-or-Lookup: " << time_func_create_or_lookup
                  << " Create-and-copy-tensors: "

@@ -44,11 +44,13 @@ class NGraphEncapsulateOp : public OpKernel {
   explicit NGraphEncapsulateOp(OpKernelConstruction* ctx);
   static Status TensorToStream(std::ostream& ostream, const Tensor& tensor);
   ~NGraphEncapsulateOp() override;
-  Status ComputeSignature(OpKernelContext* ctx,
+  Status ComputeSignature(std::vector<Tensor> input_tensors,
                           std::vector<TensorShape>& input_shapes,
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
-  Status GetNgExec(OpKernelContext* ctx, std::vector<TensorShape>& input_shapes,
+  Status GetNgExec(std::vector<Tensor> input_tensors,
+                   pair<string, int> ctx_params,
+                   std::vector<TensorShape>& input_shapes,
                    std::vector<const Tensor*>& static_input_map,
                    ng::runtime::Backend*& op_backend,
                    std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
