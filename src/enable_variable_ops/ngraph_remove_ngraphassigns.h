@@ -28,6 +28,8 @@ namespace ngraph_bridge {
 
 Status RemoveNGraphAssigns(Graph* graph);
 
+bool NodeIsMarkedForRemoval(const Node* node);
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

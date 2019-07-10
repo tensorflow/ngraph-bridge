@@ -22,14 +22,75 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status RemoveNGraphAssigns(Graph* graph){
-    vector<Node*> remove_nodes;
+Status RemoveNGraphAssigns(Graph* graph) {
+  vector<Node*> remove_nodes;
 
-    for(auto node: graph->op_nodes()){
+  for (auto node : graph->op_nodes()) {
+    if (node->type_string() == "NGraphAssign" && NodeIsMarkedForRemoval(node)) {
+      Node *input_0, *input_1;
+      TF_RETURN_IF_ERROR(node->input_node(0, &input_0));
+      TF_RETURN_IF_ERROR(node->input_node(1, &input_1));
 
+      // error check if input_0 not NGraphVariable
+
+      // error check if input_1 not NGraphEncapsulate
+
+      // Handle input edges
+      for (auto edge : node->in_edges()) {
+        // attach incoming control edge to encapsulate, as that's where update
+        // will happen
+        if (edge->IsControlEdge()) {
+          // avoid cycles
+          if (edge->src() == input_1) continue;
+          graph->AddEdge(edge->src(), edge->src_output(), input_1,
+                         edge->dst_input());
+          graph->RemoveEdge(edge);
+        }
+      }
+
+      // Handle output edges
+      for (auto edge : node->out_edges()) {
+        if (edge->IsControlEdge()) {
+          // Add control edge from Encap to the dst node
+          graph->AddEdge(input_1, edge->src_output(), edge->dst(),
+                         edge->dst_input());
+          graph->RemoveEdge(edge);
+          continue;
+        } else {
+          // Note: TF takes care whether the edge to be added is ref-type or not
+          // For e.g. if we add edge Var -> Add/Encap (Add's input is
+          // non-ref-type)
+          // if we add edge Var -> Assign (Assign's input is ref-type)
+
+          // Add edge from Variable to the dst node
+          graph->AddEdge(input_0, edge->src_output(), edge->dst(),
+                         edge->dst_input());
+          // Add control edge from Encap to the dst node, the variable should be
+          // used only after the update is completed by Encapsulate op
+          graph->AddEdge(input_1, Graph::kControlSlot, edge->dst(),
+                         Graph::kControlSlot);
+          graph->RemoveEdge(edge);
+        }
+      }
+
+      // Add the node for removal
+      remove_nodes.push_back(node);
     }
+  }
 
-    return Status::OK();
+  // Remove Nodes
+  for (auto node : remove_nodes) {
+    graph->RemoveNode(node);
+  }
+
+  return Status::OK();
+}
+
+bool NodeIsMarkedForRemoval(const Node* node) {
+  bool is_marked;
+  return (GetNodeAttr(node->attrs(), "_ngraph_remove", &is_marked) ==
+              Status::OK() &&
+          is_marked);
 }
 
 }  // namespace ngraph_bridge
