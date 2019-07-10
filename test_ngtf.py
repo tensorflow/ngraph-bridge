@@ -85,9 +85,7 @@ def main():
     # If the PLAIDML tests are requested, then run them as well
     if (arguments.plaidml_unit_tests_enable):
         os.environ['NGRAPH_TF_BACKEND'] = 'PLAIDML'
-        run_ngtf_gtests(
-            build_dir,
-            str(""))
+        run_ngtf_gtests(build_dir, str(""))
 
     os.environ['NGRAPH_TF_BACKEND'] = 'CPU'
 
