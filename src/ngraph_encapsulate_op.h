@@ -80,6 +80,9 @@ class NGraphEncapsulateOp : public OpKernel {
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
 
+  int number_of_copies = 0;
+  std::stringstream copy_log_str;
+  bool log_copies = false;
   // Freshness tracker maintains a set of ng::functions using a particular base
   // pointer(for Tensor)
   // A single instance of freshness_tracker is used across all

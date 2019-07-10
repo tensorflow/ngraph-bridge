@@ -497,51 +497,6 @@ Status NGraphEncapsulateOp::AllocateTensorInput(
   for (auto& next : input_copy_events) {
     ngraph::Event::write_trace(*next.get());
   }
-
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
-                    "from resource manager "
-                 << m_ngraph_cluster;
-
-  ngraph::Event event_input_check_in_catalog(
-      "Get Variable Inputs from Resource Manager", name(), "");
-
-  // Dealing with the input from Variable nodes here
-  for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
-    bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-        m_graph_id, def().name(), input_index);
-
-    if (!ref_exists) {
-      OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
-                  errors::Internal("Input ", input_index,
-                                   " is not in Catalog nor was set from TF"));
-      continue;
-    }
-
-    string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
-        m_graph_id, def().name(), input_index);
-    NGraphVar* var;
-    OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
-                            ctx->resource_manager()->default_container(),
-                            ref_var_name, &var));
-
-    if (var->sync_ng_tensor()) {
-      number_of_copies++;
-      copy_log_str << "Var_Sync[" << input_index << "] ";
-    }
-
-    void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
-    bool is_stale = !m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec);
-    var->ng_tensor()->set_stale(is_stale);
-    ng_inputs[input_index] = var->ng_tensor();
-
-    var->Unref();
-  }
-
-  event_input_check_in_catalog.Stop();
-  ngraph::Event::write_trace(event_input_check_in_catalog);
-#endif
-
   return Status::OK();
 }
 
@@ -690,6 +645,50 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << m_ngraph_cluster;
+
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
+                    "from resource manager "
+                 << m_ngraph_cluster;
+
+  ngraph::Event event_input_check_in_catalog(
+      "Get Variable Inputs from Resource Manager", name(), "");
+
+  // Dealing with the input from Variable nodes here
+  for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
+    bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
+        m_graph_id, def().name(), input_index);
+
+    if (!ref_exists) {
+      OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
+                  errors::Internal("Input ", input_index,
+                                   " is not in Catalog nor was set from TF"));
+      continue;
+    }
+
+    string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
+        m_graph_id, def().name(), input_index);
+    NGraphVar* var;
+    OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
+                            ctx->resource_manager()->default_container(),
+                            ref_var_name, &var));
+
+    if (var->sync_ng_tensor()) {
+      number_of_copies++;
+      copy_log_str << "Var_Sync[" << input_index << "] ";
+    }
+
+    void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
+    bool is_stale = !m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec);
+    var->ng_tensor()->set_stale(is_stale);
+    ng_inputs[input_index] = var->ng_tensor();
+
+    var->Unref();
+  }
+
+  event_input_check_in_catalog.Stop();
+  ngraph::Event::write_trace(event_input_check_in_catalog);
+#endif
 
   int time_create_or_lookup_tensors = create_or_lookup_tensors.ElapsedInMS();
 
