@@ -413,7 +413,6 @@ Status NGraphEncapsulateOp::AllocateTensorInput(
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
-  ngraph::Event event_alloc_input("Input: maybe create", name(), "");
   std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
 
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
@@ -629,11 +628,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                     "for cluster "
                  << m_ngraph_cluster;
 
-  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
-  int ng_output_tensor_size_in_bytes = 0;
-
   // Allocate tensors for the output results.
   ngraph::Event event_alloc_output("Output: maybe create", name(), "");
+  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+  int ng_output_tensor_size_in_bytes = 0;
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>
       output_caches;
   OP_REQUIRES_OK(ctx,
