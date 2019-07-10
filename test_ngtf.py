@@ -63,7 +63,7 @@ def main():
     build_dir = 'build_cmake'
     venv_dir = 'build_cmake/venv-tf-py3'
     tf_src_dir = 'build_cmake/tensorflow'
-    
+
     if (platform.system() != 'Darwin'):
         # Run the bazel based build
         run_bazel_build_test(venv_dir, build_dir)
