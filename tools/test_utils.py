@@ -193,7 +193,11 @@ def run_tensorflow_pytests(venv_dir, build_dir, ngraph_tf_src_dir, tf_src_dir):
     # Now run the TensorFlow python tests
     test_src_dir = os.path.join(ngraph_tf_src_dir, "test/python/tensorflow")
     test_script = os.path.join(test_src_dir, "tf_unittest_runner.py")
-    test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
+    if get_os_type() == 'Darwin':
+        test_manifest_file = os.path.join(test_src_dir,
+                                          "python_tests_list_mac.txt")
+    else:
+        test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
     test_xml_report = '%s/junit_tensorflow_tests.xml' % build_dir
 
     import psutil
@@ -251,7 +255,12 @@ def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
         test_manifest_file = os.path.join(test_src_dir,
                                           "python_tests_list_gpu.txt")
     else:
-        test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
+        if get_os_type() == 'Darwin':
+            test_manifest_file = os.path.join(test_src_dir,
+                                              "python_tests_list_mac.txt")
+        else:
+            test_manifest_file = os.path.join(test_src_dir,
+                                              "python_tests_list.txt")
     test_xml_report = './junit_tensorflow_tests.xml'
 
     import psutil
@@ -470,8 +479,9 @@ def run_resnet50_forward_pass(build_dir):
     command_executor(cmd, verbose=True)
     os.chdir(root_pwd)
 
-def run_resnet50_forward_pass_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
-                                iterations):
+
+def run_resnet50_forward_pass_from_artifacts(ngraph_tf_src_dir, artifact_dir,
+                                             batch_size, iterations):
 
     root_pwd = os.getcwd()
     artifact_dir = os.path.abspath(artifact_dir)
@@ -508,10 +518,17 @@ def run_resnet50_forward_pass_from_artifacts(ngraph_tf_src_dir, artifact_dir, ba
     os.environ["KMP_AFFINITY"] = 'granularity=fine,compact,1,0'
 
     cmd = [
-        'python', 'tf_cnn_benchmarks.py', '--data_format', 'NCHW',
-        '--num_inter_threads', '2', '--freeze_when_forward_only=True',
-        '--model=resnet50', '--batch_size=' + str(batch_size), '--num_batches',
-        str(iterations), 
+        'python',
+        'tf_cnn_benchmarks.py',
+        '--data_format',
+        'NCHW',
+        '--num_inter_threads',
+        '2',
+        '--freeze_when_forward_only=True',
+        '--model=resnet50',
+        '--batch_size=' + str(batch_size),
+        '--num_batches',
+        str(iterations),
     ]
     command_executor(cmd, verbose=True)
 

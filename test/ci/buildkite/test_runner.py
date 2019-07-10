@@ -114,8 +114,8 @@ def main():
             arguments.artifacts_dir + '/tensorflow/python', False)
     elif (arguments.test_resnet):
         if get_os_type() == 'Darwin':
-            run_resnet50_forward_pass_from_artifacts('./', arguments.artifacts_dir, 1,
-                                        32)
+            run_resnet50_forward_pass_from_artifacts(
+                './', arguments.artifacts_dir, 1, 32)
         else:
             batch_size = 128
             iterations = 10
@@ -123,8 +123,8 @@ def main():
                 if 'GPU' in arguments.backend:
                     batch_size = 64
                     iterations = 100
-            run_resnet50_from_artifacts('./', arguments.artifacts_dir, batch_size,
-                                        iterations)
+            run_resnet50_from_artifacts('./', arguments.artifacts_dir,
+                                        batch_size, iterations)
     else:
         raise Exception("No tests specified")
 
