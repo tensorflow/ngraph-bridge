@@ -27,6 +27,7 @@ import shutil
 import glob
 import platform
 import shlex
+import grp, pwd
 
 
 def get_tf_cxxabi():
@@ -531,7 +532,21 @@ def apply_patch(patch_file):
         printed_lines[0]), "Error applying the patch."
 
 
+def has_group(user, group_name):
+    if os.getenv("USER") != None:
+        user = os.getenv("USER")
+        groups = [g.gr_name for g in grp.getgrall() if user in g.gr_mem]
+        gid = pwd.getpwnam(user).pw_gid
+        groups.append(grp.getgrgid(gid).gr_name)
+    return groups.filter(name=group_name).exists()
+
+
 def build_base(args):
+    if os.getenv("USER") != None:
+        user = os.getenv("USER")
+        if has_group(user, "docker") == False:
+            command_executor(["sudo", "usermod", "-aG", "docker", user])
+            command_executor(["newgrp", "docker"])
     cmd = ["docker", "build", "--tag", "ngtf", "."]
     command_executor(cmd)
 
