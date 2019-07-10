@@ -85,7 +85,7 @@ def main():
     parser.add_argument(
         '--build_plaidml_backend',
         help=
-        "nGraph backends will include PlaidML bckend. Use: NGRAPH_TF_BACKEND=PLAIDML\n",
+        "nGraph backends will include PlaidML backend. Use: NGRAPH_TF_BACKEND=PLAIDML\n",
         action="store_true")
 
     parser.add_argument(

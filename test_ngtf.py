@@ -43,7 +43,12 @@ def main():
 
     parser.add_argument(
         '--gpu_unit_tests_enable',
-        help="Builds and tests the examples.\n",
+        help="Builds and tests the examples on GPU.\n",
+        action="store_true")
+
+    parser.add_argument(
+        '--plaidml_unit_tests_enable',
+        help="Builds and tests the examples on PLAIDML.\n",
         action="store_true")
 
     arguments = parser.parse_args()
@@ -76,6 +81,13 @@ def main():
                 "MathOps.AllKeepDims:MathOps.AllNegativeAxis:MathOps.AllPositiveAxis:"
                 "NNOps.Qu*:NNOps.SoftmaxZeroDimTest*:"
                 "NNOps.SparseSoftmaxCrossEntropyWithLogits"))
+
+    # If the PLAIDML tests are requested, then run them as well
+    if (arguments.plaidml_unit_tests_enable):
+        os.environ['NGRAPH_TF_BACKEND'] = 'PLAIDML'
+        run_ngtf_gtests(
+            build_dir,
+            str(""))
 
     os.environ['NGRAPH_TF_BACKEND'] = 'CPU'
 
