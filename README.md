@@ -158,7 +158,7 @@ Building in docker provides a consistent environment regardless of what OS you'r
 
 The `--build_base` option above will build a base container image. This base container image is used as the build environment. Subsequent commands shown below execute in this running container.
 
-	./build_ngtf.py --run_in_docker --tf_version v1.13.1 --ngraph_version v0.21.0
+	./build_ngtf.py --run_in_docker [--tf_version v1.14.0] [--ngraph_version v0.23.0-rc.3]
 
 The `--run_in_docker` option above will build tensorflow and ngraph under your current ngraph-bridge clone.
 
