@@ -536,7 +536,7 @@ def has_group(user, group_name):
     groups = [g.gr_name for g in grp.getgrall() if user in g.gr_mem]
     gid = pwd.getpwnam(user).pw_gid
     groups.append(grp.getgrgid(gid).gr_name)
-    return groups.filter(name=group_name).exists()
+    return len(list(filter(lambda name: name==group_name,groups))) > 0
 
 
 def build_base(args):
