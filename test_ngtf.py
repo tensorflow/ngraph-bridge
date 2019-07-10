@@ -63,7 +63,7 @@ def main():
     build_dir = 'build_cmake'
     venv_dir = 'build_cmake/venv-tf-py3'
     tf_src_dir = 'build_cmake/tensorflow'
-
+    
     if (platform.system() != 'Darwin'):
         # Run the bazel based build
         run_bazel_build_test(venv_dir, build_dir)
@@ -106,7 +106,10 @@ def main():
     run_tensorflow_pytests(venv_dir, build_dir, './', tf_src_dir)
 
     # Finally run Resnet50 based training and inferences
-    run_resnet50(build_dir)
+    if (platform.system() == 'Darwin'):
+        run_resnet50_forward_pass(build_dir)
+    else:
+        run_resnet50(build_dir)
 
     os.chdir(root_pwd)
 
