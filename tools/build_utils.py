@@ -533,11 +533,9 @@ def apply_patch(patch_file):
 
 
 def has_group(user, group_name):
-    if os.getenv("USER") != None:
-        user = os.getenv("USER")
-        groups = [g.gr_name for g in grp.getgrall() if user in g.gr_mem]
-        gid = pwd.getpwnam(user).pw_gid
-        groups.append(grp.getgrgid(gid).gr_name)
+    groups = [g.gr_name for g in grp.getgrall() if user in g.gr_mem]
+    gid = pwd.getpwnam(user).pw_gid
+    groups.append(grp.getgrgid(gid).gr_name)
     return groups.filter(name=group_name).exists()
 
 
