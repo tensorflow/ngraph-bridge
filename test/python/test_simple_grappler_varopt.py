@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
-"""nGraph TensorFlow bridge sign operation test
+"""nGraph TensorFlow bridge varopt operation test
 
 """
 from __future__ import absolute_import
@@ -27,9 +27,9 @@ import numpy as np
 from common import NgraphTest
 
 
-class TestSignOperations(NgraphTest):
+class TestVaroptOperations(NgraphTest):
 
-    def test_sign_1d(self):
+    def test_varopt(self):
         dim1 = 3
         dim2 = 4
         a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
