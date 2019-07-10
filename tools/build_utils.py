@@ -545,7 +545,11 @@ def build_base(args):
         if has_group(user, "docker") == False:
             command_executor(["sudo", "usermod", "-aG", "docker", user])
             command_executor(["newgrp", "docker"])
-    cmd = ["docker", "build", "--tag", "ngtf", "."]
+    cmd = [
+        "docker", "build", "--tag", "ngtf", "--file",
+        "test/ci/docker/dockerfiles/Dockerfile.ngraph_tf.build_ngtf_run_in_docker",
+        "."
+    ]
     command_executor(cmd)
 
 
