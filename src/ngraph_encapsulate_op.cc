@@ -229,71 +229,6 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   ngraph::Event::write_trace(event);
 }
 
-template <typename T>
-static void TensorDataToStream(std::ostream& ostream, int64 n_elements,
-                               const char* data) {
-  const T* data_T = reinterpret_cast<const T*>(data);
-  for (size_t i = 0; i < n_elements; i++) {
-    ostream << data_T[i] << ",";
-  }
-}
-
-//---------------------------------------------------------------------------
-//  TensorToStream
-//---------------------------------------------------------------------------
-Status NGraphEncapsulateOp::TensorToStream(std::ostream& ostream,
-                                           const Tensor& tensor) {
-  const char* data = tensor.tensor_data().data();
-  int64 n_elements = tensor.NumElements();
-  switch (tensor.dtype()) {
-    case DT_HALF:
-      TensorDataToStream<Eigen::half>(ostream, n_elements, data);
-      break;
-    case DT_FLOAT:
-      TensorDataToStream<float>(ostream, n_elements, data);
-      break;
-    case DT_DOUBLE:
-      TensorDataToStream<double>(ostream, n_elements, data);
-      break;
-    case DT_UINT32:
-      TensorDataToStream<uint32>(ostream, n_elements, data);
-      break;
-    case DT_INT32:
-      TensorDataToStream<int32>(ostream, n_elements, data);
-      break;
-    case DT_UINT8:
-    case DT_QUINT8:
-      TensorDataToStream<uint8>(ostream, n_elements, data);
-      break;
-    case DT_UINT16:
-    case DT_QUINT16:
-      TensorDataToStream<uint16>(ostream, n_elements, data);
-      break;
-    case DT_INT8:
-    case DT_QINT8:
-      TensorDataToStream<int8>(ostream, n_elements, data);
-      break;
-    case DT_INT16:
-    case DT_QINT16:
-      TensorDataToStream<int16>(ostream, n_elements, data);
-      break;
-    case DT_UINT64:
-      TensorDataToStream<uint64>(ostream, n_elements, data);
-      break;
-    case DT_INT64:
-      TensorDataToStream<int64>(ostream, n_elements, data);
-      break;
-    case DT_BOOL:
-      TensorDataToStream<bool>(ostream, n_elements, data);
-      break;
-    default:
-      return errors::Internal("TensorToStream got unsupported data type ",
-                              DataType_Name(tensor.dtype()));
-      break;
-  }
-  return Status::OK();
-}
-
 Status NGraphEncapsulateOp::ComputeSignature(
     std::vector<Tensor>& input_tensors, std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
@@ -562,6 +497,51 @@ Status NGraphEncapsulateOp::AllocateTensorInput(
   for (auto& next : input_copy_events) {
     ngraph::Event::write_trace(*next.get());
   }
+
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
+                    "from resource manager "
+                 << m_ngraph_cluster;
+
+  ngraph::Event event_input_check_in_catalog(
+      "Get Variable Inputs from Resource Manager", name(), "");
+
+  // Dealing with the input from Variable nodes here
+  for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
+    bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
+        m_graph_id, def().name(), input_index);
+
+    if (!ref_exists) {
+      OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
+                  errors::Internal("Input ", input_index,
+                                   " is not in Catalog nor was set from TF"));
+      continue;
+    }
+
+    string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
+        m_graph_id, def().name(), input_index);
+    NGraphVar* var;
+    OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
+                            ctx->resource_manager()->default_container(),
+                            ref_var_name, &var));
+
+    if (var->sync_ng_tensor()) {
+      number_of_copies++;
+      copy_log_str << "Var_Sync[" << input_index << "] ";
+    }
+
+    void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
+    bool is_stale = !m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec);
+    var->ng_tensor()->set_stale(is_stale);
+    ng_inputs[input_index] = var->ng_tensor();
+
+    var->Unref();
+  }
+
+  event_input_check_in_catalog.Stop();
+  ngraph::Event::write_trace(event_input_check_in_catalog);
+#endif
+
   return Status::OK();
 }
 
@@ -710,50 +690,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << m_ngraph_cluster;
-
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
-                    "from resource manager "
-                 << m_ngraph_cluster;
-
-  ngraph::Event event_input_check_in_catalog(
-      "Get Variable Inputs from Resource Manager", name(), "");
-
-  // Dealing with the input from Variable nodes here
-  for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
-    bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-        m_graph_id, def().name(), input_index);
-
-    if (!ref_exists) {
-      OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
-                  errors::Internal("Input ", input_index,
-                                   " is not in Catalog nor was set from TF"));
-      continue;
-    }
-
-    string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
-        m_graph_id, def().name(), input_index);
-    NGraphVar* var;
-    OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
-                            ctx->resource_manager()->default_container(),
-                            ref_var_name, &var));
-
-    if (var->sync_ng_tensor()) {
-      number_of_copies++;
-      copy_log_str << "Var_Sync[" << input_index << "] ";
-    }
-
-    void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
-    bool is_stale = !m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec);
-    var->ng_tensor()->set_stale(is_stale);
-    ng_inputs[input_index] = var->ng_tensor();
-
-    var->Unref();
-  }
-
-  event_input_check_in_catalog.Stop();
-  ngraph::Event::write_trace(event_input_check_in_catalog);
-#endif
 
   int time_create_or_lookup_tensors = create_or_lookup_tensors.ElapsedInMS();
 

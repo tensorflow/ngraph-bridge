@@ -42,7 +42,6 @@ namespace ngraph_bridge {
 class NGraphEncapsulateOp : public OpKernel {
  public:
   explicit NGraphEncapsulateOp(OpKernelConstruction* ctx);
-  static Status TensorToStream(std::ostream& ostream, const Tensor& tensor);
   ~NGraphEncapsulateOp() override;
   Status ComputeSignature(std::vector<Tensor>& input_tensors,
                           std::vector<TensorShape>& input_shapes,
