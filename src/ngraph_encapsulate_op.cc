@@ -206,6 +206,7 @@ class NGraphEncapsulateOp : public OpKernel {
   //  ~NGraphEncapsulateOp()
   //---------------------------------------------------------------------------
   ~NGraphEncapsulateOp() override {
+    cout << "Entering ~NGraphEncapsulateOp\n";
     std::ostringstream oss;
     oss << "Destroy Encapsulate_" << my_instance_id << ": " << name();
     ngraph::Event event(oss.str(), name(), "");
@@ -239,6 +240,7 @@ class NGraphEncapsulateOp : public OpKernel {
     BackendManager::ReleaseBackend(m_op_backend_name);
     event.Stop();
     ngraph::Event::write_trace(event);
+    cout << "Exiting ~NGraphEncapsulateOp\n";
   }
 
   template <typename T>
@@ -490,6 +492,7 @@ class NGraphEncapsulateOp : public OpKernel {
   // OpKernel::Compute
   //---------------------------------------------------------------------------
   void Compute(OpKernelContext* ctx) override {
+    cout << "Entering Compute\n";
     std::ostringstream oss;
     oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
     ngraph::Event event(oss.str(), name(), "");
@@ -908,6 +911,7 @@ class NGraphEncapsulateOp : public OpKernel {
     ngraph::Event::write_trace(event_execute_function);
     ngraph::Event::write_trace(event_copy_output);
     ngraph::Event::write_trace(event);
+    cout << "Exiting Compute\n";
 
   }  // end compute
 
