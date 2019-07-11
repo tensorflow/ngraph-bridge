@@ -543,8 +543,9 @@ def build_base(args):
     if os.getenv("USER") != None:
         user = os.getenv("USER")
         if has_group(user, "docker") == False:
-            command_executor(["sudo", "usermod", "-aG", "docker", user])
-            command_executor(["newgrp", "docker"])
+            if platform.system() != 'Darwin':
+                command_executor(["sudo", "usermod", "-aG", "docker", user])
+                command_executor(["newgrp", "docker"])
     cmd = [
         "docker", "build", "--tag", "ngtf", "--file",
         "test/ci/docker/dockerfiles/Dockerfile.ngraph_tf.build_ngtf_run_in_docker",
