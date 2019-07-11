@@ -132,7 +132,7 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
         NGRAPH_VLOG(4) << "Adding in Output Tensor Map";
         NGRAPH_VLOG(4) << "Key: " << node_key;
       }
-    }  // end of if node of type NGraphAssign
+    }  // end of for loop
   }    // enter in catalog
 
   NGRAPH_VLOG(4) << "Entered in Catalog";

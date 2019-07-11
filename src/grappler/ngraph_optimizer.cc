@@ -102,6 +102,12 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     return Status::OK();
   }
 
+  cout << "Number of nodes in this graph: " << graph.num_nodes() << "\n";
+  for (auto n : graph.nodes()){
+    cout << n->name() << ", ";
+  }
+  cout << "\n";
+
   // TODO: Find out a better way to preserve feed nodes, init_ops and
   // keep_ops instead of just skipping those from clustering.
   // Get nodes to be preserved/skipped
@@ -164,6 +170,10 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   if (DumpCapturedGraphs()) {
     DumpGraphs(graph, idx, "captured", "Graph With Variables Captured");
   }
+
+  // maybe CaptureVariables and rewritefortracking both are not needed
+  // shared_name: same var across graphs should have same shared_name
+
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   // 0. Replace optimizers then, if requested, dump the graphs.

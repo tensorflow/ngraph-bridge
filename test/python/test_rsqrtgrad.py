@@ -39,6 +39,7 @@ class TestRsqrtGrad(NgraphTest):
         ([4, 2, 1, 3],),
     ))
     def test_rsqrtgrad(self, shape):
+        print(tf.get_default_graph().get_operations())
         a = tf.placeholder(tf.float32, shape)
         b = tf.placeholder(tf.float32, shape)
 
@@ -49,6 +50,6 @@ class TestRsqrtGrad(NgraphTest):
 
         def run_test(sess):
             return sess.run(out, feed_dict={a: y, b: dy})
-
+        print(tf.get_default_graph().get_operations())
         assert np.isclose(
             self.with_ngraph(run_test), self.without_ngraph(run_test)).all()
