@@ -201,13 +201,21 @@ def is_grappler_enabled():
 
 def update_config(config):
     #updating session config if grappler is enabled
+    opt_name = 'ngraph-optimizer'
     if(ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()):
+        # If the config already has ngraph-optimizer, then do not update it
+        if config.HasField('graph_options'):
+            if config.graph_options.HasField('rewrite_options'):
+                custom_opts = config.graph_options.rewrite_options.custom_optimizers
+                for i in range(len(custom_opts)):
+                    if custom_opts[i].name == opt_name:
+                        return config
         rewrite_options = rewriter_config_pb2.RewriterConfig(
             meta_optimizer_iterations=rewriter_config_pb2.RewriterConfig.ONE,
             min_graph_nodes=-1,
             custom_optimizers=[
                 rewriter_config_pb2.RewriterConfig.CustomGraphOptimizer(
-                    name="ngraph-optimizer")
+                    name=opt_name)
             ])
         config.MergeFrom(tf.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewrite_options)))
         # For reference, if we want to provide configuration support(backend parameters)
