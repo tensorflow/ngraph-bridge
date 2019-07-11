@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "ngraph_utils.h"
 #include "tensorflow/core/graph/graph.h"
 
 using namespace std;

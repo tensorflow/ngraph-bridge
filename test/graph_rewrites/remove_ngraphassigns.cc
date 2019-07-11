@@ -84,8 +84,6 @@ TEST(RemoveNGraphAssigns, Graph1) {
   for (auto node : graph.op_nodes()) {
     ASSERT_NE(node->type_string(), "NGraphAssign");
   }
-
-  GraphToPbTextFile(&graph, "remove_assigns_G1.pbtxt");
 }
 
 // Var       Const
@@ -127,7 +125,6 @@ TEST(RemoveNGraphAssigns, Graph2) {
 
   // Call RemoveNGraphAssign
   ASSERT_OK(RemoveNGraphAssigns(&graph));
-  GraphToPbTextFile(&graph, "remove_assigns_G2.pbtxt");
 
   // Reiterate the graph
   node_map.clear();
@@ -206,7 +203,6 @@ TEST(RemoveNGraphAssigns, Graph3) {
 
   // Call RemoveNGraphAssign
   ASSERT_OK(RemoveNGraphAssigns(&graph));
-  GraphToPbTextFile(&graph, "remove_assigns_G3.pbtxt");
 
   // Reiterate over the graph
   node_map.clear();
@@ -292,7 +288,6 @@ TEST(RemoveNGraphAssigns, Graph4) {
 
   // Call RemoveNGraphAssign
   ASSERT_OK(RemoveNGraphAssigns(&graph));
-  GraphToPbTextFile(&graph, "remove_assigns_G3.pbtxt");
 
   // Reiterate over the graph
   node_map.clear();

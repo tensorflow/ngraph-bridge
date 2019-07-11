@@ -27,6 +27,7 @@ Status RemoveNGraphAssigns(Graph* graph) {
 
   for (auto node : graph->op_nodes()) {
     if (node->type_string() == "NGraphAssign" && NodeIsMarkedForRemoval(node)) {
+      NGRAPH_VLOG(3) << "Removing NGraphAssign " << node->name();
       Node *input_0, *input_1;
       // input_0 is of type NGraphVariable/NGraphAssign
       // input_1 is of type NGraphEncapsulateOp
@@ -34,6 +35,7 @@ Status RemoveNGraphAssigns(Graph* graph) {
       TF_RETURN_IF_ERROR(node->input_node(1, &input_1));
 
       // Handle input edges
+      NGRAPH_VLOG(3) << "Handling input edges ";
       for (auto edge : node->in_edges()) {
         // attach incoming control edge to input_1, as that's where update
         // will happen
@@ -47,13 +49,12 @@ Status RemoveNGraphAssigns(Graph* graph) {
       }
 
       // Handle output edges
+      NGRAPH_VLOG(3) << "Handling output edges ";
       for (auto edge : node->out_edges()) {
         if (edge->IsControlEdge()) {
           // Add control edge from Encap to the dst node
           graph->AddEdge(input_1, edge->src_output(), edge->dst(),
                          edge->dst_input());
-          graph->RemoveEdge(edge);
-          continue;
         } else {
           // Note: TF takes care whether the edge to be added is ref-type or not
           // For e.g. if we add edge Var -> Add/Encap (Add's input is
@@ -67,8 +68,8 @@ Status RemoveNGraphAssigns(Graph* graph) {
           // used only after the update is completed by Encapsulate op
           graph->AddEdge(input_1, Graph::kControlSlot, edge->dst(),
                          Graph::kControlSlot);
-          graph->RemoveEdge(edge);
         }
+        graph->RemoveEdge(edge);
       }
 
       // Add the node for removal
