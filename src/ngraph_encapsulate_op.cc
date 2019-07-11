@@ -505,7 +505,6 @@ Status NGraphEncapsulateOp::AllocateTensorOutput(
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
     std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
         output_caches) {
-  output_caches = m_ng_exec_output_cache_map[ng_exec];
   output_caches.resize(ng_exec->get_results().size());
   // ngraph executable returns get_results, using that to get the tensor shape
   // and element type.
@@ -632,8 +631,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event event_alloc_output("Output: maybe create", name(), "");
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
-  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>
-      output_caches;
+  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
+      output_caches = m_ng_exec_output_cache_map[ng_exec];
   OP_REQUIRES_OK(ctx,
                  AllocateTensorOutput(ctx, ng_exec, input_shapes, op_backend,
                                       ng_outputs, output_caches));
