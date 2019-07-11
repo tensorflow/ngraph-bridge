@@ -80,7 +80,6 @@ bool NGraphCatalog::ExistsInEncapOutputTensorMap(int graphid, string node_name,
 
 shared_ptr<ng::runtime::Tensor>
 NGraphCatalog::GetTensorFromEncapOutputTensorMap(string key) {
-  cout << "Requested key: " << key << "\n";
   return NGraphCatalog::encap_output_tensor_map_[key];
 }
 

@@ -102,7 +102,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     return Status::OK();
   }
 
-
   // TODO: Find out a better way to preserve feed nodes, init_ops and
   // keep_ops instead of just skipping those from clustering.
   // Get nodes to be preserved/skipped
