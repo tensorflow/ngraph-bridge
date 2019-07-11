@@ -81,7 +81,8 @@ bool NGraphCatalog::ExistsInEncapOutputTensorMap(int graphid, string node_name,
 shared_ptr<ng::runtime::Tensor>
 NGraphCatalog::GetTensorFromEncapOutputTensorMap(string key) {
   for (auto itr : NGraphCatalog::encap_output_tensor_map_) {
-    cout << "Keys of encap_output_tensor_map_: " << itr.first << ". Item is null? " << (itr.second == nullptr) <<"\n";
+    cout << "Keys of encap_output_tensor_map_: " << itr.first
+         << ". Item is null? " << (itr.second == nullptr) << "\n";
   }
   cout << "Requested key: " << key << "\n";
   return NGraphCatalog::encap_output_tensor_map_[key];

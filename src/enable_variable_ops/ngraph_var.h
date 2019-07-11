@@ -128,8 +128,9 @@ class NGraphVar : public ResourceBase {
   // Returns the number of tensor copies made (0 or 1)
   int update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value) {
     cout << "Enter update_ng_tensor1\n";
-    cout << "new_value is nullptr: " << (new_value==nullptr) << "\n"; // its null!
-    cout << "ng_tensor_ is nullptr: " << (ng_tensor_==nullptr) << "\n";
+    cout << "new_value is nullptr: " << (new_value == nullptr)
+         << "\n";  // its null!
+    cout << "ng_tensor_ is nullptr: " << (ng_tensor_ == nullptr) << "\n";
     ng_tensor_->copy_from(*new_value);
     return 0;
   }

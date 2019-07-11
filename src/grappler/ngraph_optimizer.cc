@@ -103,7 +103,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   cout << "Number of nodes in this graph: " << graph.num_nodes() << "\n";
-  for (auto n : graph.nodes()){
+  for (auto n : graph.nodes()) {
     cout << n->name() << ", ";
   }
   cout << "\n";
@@ -171,9 +171,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     DumpGraphs(graph, idx, "captured", "Graph With Variables Captured");
   }
 
-  // maybe CaptureVariables and rewritefortracking both are not needed
-  // shared_name: same var across graphs should have same shared_name
-
+// maybe CaptureVariables and rewritefortracking both are not needed
+// shared_name: same var across graphs should have same shared_name
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   // 0. Replace optimizers then, if requested, dump the graphs.

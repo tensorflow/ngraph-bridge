@@ -50,6 +50,7 @@ class TestRsqrtGrad(NgraphTest):
 
         def run_test(sess):
             return sess.run(out, feed_dict={a: y, b: dy})
+
         print(tf.get_default_graph().get_operations())
         assert np.isclose(
             self.with_ngraph(run_test), self.without_ngraph(run_test)).all()
