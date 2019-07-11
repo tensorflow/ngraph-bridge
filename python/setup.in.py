@@ -72,6 +72,6 @@ setup(
     package_data= package_data_dict,
     cmdclass={'bdist_wheel': BinaryBdistWheel},
     extras_require={
-        'plaidml': ["plaidml>=??"],
+        'plaidml': ["plaidml>=0.6.3"],
     },
 )
