@@ -127,10 +127,6 @@ class NGraphVar : public ResourceBase {
   // and saved in Catalog
   // Returns the number of tensor copies made (0 or 1)
   int update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value) {
-    cout << "Enter update_ng_tensor1\n";
-    cout << "new_value is nullptr: " << (new_value == nullptr)
-         << "\n";  // its null!
-    cout << "ng_tensor_ is nullptr: " << (ng_tensor_ == nullptr) << "\n";
     ng_tensor_->copy_from(*new_value);
     return 0;
   }
@@ -139,7 +135,6 @@ class NGraphVar : public ResourceBase {
   // This new_value could be from tf-tensor, for e.g. when computed from a TF op
   // Returns the number of tensor copies made (0 or 1)
   int update_ng_tensor(Tensor* new_value) {
-    cout << "Enter update_ng_tensor2\n";
     WriteNGTensor(ng_tensor_, new_value);
     if (ng_tf_share_buffer_) {
       return 0;

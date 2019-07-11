@@ -158,10 +158,7 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
     command_executor(["pip", "install", "-U", "pytest"])
     command_executor(["pip", "install", "-U", "psutil"])
     command_executor([
-        "python",
-        "-m",
-        "pytest",
-        "-s",  #"test_simple_grappler_varopt.py",
+        "python", "-m", "pytest",
         ('--junitxml=%s/xunit_pytest.xml' % artifacts_dir)
     ])
 
