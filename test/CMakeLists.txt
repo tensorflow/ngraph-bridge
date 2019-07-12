@@ -39,25 +39,24 @@ set_target_properties(
     ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.1
 )
 
-# Please keep them in alphabetical order
 set(SRC
-    conversions.cpp
-    graph_exec.cpp
-    graph_rewrites/assign_clusters.cc
-    graph_rewrites/backend_manager_test.cc
-    graph_rewrites/deadness_test.cc
-    graph_rewrites/disable_ops_test.cc
-    graph_rewrites/encapsulate_clusters_test.cc
-    graph_rewrites/mark_for_clustering_test.cc
     main.cpp
-    opexecuter.cpp
-    padding.cpp    
-    test_array_ops.cpp
+    graph_exec.cpp
+    tf_exec.cpp
+    padding.cpp
+    conversions.cpp
+    graph_rewrites/assign_clusters.cc
+    graph_rewrites/deadness_test.cc
+    graph_rewrites/backend_manager_test.cc
+    graph_rewrites/encapsulate_clusters_test.cc
+    graph_rewrites/disable_ops_test.cc
+    graph_rewrites/mark_for_clustering_test.cc
+    test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
-    test_utilities.cpp
+    test_array_ops.cpp
     test_variable_ops.cpp
-    tf_exec.cpp
+    opexecuter.cpp
 )
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
