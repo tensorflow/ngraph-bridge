@@ -14,6 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
+#ifndef NGRAPH_TF_REWRITE_FOR_TRACKING_H_
+#define NGRAPH_TF_REWRITE_FOR_TRACKING_H_
 #pragma once
 
 #include "tensorflow/core/graph/graph.h"
@@ -25,5 +27,6 @@ namespace ngraph_bridge {
 Status RewriteForTracking(Graph* graph, int graph_id);
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
+
+#endif  // NGRAPH_TF_REWRITE_FOR_TRACKING_H_

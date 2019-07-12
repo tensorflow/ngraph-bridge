@@ -31,7 +31,8 @@ void GetStaticInputs(const Node* node, std::vector<int32>* inputs);
 bool InputIsStatic(const Node* node, int index);
 Status GetNodeBackend(const Node* node, string* backend_name);
 void SetNodeBackend(Node* node, const string& backend_name);
-}  // namespace ngraph_bridge
 
+}  // namespace ngraph_bridge
 }  // namespace tensorflow
+
 #endif  // NGRAPH_TF_MARK_FOR_CLUSTERING_H_

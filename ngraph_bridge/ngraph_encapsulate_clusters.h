@@ -14,6 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
+#ifndef NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
+#define NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
 #pragma once
 
 #include "tensorflow/core/graph/graph.h"
@@ -27,5 +29,6 @@ Status EncapsulateClusters(
     std::unordered_map<std::string, std::string> device_config);
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
+
+#endif  // NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_

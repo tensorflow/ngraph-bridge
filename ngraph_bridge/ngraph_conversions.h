@@ -14,6 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
+#ifndef NGRAPH_TF_BRIDGE_CONVERSIONS_H_
+#define NGRAPH_TF_BRIDGE_CONVERSIONS_H_
 #pragma once
 
 #include "logging/ngraph_log.h"
@@ -173,5 +175,6 @@ void BatchToTensorflow3D(bool is_ndhwc,
 }
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
+
+#endif  // NGRAPH_TF_BRIDGE_CONVERSIONS_H_

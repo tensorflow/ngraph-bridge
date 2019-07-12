@@ -16,7 +16,7 @@
 
 #include "tensorflow/core/graph/graph.h"
 
-#include "ngraph_bridge/ngraph_api.h"  // TODO: Importing this first causes a compile error
+#include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"

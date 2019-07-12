@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+
+#ifndef NGRAPH_TF_BRIDGE_API_H_
+#define NGRAPH_TF_BRIDGE_API_H_
 #pragma once
 
 #include <string.h>
@@ -67,3 +70,5 @@ extern void SetDisabledOps(string);
 }  // namespace config
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
+
+#endif  // NGRAPH_TF_BRIDGE_API_H_

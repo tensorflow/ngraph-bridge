@@ -14,6 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
+#ifndef NGRAPH_TF_BRIDGE_CAPTURE_VARIABLES_H_
+#define NGRAPH_TF_BRIDGE_CAPTURE_VARIABLES_H_
 #pragma once
 
 #include "tensorflow/core/graph/graph.h"
@@ -25,5 +27,6 @@ namespace ngraph_bridge {
 Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes);
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
+
+#endif  // NGRAPH_TF_BRIDGE_CAPTURE_VARIABLES_H_

@@ -14,6 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
+#ifndef NGRAPH_TF_BRIDGE_DEASSIGN_CLUSTERS_H_
+#define NGRAPH_TF_BRIDGE_DEASSIGN_CLUSTERS_H_
 #pragma once
 
 #include "tensorflow/core/graph/graph.h"
@@ -25,5 +27,6 @@ namespace ngraph_bridge {
 Status DeassignClusters(Graph* graph);
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
+
+#endif  // NGRAPH_TF_BRIDGE_DEASSIGN_CLUSTERS_H_
