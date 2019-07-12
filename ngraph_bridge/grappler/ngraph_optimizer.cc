@@ -14,6 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
+#include <iomanip>
+
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/grappler/clusters/cluster.h"
@@ -27,7 +29,6 @@
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 
-#include <iomanip>
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
 #endif

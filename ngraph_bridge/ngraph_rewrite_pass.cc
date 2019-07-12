@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+
+#include <iomanip>
+
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/graph/graph.h"
@@ -33,8 +36,6 @@
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
 #endif
-
-#include <iomanip>
 
 using namespace std;
 
