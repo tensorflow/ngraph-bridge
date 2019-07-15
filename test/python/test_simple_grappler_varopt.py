@@ -25,6 +25,7 @@ import pytest
 import tensorflow as tf
 import numpy as np
 from common import NgraphTest
+import ngraph_bridge, os
 
 
 class TestVaroptOperations(NgraphTest):
@@ -33,7 +34,8 @@ class TestVaroptOperations(NgraphTest):
         dim1 = 3
         dim2 = 4
         a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
-        x = tf.get_variable('x', [dim1, dim2], initializer=tf.zeros_initializer)
+        with tf.variable_scope("x_var"):
+            x = tf.get_variable('x', [dim1, dim2], initializer=tf.zeros_initializer)
         b = tf.placeholder(tf.float32, shape=(dim1, dim2), name='y')
         c = a * x
         axpy = c + b
@@ -43,11 +45,31 @@ class TestVaroptOperations(NgraphTest):
 
         def run_test(sess):
             sess.run(tf.global_variables_initializer())
-            return sess.run(
-                train_op,
-                feed_dict={
-                    a: np.ones((dim1, dim2)),
-                    b: np.ones((dim1, dim2))
-                })
+            for i in range(10):
+                _ = sess.run(
+                    train_op,
+                    feed_dict={
+                        a: np.ones((dim1, dim2)),
+                        b: np.ones((dim1, dim2))
+                    })
+            with tf.variable_scope("x_var", reuse=True):
+                x = tf.get_variable('x', [dim1, dim2], initializer=tf.zeros_initializer)
+            return x.eval(sess)
 
-        assert (self.with_ngraph(run_test) == self.without_ngraph(run_test))
+        print(self.with_ngraph(run_test))
+        print(self.without_ngraph(run_test))
+        assert (self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
+        
+
+
+    # TODO add more tests. where sess.run runs 10 times etc
+
+
+# what of reused variables?
+'''
+with tf.variable_scope("foo"): #create the first time
+    v = tf.get_variable("v", [1])
+
+with tf.variable_scope("foo", reuse=True): #reuse the second time
+    v = tf.get_variable("v", [1])
+'''
