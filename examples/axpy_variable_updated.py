@@ -38,9 +38,9 @@ print('Saving graph to: %s' % graph_location)
 train_writer = tf.summary.FileWriter(graph_location)
 
 # Define the data
-a = tf.constant(np.full((2048, 2048), 1.5, dtype=np.float32), name='alpha')
-x = tf.get_variable('x', [2048, 2048], initializer=tf.zeros_initializer)
-y = tf.constant(np.full((2048, 2048), 1.0, dtype=np.float32), name='y')
+a = tf.constant(np.full((2, 3), 1.5, dtype=np.float32), name='alpha')
+x = tf.get_variable('x', [2, 3], initializer=tf.zeros_initializer)
+y = tf.constant(np.full((2, 3), 1.0, dtype=np.float32), name='y')
 
 c = a * x
 axpy = c + y
@@ -78,6 +78,8 @@ with tf.Session(config=config_ngraph_enabled) as sess:
         print(i)
         event_times.append(timeline.Timeline(run_metadata.step_stats))
 
+    #import pdb; pdb.set_trace()
+    sess.run(tf.global_variables_initializer())
     print("Final value: ", x.eval())
     print("Writing event trace")
     with open('tf_event_trace.json', 'w') as f:
