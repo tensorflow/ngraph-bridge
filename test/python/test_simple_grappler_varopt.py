@@ -53,7 +53,7 @@ class TestVaroptOperations(NgraphTest):
                     })
             return x.eval(sess)
 
-        assert (self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
+        assert (self.with_ngraph(run_test) == 10.0*np.ones([dim1, dim2])).all()
         
 
 
