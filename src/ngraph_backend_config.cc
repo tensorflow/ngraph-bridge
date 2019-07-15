@@ -36,7 +36,12 @@ string BackendConfig::Join(
   } catch (std::out_of_range e1) {
     throw std::out_of_range("Attribute device_config not found");
   }
-  return backend_name_ + ":" + additional_parameters.at("device_config");
+  string backend_name = backend_name_;
+  if (additional_parameters.at("device_config") != "") {
+    backend_name =
+        backend_name + ":" + additional_parameters.at("device_config");
+  }
+  return backend_name;
 }
 
 unordered_map<string, string> BackendConfig::Split(
@@ -83,7 +88,11 @@ string BackendNNPIConfig::Join(
   } catch (std::out_of_range e1) {
     throw std::out_of_range("Attribute device_id not found");
   }
-  return backend_name_ + ":" + additional_parameters.at("device_id");
+  string backend_name = backend_name_;
+  if (additional_parameters.at("device_id") != "") {
+    backend_name = backend_name + ":" + additional_parameters.at("device_id");
+  }
+  return backend_name;
 
   // Once the backend api for the other attributes like ice cores
   // and max batch size is fixed we change this
