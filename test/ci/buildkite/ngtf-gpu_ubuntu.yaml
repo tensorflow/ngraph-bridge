@@ -17,6 +17,7 @@
       python3 build_ngtf.py --build_gpu_backend --enable_variables_and_optimizers \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
         --use_tensorflow_from_location /localdisk/buildkite-agent/prebuilt_tensorflow_1_14_0
+      bazel clean --expunge
       
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
