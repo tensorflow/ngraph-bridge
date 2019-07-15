@@ -237,10 +237,10 @@ TEST(CaptureVariables, SingleVariable2) {
 //                           / \
 //                          /   \
 //                         /     \
-//               (True)Assign1  Assign3(True)
+//               (True)Assign1  Assign2(True)
 //                        |
 //                        |
-//                    Assign2
+//                    Assign3
 // validate_shape:    (False)
 // Var, Assign1, Assign2, Assign3 should not be captured
 TEST(CaptureVariables, SingleVariable3) {
