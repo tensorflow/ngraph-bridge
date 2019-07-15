@@ -34,8 +34,7 @@ class TestVaroptOperations(NgraphTest):
         dim1 = 3
         dim2 = 4
         a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
-        with tf.variable_scope("x_var"):
-            x = tf.get_variable('x', [dim1, dim2], initializer=tf.zeros_initializer)
+        x = tf.Variable(np.zeros([dim1, dim2]), name='x', dtype=tf.float32)
         b = tf.placeholder(tf.float32, shape=(dim1, dim2), name='y')
         c = a * x
         axpy = c + b
@@ -52,12 +51,8 @@ class TestVaroptOperations(NgraphTest):
                         a: np.ones((dim1, dim2)),
                         b: np.ones((dim1, dim2))
                     })
-            with tf.variable_scope("x_var", reuse=True):
-                x = tf.get_variable('x', [dim1, dim2], initializer=tf.zeros_initializer)
             return x.eval(sess)
 
-        print(self.with_ngraph(run_test))
-        print(self.without_ngraph(run_test))
         assert (self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
         
 

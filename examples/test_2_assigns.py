@@ -17,5 +17,5 @@ sess = tf.Session(config = ngraph_bridge.update_config(config))
 sess.run(v.initializer)
 
 
-sess.run(new_v_1)
-print(new_v_1.eval(session=sess))
+#sess.run(new_v_1)
+print(v.eval(session=sess))
