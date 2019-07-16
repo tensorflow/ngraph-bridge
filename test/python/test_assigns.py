@@ -29,10 +29,11 @@ class TestAssignOperations(NgraphTest):
 
     def test_simple_assign(self):
         v = tf.Variable(0)
-        new_v_0 = tf.assign(v, 10)
+        new_v = tf.assign(v, 10)
 
         def run_test(sess):
             sess.run(v.initializer)
+            sess.run(new_v)
             return v.eval(session=sess)
 
         assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
