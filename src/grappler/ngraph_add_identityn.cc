@@ -25,7 +25,6 @@ Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
   for (auto node : input_graph->op_nodes()) {
     bool fetch_node = false;
     fetch_node = skip_these_nodes.find(node->name()) != skip_these_nodes.end();
-    std::set<string> new_nodes_to_be_skipped;
     if (fetch_node) {
       NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: Fetch Node " << node->name();
       // Check the number of outputs of the 'fetch_node'

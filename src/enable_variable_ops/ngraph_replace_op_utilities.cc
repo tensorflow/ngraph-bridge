@@ -147,7 +147,7 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
                        const bool just_looking, const bool is_tf_just_looking,
                        const bool outputs_ng_supported, const int graph_id,
                        const bool is_backend_set,
-                       std::set<string> identity_attached_nodes) {
+                       const std::set<string>& identity_attached_nodes) {
   NGRAPH_VLOG(1) << "Replacing NGraphVariable " << node->name();
 
   TensorShape shape;
