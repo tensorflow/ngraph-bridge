@@ -23,6 +23,7 @@ from __future__ import print_function
 import pytest
 import tensorflow as tf
 from common import NgraphTest
+import ngraph_bridge
 
 
 class TestAssignOperations(NgraphTest):
@@ -38,3 +39,22 @@ class TestAssignOperations(NgraphTest):
 
         assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
 
+    @pytest.mark.skipif(
+        ngraph_bridge.is_grappler_enabled() and
+        ngraph_bridge.are_variables_enabled(),
+        reason=
+        'If both grappler and variable/optimizers are enabled, this test will fail'
+    )
+    def test_shape_change_assign(self):
+        v = tf.Variable(0)
+        new_v_0 = tf.assign(v, 10)
+        new_v_1 = tf.assign(v, [10, 20], validate_shape=False)
+
+        def run_test(sess):
+            sess.run(v.initializer)
+            sess.run(new_v_0)
+            sess.run(new_v_1)
+            return v.eval(session=sess)
+
+        assert (
+            self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
