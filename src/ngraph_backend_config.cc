@@ -76,6 +76,9 @@ BackendConfig::~BackendConfig() {
 };
 
 // BackendNNPIConfig
+// The NNPI backend is not supposed to specify the config parameters
+// using the ENV variable or the script. NNPI backend is expected
+// to use the RewriterConfig, hence the Split API is not implemented.
 BackendNNPIConfig::BackendNNPIConfig() : BackendConfig("NNPI") {
   additional_attributes_ = {"device_id", "ice_cores", "max_batch_size"};
 }
@@ -93,9 +96,6 @@ string BackendNNPIConfig::Join(
     backend_name = backend_name + ":" + additional_parameters.at("device_id");
   }
   return backend_name;
-
-  // Once the backend api for the other attributes like ice cores
-  // and max batch size is fixed we change this
 }
 
 BackendNNPIConfig::~BackendNNPIConfig() {
