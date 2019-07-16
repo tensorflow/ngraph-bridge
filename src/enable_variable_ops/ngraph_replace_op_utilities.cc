@@ -171,15 +171,23 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
                     : shared_name_from_current_var;
 
 #if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
-  bool has_been_replaced_before;
-  string shared_name_of_replacement;
-  std::tie(has_been_replaced_before, shared_name_of_replacement) =
-      NGraphCatalog::HasTFVarBeenReplacedBefore(node->name());
-  if (has_been_replaced_before) {
-    shared_name = shared_name_of_replacement;
+  // Only if this replacement is TF Var to NG Var (in Capture), but not NG Var-> NG Var (in rewrite for tracking)
+  // Both replacements use this function, so this if is activated only in the first case
+  if (node->type_string() == "VariableV2"){
+    bool has_been_replaced_before;
+    string shared_name_of_replacement;
+    std::tie(has_been_replaced_before, shared_name_of_replacement) =
+        NGraphCatalog::HasTFVarBeenReplacedBefore(node->name());
+    cout << "\n\n has_been_replaced_before: " << has_been_replaced_before << "\n";
+    cout << "node->name(): " << node->name() << "\n";
+    cout << "replacement_node_name: " << replacement_node_name << "\n";
+    cout << "shared_name_of_replacement: " << shared_name_of_replacement << "\n";
+    if (has_been_replaced_before) {
+      shared_name = shared_name_of_replacement;
+    }
+    TF_RETURN_IF_ERROR(
+        NGraphCatalog::RegisterTFVarReplacement(node->name(), shared_name));
   }
-  TF_RETURN_IF_ERROR(
-      NGraphCatalog::RegisterTFVarReplacement(node->name(), shared_name));
 #endif
 
   TF_RETURN_IF_ERROR(NodeBuilder(replacement_node_name, replacement_node_type)

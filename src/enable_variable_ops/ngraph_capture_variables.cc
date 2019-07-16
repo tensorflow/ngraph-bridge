@@ -57,6 +57,8 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           {"AssignAdd", std::make_pair("NGraphAssignAdd", ReplaceAssign)},
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
           {"VariableV2", std::make_pair("NGraphVariable", ReplaceVariable)}};
+    // TODO: ReplaceVariable accepts another input (which is fed by skip_these_nodes) perhaps. it indicates that an id node has been added and the original name has changed
+    // Note that this should only matter for Variable replacement, and should not matter for the other replacements
 
   std::vector<Node*> nodes_to_capture;
 
@@ -101,6 +103,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
   }  // end of looping through nodes in the capture list
 
   for (auto node : nodes_to_capture) {
+    cout << "Removing: " << node->name() << "\n";
     NGRAPH_VLOG(4) << "Removing: " << node->name();
     graph->RemoveNode(node);
   }

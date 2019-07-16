@@ -72,6 +72,7 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
         }
 
         Node* replacement;
+        // TODO: add the shared_name catalog thing in only grappler capture as well.
 
         // TODO(amprocte): Do we need to copy "_" attributes?
         TF_RETURN_IF_ERROR(NodeBuilder(node->name(), "NGraphVariable")

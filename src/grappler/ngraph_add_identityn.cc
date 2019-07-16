@@ -48,6 +48,7 @@ Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
           input_types.push_back(node->output_type(i));
           inputs.push_back(NodeBuilder::NodeOut(node, i));
         }
+        // TODO: let the newly added Identity and IdentityN be skipped. Add to skip_these_nodes
 
         if (ref_type) {
           if (node->num_outputs() == 1) {
