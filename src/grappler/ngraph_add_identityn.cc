@@ -24,7 +24,6 @@ namespace ngraph_bridge {
 Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
   for (auto node : input_graph->op_nodes()) {
     bool fetch_node = false;
-    // bool ref_type = false;
     fetch_node = skip_these_nodes.find(node->name()) != skip_these_nodes.end();
     std::set<string> new_nodes_to_be_skipped;
     if (fetch_node) {
@@ -32,6 +31,8 @@ Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
       // Check the number of outputs of the 'fetch_node'
       // Only move further to create an IdentityN node
       // if it is greater than 0
+
+      // TODO: check and remove this comment::
       // Also, make sure that none of the output types is
       // a ref type because IdentityN does not support
       // an input of type ref type
@@ -39,14 +40,6 @@ Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
         std::vector<NodeBuilder::NodeOut> inputs;
         std::vector<DataType> input_types;
         for (int i = 0; i < node->num_outputs(); i++) {
-          /*
-          if (IsRefType(node->output_type(i))) {
-            NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: "
-                           << "Datatype for the node output"
-                           << " at index " << i << " is ref type";
-            ref_type = true;
-          }*/
-
           // DT_X_REF = DT_X + 100. kDataTypeRefOffset = 100 here
           // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.proto
           input_types.push_back(static_cast<DataType>(
@@ -54,45 +47,6 @@ Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
               (IsRefType(node->output_type(i)) ? kDataTypeRefOffset : 0)));
           inputs.push_back(NodeBuilder::NodeOut(node, i));
         }
-        // TODO: let the newly added Identity and IdentityN be skipped. Add to
-        // skip_these_nodes
-
-        /*
-        // TODO (imp): check if the "DT_X_REF - 100" trick works for IdentityN?
-        then we dont need identity, just IdentityN will suffice
-        if (ref_type) {
-          if (node->num_outputs() == 1) {
-            NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: Constructing Identity nodes "
-                              "instead of IdentityN";
-            // DT_X_REF = DT_X + 100. kDataTypeRefOffset = 100 here
-            //
-        https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.proto
-            DataType non_ref =
-                static_cast<DataType>(input_types[0] - kDataTypeRefOffset);
-            Node* identity_node;
-            TF_RETURN_IF_ERROR(NodeBuilder(node->name(), "Identity")
-                                   .Attr("T", non_ref)
-                                   .Input(inputs[0])
-                                   .Device(node->assigned_device_name())
-                                   .Finalize(input_graph, &identity_node));
-            identity_node->set_assigned_device_name(
-                node->assigned_device_name());
-          } else {
-            NGRAPH_VLOG(5)
-                << "NGTF_OPTIMIZER: Cannot construct IdentityN or Identity";
-          }
-        } else {
-          NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: Creating an IdentityN node";
-          Node* identityN_node;
-          TF_RETURN_IF_ERROR(NodeBuilder(node->name(), "IdentityN")
-                                 .Attr("T", input_types)
-                                 .Input(inputs)
-                                 .Device(node->assigned_device_name())
-                                 .Finalize(input_graph, &identityN_node));
-
-          identityN_node->set_assigned_device_name(
-              node->assigned_device_name());
-        }*/
 
         NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: Creating an IdentityN node";
         Node* identityN_node;

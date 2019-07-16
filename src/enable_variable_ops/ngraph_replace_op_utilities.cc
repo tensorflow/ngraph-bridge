@@ -182,7 +182,7 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
 #if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
   // Only if this replacement is TF Var to NG Var (in Capture), but not NG Var->
   // NG Var (in rewrite for tracking)
-  // Both replacements use this function, so this if is activated only in the
+  // Both replacements use this function, so this "if" is activated only in the
   // first case
   if (node->type_string() == "VariableV2") {
     bool has_been_replaced_before;
@@ -204,6 +204,9 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
       }
     }
     string original_var_node_name;
+    // If there is only output which is an IdentityN (barring a SINK), and the
+    // name of the output IdentityN is present in the set
+    // identity_attached_nodes
     if (found_idn && num_out_neighbour_nodes == 1 &&
         identity_attached_nodes.find(out_neighbour_idn_name) !=
             identity_attached_nodes.end()) {
