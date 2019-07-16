@@ -51,31 +51,35 @@ Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
 
         if (ref_type) {
           if (node->num_outputs() == 1) {
-            NGRAPH_VLOG(5)
-              << "NGTF_OPTIMIZER: Constructing Identity nodes instead of IdentityN";
-            // DT_X_REF = DT_X + 100. // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.proto
-            DataType non_ref = static_cast<DataType>(input_types[0] - kDataTypeRefOffset);
+            NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: Constructing Identity nodes "
+                              "instead of IdentityN";
+            // DT_X_REF = DT_X + 100. //
+            // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.proto
+            DataType non_ref =
+                static_cast<DataType>(input_types[0] - kDataTypeRefOffset);
             Node* identity_node;
             TF_RETURN_IF_ERROR(NodeBuilder(node->name(), "Identity")
-                                  .Attr("T", non_ref)
-                                  .Input(inputs[0])
-                                  .Device(node->assigned_device_name())
-                                  .Finalize(input_graph, &identity_node));
-            identity_node->set_assigned_device_name(node->assigned_device_name());
+                                   .Attr("T", non_ref)
+                                   .Input(inputs[0])
+                                   .Device(node->assigned_device_name())
+                                   .Finalize(input_graph, &identity_node));
+            identity_node->set_assigned_device_name(
+                node->assigned_device_name());
           } else {
             NGRAPH_VLOG(5)
-              << "NGTF_OPTIMIZER: Cannot construct IdentityN or Identity";
+                << "NGTF_OPTIMIZER: Cannot construct IdentityN or Identity";
           }
         } else {
           NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: Creating an IdentityN node";
           Node* identityN_node;
           TF_RETURN_IF_ERROR(NodeBuilder(node->name(), "IdentityN")
-                                .Attr("T", input_types)
-                                .Input(inputs)
-                                .Device(node->assigned_device_name())
-                                .Finalize(input_graph, &identityN_node));
+                                 .Attr("T", input_types)
+                                 .Input(inputs)
+                                 .Device(node->assigned_device_name())
+                                 .Finalize(input_graph, &identityN_node));
 
-          identityN_node->set_assigned_device_name(node->assigned_device_name());
+          identityN_node->set_assigned_device_name(
+              node->assigned_device_name());
         }
 
         // Rename the skip node

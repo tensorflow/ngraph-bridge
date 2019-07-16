@@ -48,14 +48,14 @@ class TestVaroptOperations(NgraphTest):
                 _ = sess.run(
                     train_op,
                     feed_dict={
-                        a: 1.5*np.ones((dim1, dim2)),
+                        a: 1.5 * np.ones((dim1, dim2)),
                         b: np.ones((dim1, dim2))
                     })
             return x.eval(sess)
 
-        assert np.isclose(self.with_ngraph(run_test), 113.33008*np.ones([dim1, dim2])).all()
-        
-
+        assert np.isclose(
+            self.with_ngraph(run_test),
+            113.33008 * np.ones([dim1, dim2])).all()
 
     # TODO add more tests. where sess.run runs 10 times etc
 
