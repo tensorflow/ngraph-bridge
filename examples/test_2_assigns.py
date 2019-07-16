@@ -14,5 +14,10 @@ sess = tf.Session(config=ngraph_bridge.update_config(config))
 
 sess.run(v.initializer)
 
-#sess.run(new_v_1)
-print(v.eval(session=sess))
+sess.run(new_v_0)
+assert(10==v.eval(session=sess))
+
+sess.run(new_v_1)
+assert(([10,20] == v.eval(session=sess)).all())
+
+print('Successful!')
