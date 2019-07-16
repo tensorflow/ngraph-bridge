@@ -17,12 +17,15 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/node_builder.h"
 
+#include <functional>
+
 #include "ngraph_api.h"
 #include "ngraph_capture_variables.h"
 #include "ngraph_replace_op_utilities.h"
 #include "ngraph_utils.h"
 
 using namespace std;
+using namespace std::placeholders;
 
 namespace tensorflow {
 
@@ -40,7 +43,13 @@ static bool NGraphPlacementRequested(const Node* node) { return true; }
 // Main entry point for the variable-capture.
 //
 Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
-  const static std::map<
+  auto ReplaceVariableWithIdentityInfo =
+      std::bind(ReplaceVariable, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10,
+                skip_these_nodes);
+  // This map is no longer static, since we need to do a partial application on
+  // ReplaceVariable. Note it is static in RewriteForTracking, since there the
+  // partial application is done with a constant argument that will not change
+  const std::map<
       const string,
       const pair<
           string,
@@ -56,9 +65,13 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           {"Assign", std::make_pair("NGraphAssign", ReplaceAssign)},
           {"AssignAdd", std::make_pair("NGraphAssignAdd", ReplaceAssign)},
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
-          {"VariableV2", std::make_pair("NGraphVariable", ReplaceVariable)}};
-    // TODO: ReplaceVariable accepts another input (which is fed by skip_these_nodes) perhaps. it indicates that an id node has been added and the original name has changed
-    // Note that this should only matter for Variable replacement, and should not matter for the other replacements
+          {"VariableV2",
+           std::make_pair("NGraphVariable", ReplaceVariableWithIdentityInfo)}};
+  // TODO: ReplaceVariable accepts another input (which is fed by
+  // skip_these_nodes) perhaps. it indicates that an id node has been added and
+  // the original name has changed
+  // Note that this should only matter for Variable replacement, and should not
+  // matter for the other replacements
 
   std::vector<Node*> nodes_to_capture;
 

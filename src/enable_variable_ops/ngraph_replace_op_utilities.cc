@@ -146,7 +146,8 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
                        const string replacement_node_type,
                        const bool just_looking, const bool is_tf_just_looking,
                        const bool outputs_ng_supported, const int graph_id,
-                       const bool is_backend_set) {
+                       const bool is_backend_set,
+                       std::set<string> identity_attached_nodes) {
   NGRAPH_VLOG(1) << "Replacing NGraphVariable " << node->name();
 
   TensorShape shape;
@@ -165,23 +166,53 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
     shared_name_from_current_var = "";
   }
 
+  if (node->type_string() == "NGraphVariable" &&
+      shared_name_from_current_var == "") {
+    return errors::Internal(
+        "When ReplaceVariable is being called by RewriteForTracking, expected "
+        "the NG Variable to already have a non empty shared name (populated in "
+        "CaptureVariable)");
+  }
+
   string shared_name;
   shared_name = shared_name_from_current_var.empty()
                     ? node->name()
                     : shared_name_from_current_var;
 
 #if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
-  // Only if this replacement is TF Var to NG Var (in Capture), but not NG Var-> NG Var (in rewrite for tracking)
-  // Both replacements use this function, so this if is activated only in the first case
-  if (node->type_string() == "VariableV2"){
+  // Only if this replacement is TF Var to NG Var (in Capture), but not NG Var->
+  // NG Var (in rewrite for tracking)
+  // Both replacements use this function, so this if is activated only in the
+  // first case
+  if (node->type_string() == "VariableV2") {
     bool has_been_replaced_before;
     string shared_name_of_replacement;
+    // Determine if the current node has an Identity or IdentityN attached to
+    // it, and if so does its name appear in identity_attached_nodes
+    // If so then the name of the Identity/IdentityN nodes are the original
+    // names of the current node.
+    size_t num_out_neighbour_nodes = 0;
+    bool found_idn = false;
+    string out_neighbour_idn_name;
+    for (auto out_neighbour : node->out_nodes()) {
+      if (!out_neighbour->IsSink()) {
+        num_out_neighbour_nodes++;
+      }
+      if (out_neighbour->type_string() == "IdentityN") {
+        found_idn = true;
+        out_neighbour_idn_name = out_neighbour->name();
+      }
+    }
+    string original_var_node_name;
+    if (found_idn && num_out_neighbour_nodes == 1 &&
+        identity_attached_nodes.find(out_neighbour_idn_name) !=
+            identity_attached_nodes.end()) {
+      original_var_node_name = out_neighbour_idn_name;
+    } else {
+      original_var_node_name = node->name();
+    }
     std::tie(has_been_replaced_before, shared_name_of_replacement) =
-        NGraphCatalog::HasTFVarBeenReplacedBefore(node->name());
-    cout << "\n\n has_been_replaced_before: " << has_been_replaced_before << "\n";
-    cout << "node->name(): " << node->name() << "\n";
-    cout << "replacement_node_name: " << replacement_node_name << "\n";
-    cout << "shared_name_of_replacement: " << shared_name_of_replacement << "\n";
+        NGraphCatalog::HasTFVarBeenReplacedBefore(original_var_node_name);
     if (has_been_replaced_before) {
       shared_name = shared_name_of_replacement;
     }

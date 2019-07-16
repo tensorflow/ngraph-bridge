@@ -46,7 +46,8 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
                        const string replacement_op_type,
                        const bool just_looking, const bool is_tf_just_looking,
                        const bool outputs_ng_supported, const int graph_id,
-                       const bool is_backend_set);
+                       const bool is_backend_set,
+                       std::set<string> identity_attached_nodes);
 
 // Adds the edges that are incoming control edges to the original node
 // as incoming control edges to the replacement node

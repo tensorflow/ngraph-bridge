@@ -17,11 +17,14 @@
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/graph/types.h"
 
+#include <functional>
+
 #include "ngraph_replace_op_utilities.h"
 #include "ngraph_rewrite_for_tracking.h"
 #include "ngraph_utils.h"
 
 using namespace std;
+using namespace std::placeholders;
 
 namespace tensorflow {
 
@@ -31,6 +34,11 @@ namespace ngraph_bridge {
 // Main entry point for rewrite-for-tracking.
 //
 Status RewriteForTracking(Graph* graph, int graph_id) {
+  // The last argument is not used when a NG var is replaced by another NG var,
+  // so sending empty set
+  auto ReplaceVariableWithIdentityInfo =
+      std::bind(ReplaceVariable, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10,
+                std::set<string>{});
   const static std::map<
       const string,
       const function<Status(
@@ -39,8 +47,9 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           const bool just_looking, const bool is_tf_just_looking,
           const bool outputs_ng_supported, const int graph_id,
           const bool is_backend_set)>>
-      REWRITE_REPLACE_OP_MAP{{"NGraphAssign", ReplaceAssign},
-                             {"NGraphVariable", ReplaceVariable}};
+      REWRITE_REPLACE_OP_MAP{
+          {"NGraphAssign", ReplaceAssign},
+          {"NGraphVariable", ReplaceVariableWithIdentityInfo}};
 
   std::vector<Node*> replaced_nodes;
   for (auto node : graph->op_nodes()) {
