@@ -47,20 +47,21 @@ class NGraphEncapsulateOp : public OpKernel {
                           std::vector<TensorShape>& input_shapes,
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
-  Status GetNgExec(std::vector<Tensor>& input_tensors,
-                   std::pair<string, int64> ctx_params,
-                   std::vector<TensorShape>& input_shapes,
-                   std::vector<const Tensor*>& static_input_map,
-                   ng::runtime::Backend*& op_backend,
-                   std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
-  Status AllocateTensorInput(
-      std::vector<Tensor>& input_tensors,
+  Status GetNgExecutable(std::vector<Tensor>& input_tensors,
+                         const std::pair<string, int64> ctx_params,
+                         std::vector<TensorShape>& input_shapes,
+                         std::vector<const Tensor*>& static_input_map,
+                         ng::runtime::Backend*& op_backend,
+                         std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
+  Status AllocateNGInputTensors(
+      const std::vector<Tensor>& input_tensors,
       std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
-  Status AllocateTensorOutput(
-      OpKernelContext* ctx,
-      std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+  Status AllocateNGOutputTensors(
+      std::vector<Tensor*>& output_tensors,
+      std::vector<ng::element::Type> expected_output_types,
+      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
@@ -70,7 +71,6 @@ class NGraphEncapsulateOp : public OpKernel {
  private:
   // TF Graph for the cluster
   Graph m_graph;
-
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
       m_ng_exec_map;
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,

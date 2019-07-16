@@ -263,8 +263,9 @@ Status NGraphEncapsulateOp::ComputeSignature(
   return Status::OK();
 }
 
-Status NGraphEncapsulateOp::GetNgExec(
-    std::vector<Tensor>& input_tensors, std::pair<string, int64> ctx_params,
+Status NGraphEncapsulateOp::GetNgExecutable(
+    std::vector<Tensor>& input_tensors,
+    const std::pair<string, int64> ctx_params,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     ng::runtime::Backend*& op_backend,
@@ -414,8 +415,8 @@ Status NGraphEncapsulateOp::GetNgExec(
   return Status::OK();
 }
 
-Status NGraphEncapsulateOp::AllocateTensorInput(
-    std::vector<Tensor>& input_tensors,
+Status NGraphEncapsulateOp::AllocateNGInputTensors(
+    const std::vector<Tensor>& input_tensors,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
@@ -505,8 +506,10 @@ Status NGraphEncapsulateOp::AllocateTensorInput(
   return Status::OK();
 }
 
-Status NGraphEncapsulateOp::AllocateTensorOutput(
-    OpKernelContext* ctx, std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+Status NGraphEncapsulateOp::AllocateNGOutputTensors(
+    std::vector<Tensor*>& output_tensors,
+    std::vector<ng::element::Type> expected_output_types,
+    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
     std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
@@ -519,21 +522,7 @@ Status NGraphEncapsulateOp::AllocateTensorOutput(
     auto ng_shape = ng_element->get_shape();
     auto ng_element_type = ng_element->get_element_type();
 
-    // Create the TF output tensor
-    vector<int64> dims;
-    for (auto dim : ng_shape) {
-      dims.push_back(dim);
-    }
-    TensorShape tf_shape(dims);
-    Tensor* output_tensor = nullptr;
-    TF_RETURN_IF_ERROR(ctx->allocate_output(i, tf_shape, &output_tensor));
-
-    // Make sure the nGraph-inferred element type agrees with what TensorFlow
-    // expected.
-    ng::element::Type expected_elem_type;
-    TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
-        ctx->expected_output_dtype(i), &expected_elem_type));
-    if (ng_element_type != expected_elem_type) {
+    if (ng_element_type != expected_output_types[i]) {
       errors::Internal(
           "Element type inferred by nGraph does not match "
           "the element type expected by TensorFlow");
@@ -542,7 +531,7 @@ Status NGraphEncapsulateOp::AllocateTensorOutput(
     std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
         output_caches[i].second;
 
-    void* current_dst_ptr = DMAHelper::base(output_tensor);
+    void* current_dst_ptr = DMAHelper::base(output_tensors[i]);
     std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
         GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
                            ng_exec, op_backend, ng_element_type, ng_shape);
@@ -588,8 +577,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ctx_params.second = ctx->step_id();
 
   // Get ngraph executable and inputs information
-  OP_REQUIRES_OK(ctx, GetNgExec(input_tensors, ctx_params, input_shapes,
-                                static_input_map, op_backend, ng_exec));
+  OP_REQUIRES_OK(ctx, GetNgExecutable(input_tensors, ctx_params, input_shapes,
+                                      static_input_map, op_backend, ng_exec));
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
@@ -624,8 +613,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
 
-  OP_REQUIRES_OK(ctx, AllocateTensorInput(input_tensors, ng_exec, input_shapes,
-                                          op_backend, ng_inputs));
+  OP_REQUIRES_OK(ctx,
+                 AllocateNGInputTensors(input_tensors, ng_exec, input_shapes,
+                                        op_backend, ng_inputs));
 
   event_alloc_input.Stop();
 
@@ -639,9 +629,36 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   int ng_output_tensor_size_in_bytes = 0;
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
       output_caches = m_ng_exec_output_cache_map[ng_exec];
-  OP_REQUIRES_OK(ctx,
-                 AllocateTensorOutput(ctx, ng_exec, input_shapes, op_backend,
-                                      ng_outputs, output_caches));
+
+  std::vector<Tensor*> output_tensors;
+  std::vector<ng::element::Type> expected_output_types;
+  for (auto i = 0; i < ng_exec->get_results().size(); i++) {
+    auto ng_element = ng_exec->get_results()[i];
+    auto ng_shape = ng_element->get_shape();
+    auto ng_element_type = ng_element->get_element_type();
+
+    // Create the TF output tensor
+    vector<int64> dims;
+    for (auto dim : ng_shape) {
+      dims.push_back(dim);
+    }
+    TensorShape tf_shape(dims);
+    Tensor* output_tensor = nullptr;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
+    output_tensors.push_back(output_tensor);
+
+    // Make sure the nGraph-inferred element type agrees with what TensorFlow
+    // expected.
+    ng::element::Type expected_elem_type;
+    OP_REQUIRES_OK(ctx,
+                   TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
+                                                 &expected_elem_type));
+    expected_output_types.push_back(expected_elem_type);
+  }
+
+  OP_REQUIRES_OK(ctx, AllocateNGOutputTensors(
+                          output_tensors, expected_output_types, ng_exec,
+                          input_shapes, op_backend, ng_outputs, output_caches));
 
   event_alloc_output.Stop();
 
