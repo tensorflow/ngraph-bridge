@@ -30,11 +30,6 @@ Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
       // Check the number of outputs of the 'fetch_node'
       // Only move further to create an IdentityN node
       // if it is greater than 0
-
-      // TODO: check and remove this comment::
-      // Also, make sure that none of the output types is
-      // a ref type because IdentityN does not support
-      // an input of type ref type
       if (node->num_outputs()) {
         std::vector<NodeBuilder::NodeOut> inputs;
         std::vector<DataType> input_types;
