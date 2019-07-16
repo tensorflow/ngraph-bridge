@@ -18,6 +18,7 @@
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/graph/types.h"
 
+#include "ngraph_catalog.h"
 #include "ngraph_mark_for_clustering.h"
 #include "ngraph_utils.h"
 
@@ -154,28 +155,44 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
   TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "dtype", &dtype));
 
   std::string container;
-  std::string shared_name;
+  std::string shared_name_from_current_var;
 
   if (GetNodeAttr(node->attrs(), "container", &container) != Status::OK()) {
     container = "";
   }
-  if (GetNodeAttr(node->attrs(), "shared_name", &shared_name) != Status::OK()) {
-    shared_name = "";
+  if (GetNodeAttr(node->attrs(), "shared_name",
+                  &shared_name_from_current_var) != Status::OK()) {
+    shared_name_from_current_var = "";
   }
 
+  string shared_name;
+  shared_name = shared_name_from_current_var.empty()
+                    ? node->name()
+                    : shared_name_from_current_var;
+
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+  bool has_been_replaced_before;
+  string shared_name_of_replacement;
+  std::tie(has_been_replaced_before, shared_name_of_replacement) =
+      NGraphCatalog::HasTFVarBeenReplacedBefore(node->name());
+  if (has_been_replaced_before) {
+    shared_name = shared_name_of_replacement;
+  }
   TF_RETURN_IF_ERROR(
-      NodeBuilder(replacement_node_name, replacement_node_type)
-          .Attr("shape", shape)
-          .Attr("dtype", dtype)
-          .Attr("container", container)
-          .Attr("shared_name",
-                (shared_name.empty() ? node->name() : shared_name))
-          .Attr("just_looking", just_looking)
-          .Attr("is_tf_just_looking", is_tf_just_looking)
-          .Attr("copy_to_tf", !outputs_ng_supported)
-          .Attr("ngraph_graph_id", graph_id)
-          .Device(node->assigned_device_name())
-          .Finalize(graph, &(*replacement)));
+      NGraphCatalog::RegisterTFVarReplacement(node->name(), shared_name));
+#endif
+
+  TF_RETURN_IF_ERROR(NodeBuilder(replacement_node_name, replacement_node_type)
+                         .Attr("shape", shape)
+                         .Attr("dtype", dtype)
+                         .Attr("container", container)
+                         .Attr("shared_name", shared_name)
+                         .Attr("just_looking", just_looking)
+                         .Attr("is_tf_just_looking", is_tf_just_looking)
+                         .Attr("copy_to_tf", !outputs_ng_supported)
+                         .Attr("ngraph_graph_id", graph_id)
+                         .Device(node->assigned_device_name())
+                         .Finalize(graph, &(*replacement)));
 
   (*replacement)->set_assigned_device_name(node->assigned_device_name());
 

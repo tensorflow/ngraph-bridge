@@ -37,6 +37,12 @@ namespace ngraph_bridge {
 
 class NGraphCatalog {
  private:
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+  // Map of tensorflow variable name that has been replaced to a NGV to shared
+  // name
+  static unordered_map<string, string> tf_var_name_to_shared_name_map_;
+#endif
+
   // Map keeps track of nodes whose input is a variable tensor
   // Will be used by Assign/Optimizers and NGraphEncapsulate Op
   // Map of
@@ -73,6 +79,11 @@ class NGraphCatalog {
       encap_output_copy_indexes_map_;
 
  public:
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+  static Status RegisterTFVarReplacement(string TF_var_name,
+                                         string shared_name);
+  static std::pair<bool, string> HasTFVarBeenReplacedBefore(string TF_var_name);
+#endif
   // Utility Functions for the data structures
   // Functions for EncapsulateOutputCopyIndexes Map
   static void AddToEncapOutputCopyIndexesMap(string key,

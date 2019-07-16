@@ -27,6 +27,9 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+unordered_map<string, string> NGraphCatalog::tf_var_name_to_shared_name_map_;
+#endif
 unordered_map<string, string> NGraphCatalog::input_variable_sharedname_map_;
 unordered_map<string, shared_ptr<ng::runtime::Tensor>>
     NGraphCatalog::encap_output_tensor_map_;
@@ -110,6 +113,37 @@ bool NGraphCatalog::ExistsInInputVariableSharedNameMap(int graphid,
   return NGraphCatalog::ExistsInInputVariableSharedNameMap(
       NGraphCatalog::CreateNodeKey(graphid, node_name, input_index));
 }
+
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+Status NGraphCatalog::RegisterTFVarReplacement(string TF_var_name,
+                                               string shared_name) {
+  auto itr = tf_var_name_to_shared_name_map_.find(TF_var_name);
+  if (itr == tf_var_name_to_shared_name_map_.end()) {
+    // First registration of this variable being replaced
+    tf_var_name_to_shared_name_map_.insert(
+        std::make_pair(TF_var_name, shared_name));
+  } else {
+    if (itr->second != shared_name) {
+      return errors::Internal("When registering replacement of variable ",
+                              TF_var_name, " with shared name ", shared_name,
+                              ", found that it was already replaced once with "
+                              "a different shared name ",
+                              itr->second);
+    }
+  }
+  return Status::OK();
+}
+
+std::pair<bool, string> NGraphCatalog::HasTFVarBeenReplacedBefore(
+    string TF_var_name) {
+  auto itr = tf_var_name_to_shared_name_map_.find(TF_var_name);
+  if (itr != tf_var_name_to_shared_name_map_.end()) {
+    return make_pair(true, itr->second);
+  } else {
+    return make_pair(false, "");
+  }
+}
+#endif
 
 }  // ngraph_bridge
 }  // tensorflow
