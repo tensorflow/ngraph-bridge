@@ -31,6 +31,7 @@
 #include "ngraph_backend_manager.h"
 #include "ngraph_builder.h"
 #include "ngraph_cluster_manager.h"
+#include "ngraph_encapsulate_impl.h"
 #include "ngraph_encapsulate_op.h"
 #include "ngraph_log.h"
 #include "ngraph_mark_for_clustering.h"
@@ -68,29 +69,40 @@ REGISTER_OP("NGraphEncapsulate")
     .Doc("nGraph Encapsulation Op. For use by the nGraph JIT only.");
 
 //---------------------------------------------------------------------------
+//  NGraphEncapsulateImpl::ctor
+//---------------------------------------------------------------------------
+NGraphEncapsulateImpl::NGraphEncapsulateImpl(string name)
+    : m_graph(OpRegistry::Global()),
+      m_freshness_tracker(nullptr),
+      m_name(name) {}
+
+//---------------------------------------------------------------------------
 //  NGraphEncapsulateOp::ctor
 //---------------------------------------------------------------------------
 NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
-    : OpKernel(ctx),
-      m_graph(OpRegistry::Global()),
-      m_freshness_tracker(nullptr) {
-  my_instance_id = s_instance_count;
-  s_instance_count++;
+    : OpKernel(ctx) {
+  ng_encap_impl = new NGraphEncapsulateImpl(name());
+
+  ng_encap_impl->my_instance_id = ng_encap_impl->s_instance_count;
+  ng_encap_impl->s_instance_count++;
 
   std::ostringstream oss;
-  oss << "Encapsulate_" << my_instance_id << ": " << name();
+  oss << "Encapsulate_" << ng_encap_impl->my_instance_id << ": " << name();
   ngraph::Event event(oss.str(), name(), "");
 
-  NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << my_instance_id
+  NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << ng_encap_impl->my_instance_id
                  << " Name: " << name();
 
   GraphDef* graph_def;
 
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster", &m_ngraph_cluster));
-  graph_def = NGraphClusterManager::GetClusterGraph(m_ngraph_cluster);
+  OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster",
+                                        &ng_encap_impl->m_ngraph_cluster));
+  graph_def =
+      NGraphClusterManager::GetClusterGraph(ng_encap_impl->m_ngraph_cluster);
 
   if (graph_def == nullptr) {
-    string flib_key = "ngraph_cluster_" + to_string(m_ngraph_cluster);
+    string flib_key =
+        "ngraph_cluster_" + to_string(ng_encap_impl->m_ngraph_cluster);
     // Read graphdef from function library
     const FunctionLibraryDefinition flib =
         *ctx->function_library()->GetFunctionLibraryDefinition();
@@ -105,13 +117,15 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       return flib.LookUpOpDef(op, sig);
     };
     FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody);
-    CopyGraph(*fnbody->graph, &m_graph);
+    CopyGraph(*fnbody->graph, &ng_encap_impl->m_graph);
   } else {
     GraphConstructorOptions opts;
     opts.allow_internal_ops = true;
-    OP_REQUIRES_OK(ctx, ConvertGraphDefToGraph(opts, *graph_def, &m_graph));
+    OP_REQUIRES_OK(
+        ctx, ConvertGraphDefToGraph(opts, *graph_def, &ng_encap_impl->m_graph));
   }
-  OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &m_graph_id));
+  OP_REQUIRES_OK(ctx,
+                 ctx->GetAttr("ngraph_graph_id", &ng_encap_impl->m_graph_id));
   //
   // Initialize the "m_input_is_static" vector as follows:
   // (1) create m_input_is_static with n+1 elements, where n is the max arg
@@ -124,7 +138,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   int32 max_arg_index = -1;
   std::vector<const Node*> arg_nodes;
 
-  for (auto node : m_graph.nodes()) {
+  for (auto node : ng_encap_impl->m_graph.nodes()) {
     if (node->type_string() == "_Arg") {
       arg_nodes.push_back(node);
 
@@ -134,7 +148,8 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     }
   }
 
-  m_input_is_static = std::vector<bool>(max_arg_index + 1, false);
+  ng_encap_impl->m_input_is_static =
+      std::vector<bool>(max_arg_index + 1, false);
 
   // Fill the vector.
   for (auto node : arg_nodes) {
@@ -158,7 +173,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     }
 
     NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
-    m_input_is_static[index] = is_static;
+    ng_encap_impl->m_input_is_static[index] = is_static;
   }
 
   // Set the backend type for the op
@@ -181,7 +196,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 
   // Concatenate the backend_name:backend_config
   try {
-    m_op_backend_name = BackendManager::GetBackendCreationString(
+    ng_encap_impl->m_op_backend_name = BackendManager::GetBackendCreationString(
         backend_name, additional_attribute_map);
   } catch (const std::exception& exp) {
     OP_REQUIRES_OK(
@@ -189,9 +204,10 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
                               exp.what(), "\n"));
   }
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
-  BackendManager::CreateBackend(m_op_backend_name);
+  BackendManager::CreateBackend(ng_encap_impl->m_op_backend_name);
   // SetConfig will be called for each EncapsulateOp
-  BackendManager::SetConfig(m_op_backend_name, additional_attribute_map);
+  BackendManager::SetConfig(ng_encap_impl->m_op_backend_name,
+                            additional_attribute_map);
   event.Stop();
   ngraph::Event::write_trace(event);
 }
@@ -201,16 +217,16 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 //---------------------------------------------------------------------------
 NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   std::ostringstream oss;
-  oss << "Destroy Encapsulate_" << my_instance_id << ": " << name();
+  oss << "Destroy Encapsulate_" << ng_encap_impl->my_instance_id << ": "
+      << name();
   ngraph::Event event(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
-
   // If the kernel goes away, we must de-register all of its cached
   // functions
   // from the freshness tracker.
-  if (m_freshness_tracker != nullptr) {
-    for (auto kv : m_ng_exec_map) {
-      m_freshness_tracker->RemoveUser(kv.second);
+  if (ng_encap_impl->m_freshness_tracker != nullptr) {
+    for (auto kv : ng_encap_impl->m_ng_exec_map) {
+      ng_encap_impl->m_freshness_tracker->RemoveUser(kv.second);
     }
 
     // TODO(amprocte): We should be able to unref the tracker here, but it
@@ -230,12 +246,12 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 
   // Release the backend
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
-  BackendManager::ReleaseBackend(m_op_backend_name);
+  BackendManager::ReleaseBackend(ng_encap_impl->m_op_backend_name);
   event.Stop();
   ngraph::Event::write_trace(event);
 }
 
-Status NGraphEncapsulateOp::ComputeSignature(
+Status NGraphEncapsulateImpl::ComputeSignature(
     std::vector<Tensor>& input_tensors, std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     std::stringstream& signature_ss) {
@@ -263,7 +279,7 @@ Status NGraphEncapsulateOp::ComputeSignature(
   return Status::OK();
 }
 
-Status NGraphEncapsulateOp::GetNgExecutable(
+Status NGraphEncapsulateImpl::GetNgExecutable(
     std::vector<Tensor>& input_tensors,
     const std::pair<string, int64> ctx_params,
     std::vector<TensorShape>& input_shapes,
@@ -302,7 +318,7 @@ Status NGraphEncapsulateOp::GetNgExecutable(
     NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx_params.first;
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                &m_graph, ng_function));
-    ng_function->set_friendly_name(name());
+    ng_function->set_friendly_name(m_name);
 
     auto function_size = ng_function->get_graph_size() / 1024;  // kb unit
 
@@ -364,7 +380,7 @@ Status NGraphEncapsulateOp::GetNgExecutable(
 
     BackendManager::LockBackend(m_op_backend_name);
 
-    ngraph::Event event_compile("Compile nGraph", name(), "");
+    ngraph::Event event_compile("Compile nGraph", m_name, "");
     try {
       ng_exec = op_backend->compile(ng_function);
 
@@ -415,7 +431,7 @@ Status NGraphEncapsulateOp::GetNgExecutable(
   return Status::OK();
 }
 
-Status NGraphEncapsulateOp::AllocateNGInputTensors(
+Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     const std::vector<Tensor>& input_tensors,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
@@ -480,7 +496,7 @@ Status NGraphEncapsulateOp::AllocateNGInputTensors(
         string event_name =
             "Input_" + to_string(i) + "_" + to_string(copy_size);
         std::unique_ptr<ngraph::Event> event_copy_input_next(
-            new ngraph::Event(event_name, name(), ""));
+            new ngraph::Event(event_name, m_name, ""));
         current_ng_tensor->write(
             current_src_ptr, 0,
             current_ng_tensor->get_element_count() * ng_element_type.size());
@@ -506,7 +522,7 @@ Status NGraphEncapsulateOp::AllocateNGInputTensors(
   return Status::OK();
 }
 
-Status NGraphEncapsulateOp::AllocateNGOutputTensors(
+Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     std::vector<Tensor*>& output_tensors,
     std::vector<ng::element::Type> expected_output_types,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
@@ -549,13 +565,14 @@ Status NGraphEncapsulateOp::AllocateNGOutputTensors(
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::ostringstream oss;
-  oss << "Execute: Encapsulate_" << my_instance_id << ": " << name();
-  ngraph::Event event(oss.str(), name(), "");
+  oss << "Execute: Encapsulate_" << ng_encap_impl->my_instance_id << ": "
+      << name();
+  ngraph::Event event(oss.str(), ng_encap_impl->m_name, "");
 
   Timer compute_time;
-  std::lock_guard<std::mutex> lock(m_compute_lock);
+  std::lock_guard<std::mutex> lock(ng_encap_impl->m_compute_lock);
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
-                 << m_ngraph_cluster;
+                 << ng_encap_impl->m_ngraph_cluster;
 
   ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
   Timer function_lookup_or_create;
@@ -577,22 +594,23 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ctx_params.second = ctx->step_id();
 
   // Get ngraph executable and inputs information
-  OP_REQUIRES_OK(ctx, GetNgExecutable(input_tensors, ctx_params, input_shapes,
-                                      static_input_map, op_backend, ng_exec));
+  OP_REQUIRES_OK(ctx, ng_encap_impl->GetNgExecutable(
+                          input_tensors, ctx_params, input_shapes,
+                          static_input_map, op_backend, ng_exec));
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
-      << m_ngraph_cluster;
+      << ng_encap_impl->m_ngraph_cluster;
 
   int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
   event_func_maybe_create.Stop();
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
-                 << m_ngraph_cluster;
+                 << ng_encap_impl->m_ngraph_cluster;
 
   Timer create_or_lookup_tensors;
 
-  if (m_freshness_tracker == nullptr) {
+  if (ng_encap_impl->m_freshness_tracker == nullptr) {
     auto creator = [](NGraphFreshnessTracker** tracker) {
       *tracker = new NGraphFreshnessTracker();
       return Status::OK();
@@ -600,12 +618,13 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     OP_REQUIRES_OK(
         ctx, ctx->resource_manager()->LookupOrCreate<NGraphFreshnessTracker>(
                  ctx->resource_manager()->default_container(),
-                 "ngraph_freshness_tracker", &m_freshness_tracker, creator));
+                 "ngraph_freshness_tracker",
+                 &ng_encap_impl->m_freshness_tracker, creator));
   }
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute got freshness tracker for cluster "
-      << m_ngraph_cluster;
+      << ng_encap_impl->m_ngraph_cluster;
 
   // Allocate tensors for input arguments.
   ngraph::Event event_alloc_input("Input: maybe create", name(), "");
@@ -613,22 +632,22 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
 
-  OP_REQUIRES_OK(ctx,
-                 AllocateNGInputTensors(input_tensors, ng_exec, input_shapes,
-                                        op_backend, ng_inputs));
+  OP_REQUIRES_OK(
+      ctx, ng_encap_impl->AllocateNGInputTensors(
+               input_tensors, ng_exec, input_shapes, op_backend, ng_inputs));
 
   event_alloc_input.Stop();
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                     "for cluster "
-                 << m_ngraph_cluster;
+                 << ng_encap_impl->m_ngraph_cluster;
 
   // Allocate tensors for the output results.
   ngraph::Event event_alloc_output("Output: maybe create", name(), "");
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-      output_caches = m_ng_exec_output_cache_map[ng_exec];
+      output_caches = ng_encap_impl->m_ng_exec_output_cache_map[ng_exec];
 
   std::vector<Tensor*> output_tensors;
   std::vector<ng::element::Type> expected_output_types;
@@ -656,7 +675,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     expected_output_types.push_back(expected_elem_type);
   }
 
-  OP_REQUIRES_OK(ctx, AllocateNGOutputTensors(
+  OP_REQUIRES_OK(ctx, ng_encap_impl->AllocateNGOutputTensors(
                           output_tensors, expected_output_types, ng_exec,
                           input_shapes, op_backend, ng_outputs, output_caches));
 
@@ -664,12 +683,12 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
-      << m_ngraph_cluster;
+      << ng_encap_impl->m_ngraph_cluster;
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
                     "from resource manager "
-                 << m_ngraph_cluster;
+                 << ng_encap_impl->m_ngraph_cluster;
 
   ngraph::Event event_input_check_in_catalog(
       "Get Variable Inputs from Resource Manager", name(), "");
@@ -716,14 +735,14 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event event_execute_function("Execute nGraph", name(), "");
   Timer execute_function;
   {
-    BackendManager::LockBackend(m_op_backend_name);
+    BackendManager::LockBackend(ng_encap_impl->m_op_backend_name);
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "
-                   << m_ngraph_cluster;
+                   << ng_encap_impl->m_ngraph_cluster;
     try {
       ng_exec->call(ng_outputs, ng_inputs);
     } catch (const std::exception& exp) {
-      ng_function = m_ng_function_map[ng_exec];
-      BackendManager::UnlockBackend(m_op_backend_name);
+      ng_function = ng_encap_impl->m_ng_function_map[ng_exec];
+      BackendManager::UnlockBackend(ng_encap_impl->m_op_backend_name);
       NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
                       ng_function);
       OP_REQUIRES(ctx, false,
@@ -731,22 +750,23 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                       "Caught exception while executing nGraph computation: ",
                       exp.what(), "\n"));
     } catch (...) {
-      ng_function = m_ng_function_map[ng_exec];
-      BackendManager::UnlockBackend(m_op_backend_name);
+      ng_function = ng_encap_impl->m_ng_function_map[ng_exec];
+      BackendManager::UnlockBackend(ng_encap_impl->m_op_backend_name);
       NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
                       ng_function);
       OP_REQUIRES(
           ctx, false,
           errors::Internal("Error in executing the nGraph computation\n"));
     }
-    BackendManager::UnlockBackend(m_op_backend_name);
+    BackendManager::UnlockBackend(ng_encap_impl->m_op_backend_name);
   }
   int time_execute_function = execute_function.ElapsedInMS();
   event_execute_function.Stop();
 
   long vm, rss;
   MemoryProfile(vm, rss);
-  NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << my_instance_id
+  NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
+                 << ng_encap_impl->my_instance_id
                  << " Step_ID: " << ctx_params.second
                  << " Cluster: " << ctx_params.first
                  << " Input Tensors created: "
@@ -756,7 +776,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                  << " Total process memory: " << rss / (1024 * 1024) << " GB";
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
-                 << m_ngraph_cluster;
+                 << ng_encap_impl->m_ngraph_cluster;
 
   // Copy value to host if backend is not CPU
   ngraph::Event event_copy_output("Output - copy back", name(), "");
@@ -802,7 +822,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       }
     }
 #else
-    if (m_op_backend_name != "CPU") {
+    if (ng_encap_impl->m_op_backend_name != "CPU") {
       for (size_t i = 0; i < output_tensor_count; ++i) {
         void* dst_ptr;
         std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
@@ -847,24 +867,22 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // iteration if this encapsulate finds the tensor fresh, then it will use it
   for (int i = 0; i < input_shapes.size(); i++) {
     void* src_ptr = (void*)DMAHelper::base(&ctx->input(i));
-    m_freshness_tracker->MarkFresh(src_ptr, ng_exec);
+    ng_encap_impl->m_freshness_tracker->MarkFresh(src_ptr, ng_exec);
   }
   int time_copy_output_tensors_to_host =
       copy_output_tensors_to_host.ElapsedInMS();
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
-      << m_ngraph_cluster;
-  NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: " << my_instance_id
-                 << " Step_ID: " << ctx_params.second
-                 << " Cluster: " << ctx_params.first
-                 << " Time-Compute: " << compute_time.ElapsedInMS()
-                 << " Function-Create-or-Lookup: " << time_func_create_or_lookup
-                 << " Create-and-copy-tensors: "
-                 << time_create_or_lookup_tensors
-                 << " Execute: " << time_execute_function
-                 << " Copy-outputs-to-host: "
-                 << time_copy_output_tensors_to_host;
+      << ng_encap_impl->m_ngraph_cluster;
+  NGRAPH_VLOG(1)
+      << "NGRAPH_TF_TIMING_PROFILE: OP_ID: " << ng_encap_impl->my_instance_id
+      << " Step_ID: " << ctx_params.second << " Cluster: " << ctx_params.first
+      << " Time-Compute: " << compute_time.ElapsedInMS()
+      << " Function-Create-or-Lookup: " << time_func_create_or_lookup
+      << " Create-and-copy-tensors: " << time_create_or_lookup_tensors
+      << " Execute: " << time_execute_function
+      << " Copy-outputs-to-host: " << time_copy_output_tensors_to_host;
   event.Stop();
   ngraph::Event::write_trace(event_func_maybe_create);
   ngraph::Event::write_trace(event_alloc_output);
@@ -875,7 +893,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
 }  // end compute
 
-std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateOp::GetCurrentNgTensor(
+std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
     void* current_tf_ptr, void* last_tf_ptr,
     const std::shared_ptr<ng::runtime::Tensor>& last_ng_tensor,
     const bool& output_tensor,
@@ -928,7 +946,7 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateOp::GetCurrentNgTensor(
   return current_ng_tensor;
 }
 
-int NGraphEncapsulateOp::s_instance_count = 0;
+int NGraphEncapsulateImpl::s_instance_count = 0;
 
 }  // namespace ngraph_bridge
 
