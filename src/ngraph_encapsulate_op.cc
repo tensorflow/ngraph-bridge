@@ -567,7 +567,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::ostringstream oss;
   oss << "Execute: Encapsulate_" << ng_encap_impl->my_instance_id << ": "
       << name();
-  ngraph::Event event(oss.str(), ng_encap_impl->m_name, "");
+  ngraph::Event event(oss.str(), name(), "");
 
   Timer compute_time;
   std::lock_guard<std::mutex> lock(ng_encap_impl->m_compute_lock);
