@@ -33,6 +33,17 @@ Status RemoveNGraphAssigns(Graph* graph) {
       // input_1 is of type NGraphEncapsulateOp
       TF_RETURN_IF_ERROR(node->input_node(0, &input_0));
       TF_RETURN_IF_ERROR(node->input_node(1, &input_1));
+      if (!IsNGVariableType(input_0->type_string())) {
+        return errors::Internal(
+            "Got NGraphAssign with input variable tensor from ",
+            input_0->type_string());
+      }
+
+      if (input_1->type_string() != "NGraphEncapsulate") {
+        return errors::Internal(
+            "Trying to remove NGraphAssign with input value computed from ",
+            input_1->type_string());
+      }
 
       // Handle input edges
       NGRAPH_VLOG(3) << "Handling input edges ";
