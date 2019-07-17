@@ -30,7 +30,11 @@ import ngraph_bridge, os
 
 class TestVaroptOperations(NgraphTest):
 
-    def test_varopt(self):
+    @pytest.mark.parametrize(("reset",), (
+        (True,),
+        (False,),
+    ))
+    def test_varopt(self, reset):
         dim1 = 3
         dim2 = 4
         a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
@@ -51,20 +55,59 @@ class TestVaroptOperations(NgraphTest):
                         a: 1.5 * np.ones((dim1, dim2)),
                         b: np.ones((dim1, dim2))
                     })
+            if reset:
+                sess.run(tf.global_variables_initializer())
             return x.eval(sess)
 
         assert np.isclose(
             self.with_ngraph(run_test),
-            113.33008 * np.ones([dim1, dim2])).all()
+            (113.33008, 0)[reset] * np.ones([dim1, dim2])).all()
 
-    # TODO add more tests. where sess.run runs 10 times etc
+    def test_varopt_with_get_variable(self):
+        dim1 = 3
+        dim2 = 4
+        a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
+        with tf.variable_scope("foo"):  #create the first time
+            x = tf.get_variable(
+                "x",
+                initializer=np.zeros([dim1, dim2], dtype=np.float32),
+                dtype=tf.float32)
+        b = tf.placeholder(tf.float32, shape=(dim1, dim2), name='y')
+        c = a * x
+        axpy = c + b
+        train_step_0 = x.assign(axpy)
+        with tf.control_dependencies([train_step_0]):
+            train_op_0 = tf.no_op('train_op')
 
+        with tf.variable_scope("foo", reuse=True):  #reuse the second time
+            x_again = tf.get_variable("x")
+        p = tf.placeholder(tf.float32, shape=(dim1, dim2), name='p')
+        d = p * x_again
+        train_step_1 = x_again.assign(d)
+        with tf.control_dependencies([train_step_1]):
+            train_op_1 = tf.no_op('train_op')
 
-# what of reused variables?
-'''
-with tf.variable_scope("foo"): #create the first time
-    v = tf.get_variable("v", [1])
+        def run_test(sess):
+            sess.run(tf.global_variables_initializer())
+            for i in range(10):
+                _ = sess.run(
+                    train_op_0,
+                    feed_dict={
+                        a: 1.5 * np.ones((dim1, dim2)),
+                        b: np.ones((dim1, dim2))
+                    })
+            out0 = x.eval(sess)
+            out1 = x_again.eval(sess)
+            for i in range(2):
+                _ = sess.run(
+                    train_op_1, feed_dict={
+                        p: 1.5 * np.ones((dim1, dim2)),
+                    })
+            out2 = x.eval(sess)
+            out3 = x_again.eval(sess)
+            return [out0, out1, out2, out3]
 
-with tf.variable_scope("foo", reuse=True): #reuse the second time
-    v = tf.get_variable("v", [1])
-'''
+        arr1 = 113.33008 * np.ones([dim1, dim2])
+        arr2 = 254.99268 * np.ones([dim1, dim2])
+        assert np.isclose(self.with_ngraph(run_test),
+                          [arr1, arr1, arr2, arr2]).all()
