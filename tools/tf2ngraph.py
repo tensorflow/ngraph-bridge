@@ -96,13 +96,9 @@ def prepare_argparser(formats):
     Tool to convert TF graph into a ngraph enabled graph
     Sample usage:
     Command line:
-    python tf2ngraph.py --inputsavedmodel test_graph_SM --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
-    python tf2ngraph.py --inputpbtxt test_graph_SM.pbtxt --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
-    or:
-    functional api
-    from tf2ngraph import convert
-    convert('savedmodel', 'test_graph_SM' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
-    convert('pbtxt', 'test_graph_SM.pbtxt' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
+    python tf2ngraph.py --inputsavedmodel resnet_model_location --outnodes out_node --outputpbtxt resnet_ngraph.pbtxt
+    python tf2ngraph.py --inputpbtxt mobilenet.pbtxt --outnodes out_node --outputpbtxt mobilenet_ngraph.pbtxt
+    python tf2ngraph.py --inputpb inception_v3_2016_08_28_frozen.pb --outnodes InceptionV3/Predictions/Reshape_1 --outputpbtxt inception_v3_2016_08_28_frozen_ngraph.pb
     ''')
     in_out_groups = [
         parser.add_argument_group(i, j) for i, j in zip(
