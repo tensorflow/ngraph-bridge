@@ -40,6 +40,7 @@ set(SRC
    ngraph_cluster_manager.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
+   ngraph_encapsulate_impl.cc
    ngraph_encapsulate_op.cc
    ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
