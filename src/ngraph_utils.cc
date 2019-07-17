@@ -421,7 +421,9 @@ bool IsProcessedByNgraphPass(Graph* g) {
   return false;
 }
 
-Status FindSharedNameOfPreviouslyReplacedVariable(Node* node, const std::set<string>& identity_attached_nodes, string& shared_name){
+Status FindSharedNameOfPreviouslyReplacedVariable(
+    Node* node, const std::set<string>& identity_attached_nodes,
+    string& shared_name) {
   bool has_been_replaced_before;
   string shared_name_of_replacement;
   // Determine if the current node has an Identity or IdentityN attached to
@@ -440,9 +442,6 @@ Status FindSharedNameOfPreviouslyReplacedVariable(Node* node, const std::set<str
       out_neighbour_idn_name = out_neighbour->name();
     }
   }
-  cout << "XX: found_idn: " << found_idn << "\n";
-  cout << "XX: num_out_neighbour_nodes: " << num_out_neighbour_nodes << "\n";
-  cout << "XX: out_neighbour_idn_name: " << out_neighbour_idn_name << "\n";
   string original_var_node_name;
   // If there is only output which is an IdentityN (barring a SINK), and the
   // name of the output IdentityN is present in the set
@@ -459,8 +458,6 @@ Status FindSharedNameOfPreviouslyReplacedVariable(Node* node, const std::set<str
   if (has_been_replaced_before) {
     shared_name = shared_name_of_replacement;
   }
-  cout << "XX: has_been_replaced_before: " << has_been_replaced_before << "\n";
-  cout << "XX: shared_name: " << shared_name << "\n";  
   TF_RETURN_IF_ERROR(
       NGraphCatalog::RegisterTFVarReplacement(node->name(), shared_name));
   return Status::OK();

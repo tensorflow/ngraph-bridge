@@ -185,7 +185,8 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
   // Both replacements use this function, so this "if" is activated only in the
   // first case
   if (node->type_string() == "VariableV2") {
-    FindSharedNameOfPreviouslyReplacedVariable(node, identity_attached_nodes, shared_name);
+    FindSharedNameOfPreviouslyReplacedVariable(node, identity_attached_nodes,
+                                               shared_name);
   }
 #endif
 

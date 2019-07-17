@@ -321,7 +321,9 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
-Status FindSharedNameOfPreviouslyReplacedVariable(Node* node, const std::set<string>& identity_attached_nodes, string& shared_name);
+Status FindSharedNameOfPreviouslyReplacedVariable(
+    Node* node, const std::set<string>& identity_attached_nodes,
+    string& shared_name);
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 bool DumpReplacedModifiersGraphs();
