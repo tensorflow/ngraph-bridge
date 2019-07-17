@@ -44,14 +44,12 @@ namespace testing {
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 // Assigns are removed when the new value is computed by the
-// Encapsulate Op. It is not possible to create the Encap Op without running
-// all the other phases (MarkForClustering, AssignClusters, Encap etc.)
+// Encapsulate Op.
 // These tests check that NGraphAssign is removed and the rest of the graph
 // is connected correctly.
-// Const Op is used instead of Encap Op to mimic the use cases
 
 // Var       Const
-//  \         /        ---->
+//  \         /
 //   \       /
 //    Assign
 TEST(RemoveNGraphAssigns, Graph1) {
@@ -381,6 +379,58 @@ TEST(RemoveNGraphAssigns, Graph4) {
   ASSERT_EQ(add_in_0, node_map.at("Var"));
   ASSERT_EQ(add_in_1, node_map.at(encap_op_name));
   ASSERT_EQ(add_in_ctrl, node_map.at(encap_op_name));
+}
+
+// Var       Const
+//  \         /
+//   \       /
+//    Assign
+
+// Const is not Encapsulated
+// Assign is marked for removal
+// RemoveNGraphAssign throws an error
+TEST(RemoveNGraphAssigns, Graph5) {
+  Scope root = Scope::NewRootScope();
+
+  PartialTensorShape varShape({2, 2});
+  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
+  auto val = ops::Const(root.WithOpName("Val"), {{1.f, 1.f}, {1.f, 1.f}});
+  auto assign = ops::Assign(root.WithOpName("VarAssign"), var, val);
+
+  Graph graph(OpRegistry::Global());
+  TF_CHECK_OK(root.ToGraph(&graph));
+
+  // Capture Variables: to convert Var and Assign to NGraphVar and NGraphAssign
+  // there is no other way to create these ops
+  std::set<string> skip_these_nodes = {};
+  ASSERT_OK(CaptureVariables(&graph, skip_these_nodes));
+
+  // Need encapsulate op for test
+  // Keeping Const out of encap
+  char disabled_list[] = "Const";
+  config::ngraph_set_disabled_ops(disabled_list);
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
+  ASSERT_OK(AssignClusters(&graph));
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+
+  // Get all the nodes in map [utility]
+  map<string, Node*> node_map;
+  for (auto node : graph.op_nodes()) {
+    node_map[node->name()] = node;
+  }
+
+  // Clean up
+  config::ngraph_set_disabled_ops("");
+
+  // Attach _ngraph_remove attribue to NGraphAssign (triggering the remove)
+  ASSERT_NE(node_map.find("VarAssign"), node_map.end());
+  Node* ng_assign = node_map.at("VarAssign");
+  ASSERT_EQ(ng_assign->type_string(), "NGraphAssign");
+  ng_assign->AddAttr("_ngraph_remove", true);
+
+  // Call RemoveNGraphAssign, throws error
+  ASSERT_NOT_OK(RemoveNGraphAssigns(&graph));
 }
 
 }  // namespace testing
