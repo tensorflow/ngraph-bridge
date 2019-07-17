@@ -132,16 +132,17 @@ def prepare_argparser(formats):
 def filter_dict(prefix, dictionary):
     assert prefix in ['input', 'output']
     current_format = list(
-        filter(lambda x: x.startswith(prefix) and dictionary[x] is not None,
-               dictionary))
+        filter(
+            lambda x: x.startswith(prefix + '_') and dictionary[x] is not None
+            and 'nodes' not in x, dictionary))
     assert len(current_format) == 1, "Got " + str(
         len(current_format)) + " " + prefix + " formats, expected only 1"
     # [len(prefix):] deletes the initial "input" in the string
-    stripped = current_format[0][len(prefix):]
+    stripped = current_format[0][len(prefix):].lstrip('_')
     assert stripped in allowed_formats[
         prefix], "Got " + prefix + " format = " + stripped + " but only support " + str(
             allowed_formats[prefix])
-    return (stripped, dictionary[prefix + stripped])
+    return (stripped, dictionary[prefix + '_' + stripped])
 
 
 def save_gdef_to_savedmodel(gdef, location):
