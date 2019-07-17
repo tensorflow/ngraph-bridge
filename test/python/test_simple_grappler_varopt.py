@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
-"""nGraph TensorFlow bridge varopt operation test
+"""nGraph TensorFlow bridge variables+assign test
 
 """
 from __future__ import absolute_import
@@ -28,13 +28,13 @@ from common import NgraphTest
 import ngraph_bridge, os
 
 
-class TestVaroptOperations(NgraphTest):
+class TestVarAssignOperations(NgraphTest):
 
     @pytest.mark.parametrize(("reset",), (
         (True,),
         (False,),
     ))
-    def test_varopt(self, reset):
+    def test_varassign_axpy(self, reset):
         dim1 = 3
         dim2 = 4
         a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
@@ -63,7 +63,7 @@ class TestVaroptOperations(NgraphTest):
             self.with_ngraph(run_test),
             (113.33008, 0)[reset] * np.ones([dim1, dim2])).all()
 
-    def test_varopt_with_get_variable(self):
+    def test_varassign_with_get_variable(self):
         dim1 = 3
         dim2 = 4
         a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
@@ -86,6 +86,7 @@ class TestVaroptOperations(NgraphTest):
         train_step_1 = x_again.assign(d)
         with tf.control_dependencies([train_step_1]):
             train_op_1 = tf.no_op('train_op')
+
 
         def run_test(sess):
             sess.run(tf.global_variables_initializer())
