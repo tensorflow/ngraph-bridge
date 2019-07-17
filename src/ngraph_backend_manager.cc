@@ -34,7 +34,6 @@ map<string, Backend*> BackendManager::ng_backend_map_;
 mutex BackendManager::ng_backend_map_mutex_;
 map<std::string, int> BackendManager::ref_count_each_backend_;
 
-mutex BackendManager::ng_backendconfig_map_mutex_;
 unordered_map<string, std::unique_ptr<BackendConfig>>
     BackendManager::ng_backendconfig_map_;
 
@@ -88,6 +87,28 @@ void BackendManager::ReleaseBackend(const string& backend_name) {
     BackendManager::ng_backend_map_[backend_name]->backend_ptr.reset();
     BackendManager::ng_backend_map_.erase(backend_name);
     NGRAPH_VLOG(2) << "Deleted Backend " << backend_name;
+  }
+}
+
+void BackendManager::SetConfig(
+    const string& backend_name,
+    const std::unordered_map<std::string, std::string>&
+        additional_attributes_map) {
+  std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
+  ng::runtime::Backend* bend = GetBackend(backend_name);
+  NGRAPH_VLOG(2) << "BackendManager::SetConfig() " << backend_name;
+  std::string error;
+  std::map<std::string, std::string> device_config_map;
+  for (auto i = additional_attributes_map.begin();
+       i != additional_attributes_map.end(); i++) {
+    device_config_map.insert({i->first, i->second});
+  }
+  // sending all the additional attributes to the backend
+  // it is backend's responsibility to find the one's it needs
+  // similar to the implementation for the Interpreter backend
+  if (!bend->set_config(device_config_map, error)) {
+    NGRAPH_VLOG(2) << "BackendManager::SetConfig(): Could not set config. "
+                   << error;
   }
 }
 
@@ -162,6 +183,11 @@ std::unique_ptr<BackendConfig>& BackendManager::GetBackendConfig(
       BackendManager::ng_backendconfig_map_.insert(std::make_pair(
           backend_name,
           std::unique_ptr<BackendNNPIConfig>(new BackendNNPIConfig())));
+    }
+    if (backend_name == "INTERPRETER") {
+      BackendManager::ng_backendconfig_map_.insert(std::make_pair(
+          backend_name, std::unique_ptr<BackendInterpreterConfig>(
+                            new BackendInterpreterConfig())));
     } else {
       BackendManager::ng_backendconfig_map_.insert(std::make_pair(
           backend_name,
