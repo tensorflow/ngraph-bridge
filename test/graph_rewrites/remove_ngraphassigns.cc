@@ -22,7 +22,12 @@
 #include "tensorflow/core/public/session.h"
 
 #include "enable_variable_ops/ngraph_remove_ngraphassigns.h"
+#include "ngraph_api.h"
+#include "ngraph_assign_clusters.h"
 #include "ngraph_capture_variables.h"
+#include "ngraph_encapsulate_clusters.h"
+#include "ngraph_mark_for_clustering.h"
+
 #include "tf_graph_writer.h"
 
 #include "../test_utilities.h"
@@ -46,7 +51,7 @@ namespace testing {
 // Const Op is used instead of Encap Op to mimic the use cases
 
 // Var       Const
-//  \         /
+//  \         /        ---->
 //   \       /
 //    Assign
 TEST(RemoveNGraphAssigns, Graph1) {
@@ -64,6 +69,12 @@ TEST(RemoveNGraphAssigns, Graph1) {
   // there is no other way to create these ops
   std::set<string> skip_these_nodes = {};
   ASSERT_OK(CaptureVariables(&graph, skip_these_nodes));
+
+  // Need encapsulate op for test
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
+  ASSERT_OK(AssignClusters(&graph));
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
 
   // Get all the nodes in map [utility]
   map<string, Node*> node_map;
@@ -111,10 +122,27 @@ TEST(RemoveNGraphAssigns, Graph2) {
   std::set<string> skip_these_nodes = {};
   ASSERT_OK(CaptureVariables(&graph, skip_these_nodes));
 
+  // Need encapsulate op for test
+  // Keeping Add out of encap, to get the name easily and test
+  char disabled_list[] = "Add";
+  config::ngraph_set_disabled_ops(disabled_list);
+
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
+  ASSERT_OK(AssignClusters(&graph));
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+
+  // clean up
+  config::ngraph_set_disabled_ops("");
+
   // Get all the nodes in map [utility]
   map<string, Node*> node_map;
+  string encap_op_name;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
+    if (node->type_string() == "NGraphEncapsulate") {
+      encap_op_name = node->name();
+    }
   }
 
   // Attach _ngraph_remove attribue to NGraphAssign (triggering the remove)
@@ -135,7 +163,7 @@ TEST(RemoveNGraphAssigns, Graph2) {
   // Assert NGraphAssign is not present and other ops are present
   ASSERT_EQ(node_map.find("VarAssign"), node_map.end());
   ASSERT_NE(node_map.find("Var"), node_map.end());
-  ASSERT_NE(node_map.find("Val"), node_map.end());
+  ASSERT_NE(node_map.find(encap_op_name), node_map.end());
   ASSERT_NE(node_map.find("Add"), node_map.end());
 
   Node *add_in_0, *add_in_1, *add_in_ctrl, *nd_add = node_map.at("Add");
@@ -158,8 +186,8 @@ TEST(RemoveNGraphAssigns, Graph2) {
 
   ASSERT_EQ(edge_count, 3);
   ASSERT_EQ(add_in_0, node_map.at("Var"));
-  ASSERT_EQ(add_in_1, node_map.at("Val"));
-  ASSERT_EQ(add_in_ctrl, node_map.at("Val"));
+  ASSERT_EQ(add_in_1, node_map.at(encap_op_name));
+  ASSERT_EQ(add_in_ctrl, node_map.at(encap_op_name));
 }
 
 // Var       Const
@@ -189,8 +217,15 @@ TEST(RemoveNGraphAssigns, Graph3) {
   std::set<string> skip_these_nodes = {};
   ASSERT_OK(CaptureVariables(&graph, skip_these_nodes));
 
+  // Need encapsulate op for test
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
+  ASSERT_OK(AssignClusters(&graph));
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+
   // Get all the nodes in map [utility]
   map<string, Node*> node_map;
+
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
   }
@@ -206,14 +241,18 @@ TEST(RemoveNGraphAssigns, Graph3) {
 
   // Reiterate over the graph
   node_map.clear();
+  string encap_op_name;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
+    if (node->type_string() == "NGraphEncapsulate") {
+      encap_op_name = node->name();
+    }
   }
 
   // Assert NGraphAssign is not present and other ops are present
   ASSERT_EQ(node_map.find("VarAssign"), node_map.end());
   ASSERT_NE(node_map.find("Var"), node_map.end());
-  ASSERT_NE(node_map.find("Val"), node_map.end());
+  ASSERT_NE(node_map.find(encap_op_name), node_map.end());
   ASSERT_NE(node_map.find("VarAssign2"), node_map.end());
 
   Node *assign_in_0, *assign_in_1, *assign_in_ctrl,
@@ -237,8 +276,8 @@ TEST(RemoveNGraphAssigns, Graph3) {
 
   ASSERT_EQ(edge_count, 3);
   ASSERT_EQ(assign_in_0, node_map.at("Var"));
-  ASSERT_EQ(assign_in_1, node_map.at("Val"));
-  ASSERT_EQ(assign_in_ctrl, node_map.at("Val"));
+  ASSERT_EQ(assign_in_1, node_map.at(encap_op_name));
+  ASSERT_EQ(assign_in_ctrl, node_map.at(encap_op_name));
 }
 
 // Var       Const
@@ -271,10 +310,27 @@ TEST(RemoveNGraphAssigns, Graph4) {
   std::set<string> skip_these_nodes = {};
   ASSERT_OK(CaptureVariables(&graph, skip_these_nodes));
 
+  // Need encapsulate op for test
+  // Keeping Add out of encap, to get the name easily and test
+  char disabled_list[] = "Add";
+  config::ngraph_set_disabled_ops(disabled_list);
+
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
+  ASSERT_OK(AssignClusters(&graph));
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+
+  // clean up
+  config::ngraph_set_disabled_ops("");
+
   // Get all the nodes in map [utility]
   map<string, Node*> node_map;
+  string encap_op_name;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
+    if (node->type_string() == "NGraphEncapsulate") {
+      encap_op_name = node->name();
+    }
   }
 
   // Attach _ngraph_remove attribue to NGraphAssign (triggering the remove)
@@ -300,7 +356,7 @@ TEST(RemoveNGraphAssigns, Graph4) {
   ASSERT_EQ(node_map.find("VarAssign2"), node_map.end());
 
   ASSERT_NE(node_map.find("Var"), node_map.end());
-  ASSERT_NE(node_map.find("Val"), node_map.end());
+  ASSERT_NE(node_map.find(encap_op_name), node_map.end());
   ASSERT_NE(node_map.find("Add"), node_map.end());
 
   Node *add_in_0, *add_in_1, *add_in_ctrl, *nd_add = node_map.at("Add");
@@ -323,8 +379,8 @@ TEST(RemoveNGraphAssigns, Graph4) {
 
   ASSERT_EQ(edge_count, 3);
   ASSERT_EQ(add_in_0, node_map.at("Var"));
-  ASSERT_EQ(add_in_1, node_map.at("Val"));
-  ASSERT_EQ(add_in_ctrl, node_map.at("Val"));
+  ASSERT_EQ(add_in_1, node_map.at(encap_op_name));
+  ASSERT_EQ(add_in_ctrl, node_map.at(encap_op_name));
 }
 
 }  // namespace testing
