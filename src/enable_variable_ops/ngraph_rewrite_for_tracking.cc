@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+
+#include <functional>
+
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/graph/types.h"
-
-#include <functional>
 
 #include "ngraph_replace_op_utilities.h"
 #include "ngraph_rewrite_for_tracking.h"

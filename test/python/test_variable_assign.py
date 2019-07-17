@@ -118,7 +118,6 @@ class TestVarAssignOperations(NgraphTest):
         with tf.control_dependencies([train_step_1]):
             train_op_1 = tf.no_op('train_op')
 
-
         def run_test(sess):
             sess.run(tf.global_variables_initializer())
             for i in range(10):

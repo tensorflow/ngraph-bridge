@@ -14,10 +14,10 @@
  * limitations under the License.
  *******************************************************************************/
 
+#include <functional>
+
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/node_builder.h"
-
-#include <functional>
 
 #include "ngraph_api.h"
 #include "ngraph_capture_variables.h"
