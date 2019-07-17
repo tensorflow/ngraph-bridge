@@ -56,8 +56,8 @@ Status NgraphOptimizer::Init(
       }
     }
   } else {
-    NGRAPH_VLOG(5)
-        << "NGTF_OPTIMIZER: parameter_map does not have ngraph_backend";
+    return errors::Internal(
+        "NGTF_OPTIMIZER: parameter_map does not have ngraph_backend");
   }
   return Status::OK();
 }
@@ -196,7 +196,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // Precedence Order: RewriteConfig > Env Variable > BackendManager
   string backend_name = BackendManager::GetCurrentlySetBackendName();
   if (!config_backend_name.empty()) {
-    if (!BackendManager::IsSupportedBackend(backend_name)) {
+    if (!BackendManager::IsSupportedBackend(config_backend_name)) {
       return errors::Internal("NGRAPH_TF_BACKEND: ", config_backend_name,
                               " is not supported");
     }

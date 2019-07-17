@@ -170,8 +170,15 @@ class NGraphEncapsulateOp : public OpKernel {
       // to the encapsulate node
       std::string attr = "_ngraph_" + additional_attributes[i];
       // If an attribute does not exist, TF will return a non-ok status
-      OP_REQUIRES_OK(ctx, ctx->GetAttr<string>(attr, &val));
-      additional_attribute_map.insert({additional_attributes[i], val});
+      // So, only add an attribute to the additional_attribute_map if
+      // an OK status is returned
+      Status status = ctx->GetAttr<string>(attr, &val);
+      if (status == tensorflow::Status::OK()) {
+        additional_attribute_map.insert({additional_attributes[i], val});
+      } else {
+        NGRAPH_VLOG(5) << additional_attributes[i]
+                       << " was not defined in the node def";
+      }
     }
 
     // Concatenate the backend_name:backend_config
