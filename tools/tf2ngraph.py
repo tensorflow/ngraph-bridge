@@ -98,7 +98,8 @@ def prepare_argparser(formats):
     Command line:
     python tf2ngraph.py --inputsavedmodel resnet_model_location --outnodes out_node --outputpbtxt resnet_ngraph.pbtxt
     python tf2ngraph.py --inputpbtxt mobilenet.pbtxt --outnodes out_node --outputpbtxt mobilenet_ngraph.pbtxt
-    python tf2ngraph.py --inputpb inception_v3_2016_08_28_frozen.pb --outnodes InceptionV3/Predictions/Reshape_1 --outputpbtxt inception_v3_2016_08_28_frozen_ngraph.pb
+    python tf2ngraph.py --inputpb inception_v3_2016_08_28_frozen.pb --outnodes InceptionV3/Predictions/Reshape_1 --outputpb inception_v3_2016_08_28_frozen_ngraph.pb
+    python tf2ngraph.py --inputpbtxt ../test/test_axpy.pbtxt --outnodes add --outputpbtxt axpy_ngraph.pbtxt
     ''')
     in_out_groups = [
         parser.add_argument_group(i, j) for i, j in zip(
@@ -113,7 +114,10 @@ def prepare_argparser(formats):
     # Note: no other option must begin with "input" or "output"
     parser.add_argument(
         "--outnodes",
-        help="Comma separated list of output nodes",
+        help=
+        "Comma separated list of output nodes. Output nodes can be found " \
+        "by manual inspection of the graph, prior knowledge or running the " \
+        "summarize_graph tool provided by Tensorflow",
         required=True)
     parser.add_argument(
         "--ngbackend",
