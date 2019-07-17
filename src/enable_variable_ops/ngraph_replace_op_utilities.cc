@@ -185,42 +185,7 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
   // Both replacements use this function, so this "if" is activated only in the
   // first case
   if (node->type_string() == "VariableV2") {
-    bool has_been_replaced_before;
-    string shared_name_of_replacement;
-    // Determine if the current node has an Identity or IdentityN attached to
-    // it, and if so does its name appear in identity_attached_nodes
-    // If so then the name of the Identity/IdentityN nodes are the original
-    // names of the current node.
-    size_t num_out_neighbour_nodes = 0;
-    bool found_idn = false;
-    string out_neighbour_idn_name;
-    for (auto out_neighbour : node->out_nodes()) {
-      if (!out_neighbour->IsSink()) {
-        num_out_neighbour_nodes++;
-      }
-      if (out_neighbour->type_string() == "IdentityN") {
-        found_idn = true;
-        out_neighbour_idn_name = out_neighbour->name();
-      }
-    }
-    string original_var_node_name;
-    // If there is only output which is an IdentityN (barring a SINK), and the
-    // name of the output IdentityN is present in the set
-    // identity_attached_nodes
-    if (found_idn && num_out_neighbour_nodes == 1 &&
-        identity_attached_nodes.find(out_neighbour_idn_name) !=
-            identity_attached_nodes.end()) {
-      original_var_node_name = out_neighbour_idn_name;
-    } else {
-      original_var_node_name = node->name();
-    }
-    std::tie(has_been_replaced_before, shared_name_of_replacement) =
-        NGraphCatalog::HasTFVarBeenReplacedBefore(original_var_node_name);
-    if (has_been_replaced_before) {
-      shared_name = shared_name_of_replacement;
-    }
-    TF_RETURN_IF_ERROR(
-        NGraphCatalog::RegisterTFVarReplacement(node->name(), shared_name));
+    FindSharedNameOfPreviouslyReplacedVariable(node, identity_attached_nodes, shared_name);
   }
 #endif
 
