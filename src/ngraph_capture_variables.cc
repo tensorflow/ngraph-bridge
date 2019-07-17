@@ -61,19 +61,25 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
         TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "dtype", &dtype));
 
         std::string container;
-        std::string shared_name;
+        std::string shared_name_from_current_var;
         if (GetNodeAttr(node->attrs(), "container", &container) !=
             Status::OK()) {
           container = "";
         }
-        if (GetNodeAttr(node->attrs(), "shared_name", &shared_name) !=
+        if (GetNodeAttr(node->attrs(), "shared_name", &shared_name_from_current_var) !=
             Status::OK()) {
-          shared_name = "";
+          shared_name_from_current_var = "";
         }
+
+        string shared_name;
+        shared_name = shared_name_from_current_var.empty()
+                          ? node->name()
+                          : shared_name_from_current_var;
 
         Node* replacement;
         // TODO: add the shared_name catalog thing in only grappler capture as
         // well.
+        TF_RETURN_IF_ERROR(FindSharedNameOfPreviouslyReplacedVariable(node, skip_these_nodes, shared_name));
 
         // TODO(amprocte): Do we need to copy "_" attributes?
         TF_RETURN_IF_ERROR(NodeBuilder(node->name(), "NGraphVariable")

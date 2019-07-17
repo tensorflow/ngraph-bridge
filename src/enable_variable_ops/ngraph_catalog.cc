@@ -117,6 +117,8 @@ bool NGraphCatalog::ExistsInInputVariableSharedNameMap(int graphid,
 #if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
 Status NGraphCatalog::RegisterTFVarReplacement(string TF_var_name,
                                                string shared_name) {
+  cout << "XX: RegisterTFVarReplacement: TF_var_name: " << TF_var_name << "\n";
+  cout << "XX: RegisterTFVarReplacement: shared_name: " << shared_name << "\n";
   auto itr = tf_var_name_to_shared_name_map_.find(TF_var_name);
   if (itr == tf_var_name_to_shared_name_map_.end()) {
     // First registration of this variable being replaced
