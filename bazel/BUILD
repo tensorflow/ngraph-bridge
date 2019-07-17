@@ -41,6 +41,7 @@ cc_library(
         "src/grappler/ngraph_add_identityn.h",
         "logging/ngraph_log.h",
         "logging/tf_graph_writer.h",
+        "src/enable_variable_ops/ngraph_catalog.h",
     ]),
     copts = [
         "-I external/ngraph_bridge/src",
@@ -75,6 +76,7 @@ cc_binary(
         "src/grappler/ngraph_add_identityn.cc",
         "logging/ngraph_log.cc",
         "logging/tf_graph_writer.cc",
+        "src/enable_variable_ops/ngraph_catalog.cc",
     ],
     linkshared = 1,
     deps = [
