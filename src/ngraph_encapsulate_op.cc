@@ -235,8 +235,9 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   }
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  for (int i = 0; i < m_number_outputs; i++) {
-    string key = NGraphCatalog::CreateNodeKey(m_graph_id, name(), i);
+  for (int i = 0; i < ng_encap_impl->m_number_outputs; i++) {
+    string key =
+        NGraphCatalog::CreateNodeKey(ng_encap_impl->m_graph_id, name(), i);
     if (NGraphCatalog::ExistsInEncapOutputTensorMap(key)) {
       NGraphCatalog::DeleteFromEncapOutputTensorMap(key);
       NGRAPH_VLOG(2) << "Deleting from output tensor map " << key;
@@ -696,7 +697,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Dealing with the input from Variable nodes here
   for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-        m_graph_id, def().name(), input_index);
+        ng_encap_impl->m_graph_id, def().name(), input_index);
 
     if (!ref_exists) {
       OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
@@ -706,19 +707,20 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     }
 
     string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
-        m_graph_id, def().name(), input_index);
+        ng_encap_impl->m_graph_id, def().name(), input_index);
     NGraphVar* var;
     OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
                             ctx->resource_manager()->default_container(),
                             ref_var_name, &var));
 
     if (var->sync_ng_tensor()) {
-      number_of_copies++;
-      copy_log_str << "Var_Sync[" << input_index << "] ";
+      ng_encap_impl->number_of_copies++;
+      ng_encap_impl->copy_log_str << "Var_Sync[" << input_index << "] ";
     }
 
     void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
-    bool is_stale = !m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec);
+    bool is_stale =
+        !ng_encap_impl->m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec);
     var->ng_tensor()->set_stale(is_stale);
     ng_inputs[input_index] = var->ng_tensor();
 
@@ -786,12 +788,13 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     size_t output_tensor_count = output_caches.size();
     std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    if (m_number_outputs == -1) {
+    if (ng_encap_impl->m_number_outputs == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-      m_number_outputs = output_caches.size();
+      ng_encap_impl->m_number_outputs = output_caches.size();
     }
     for (size_t i = 0; i < output_tensor_count; ++i) {
-      string key = NGraphCatalog::CreateNodeKey(m_graph_id, def().name(), i);
+      string key = NGraphCatalog::CreateNodeKey(ng_encap_impl->m_graph_id,
+                                                def().name(), i);
       bool ref_exists = NGraphCatalog::ExistsInEncapOutputTensorMap(key);
       void* dst_ptr;
       std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
@@ -802,10 +805,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         NGraphCatalog::AddToEncapOutputTensorMap(key, dst_ng_tensor);
       }
 
-      if (m_op_backend_name != "CPU" &&
+      if (ng_encap_impl->m_op_backend_name != "CPU" &&
           NGraphCatalog::EncapOutputIndexNeedsCopy(def().name(), i)) {
-        number_of_copies++;
-        copy_log_str << " COPY_OP_VAL[" << i << "]";
+        ng_encap_impl->number_of_copies++;
+        ng_encap_impl->copy_log_str << " COPY_OP_VAL[" << i << "]";
 
         NGRAPH_VLOG(4) << "Copying Output " << def().name() << " ,index: " << i;
         auto ng_element_type = dst_ng_tensor->get_element_type();
@@ -856,9 +859,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   event_copy_output.Stop();
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  copy_log_str << " Number of copies " << number_of_copies << "\n";
-  if (log_copies) {
-    cout << copy_log_str.str();
+  ng_encap_impl->copy_log_str << " Number of copies "
+                              << ng_encap_impl->number_of_copies << "\n";
+  if (ng_encap_impl->log_copies) {
+    cout << ng_encap_impl->copy_log_str.str();
   }
 #endif
 
