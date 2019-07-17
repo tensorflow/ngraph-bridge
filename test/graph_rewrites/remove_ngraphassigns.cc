@@ -92,7 +92,7 @@ TEST(RemoveNGraphAssigns, Graph1) {
 //    Assign    |
 //      |       |
 //      |       |
-//     Add -----
+//     Add <-----
 //
 TEST(RemoveNGraphAssigns, Graph2) {
   Scope root = Scope::NewRootScope();
@@ -168,7 +168,7 @@ TEST(RemoveNGraphAssigns, Graph2) {
 //    Assign    |
 //      |       |
 //      |       |
-//     Assign2 --
+//     Assign2 <-
 // Only Assign is marked for removal
 // Mainly done to see if Assign2 gets the edge from Var as ref-type
 // after the Assign is removed
@@ -247,10 +247,10 @@ TEST(RemoveNGraphAssigns, Graph3) {
 //    Assign    |
 //      |       |
 //      |       |
-//     Assign2 --
+//     Assign2<--
 //      |       |
 //      |       |
-//     Add -----
+//     Add<-----
 //
 // Both Assign, and Assign2 is marked for removal
 TEST(RemoveNGraphAssigns, Graph4) {
