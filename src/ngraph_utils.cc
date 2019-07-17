@@ -421,6 +421,7 @@ bool IsProcessedByNgraphPass(Graph* g) {
   return false;
 }
 
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
 Status FindSharedNameOfPreviouslyReplacedVariable(
     Node* node, const std::set<string>& identity_attached_nodes,
     string& shared_name) {
@@ -462,6 +463,7 @@ Status FindSharedNameOfPreviouslyReplacedVariable(
       NGraphCatalog::RegisterTFVarReplacement(node->name(), shared_name));
   return Status::OK();
 }
+#endif
 
 }  // namespace ngraph_bridge
 
