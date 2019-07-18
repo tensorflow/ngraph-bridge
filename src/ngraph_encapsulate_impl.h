@@ -54,13 +54,13 @@ class NGraphEncapsulateImpl {
                          std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
 
   Status AllocateNGInputTensors(
-      const std::vector<Tensor>& input_tensors,
+      const std::vector<Tensor>& tf_input_tensors,
       std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
 
   Status AllocateNGOutputTensors(
-      std::vector<Tensor*>& output_tensors,
+      std::vector<Tensor*>& tf_output_tensors,
       std::vector<ng::element::Type> expected_output_types,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
@@ -83,21 +83,77 @@ class NGraphEncapsulateImpl {
   // A single instance of freshness_tracker is used across all
   // nGraphEncapsulateOp and nGraphVariable op
   NGraphFreshnessTracker* m_freshness_tracker;
+  string m_name;
+  std::mutex m_compute_lock;
 
+  // Accessors(getters and setters) for the private data members needed by
+  // NgraphEncapsulateOp class
+  int get_number_of_copies() { return number_of_copies; }
+
+  int set_number_of_copies(int number) {
+    number_of_copies = number;
+    return number_of_copies;
+  }
+
+  int get_ngraph_cluster() { return m_ngraph_cluster; }
+
+  int set_ngraph_cluster(int cluster) {
+    m_ngraph_cluster = cluster;
+    return m_ngraph_cluster;
+  }
+
+  int get_graph_id() { return m_graph_id; }
+
+  int set_graph_id(int graph_id) {
+    m_graph_id = graph_id;
+    return m_graph_id;
+  }
+
+  int get_function_cache_depth_in_items() {
+    return my_function_cache_depth_in_items;
+  }
+
+  int get_number_outputs() { return m_number_outputs; }
+
+  int get_instance_id() { return my_instance_id; }
+
+  string get_op_backend_name() { return m_op_backend_name; }
+
+  void set_op_backend_name(string backend_name) {
+    cout << "Setting backend_name " << backend_name << std::endl;
+    m_op_backend_name = backend_name;
+  }
+
+  bool get_log_copies() { return log_copies; }
+
+  std::vector<bool> get_static() { return m_input_is_static; }
+
+  std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
+  get_ng_exec_map() {
+    return m_ng_exec_map;
+  }
+  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
+                     std::shared_ptr<ngraph::Function>>
+  get_ng_function_map() {
+    return m_ng_function_map;
+  }
+  NgFunctionIOCache get_ng_exec_output_cache_map() {
+    return m_ng_exec_output_cache_map;
+  }
+
+ private:
   int number_of_copies = 0;
   int m_ngraph_cluster{-1};
   int m_graph_id{-1};
   int my_function_cache_depth_in_items = 16;
-  int my_instance_id{0};
   int m_number_outputs = -1;
-  static int s_instance_count;
   string m_op_backend_name;
-  string m_name;
   std::stringstream copy_log_str;
   bool log_copies = false;
   std::vector<bool> m_input_is_static;
-  std::mutex m_compute_lock;
   std::list<std::string> m_lru;
+  static int s_instance_count;
+  int my_instance_id{0};
 
   // cache maps
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
