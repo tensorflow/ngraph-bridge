@@ -43,21 +43,23 @@ Status NgraphOptimizer::Init(
     const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
   const auto params = config->parameter_map();
   if (params.count("ngraph_backend")) {
-    config_backend_name = params.at("ngraph_backend").s();
-    NGRAPH_VLOG(3) << config_backend_name;
-    std::vector<std::string> additional_attributes =
-        BackendManager::GetBackendAdditionalAttributes(config_backend_name);
-    for (size_t i = 0; i < additional_attributes.size(); i++) {
-      if (params.count(additional_attributes[i])) {
-        config_map["_ngraph_" + additional_attributes[i]] =
-            params.at(additional_attributes[i]).s();
-        NGRAPH_VLOG(3) << additional_attributes[i] << " "
-                       << config_map["_ngraph_" + additional_attributes[i]];
+    if (params.count("device_id")) {
+      config_backend_name = params.at("ngraph_backend").s();
+      NGRAPH_VLOG(3) << config_backend_name;
+      for (auto i : params) {
+        if (i.first != "ngraph_backend") {
+          config_map["_ngraph_" + i.first] = i.second.s();
+          NGRAPH_VLOG(3) << "Attribute: " << i.first
+                         << " Value: " << config_map["_ngraph_" + i.first];
+        }
       }
+    } else {
+      return errors::Internal(
+          "NGTF_OPTIMIZER: device_id is a required parameter");
     }
   } else {
     return errors::Internal(
-        "NGTF_OPTIMIZER: parameter_map does not have ngraph_backend");
+        "NGTF_OPTIMIZER: ngraph_backend is a required parameter");
   }
   return Status::OK();
 }

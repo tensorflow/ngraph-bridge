@@ -30,8 +30,6 @@
 #include "ngraph_log.h"
 #include "tensorflow/core/lib/core/errors.h"
 
-#include "ngraph_backend_config.h"
-
 using namespace std;
 namespace ng = ngraph;
 
@@ -115,32 +113,24 @@ class BackendManager {
   // 1. GetBackendCreationString("GPU", {"_ngraph_device_config", "2"})
   // returns "GPU:2"
   // throws an error if the required attributes are not present in the map
-  static string GetBackendCreationString(
-      const string& backend_name,
-      const unordered_map<string, string>& additional_attribute_map);
+  static string GetBackendCreationString(const string& backend_name,
+                                         const string& device_id);
 
   ~BackendManager();
 
  private:
   static string ng_backend_name_;  // currently set backend name
   static mutex ng_backend_name_mutex_;
+
   // map of cached backend objects
   static map<string, Backend*> ng_backend_map_;
   static mutex ng_backend_map_mutex_;
+
   // set of backends supported by nGraph
   static unordered_set<string> ng_supported_backends_;
 
-  // map of cached backend config objects
-  static unordered_map<string, std::unique_ptr<BackendConfig>>
-      ng_backendconfig_map_;
-  static mutex ng_backendconfig_map_mutex_;
-
   // Map of backends and their reference counts
   static std::map<std::string, int> ref_count_each_backend_;
-
-  // utility functions
-  static std::unique_ptr<BackendConfig>& GetBackendConfig(
-      const string& backend_name);
 };
 
 }  // namespace ngraph_bridge

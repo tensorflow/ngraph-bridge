@@ -17,7 +17,6 @@
 #include "../test_utilities.h"
 #include "gtest/gtest.h"
 #include "ngraph_assign_clusters.h"
-#include "ngraph_backend_config.h"
 #include "ngraph_backend_manager.h"
 #include "ngraph_mark_for_clustering.h"
 
@@ -71,8 +70,8 @@ TEST(GrapplerConfig, RConfig1) {
   ConfigProto config_proto;
   auto backend_name = AttrValue();
   backend_name.set_s("CPU");
-  auto device_config = AttrValue();
-  device_config.set_s("1");
+  auto device_id = AttrValue();
+  device_id.set_s("1");
   auto& rewriter_config =
       *config_proto.mutable_graph_options()->mutable_rewrite_options();
   rewriter_config.add_optimizers("ngraph-optimizer");
@@ -81,7 +80,7 @@ TEST(GrapplerConfig, RConfig1) {
   auto* custom_config = rewriter_config.add_custom_optimizers();
   custom_config->set_name("ngraph-optimizer");
   (*custom_config->mutable_parameter_map())["ngraph_backend"] = backend_name;
-  (*custom_config->mutable_parameter_map())["device_config"] = device_config;
+  (*custom_config->mutable_parameter_map())["device_id"] = device_id;
 
   // Run grappler
   tensorflow::grappler::MetaOptimizer optimizer(nullptr, config_proto);
@@ -105,14 +104,13 @@ TEST(GrapplerConfig, RConfig1) {
     ng_encap = node;
   }
   ASSERT_NE(ng_encap, nullptr);
-  string ng_backend, ng_device_config;
+  string ng_backend, ng_device_id;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_config",
-                        &ng_device_config));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
 
   ASSERT_EQ(ng_backend, "CPU");
-  ASSERT_EQ(ng_device_config, "1");
+  ASSERT_EQ(ng_device_id, "1");
 }
 
 TEST(GrapplerConfig, RConfig2) {
@@ -138,8 +136,10 @@ TEST(GrapplerConfig, RConfig2) {
   ConfigProto config_proto;
   auto backend_name = AttrValue();
   backend_name.set_s("INTERPRETER");
+  auto device_id = AttrValue();
+  device_id.set_s("5");
   auto test_echo = AttrValue();
-  test_echo.set_s("5");
+  test_echo.set_s("hi");
   auto& rewriter_config =
       *config_proto.mutable_graph_options()->mutable_rewrite_options();
   rewriter_config.add_optimizers("ngraph-optimizer");
@@ -148,6 +148,7 @@ TEST(GrapplerConfig, RConfig2) {
   auto* custom_config = rewriter_config.add_custom_optimizers();
   custom_config->set_name("ngraph-optimizer");
   (*custom_config->mutable_parameter_map())["ngraph_backend"] = backend_name;
+  (*custom_config->mutable_parameter_map())["device_id"] = device_id;
   (*custom_config->mutable_parameter_map())["test_echo"] = test_echo;
 
   // Run grappler
@@ -171,13 +172,15 @@ TEST(GrapplerConfig, RConfig2) {
     ng_encap = node;
   }
   ASSERT_NE(ng_encap, nullptr);
-  string ng_backend, ng_test_echo;
+  string ng_backend, ng_test_echo, ng_device_id;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_test_echo", &ng_test_echo));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
 
   ASSERT_EQ(ng_backend, "INTERPRETER");
-  ASSERT_EQ(ng_test_echo, "5");
+  ASSERT_EQ(ng_test_echo, "hi");
+  ASSERT_EQ(ng_device_id, "5");
 }
 
 }  // namespace testing
