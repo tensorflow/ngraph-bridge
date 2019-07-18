@@ -79,7 +79,7 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, {}));
+  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, {}, {}));
 
   int num_encapsulates = 0;
   int num_tf_nodes = 0;
@@ -166,7 +166,7 @@ TEST(EncapsulateClusters, AOT) {
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
     ASSERT_OK(
-        EncapsulateClusters(&g, 0, fdeflib_new, make_pair(true, node_shapes_hints_vect[i])));
+        EncapsulateClusters(&g, 0, fdeflib_new, {}, make_pair(true, node_shapes_hints_vect[i])));
 
     int num_encapsulates = 0;
     int num_tf_nodes = 0;
