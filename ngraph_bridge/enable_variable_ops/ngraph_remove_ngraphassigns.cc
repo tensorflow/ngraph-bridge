@@ -14,7 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_remove_ngraphassigns.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_remove_ngraphassigns.h"
 
 using namespace std;
 
