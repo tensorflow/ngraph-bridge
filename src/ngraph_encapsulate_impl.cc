@@ -111,8 +111,6 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
   NGRAPH_VLOG(4) << "GetNgExec: Got backend of type: " << get_op_backend_name();
-  cout << "Test 1 "
-       << op_backend = BackendManager::GetBackend(get_op_backend_name());
 
   // Compute Signature
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,

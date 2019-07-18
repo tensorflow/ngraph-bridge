@@ -120,7 +120,6 @@ class NGraphEncapsulateImpl {
   string get_op_backend_name() { return m_op_backend_name; }
 
   void set_op_backend_name(string backend_name) {
-    cout << "Setting backend_name " << backend_name << std::endl;
     m_op_backend_name = backend_name;
   }
 
