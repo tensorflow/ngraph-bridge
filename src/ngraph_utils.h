@@ -117,7 +117,7 @@ Status ValuesFromConstNode(const NodeDef& node,
   // int_val, float_val, etc.
   if (tensor_content_size == 0) {
     int64 n_elements = 1;
-    for (size_t i = 0; i < shape.dim_size(); i++) {
+    for (auto i = 0; i < shape.dim_size(); i++) {
       if (shape.dim(i).size() < 0) {
         return errors::InvalidArgument(
             "Const node has empty tensor and an unknown dimension size");
@@ -125,7 +125,7 @@ Status ValuesFromConstNode(const NodeDef& node,
       n_elements *= shape.dim(i).size();
     }
     values->resize(n_elements);
-    for (size_t i = 0; i < n_elements; i++) {
+    for (auto i = 0; i < n_elements; i++) {
       auto& tensor = node.attr().at("value").tensor();
       auto dt = node.attr().at("dtype").type();
       switch (dt) {
@@ -321,8 +321,11 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
+#if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order
-void AllreduceOpControlOrder(const std::shared_ptr<ngraph::Function>&);
+void OpControlOrder(const std::shared_ptr<ngraph::Function>&,
+                    const std::string&);
+#endif
 
 }  // namespace ngraph_bridge
 

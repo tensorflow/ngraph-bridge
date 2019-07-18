@@ -40,28 +40,30 @@ extern tf::Status LoadGraph(const string& graph_file_name,
                             std::unique_ptr<tf::Session>* session,
                             const tf::SessionOptions& options);
 
-extern tf::Status ReadTensorFromImageFile(const string& file_name,
+extern tf::Status ReadTensorFromImageFile(const std::vector<string>& file_names,
                                           const int input_height,
                                           const int input_width,
                                           const float input_mean,
                                           const float input_std, bool use_NCHW,
+                                          const int input_channels,
                                           std::vector<tf::Tensor>* out_tensors);
 
 namespace infer_multiple_networks {
 
 InferenceEngine::InferenceEngine(const string& name, const string& backend)
     : m_name(name) {}
-Status InferenceEngine::Load(const string& network, const string& image_file,
+Status InferenceEngine::Load(const string& network,
+                             const std::vector<string>& image_files,
                              int input_width, int input_height,
                              float input_mean, float input_std,
                              const string& input_layer,
                              const string& output_layer, bool use_NCHW,
-                             bool preload_images) {
+                             bool preload_images, int input_channels) {
   // Load the network
   TF_CHECK_OK(CreateSession(network, m_session));
 
   // Save the input related information
-  m_image_file = image_file;
+  m_image_files = image_files;
   m_input_width = input_width;
   m_input_height = input_height;
   m_input_mean = input_mean;
@@ -70,19 +72,22 @@ Status InferenceEngine::Load(const string& network, const string& image_file,
   m_output_layer = output_layer;
   m_use_NCHW = use_NCHW;
   m_preload_images = preload_images;
+  m_input_channels = input_channels;
 
   // Preload the image is requested
   if (m_preload_images) {
     // Set the CPU as the backend before these ops
-    string current_backend =
-        tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName();
-    tf::ngraph_bridge::BackendManager::SetBackendName("CPU");
+    string current_backend;
+    TF_CHECK_OK(tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(
+        &current_backend));
+    TF_CHECK_OK(tf::ngraph_bridge::BackendManager::SetBackendName("CPU"));
     std::vector<tf::Tensor> resized_tensors;
     TF_CHECK_OK(ReadTensorFromImageFile(
-        m_image_file, m_input_height, m_input_width, m_input_mean, m_input_std,
-        m_use_NCHW, &resized_tensors));
+        m_image_files, m_input_height, m_input_width, m_input_mean, m_input_std,
+        m_use_NCHW, m_input_channels, &resized_tensors));
     m_image_to_repeat = resized_tensors[0];
-    tf::ngraph_bridge::BackendManager::SetBackendName(current_backend);
+    TF_CHECK_OK(
+        tf::ngraph_bridge::BackendManager::SetBackendName(current_backend));
   }
   // Now compile the graph if needed
   // This would be useful to detect errors early. For a graph
@@ -125,17 +130,19 @@ void InferenceEngine::ThreadMain() {
       cout << "[" << m_name << "] " << step_count << ": Reading image\n";
       ngraph::Event read_event("Read", "", "");
 
-      string current_backend =
-          tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName();
-      tf::ngraph_bridge::BackendManager::SetBackendName("CPU");
+      string current_backend;
+      TF_CHECK_OK(tf::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(
+          &current_backend));
+      TF_CHECK_OK(tf::ngraph_bridge::BackendManager::SetBackendName("CPU"));
 
       std::vector<tf::Tensor> resized_tensors;
       TF_CHECK_OK(ReadTensorFromImageFile(
-          m_image_file, m_input_height, m_input_width, m_input_mean,
-          m_input_std, m_use_NCHW, &resized_tensors));
+          m_image_files, m_input_height, m_input_width, m_input_mean,
+          m_input_std, m_use_NCHW, m_input_channels, &resized_tensors));
 
       m_image_to_repeat = resized_tensors[0];
-      tf::ngraph_bridge::BackendManager::SetBackendName(current_backend);
+      TF_CHECK_OK(
+          tf::ngraph_bridge::BackendManager::SetBackendName(current_backend));
 
       read_event.Stop();
       ngraph::Event::write_trace(read_event);
@@ -150,7 +157,6 @@ void InferenceEngine::ThreadMain() {
     std::vector<Tensor> outputs;
     TF_CHECK_OK(m_session->Run({{m_input_layer, resized_tensor}},
                                {m_output_layer}, {}, &outputs));
-
     infer_event.Stop();
 
     ngraph::Event::write_trace(infer_event);
