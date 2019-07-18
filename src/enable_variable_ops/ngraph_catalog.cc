@@ -116,7 +116,6 @@ bool NGraphCatalog::ExistsInInputVariableSharedNameMap(int graphid,
       NGraphCatalog::CreateNodeKey(graphid, node_name, input_index));
 }
 
-<<<<<<< HEAD
 #if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
 Status NGraphCatalog::RegisterTFVarReplacement(string TF_var_name,
                                                string shared_name) {
@@ -147,7 +146,6 @@ std::pair<bool, string> NGraphCatalog::HasTFVarBeenReplacedBefore(
   }
 }
 #endif
-=======
 // Functions for EncapOutputInfo Map
 void NGraphCatalog::AddToEncapOutputInfoMap(string key,
                                             tuple<string, bool, bool> val) {
@@ -195,7 +193,6 @@ bool NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(string key) {
   tuple<string, bool, bool> val = NGraphCatalog::encap_output_info_map_[key];
   return get<2>(val);
 }
->>>>>>> master
 
 }  // ngraph_bridge
 }  // tensorflow
