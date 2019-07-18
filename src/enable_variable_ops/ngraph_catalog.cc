@@ -35,6 +35,8 @@ unordered_map<string, shared_ptr<ng::runtime::Tensor>>
     NGraphCatalog::encap_output_tensor_map_;
 unordered_map<string, unordered_set<int>>
     NGraphCatalog::encap_output_copy_indexes_map_;
+unordered_map<string, tuple<string, bool, bool>>
+    NGraphCatalog::encap_output_info_map_;
 
 // Functions for Encapsulate Output Copy Indexes Map
 void NGraphCatalog::AddToEncapOutputCopyIndexesMap(string key,
@@ -114,6 +116,7 @@ bool NGraphCatalog::ExistsInInputVariableSharedNameMap(int graphid,
       NGraphCatalog::CreateNodeKey(graphid, node_name, input_index));
 }
 
+<<<<<<< HEAD
 #if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
 Status NGraphCatalog::RegisterTFVarReplacement(string TF_var_name,
                                                string shared_name) {
@@ -144,6 +147,55 @@ std::pair<bool, string> NGraphCatalog::HasTFVarBeenReplacedBefore(
   }
 }
 #endif
+=======
+// Functions for EncapOutputInfo Map
+void NGraphCatalog::AddToEncapOutputInfoMap(string key,
+                                            tuple<string, bool, bool> val) {
+  NGraphCatalog::encap_output_info_map_[key] = val;
+}
+
+void NGraphCatalog::AddToEncapOutputInfoMap(string key, string shared_name,
+                                            bool copy_to_tf,
+                                            bool is_tf_just_looking) {
+  // create a tuple
+  tuple<string, bool, bool> val =
+      make_tuple(shared_name, copy_to_tf, is_tf_just_looking);
+  NGraphCatalog::encap_output_info_map_[key] = val;
+}
+
+bool NGraphCatalog::ExistsInEncapOutputInfoMap(string key) {
+  auto itr = NGraphCatalog::encap_output_info_map_.find(key);
+  return itr != NGraphCatalog::encap_output_info_map_.end();
+}
+
+bool NGraphCatalog::ExistsInEncapOutputInfoMap(int graphid, string node_name,
+                                               int input_index) {
+  std::string key =
+      NGraphCatalog::CreateNodeKey(graphid, node_name, input_index);
+  auto itr = NGraphCatalog::encap_output_info_map_.find(key);
+  return itr != NGraphCatalog::encap_output_info_map_.end();
+}
+
+tuple<string, bool, bool> NGraphCatalog::GetInfoFromEncapOutputInfoMap(
+    string key) {
+  return NGraphCatalog::encap_output_info_map_[key];
+}
+
+string NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(string key) {
+  tuple<string, bool, bool> val = NGraphCatalog::encap_output_info_map_[key];
+  return get<0>(val);
+}
+
+bool NGraphCatalog::GetCopyToTFFromEncapOutputInfoMap(string key) {
+  tuple<string, bool, bool> val = NGraphCatalog::encap_output_info_map_[key];
+  return get<1>(val);
+}
+
+bool NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(string key) {
+  tuple<string, bool, bool> val = NGraphCatalog::encap_output_info_map_[key];
+  return get<2>(val);
+}
+>>>>>>> master
 
 }  // ngraph_bridge
 }  // tensorflow
