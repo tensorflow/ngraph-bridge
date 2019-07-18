@@ -197,9 +197,10 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
                               exp.what(), "\n"));
   }
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
-  BackendManager::CreateBackend(backend_name);
+  BackendManager::CreateBackend(ng_encap_impl->get_op_backend_name());
   // SetConfig will be called for each EncapsulateOp
-  BackendManager::SetConfig(backend_name, additional_attribute_map);
+  BackendManager::SetConfig(ng_encap_impl->get_op_backend_name(),
+                            additional_attribute_map);
 
   event.Stop();
   ngraph::Event::write_trace(event);
@@ -327,14 +328,14 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                     "for cluster "
                  << ng_encap_impl->get_ngraph_cluster();
-
   // Allocate tensors for the output results.
   ngraph::Event event_alloc_output("Output: maybe create", name(), "");
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
-  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-      output_caches = ng_encap_impl->get_ng_exec_output_cache_map()[ng_exec];
 
+  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>
+      output_caches;
+  ng_encap_impl->set_ng_exec_output_cache_map(ng_exec, output_caches);
   std::vector<Tensor*> tf_output_tensors;
   std::vector<ng::element::Type> expected_output_types;
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
@@ -366,7 +367,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                           input_shapes, op_backend, ng_outputs, output_caches));
 
   event_alloc_output.Stop();
-
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << ng_encap_impl->get_ngraph_cluster();

@@ -110,7 +110,9 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
   std::shared_ptr<ngraph::Function> ng_function;
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
-  NGRAPH_VLOG(4) << "GetNgExec: Got backend of type: " << get_op_backend_name();
+  NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: "
+                 << get_op_backend_name();
+  op_backend = BackendManager::GetBackend(get_op_backend_name());
 
   // Compute Signature
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,
@@ -157,7 +159,6 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     if (cache_depth_specified != nullptr) {
       my_function_cache_depth_in_items = atoi(cache_depth_specified);
     }
-
     if (get_ng_exec_map().size() >= get_function_cache_depth_in_items()) {
       int input_tensors_bytes_free = 0;
       evicted_ng_exec = get_ng_exec_map()[m_lru.back()];
@@ -166,7 +167,6 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
       // Call delete function here pf he erased func
       op_backend->remove_compiled_function(evicted_ng_exec);
-
       // Now clean the input cache
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
           input_caches = m_ng_exec_input_cache_map[evicted_ng_exec];
@@ -200,7 +200,6 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     ngraph::Event event_compile("Compile nGraph", m_name, "");
     try {
       ng_exec = op_backend->compile(ng_function);
-
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(get_op_backend_name());
       NgraphSerialize("tf_function_error_" + ctx_params.first + ".json",
@@ -217,9 +216,9 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     event_compile.Stop();
     ngraph::Event::write_trace(event_compile);
 
-    get_ng_exec_map()[signature] = ng_exec;
+    set_ng_exec_map(signature, ng_exec);
     // caching ng_function to serialize to ngraph if needed
-    get_ng_function_map()[ng_exec] = ng_function;
+    set_ng_function_map(ng_exec, ng_function);
 
     m_lru.push_front(signature);
     // Memory after

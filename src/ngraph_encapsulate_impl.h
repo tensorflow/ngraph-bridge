@@ -90,24 +90,15 @@ class NGraphEncapsulateImpl {
   // NgraphEncapsulateOp class
   int get_number_of_copies() { return number_of_copies; }
 
-  int set_number_of_copies(int number) {
-    number_of_copies = number;
-    return number_of_copies;
-  }
+  void set_number_of_copies(int number) { number_of_copies = number; }
 
   int get_ngraph_cluster() { return m_ngraph_cluster; }
 
-  int set_ngraph_cluster(int cluster) {
-    m_ngraph_cluster = cluster;
-    return m_ngraph_cluster;
-  }
+  void set_ngraph_cluster(int cluster) { m_ngraph_cluster = cluster; }
 
   int get_graph_id() { return m_graph_id; }
 
-  int set_graph_id(int graph_id) {
-    m_graph_id = graph_id;
-    return m_graph_id;
-  }
+  void set_graph_id(int graph_id) { m_graph_id = graph_id; }
 
   int get_function_cache_depth_in_items() {
     return my_function_cache_depth_in_items;
@@ -131,13 +122,31 @@ class NGraphEncapsulateImpl {
   get_ng_exec_map() {
     return m_ng_exec_map;
   }
+
+  void set_ng_exec_map(std::string ng_map_key,
+                       std::shared_ptr<ngraph::runtime::Executable> exec) {
+    m_ng_exec_map[ng_map_key] = exec;
+  }
+
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      std::shared_ptr<ngraph::Function>>
   get_ng_function_map() {
     return m_ng_function_map;
   }
+
+  void set_ng_function_map(std::shared_ptr<ngraph::runtime::Executable> exec,
+                           std::shared_ptr<ngraph::Function> function) {
+    m_ng_function_map[exec] = function;
+  }
+
   NgFunctionIOCache get_ng_exec_output_cache_map() {
     return m_ng_exec_output_cache_map;
+  }
+
+  void set_ng_exec_output_cache_map(
+      std::shared_ptr<ngraph::runtime::Executable> exec,
+      std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>> cache) {
+    m_ng_exec_output_cache_map[exec] = cache;
   }
 
  private:
