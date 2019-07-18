@@ -32,10 +32,6 @@
 
 namespace tensorflow {
 
-// using NgFunctionIOCache = std::unordered_map<
-//     std::shared_ptr<ngraph::runtime::Executable>,
-//     std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>;
-
 namespace ngraph_bridge {
 
 class NGraphEncapsulateOp : public OpKernel {
