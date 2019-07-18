@@ -18,10 +18,18 @@
 
 # This script is designed to be called from within a docker container.
 # It is installed into a docker image.  It will not run outside the container.
+#
+# Optional parameters, passed in environment variables:
+#
+# NG_TF_BUILD_OPTIONS  Command-line options for build_ngtf.py
 
 set -e  # Make sure we exit on any command that returns non-zero
 set -u  # No unset variables
 set -o pipefail # Make sure cmds in pipe that are non-zero also fail immediately
+
+if [ -z "${NG_TF_BUILD_OPTIONS}" ] ; then
+    export NG_TF_BULD_OPTIONS=''
+fi
 
 # Set up some important known directories
 bridge_dir='/home/dockuser/ngraph-tf'
@@ -44,6 +52,8 @@ echo "  venv_dir=${venv_dir}"
 echo "  ngraph_wheel_dir=${ngraph_wheel_dir}"
 echo ''
 echo "  HOME=${HOME}"
+echo ''
+echo "  NG_TF_BUILD_OPTIONS=${NG_TF_BUILD_OPTIONS}"
 
 # Do some up-front checks, to make sure necessary directories are in-place and
 # build directories are not-in-place
@@ -130,7 +140,8 @@ echo  "===== Run build_ngtf.py at ${xtime} ====="
 echo  ' '
 
 cd "${bridge_dir}"
-./build_ngtf.py
+echo "Running: ./build_ngtf.py ${NG_TF_BUILD_OPTIONS}"
+./build_ngtf.py ${NG_TF_BUILD_OPTIONS}
 
 xtime="$(date)"
 echo  ' '
@@ -138,6 +149,7 @@ echo  "===== Run test_ngtf.py at ${xtime} ====="
 echo  ' '
 
 cd "${bridge_dir}"
+echo "Running: ./test_ngtf.py"
 ./test_ngtf.py
 
 xtime="$(date)"
