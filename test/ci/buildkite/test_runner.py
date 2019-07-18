@@ -101,24 +101,30 @@ def main():
                     "NNOps.Qu*:NNOps.SoftmaxZeroDimTest*:"
                     "NNOps.SparseSoftmaxCrossEntropyWithLogits:"
                     "ArrayOps.GatherNd*")
+        os.environ['NGRAPH_TF_LOG_0_DISABLED'] = '1'
         run_ngtf_cpp_gtests(arguments.artifacts_dir, './', test_filter)
     elif (arguments.test_python):
         run_ngtf_pytests_from_artifacts(arguments.artifacts_dir)
     elif (arguments.test_bazel_build):
         run_bazel_build()
     elif (arguments.test_tf_python):
+        os.environ['NGRAPH_TF_LOG_0_DISABLED'] = '1'
         run_tensorflow_pytests_from_artifacts(
             arguments.backend, './',
             arguments.artifacts_dir + '/tensorflow/python', False)
     elif (arguments.test_resnet):
-        batch_size = 128
-        iterations = 10
-        if arguments.backend:
-            if 'GPU' in arguments.backend:
-                batch_size = 64
-                iterations = 100
-        run_resnet50_from_artifacts('./', arguments.artifacts_dir, batch_size,
-                                    iterations)
+        if get_os_type() == 'Darwin':
+            run_resnet50_forward_pass_from_artifacts(
+                './', arguments.artifacts_dir, 1, 32)
+        else:
+            batch_size = 128
+            iterations = 10
+            if arguments.backend:
+                if 'GPU' in arguments.backend:
+                    batch_size = 64
+                    iterations = 100
+            run_resnet50_from_artifacts('./', arguments.artifacts_dir,
+                                        batch_size, iterations)
     else:
         raise Exception("No tests specified")
 

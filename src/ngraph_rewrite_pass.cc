@@ -220,29 +220,19 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // to be attached to the nodes
     // Precedence Order: Env Variable > BackendManager
     std::unordered_map<std::string, std::string> config_map;
-    string backend_name = BackendManager::GetCurrentlySetBackendName();
-    const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
-    if (ng_backend_env_value != nullptr) {
-      string backend_env = std::string(ng_backend_env_value);
-      if (backend_env.empty() ||
-          !BackendManager::IsSupportedBackend(backend_env)) {
-        return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
-                                " is not supported");
-      }
-      backend_name = backend_env;
-      NGRAPH_VLOG(1) << "Overriding backend using the enviornment variable "
-                        "to "
-                     << backend_name;
-    } else {
-      NGRAPH_VLOG(1) << "Setting backend from the BackendManager ";
-    }
+    string backend_name;
+    TF_RETURN_IF_ERROR(
+        BackendManager::GetCurrentlySetBackendName(&backend_name));
 
     // splits into {"ngraph_backend", "_ngraph_device_config"}
     config_map = BackendManager::GetBackendAttributeValues(
         backend_name);  // SplitBackendConfig
     backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
-    NGRAPH_VLOG(0) << "NGraph using backend: " << backend_name;
+
+    if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
+      NGRAPH_VLOG(0) << "NGraph using backend: " << backend_name;
+    }
 
     // Now Process the Graph
 
