@@ -31,21 +31,24 @@
 
 namespace tensorflow {
 
+namespace ngraph_bridge {
+
 using NgFunctionIOCache = std::unordered_map<
     std::shared_ptr<ngraph::runtime::Executable>,
     std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>;
 
-namespace ngraph_bridge {
-
 class NGraphEncapsulateImpl {
  public:
+  // Ngraph Encapsulate Implementation is a class with all the functions
   explicit NGraphEncapsulateImpl(string name);
 
+  // Computes Signature
   Status ComputeSignature(std::vector<Tensor>& input_tensors,
                           std::vector<TensorShape>& input_shapes,
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
 
+  // Get ngraph executable
   Status GetNgExecutable(std::vector<Tensor>& input_tensors,
                          const std::pair<string, int64> ctx_params,
                          std::vector<TensorShape>& input_shapes,
@@ -53,12 +56,14 @@ class NGraphEncapsulateImpl {
                          ng::runtime::Backend*& op_backend,
                          std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
 
+  // Allocate tensors for input arguments.
   Status AllocateNGInputTensors(
       const std::vector<Tensor>& tf_input_tensors,
       std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
 
+  // Allocate tensors for output results
   Status AllocateNGOutputTensors(
       std::vector<Tensor*>& tf_output_tensors,
       std::vector<ng::element::Type> expected_output_types,
@@ -117,6 +122,9 @@ class NGraphEncapsulateImpl {
   bool get_log_copies() { return log_copies; }
 
   std::vector<bool> get_static() { return m_input_is_static; }
+
+  void resize_static(int size) { m_input_is_static.resize(size); }
+  void set_static(int index, bool value) { m_input_is_static[index] = value; }
 
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
   get_ng_exec_map() {

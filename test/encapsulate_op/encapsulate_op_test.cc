@@ -35,7 +35,7 @@ namespace testing {
 NGraphEncapsulateImpl ng_encap_impl("EncapsulateOp");
 
 TEST(EncapsulateOp, AllocateNGInputTensors) {
-  ng::Shape shape{100000};
+  ng::Shape shape{100};
   auto A = make_shared<ng::op::Parameter>(ng::element::f32, shape);
   auto B = make_shared<ng::op::Parameter>(ng::element::f32, shape);
   auto f = make_shared<ng::Function>(make_shared<ng::op::Add>(A, B),

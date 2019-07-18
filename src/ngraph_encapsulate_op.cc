@@ -77,6 +77,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 
   std::ostringstream oss;
   oss << "Encapsulate_" << ng_encap_impl->get_instance_id() << ": " << name();
+
   ngraph::Event event(oss.str(), name(), "");
 
   NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << ng_encap_impl->get_instance_id()
@@ -87,7 +88,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   int cluster{-1};
   OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster", &cluster));
   ng_encap_impl->set_ngraph_cluster(cluster);
-
   graph_def = NGraphClusterManager::GetClusterGraph(
       ng_encap_impl->get_ngraph_cluster());
 
@@ -141,7 +141,12 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     }
   }
 
-  ng_encap_impl->get_static() = std::vector<bool>(max_arg_index + 1, false);
+  int size = max_arg_index + 1;
+  ng_encap_impl->resize_static(size);
+
+  for (int i = 0; i < size; i++) {
+    ng_encap_impl->set_static(i, false);
+  }
 
   // Fill the vector.
   for (auto node : arg_nodes) {
@@ -163,9 +168,8 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
         break;
       }
     }
-
     NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
-    ng_encap_impl->get_static()[index] = is_static;
+    ng_encap_impl->set_static(index, is_static);
   }
 
   // Set the backend type for the op
@@ -185,7 +189,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     OP_REQUIRES_OK(ctx, ctx->GetAttr<string>(attr, &val));
     additional_attribute_map.insert({additional_attributes[i], val});
   }
-
   // Concatenate the backend_name:backend_config
   try {
     string be_name = BackendManager::GetBackendCreationString(
@@ -238,7 +241,6 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
     }
   }
 #endif
-
   // Release the backend
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
   BackendManager::ReleaseBackend(ng_encap_impl->get_op_backend_name());
