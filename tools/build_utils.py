@@ -539,7 +539,23 @@ def has_group(user, group_name):
     return len(list(filter(lambda name: name == group_name, groups))) > 0
 
 
+def set_proxy(arg):
+    proxy = ""
+    if "ALL_PROXY" in os.environ:
+        proxy += arg + " ALL_PROXY=" + os.environ["ALL_PROXY"] + " "
+    if "http_proxy" in os.environ:
+        proxy += arg + " http_proxy=" + os.environ["http_proxy"] + " "
+    if "HTTP_PROXY" in os.environ:
+        proxy += arg + " HTTP_PROXY" + os.environ["HTTP_PROXY"] + " "
+    if "https_proxy" in os.environ:
+        proxy += arg + " https_proxy=" + os.environ["https_proxy"] + " "
+    if "HTTPS_PROXY" in os.environ:
+        proxy += arg + " HTTPS_PROXY=" + os.environ["HTTPS_PROXY"] + " "
+    return proxy
+
+
 def build_base(args):
+    proxy = set_proxy(" --build-arg")
     if os.getenv("USER") != None:
         user = os.getenv("USER")
         if has_group(user, "docker") == False:
@@ -547,7 +563,7 @@ def build_base(args):
                 command_executor(["sudo", "usermod", "-aG", "docker", user])
                 command_executor(["newgrp", "docker"])
     cmd = [
-        "docker", "build", "--tag", "ngtf", "--file",
+        "docker", "build", proxy, "--tag", "ngtf", "--file",
         "test/ci/docker/dockerfiles/Dockerfile.ngraph_tf.build_ngtf_run_in_docker",
         "."
     ]
@@ -602,17 +618,7 @@ def run_in_docker(buildcmd, args):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
-    proxy = ""
-    if "ALL_PROXY" in os.environ:
-        proxy += "-eALL_PROXY=" + os.environ["ALL_PROXY"]
-    if "http_proxy" in os.environ:
-        proxy += " -ehttp_proxy=" + os.environ["http_proxy"]
-    if "HTTP_PROXY" in os.environ:
-        proxy += " -eHTTP_PROXY" + os.environ["HTTP_PROXY"]
-    if "https_proxy" in os.environ:
-        proxy += " -e https_proxy=" + os.environ["https_proxy"]
-    if "HTTPS_PROXY" in os.environ:
-        proxy += " -e HTTPS_PROXY=" + os.environ["HTTPS_PROXY"]
+    proxy = set_proxy(" -e")
     cmd = [
         "docker", "exec", proxy, "-e"
         "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-e",
