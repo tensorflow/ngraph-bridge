@@ -67,6 +67,9 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
             'def': '2'
         })
 
+    def parse_extra_params_empty(self):
+        assert (parse_extra_params_string('{}') == {})
+
     @pytest.mark.parametrize(('ng_device',), (
         ('abc:1,def:2}',),
         ('{abc:1, def:2',),

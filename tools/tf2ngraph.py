@@ -30,8 +30,10 @@ def parse_extra_params_string(raw_extra_params):
     raw_extra_params = raw_extra_params.strip(' ')
     assert raw_extra_params[0] == '{' and raw_extra_params[
         -1] == '}', "Expected extra_params string to be a dictionary beginning with { and ending with }"
-    raw_extra_params_contents = raw_extra_params[1:-1]
+    raw_extra_params_contents = raw_extra_params[1:-1].strip(' ')
     extra_params_dict = {}
+    if len(raw_extra_params_contents) == 1:
+        return extra_params_dict
     # could have used eval(extra_params_string), but then the string would have to be the cumbersome {\"abc\":1} and not {"abc":1} or {abc:1}. Hence explicity parsing the string without using eval
     for key_val in raw_extra_params_contents.split(','):
         key_val = key_val.strip(' ')
