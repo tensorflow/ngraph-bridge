@@ -59,12 +59,16 @@ class Testtf2ngraph(NgraphTest):
         ('savedmodel',),
     ))
     @pytest.mark.parametrize(('ng_device',), (('CPU',), ('INTERPRETER',)))
+    @pytest.mark.parametrize(('extra_params',), (
+        ('{abc:1,def:2}',),
+        ('{}',),
+    ))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
-                              commandline, ng_device):
+                              commandline, ng_device, extra_params):
         # Only run this test when grappler is enabled
         if not ngraph_bridge.is_grappler_enabled():
             return
-        assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
+        assert Testtf2ngraph.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
         try:
@@ -75,13 +79,14 @@ class Testtf2ngraph(NgraphTest):
         try:
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
-                command_executor(
-                    'python ../../tools/tf2ngraph.py --input_' + inp_format +
-                    ' ' + inp_loc + ' --output_nodes out_node --output_' +
-                    out_format + ' ' + out_loc + ' --ngbackend ' + ng_device)
+                command_executor('python ../../tools/tf2ngraph.py --input_' +
+                                 inp_format + ' ' + inp_loc +
+                                 ' --output_nodes out_node --output_' +
+                                 out_format + ' ' + out_loc + ' --ngbackend ' +
+                                 ng_device + '--extra_params ' + extra_params)
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
-                        ng_device)
+                        ng_device, extra_params)
             conversion_successful = True
         finally:
             if not conversion_successful:
