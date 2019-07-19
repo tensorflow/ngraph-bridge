@@ -546,7 +546,7 @@ def set_proxy(arg):
     if "http_proxy" in os.environ:
         proxy += arg + " http_proxy=" + os.environ["http_proxy"] + " "
     if "HTTP_PROXY" in os.environ:
-        proxy += arg + " HTTP_PROXY" + os.environ["HTTP_PROXY"] + " "
+        proxy += arg + " HTTP_PROXY=" + os.environ["HTTP_PROXY"] + " "
     if "https_proxy" in os.environ:
         proxy += arg + " https_proxy=" + os.environ["https_proxy"] + " "
     if "HTTPS_PROXY" in os.environ:
