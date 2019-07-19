@@ -83,7 +83,7 @@ class Testtf2ngraph(NgraphTest):
                                  inp_format + ' ' + inp_loc +
                                  ' --output_nodes out_node --output_' +
                                  out_format + ' ' + out_loc + ' --ngbackend ' +
-                                 ng_device + '--extra_params ' + extra_params)
+                                 ng_device + ' --extra_params ' + extra_params)
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
                         ng_device, extra_params)
