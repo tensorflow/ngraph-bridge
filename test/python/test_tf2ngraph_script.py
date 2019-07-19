@@ -105,6 +105,7 @@ class Testtf2ngraph(NgraphTest):
             assert len([
                 0 for i in g.get_operations() if i.type == 'NGraphEncapsulate'
             ]) == 1
+            # TODO: check that the encapsulate op has correct backend and extra params attached to it
             x = self.get_tensor(g, "x:0", False)
             y = self.get_tensor(g, "y:0", False)
             out = self.get_tensor(g, "out_node:0", False)
