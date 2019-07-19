@@ -185,11 +185,11 @@ def main():
         return
 
     if arguments.start_container:
-        start_container("/ngtf")
+        start_container("/ngtf", arguments)
         return
 
     if arguments.stop_container:
-        stop_container()
+        stop_container(arguments)
         return
 
     if arguments.run_in_docker:
