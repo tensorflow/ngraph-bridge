@@ -556,6 +556,8 @@ def set_proxy(arg):
 
 def build_base(args):
     proxy = set_proxy(" --build-arg")
+    vargs = vars(args)
+    verbose = vargs['verbose_build']
     if os.getenv("USER") != None:
         user = os.getenv("USER")
         if has_group(user, "docker") == False:
@@ -567,10 +569,12 @@ def build_base(args):
         "test/ci/docker/dockerfiles/Dockerfile.ngraph_tf.build_ngtf_run_in_docker",
         "."
     ]
-    command_executor(cmd)
+    command_executor(cmd, verbose=verbose)
 
 
-def start_container(workingdir):
+def start_container(workingdir, args):
+    vargs = vars(args)
+    verbose = vargs['verbose_build']
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
@@ -587,7 +591,10 @@ def start_container(workingdir):
     ]
     try:
         command_executor(
-            start, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+            start,
+            verbose=verbose,
+            stdout=open(os.devnull, "w"),
+            stderr=open(os.devnull, "w"))
     except Exception as exc:
         msg = str(exc)
         print("caught exception: " + msg)
@@ -601,14 +608,22 @@ def check_container():
     return False
 
 
-def stop_container():
+def stop_container(args):
+    vargs = vars(args)
+    verbose = vargs['verbose_build']
     try:
         stop = ["docker", "stop", "ngtf"]
         command_executor(
-            stop, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+            stop,
+            verbose=verbose,
+            stdout=open(os.devnull, "w"),
+            stderr=open(os.devnull, "w"))
         rm = ["docker", "rm", "ngtf"]
         command_executor(
-            rm, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+            rm,
+            verbose=verbose,
+            stdout=open(os.devnull, "w"),
+            stderr=open(os.devnull, "w"))
     except Exception as exc:
         msg = str(exc)
         print("caught exception: " + msg)
