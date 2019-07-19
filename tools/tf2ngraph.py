@@ -86,8 +86,6 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
         output_collection)
 
     session_config = tf.ConfigProto()
-    # Update the config to use ngraph optimizer
-    session_config = ngraph_bridge.update_config(session_config)
     # Pass backend and extra backend params to grappler through rewriter config by updating the config
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
