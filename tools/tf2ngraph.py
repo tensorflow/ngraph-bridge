@@ -18,6 +18,7 @@ import argparse
 import tensorflow as tf
 from google.protobuf import text_format
 from tensorflow.core.protobuf import meta_graph_pb2
+from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.grappler import tf_optimizer
 import ngraph_bridge
 import os
@@ -25,7 +26,43 @@ import sys
 from functools import partial
 
 
-def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
+def parse_extra_params_string(raw_extra_params):
+    assert raw_extra_params[0] == '{' and raw_extra_params[
+        -1] == '}', "Expected extra_params string to be a dictionary beginning with { and ending with }"
+    raw_extra_params_contents = raw_extra_params[1:-1]
+    extra_params_dict = {}
+    # could have used eval(extra_params_string), but then the string would have to be the cumbersome {\"abc\":1} and not {"abc":1} or {abc:1}. Hence explicity parsing the string without using eval
+    for key_val in raw_extra_params_contents.split(','):
+        try:
+            key, val = key_val.split(':')
+            extra_params_dict[key] = val
+        except Exception as e:
+            raise type(
+                e
+            )(e.message +
+              'Got an entry in extra_params, that is an invalid entry for a python dictionary: '
+              + key_val)
+    return extra_params_dict
+
+
+def update_config_to_include_custom_config(config, backend, extra_params):
+    rewriter_options = rewriter_config_pb2.RewriterConfig()
+    rewriter_options.meta_optimizer_iterations = (
+        rewriter_config_pb2.RewriterConfig.ONE)
+    rewriter_options.min_graph_nodes = -1
+    ngraph_optimizer = rewriter_options.custom_optimizers.add()
+    ngraph_optimizer.name = "ngraph-optimizer"
+    ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
+    for k in extra_params:
+        ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
+    config.MergeFrom(
+        tf.ConfigProto(
+            graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
+    return config
+
+
+def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
+                                  extra_params):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -45,7 +82,12 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
         output_collection)
 
     session_config = tf.ConfigProto()
+    # Update the config to use ngraph optimizer
     session_config = ngraph_bridge.update_config(session_config)
+    # Pass backend and extra backend params to grappler through rewriter config by updating the config
+    # TODO: move update_config_to_include_custom_config to ngraph_bridge
+    session_config = update_config_to_include_custom_config(
+        session_config, ng_backend, extra_params)
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -120,9 +162,13 @@ def prepare_argparser(formats):
         "summarize_graph tool provided by Tensorflow",
         required=True)
     parser.add_argument(
-        "--ngbackend",
-        default='CPU',
-        help="Ngraph backend (with cardinality). Eg, NNPI:0")
+        "--ngbackend", default='CPU', help="Ngraph backend. Eg, NNPI")
+    parser.add_argument(
+        "--extra_params",
+        default='{}',
+        help=
+        "Other params that the backend needs in the form of a dictionary. Eg, {max_cores: 4}."
+    )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -173,9 +219,7 @@ def save_model(gdef, format, location):
     }[format](gdef, location)
 
 
-def attach_device_and_ng_backend(gdef, ng_backend):
-    ngraph_bridge.set_backend(ng_backend)
-    # Assumes that the whole graph runs on a single ng_backend
+def attach_device(gdef):
     for n in gdef.node:
         n.device = "/device:CPU:0"
 
@@ -186,7 +230,8 @@ allowed_formats = {
 }
 
 
-def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend):
+def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
+            extra_params):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -206,8 +251,9 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend):
     assert out_format in allowed_formats['output']
     assert ngraph_bridge.is_grappler_enabled()
     input_gdef = get_gdef(inp_format, inp_loc)
-    attach_device_and_ng_backend(input_gdef, ng_backend)
-    output_gdef = run_ngraph_grappler_optimizer(input_gdef, output_nodes)
+    attach_device(input_gdef)
+    output_gdef = run_ngraph_grappler_optimizer(input_gdef, output_nodes,
+                                                ng_backend, extra_params)
     save_model(output_gdef, out_format, out_loc)
 
 
@@ -221,8 +267,9 @@ def main():
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
     output_nodes = args.output_nodes.split(',')
+    extra_params = parse_extra_params_string(args.extra_params)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
-            args.ngbackend)
+            args.ngbackend, extra_params)
     print('Converted the model. Exiting now')
 
 
