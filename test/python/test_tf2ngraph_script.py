@@ -30,7 +30,7 @@ from tools.tf2ngraph import convert, get_gdef
 from common import NgraphTest
 
 
-class TestConversionScript(NgraphTest):
+class Testtf2ngraph(NgraphTest):
 
     # utility function to make sure input format and location match
     @staticmethod
