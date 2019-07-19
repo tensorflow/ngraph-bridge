@@ -366,7 +366,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   OP_REQUIRES_OK(ctx, ng_encap_impl->AllocateNGOutputTensors(
                           tf_output_tensors, expected_output_types, ng_exec,
-                          input_shapes, op_backend, ng_outputs, output_caches));
+                          op_backend, ng_outputs, output_caches));
 
   event_alloc_output.Stop();
   NGRAPH_VLOG(4)

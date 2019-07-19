@@ -59,16 +59,17 @@ class NGraphEncapsulateImpl {
   // Allocate tensors for input arguments.
   Status AllocateNGInputTensors(
       const std::vector<Tensor>& tf_input_tensors,
-      std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
+      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      const std::vector<TensorShape>& input_shapes,
+      ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
 
   // Allocate tensors for output results
   Status AllocateNGOutputTensors(
-      std::vector<Tensor*>& tf_output_tensors,
-      std::vector<ng::element::Type> expected_output_types,
+      const std::vector<Tensor*>& tf_output_tensors,
+      const std::vector<ng::element::Type> expected_output_types,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
+      ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
           output_caches);
@@ -93,35 +94,35 @@ class NGraphEncapsulateImpl {
 
   // Accessors(getters and setters) for the private data members needed by
   // NgraphEncapsulateOp class
-  int get_number_of_copies() { return number_of_copies; }
+  const int get_number_of_copies() { return number_of_copies; }
 
   void set_number_of_copies(int number) { number_of_copies = number; }
 
-  int get_ngraph_cluster() { return m_ngraph_cluster; }
+  const int get_ngraph_cluster() { return m_ngraph_cluster; }
 
   void set_ngraph_cluster(int cluster) { m_ngraph_cluster = cluster; }
 
-  int get_graph_id() { return m_graph_id; }
+  const int get_graph_id() { return m_graph_id; }
 
   void set_graph_id(int graph_id) { m_graph_id = graph_id; }
 
-  int get_function_cache_depth_in_items() {
+  const int get_function_cache_depth_in_items() {
     return my_function_cache_depth_in_items;
   }
 
-  int get_number_outputs() { return m_number_outputs; }
+  const int get_number_outputs() { return m_number_outputs; }
 
-  int get_instance_id() { return my_instance_id; }
+  const int get_instance_id() { return my_instance_id; }
 
-  string get_op_backend_name() { return m_op_backend_name; }
+  const string get_op_backend_name() { return m_op_backend_name; }
 
   void set_op_backend_name(string backend_name) {
     m_op_backend_name = backend_name;
   }
 
-  bool get_log_copies() { return log_copies; }
+  const bool get_log_copies() { return log_copies; }
 
-  std::vector<bool> get_static() { return m_input_is_static; }
+  const std::vector<bool> get_static() { return m_input_is_static; }
 
   void resize_static(int size) { m_input_is_static.resize(size); }
   void set_static(int index, bool value) { m_input_is_static[index] = value; }

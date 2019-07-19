@@ -249,8 +249,9 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
 Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     const std::vector<Tensor>& tf_input_tensors,
-    std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
+    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    const std::vector<TensorShape>& input_shapes,
+    ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
   std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
 
@@ -341,10 +342,10 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
 }
 
 Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
-    std::vector<Tensor*>& output_tensors,
-    std::vector<ng::element::Type> expected_output_types,
+    const std::vector<Tensor*>& output_tensors,
+    const std::vector<ng::element::Type> expected_output_types,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    std::vector<TensorShape>& input_shapes, ng::runtime::Backend* op_backend,
+    ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
     std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
         output_caches) {

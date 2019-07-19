@@ -15,11 +15,12 @@
  *******************************************************************************/
 
 #include "gtest/gtest.h"
+#include "tensorflow/core/graph/node_builder.h"
 
 #include "../test_utilities.h"
 #include "ngraph_encapsulate_impl.h"
 #include "ngraph_encapsulate_op.h"
-#include "tensorflow/core/graph/node_builder.h"
+#include "ngraph_utils.h"
 
 using namespace std;
 namespace ng = ngraph;
