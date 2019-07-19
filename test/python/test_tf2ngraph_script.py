@@ -13,6 +13,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
+"""nGraph TensorFlow bridge test for tf2ngraph script for precompilation
+
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
