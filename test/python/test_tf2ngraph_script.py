@@ -60,7 +60,7 @@ class Testtf2ngraph(NgraphTest):
     ))
     @pytest.mark.parametrize(('ng_device',), (('CPU',), ('INTERPRETER',)))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
-                              commandline, ng_device, extra_params):
+                              commandline, ng_device):
         # Only run this test when grappler is enabled
         if not ngraph_bridge.is_grappler_enabled():
             return
