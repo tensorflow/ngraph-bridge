@@ -18,10 +18,9 @@
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/graph/types.h"
 
+#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
-
 
 using namespace std;
 
