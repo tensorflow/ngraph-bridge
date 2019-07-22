@@ -56,6 +56,18 @@ class TestRewriterConfigBackendSetting(NgraphTest):
         ngraph_optimizer = rewriter_options.custom_optimizers.add()
         ngraph_optimizer.name = "ngraph-optimizer"
         ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
+        # TODO: once the backend extra params is made optional,
+        # have tests where "test_echo" is not set.
+        # Right now "test_echo" must be set for the test to pass
+        # as extra params are compulsory
+        # TODO: also make similar change in test_tf2ngraph_script.py
+        # once optional extra params is available
+        if backend == 'INTERPRETER':
+            ngraph_optimizer.parameter_map["test_echo"].s = "42".encode()
+        elif backend == 'CPU':
+            ngraph_optimizer.parameter_map["device_config"].s = "".encode()
+        else:
+            assert False
         config.MergeFrom(
             tf.ConfigProto(
                 graph_options=tf.GraphOptions(

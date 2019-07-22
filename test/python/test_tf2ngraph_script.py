@@ -59,10 +59,6 @@ class Testtf2ngraph(NgraphTest):
         ('savedmodel',),
     ))
     @pytest.mark.parametrize(('ng_device',), (('CPU',), ('INTERPRETER',)))
-    @pytest.mark.parametrize(('extra_params',), (
-        ('{abc:1,def:2}',),
-        ('{}',),
-    ))
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline, ng_device, extra_params):
         # Only run this test when grappler is enabled
@@ -77,6 +73,12 @@ class Testtf2ngraph(NgraphTest):
             pass
         conversion_successful = False
         try:
+            if ng_device == 'CPU':
+                extra_params = '{device_config:0}'
+            elif ng_device == 'INTERPRETER':
+                extra_params = '{test_echo:1}'
+            else:
+                assert False
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
                 command_executor('python ../../tools/tf2ngraph.py --input_' +
