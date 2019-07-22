@@ -73,12 +73,10 @@ class Testtf2ngraph(NgraphTest):
             pass
         conversion_successful = False
         try:
-            if ng_device == 'CPU':
-                extra_params = '{device_config:0}'
-            elif ng_device == 'INTERPRETER':
-                extra_params = '{test_echo:1}'
-            else:
-                assert False
+            extra_params = {
+                'CPU': '{device_config:0}',
+                'INTERPRETER': '{test_echo:1}'
+            }[ng_device]
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
                 command_executor('python ../../tools/tf2ngraph.py --input_' +
