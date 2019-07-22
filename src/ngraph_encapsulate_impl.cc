@@ -178,13 +178,13 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
       // Clean the output cache
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-          output_caches = get_ng_exec_output_cache_map()[evicted_ng_exec];
+          output_caches = get_ng_exec_output_cache_map(evicted_ng_exec);
       int output_tensors_bytes_free = 0;
       for (auto& next_output : output_caches) {
         output_tensors_bytes_free += next_output.second->get_size_in_bytes();
         next_output.second.reset();
       }
-      get_ng_exec_output_cache_map().erase(evicted_ng_exec);
+      m_ng_exec_output_cache_map.erase(evicted_ng_exec);
       m_lru.pop_back();
       NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << get_instance_id()
                      << " Step_ID: " << ctx_params.second
@@ -250,14 +250,13 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     const std::vector<Tensor>& tf_input_tensors,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    const std::vector<TensorShape>& input_shapes,
     ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
   std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
-
+  std::vector<TensorShape> input_shapes;
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
       input_caches = m_ng_exec_input_cache_map[ng_exec];
-  input_caches.resize(input_shapes.size());
+  input_caches.resize(tf_input_tensors.size());
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   bool log_copies = false;
   TF_RETURN_IF_ERROR(
@@ -268,7 +267,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
   set_number_of_copies(0);
 #endif
 
-  for (int i = 0; i < input_shapes.size(); i++) {
+  for (int i = 0; i < tf_input_tensors.size(); i++) {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
         get_graph_id(), def().name(), i);
@@ -282,9 +281,9 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     }
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from non Variable Node";
 #endif
-    ng::Shape ng_shape(input_shapes[i].dims());
-    for (int j = 0; j < input_shapes[i].dims(); ++j) {
-      ng_shape[j] = input_shapes[i].dim_size(j);
+    ng::Shape ng_shape(tf_input_tensors[i].shape().dims());
+    for (int j = 0; j < tf_input_tensors[i].shape().dims(); ++j) {
+      ng_shape[j] = tf_input_tensors[i].shape().dim_size(j);
     }
     ng::element::Type ng_element_type;
     TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
@@ -343,13 +342,13 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
 
 Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     const std::vector<Tensor*>& output_tensors,
-    const std::vector<ng::element::Type> expected_output_types,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     ng::runtime::Backend* op_backend,
-    vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
-    std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-        output_caches) {
+    vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs) {
+  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
+      output_caches = get_ng_exec_output_cache_map(ng_exec);
   output_caches.resize(ng_exec->get_results().size());
+
   // ngraph executable returns get_results, using that to get the tensor shape
   // and element type.
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
@@ -357,11 +356,6 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     auto ng_shape = ng_element->get_shape();
     auto ng_element_type = ng_element->get_element_type();
 
-    if (ng_element_type != expected_output_types[i]) {
-      errors::Internal(
-          "Element type inferred by nGraph does not match "
-          "the element type expected by TensorFlow");
-    }
     void* last_dst_ptr = output_caches[i].first;
     std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
         output_caches[i].second;

@@ -321,9 +321,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
 
-  OP_REQUIRES_OK(
-      ctx, ng_encap_impl->AllocateNGInputTensors(
-               tf_input_tensors, ng_exec, input_shapes, op_backend, ng_inputs));
+  OP_REQUIRES_OK(ctx, ng_encap_impl->AllocateNGInputTensors(
+                          tf_input_tensors, ng_exec, op_backend, ng_inputs));
 
   event_alloc_input.Stop();
 
@@ -334,12 +333,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event event_alloc_output("Output: maybe create", name(), "");
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
-
-  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>
-      output_caches;
-  ng_encap_impl->set_ng_exec_output_cache_map(ng_exec, output_caches);
   std::vector<Tensor*> tf_output_tensors;
-  std::vector<ng::element::Type> expected_output_types;
+
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
     auto ng_element = ng_exec->get_results()[i];
     auto ng_shape = ng_element->get_shape();
@@ -361,12 +356,15 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     OP_REQUIRES_OK(ctx,
                    TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
                                                  &expected_elem_type));
-    expected_output_types.push_back(expected_elem_type);
+    OP_REQUIRES(
+        ctx, ng_element_type == expected_elem_type,
+        errors::Internal("Element type inferred by nGraph does not match "
+                         "the element type expected by TensorFlow"));
   }
 
   OP_REQUIRES_OK(ctx, ng_encap_impl->AllocateNGOutputTensors(
-                          tf_output_tensors, expected_output_types, ng_exec,
-                          op_backend, ng_outputs, output_caches));
+                          tf_output_tensors, ng_exec, op_backend, ng_outputs));
+  auto output_caches = ng_encap_impl->get_ng_exec_output_cache_map(ng_exec);
 
   event_alloc_output.Stop();
   NGRAPH_VLOG(4)

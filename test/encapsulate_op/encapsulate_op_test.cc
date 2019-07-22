@@ -33,9 +33,9 @@ namespace testing {
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
-NGraphEncapsulateImpl ng_encap_impl("EncapsulateOp");
-
+// Test: Allocating ngraph input tensors
 TEST(EncapsulateOp, AllocateNGInputTensors) {
+  NGraphEncapsulateImpl ng_encap_impl("AllocateNGInputTensors");
   ng::Shape shape{100};
   auto A = make_shared<ng::op::Parameter>(ng::element::f32, shape);
   auto B = make_shared<ng::op::Parameter>(ng::element::f32, shape);
@@ -62,8 +62,46 @@ TEST(EncapsulateOp, AllocateNGInputTensors) {
 
   std::vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
 
-  ASSERT_OK(ng_encap_impl.AllocateNGInputTensors(
-      input_tensors, ng_exec, input_shapes, backend.get(), ng_inputs));
+  ASSERT_OK(ng_encap_impl.AllocateNGInputTensors(input_tensors, ng_exec,
+                                                 backend.get(), ng_inputs));
+}
+
+// Test: Allocating ngraph output tensors
+TEST(EncapsulateOp, AllocateNGOutputTensors) {
+  NGraphEncapsulateImpl ng_encap_impl("AllocateNGOutputTensors");
+  ng::Shape shape{100};
+  auto A = make_shared<ng::op::Parameter>(ng::element::f32, shape);
+  auto B = make_shared<ng::op::Parameter>(ng::element::f32, shape);
+  auto f = make_shared<ng::Function>(make_shared<ng::op::Add>(A, B),
+                                     ng::ParameterVector{A, B});
+
+  std::shared_ptr<ng::runtime::Backend> backend =
+      ng::runtime::Backend::create("CPU");
+  auto ng_exec = backend->compile(f);
+
+  std::vector<tensorflow::TensorShape> input_shapes;
+  std::vector<tensorflow::Tensor> outputs;
+  input_shapes.push_back({0});
+  input_shapes.push_back({2});
+  input_shapes.push_back({6, 10});
+  input_shapes.push_back({10, 10, 10});
+
+  // Create tensorflow tensors
+  for (auto const& shapes : input_shapes) {
+    Tensor input_data(DT_FLOAT, TensorShape(shapes));
+    AssignInputValuesRandom<float>(input_data, -10.0, 20.0f);
+    outputs.push_back(input_data);
+  }
+
+  std::vector<tensorflow::Tensor*> output_tensors;
+  for (int i = 0; i < outputs.size(); i++) {
+    Tensor* output_tensor = &outputs[i];
+    output_tensors.push_back(output_tensor);
+  }
+  std::vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+
+  ASSERT_OK(ng_encap_impl.AllocateNGOutputTensors(output_tensors, ng_exec,
+                                                  backend.get(), ng_outputs));
 }
 }
 }

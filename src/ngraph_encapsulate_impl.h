@@ -56,23 +56,21 @@ class NGraphEncapsulateImpl {
                          ng::runtime::Backend*& op_backend,
                          std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
 
-  // Allocate tensors for input arguments.
+  // Allocate tensors for input arguments. Creates ngraph input tensors using
+  // tensorflow tensors required to execute ngraph function
   Status AllocateNGInputTensors(
       const std::vector<Tensor>& tf_input_tensors,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      const std::vector<TensorShape>& input_shapes,
       ng::runtime::Backend* op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
 
-  // Allocate tensors for output results
+  // Allocate tensors for output results.  Creates ngraph output tensors using
+  // tensorflow tensors required to execute ngraph function
   Status AllocateNGOutputTensors(
       const std::vector<Tensor*>& tf_output_tensors,
-      const std::vector<ng::element::Type> expected_output_types,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       ng::runtime::Backend* op_backend,
-      vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs,
-      std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-          output_caches);
+      vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
 
   std::shared_ptr<ng::runtime::Tensor> GetCurrentNgTensor(
       void* current_tf_ptr, void* last_tf_ptr,
@@ -92,7 +90,8 @@ class NGraphEncapsulateImpl {
   string m_name;
   std::mutex m_compute_lock;
 
-  // Accessors(getters and setters) for the private data members needed by
+  // Accessors(getters and setters) for the private data members of this class
+  // needed by
   // NgraphEncapsulateOp class
   const int get_number_of_copies() { return number_of_copies; }
 
@@ -148,8 +147,12 @@ class NGraphEncapsulateImpl {
     m_ng_function_map[exec] = function;
   }
 
-  NgFunctionIOCache get_ng_exec_output_cache_map() {
-    return m_ng_exec_output_cache_map;
+  // TODO:sindhu have another get function for output_cache which is only
+  // readable
+  std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
+  get_ng_exec_output_cache_map(
+      std::shared_ptr<ngraph::runtime::Executable> exec) {
+    return m_ng_exec_output_cache_map[exec];
   }
 
   void set_ng_exec_output_cache_map(
@@ -164,15 +167,15 @@ class NGraphEncapsulateImpl {
   int m_graph_id{-1};
   int my_function_cache_depth_in_items = 16;
   int m_number_outputs = -1;
+  int my_instance_id{0};
   string m_op_backend_name;
   std::stringstream copy_log_str;
   bool log_copies = false;
   std::vector<bool> m_input_is_static;
   std::list<std::string> m_lru;
   static int s_instance_count;
-  int my_instance_id{0};
 
-  // cache maps
+  // ng_function, ng_executable, Output and Input Cache maps
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
       m_ng_exec_map;
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
