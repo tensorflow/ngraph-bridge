@@ -26,11 +26,11 @@
 #include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session.h"
 
+#include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "test/test_utilities.h"
-#include "logging/tf_graph_writer.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -180,8 +180,7 @@ TEST(GrapplerConfig, RConfig2) {
   string ng_backend, ng_device_id;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id",
-                        &ng_device_id));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
 
   ASSERT_EQ(ng_backend, "CPU");
   ASSERT_EQ(ng_device_id, "1");
@@ -269,8 +268,7 @@ TEST(GrapplerConfig, RConfig3) {
   string ng_backend, ng_device_id;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id",
-                        &ng_device_id));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
 
   ASSERT_EQ(ng_backend, "CPU");
   ASSERT_EQ(ng_device_id, "1");
