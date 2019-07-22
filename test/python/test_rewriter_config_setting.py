@@ -62,12 +62,17 @@ class TestRewriterConfigBackendSetting(NgraphTest):
         # as extra params are compulsory
         # TODO: also make similar change in test_tf2ngraph_script.py
         # once optional extra params is available
-        if backend == 'INTERPRETER':
-            ngraph_optimizer.parameter_map["test_echo"].s = "42".encode()
-        elif backend == 'CPU':
-            ngraph_optimizer.parameter_map["device_config"].s = "".encode()
-        else:
-            assert False
+        backend_extra_params_map = {
+            'CPU': {
+                'device_config': ''
+            },
+            'INTERPRETER': {
+                'test_echo': '42'
+            }
+        }
+        extra_params = backend_extra_params_map[backend]
+        for k in extra_params:
+            ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
         config.MergeFrom(
             tf.ConfigProto(
                 graph_options=tf.GraphOptions(
