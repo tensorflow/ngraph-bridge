@@ -30,13 +30,16 @@ import ngraph_bridge
 
 from common import NgraphTest
 
+
 class TestRewriterConfigBackendSetting(NgraphTest):
 
     @pytest.mark.skipif(
         not ngraph_bridge.is_grappler_enabled(),
-        reason='Rewriter config only works for grappler path'
-    )
-    @pytest.mark.parametrize(("backend",), (('CPU',), ('INTERPRETER',),))
+        reason='Rewriter config only works for grappler path')
+    @pytest.mark.parametrize(("backend",), (
+        ('CPU',),
+        ('INTERPRETER',),
+    ))
     def test_config_updater_api(self, backend):
         dim1 = 3
         dim2 = 4
@@ -47,12 +50,16 @@ class TestRewriterConfigBackendSetting(NgraphTest):
 
         config = tf.ConfigProto()
         rewriter_options = rewriter_config_pb2.RewriterConfig()
-        rewriter_options.meta_optimizer_iterations=(rewriter_config_pb2.RewriterConfig.ONE)
-        rewriter_options.min_graph_nodes=-1
+        rewriter_options.meta_optimizer_iterations = (
+            rewriter_config_pb2.RewriterConfig.ONE)
+        rewriter_options.min_graph_nodes = -1
         ngraph_optimizer = rewriter_options.custom_optimizers.add()
         ngraph_optimizer.name = "ngraph-optimizer"
         ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
-        config.MergeFrom(tf.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
+        config.MergeFrom(
+            tf.ConfigProto(
+                graph_options=tf.GraphOptions(
+                    rewrite_options=rewriter_options)))
 
         with tf.Session(config=config) as sess:
             outval = sess.run(
@@ -62,6 +69,4 @@ class TestRewriterConfigBackendSetting(NgraphTest):
                     b: np.ones((dim1, dim2)),
                     x: np.ones((dim1, dim2))
                 })
-        assert (outval == 2.5*(np.ones((dim1, dim2))))
-
-
+        assert (outval == 2.5 * (np.ones((dim1, dim2))))
