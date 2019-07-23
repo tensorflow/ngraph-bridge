@@ -578,16 +578,24 @@ def start_container(workingdir, args):
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
+    home = os.getenv("HOME")
+    user = os.getenv("USER")
     cachedir = ".cache/bazel"
     parentdir = os.path.dirname(cachedir)
     abscachedir = os.path.abspath(cachedir)
     if os.path.isdir(abscachedir) == False:
         os.makedirs(abscachedir)
+    if platform.system() == 'Darwin':
+        f = open("/tmp/passwd", "w")
+        f.write(user + ":*:" + str(u) + ":" + str(g) + ":User " + user +
+                ":/:/bin/bash")
+        f.close()
     start = [
         "docker", "run", "--name", "ngtf", "-u",
         str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
         "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-v",
-        "/etc/passwd:/etc/passwd", "-w", workingdir, "-d", "-t", "ngtf"
+        "/tmp/passwd:/etc/passwd", "-v", home + "/.gitconfig:/.gitconfig", "-v",
+        home + "/.ssh:/.ssh", "-w", workingdir, "-d", "-t", "ngtf"
     ]
     try:
         command_executor(
