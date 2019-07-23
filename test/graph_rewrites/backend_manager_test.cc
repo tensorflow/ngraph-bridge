@@ -203,24 +203,24 @@ TEST(BackendManager, GetBackendAttributeValues) {
       BackendManager::GetBackendAttributeValues("PLAIDML:device:567:892_34");
 
   ASSERT_NE(cpu_options.find("ngraph_backend"), cpu_options.end());
-  ASSERT_NE(cpu_options.find("_ngraph_device_id"), cpu_options.end());
+  ASSERT_NE(cpu_options.find("ngraph_device_id"), cpu_options.end());
   ASSERT_EQ(cpu_options["ngraph_backend"], "CPU");
-  ASSERT_EQ(cpu_options["_ngraph_device_id"], "");
+  ASSERT_EQ(cpu_options["ngraph_device_id"], "");
 
   ASSERT_NE(nnpi_options.find("ngraph_backend"), nnpi_options.end());
-  ASSERT_NE(nnpi_options.find("_ngraph_device_id"), nnpi_options.end());
+  ASSERT_NE(nnpi_options.find("ngraph_device_id"), nnpi_options.end());
   ASSERT_EQ(nnpi_options["ngraph_backend"], "NNPI");
-  ASSERT_EQ(nnpi_options["_ngraph_device_id"], "3,5,6");
+  ASSERT_EQ(nnpi_options["ngraph_device_id"], "3,5,6");
 
   ASSERT_NE(gpu_options.find("ngraph_backend"), gpu_options.end());
-  ASSERT_NE(gpu_options.find("_ngraph_device_id"), gpu_options.end());
+  ASSERT_NE(gpu_options.find("ngraph_device_id"), gpu_options.end());
   ASSERT_EQ(gpu_options["ngraph_backend"], "GPU");
-  ASSERT_EQ(gpu_options["_ngraph_device_id"], "5");
+  ASSERT_EQ(gpu_options["ngraph_device_id"], "5");
 
   ASSERT_NE(plaidml_options.find("ngraph_backend"), plaidml_options.end());
-  ASSERT_NE(plaidml_options.find("_ngraph_device_id"), plaidml_options.end());
+  ASSERT_NE(plaidml_options.find("ngraph_device_id"), plaidml_options.end());
   ASSERT_EQ(plaidml_options["ngraph_backend"], "PLAIDML");
-  ASSERT_EQ(plaidml_options["_ngraph_device_id"], "device:567:892_34");
+  ASSERT_EQ(plaidml_options["ngraph_device_id"], "device:567:892_34");
 }
 
 // Test GetBackendCreationString API

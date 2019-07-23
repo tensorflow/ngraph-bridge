@@ -29,9 +29,7 @@ REGISTER_OP("NGraphEncapsulate")
     .Attr("ngraph_cluster: int")
     .Attr("ngraph_graph_id: int")
     .Attr("ngraph_backend: string")
-#if defined(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
     .Attr("ngraph_device_id: string")
-#endif
     .SetIsStateful()
     .Doc("nGraph Encapsulation Op. For use by the nGraph JIT only.");
 

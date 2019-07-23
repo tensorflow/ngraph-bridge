@@ -177,11 +177,11 @@ unordered_map<string, string> BackendManager::GetBackendAttributeValues(
   if (delimiter_index < 0) {
     // ":" not found
     backend_parameters["ngraph_backend"] = backend_config;
-    backend_parameters["_ngraph_device_id"] = "";
+    backend_parameters["ngraph_device_id"] = "";
   } else {
     backend_parameters["ngraph_backend"] =
         backend_config.substr(0, delimiter_index);
-    backend_parameters["_ngraph_device_id"] =
+    backend_parameters["ngraph_device_id"] =
         backend_config.substr(delimiter_index + 1);
   }
 
