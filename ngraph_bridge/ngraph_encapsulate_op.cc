@@ -161,7 +161,7 @@ class NGraphEncapsulateOp : public OpKernel {
     std::string backend_name;
     OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &backend_name));
     std::string device_id;
-    OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("_ngraph_device_id", &device_id));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_device_id", &device_id));
     // Get the optional attributes
     std::unordered_map<std::string, std::string> additional_attribute_map;
     auto node_def = ctx->def();

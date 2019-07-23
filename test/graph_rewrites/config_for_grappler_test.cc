@@ -108,7 +108,7 @@ TEST(GrapplerConfig, RConfig1) {
   string ng_backend, ng_device_id;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_device_id", &ng_device_id));
 
   ASSERT_EQ(ng_backend, "CPU");
   ASSERT_EQ(ng_device_id, "1");
@@ -180,7 +180,7 @@ TEST(GrapplerConfig, RConfig2) {
   string ng_backend, ng_device_id;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_device_id", &ng_device_id));
 
   ASSERT_EQ(ng_backend, "CPU");
   ASSERT_EQ(ng_device_id, "1");
@@ -268,7 +268,7 @@ TEST(GrapplerConfig, RConfig3) {
   string ng_backend, ng_device_id;
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_device_id", &ng_device_id));
 
   ASSERT_EQ(ng_backend, "CPU");
   ASSERT_EQ(ng_device_id, "1");
@@ -342,7 +342,7 @@ TEST(GrapplerConfig, RConfig4) {
 
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_backend", &ng_backend));
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_test_echo", &ng_test_echo));
-  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_device_id", &ng_device_id));
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "ngraph_device_id", &ng_device_id));
 
   ASSERT_EQ(ng_backend, "INTERPRETER");
   ASSERT_EQ(ng_test_echo, "hi");
