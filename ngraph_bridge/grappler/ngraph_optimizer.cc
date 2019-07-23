@@ -45,9 +45,9 @@ Status NgraphOptimizer::Init(
   const auto params = config->parameter_map();
   for (size_t i = 0; i < compulsory_attrs.size(); i++) {
     if (params.count(compulsory_attrs[i]) == 0) {
-      NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Compulsory attribute " << compulsory_attrs[i] << " not found.";
-      return errors::Internal(
-          "NGTF_OPTIMIZER: Missing compulsory attributes.");
+      NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Compulsory attribute "
+                     << compulsory_attrs[i] << " not found.";
+      return errors::Internal("NGTF_OPTIMIZER: Missing compulsory attributes.");
     }
   }
   config_backend_name = params.at("ngraph_backend").s();
@@ -60,7 +60,7 @@ Status NgraphOptimizer::Init(
         config_map["_ngraph_" + i.first] = i.second.s();
       }
       NGRAPH_VLOG(3) << "Attribute: " << i.first
-                      << " Value: " << config_map["_ngraph_" + i.first];
+                     << " Value: " << config_map["_ngraph_" + i.first];
     }
   }
   return Status::OK();
