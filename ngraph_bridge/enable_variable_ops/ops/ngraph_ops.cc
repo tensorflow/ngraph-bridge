@@ -73,6 +73,7 @@ REGISTER_OP("NGraphAssignSub")
     .Attr("ngraph_graph_id: int");
 
 // ------------------------------------------------------------------
+// TODO: Add Attr ngraph_device_id when merging with grappler pass
 REGISTER_OP("NGraphEncapsulate")
     .Input("args: Targuments")
     .Attr("Targuments: list(type) >= 0")
