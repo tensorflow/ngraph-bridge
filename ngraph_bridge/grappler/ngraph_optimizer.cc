@@ -46,7 +46,7 @@ Status NgraphOptimizer::Init(
   if (params.count("ngraph_backend")) {
     if (params.count("device_id")) {
       config_backend_name = params.at("ngraph_backend").s();
-      NGRAPH_VLOG(3) << config_backend_name;
+      NGRAPH_VLOG(3) << "Backend name from config: " << config_backend_name;
       for (auto i : params) {
         if (i.first != "ngraph_backend") {
           config_map["_ngraph_" + i.first] = i.second.s();
