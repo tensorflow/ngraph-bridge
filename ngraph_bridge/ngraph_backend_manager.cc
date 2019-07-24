@@ -187,7 +187,7 @@ unordered_map<string, string> BackendManager::GetBackendAttributeValues(
 
   NGRAPH_VLOG(3) << "Got Backend Name " << backend_parameters["ngraph_backend"];
   NGRAPH_VLOG(3) << "Got Device Id  "
-                 << backend_parameters["_ngraph_device_id"];
+                 << backend_parameters["ngraph_device_id"];
 
   return backend_parameters;
 }
