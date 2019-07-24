@@ -37,7 +37,7 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
 
     def test_config_updater_api(self):
         config = update_config_to_include_custom_config(tf.ConfigProto(), 'CPU',
-                                                        {
+                                                        '0', {
                                                             'abc': '1',
                                                             'def': '2'
                                                         })
@@ -47,7 +47,7 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
         assert len(custom_opts) == 1
         assert custom_opts[0].name == 'ngraph-optimizer'
         assert set(custom_opts[0].parameter_map.keys()) == {
-            'abc', 'ngraph_backend', 'def'
+            'abc', 'ngraph_backend', 'def', 'device_id'
         }
         retrieved_dict = {}
         for key, val in custom_opts[0].parameter_map.items():
@@ -55,7 +55,8 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
         assert retrieved_dict == {
             'abc': '1',
             'def': '2',
-            'ngraph_backend': 'CPU'
+            'ngraph_backend': 'CPU',
+            'device_id': '0'
         }
 
     @pytest.mark.parametrize(('ng_device',),

@@ -49,7 +49,8 @@ def parse_extra_params_string(raw_extra_params):
     return extra_params_dict
 
 
-def update_config_to_include_custom_config(config, backend, extra_params):
+def update_config_to_include_custom_config(config, backend, device_id,
+                                           extra_params):
     rewriter_options = rewriter_config_pb2.RewriterConfig()
     rewriter_options.meta_optimizer_iterations = (
         rewriter_config_pb2.RewriterConfig.ONE)
@@ -57,6 +58,7 @@ def update_config_to_include_custom_config(config, backend, extra_params):
     ngraph_optimizer = rewriter_options.custom_optimizers.add()
     ngraph_optimizer.name = "ngraph-optimizer"
     ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
+    ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
     for k in extra_params:
         ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
     config.MergeFrom(
@@ -66,7 +68,7 @@ def update_config_to_include_custom_config(config, backend, extra_params):
 
 
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
-                                  extra_params):
+                                  device_id, extra_params):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -89,7 +91,7 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     # Pass backend and extra backend params to grappler through rewriter config by updating the config
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
-        session_config, ng_backend, extra_params)
+        session_config, ng_backend, device_id, extra_params)
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -143,7 +145,7 @@ def prepare_argparser(formats):
     python tf2ngraph.py --input_savedmodel resnet_model_location --output_nodes out_node --output_pbtxt resnet_ngraph.pbtxt
     python tf2ngraph.py --input_pbtxt mobilenet.pbtxt --output_nodes out_node --output_pbtxt mobilenet_ngraph.pbtxt
     python tf2ngraph.py --input_pb inception_v3_2016_08_28_frozen.pb --output_nodes InceptionV3/Predictions/Reshape_1 --output_pb inception_v3_2016_08_28_frozen_ngraph.pb
-    python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt
+    python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU
     ''')
     in_out_groups = [
         parser.add_argument_group(i, j) for i, j in zip(
@@ -165,6 +167,7 @@ def prepare_argparser(formats):
         required=True)
     parser.add_argument(
         "--ng_backend", default='CPU', help="Ngraph backend. Eg, NNPI")
+    parser.add_argument("--device_id", default='', help="Device id. Eg, 0")
     parser.add_argument(
         "--extra_params",
         default='{}',
@@ -233,7 +236,7 @@ allowed_formats = {
 
 
 def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
-            extra_params):
+            device_id, extra_params):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -254,8 +257,8 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     assert ngraph_bridge.is_grappler_enabled()
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
-    output_gdef = run_ngraph_grappler_optimizer(input_gdef, output_nodes,
-                                                ng_backend, extra_params)
+    output_gdef = run_ngraph_grappler_optimizer(
+        input_gdef, output_nodes, ng_backend, device_id, extra_params)
     save_model(output_gdef, out_format, out_loc)
 
 
@@ -271,7 +274,7 @@ def main():
     output_nodes = args.output_nodes.split(',')
     extra_params = parse_extra_params_string(args.extra_params)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
-            args.ng_backend, extra_params)
+            args.ng_backend, args.device_id, extra_params)
     print('Converted the model. Exiting now')
 
 
