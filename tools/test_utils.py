@@ -482,6 +482,7 @@ def run_resnet50_forward_pass(build_dir):
     command_executor(cmd, verbose=True)
     os.chdir(root_pwd)
 
+
 def run_resnet50_forward_pass_from_artifacts(ngraph_tf_src_dir, artifact_dir,
                                              batch_size, iterations):
 
