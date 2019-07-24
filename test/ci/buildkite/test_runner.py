@@ -121,8 +121,8 @@ def main():
             iterations = 10
             if arguments.backend:
                 if 'GPU' in arguments.backend:
-                    batch_size = 64
-                    iterations = 100
+                    batch_size = 16
+                    iterations = 20
             run_resnet50_from_artifacts('./', arguments.artifacts_dir,
                                         batch_size, iterations)
     else:
