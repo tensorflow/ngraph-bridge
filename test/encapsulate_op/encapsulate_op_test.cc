@@ -71,14 +71,6 @@ TEST(EncapsulateOp, ComputeSignature) {
   ASSERT_EQ(signature_ss.str(), "0,;2,;6,10,;10,10,10,;/");
 }
 
-//  Status GetNgExecutable(std::vector<Tensor>& input_tensors,
-//                          const std::pair<string, int64> ctx_params,
-//                          std::vector<TensorShape>& input_shapes,
-//                          std::vector<const Tensor*>& static_input_map,
-//                          ng::runtime::Backend*& op_backend,
-//                          std::shared_ptr<ngraph::runtime::Executable>&
-//                          ng_exec);
-
 // Test: Create backend and get ngraph executable
 TEST(EncapsulateOp, GetNgExecutable) {
   NGraphEncapsulateImpl ng_encap_impl("GetNgExecutable");
