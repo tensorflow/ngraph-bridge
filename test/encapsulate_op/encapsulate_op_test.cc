@@ -18,6 +18,7 @@
 #include "tensorflow/core/graph/node_builder.h"
 
 #include "../test_utilities.h"
+#include "ngraph_backend_manager.h"
 #include "ngraph_encapsulate_impl.h"
 #include "ngraph_encapsulate_op.h"
 #include "ngraph_utils.h"
@@ -33,6 +34,93 @@ namespace testing {
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
+// Test: Create tensorflow input tensors and Compute Signature
+TEST(EncapsulateOp, ComputeSignature) {
+  NGraphEncapsulateImpl ng_encap_impl("ComputeSignature");
+
+  std::vector<tensorflow::TensorShape> input_shapes;
+  std::vector<tensorflow::Tensor> input_tensors;
+  std::vector<const Tensor*> static_input_map;
+  input_shapes.push_back({0});
+  input_shapes.push_back({2});
+  input_shapes.push_back({6, 10});
+  input_shapes.push_back({10, 10, 10});
+
+  // Create tensorflow tensors
+  for (auto const& shapes : input_shapes) {
+    Tensor input_data(DT_FLOAT, TensorShape(shapes));
+    AssignInputValuesRandom<float>(input_data, -10.0, 20.0f);
+    input_tensors.push_back(input_data);
+  }
+  int size = 4;
+  ng_encap_impl.resize_static(size);
+
+  for (int i = 0; i < size; i++) {
+    ng_encap_impl.set_static(i, false);
+  }
+
+  for (int i = 0; i < input_tensors.size(); i++) {
+    const Tensor& input_tensor = input_tensors[i];
+    if (ng_encap_impl.get_static()[i]) {
+      static_input_map[i] = &input_tensor;
+    }
+  }
+  std::stringstream signature_ss;
+  ASSERT_OK(ng_encap_impl.ComputeSignature(input_tensors, input_shapes,
+                                           static_input_map, signature_ss));
+  ASSERT_EQ(signature_ss.str(), "0,;2,;6,10,;10,10,10,;/");
+}
+
+//  Status GetNgExecutable(std::vector<Tensor>& input_tensors,
+//                          const std::pair<string, int64> ctx_params,
+//                          std::vector<TensorShape>& input_shapes,
+//                          std::vector<const Tensor*>& static_input_map,
+//                          ng::runtime::Backend*& op_backend,
+//                          std::shared_ptr<ngraph::runtime::Executable>&
+//                          ng_exec);
+
+// Test: Create backend and get ngraph executable
+TEST(EncapsulateOp, GetNgExecutable) {
+  NGraphEncapsulateImpl ng_encap_impl("GetNgExecutable");
+
+  std::vector<tensorflow::TensorShape> input_shapes;
+  std::vector<tensorflow::Tensor> input_tensors;
+  std::vector<const Tensor*> static_input_map;
+  input_shapes.push_back({0});
+  input_shapes.push_back({2});
+  input_shapes.push_back({6, 10});
+  input_shapes.push_back({10, 10, 10});
+
+  for (auto const& shapes : input_shapes) {
+    Tensor input_data(DT_FLOAT, TensorShape(shapes));
+    AssignInputValuesRandom<float>(input_data, -10.0, 20.0f);
+    input_tensors.push_back(input_data);
+  }
+  int size = 4;
+  ng_encap_impl.resize_static(size);
+
+  for (int i = 0; i < size; i++) {
+    ng_encap_impl.set_static(i, false);
+  }
+
+  for (int i = 0; i < input_tensors.size(); i++) {
+    const Tensor& input_tensor = input_tensors[i];
+    if (ng_encap_impl.get_static()[i]) {
+      static_input_map[i] = &input_tensor;
+    }
+  }
+
+  ng_encap_impl.set_op_backend_name("CPU");
+  BackendManager::CreateBackend(ng_encap_impl.get_op_backend_name());
+  ng::runtime::Backend* op_backend;
+  op_backend = BackendManager::GetBackend(ng_encap_impl.get_op_backend_name());
+
+  std::shared_ptr<ngraph::runtime::Executable> ng_exec;
+
+  ASSERT_OK(ng_encap_impl.GetNgExecutable(
+      input_tensors, input_shapes, static_input_map, op_backend, ng_exec));
+}
+
 // Test: Allocating ngraph input tensors
 TEST(EncapsulateOp, AllocateNGInputTensors) {
   NGraphEncapsulateImpl ng_encap_impl("AllocateNGInputTensors");
@@ -42,9 +130,11 @@ TEST(EncapsulateOp, AllocateNGInputTensors) {
   auto f = make_shared<ng::Function>(make_shared<ng::op::Add>(A, B),
                                      ng::ParameterVector{A, B});
 
-  std::shared_ptr<ng::runtime::Backend> backend =
-      ng::runtime::Backend::create("CPU");
-  auto ng_exec = backend->compile(f);
+  ng_encap_impl.set_op_backend_name("CPU");
+  BackendManager::CreateBackend(ng_encap_impl.get_op_backend_name());
+  ng::runtime::Backend* op_backend;
+  op_backend = BackendManager::GetBackend(ng_encap_impl.get_op_backend_name());
+  auto ng_exec = op_backend->compile(f);
 
   std::vector<tensorflow::TensorShape> input_shapes;
   std::vector<tensorflow::Tensor> input_tensors;
@@ -63,7 +153,7 @@ TEST(EncapsulateOp, AllocateNGInputTensors) {
   std::vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
 
   ASSERT_OK(ng_encap_impl.AllocateNGInputTensors(input_tensors, ng_exec,
-                                                 backend.get(), ng_inputs));
+                                                 op_backend, ng_inputs));
 }
 
 // Test: Allocating ngraph output tensors
@@ -75,9 +165,11 @@ TEST(EncapsulateOp, AllocateNGOutputTensors) {
   auto f = make_shared<ng::Function>(make_shared<ng::op::Add>(A, B),
                                      ng::ParameterVector{A, B});
 
-  std::shared_ptr<ng::runtime::Backend> backend =
-      ng::runtime::Backend::create("CPU");
-  auto ng_exec = backend->compile(f);
+  ng_encap_impl.set_op_backend_name("CPU");
+  BackendManager::CreateBackend(ng_encap_impl.get_op_backend_name());
+  ng::runtime::Backend* op_backend;
+  op_backend = BackendManager::GetBackend(ng_encap_impl.get_op_backend_name());
+  auto ng_exec = op_backend->compile(f);
 
   std::vector<tensorflow::TensorShape> input_shapes;
   std::vector<tensorflow::Tensor> outputs;
@@ -101,7 +193,7 @@ TEST(EncapsulateOp, AllocateNGOutputTensors) {
   std::vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
 
   ASSERT_OK(ng_encap_impl.AllocateNGOutputTensors(output_tensors, ng_exec,
-                                                  backend.get(), ng_outputs));
+                                                  op_backend, ng_outputs));
 }
 }
 }

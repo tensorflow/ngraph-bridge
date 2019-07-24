@@ -69,7 +69,7 @@ NGraphEncapsulateImpl::NGraphEncapsulateImpl(string name)
 }
 
 Status NGraphEncapsulateImpl::ComputeSignature(
-    std::vector<Tensor>& tf_input_tensors,
+    const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     std::stringstream& signature_ss) {
@@ -98,8 +98,7 @@ Status NGraphEncapsulateImpl::ComputeSignature(
 }
 
 Status NGraphEncapsulateImpl::GetNgExecutable(
-    std::vector<Tensor>& tf_input_tensors,
-    const std::pair<string, int64> ctx_params,
+    const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     ng::runtime::Backend*& op_backend,
@@ -134,7 +133,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     long vm, rss, vm0, rss0;
     MemoryProfile(vm0, rss0);
 
-    NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx_params.first;
+    NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                &m_graph, ng_function));
     ng_function->set_friendly_name(m_name);
@@ -143,14 +142,14 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
     // Serialize to nGraph if needed
     if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-      std::string file_name = "tf_function_" + ctx_params.first + ".json";
-      NgraphSerialize("tf_function_" + ctx_params.first + ".json", ng_function);
+      std::string file_name = "tf_function_" + m_name + ".json";
+      NgraphSerialize("tf_function_" + m_name + ".json", ng_function);
 #if defined NGRAPH_DISTRIBUTED
       int rank_id;
       rank_id = ng::get_distributed_interface()->get_rank();
-      NgraphSerialize("tf_function_" + ctx_params.first + "_" +
-                          to_string(rank_id) + ".json",
-                      ng_function);
+      NgraphSerialize(
+          "tf_function_" + m_name + "_" + to_string(rank_id) + ".json",
+          ng_function);
 #endif
     }
     // Evict the cache if the number of elements exceeds the limit
@@ -187,9 +186,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       m_ng_exec_output_cache_map.erase(evicted_ng_exec);
       m_lru.pop_back();
       NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << get_instance_id()
-                     << " Step_ID: " << ctx_params.second
-                     << " Cluster: " << ctx_params.first
-                     << " Input Tensors freed: "
+                     << " Cluster: " << m_name << " Input Tensors freed: "
                      << input_tensors_bytes_free / (1024 * 1024) << " MB"
                      << " Output Tensors freed: "
                      << output_tensors_bytes_free / (1024 * 1024) << " MB";
@@ -202,14 +199,12 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       ng_exec = op_backend->compile(ng_function);
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(get_op_backend_name());
-      NgraphSerialize("tf_function_error_" + ctx_params.first + ".json",
-                      ng_function);
+      NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend(get_op_backend_name());
-      NgraphSerialize("tf_function_error_" + ctx_params.first + ".json",
-                      ng_function);
+      NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
       return errors::Internal("Error in compiling op_backend\n");
     }
     BackendManager::UnlockBackend(get_op_backend_name());
@@ -226,10 +221,8 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     auto delta_vm_mem = vm - vm0;
     auto delta_res_mem = rss - rss0;
     NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << get_instance_id()
-                   << " Step_ID: " << ctx_params.second
                    << " Cache length: " << get_ng_exec_map().size()
-                   << "  Cluster: " << ctx_params.first
-                   << " Delta VM: " << delta_vm_mem
+                   << "  Cluster: " << m_name << " Delta VM: " << delta_vm_mem
                    << "  Delta RSS: " << delta_res_mem
                    << "  Function size: " << function_size
                    << " KB Total RSS: " << rss / (1024 * 1024) << " GB "

@@ -278,15 +278,14 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     tf_input_tensors.push_back(ctx->input(i));
   }
 
-  std::pair<string, int64> ctx_params;
-  ctx_params.first = ctx->op_kernel().name();
-  ctx_params.second = ctx->step_id();
+  int step_id = ctx->step_id();
 
   // Get ngraph executable and inputs information
   OP_REQUIRES_OK(ctx, ng_encap_impl->GetNgExecutable(
-                          tf_input_tensors, ctx_params, input_shapes,
-                          static_input_map, op_backend, ng_exec));
+                          tf_input_tensors, input_shapes, static_input_map,
+                          op_backend, ng_exec));
 
+  NGRAPH_VLOG(1) << " Step_ID: " << step_id;
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
       << ng_encap_impl->get_ngraph_cluster();
@@ -454,10 +453,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   long vm, rss;
   MemoryProfile(vm, rss);
   NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
-                 << ng_encap_impl->get_instance_id()
-                 << " Step_ID: " << ctx_params.second
-                 << " Cluster: " << ctx_params.first
-                 << " Input Tensors created: "
+                 << ng_encap_impl->get_instance_id() << " Step_ID: " << step_id
+                 << " Cluster: " << name() << " Input Tensors created: "
                  << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
                  << " Output Tensors created: "
                  << ng_output_tensor_size_in_bytes / (1024 * 1024) << " MB"
@@ -568,7 +565,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       << ng_encap_impl->get_ngraph_cluster();
   NGRAPH_VLOG(1)
       << "NGRAPH_TF_TIMING_PROFILE: OP_ID: " << ng_encap_impl->get_instance_id()
-      << " Step_ID: " << ctx_params.second << " Cluster: " << ctx_params.first
+      << " Step_ID: " << step_id << " Cluster: " << name()
       << " Time-Compute: " << compute_time.ElapsedInMS()
       << " Function-Create-or-Lookup: " << time_func_create_or_lookup
       << " Create-and-copy-tensors: " << time_create_or_lookup_tensors

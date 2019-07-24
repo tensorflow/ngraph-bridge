@@ -42,15 +42,14 @@ class NGraphEncapsulateImpl {
   // Ngraph Encapsulate Implementation is a class with all the functions
   explicit NGraphEncapsulateImpl(string name);
 
-  // Computes Signature
-  Status ComputeSignature(std::vector<Tensor>& input_tensors,
+  // Get tensorflow input tensors, input shapes to Compute Signature
+  Status ComputeSignature(const std::vector<Tensor>& tf_input_tensors,
                           std::vector<TensorShape>& input_shapes,
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
 
   // Get ngraph executable
-  Status GetNgExecutable(std::vector<Tensor>& input_tensors,
-                         const std::pair<string, int64> ctx_params,
+  Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
                          std::vector<TensorShape>& input_shapes,
                          std::vector<const Tensor*>& static_input_map,
                          ng::runtime::Backend*& op_backend,
@@ -93,46 +92,49 @@ class NGraphEncapsulateImpl {
   // Accessors(getters and setters) for the private data members of this class
   // needed by
   // NgraphEncapsulateOp class
-  const int get_number_of_copies() { return number_of_copies; }
+  const int& get_number_of_copies() { return number_of_copies; }
 
-  void set_number_of_copies(int number) { number_of_copies = number; }
+  void set_number_of_copies(const int& number) { number_of_copies = number; }
 
-  const int get_ngraph_cluster() { return m_ngraph_cluster; }
+  const int& get_ngraph_cluster() { return m_ngraph_cluster; }
 
-  void set_ngraph_cluster(int cluster) { m_ngraph_cluster = cluster; }
+  void set_ngraph_cluster(const int& cluster) { m_ngraph_cluster = cluster; }
 
-  const int get_graph_id() { return m_graph_id; }
+  const int& get_graph_id() { return m_graph_id; }
 
-  void set_graph_id(int graph_id) { m_graph_id = graph_id; }
+  void set_graph_id(const int& graph_id) { m_graph_id = graph_id; }
 
-  const int get_function_cache_depth_in_items() {
+  const int& get_function_cache_depth_in_items() {
     return my_function_cache_depth_in_items;
   }
 
-  const int get_number_outputs() { return m_number_outputs; }
+  const int& get_number_outputs() { return m_number_outputs; }
 
-  const int get_instance_id() { return my_instance_id; }
+  const int& get_instance_id() { return my_instance_id; }
 
-  const string get_op_backend_name() { return m_op_backend_name; }
+  const string& get_op_backend_name() { return m_op_backend_name; }
 
-  void set_op_backend_name(string backend_name) {
+  void set_op_backend_name(const string& backend_name) {
     m_op_backend_name = backend_name;
   }
 
-  const bool get_log_copies() { return log_copies; }
+  bool get_log_copies() { return log_copies; }
 
   const std::vector<bool> get_static() { return m_input_is_static; }
 
-  void resize_static(int size) { m_input_is_static.resize(size); }
-  void set_static(int index, bool value) { m_input_is_static[index] = value; }
+  void resize_static(const int& size) { m_input_is_static.resize(size); }
+  void set_static(const int& index, bool value) {
+    m_input_is_static[index] = value;
+  }
 
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
   get_ng_exec_map() {
     return m_ng_exec_map;
   }
 
-  void set_ng_exec_map(std::string ng_map_key,
-                       std::shared_ptr<ngraph::runtime::Executable> exec) {
+  void set_ng_exec_map(
+      const std::string& ng_map_key,
+      const std::shared_ptr<ngraph::runtime::Executable>& exec) {
     m_ng_exec_map[ng_map_key] = exec;
   }
 
@@ -142,8 +144,9 @@ class NGraphEncapsulateImpl {
     return m_ng_function_map;
   }
 
-  void set_ng_function_map(std::shared_ptr<ngraph::runtime::Executable> exec,
-                           std::shared_ptr<ngraph::Function> function) {
+  void set_ng_function_map(
+      const std::shared_ptr<ngraph::runtime::Executable>& exec,
+      const std::shared_ptr<ngraph::Function>& function) {
     m_ng_function_map[exec] = function;
   }
 
@@ -156,8 +159,9 @@ class NGraphEncapsulateImpl {
   }
 
   void set_ng_exec_output_cache_map(
-      std::shared_ptr<ngraph::runtime::Executable> exec,
-      std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>> cache) {
+      const std::shared_ptr<ngraph::runtime::Executable>& exec,
+      const std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
+          cache) {
     m_ng_exec_output_cache_map[exec] = cache;
   }
 
