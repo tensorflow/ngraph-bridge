@@ -257,19 +257,19 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
       input_caches = m_ng_exec_input_cache_map[ng_exec];
   input_caches.resize(tf_input_tensors.size());
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  bool log_copies = false;
-  TF_RETURN_IF_ERROR(
-      IsNgraphTFLogTensorCopiesEnabled(get_graph_id(), get_log_copies()));
+  log_copies = false;
+  TF_RETURN_IF_ERROR(IsNgraphTFLogTensorCopiesEnabled(m_graph_id, log_copies));
   std::stringstream copy_log_str;
-  copy_log_str << "KERNEL[" << type_string() << "]: " << name() << " ,GraphID "
-               << get_graph_id() << "\n";
-  set_number_of_copies(0);
+  copy_log_str << "["
+               << "NGraphEncapsulate:"
+               << "]: " << m_name << " ,GraphID " << get_graph_id() << "\n";
+  number_of_copies = 0;
 #endif
 
   for (int i = 0; i < tf_input_tensors.size(); i++) {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-        get_graph_id(), def().name(), i);
+        get_graph_id(), m_name, i);
 
     // If the input is from a Variable node, we are dealing with later
     // just add a nullptr to the ng_inputs vector.

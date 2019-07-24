@@ -390,7 +390,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     if (var->sync_ng_tensor()) {
       int copies = ng_encap_impl->get_number_of_copies();
       ng_encap_impl->set_number_of_copies(copies++);
-      ng_encap_impl->get_log_copies() << "Var_Sync[" << input_index << "] ";
+      stringstream str;
+      str << "Var_Sync[" << input_index << "] ";
+      ng_encap_impl->set_copy_log_str(str.str());
     }
 
     void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
@@ -463,7 +465,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     if (ng_encap_impl->get_number_outputs() == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-      ng_encap_impl->get_number_outputs() = output_caches.size();
+      ng_encap_impl->set_number_outputs(output_caches.size());
     }
     for (size_t i = 0; i < output_tensor_count; ++i) {
       string key = NGraphCatalog::CreateNodeKey(ng_encap_impl->get_graph_id(),
@@ -482,7 +484,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           NGraphCatalog::EncapOutputIndexNeedsCopy(def().name(), i)) {
         int copies = ng_encap_impl->get_number_of_copies();
         ng_encap_impl->set_number_of_copies(copies++);
-        ng_encap_impl->get_log_copies() << " COPY_OP_VAL[" << i << "]";
+        stringstream str;
+        str << " COPY_OP_VAL[" << i << "]";
+        ng_encap_impl->set_copy_log_str(str.str());
 
         NGRAPH_VLOG(4) << "Copying Output " << def().name() << " ,index: " << i;
         auto ng_element_type = dst_ng_tensor->get_element_type();
@@ -533,10 +537,11 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   event_copy_output.Stop();
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  ng_encap_impl->get_log_copies()
-      << " Number of copies " << ng_encap_impl->get_number_of_copies() << "\n";
-  if (ng_encap_impl->get_log_copies() {
-    cout << ng_encap_impl->get_log_copies().str();
+  std::stringstream str;
+  str << " Number of copies " << ng_encap_impl->get_number_of_copies() << "\n";
+  ng_encap_impl->set_copy_log_str(str.str());
+  if (ng_encap_impl->get_log_copies()) {
+    cout << ng_encap_impl->get_copy_log_str();
   }
 #endif
 
@@ -553,14 +558,16 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
       << ng_encap_impl->get_ngraph_cluster();
-  NGRAPH_VLOG(1)
-      << "NGRAPH_TF_TIMING_PROFILE: OP_ID: " << ng_encap_impl->get_instance_id()
-      << " Step_ID: " << step_id << " Cluster: " << name()
-      << " Time-Compute: " << compute_time.ElapsedInMS()
-      << " Function-Create-or-Lookup: " << time_func_create_or_lookup
-      << " Create-and-copy-tensors: " << time_create_or_lookup_tensors
-      << " Execute: " << time_execute_function
-      << " Copy-outputs-to-host: " << time_copy_output_tensors_to_host;
+  NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: "
+                 << ng_encap_impl->get_instance_id() << " Step_ID: " << step_id
+                 << " Cluster: " << name()
+                 << " Time-Compute: " << compute_time.ElapsedInMS()
+                 << " Function-Create-or-Lookup: " << time_func_create_or_lookup
+                 << " Create-and-copy-tensors: "
+                 << time_create_or_lookup_tensors
+                 << " Execute: " << time_execute_function
+                 << " Copy-outputs-to-host: "
+                 << time_copy_output_tensors_to_host;
   event.Stop();
   ngraph::Event::write_trace(event_func_maybe_create);
   ngraph::Event::write_trace(event_alloc_output);

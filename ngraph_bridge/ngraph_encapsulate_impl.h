@@ -104,7 +104,7 @@ class NGraphEncapsulateImpl {
 
   void set_ngraph_cluster(const int& cluster) { m_ngraph_cluster = cluster; }
 
-  const int& get_graph_id() { return m_graph_id; }
+  int get_graph_id() { return m_graph_id; }
 
   void set_graph_id(const int& graph_id) { m_graph_id = graph_id; }
 
@@ -113,6 +113,8 @@ class NGraphEncapsulateImpl {
   }
 
   const int& get_number_outputs() { return m_number_outputs; }
+
+  void set_number_outputs(const int& n) { m_number_outputs = n; }
 
   const int& get_instance_id() { return my_instance_id; }
 
@@ -123,6 +125,12 @@ class NGraphEncapsulateImpl {
   }
 
   bool get_log_copies() { return log_copies; }
+
+  const string& get_copy_log_str() { return copy_log_str.str(); }
+
+  void set_copy_log_str(const string& str) { copy_log_str.str() = str; }
+
+  void set_log_copies(bool value) { log_copies = value; }
 
   const std::vector<bool> get_static() { return m_input_is_static; }
 
