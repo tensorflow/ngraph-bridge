@@ -373,11 +373,11 @@ def main():
 
         else:
             print("Building TensorFlow from source")
+            os.chdir(artifacts_location)
             # Download TensorFlow
             download_repo("tensorflow",
                           "https://github.com/tensorflow/tensorflow.git",
                           tf_version)
-            os.chdir(artifacts_location)
             tf_src_dir = os.path.join(os.getcwd(), "tensorflow")
             # Build TensorFlow
             build_tensorflow(venv_dir, "tensorflow", artifacts_location,
