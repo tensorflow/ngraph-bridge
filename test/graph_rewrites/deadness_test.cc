@@ -14,26 +14,26 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "../test_utilities.h"
 #include "gtest/gtest.h"
-#include "ngraph_assign_clusters.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_utils.h"
-#include "tf_graph_writer.h"
 
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
-
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
+
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/test_utilities.h"
 
 #if !defined(NGRAPH_TF_DISABLE_DEADNESS_CHECK)
 using namespace std;
@@ -391,7 +391,7 @@ TEST(DeadnessCheck, DTestG4New) {
     auto group = arrangement_specs[group_id];
     ASSERT_OK(GetNodeCluster(node_map[group[0]],
                              &(representative_group_id[group_id])));
-    for (int i = 1; i < group.size(); i++) {
+    for (size_t i = 1; i < group.size(); i++) {
       int curr_node_cluster_id;
       ASSERT_OK(GetNodeCluster(node_map[group[i]], &curr_node_cluster_id));
       ASSERT_TRUE(curr_node_cluster_id == representative_group_id[group_id])

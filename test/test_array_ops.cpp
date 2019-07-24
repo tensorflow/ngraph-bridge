@@ -15,25 +15,24 @@
  *******************************************************************************/
 
 #include "gtest/gtest.h"
-#include "opexecuter.h"
-#include "test_utilities.h"
 
-#include "ngraph_utils.h"
-#include "tf_graph_writer.h"
-
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
-
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
+
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/opexecuter.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -1649,7 +1648,7 @@ TEST(ArrayOps, Unpack) {
   std::vector<int64> axes({0, 1, 0});
 
   vector<int> static_input_indexes = {};
-  for (auto i = 0; i < input_sizes.size(); ++i) {
+  for (size_t i = 0; i < input_sizes.size(); ++i) {
     Scope root = Scope::NewRootScope();
 
     Tensor input_data(DT_FLOAT, TensorShape(input_sizes[i]));
