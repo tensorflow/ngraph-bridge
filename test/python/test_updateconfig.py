@@ -32,6 +32,8 @@ import ngraph_bridge
 
 class TestUpdateConfig(NgraphTest):
 
+    @pytest.mark.skipif(
+        not ngraph_bridge.is_grappler_enabled(), reason='Only for Grappler')
     def test_update_config(self):
         config = tf.ConfigProto()
         config.allow_soft_placement = True
