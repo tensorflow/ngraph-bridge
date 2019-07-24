@@ -77,7 +77,8 @@
     agents:
     - "queue=gpu"
 
-  - wait
+  - wait: ~
+    continue_on_failure: true
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
