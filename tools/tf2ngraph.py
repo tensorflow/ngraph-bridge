@@ -164,7 +164,7 @@ def prepare_argparser(formats):
         "summarize_graph tool provided by Tensorflow",
         required=True)
     parser.add_argument(
-        "--ngbackend", default='CPU', help="Ngraph backend. Eg, NNPI")
+        "--ng_backend", default='CPU', help="Ngraph backend. Eg, NNPI")
     parser.add_argument(
         "--extra_params",
         default='{}',
@@ -262,8 +262,8 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
 def main():
     """ Entry point of command line api for converting TF models by inserting ngraph nodes.
     Sample usage:
-    python tf2ngraph.py --inputsavedmodel test_graph --output_nodes out_node --outputpbtxt test_graph_ngraph.pbtxt --ngbackend NNPI:0
-    python tf2ngraph.py --inputpbtxt test_graph.pbtxt --output_nodes out_node --outputpbtxt test_graph_ngraph.pbtxt --ngbackend NNPI:0
+    python tf2ngraph.py --inputsavedmodel test_graph --output_nodes out_node --outputpbtxt test_graph_ngraph.pbtxt --ng_backend NNPI:0
+    python tf2ngraph.py --inputpbtxt test_graph.pbtxt --output_nodes out_node --outputpbtxt test_graph_ngraph.pbtxt --ng_backend NNPI:0
     """
     args = prepare_argparser(allowed_formats)
     inp_format, inp_loc = filter_dict("input", args.__dict__)
@@ -271,7 +271,7 @@ def main():
     output_nodes = args.output_nodes.split(',')
     extra_params = parse_extra_params_string(args.extra_params)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
-            args.ngbackend, extra_params)
+            args.ng_backend, extra_params)
     print('Converted the model. Exiting now')
 
 
