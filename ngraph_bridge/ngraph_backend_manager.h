@@ -115,12 +115,8 @@ class BackendManager {
   GetBackendAttributeValues(  // SplitBackendConfig
       const string& backend_config);
 
-  // Given a backend name and list of attributes
+  // Given a backend name and device id
   // joins them into a string to create ngraph backend
-  // For e.g.
-  // 1. GetBackendCreationString("GPU", {"_ngraph_device_config", "2"})
-  // returns "GPU:2"
-  // throws an error if the required attributes are not present in the map
   static string GetBackendCreationString(const string& backend_name,
                                          const string& device_id);
 

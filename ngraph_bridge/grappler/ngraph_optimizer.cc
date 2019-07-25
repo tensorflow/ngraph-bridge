@@ -54,11 +54,8 @@ Status NgraphOptimizer::Init(
   NGRAPH_VLOG(3) << "Backend name from config: " << config_backend_name;
   for (auto i : params) {
     if (i.first != "ngraph_backend") {
-      if (i.first == "device_id") {
-        config_map["ngraph_" + i.first] = i.second.s();
-      } else {
-        config_map["_ngraph_" + i.first] = i.second.s();
-      }
+      config_map[(i.first == "device_id" ? "" : "_") + std::string("ngraph_") +
+                 i.first] = i.second.s();
       NGRAPH_VLOG(3) << "Attribute: " << i.first
                      << " Value: " << config_map["_ngraph_" + i.first];
     }

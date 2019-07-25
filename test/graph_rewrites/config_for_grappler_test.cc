@@ -42,6 +42,7 @@ namespace ngraph_bridge {
 namespace testing {
 
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
+#define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 // This test can only be run when nGraph-bridge is built with grappler
 // When running with other modes, grappler's ngraph-optimizer is not
@@ -115,7 +116,8 @@ TEST(GrapplerConfig, RConfig1) {
 }
 
 // Though Backend is set via BackendManager
-// The backend set via RewriterConfig takes precedence
+// The backend set via RewriterConfig takes affect
+// since that is the only way of setting backend with grappler
 TEST(GrapplerConfig, RConfig2) {
   // Create Graph
   Scope root = Scope::NewRootScope();
@@ -134,7 +136,8 @@ TEST(GrapplerConfig, RConfig2) {
   }
 
   // set backend
-  // Though we set the backend, the rewriter-config takes precedence
+  // Though we set the backend, the rewriter-config takes affect
+  // since that is the only way of setting backend with grappler
   ASSERT_OK(BackendManager::SetBackendName("INTERPRETER"));
 
   // Create GraphDef and Grappler
@@ -190,7 +193,8 @@ TEST(GrapplerConfig, RConfig2) {
 }
 
 // Though Backend is set via NGRAPH_TF_BACKEND
-// The backend set via RewriterConfig takes precedence
+// The backend set via RewriterConfig takes affect
+// since that is the only way of setting backend with grappler
 TEST(GrapplerConfig, RConfig3) {
   // If NGRAPH_TF_BACKEND is set, unset it
   const unordered_map<string, string>& env_map = StoreEnv();
@@ -223,7 +227,7 @@ TEST(GrapplerConfig, RConfig3) {
   ASSERT_EQ("NOP", check_backend);
 
   // Though we set the backend and NGRAPH_TF_BACKEND
-  // the rewriter-config takes precedence
+  // the rewriter-config takes affect
 
   // Create GraphDef and Grappler
   grappler::GrapplerItem item;
@@ -347,6 +351,49 @@ TEST(GrapplerConfig, RConfig4) {
   ASSERT_EQ(ng_backend, "INTERPRETER");
   ASSERT_EQ(ng_test_echo, "hi");
   ASSERT_EQ(ng_device_id, "5");
+}
+
+// Test the failure case where the compulsory attribute device_id
+// is not provided using the rewriter config
+TEST(GrapplerConfig, RConfig5) {
+  // Create Graph
+  Scope root = Scope::NewRootScope();
+  auto A = ops::Const(root.WithOpName("A"), {3.f, 2.f});
+  auto B = ops::Const(root.WithOpName("B"), {3.f, 2.f});
+  auto Add = ops::Add(root.WithOpName("Add"), A, B);
+  auto C = ops::Const(root.WithOpName("C"), {3.f, 2.f});
+  auto Mul = ops::Mul(root.WithOpName("Mul"), Add, C);
+
+  Graph graph(OpRegistry::Global());
+  TF_CHECK_OK(root.ToGraph(&graph));
+
+  // set device specification
+  for (auto node : graph.op_nodes()) {
+    node->set_requested_device("CPU");
+  }
+
+  // Create GraphDef and Grappler
+  grappler::GrapplerItem item;
+  graph.ToGraphDef(&item.graph);
+  ConfigProto config_proto;
+  auto backend_name = AttrValue();
+  backend_name.set_s("CPU");
+  auto device_id = AttrValue();
+  device_id.set_s("5");
+  auto& rewriter_config =
+      *config_proto.mutable_graph_options()->mutable_rewrite_options();
+  rewriter_config.add_optimizers("ngraph-optimizer");
+  rewriter_config.set_min_graph_nodes(-1);
+  rewriter_config.set_meta_optimizer_iterations(RewriterConfig::ONE);
+  auto* custom_config = rewriter_config.add_custom_optimizers();
+  custom_config->set_name("ngraph-optimizer");
+  (*custom_config->mutable_parameter_map())["ngraph_backend"] = backend_name;
+
+  // Run grappler
+  tensorflow::grappler::MetaOptimizer optimizer(nullptr, config_proto);
+  GraphDef output;
+
+  ASSERT_NOT_OK(optimizer.Optimize(nullptr, item, &output));
 }
 
 }  // namespace testing

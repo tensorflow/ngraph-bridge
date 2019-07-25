@@ -174,12 +174,10 @@ class NGraphEncapsulateOp : public OpKernel {
       // '_ngraph_' is only appended for the bridge.
       // For e.g. _ngraph_ice_cores --> ice_cores
       if (itx.first.find("_ngraph_") != std::string::npos) {
-        // find the index of the second '_'
-        int delimiter_index = itx.first.find('_', 6);
-        NGRAPH_VLOG(4) << "Attribute: " << itx.first.substr(delimiter_index + 1)
+        NGRAPH_VLOG(4) << "Attribute: " << itx.first.substr(strlen("_ngraph_"))
                        << " Value: " << itx.second.s();
         additional_attribute_map.insert(
-            {itx.first.substr(delimiter_index + 1), itx.second.s()});
+            {itx.first.substr(strlen("_ngraph_")), itx.second.s()});
       }
     }
 
