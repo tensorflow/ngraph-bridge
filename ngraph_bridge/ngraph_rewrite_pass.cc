@@ -222,7 +222,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // Precedence Order: Env Variable > BackendManager
     std::unordered_map<std::string, std::string> config_map;
     string backend_name;
-    // So GetCurrentlySetBackendName could return something like GPU:0
+    // GetCurrentlySetBackendName could return GPU:0 (not just GPU)
     TF_RETURN_IF_ERROR(
         BackendManager::GetCurrentlySetBackendName(&backend_name));
 
