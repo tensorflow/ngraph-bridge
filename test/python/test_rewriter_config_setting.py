@@ -56,18 +56,16 @@ class TestRewriterConfigBackendSetting(NgraphTest):
         ngraph_optimizer = rewriter_options.custom_optimizers.add()
         ngraph_optimizer.name = "ngraph-optimizer"
         ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
-        # TODO: once the backend extra params is made optional,
-        # have tests where "test_echo" is not set.
-        # Right now "test_echo" must be set for the test to pass
-        # as extra params are compulsory
-        # TODO: also make similar change in test_tf2ngraph_script.py
-        # once optional extra params is available
+        ngraph_optimizer.parameter_map["device_id"].s = b'0'
+        # TODO: This test will pass if grappler fails silently.
+        # Need to do something about that
         backend_extra_params_map = {
             'CPU': {
                 'device_config': ''
             },
             'INTERPRETER': {
-                'test_echo': '42'
+                'test_echo': '42',
+                'hello': '3'
             }
         }
         extra_params = backend_extra_params_map[backend]
