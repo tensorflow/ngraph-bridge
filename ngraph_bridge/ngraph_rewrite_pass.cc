@@ -229,9 +229,6 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // splits into {"ngraph_backend", "_ngraph_device_config"}
     config_map = BackendManager::GetBackendAttributeValues(
         backend_name);  // SplitBackendConfig
-    // commenting out this line so that in MarkForClustering we pass GPU:0
-    // instead of GPU
-    // backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
 
     if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
@@ -242,7 +239,6 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
-    // For normal pass note that
     TF_RETURN_IF_ERROR(MarkForClustering(options.graph->get(), skip_these_nodes,
                                          backend_name));
     if (DumpMarkedGraphs()) {
