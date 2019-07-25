@@ -196,7 +196,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // Get backend + its configurations, to be attached to the nodes
   // using RewriteConfig
-  string backend_creation_string = config_backend_name + ":" + device_id;
+  string backend_creation_string =
+      BackendManager::GetBackendCreationString(config_backend_name, device_id);
   if (!config_backend_name.empty()) {
     if (!BackendManager::IsSupportedBackend(backend_creation_string)) {
       return errors::Internal("NGRAPH_TF_BACKEND: ", backend_creation_string,

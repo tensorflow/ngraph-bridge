@@ -328,13 +328,13 @@ Status EncapsulateClusters(
           NodeBuilder::NodeOut(graph->FindNodeId(src_node_id), src_output_idx));
     }
 
-    auto config_map =
-        BackendManager::GetBackendAttributeValues(cluster_backend);
     Node* n;
     NodeBuilder nb =
         NodeBuilder(ss.str(), "NGraphEncapsulate")
             .Attr("ngraph_cluster", cluster_idx)
-            .Attr("ngraph_backend", config_map.at("ngraph_backend"))
+            .Attr("ngraph_backend",
+                  BackendManager::GetBackendAttributeValues(cluster_backend)
+                      .at("ngraph_backend"))
             .Attr("Targuments", input_types)
             .Attr("Tresults", cluster_output_dt_map[cluster_idx])
             .Attr("ngraph_graph_id", graph_id)
