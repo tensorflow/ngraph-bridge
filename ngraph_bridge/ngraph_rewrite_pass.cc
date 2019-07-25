@@ -226,7 +226,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     TF_RETURN_IF_ERROR(
         BackendManager::GetCurrentlySetBackendName(&backend_name));
 
-    // splits into {"ngraph_backend", "_ngraph_device_config"}
+    // splits into {"ngraph_backend", "ngraph_device_id"}
     config_map = BackendManager::GetBackendAttributeValues(
         backend_name);  // SplitBackendConfig
     config_map.erase("ngraph_backend");
