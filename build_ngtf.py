@@ -368,6 +368,7 @@ def main():
 
         else:
             print("Building TensorFlow from source")
+            pwd_now = os.getcwd()
             os.chdir(artifacts_location)
             # Download TensorFlow
             download_repo("tensorflow",
@@ -377,6 +378,7 @@ def main():
             # Build TensorFlow
             build_tensorflow(venv_dir, "tensorflow", artifacts_location,
                              target_arch, verbosity)
+            os.chdir(pwd_now)
 
             # Now build the libtensorflow_cc.so - the C++ library
             build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch,
