@@ -551,7 +551,7 @@ def main():
             base_dir = None
         else:
             # Case 3
-            base_dir = build_dir_abs
+            base_dir = artifacts_location
     else:
         # Case 4
         base_dir = arguments.use_tensorflow_from_location
