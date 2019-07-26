@@ -521,8 +521,9 @@ def download_repo(target_name, repo, version):
 
 
 def apply_patch(patch_file):
-    cmd = subprocess.Popen(
-        'patch -p1 -N -i ' + patch_file, shell=True, stdout=subprocess.PIPE)
+    cmd = subprocess.Popen('patch -p1 -N -i ' + patch_file,
+                           shell=True,
+                           stdout=subprocess.PIPE)
     printed_lines = cmd.communicate()
     # Check if the patch is being applied for the first time, in which case
     # cmd.returncode will be 0 or if the patch has already been applied, in
@@ -557,7 +558,9 @@ def set_proxy(arg):
 def build_base(args):
     proxy = set_proxy(" --build-arg")
     vargs = vars(args)
-    verbose = vargs['verbose_build']
+    verbose = False
+    if 'verbose_build' in vargs:
+        verbose = vargs['verbose_build']
     if os.getenv("USER") != None:
         user = os.getenv("USER")
         if has_group(user, "docker") == False:
@@ -574,7 +577,9 @@ def build_base(args):
 
 def start_container(workingdir, args):
     vargs = vars(args)
-    verbose = vargs['verbose_build']
+    verbose = False
+    if 'verbose_build' in vargs:
+        verbose = vargs['verbose_build']
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
@@ -597,11 +602,10 @@ def start_container(workingdir, args):
         home + "/.ssh:/.ssh", "-w", workingdir, "-d", "-t", "ngtf"
     ]
     try:
-        command_executor(
-            start,
-            verbose=verbose,
-            stdout=open(os.devnull, "w"),
-            stderr=open(os.devnull, "w"))
+        command_executor(start,
+                         verbose=verbose,
+                         stdout=open(os.devnull, "w"),
+                         stderr=open(os.devnull, "w"))
     except Exception as exc:
         msg = str(exc)
         print("caught exception: " + msg)
@@ -617,20 +621,20 @@ def check_container():
 
 def stop_container(args):
     vargs = vars(args)
-    verbose = vargs['verbose_build']
+    verbose = False
+    if 'verbose_build' in vargs:
+        verbose = vargs['verbose_build']
     try:
         stop = ["docker", "stop", "ngtf"]
-        command_executor(
-            stop,
-            verbose=verbose,
-            stdout=open(os.devnull, "w"),
-            stderr=open(os.devnull, "w"))
+        command_executor(stop,
+                         verbose=verbose,
+                         stdout=open(os.devnull, "w"),
+                         stderr=open(os.devnull, "w"))
         rm = ["docker", "rm", "ngtf"]
-        command_executor(
-            rm,
-            verbose=verbose,
-            stdout=open(os.devnull, "w"),
-            stderr=open(os.devnull, "w"))
+        command_executor(rm,
+                         verbose=verbose,
+                         stdout=open(os.devnull, "w"),
+                         stderr=open(os.devnull, "w"))
     except Exception as exc:
         msg = str(exc)
         print("caught exception: " + msg)
@@ -667,23 +671,21 @@ def run_in_docker(buildcmd, args):
 
 
 def get_gcc_version():
-    cmd = subprocess.Popen(
-        'gcc -dumpversion',
-        shell=True,
-        stdout=subprocess.PIPE,
-        bufsize=1,
-        universal_newlines=True)
+    cmd = subprocess.Popen('gcc -dumpversion',
+                           shell=True,
+                           stdout=subprocess.PIPE,
+                           bufsize=1,
+                           universal_newlines=True)
     output = cmd.communicate()[0].rstrip()
     return output
 
 
 def get_cmake_version():
-    cmd = subprocess.Popen(
-        'cmake --version',
-        shell=True,
-        stdout=subprocess.PIPE,
-        bufsize=1,
-        universal_newlines=True)
+    cmd = subprocess.Popen('cmake --version',
+                           shell=True,
+                           stdout=subprocess.PIPE,
+                           bufsize=1,
+                           universal_newlines=True)
     output = cmd.communicate()[0].rstrip()
     # The cmake version format is: "cmake version a.b.c"
     version_tuple = output.split()[2].split('.')
@@ -691,12 +693,11 @@ def get_cmake_version():
 
 
 def get_bazel_version():
-    cmd = subprocess.Popen(
-        'bazel version',
-        shell=True,
-        stdout=subprocess.PIPE,
-        bufsize=1,
-        universal_newlines=True)
+    cmd = subprocess.Popen('bazel version',
+                           shell=True,
+                           stdout=subprocess.PIPE,
+                           bufsize=1,
+                           universal_newlines=True)
     # The bazel version format is a multi line output:
     #
     # Build label: 0.24.1
