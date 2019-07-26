@@ -65,8 +65,8 @@ def main():
 
     if (arguments.run_in_docker):
         if check_container() == True:
-            stop_container()
-        start_container("/ngtf")
+            stop_container(arguments)
+        start_container("/ngtf", arguments)
         run_in_docker("/ngtf/test_ngtf.py", arguments)
         return
 
