@@ -59,6 +59,7 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
             'device_id': '0'
         }
 
+    # In this test we test that the spaces are handled correctly
     @pytest.mark.parametrize(('ng_device',),
                              (('{abc:1,def:2}',), ('{abc:1, def:2}',),
                               ('{abc :1,def: 2}',), ('{abc:1,def: 2} ',)))
@@ -68,9 +69,12 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
             'def': '2'
         })
 
+    # This test checks the parsing of the empty dictionary {}
     def parse_extra_params_empty(self):
         assert (parse_extra_params_string('{}') == {})
 
+    # In this test we pass badly formatted strings,
+    # and expect parse_extra_params_string to fail
     @pytest.mark.parametrize(('ng_device',), (
         ('abc:1,def:2}',),
         ('{abc:1, def:2',),
@@ -84,5 +88,5 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
             function_failed = True
         assert function_failed
 
-    # TODO: write a test for parse_extra_params_string for incorrect parsings 
+    # TODO: write a test for parse_extra_params_string for incorrect parsings
     # where parse_extra_params_string is expected to fail
