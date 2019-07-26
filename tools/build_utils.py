@@ -585,11 +585,10 @@ def start_container(workingdir, args):
     abscachedir = os.path.abspath(cachedir)
     if os.path.isdir(abscachedir) == False:
         os.makedirs(abscachedir)
-    if platform.system() == 'Darwin':
-        f = open("/tmp/passwd", "w")
-        f.write(user + ":*:" + str(u) + ":" + str(g) + ":User " + user +
-                ":/:/bin/bash")
-        f.close()
+    f = open("/tmp/passwd", "w")
+    f.write(user + ":*:" + str(u) + ":" + str(g) + ":User " + user +
+            ":/:/bin/bash")
+    f.close()
     start = [
         "docker", "run", "--name", "ngtf", "-u",
         str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
