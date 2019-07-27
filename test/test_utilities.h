@@ -17,11 +17,12 @@
 #define NGRAPH_TF_BRIDGE_TESTUTILITIES_H_
 
 #include "gtest/gtest.h"
-#include "ngraph/ngraph.hpp"
 
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/env.h"
+
+#include "ngraph/ngraph.hpp"
 
 using namespace std;
 namespace ng = ngraph;
@@ -35,6 +36,22 @@ namespace testing {
 // Activate and Deactivate NGraph
 void ActivateNGraph();
 void DeactivateNGraph();
+
+// Store/Restore Env Variables
+unordered_map<string, string> StoreEnv();
+void RestoreEnv(const unordered_map<string, string>& map);
+
+// EnvVariable Utilities
+bool IsEnvVariableSet(const string& env_var_name);
+string GetEnvVariable(const string& env_var_name);
+void UnsetEnvVariable(const string& env_var_name);
+void SetEnvVariable(const string& env_var_name, const string& env_var_val);
+
+// NGRAPH_TF_BACKEND related
+bool IsNGraphTFBackendSet();
+string GetNGraphTFBackend();
+void UnsetNGraphTFBackend();
+void SetNGraphTFBackend(const string& bname);
 
 // Print Functions
 void PrintTensor(const Tensor& T1);
