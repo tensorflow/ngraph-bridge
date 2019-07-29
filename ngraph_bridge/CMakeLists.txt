@@ -35,7 +35,6 @@ set(SRC
    ngraph_assign_clusters.cc
    ngraph_builder.cc
    ngraph_backend_manager.cc
-   ngraph_backend_config.cc
    ngraph_capture_variables.cc
    ngraph_cluster_manager.cc
    ngraph_deassign_clusters.cc
@@ -88,10 +87,10 @@ endif()
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)            
     if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
         list(REMOVE_ITEM SRC enable_variable_ops/ngraph_rewrite_pass.cc)
+        # list(APPEND SRC enable_variable_ops/ngraph_catalog.cc)
     else()
         list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
     endif()
-    list(APPEND SRC enable_variable_ops/ngraph_catalog.cc)
     list(APPEND SRC grappler/ngraph_optimizer.cc)
     list(APPEND SRC grappler/ngraph_add_identityn.cc)
     add_definitions(-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER)

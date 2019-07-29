@@ -43,22 +43,23 @@ namespace ngraph_bridge {
 Status NgraphOptimizer::Init(
     const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
   const auto params = config->parameter_map();
-  if (params.count("ngraph_backend")) {
-    config_backend_name = params.at("ngraph_backend").s();
-    NGRAPH_VLOG(3) << config_backend_name;
-    std::vector<std::string> additional_attributes =
-        BackendManager::GetBackendAdditionalAttributes(config_backend_name);
-    for (size_t i = 0; i < additional_attributes.size(); i++) {
-      if (params.count(additional_attributes[i])) {
-        config_map["_ngraph_" + additional_attributes[i]] =
-            params.at(additional_attributes[i]).s();
-        NGRAPH_VLOG(3) << additional_attributes[i] << " "
-                       << config_map["_ngraph_" + additional_attributes[i]];
-      }
+  for (size_t i = 0; i < compulsory_attrs.size(); i++) {
+    if (params.count(compulsory_attrs[i]) == 0) {
+      NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Compulsory attribute "
+                     << compulsory_attrs[i] << " not found.";
+      return errors::Internal("NGTF_OPTIMIZER: Missing compulsory attributes.");
     }
-  } else {
-    NGRAPH_VLOG(5)
-        << "NGTF_OPTIMIZER: parameter_map does not have ngraph_backend";
+  }
+  config_backend_name = params.at("ngraph_backend").s();
+  config_device_id = params.at("device_id").s();
+  NGRAPH_VLOG(3) << "Backend name from config: " << config_backend_name;
+  for (auto i : params) {
+    if (i.first != "ngraph_backend") {
+      config_map[(i.first == "device_id" ? "" : "_") + std::string("ngraph_") +
+                 i.first] = i.second.s();
+      NGRAPH_VLOG(3) << "Attribute: " << i.first
+                     << " Value: " << config_map["_ngraph_" + i.first];
+    }
   }
   return Status::OK();
 }
@@ -175,27 +176,32 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 #endif
 
-  //
-  // Encapsulation: Part that rewrites the graph for nGraph operation.
-  //
-  // The part has several phases, each executed in sequence:
-  //
-  //   1. Marking [ngraph_mark_for_clustering.cc]
-  //   2. Cluster Assignment [ngraph_assign_clusters.cc]
-  //   3. Cluster Deassignment [ngraph_deassign_clusters.cc]
-  //   4. Cluster Encapsulation [ngraph_encapsulate_clusters.cc] - currently
-  //      part of the ngraph_rewrite_pass.cc to be executed after POST_REWRITE
-  //
-  // Between phases, graph dumps (in both .dot and .pbtxt format) may be
-  // requested by setting the following environment variables:
-  //
-  //   NGRAPH_TF_DUMP_UNMARKED_GRAPHS=1      dumps graphs before phase 1
-  //   NGRAPH_TF_DUMP_MARKED_GRAPHS=1        dumps graphs after phase 1
-  //   NGRAPH_TF_DUMP_CLUSTERED_GRAPHS=1     dumps graphs after phase 2
-  //   NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS=1   dumps graphs after phase 3
-  //   NGRAPH_TF_DUMP_ENCAPSULATED_GRAPHS=1  dumps graphs after phase 4
-  //   NGRAPH_TF_DUMP_GRAPHS=1               all of the above
-  //
+//
+// Pass that rewrites the graph for nGraph operation.
+//
+// The pass has several phases, each executed in sequence:
+//
+//   0. Replace Modifiers [ngraph_replace_variable_modifiers.cc]
+//   1. Marking [ngraph_mark_for_clustering.cc]
+//   2. Cluster Assignment [ngraph_assign_clusters.cc]
+//   3. Cluster Deassignment [ngraph_deassign_clusters.cc]
+//   4. Cluster Encapsulation [ngraph_encapsulate_clusters.cc]
+//   5. Rewrite Variable Type Ops for Tracking [ngraph_rewrite_for_tracking.cc]
+//   6. Enter In Catalog  [ngraph_enter_in_catalog.cc]
+//   7. Remove NGraphAssigns [ngraph_remove_ngraphassigns.cc]
+// Between phases, graph dumps (in both .dot and .pbtxt format) may be
+// requested by setting the following environment variables:
+//
+//   NGRAPH_TF_DUMP_UNMARKED_GRAPHS=1            dumps graphs before phase 0
+//   NGRAPH_TF_DUMP_REPLACEDMODIFIERS_GRAPHS=1   dumps graphs after phase 0
+//   NGRAPH_TF_DUMP_MARKED_GRAPHS=1              dumps graphs after phase 1
+//   NGRAPH_TF_DUMP_CLUSTERED_GRAPHS=1           dumps graphs after phase 2
+//   NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS=1         dumps graphs after phase 3
+//   NGRAPH_TF_DUMP_ENCAPSULATED_GRAPHS=1        dumps graphs after phase 4
+//   NGRAPH_TF_DUMP_TRACKED_GRAPHS=1             dumps graphs after phase 5
+//   NGRAPH_TF_DUMP_CATALOGED_GRAPHS=1           dumps graphs after phase 6
+//   NGRAPH_TF_DUMP_REMOVENGASSIGNS_GRAPHS=1     dumps graphs after phase 7
+//   NGRAPH_TF_DUMP_GRAPHS=1                     all of the above
 
   // If requested, dump unmarked graphs.
   if (DumpUnmarkedGraphs()) {
@@ -203,30 +209,22 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // Get backend + its configurations, to be attached to the nodes
-  // Precedence Order: RewriteConfig > Env Variable > BackendManager
-  string backend_name;
+  // using RewriteConfig
+  string backend_creation_string = BackendManager::GetBackendCreationString(
+      config_backend_name, config_device_id);
   if (!config_backend_name.empty()) {
-    if (!BackendManager::IsSupportedBackend(config_backend_name)) {
-      return errors::Internal("NGRAPH_TF_BACKEND: ", config_backend_name,
+    if (!BackendManager::IsSupportedBackend(backend_creation_string)) {
+      return errors::Internal("NGRAPH_TF_BACKEND: ", backend_creation_string,
                               " is not supported");
     }
-    backend_name = config_backend_name;
-    NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig " << backend_name;
-  } else {
-    TF_RETURN_IF_ERROR(
-        BackendManager::GetCurrentlySetBackendName(&backend_name));
-    // splits into {"ngraph_backend", "_ngraph_device_config"}
-    config_map = BackendManager::GetBackendAttributeValues(
-        backend_name);  // SplitBackendConfig
-    backend_name = config_map.at("ngraph_backend");
-    // config_map in EncapsulateClusters is not expected to contain
-    // ngraph_backend
-    config_map.erase("ngraph_backend");
+    NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig "
+                   << backend_creation_string;
   }
-  NGRAPH_VLOG(0) << "NGraph using backend: " << backend_name;
+  NGRAPH_VLOG(0) << "NGraph using backend: " << backend_creation_string;
 
   // 1. Mark for clustering then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes, backend_name));
+  TF_RETURN_IF_ERROR(
+      MarkForClustering(&graph, skip_these_nodes, backend_creation_string));
   if (DumpMarkedGraphs()) {
     DumpGraphs(graph, idx, "marked", "Graph Marked for Clustering");
   }
@@ -264,6 +262,13 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   if (DumpCatalogedGraphs()) {
     DumpGraphs(graph, idx, "cataloged",
                "Graph with Variables Inputs Entered in Catalog");
+  }
+
+  // Remove Certain NGraphAssigns then.
+  TF_RETURN_IF_ERROR(RemoveNGraphAssigns(&graph));
+  if (DumpRemoveNGraphAssignsGraphs()) {
+    DumpGraphs(graph, idx, "ngraphssigns_optimized",
+                "Graph with NGraphAssigns Optimized/Removed");
   }
 #endif
 

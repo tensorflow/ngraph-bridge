@@ -40,6 +40,7 @@
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 #include "ngraph_bridge/enable_variable_ops/ngraph_enter_in_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_remove_ngraphassigns.h"
 #endif
 
 #include <iomanip>
@@ -78,7 +79,9 @@ class NgraphOptimizer : public tensorflow::grappler::CustomGraphOptimizer {
 
  private:
   std::string config_backend_name;
+  std::string config_device_id;
   std::unordered_map<std::string, std::string> config_map;
+  std::vector<string> compulsory_attrs = {"ngraph_backend", "device_id"};
 
   void DumpGraphs(Graph&, int, std::string, std::string);
 

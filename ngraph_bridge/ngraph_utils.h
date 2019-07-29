@@ -332,6 +332,8 @@ Status FindSharedNameOfPreviouslyReplacedVariable(
 bool DumpReplacedModifiersGraphs();
 
 bool DumpCatalogedGraphs();
+
+bool DumpRemoveNGraphAssignsGraphs();
 #endif
 
 #if defined(NGRAPH_DISTRIBUTED)

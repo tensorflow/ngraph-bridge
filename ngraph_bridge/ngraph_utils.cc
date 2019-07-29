@@ -383,6 +383,11 @@ bool DumpCatalogedGraphs() {
   return DumpAllGraphs() ||
          std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
 }
+
+bool DumpRemoveNGraphAssignsGraphs() {
+  return DumpAllGraphs() ||
+          std::getenv("NGRAPH_TF_DUMP_REMOVENGASSIGNS_GRAPHS") != nullptr;
+}
 #endif
 
 #if defined(NGRAPH_DISTRIBUTED)
