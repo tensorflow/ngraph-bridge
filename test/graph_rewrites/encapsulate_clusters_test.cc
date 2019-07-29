@@ -84,7 +84,7 @@ TEST(EncapsulateClusters, PopulateLibrary) {
 
   std::unordered_map<std::string, std::string> config_map;
   config_map["ngraph_device_id"] = "";
-  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map, {}));
+  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map, {false, {}}));
 
   int num_encapsulates = 0;
   int num_tf_nodes = 0;

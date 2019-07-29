@@ -18,13 +18,15 @@
 #define NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
 #pragma once
 
+#include <vector>
+
 #include "tensorflow/core/graph/graph.h"
 
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
-typedef std::pair<bool, std::map<std::string, set<vector<int>>>> AOTInfo;
+typedef std::pair<bool, std::map<std::string, std::set<std::vector<int>>>> AOTInfo;
 
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
