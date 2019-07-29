@@ -9,7 +9,7 @@ This repository contains the code needed to enable Intel(R) nGraph(TM) Compiler 
 runtime engine for TensorFlow. Use it to speed up your TensorFlow training and 
 inference workloads. The nGraph Library and runtime suite can also be used to 
 customize and deploy Deep Learning inference models that will "just work" with 
-a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the 
+a variety of nGraph-enabled backends: CPU, GPU, and a custom silicon like the 
 [Intel(R) Nervana(TM) NNP](https://itpeernetwork.intel.com/inteldcisummit-artificial-intelligence/).
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/tensorflow/ngraph-bridge/blob/master/LICENSE)
@@ -88,7 +88,7 @@ Once TensorFlow's dependencies are installed, clone the `ngraph-bridge` repo:
 
         git clone https://github.com/tensorflow/ngraph-bridge.git
         cd ngraph-bridge
-        git checkout v0.17.0-rc2
+        git checkout v0.16.0-rc6
 
 Run the following Python script to build TensorFlow, nGraph, and the bridge. Use Python 3.5:
 
