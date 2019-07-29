@@ -426,7 +426,8 @@ bool IsProcessedByNgraphPass(Graph* g) {
   return false;
 }
 
-#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER) && \
+    (NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 Status FindSharedNameOfPreviouslyReplacedVariable(
     Node* node, const std::set<string>& identity_attached_nodes,
     string& shared_name) {

@@ -179,7 +179,8 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
                     ? node->name()
                     : shared_name_from_current_var;
 
-#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER) && \
+    (NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   // Only if this replacement is TF Var to NG Var (in Capture), but not NG Var->
   // NG Var (in rewrite for tracking)
   // Both replacements use this function, so this "if" is activated only in the

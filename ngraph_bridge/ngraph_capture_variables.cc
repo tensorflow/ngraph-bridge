@@ -77,7 +77,8 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
                           : shared_name_from_current_var;
 
         Node* replacement;
-#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER) && \
+    (NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
         TF_RETURN_IF_ERROR(FindSharedNameOfPreviouslyReplacedVariable(
             node, skip_these_nodes, shared_name));
 #endif
