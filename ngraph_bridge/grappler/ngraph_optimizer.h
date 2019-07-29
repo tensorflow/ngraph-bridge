@@ -39,8 +39,8 @@
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 #include "ngraph_bridge/enable_variable_ops/ngraph_enter_in_catalog.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_remove_ngraphassigns.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
 #endif
 
 #include <iomanip>
