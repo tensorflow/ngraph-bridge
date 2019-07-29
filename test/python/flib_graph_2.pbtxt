@@ -175,6 +175,12 @@ node {
     }
   }
   attr {
+    key: "ngraph_device_id"
+    value {
+      s: ""
+    }
+  }
+  attr {
     key: "ngraph_cluster"
     value {
       i: 1

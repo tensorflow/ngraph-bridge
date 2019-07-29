@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.4)
 
 project (ngraph_tensorflow_bridge CXX)
 
@@ -234,7 +234,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.20.0-rc.1
+        GIT_TAG v0.24.0-rc.2
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
@@ -277,10 +277,13 @@ set_target_properties(
 
 add_dependencies(ngraph_lib_static ext_ngraph)
 
+SET(BASEPATH "${CMAKE_SOURCE_DIR}")
+INCLUDE_DIRECTORIES("${BASEPATH}")
+
 # Add the directories to be built
 add_subdirectory(third-party)
 add_subdirectory(logging)
-add_subdirectory(src)
+add_subdirectory(ngraph_bridge)
 add_subdirectory(tools)
 
 # The following targets depend on the Tensorflow source code directory

@@ -61,6 +61,8 @@ set(SRC
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/capture_variables.cc)
+    list(APPEND SRC graph_rewrites/enter_in_catalog_test.cc)
+    list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -111,7 +113,12 @@ else()
     )
 endif()
 
+if (NGRAPH_PLAIDML_ENABLE)
+    target_link_libraries(gtest_ngtf ${PLAIDML_LIBRARIES})
+endif()
+
 add_subdirectory(python)
+add_subdirectory(model_level_tests)
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
@@ -137,4 +144,9 @@ install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
     FILES_MATCHING PATTERN "*.pb"
+)
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
 )

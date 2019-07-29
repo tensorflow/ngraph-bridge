@@ -18,6 +18,7 @@ import argparse
 import tensorflow as tf
 from google.protobuf import text_format
 from tensorflow.core.protobuf import meta_graph_pb2
+from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.grappler import tf_optimizer
 import ngraph_bridge
 import os
@@ -25,7 +26,50 @@ import sys
 from functools import partial
 
 
-def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
+def parse_extra_params_string(raw_extra_params):
+    raw_extra_params = raw_extra_params.strip(' ')
+    assert raw_extra_params[0] == '{' and raw_extra_params[
+        -1] == '}', "Expected extra_params string to be a dictionary beginning with { and ending with }"
+    raw_extra_params_contents = raw_extra_params[1:-1].strip(' ')
+    extra_params_dict = {}
+    if len(raw_extra_params_contents) == 0:
+        return extra_params_dict
+    # could have used eval(extra_params_string), but then the string would have to be the cumbersome {\"abc\":1}
+    # and not {"abc":1} or {abc:1}. Hence explicity parsing the string without using eval
+    for key_val in raw_extra_params_contents.split(','):
+        key_val = key_val.strip(' ')
+        try:
+            key, val = key_val.split(':')
+            extra_params_dict[key.strip(' ')] = val.strip(' ')
+        except Exception as e:
+            raise type(
+                e
+            )(e.message +
+              'Got an entry in extra_params, that is an invalid entry for a python dictionary: '
+              + key_val)
+    return extra_params_dict
+
+
+def update_config_to_include_custom_config(config, backend, device_id,
+                                           extra_params):
+    rewriter_options = rewriter_config_pb2.RewriterConfig()
+    rewriter_options.meta_optimizer_iterations = (
+        rewriter_config_pb2.RewriterConfig.ONE)
+    rewriter_options.min_graph_nodes = -1
+    ngraph_optimizer = rewriter_options.custom_optimizers.add()
+    ngraph_optimizer.name = "ngraph-optimizer"
+    ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
+    ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
+    for k in extra_params:
+        ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
+    config.MergeFrom(
+        tf.ConfigProto(
+            graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
+    return config
+
+
+def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
+                                  device_id, extra_params):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -45,7 +89,10 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes):
         output_collection)
 
     session_config = tf.ConfigProto()
-    session_config = ngraph_bridge.update_config(session_config)
+    # Pass backend and extra backend params to grappler through rewriter config by updating the config
+    # TODO: move update_config_to_include_custom_config to ngraph_bridge
+    session_config = update_config_to_include_custom_config(
+        session_config, ng_backend, device_id, extra_params)
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -96,28 +143,38 @@ def prepare_argparser(formats):
     Tool to convert TF graph into a ngraph enabled graph
     Sample usage:
     Command line:
-    python tf2ngraph.py --inputsavedmodel test_graph_SM --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
-    python tf2ngraph.py --inputpbtxt test_graph_SM.pbtxt --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt
-    or:
-    functional api
-    from tf2ngraph import convert
-    convert('savedmodel', 'test_graph_SM' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
-    convert('pbtxt', 'test_graph_SM.pbtxt' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
+    python tf2ngraph.py --input_savedmodel resnet_model_location --output_nodes out_node --output_pbtxt resnet_ngraph.pbtxt
+    python tf2ngraph.py --input_pbtxt mobilenet.pbtxt --output_nodes out_node --output_pbtxt mobilenet_ngraph.pbtxt
+    python tf2ngraph.py --input_pb inception_v3_2016_08_28_frozen.pb --output_nodes InceptionV3/Predictions/Reshape_1 --output_pb inception_v3_2016_08_28_frozen_ngraph.pb
+    python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU
     ''')
-    in_out_groups = [parser.add_argument_group(i) for i in ['input', 'output']]
+    in_out_groups = [
+        parser.add_argument_group(i, j) for i, j in zip(
+            ['input', 'output'], ['Input formats', 'Output formats'])
+    ]
     for grp in in_out_groups:
         inp_out_group = grp.add_mutually_exclusive_group()
         for format in formats[grp.title]:
-            opt_name = grp.title + format
+            opt_name = grp.title + '_' + format
             inp_out_group.add_argument(
                 "--" + opt_name, help="Location of " + grp.title + " " + format)
     # Note: no other option must begin with "input" or "output"
     parser.add_argument(
-        "--outnodes", help="Comma separated list of output nodes")
+        "--output_nodes",
+        help=
+        "Comma separated list of output nodes. Output nodes can be found " \
+        "by manual inspection of the graph, prior knowledge or running the " \
+        "summarize_graph tool provided by Tensorflow",
+        required=True)
     parser.add_argument(
-        "--ngbackend",
-        default='CPU',
-        help="Ngraph backend (with cardinality). Eg, NNPI:0")
+        "--ng_backend", default='CPU', help="Ngraph backend. Eg, NNPI")
+    parser.add_argument("--device_id", default='', help="Device id. Eg, 0")
+    parser.add_argument(
+        "--extra_params",
+        default='{}',
+        help=
+        "Other params that the backend needs in the form of a dictionary. Eg, {max_cores: 4}."
+    )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -127,16 +184,17 @@ def prepare_argparser(formats):
 def filter_dict(prefix, dictionary):
     assert prefix in ['input', 'output']
     current_format = list(
-        filter(lambda x: x.startswith(prefix) and dictionary[x] is not None,
-               dictionary))
+        filter(
+            lambda x: x.startswith(prefix + '_') and dictionary[x] is not None
+            and 'nodes' not in x, dictionary))
     assert len(current_format) == 1, "Got " + str(
-        len(current_format)) + " input formats, expected only 1"
+        len(current_format)) + " " + prefix + " formats, expected only 1"
     # [len(prefix):] deletes the initial "input" in the string
-    stripped = current_format[0][len(prefix):]
+    stripped = current_format[0][len(prefix):].lstrip('_')
     assert stripped in allowed_formats[
         prefix], "Got " + prefix + " format = " + stripped + " but only support " + str(
             allowed_formats[prefix])
-    return (stripped, dictionary[prefix + stripped])
+    return (stripped, dictionary[prefix + '_' + stripped])
 
 
 def save_gdef_to_savedmodel(gdef, location):
@@ -167,9 +225,7 @@ def save_model(gdef, format, location):
     }[format](gdef, location)
 
 
-def attach_device_and_ng_backend(gdef, ng_backend):
-    ngraph_bridge.set_backend(ng_backend)
-    # Assumes that the whole graph runs on a single ng_backend
+def attach_device(gdef):
     for n in gdef.node:
         n.device = "/device:CPU:0"
 
@@ -180,19 +236,20 @@ allowed_formats = {
 }
 
 
-def convert(inp_format, inp_loc, out_format, out_loc, outnodes, ng_backend):
+def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
+            device_id, extra_params):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
-    convert('savedmodel', 'test_graph_SM' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
-    convert('pbtxt', 'test_graph_SM.pbtxt' , 'pbtxt', 'test_graph_SM_mod.pbtxt', ['out_node'])
+    convert('savedmodel', 'test_graph' , 'pbtxt', 'test_graph_ngraph.pbtxt', ['out_node'])
+    convert('pbtxt', 'test_graph.pbtxt' , 'pbtxt', 'test_graph_ngraph.pbtxt', ['out_node'])
 
     Parameters:
     inp_format (string): 'savedmodel', 'pbtxt', 'pb'
     inp_loc (string): Location of input file or folder (in case of savedmodel)
     out_format (string): 'savedmodel', 'pbtxt', 'pb'
     out_loc (string): Location of output file or folder (in case of savedmodel)
-    outnodes (iterable of strings): names of output nodes
+    output_nodes (iterable of strings): names of output nodes
 
     Returns: void
    """
@@ -200,22 +257,25 @@ def convert(inp_format, inp_loc, out_format, out_loc, outnodes, ng_backend):
     assert out_format in allowed_formats['output']
     assert ngraph_bridge.is_grappler_enabled()
     input_gdef = get_gdef(inp_format, inp_loc)
-    attach_device_and_ng_backend(input_gdef, ng_backend)
-    output_gdef = run_ngraph_grappler_optimizer(input_gdef, outnodes)
+    attach_device(input_gdef)
+    output_gdef = run_ngraph_grappler_optimizer(
+        input_gdef, output_nodes, ng_backend, device_id, extra_params)
     save_model(output_gdef, out_format, out_loc)
 
 
 def main():
     """ Entry point of command line api for converting TF models by inserting ngraph nodes.
     Sample usage:
-    python tf2ngraph.py --inputsavedmodel test_graph_SM --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt --ngbackend NNPI:0
-    python tf2ngraph.py --inputpbtxt test_graph_SM.pbtxt --outnodes out_node --outputpbtxt test_graph_SM_mod.pbtxt --ngbackend NNPI:0
+    python tf2ngraph.py --inputsavedmodel test_graph --output_nodes out_node --outputpbtxt test_graph_ngraph.pbtxt --ng_backend NNPI:0
+    python tf2ngraph.py --inputpbtxt test_graph.pbtxt --output_nodes out_node --outputpbtxt test_graph_ngraph.pbtxt --ng_backend NNPI:0
     """
     args = prepare_argparser(allowed_formats)
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
-    outnodes = args.outnodes.split(',')
-    convert(inp_format, inp_loc, out_format, out_loc, outnodes, args.ngbackend)
+    output_nodes = args.output_nodes.split(',')
+    extra_params = parse_extra_params_string(args.extra_params)
+    convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
+            args.ng_backend, args.device_id, extra_params)
     print('Converted the model. Exiting now')
 
 
