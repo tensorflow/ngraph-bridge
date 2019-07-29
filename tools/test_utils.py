@@ -406,7 +406,7 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
 
     cmd = [
         'python', 'tf_cnn_benchmarks.py', '--data_format', 'NCHW',
-        '--num_inter_threads', '1', '--train_dir=' + model_save_dir,
+        '--num_inter_threads', '2', '--train_dir=' + model_save_dir,
         '--num_batches',
         str(iterations), '--model=resnet50', '--batch_size=' + str(batch_size),
         '--eval_dir=' + eval_eventlog_dir
