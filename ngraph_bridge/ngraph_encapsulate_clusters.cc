@@ -1,0 +1,738 @@
+/*******************************************************************************
+ * Copyright 2017-2019 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+#include <algorithm>
+#include <cctype>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+
+#include "tensorflow/core/framework/attr_value_util.h"
+#include "tensorflow/core/framework/function.pb.h"
+#include "tensorflow/core/framework/graph.pb.h"
+#include "tensorflow/core/framework/graph_to_functiondef.h"
+#include "tensorflow/core/framework/node_def_util.h"
+#include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/graph/graph.h"
+#include "tensorflow/core/graph/graph_constructor.h"
+#include "tensorflow/core/graph/node_builder.h"
+#include "tensorflow/core/graph/tensor_id.h"
+#include "tensorflow/core/graph/validate.h"
+#include "tensorflow/core/platform/default/logging.h"
+#include "tensorflow/core/platform/protobuf.h"
+#include "tensorflow/core/util/device_name_utils.h"
+
+#include "logging/ngraph_log.h"
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/version.h"
+
+using namespace std;
+
+namespace tensorflow {
+
+namespace ngraph_bridge {
+
+//
+// For each cluster K in the input graph, the encapsulation pass takes the set
+// of all nodes in K and replaces them with a single NGraphEncapsulate op that
+// stands in for the internal subgraph represented by the cluster K.
+//
+// TODO(amprocte): Point to some more documentation on what we're doing here...
+//
+
+// begin code copied and pasted (and modified) from graph.cc...
+static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
+  if (src_slot == Graph::kControlSlot) {
+    dst->add_input(strings::StrCat("^", src_name));
+  } else if (src_slot == 0) {
+    dst->add_input(src_name.data(), src_name.size());
+  } else {
+    dst->add_input(strings::StrCat(src_name, ":", src_slot));
+  }
+}
+// ...end code copied and pasted (and modified) from graph.cc
+
+Status EncapsulateClusters(
+    Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
+    std::unordered_map<std::string, std::string> device_config, AOTInfo aot_info) {
+  // A map from cluster indices to the expected device name for nodes
+  // in that cluster.
+  std::map<int, std::string> device_name_map;
+
+  // We *should* eventually have a way of monitoring the device and the backend
+  // together
+  std::map<int, std::string> backend_name_map;
+
+  // As we build the graph we will be tracking the.. TODO(amprocte): finish
+  // this comment.
+  std::map<std::tuple<int, int>, std::tuple<int, int>> output_remap_map;
+  std::map<std::tuple<int, int, int>, int> input_remap_map;
+  std::map<std::tuple<int, std::string, int>, string> input_rename_map;
+
+  // A map from cluster indices to a vector of input data types.
+  std::map<int, std::vector<std::tuple<int, int, DataType>>> cluster_input_map;
+  // A map from cluster indices to a vector of output data types.
+  std::map<int, std::vector<DataType>> cluster_output_dt_map;
+
+  // A map from cluster indices to corresponding NGraphEncapsulate nodes.
+  std::map<int, Node*> cluster_node_map;
+
+  // Pass 1: Populate the cluster-index-to-device name map for each existing
+  // cluster. PIGGYBACKING BACKEND TEST HERE, THEY WILL GET COMBINED INTO ONE
+  for (auto node : graph->op_nodes()) {
+    int cluster_idx;
+
+    if (GetNodeCluster(node, &cluster_idx) != Status::OK()) {
+      continue;
+    }
+
+    string node_backend;
+    if (GetNodeBackend(node, &node_backend) != Status::OK()) {
+      continue;
+    }
+
+    auto it = device_name_map.find(cluster_idx);
+
+    if (it != device_name_map.end()) {
+      if (it->second != node->assigned_device_name()) {
+        std::stringstream ss_err;
+        ss_err << "Node " << node->name() << " in cluster " << cluster_idx
+               << " has assigned device " << node->assigned_device_name()
+               << " but another node with assigned device " << it->second
+               << " has already been seen in the same cluster";
+
+        return errors::Internal(ss_err.str());
+      }
+    } else {
+      NGRAPH_VLOG(3) << "setting cluster " << cluster_idx
+                     << " requested device to '" << node->assigned_device_name()
+                     << "'";
+      device_name_map[cluster_idx] = node->assigned_device_name();
+    }
+
+    auto itr = backend_name_map.find(cluster_idx);
+
+    if (itr != backend_name_map.end()) {
+      if (itr->second != node_backend) {
+        std::stringstream ss_err;
+        ss_err << "Node " << node->name() << " in cluster " << cluster_idx
+               << " has assigned backend " << node_backend
+               << " but another node with assigned backend " << it->second
+               << " has already been seen in the same cluster";
+
+        return errors::Internal(ss_err.str());
+      }
+    } else {
+      NGRAPH_VLOG(3) << "setting cluster " << cluster_idx
+                     << " requested backend to '" << node_backend << "'";
+      backend_name_map[cluster_idx] = node_backend;
+    }
+  }
+
+  // Pass 2: Find all nodes that are feeding into/out of each cluster, and
+  // add inputs for them to the corresponding FunctionDef(s).
+  std::map<int, int> retval_index_count;
+  std::map<int, int> arg_index_count;
+  int count_arg = 0, count_retval = 0, count_both_arg_retval = 0,
+      count_free = 0, count_encapsulated = 0, count_tot = 0;
+
+  for (auto edge : graph->edges()) {
+    count_tot++;
+    // TODO(amprocte): should actually keep of these. During clustering we
+    // will already have identified any intra-cluster control deps. Should
+    // maintain inter-cluster control deps.
+    if (edge->IsControlEdge()) {
+      count_free++;
+      continue;
+    }
+
+    Node* src = edge->src();
+    Node* dst = edge->dst();
+
+    // TODO(amprocte): the following rejects edges involving source/sink. Is
+    // that what we want to do?
+    if (!src->IsOp() || !dst->IsOp()) {
+      count_free++;
+      continue;
+    }
+
+    int dst_cluster_idx;
+    bool dst_clustered =
+        (GetNodeCluster(dst, &dst_cluster_idx) == Status::OK());
+
+    int src_cluster_idx;
+    bool src_clustered =
+        (GetNodeCluster(src, &src_cluster_idx) == Status::OK());
+
+    // Ignore edges within a cluster. (Note that this test also works when
+    // both nodes are unclustered; GetNodeCluster gives us -1 in that case.
+    if (dst_cluster_idx == src_cluster_idx) {
+      count_encapsulated++;
+      continue;
+    }
+
+    // Some debug logging...
+    DataType dt = dst->input_type(edge->dst_input());
+    std::string flow_kind = dst_clustered && src_clustered
+                                ? "cross-flow"
+                                : dst_clustered ? "in-flow" : "out-flow";
+
+    NGRAPH_VLOG(4) << "found " << flow_kind << ": " << src->name() << "["
+                   << edge->src_output() << "] in " << src_cluster_idx << " to "
+                   << dst->name() << "[" << edge->dst_input() << "] in "
+                   << dst_cluster_idx << ", datatype: " << dt;
+
+    bool edge_is_retval = false, edge_is_arg = false;
+
+    // If the source node lies within a cluster, we must create an output for
+    // it from the source cluster. For the moment we will just store this
+    // fact in the output_remap_map.
+    if (src_clustered &&
+        output_remap_map.find(std::make_tuple(src->id(), edge->src_output())) ==
+            output_remap_map.end()) {
+      output_remap_map[std::make_tuple(src->id(), edge->src_output())] =
+          std::make_tuple(src_cluster_idx,
+                          cluster_output_dt_map[src_cluster_idx].size());
+
+      std::stringstream ss;
+      ss << "ngraph_output_" << cluster_output_dt_map[src_cluster_idx].size();
+      string output_name = ss.str();
+
+      auto new_output_node_def =
+          NGraphClusterManager::GetClusterGraph(src_cluster_idx)->add_node();
+      new_output_node_def->set_name(output_name);
+      new_output_node_def->set_op("_Retval");
+      edge_is_retval = true;
+
+      std::stringstream ss_input_to_retval;
+      ss_input_to_retval << src->name() << ":" << edge->src_output();
+
+      new_output_node_def->add_input(ss_input_to_retval.str());
+
+      SetAttrValue(dt, &((*(new_output_node_def->mutable_attr()))["T"]));
+      SetAttrValue(retval_index_count[src_cluster_idx],
+                   &((*(new_output_node_def->mutable_attr()))["index"]));
+
+      retval_index_count[src_cluster_idx]++;
+
+      cluster_output_dt_map[src_cluster_idx].push_back(dt);
+    }
+
+    // If the destination node lies within a cluster, we must create an input
+    // for the source node to the destination cluster. For the moment we will
+    // just store this fact in the input_remap_map.
+    if (dst_clustered &&
+        input_remap_map.find(
+            std::make_tuple(dst_cluster_idx, src->id(), edge->src_output())) ==
+            input_remap_map.end()) {
+      input_remap_map[std::make_tuple(dst_cluster_idx, src->id(),
+                                      edge->src_output())] =
+          cluster_input_map[dst_cluster_idx].size();
+
+      std::stringstream ss;
+      ss << "ngraph_input_" << cluster_input_map[dst_cluster_idx].size();
+      std::string new_input_name = ss.str();
+
+      input_rename_map[std::make_tuple(dst_cluster_idx, src->name(),
+                                       edge->src_output())] = new_input_name;
+
+      auto new_input_node_def =
+          NGraphClusterManager::GetClusterGraph(dst_cluster_idx)->add_node();
+      new_input_node_def->set_name(new_input_name);
+      new_input_node_def->set_op("_Arg");
+      edge_is_arg = true;
+
+      SetAttrValue(dt, &((*(new_input_node_def->mutable_attr()))["T"]));
+      SetAttrValue(arg_index_count[dst_cluster_idx],
+                   &((*(new_input_node_def->mutable_attr()))["index"]));
+
+      arg_index_count[dst_cluster_idx]++;
+
+      cluster_input_map[dst_cluster_idx].push_back(
+          std::make_tuple(src->id(), edge->src_output(), dt));
+    }
+
+    if (config::IsLoggingPlacement()) {
+      if (edge_is_arg && edge_is_retval) {
+        count_both_arg_retval++;
+      } else {
+        if (edge_is_arg) {
+          count_arg++;
+        } else {
+          count_retval++;
+        }
+      }
+    }
+  }
+
+  if (config::IsLoggingPlacement()) {
+    int computed_edge_number = count_arg + count_retval +
+                               count_both_arg_retval + count_free +
+                               count_encapsulated;
+    std::cout << "NGTF_SUMMARY: Types of edges:: args: " << count_arg
+              << ", retvals: " << count_retval
+              << ", both arg and retval: " << count_both_arg_retval
+              << ", free: " << count_free
+              << ", encapsulated: " << count_encapsulated
+              << ", total: " << count_tot
+              << ", computed total: " << computed_edge_number << endl;
+    std::cout << "\n=============Ending sub-graph logs=============\n";
+    if (!(computed_edge_number == count_tot &&
+          count_tot == graph->num_edges())) {
+      return errors::Internal("Computed number of edges ", computed_edge_number,
+                              " and counted number of edges ", count_tot,
+                              " and number of edges from querying TF api ",
+                              graph->num_edges(), " do not match up\n");
+    }
+  }
+
+  // Pass 3: Create encapsulation nodes for all clusters.
+  for (auto& kv : device_name_map) {
+    int cluster_idx = kv.first;
+    string cluster_backend = backend_name_map[cluster_idx];
+
+    std::stringstream ss;
+    ss << "ngraph_cluster_" << cluster_idx;
+
+    std::vector<DataType> input_types;
+    std::vector<NodeBuilder::NodeOut> inputs;
+
+    for (auto& tup : cluster_input_map[cluster_idx]) {
+      int src_node_id;
+      int src_output_idx;
+      DataType dt;
+      std::tie(src_node_id, src_output_idx, dt) = tup;
+
+      input_types.push_back(dt);
+
+      inputs.push_back(
+          NodeBuilder::NodeOut(graph->FindNodeId(src_node_id), src_output_idx));
+    }
+
+    Node* n;
+    NodeBuilder nb =
+        NodeBuilder(ss.str(), "NGraphEncapsulate")
+            .Attr("ngraph_cluster", cluster_idx)
+            .Attr("ngraph_backend",
+                  BackendManager::GetBackendAttributeValues(cluster_backend)
+                      .at("ngraph_backend"))
+            .Attr("Targuments", input_types)
+            .Attr("Tresults", cluster_output_dt_map[cluster_idx])
+            .Attr("ngraph_graph_id", graph_id)
+            .Device(device_name_map[cluster_idx])
+            .Input(inputs);
+    if (!device_config.empty()) {
+      NGRAPH_VLOG(3) << "Device config is not empty";
+      for (auto const& i : device_config) {
+        // Adding the optional attributes
+        NGRAPH_VLOG(3) << "Attaching Attribute " << i.first << " Val "
+                       << i.second;
+        nb.Attr(i.first, i.second);
+      }
+    }
+    Status status = nb.Finalize(graph, &n);
+    TF_RETURN_IF_ERROR(status);
+    n->set_assigned_device_name(device_name_map[cluster_idx]);
+
+    cluster_node_map[cluster_idx] = n;
+  }
+
+  // Pass 4: Remap all non-clustered inputs that are reading from
+  // encapsulated edges, and all control edges that cross cluster
+  // boundaries.
+
+  // Copy the edge pointers, so as not to invalidate the iterator.
+  std::vector<Edge*> edges;
+  for (auto edge : graph->edges()) {
+    edges.push_back(edge);
+  }
+
+  for (auto edge : edges) {
+    int src_cluster_idx;
+    bool src_clustered =
+        (GetNodeCluster(edge->src(), &src_cluster_idx) == Status::OK());
+    int dst_cluster_idx;
+    bool dst_clustered =
+        (GetNodeCluster(edge->dst(), &dst_cluster_idx) == Status::OK());
+
+    if (src_cluster_idx == dst_cluster_idx) {
+      continue;
+    }
+
+    if (edge->IsControlEdge()) {
+      if (src_clustered && dst_clustered) {
+        graph->RemoveControlEdge(edge);
+        graph->AddControlEdge(cluster_node_map[src_cluster_idx],
+                              cluster_node_map[dst_cluster_idx]);
+      } else if (src_clustered) {
+        Node* dst = edge->dst();
+        graph->RemoveControlEdge(edge);
+        graph->AddControlEdge(cluster_node_map[src_cluster_idx], dst);
+      } else if (dst_clustered) {
+        Node* src = edge->src();
+        graph->RemoveControlEdge(edge);
+        graph->AddControlEdge(src, cluster_node_map[dst_cluster_idx]);
+      }
+    } else {
+      // This is handled at a later stage (TODO(amprocte): explain)
+      if (dst_clustered) {
+        continue;
+      }
+
+      auto it = output_remap_map.find(
+          std::make_tuple(edge->src()->id(), edge->src_output()));
+
+      if (it == output_remap_map.end()) {
+        continue;
+      }
+
+      int cluster_idx;
+      int cluster_output;
+      std::tie(cluster_idx, cluster_output) = it->second;
+
+      Status status =
+          graph->UpdateEdge(cluster_node_map[cluster_idx], cluster_output,
+                            edge->dst(), edge->dst_input());
+      TF_RETURN_IF_ERROR(status);
+    }
+  }
+
+  // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
+  // rewiring the inputs in their NodeDefs as we go.
+  std::set<int> cluster_indices_for_this_graph;
+  for (auto node : graph->op_nodes()) {
+    int cluster_idx;
+
+    if (GetNodeAttr(node->attrs(), "_ngraph_cluster", &cluster_idx) !=
+        Status::OK()) {
+      continue;
+    }
+
+    // Because the input names may have changed from the original node def,
+    // we will need to borrow some code from Graph::ToGraphDefSubRange in
+    // tensorflow/core/graph/graph.cc that rewrites the node's input list.
+
+    // begin code copied and pasted (and modified) from graph.cc...
+    NodeDef original_def = node->def();
+
+    // Get the inputs for this Node.  We make sure control inputs are
+    // after data inputs, as required by GraphDef.
+    std::vector<const Edge*> inputs;
+    inputs.resize(node->num_inputs(), nullptr);
+    for (const Edge* edge : node->in_edges()) {
+      if (edge->IsControlEdge()) {
+        inputs.push_back(edge);
+      } else {
+        CHECK(inputs[edge->dst_input()] == nullptr)
+            << "Edge " << edge->src()->DebugString() << ":"
+            << edge->dst()->DebugString() << " with dst_input "
+            << edge->dst_input() << " and had pre-existing input edge "
+            << inputs[edge->dst_input()]->src()->DebugString() << ":"
+            << inputs[edge->dst_input()]->dst()->DebugString();
+
+        inputs[edge->dst_input()] = edge;
+      }
+    }
+    original_def.clear_input();
+    original_def.mutable_input()->Reserve(inputs.size());
+
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      const Edge* edge = inputs[i];
+      if (edge == nullptr) {
+        if (i < node->requested_inputs().size()) {
+          original_def.add_input(node->requested_inputs()[i]);
+        } else {
+          original_def.add_input("");
+        }
+      } else {
+        const Node* src = edge->src();
+        if (!src->IsOp()) continue;
+        AddInput(&original_def, src->name(), edge->src_output());
+      }
+    }
+    // ...end code copied and pasted (and modified) from graph.cc
+
+    auto node_def =
+        NGraphClusterManager::GetClusterGraph(cluster_idx)->add_node();
+    cluster_indices_for_this_graph.insert(cluster_idx);
+    *node_def = original_def;
+
+    for (auto& input : *(node_def->mutable_input())) {
+      TensorId tensor_id = ParseTensorName(input);
+
+      string tensor_name(tensor_id.first);
+      auto it = input_rename_map.find(
+          std::make_tuple(cluster_idx, tensor_name, tensor_id.second));
+
+      if (it != input_rename_map.end()) {
+        input = it->second;
+      }
+    }
+  }
+
+  // Pass 6: Remove clustered nodes from the graph.
+  for (auto node : graph->op_nodes()) {
+    int cluster_idx;
+
+    if (GetNodeAttr(node->attrs(), "_ngraph_cluster", &cluster_idx) !=
+        Status::OK()) {
+      continue;
+    }
+
+    graph->RemoveNode(node);
+  }
+
+  // Pass 7: Insert to function library
+  // Note: We loop over cluster_indices_for_this_graph and not all the
+  // contents of ClusterManager
+  for (const auto& cluster_idx : cluster_indices_for_this_graph) {
+    // The transformation happening inside this loop is:
+    // graphdef --> graph --> functiondef
+    // NGraphClusterManager::GetClusterGraph(cluster_idx)-->subgraph-->fdef
+    // TODO: whats the right flib to use in subgraph's constructor?
+    Graph subgraph(graph->flib_def());
+    // TODO: When this works, NGraphClusterManager can go away
+    TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
+        GraphConstructorOptions(),
+        *(NGraphClusterManager::GetClusterGraph(cluster_idx)), &subgraph));
+    FunctionDef* fdef = fdeflib->add_function();
+    // TODO: if func lib has func with same name etc?
+    TF_RETURN_IF_ERROR(GraphToFunctionDef(
+        subgraph, strings::StrCat("ngraph_cluster_", to_string(cluster_idx)),
+        fdef));
+  }
+
+  // Pass 8:
+  bool aot_requested;
+  std::map<std::string, set<vector<int>>> node_shapes_hints;
+  std::tie(aot_requested, node_shapes_hints) = aot_info;
+  if (aot_requested) {
+    string input_node_type =
+        ngraph_tf_is_grappler_enabled() ? "Placeholder" : "_Arg";
+    string shape_field_key =
+        ngraph_tf_is_grappler_enabled() ? "_output_shapes" : "shape";
+    // In case of grappler, we have Placeholder, which might contain shape info,
+    // so it is possible we can aot without any provided shapes
+    // in normal pass its args. unless shapes are provided there is no chance of
+    // reading shapes from args.
+    bool can_aot = true;
+
+    auto get_shapes = [&node_shapes_hints](Node* node) {
+      auto find_itr = node_shapes_hints.find(node->name());
+      return find_itr == node_shapes_hints.end() ? std::set<vector<int>>{}
+                                                 : find_itr->second;
+    };
+    auto is_concrete = [](std::vector<int> shape) {
+      return std::all_of(shape.begin(), shape.end(),
+                         [](int i) { return i >= 0; });
+    };
+
+    auto concretize_if_compatible = [](vector<int> shape_base,
+                                       vector<int> shape_hint) {
+      tuple<bool, vector<int>> concrete;
+      uint base_rank = shape_base.size();
+      if (base_rank != shape_hint.size()) {  // different ranks
+        concrete = make_pair(false, std::vector<int>{});
+      } else {
+        vector<int> possible_shape(base_rank);
+        for (int i = 0; i < base_rank; i++) {
+          if (shape_base[i] == shape_hint[i]) {
+            possible_shape[i] = shape_base[i];
+          } else {
+            if (shape_base[i] == -1 && shape_hint[i] > -1) {
+              possible_shape[i] = shape_hint[i];
+            } else {
+              concrete = make_pair(false, std::vector<int>{});
+              break;
+            }
+          }
+        }
+        concrete = make_pair(true, possible_shape);
+      }
+      return concrete;
+    };
+
+    std::map<std::string, set<vector<int>>> node_shapes_for_compilation;
+    std::set<std::string> inputs_found;
+    for (auto node : graph->op_nodes()) {
+      // Assumes that shapes are provided only for placeholders not for _Arg (TODO: this may be incorrect)
+      // Note sometimes, maybe the placeholder itself has the shape. we can AOT
+      // in that case
+      if (node->type_string() == input_node_type) {
+        inputs_found.insert(node->name());
+        NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
+                       << node->type_string()
+                       << "): " << node->attrs().SummarizeNode();
+        auto shape_field = node->attrs().Find(shape_field_key);
+        // TODO: maybe should be _output_shapes for _Arg.
+        // TODO: node->attrs().Find("shape") for _Arg. Thought that _Arg does
+        // not have an attribute called "shape" but now will need to revisit
+        // that assumption
+        set<vector<int>> final_shapes;
+        auto shape_hints_for_node = get_shapes(node);
+        if (shape_field != nullptr) {
+          // Get shape from the node
+          tensorflow::TensorShapeProto tensor_shape_proto =
+              shape_field->shape();
+          vector<int> shape_from_node(tensor_shape_proto.dim_size());
+          for (uint shape_idx = 0; shape_idx < tensor_shape_proto.dim_size();
+               shape_idx++) {
+            auto num_elems_in_this_dim =
+                tensor_shape_proto.dim(shape_idx).size();
+            shape_from_node.push_back(num_elems_in_this_dim);
+            // -1 means not specified
+          }
+
+          // If a shape has been found in the input node, match with shape_hints
+          // if they exist
+          if (shape_hints_for_node.size() > 0) {
+            // TODO:
+            uint rank = shape_from_node.size();
+            for (auto possible_hint : shape_hints_for_node) {
+              bool compatible;
+              vector<int> concrete_shape;
+              std::tie(compatible, concrete_shape) =
+                  concretize_if_compatible(shape_from_node, possible_hint);
+              if (compatible) {
+                final_shapes.insert(concrete_shape);
+              }
+            }
+          } else {
+            // No shape hints found. Ensure that there is no "-1" in
+            // shape_from_node
+            if (!is_concrete(shape_from_node)) {
+              can_aot = false;
+            } else {
+              final_shapes = {shape_from_node};
+            }
+          }
+        } else {
+          // Shape was not found, so use shape hints
+          if (shape_hints_for_node.size() > 0) {
+            // Copy out the concrete hints only
+            std::copy_if(
+                shape_hints_for_node.begin(), shape_hints_for_node.end(),
+                std::inserter(final_shapes, final_shapes.end()), is_concrete);
+          } else {
+            // There was an input, which had no shape information, also no
+            // information for that node was present in the shape hints
+            can_aot = false;
+          }
+        }
+        can_aot = can_aot && (final_shapes.size() != 0);
+        if (can_aot) {
+          node_shapes_for_compilation[node->name()] = final_shapes;
+        } else {
+          // TODO: necessarily break? Maybe some things can be AOT, others maybe
+          // not
+          break;
+        }
+      }
+    }  // End of for loop that goes through all nodes
+
+    // Did we manage to concretize all input shapes?
+    for (auto itr : inputs_found) {
+      if (node_shapes_for_compilation.find(itr) ==
+          node_shapes_for_compilation.end()) {
+        can_aot = false;
+        break;
+      }
+    }
+
+    if (can_aot) {
+      // TODO: call TranslateGraph
+      for (auto itr : node_shapes_for_compilation) {
+        cout << itr.first << ": ";
+        for (itr1 : itr.second) {  // iterate over the set
+          for (itr2 : itr1) {
+            cout << itr2 << ",";
+          }
+        }
+        cout << "\n";
+      }
+      
+      for (auto node : graph->op_nodes()) {
+        if (node->type_string() == "NGraphEncapsulate") {
+          // Check inputs of the encapsulates. They can only be fed by fully concrete shapes (after going through the shape hints) or consts
+          std::vector<int32> st_inputs;
+          GetStaticInputs(node, &st_inputs);
+          if (st_inputs.size() != 0) {
+            return errors::Internal("AOT requested. Found an encapsulate with static inputs, but that is not supported");
+          }
+          for (auto in_node_itr : node->in_nodes()){
+            auto found_itr = node_shapes_for_compilation.find(in_node_itr->name());
+            if (found_itr == node_shapes_for_compilation.end()){
+              return errors::Internal("AOT requested. Found an encapsulate that has a non-concrete input");
+            }
+          }
+          
+          // TODO remove me
+          node->AddAttr("_ngraph_aot", "TODO:fillmein");
+        }
+      }
+
+      // static_input_map is empty. Cannot AOT if encapsulates have static inputs
+      std::vector<const Tensor*> static_input_map;
+      std::shared_ptr<ngraph::Function> ng_function;
+      std::vector<TensorShape> input_shapes;
+      //TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
+      //                                       &m_graph, ng_function));
+      // TODO: create cartesian product of possible input shapes and compile for each
+      // For example if an enc has 2 inps, A and B.. and A has shape hints {(2,2), (3,3)}, while B has shape hints {(4,), (5,), (6,)}, then we have to compile 2x3=6 functions
+      // This sounds problematic. maybe users want to specify some shapes of A go with some shapes of B.
+      // TODO: rethink above problem. Maybe, shape hints should come for all inputs as a group, and there are many such groups
+    }
+  }
+
+  // Pass 9 (optional, only run if environment variable
+  // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and
+  // make sure we can construct a graph from it.
+  if (std::getenv("NGRAPH_TF_DUMP_CLUSTERS")) {
+    for (auto& kv : device_name_map) {
+      int cluster_idx = kv.first;
+      TF_RETURN_IF_ERROR(graph::ValidateGraphDef(
+          *NGraphClusterManager::GetClusterGraph(cluster_idx),
+          *OpRegistry::Global()));
+
+      Graph g(OpRegistry::Global());
+      GraphConstructorOptions opts;
+      opts.allow_internal_ops = true;
+      TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
+          opts, *NGraphClusterManager::GetClusterGraph(cluster_idx), &g));
+
+      std::stringstream ss;
+      ss << "ngraph_cluster_" << cluster_idx;
+      std::string filename_prefix = ss.str();
+
+      GraphToPbTextFile(&g, filename_prefix + ".pbtxt");
+      GraphToDotFile(&g, filename_prefix + ".dot",
+                     "nGraph Cluster Dump: " + filename_prefix);
+    }
+  }
+
+  return Status::OK();
+}
+
+}  // namespace ngraph_bridge
+
+}  // namespace tensorflow

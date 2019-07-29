@@ -234,7 +234,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.23.0-rc.6
+        GIT_TAG v0.24.0-rc.2
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
@@ -277,10 +277,13 @@ set_target_properties(
 
 add_dependencies(ngraph_lib ext_ngraph)
 
+SET(BASEPATH "${CMAKE_SOURCE_DIR}")
+INCLUDE_DIRECTORIES("${BASEPATH}")
+
 # Add the directories to be built
 add_subdirectory(third-party)
 add_subdirectory(logging)
-add_subdirectory(src)
+add_subdirectory(ngraph_bridge)
 add_subdirectory(tools)
 
 # The following targets depend on the Tensorflow source code directory
