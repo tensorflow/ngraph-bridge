@@ -143,8 +143,6 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
   return true;
 };
 
-<<<<<<< HEAD:src/ngraph_backend_manager.cc
-=======
 Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
   const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
 
@@ -202,6 +200,5 @@ string BackendManager::GetBackendCreationString(const string& backend_name,
   }
 }
 
->>>>>>> master:ngraph_bridge/ngraph_backend_manager.cc
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

@@ -128,6 +128,9 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
     bool ngraph_not_enabled =
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    if (!already_processed && ngraph_not_enabled) {
+      NGRAPH_VLOG(0) << "NGraph is available but disabled.";
+    }
     if (ngraph_not_enabled || already_processed) {
       // In the case that we run a network with ngraph, cluster manager gets
       // populated. Then we run a new network, it repopulates the cluster
@@ -139,9 +142,9 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
       // cluster manager is not overwritten. Which would mean that cluster
       // manager contains stale data from a previous run. Hence evicting cluster
       // manager when rewrite passes are not run.
-      NGRAPH_VLOG(1) << "Not running through nGraph. nGraph not enabled: "
-                     << ngraph_not_enabled
-                     << " Already processed: " << already_processed;
+      NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
+                            (already_processed ? "graph is already preprocessed"
+                                               : "ngraph is disabled");
       NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
@@ -203,10 +206,13 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     bool ngraph_not_enabled =
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    if (!already_processed && ngraph_not_enabled) {
+      NGRAPH_VLOG(0) << "NGraph is available but disabled.";
+    }
     if (ngraph_not_enabled || already_processed) {
-      NGRAPH_VLOG(1) << "Not running through nGraph. nGraph not enabled: "
-                     << ngraph_not_enabled
-                     << " Already processed: " << already_processed;
+      NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
+                            (already_processed ? "graph is already preprocessed"
+                                               : "ngraph is disabled");
       NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
@@ -215,18 +221,18 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // to be attached to the nodes
     // Precedence Order: Env Variable > BackendManager
     std::unordered_map<std::string, std::string> config_map;
-    string backend_creation_string;
-    // GetCurrentlySetBackendName could return GPU:0 (not just GPU)
+    string backend_name;
     TF_RETURN_IF_ERROR(
-        BackendManager::GetCurrentlySetBackendName(&backend_creation_string));
+        BackendManager::GetCurrentlySetBackendName(&backend_name));
 
-    // splits into {"ngraph_backend", "ngraph_device_id"}
+    // splits into {"ngraph_backend", "_ngraph_device_config"}
     config_map = BackendManager::GetBackendAttributeValues(
-        backend_creation_string);  // SplitBackendConfig
+        backend_name);  // SplitBackendConfig
+    backend_name = config_map.at("ngraph_backend");
     config_map.erase("ngraph_backend");
 
     if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
-      NGRAPH_VLOG(0) << "NGraph using backend: " << backend_creation_string;
+      NGRAPH_VLOG(0) << "NGraph using backend: " << backend_name;
     }
 
     // Now Process the Graph
@@ -234,7 +240,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
     TF_RETURN_IF_ERROR(MarkForClustering(options.graph->get(), skip_these_nodes,
-                                         backend_creation_string));
+                                         backend_name));
     if (DumpMarkedGraphs()) {
       DumpGraphs(options, idx, "marked", "Graph Marked for Clustering");
     }
@@ -254,8 +260,8 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-    TF_RETURN_IF_ERROR(
-        EncapsulateClusters(options.graph->get(), idx, fdeflib_new));
+    TF_RETURN_IF_ERROR(EncapsulateClusters(options.graph->get(), idx,
+                                           fdeflib_new, config_map));
     // TODO: not using fdeflib_new in this path. Only grappler path uses it
     free(fdeflib_new);
     if (DumpEncapsulatedGraphs()) {

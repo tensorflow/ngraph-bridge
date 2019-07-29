@@ -84,8 +84,6 @@ class BackendManager {
   // UnlockBackend
   static void UnlockBackend(const string& backend_name);
 
-<<<<<<< HEAD:src/ngraph_backend_manager.h
-=======
   // Backend Config Functions
   // These functions facilitate getting/setting
   // of additional backend configurations by abstracting the
@@ -122,7 +120,6 @@ class BackendManager {
   static string GetBackendCreationString(const string& backend_name,
                                          const string& device_id);
 
->>>>>>> master:ngraph_bridge/ngraph_backend_manager.h
   ~BackendManager();
 
  private:
@@ -132,11 +129,6 @@ class BackendManager {
   // map of cached backend objects
   static map<string, Backend*> ng_backend_map_;
   static mutex ng_backend_map_mutex_;
-<<<<<<< HEAD:src/ngraph_backend_manager.h
-  // set of backends supported by nGraph
-  static unordered_set<string> ng_supported_backends_;
-=======
->>>>>>> master:ngraph_bridge/ngraph_backend_manager.h
 
   // Map of backends and their reference counts
   static std::map<std::string, int> ref_count_each_backend_;

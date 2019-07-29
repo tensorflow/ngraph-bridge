@@ -100,7 +100,7 @@ TEST(DisableOps, DisableTest) {
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
-  ASSERT_OK(MarkForClustering(&g, {}));
+  ASSERT_OK(MarkForClustering(&g, {}, "CPU"));
 
   bool marked = false;
 
@@ -123,7 +123,7 @@ TEST(DisableOps, DisableTest) {
 
   // Add is disabled
   config::ngraph_set_disabled_ops("Add,Mul");
-  ASSERT_OK(MarkForClustering(&g, {}));
+  ASSERT_OK(MarkForClustering(&g, {}, "CPU"));
   ASSERT_OK(
       GetNodeAttr(node1->attrs(), "_ngraph_marked_for_clustering", &marked));
   ASSERT_TRUE(marked);
@@ -141,7 +141,7 @@ TEST(DisableOps, DisableTest) {
 
   // Add,Add,Mul,Add should work too
   config::ngraph_set_disabled_ops("Add,Add,Mul,Add");
-  ASSERT_OK(MarkForClustering(&g, {}));
+  ASSERT_OK(MarkForClustering(&g, {}, "CPU"));
   ASSERT_OK(
       GetNodeAttr(node1->attrs(), "_ngraph_marked_for_clustering", &marked));
   ASSERT_TRUE(marked);
@@ -159,7 +159,7 @@ TEST(DisableOps, DisableTest) {
 
   // Resetting it. So Add should be accepted now
   config::ngraph_set_disabled_ops("");
-  ASSERT_OK(MarkForClustering(&g, {}));
+  ASSERT_OK(MarkForClustering(&g, {}, "CPU"));
   ASSERT_OK(
       GetNodeAttr(node1->attrs(), "_ngraph_marked_for_clustering", &marked));
   ASSERT_TRUE(marked);
@@ -178,7 +178,7 @@ TEST(DisableOps, DisableTest) {
 
   // Invalid op name should trigger an error
   config::ngraph_set_disabled_ops("Add,_InvalidOp");
-  ASSERT_NOT_OK(MarkForClustering(&g, {}));
+  ASSERT_NOT_OK(MarkForClustering(&g, {}, "CPU"));
   ASSERT_NOT_OK(
       GetNodeAttr(node1->attrs(), "_ngraph_marked_for_clustering", &marked));
   ASSERT_NOT_OK(

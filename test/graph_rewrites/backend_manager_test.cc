@@ -24,17 +24,12 @@
 #include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
-<<<<<<< HEAD
-#include "tf_graph_writer.h"
-=======
 
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "test/test_utilities.h"
->>>>>>> master using namespace std;
-namespace ng = ngraph;
 
 namespace tensorflow {
 
@@ -67,8 +62,6 @@ TEST(BackendManager, SetBackend) {
   ASSERT_EQ(current_backend, "INTERPRETER");
 
   ASSERT_NOT_OK(BackendManager::SetBackendName("temp"));
-<<<<<<< HEAD
-=======
 
   // Clean Up
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
@@ -115,7 +108,6 @@ TEST(BackendManager, GetCurrentlySetBackendName) {
   // restore
   // If NGRAPH_TF_BACKEND was set, set it back
   RestoreEnv(env_map);
->>>>>>> master
 }
 
 // Test GetSupportedBackendNames

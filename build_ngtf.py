@@ -353,13 +353,12 @@ def main():
     # Now build nGraph
     ngraph_cmake_flags = [
         "-DNGRAPH_INSTALL_PREFIX=" + artifacts_location,
-        "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
-        "-DNGRAPH_DEX_ONLY=TRUE",
-        "-DNGRAPH_DEBUG_ENABLE=NO",
-        "-DNGRAPH_UNIT_TEST_ENABLE=NO",
+        "-DNGRAPH_USE_CXX_ABI=" + cxx_abi, "-DNGRAPH_DEX_ONLY=TRUE",
+        "-DNGRAPH_DEBUG_ENABLE=NO", "-DNGRAPH_UNIT_TEST_ENABLE=NO",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
-        "-DNGRAPH_TUNE_ARCH=" + target_arch,
-        "-DNGRAPH_STATIC_LIB_ENABLE=TRUE",
+        "-DNGRAPH_TUNE_ARCH=" + target_arch, "-DNGRAPH_STATIC_LIB_ENABLE=TRUE",
+        "-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE",
+        "-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"
     ]
 
     if arguments.debug_build:
