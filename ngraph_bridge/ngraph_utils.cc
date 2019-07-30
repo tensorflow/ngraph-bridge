@@ -464,8 +464,8 @@ Status FindSharedNameOfPreviouslyReplacedVariable(
   if (has_been_replaced_before) {
     shared_name = shared_name_of_replacement;
   }
-  TF_RETURN_IF_ERROR(
-      NGraphCatalog::RegisterTFVarReplacement(node->name(), shared_name));
+  TF_RETURN_IF_ERROR(NGraphCatalog::RegisterTFVarReplacement(
+      original_var_node_name, shared_name));
   return Status::OK();
 }
 #endif
