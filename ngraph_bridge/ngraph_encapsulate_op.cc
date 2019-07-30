@@ -78,7 +78,8 @@ class NGraphEncapsulateOp : public OpKernel {
 
     NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << my_instance_id
                    << " Name: " << name();
-
+    cout << "NGraphEncapsulateOp::Constructor starting for cluster " << name()
+         << endl;
     GraphDef* graph_def;
 
     OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster", &m_ngraph_cluster));
@@ -514,6 +515,9 @@ class NGraphEncapsulateOp : public OpKernel {
     std::lock_guard<std::mutex> lock(m_compute_lock);
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
                    << m_ngraph_cluster;
+
+    cout << "NGraphEncapsulateOp::Compute starting for cluster "
+         << m_ngraph_cluster << endl;
 
     ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
     Timer function_lookup_or_create;

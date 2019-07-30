@@ -45,6 +45,10 @@ Status RemoveNGraphAssigns(Graph* graph) {
             input_1->type_string());
       }
 
+      // Add control edge
+      graph->AddEdge(input_0, Graph::kControlSlot, input_1,
+                     Graph::kControlSlot);
+
       // Handle input edges
       NGRAPH_VLOG(3) << "Handling input edges ";
       vector<const Edge*> remove_edges;

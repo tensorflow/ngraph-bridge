@@ -108,6 +108,8 @@ NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
                  << is_tf_just_looking_ << " ,copy-to-tf " << copy_to_tf_
                  << " ,Graph ID " << ng_graph_id_ << " ,backend_name "
                  << ng_backend_name_;
+
+  cout << "NGraphVariable:: Constructor called for: " << def().name() << endl;
 }
 
 NGraphVariableOp::~NGraphVariableOp() {
@@ -125,6 +127,8 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
                  << is_tf_just_looking_ << " ,copy-to-tf " << copy_to_tf_
                  << " ,Graph ID " << ng_graph_id_ << " ,backend_name "
                  << ng_backend_name_;
+
+  cout << "NGraphVariable:: Compute called for: " << def().name() << endl;
 
   std::ostringstream oss;
   oss << "NGraphVariable: " << my_instance_id << ": " << name();
