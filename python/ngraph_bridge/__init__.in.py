@@ -214,10 +214,10 @@ def update_config(config, backend_name = "CPU", device_id = ""):
         rewriter_options.meta_optimizer_iterations=(rewriter_config_pb2.RewriterConfig.ONE)
         rewriter_options.min_graph_nodes=-1
         ngraph_optimizer = rewriter_options.custom_optimizers.add()
-        ngraph_optimizer.name = "ngraph-optimizer"
+        ngraph_optimizer.name = opt_name
         ngraph_optimizer.parameter_map["ngraph_backend"].s = backend_name.encode()
         ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
-        config.MergeFrom(tf.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewrite_options)))
+        config.MergeFrom(tf.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
         # For reference, if we want to provide configuration support(backend parameters)
         # in a python script using the ngraph-optimizer
         # rewriter_options = rewriter_config_pb2.RewriterConfig()
