@@ -192,10 +192,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     DumpGraphs(graph, idx, "unmarked", "Unmarked Graph");
   }
 
-<<<<<<< HEAD:src/grappler/ngraph_optimizer.cc
-  // 1. Mark for clustering then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes));
-=======
   // Get backend + its configurations, to be attached to the nodes
   // using RewriteConfig
   string backend_creation_string = BackendManager::GetBackendCreationString(
@@ -213,7 +209,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(
       MarkForClustering(&graph, skip_these_nodes, backend_creation_string));
->>>>>>> master:ngraph_bridge/grappler/ngraph_optimizer.cc
   if (DumpMarkedGraphs()) {
     DumpGraphs(graph, idx, "marked", "Graph Marked for Clustering");
   }

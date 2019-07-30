@@ -60,7 +60,14 @@ endif()
 target_link_libraries(
     infer_single -Wl,--whole-archive
     ngraph_bridge_static 
-    ngraph_lib_static -Wl,--no-whole-archive
+    ngraph_lib_static 
+    lib_cpu_backend_static 
+    lib_tbb -Wl,--no-whole-archive
+    lib_interpreter_backend_static
+    lib_mkldnn
+    lib_mklml_intel
+    lib_tbb2
+    lib_iomp5
     dl
     pthread
     ${TensorFlow_FRAMEWORK_LIBRARY}

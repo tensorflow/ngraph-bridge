@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.24.0-rc.2"
+    ngraph_version = "pruthvi/cpu_static_backend"
     tf_version = "v1.14.0"
 
     # Command line parser options
@@ -357,8 +357,8 @@ def main():
         "-DNGRAPH_DEBUG_ENABLE=NO", "-DNGRAPH_UNIT_TEST_ENABLE=NO",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
         "-DNGRAPH_TUNE_ARCH=" + target_arch, "-DNGRAPH_STATIC_LIB_ENABLE=TRUE",
-        "-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE",
-        "-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"
+        "-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE",
+        "-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE"
     ]
 
     if arguments.debug_build:

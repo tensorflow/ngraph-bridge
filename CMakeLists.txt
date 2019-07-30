@@ -131,6 +131,8 @@ if(APPLE)
     set(LIBNGRAPH_SO "libngraph.dylib")
 else()
     set(LIBNGRAPH_A "libngraph.a")
+    set(LIBCPU_BACKEND_A "libcpu_backend.a")
+    set(LIBINTERPRETER_BACKEND_A "libinterpreter_backend.a")
 endif(APPLE)
 
 # Build options
@@ -264,8 +266,22 @@ set(NGRAPH_INSTALL_DIR ${NGRAPH_ARTIFACTS_DIR})
 
 if(OS_VERSION STREQUAL "\"centos\"")
     set(NGRAPH_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib64/${LIBNGRAPH_A})
+    set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib64/${LIBCPU_BACKEND_A})
+    set(INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib64/${LIBINTERPRETER_BACKEND_A})
+    set(LIB_MKLDNN_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libmkldnn.so)
+    set(LIB_TBB_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libtbb.so)
+    set(LIB_TBB2_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libtbb.so.2)
+    set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libiomp5.so)
+    set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libmklml_intel.so)
 else()
     set(NGRAPH_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib/${LIBNGRAPH_A})
+    set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib/${LIBCPU_BACKEND_A})
+    set(INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib/${LIBINTERPRETER_BACKEND_A})
+    set(LIB_MKLDNN_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libmkldnn.so)
+    set(LIB_TBB_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libtbb.so)
+    set(LIB_TBB2_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libtbb.so.2)
+    set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libiomp5.so)
+    set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libmklml_intel.so)
 endif()
 
 add_library(ngraph_lib_static STATIC IMPORTED)
@@ -275,7 +291,54 @@ set_target_properties(
     ${NGRAPH_IMPORTED_LOCATION_STATIC}
 )
 
-add_dependencies(ngraph_lib_static ext_ngraph)
+add_library(lib_cpu_backend_static STATIC IMPORTED)
+set_target_properties(
+    lib_cpu_backend_static
+    PROPERTIES IMPORTED_LOCATION
+    ${CPU_BACKEND_IMPORTED_LOCATION_STATIC}
+)
+
+add_library(lib_interpreter_backend_static STATIC IMPORTED)
+set_target_properties(
+    lib_interpreter_backend_static
+    PROPERTIES IMPORTED_LOCATION
+    ${INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC}
+)
+
+add_library(lib_mkldnn SHARED IMPORTED)
+set_target_properties(
+    lib_mkldnn
+    PROPERTIES IMPORTED_LOCATION
+    ${LIB_MKLDNN_IMPORTED_LOCATION}
+)
+
+add_library(lib_mklml_intel SHARED IMPORTED)
+set_target_properties(
+    lib_mklml_intel
+    PROPERTIES IMPORTED_LOCATION
+    ${LIB_MKLML_INTEL_IMPORTED_LOCATION}
+)
+
+add_library(lib_tbb SHARED IMPORTED)
+set_target_properties(
+    lib_tbb
+    PROPERTIES IMPORTED_LOCATION
+    ${LIB_TBB_IMPORTED_LOCATION}
+)
+
+add_library(lib_tbb2 SHARED IMPORTED)
+set_target_properties(
+    lib_tbb2
+    PROPERTIES IMPORTED_LOCATION
+    ${LIB_TBB2_IMPORTED_LOCATION}
+)
+
+add_library(lib_iomp5 SHARED IMPORTED)
+set_target_properties(
+    lib_iomp5
+    PROPERTIES IMPORTED_LOCATION
+    ${LIB_IOMP5_IMPORTED_LOCATION}
+)
 
 SET(BASEPATH "${CMAKE_SOURCE_DIR}")
 INCLUDE_DIRECTORIES("${BASEPATH}")
