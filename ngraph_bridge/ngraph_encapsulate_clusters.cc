@@ -74,7 +74,8 @@ static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
-    std::unordered_map<std::string, std::string> device_config, AOTInfo aot_info) {
+    std::unordered_map<std::string, std::string> device_config,
+    AOTInfo aot_info) {
   // A map from cluster indices to the expected device name for nodes
   // in that cluster.
   std::map<int, std::string> device_name_map;
@@ -524,8 +525,8 @@ Status EncapsulateClusters(
 
   // Pass 8:
   bool aot_requested;
-  std::map<std::string, set<vector<int>>> node_shapes_hints;
-  std::tie(aot_requested, node_shapes_hints) = aot_info;
+  std::set<std::map<std::string, set<vector<int>>>> node_shapes_hints_sets;
+  std::tie(aot_requested, node_shapes_hints_sets) = aot_info;
   if (aot_requested) {
     string input_node_type =
         ngraph_tf_is_grappler_enabled() ? "Placeholder" : "_Arg";
@@ -535,13 +536,8 @@ Status EncapsulateClusters(
     // so it is possible we can aot without any provided shapes
     // in normal pass its args. unless shapes are provided there is no chance of
     // reading shapes from args.
-    bool can_aot = true;
+    // TOD: maybe we do not need to support this for normal pass
 
-    auto get_shapes = [&node_shapes_hints](Node* node) {
-      auto find_itr = node_shapes_hints.find(node->name());
-      return find_itr == node_shapes_hints.end() ? std::set<vector<int>>{}
-                                                 : find_itr->second;
-    };
     auto is_concrete = [](std::vector<int> shape) {
       return std::all_of(shape.begin(), shape.end(),
                          [](int i) { return i >= 0; });
@@ -574,135 +570,176 @@ Status EncapsulateClusters(
 
     std::map<std::string, set<vector<int>>> node_shapes_for_compilation;
     std::set<std::string> inputs_found;
-    for (auto node : graph->op_nodes()) {
-      // Assumes that shapes are provided only for placeholders not for _Arg (TODO: this may be incorrect)
-      // Note sometimes, maybe the placeholder itself has the shape. we can AOT
-      // in that case
-      if (node->type_string() == input_node_type) {
-        inputs_found.insert(node->name());
-        NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
-                       << node->type_string()
-                       << "): " << node->attrs().SummarizeNode();
-        auto shape_field = node->attrs().Find(shape_field_key);
-        // TODO: maybe should be _output_shapes for _Arg.
-        // TODO: node->attrs().Find("shape") for _Arg. Thought that _Arg does
-        // not have an attribute called "shape" but now will need to revisit
-        // that assumption
-        set<vector<int>> final_shapes;
-        auto shape_hints_for_node = get_shapes(node);
-        if (shape_field != nullptr) {
-          // Get shape from the node
-          tensorflow::TensorShapeProto tensor_shape_proto =
-              shape_field->shape();
-          vector<int> shape_from_node(tensor_shape_proto.dim_size());
-          for (uint shape_idx = 0; shape_idx < tensor_shape_proto.dim_size();
-               shape_idx++) {
-            auto num_elems_in_this_dim =
-                tensor_shape_proto.dim(shape_idx).size();
-            shape_from_node.push_back(num_elems_in_this_dim);
-            // -1 means not specified
-          }
+    for (auto node_shapes_hints : node_shapes_hints_sets) {
+      bool can_aot = true;
 
-          // If a shape has been found in the input node, match with shape_hints
-          // if they exist
-          if (shape_hints_for_node.size() > 0) {
-            // TODO:
-            uint rank = shape_from_node.size();
-            for (auto possible_hint : shape_hints_for_node) {
-              bool compatible;
-              vector<int> concrete_shape;
-              std::tie(compatible, concrete_shape) =
-                  concretize_if_compatible(shape_from_node, possible_hint);
-              if (compatible) {
-                final_shapes.insert(concrete_shape);
+      auto get_shapes = [&node_shapes_hints](Node* node) {
+        auto find_itr = node_shapes_hints.find(node->name());
+        return find_itr == node_shapes_hints.end() ? std::set<vector<int>>{}
+                                                   : find_itr->second;
+      };
+
+      for (auto node : graph->op_nodes()) {
+        // Assumes that shapes are provided only for placeholders not for _Arg
+        // (TODO: this may be incorrect)
+        // Note sometimes, maybe the placeholder itself has the shape. we can
+        // AOT
+        // in that case
+        if (node->type_string() == input_node_type) {
+          inputs_found.insert(node->name());
+          NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
+                         << node->type_string()
+                         << "): " << node->attrs().SummarizeNode();
+          auto shape_field = node->attrs().Find(shape_field_key);
+          // TODO: maybe should be _output_shapes for _Arg.
+          // TODO: node->attrs().Find("shape") for _Arg. Thought that _Arg does
+          // not have an attribute called "shape" but now will need to revisit
+          // that assumption
+          set<vector<int>> final_shapes;
+          auto shape_hints_for_node = get_shapes(node);
+          if (shape_field != nullptr) {
+            // Get shape from the node
+            tensorflow::TensorShapeProto tensor_shape_proto =
+                shape_field->shape();
+            vector<int> shape_from_node(tensor_shape_proto.dim_size());
+            for (uint shape_idx = 0; shape_idx < tensor_shape_proto.dim_size();
+                 shape_idx++) {
+              auto num_elems_in_this_dim =
+                  tensor_shape_proto.dim(shape_idx).size();
+              shape_from_node.push_back(num_elems_in_this_dim);
+              // -1 means not specified
+            }
+
+            // If a shape has been found in the input node, match with
+            // shape_hints
+            // if they exist
+            if (shape_hints_for_node.size() > 0) {
+              // TODO:
+              uint rank = shape_from_node.size();
+              for (auto possible_hint : shape_hints_for_node) {
+                bool compatible;
+                vector<int> concrete_shape;
+                std::tie(compatible, concrete_shape) =
+                    concretize_if_compatible(shape_from_node, possible_hint);
+                if (compatible) {
+                  final_shapes.insert(concrete_shape);
+                }
+              }
+            } else {
+              // No shape hints found. Ensure that there is no "-1" in
+              // shape_from_node
+              if (!is_concrete(shape_from_node)) {
+                can_aot = false;
+              } else {
+                final_shapes = {shape_from_node};
               }
             }
           } else {
-            // No shape hints found. Ensure that there is no "-1" in
-            // shape_from_node
-            if (!is_concrete(shape_from_node)) {
-              can_aot = false;
+            // Shape was not found, so use shape hints
+            if (shape_hints_for_node.size() > 0) {
+              // Copy out the concrete hints only
+              std::copy_if(
+                  shape_hints_for_node.begin(), shape_hints_for_node.end(),
+                  std::inserter(final_shapes, final_shapes.end()), is_concrete);
             } else {
-              final_shapes = {shape_from_node};
+              // There was an input, which had no shape information, also no
+              // information for that node was present in the shape hints
+              can_aot = false;
             }
           }
-        } else {
-          // Shape was not found, so use shape hints
-          if (shape_hints_for_node.size() > 0) {
-            // Copy out the concrete hints only
-            std::copy_if(
-                shape_hints_for_node.begin(), shape_hints_for_node.end(),
-                std::inserter(final_shapes, final_shapes.end()), is_concrete);
+          can_aot = can_aot && (final_shapes.size() != 0);
+          if (can_aot) {
+            node_shapes_for_compilation[node->name()] = final_shapes;
           } else {
-            // There was an input, which had no shape information, also no
-            // information for that node was present in the shape hints
-            can_aot = false;
+            // TODO: necessarily break? Maybe some things can be AOT, others
+            // maybe
+            // not
+            break;
           }
         }
-        can_aot = can_aot && (final_shapes.size() != 0);
-        if (can_aot) {
-          node_shapes_for_compilation[node->name()] = final_shapes;
-        } else {
-          // TODO: necessarily break? Maybe some things can be AOT, others maybe
-          // not
+      }  // End of for loop that goes through all nodes
+
+      // Did we manage to concretize all input shapes?
+      for (auto itr : inputs_found) {
+        if (node_shapes_for_compilation.find(itr) ==
+            node_shapes_for_compilation.end()) {
+          can_aot = false;
           break;
         }
       }
-    }  // End of for loop that goes through all nodes
 
-    // Did we manage to concretize all input shapes?
-    for (auto itr : inputs_found) {
-      if (node_shapes_for_compilation.find(itr) ==
-          node_shapes_for_compilation.end()) {
-        can_aot = false;
-        break;
-      }
-    }
-
-    if (can_aot) {
-      // TODO: call TranslateGraph
-      for (auto itr : node_shapes_for_compilation) {
-        cout << itr.first << ": ";
-        for (itr1 : itr.second) {  // iterate over the set
-          for (itr2 : itr1) {
-            cout << itr2 << ",";
-          }
-        }
-        cout << "\n";
-      }
-      
-      for (auto node : graph->op_nodes()) {
-        if (node->type_string() == "NGraphEncapsulate") {
-          // Check inputs of the encapsulates. They can only be fed by fully concrete shapes (after going through the shape hints) or consts
-          std::vector<int32> st_inputs;
-          GetStaticInputs(node, &st_inputs);
-          if (st_inputs.size() != 0) {
-            return errors::Internal("AOT requested. Found an encapsulate with static inputs, but that is not supported");
-          }
-          for (auto in_node_itr : node->in_nodes()){
-            auto found_itr = node_shapes_for_compilation.find(in_node_itr->name());
-            if (found_itr == node_shapes_for_compilation.end()){
-              return errors::Internal("AOT requested. Found an encapsulate that has a non-concrete input");
+      if (can_aot) {
+        // TODO: call TranslateGraph
+        std::stringstream signature_ss;
+        // std::vector<TensorShape>& input_shapes;
+        std::vector<const Tensor*> static_input_map;
+        for (auto itr : node_shapes_for_compilation) {
+          for (auto itr1 : itr.second) {  // iterate over the set
+            for (auto itr2 : itr1) {
+              signature_ss << itr2 << ",";
             }
           }
-          
-          // TODO remove me
-          node->AddAttr("_ngraph_aot", "TODO:fillmein");
+          signature_ss << ";";
         }
-      }
+        signature_ss << "/";
+        string signature = signature_ss.str();
+        // TODO when ComputeSignature is detached from the OpKernel, use that to
+        // compute the signature
 
-      // static_input_map is empty. Cannot AOT if encapsulates have static inputs
-      std::vector<const Tensor*> static_input_map;
-      std::shared_ptr<ngraph::Function> ng_function;
-      std::vector<TensorShape> input_shapes;
-      //TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
-      //                                       &m_graph, ng_function));
-      // TODO: create cartesian product of possible input shapes and compile for each
-      // For example if an enc has 2 inps, A and B.. and A has shape hints {(2,2), (3,3)}, while B has shape hints {(4,), (5,), (6,)}, then we have to compile 2x3=6 functions
-      // This sounds problematic. maybe users want to specify some shapes of A go with some shapes of B.
-      // TODO: rethink above problem. Maybe, shape hints should come for all inputs as a group, and there are many such groups
-    }
-  }
+        cout << "Signature:: " << signature << "\n";
+
+        for (auto node : graph->op_nodes()) {
+          if (node->type_string() == "NGraphEncapsulate") {
+            // Check inputs of the encapsulates. They can only be fed by fully
+            // concrete shapes (after going through the shape hints) or consts
+            std::vector<int32> st_inputs;
+            GetStaticInputs(node, &st_inputs);
+            // Current assumption is that only encapsulates without static
+            // inputs are AOT
+            if (st_inputs.size() != 0) {
+              return errors::Internal(
+                  "AOT requested. Found an encapsulate with static inputs, but "
+                  "that is not supported");
+            }
+            for (auto in_node_itr : node->in_nodes()) {
+              auto found_itr =
+                  node_shapes_for_compilation.find(in_node_itr->name());
+              if (found_itr == node_shapes_for_compilation.end()) {
+                return errors::Internal(
+                    "AOT requested. Found an encapsulate that has a "
+                    "non-concrete input");
+              }
+            }
+
+            // std::shared_ptr<ngraph::Function> ng_function;
+            // TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+            //    input_shapes, static_input_map, &m_graph, ng_function));
+
+            // TODO remove me
+            node->AddAttr("_ngraph_aot", "TODO:fillmein");
+          }
+        }
+
+        // static_input_map is empty. Cannot AOT if encapsulates have static
+        // inputs
+        // std::vector<const Tensor*> static_input_map;
+        // std::shared_ptr<ngraph::Function> ng_function;
+        // std::vector<TensorShape> input_shapes;
+        // TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes,
+        // static_input_map,
+        //                                       &m_graph, ng_function));
+        // TODO: create cartesian product of possible input shapes and compile
+        // for each
+        // For example if an enc has 2 inps, A and B.. and A has shape hints
+        // {(2,2), (3,3)}, while B has shape hints {(4,), (5,), (6,)}, then we
+        // have to compile 2x3=6 functions
+        // This sounds problematic. maybe users want to specify some shapes of A
+        // go with some shapes of B.
+        // TODO: rethink above problem. Maybe, shape hints should come for all
+        // inputs as a group, and there are many such groups
+      }
+    }  // end of loop over set of shape_hints
+  }    // end of if(aot_requested)
 
   // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and

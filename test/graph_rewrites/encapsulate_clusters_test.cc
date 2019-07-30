@@ -165,13 +165,15 @@ TEST(EncapsulateClusters, AOT) {
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
-  std::vector<std::map<std::string, set<vector<int>>>> node_shapes_hints_vect =
-      {{}, {{"node1", {{2, 2}}}, {"node2", {{2, 2}}}}};
+  std::vector<std::set<std::map<std::string, set<vector<int>>>>>
+      node_shapes_hints_vect = {{{}},
+                                {{{"node1", {{2, 2}}}, {"node2", {{2, 2}}}}}};
   std::vector<bool> did_aot = {false, true};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
-    ASSERT_OK(
-        EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id",""}}, make_pair(true, node_shapes_hints_vect[i])));
+    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
+                                  {{"ngraph_device_id", ""}},
+                                  make_pair(true, node_shapes_hints_vect[i])));
 
     int num_encapsulates = 0;
     int num_tf_nodes = 0;
