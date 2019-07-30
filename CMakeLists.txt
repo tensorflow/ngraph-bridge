@@ -284,9 +284,14 @@ else()
     set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libmklml_intel.so)
 endif()
 
-add_library(ngraph_lib_static STATIC IMPORTED)
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    add_library(ngraph_lib STATIC IMPORTED)
+else()
+    add_library(ngraph_lib SHARED IMPORTED)
+endif()
+
 set_target_properties(
-    ngraph_lib_static
+    ngraph_lib
     PROPERTIES IMPORTED_LOCATION
     ${NGRAPH_IMPORTED_LOCATION_STATIC}
 )

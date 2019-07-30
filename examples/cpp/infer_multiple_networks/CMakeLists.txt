@@ -62,15 +62,14 @@ endif()
 target_link_libraries(
     infer_multiple_networks -Wl,--whole-archive
     ngraph_bridge_static 
-    ngraph_lib_static 
+    ngraph_lib
     lib_cpu_backend_static 
-    lib_tbb  
-    lib_tbb2 -Wl,--no-whole-archive
-    lib_interpreter_backend_static
+    lib_interpreter_backend_static -Wl,--no-whole-archive
+    dl
+    lib_tbb
     lib_mkldnn
     lib_mklml_intel
     lib_iomp5
-    dl
     pthread
     ${TensorFlow_FRAMEWORK_LIBRARY}
     tensorflow_cc_lib
