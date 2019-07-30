@@ -41,6 +41,18 @@ class TestVarAssignOperations(NgraphTest):
 
         assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
 
+
+# Normal path: TF run the whole thing and we do not see any issues
+# Variable and Optimizers path: Since we can see the entire graph,
+# the Assign with validate_shape = False is not accepted and TF
+# processes it. It is slow but functionally correct.
+# Grappler path: Similar to normal path.
+# Variables and Optimizers + Grappler: In this case, we cannot see the
+# entire graph, hence the Var + Assign (with validate_shape=False) combo
+# is not rejected. We end up accepting the var/assign in the initialize/first
+# assign, but fail in the second shape shifting assign. So functionally
+# incorrect.
+
     @pytest.mark.skipif(
         ngraph_bridge.is_grappler_enabled() and
         ngraph_bridge.are_variables_enabled(),

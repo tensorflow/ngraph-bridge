@@ -432,9 +432,9 @@ Status FindSharedNameOfPreviouslyReplacedVariable(
     string& shared_name) {
   bool has_been_replaced_before;
   string shared_name_of_replacement;
-  // Determine if the current node has an Identity or IdentityN attached to
+  // Determine if the current node has an IdentityN attached to
   // it, and if so does its name appear in identity_attached_nodes
-  // If so then the name of the Identity/IdentityN nodes are the original
+  // If so then the name of the IdentityN nodes are the original
   // names of the current node.
   size_t num_out_neighbour_nodes = 0;
   bool found_idn = false;
@@ -449,8 +449,8 @@ Status FindSharedNameOfPreviouslyReplacedVariable(
     }
   }
   string original_var_node_name;
-  // If there is only output which is an IdentityN (barring a SINK), and the
-  // name of the output IdentityN is present in the set
+  // If there is only one output which is an IdentityN (barring a SINK),
+  // and the name of the output IdentityN is present in the set
   // identity_attached_nodes
   if (found_idn && num_out_neighbour_nodes == 1 &&
       identity_attached_nodes.find(out_neighbour_idn_name) !=
