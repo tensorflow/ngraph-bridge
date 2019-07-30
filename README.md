@@ -61,7 +61,7 @@ environment.
 
 The requirements for building nGraph bridge are identical to the requirements for building TensorFlow from source. For more information, review the [TensorFlow configuration] details. 
 
-##### Prepare you build environment
+##### Prepare your build environment
 
 Install the following requirements before building
  `nGraph-bridge`. 
@@ -115,7 +115,7 @@ To use the `ngraph-tensorflow-bridge`, activate the following `virtualenv` to st
 
         source build_cmake/venv-tf-py3/bin/activate
  
-Alternatively, you can also install the TensorFlow and nGraph bridge outside of a `virtualenv`. The Python `whl` files are located in the `build_cmake/artifacts/` and `build_cmake/artifats/tensorflow` directories, respectively. 
+Alternatively, you can also install the TensorFlow and nGraph bridge outside of a `virtualenv`. The Python `whl` files are located in the `build_cmake/artifacts/` and `build_cmake/artifacts/tensorflow` directories, respectively. 
 
 Select the help option of `build_ngtf.py` script to learn more about various build options and how to build other backends. 
 
