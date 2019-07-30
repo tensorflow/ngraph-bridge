@@ -19,7 +19,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 
 ## Installation
 
-### Software requirements
+###  Software requirements
 
 |Using pre-built packages| Building from source|
 | -----------------------|-------------------|
