@@ -163,16 +163,17 @@ TEST(EncapsulateClusters, AOT) {
     inputs.push_back(NodeBuilder::NodeOut(node3, 0));
     input_types.push_back(node3->output_type(0));
     ASSERT_OK(NodeBuilder("node4", "IdentityN")
-                .Input(inputs)
-                .Attr("T", input_types)
-                .Finalize(&g, &node4));
+                  .Input(inputs)
+                  .Attr("T", input_types)
+                  .Finalize(&g, &node4));
   }
 
   Node* source = g.source_node();
   Node* sink = g.sink_node();
   g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
-  g.AddEdge(ngraph_tf_is_grappler_enabled() ? node4 : node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+  g.AddEdge(ngraph_tf_is_grappler_enabled() ? node4 : node3,
+            Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
@@ -202,8 +203,9 @@ TEST(EncapsulateClusters, AOT) {
     for (auto itr : g.nodes()) {
       if (itr->type_string() == "NGraphEncapsulate") {
         string aot_info;
-        bool found = GetNodeAttr(itr->attrs(), "_ngraph_aot", &aot_info) ==
-                     tensorflow::Status::OK();
+        // TODO: remove the hardcoded signature
+        bool found = GetNodeAttr(itr->attrs(), "_ngraph_aot_2,2,;2,2,;/",
+                                 &aot_info) == tensorflow::Status::OK();
         ASSERT_TRUE(found == did_aot[i]);
       }
     }
