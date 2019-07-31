@@ -81,6 +81,7 @@ class PartialShape {
   bool is_valid() const { return m_valid; }
 
   void concretize(PartialShape shape_hint) {
+    // Both PartialShapes are expected to be valid
     check_valid();
     uint base_rank = m_shape.size();
     if (base_rank != shape_hint.size()) {  // different ranks

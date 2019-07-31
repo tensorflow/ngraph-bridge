@@ -39,6 +39,7 @@
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -157,6 +158,14 @@ Status EncapsulateClusters(
   int count_arg = 0, count_retval = 0, count_both_arg_retval = 0,
       count_free = 0, count_encapsulated = 0, count_tot = 0;
 
+  cout << "PASS 2\n";
+  cout << graph->num_nodes() << "\n";
+  cout << graph->num_op_nodes() << "\n";
+  cout << graph->num_edges() << "\n";
+  for (auto itr_node : graph->nodes()){
+    cout << itr_node->name() << ":" << itr_node->type_string() << ", ";
+  }
+  cout << "\n\n";
   for (auto edge : graph->edges()) {
     count_tot++;
     // TODO(amprocte): should actually keep of these. During clustering we
@@ -184,6 +193,8 @@ Status EncapsulateClusters(
     int src_cluster_idx;
     bool src_clustered =
         (GetNodeCluster(src, &src_cluster_idx) == Status::OK());
+    cout << src->name() << ": " << src->type_string() << "\n";
+    cout << "src_clustered: " << src_clustered << "\n";
 
     // Ignore edges within a cluster. (Note that this test also works when
     // both nodes are unclustered; GetNodeCluster gives us -1 in that case.
@@ -208,6 +219,8 @@ Status EncapsulateClusters(
     // If the source node lies within a cluster, we must create an output for
     // it from the source cluster. For the moment we will just store this
     // fact in the output_remap_map.
+    cout << src_clustered << "\n";
+    cout <<  (output_remap_map.find(std::make_tuple(src->id(), edge->src_output())) ==   output_remap_map.end()) << "\n";
     if (src_clustered &&
         output_remap_map.find(std::make_tuple(src->id(), edge->src_output())) ==
             output_remap_map.end()) {
@@ -223,6 +236,7 @@ Status EncapsulateClusters(
           NGraphClusterManager::GetClusterGraph(src_cluster_idx)->add_node();
       new_output_node_def->set_name(output_name);
       new_output_node_def->set_op("_Retval");
+      cout << "\n XXXX \n XXXXXX\n XXXXXXXXX\n";
       edge_is_retval = true;
 
       std::stringstream ss_input_to_retval;
@@ -285,7 +299,7 @@ Status EncapsulateClusters(
       }
     }
   }
-
+  cout << "PASS 2 for loop end \n";
   if (config::IsLoggingPlacement()) {
     int computed_edge_number = count_arg + count_retval +
                                count_both_arg_retval + count_free +
@@ -633,6 +647,8 @@ Status EncapsulateClusters(
                   "that is not supported");
             }
 
+
+            std::vector<TensorShape> input_shapes;
             std::stringstream signature_ss;
             for (auto in_node : node->in_nodes()) {
               cout << in_node->name() << "\n";
@@ -643,6 +659,8 @@ Status EncapsulateClusters(
                     "AOT requested. Found an encapsulate that has a "
                     "non-concrete input");
               } else {
+                std::vector<int64> converted_to_int64(itr_shape->second.begin(), itr_shape->second.end());
+                input_shapes.push_back(TensorShape(converted_to_int64));
                 for (auto itr1 : itr_shape->second) {
                   signature_ss << itr1 << ",";
                 }
@@ -652,37 +670,43 @@ Status EncapsulateClusters(
             signature_ss << "/";
             string signature = signature_ss.str();
             cout << "Signature:: " << signature << "\n";
-            // TODO when ComputeSignature is detached from the OpKernel, use
-            // that to
-            // compute the signature
 
             // TODO: call TranslateGraph
-            // std::shared_ptr<ngraph::Function> ng_function;
-            // TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-            //    input_shapes, static_input_map, &m_graph, ng_function));
+            std::vector<const Tensor*> static_input_map;
+            std::shared_ptr<ngraph::Function> ng_function;
+            int cluster_idx;
+            TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "ngraph_cluster", &cluster_idx));
+            GraphDef* gdef_for_current_encapsulate;
+            gdef_for_current_encapsulate = NGraphClusterManager::GetClusterGraph(cluster_idx);
+            GraphConstructorOptions opts;
+            opts.allow_internal_ops = true;
+            Graph graph_for_current_encapsulate(OpRegistry::Global());
+            TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(opts, *gdef_for_current_encapsulate, &graph_for_current_encapsulate));
+
+            cout << graph_for_current_encapsulate.num_nodes() << "\n";
+            cout << graph_for_current_encapsulate.num_op_nodes() << "\n";
+            cout << graph_for_current_encapsulate.num_edges() << "\n";
+            for (auto itr_node : graph_for_current_encapsulate.nodes()){
+              cout << itr_node->name() << ":" << itr_node->type_string() << ", ";
+            }
+            cout << "\n\n";
+            TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+                input_shapes, static_input_map, &graph_for_current_encapsulate, ng_function));
+
+            cout << ng_function->get_name() << "\n";
+            cout << ng_function->get_ops().size() << "\n";
+            for (auto i : ng_function->get_ops()) {
+              cout << i->get_name() << ", ";
+            }
+            cout << "\n";
+            //NgraphSerialize("tf_function_aot_.json", ng_function);
+            cout << ngraph::serialize(ng_function, 4) << "\n";
+
 
             // TODO remove me
             node->AddAttr("_ngraph_aot", "TODO:fillmein");
           }
         }
-
-        // static_input_map is empty. Cannot AOT if encapsulates have static
-        // inputs
-        // std::vector<const Tensor*> static_input_map;
-        // std::shared_ptr<ngraph::Function> ng_function;
-        // std::vector<TensorShape> input_shapes;
-        // TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes,
-        // static_input_map,
-        //                                       &m_graph, ng_function));
-        // TODO: create cartesian product of possible input shapes and compile
-        // for each
-        // For example if an enc has 2 inps, A and B.. and A has shape hints
-        // {(2,2), (3,3)}, while B has shape hints {(4,), (5,), (6,)}, then we
-        // have to compile 2x3=6 functions
-        // This sounds problematic. maybe users want to specify some shapes of A
-        // go with some shapes of B.
-        // TODO: rethink above problem. Maybe, shape hints should come for all
-        // inputs as a group, and there are many such groups
       }  // end of if (can_aot)
     }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
   }      // end of if (aot_requested)

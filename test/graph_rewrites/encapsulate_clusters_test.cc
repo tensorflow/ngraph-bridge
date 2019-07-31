@@ -156,12 +156,23 @@ TEST(EncapsulateClusters, AOT) {
                 .Attr("_ngraph_cluster", cluster_idx)
                 .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node3));
+  Node* node4;
+  if (ngraph_tf_is_grappler_enabled()) {
+    std::vector<NodeBuilder::NodeOut> inputs;
+    std::vector<DataType> input_types;
+    inputs.push_back(NodeBuilder::NodeOut(node3, 0));
+    input_types.push_back(node3->output_type(0));
+    ASSERT_OK(NodeBuilder("node4", "IdentityN")
+                .Input(inputs)
+                .Attr("T", input_types)
+                .Finalize(&g, &node4));
+  }
 
   Node* source = g.source_node();
   Node* sink = g.sink_node();
   g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
-  g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+  g.AddEdge(ngraph_tf_is_grappler_enabled() ? node4 : node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 

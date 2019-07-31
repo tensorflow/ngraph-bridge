@@ -4972,6 +4972,7 @@ Status Builder::TranslateGraph(
   // Now create the nGraph ops from TensorFlow ops.
   //
   for (auto op : tf_ops) {
+    cout << "TG:: " << op->name() << ": " << op->type_string() << "\n";
     NGRAPH_VLOG(2) << "Constructing op " << op->name() << " which is "
                    << op->type_string();
 
