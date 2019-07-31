@@ -323,16 +323,12 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
                  "Graph with Variables Rewritten for Tracking");
     }
 
-    cout << " Enter in Catalog " << endl;
-
     // 6. Enter in catalog then.
     TF_RETURN_IF_ERROR(EnterInCatalog(options.graph->get(), idx));
     if (DumpCatalogedGraphs()) {
       DumpGraphs(options, idx, "cataloged",
                  "Graph with Variables Inputs Entered in Catalog");
     }
-
-    cout << "Remove Assigns " << endl;
 
     // 7. Remove Certain NGraphAssigns then.
     TF_RETURN_IF_ERROR(RemoveNGraphAssigns(options.graph->get()));

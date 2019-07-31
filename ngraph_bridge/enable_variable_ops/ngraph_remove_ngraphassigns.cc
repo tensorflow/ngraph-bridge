@@ -45,7 +45,8 @@ Status RemoveNGraphAssigns(Graph* graph) {
             input_1->type_string());
       }
 
-      // Add control edge
+      // Add control edge between the Op providing the variable and the Op
+      // updating it
       graph->AddEdge(input_0, Graph::kControlSlot, input_1,
                      Graph::kControlSlot);
 
