@@ -619,27 +619,6 @@ Status EncapsulateClusters(
       }
 
       if (can_aot) {
-        // TODO: call TranslateGraph
-        std::stringstream signature_ss;
-        // std::vector<TensorShape>& input_shapes;
-        // TODO : (Important) the signature calculation must iterate over the
-        // inputs in the correct order.
-        std::vector<const Tensor*> static_input_map;
-        for (auto itr : inputs_node_shapes_for_compilation) {
-          for (auto itr1 : itr.second) {  // iterate over the set
-                                          // for (auto itr2 : itr1) {
-            signature_ss << itr1 << ",";
-            //}
-          }
-          signature_ss << ";";
-        }
-        signature_ss << "/";
-        string signature = signature_ss.str();
-        // TODO when ComputeSignature is detached from the OpKernel, use that to
-        // compute the signature
-
-        cout << "Signature:: " << signature << "\n";
-
         for (auto node : graph->op_nodes()) {
           if (node->type_string() == "NGraphEncapsulate") {
             // Check inputs of the encapsulates. They can only be fed by fully
@@ -653,16 +632,31 @@ Status EncapsulateClusters(
                   "AOT requested. Found an encapsulate with static inputs, but "
                   "that is not supported");
             }
-            for (auto in_node_itr : node->in_nodes()) {
-              auto found_itr =
-                  inputs_node_shapes_for_compilation.find(in_node_itr->name());
-              if (found_itr == inputs_node_shapes_for_compilation.end()) {
+
+            std::stringstream signature_ss;
+            for (auto in_node : node->in_nodes()) {
+              cout << in_node->name() << "\n";
+              auto itr_shape =
+                  inputs_node_shapes_for_compilation.find(in_node->name());
+              if (itr_shape == inputs_node_shapes_for_compilation.end()) {
                 return errors::Internal(
                     "AOT requested. Found an encapsulate that has a "
                     "non-concrete input");
+              } else {
+                for (auto itr1 : itr_shape->second) {
+                  signature_ss << itr1 << ",";
+                }
+                signature_ss << ";";
               }
             }
+            signature_ss << "/";
+            string signature = signature_ss.str();
+            cout << "Signature:: " << signature << "\n";
+            // TODO when ComputeSignature is detached from the OpKernel, use
+            // that to
+            // compute the signature
 
+            // TODO: call TranslateGraph
             // std::shared_ptr<ngraph::Function> ng_function;
             // TF_RETURN_IF_ERROR(Builder::TranslateGraph(
             //    input_shapes, static_input_map, &m_graph, ng_function));
