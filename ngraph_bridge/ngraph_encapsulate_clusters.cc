@@ -550,6 +550,7 @@ Status EncapsulateClusters(
     std::set<std::string> inputs_found;
     // Iterate over each shape hint and see if they can be used
     for (ShapeHintMap single_hint : node_shapes_hints_sets) {
+      // A boolean to determine if we can AOT for this single_hint
       bool can_aot = true;
 
       for (auto node : graph->op_nodes()) {
