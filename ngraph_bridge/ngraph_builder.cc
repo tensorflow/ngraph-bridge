@@ -2518,8 +2518,7 @@ static Status TranslateSoftplusOp(
     Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_inp;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_inp));
-  auto ng_exp = ConstructNgNode<ng::op::Exp>(
-      op->name(), ng_inp);
+  auto ng_exp = ConstructNgNode<ng::op::Exp>(op->name(), ng_inp);
   auto constant_1 = ConstructNgNode<ng::op::Constant>(
       op->name(), ng_inp->get_element_type(), ng_inp->get_shape(),
       std::vector<std::string>(ng::shape_size(ng_inp->get_shape()), "1"));
@@ -4886,8 +4885,7 @@ const static std::map<
       {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
       {"Size", TranslateSizeOp}, {"Sign", TranslateUnaryOp<ngraph::op::Sign>},
       {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
-      {"Softmax", TranslateSoftmaxOp},
-      {"Softplus", TranslateSoftplusOp},
+      {"Softmax", TranslateSoftmaxOp}, {"Softplus", TranslateSoftplusOp},
       {"SpaceToDepth", TranslateSpaceToDepthOp},
       {"SparseSoftmaxCrossEntropyWithLogits",
        TranslateSparseSoftmaxCrossEntropyWithLogitsOp},
