@@ -219,7 +219,7 @@ results = sess.run(output_operation.outputs[0], {
 elapsed = time.time() - start
 print('Time elapsed: %f seconds' % elapsed)
 ```
-Observe that the ouput time runs faster than TensorFlow native (i.e., without nGraph).
+Observe that the output time runs faster than TensorFlow native (i.e., without nGraph).
 
 #### Add additional backends
 
