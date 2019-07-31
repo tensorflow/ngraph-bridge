@@ -32,7 +32,7 @@ namespace ngraph_bridge {
 //
 Status RewriteForTracking(Graph* graph, int graph_id) {
   std::vector<Node*> replaced_nodes;
-
+  std::vector<const Edge*> edges_to_remove;
   for (auto node : graph->op_nodes()) {
     if (node->type_string() == "NGraphVariable") {
       NGRAPH_VLOG(4) << "Checking: " << node->name();
@@ -96,6 +96,10 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           NGRAPH_VLOG(4) << "Replacing: " << edge->DebugString();
           graph->AddEdge(edge->src(), edge->src_output(), replacement,
                          edge->dst_input());
+          edges_to_remove.push_back(edge);
+        }
+     
+        for (auto edge : edges_to_remove) {
           graph->RemoveEdge(edge);
         }
 
@@ -107,6 +111,10 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           NGRAPH_VLOG(4) << "Replacing: " << edge->DebugString();
           graph->AddEdge(replacement, edge->src_output(), edge->dst(),
                          edge->dst_input());
+          edges_to_remove.push_back(edge);
+        }
+
+        for (auto edge : edges_to_remove) {
           graph->RemoveEdge(edge);
         }
 
