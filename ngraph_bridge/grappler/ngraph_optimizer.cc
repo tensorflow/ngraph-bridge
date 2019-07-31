@@ -88,15 +88,17 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
-  // we will not do anything; all subsequent
-  // passes become a no-op.
+  // we will not do anything; all subsequent passes become a no-op.
   bool ngraph_not_enabled =
       (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
   bool already_processed = IsProcessedByNgraphPass(&graph);
+  if (!already_processed && ngraph_not_enabled) {
+    NGRAPH_VLOG(0) << "NGraph is available but disabled.";
+  }
   if (ngraph_not_enabled || already_processed) {
-    NGRAPH_VLOG(0) << "Not running through nGraph. nGraph not enabled: "
-                   << ngraph_not_enabled
-                   << " Already processed: " << already_processed;
+    NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
+                          (already_processed ? "graph is already preprocessed"
+                                             : "ngraph is disabled");
     NGraphClusterManager::EvictAllClusters();
     graph.ToGraphDef(output);
     return Status::OK();
@@ -228,7 +230,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new));
+  TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
   }

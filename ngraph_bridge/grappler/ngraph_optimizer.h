@@ -52,9 +52,7 @@ class NgraphOptimizer : public tensorflow::grappler::CustomGraphOptimizer {
   string name() const override { return "NgraphOptimizer"; };
 
   Status Init(
-      const tensorflow::RewriterConfig_CustomGraphOptimizer* config) override {
-    return Status::OK();
-  }
+      const tensorflow::RewriterConfig_CustomGraphOptimizer* config) override;
 
   // This is a grappler pass to change a TF graph to nGraph enabled TF graph.
   // It accepts TF nodes that can be processed by nGraph and encapsulates them

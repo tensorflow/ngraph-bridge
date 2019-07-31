@@ -24,8 +24,9 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 BackendManager::~BackendManager() {
-  NGRAPH_VLOG(2) << "BackendManager::~BackendManager() DONE";
+  NGRAPH_VLOG(2) << "BackendManager::~BackendManager()";
 }
+
 // initialize backend manager
 string BackendManager::ng_backend_name_ = "CPU";
 mutex BackendManager::ng_backend_name_mutex_;

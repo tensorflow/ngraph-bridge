@@ -95,7 +95,28 @@ endif()
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
+add_library(${LIB_NAME} SHARED ${SRC})
 
+target_link_libraries( ${LIB_NAME} ngraph_logger) 
+target_link_libraries( ${LIB_NAME} ${TensorFlow_FRAMEWORK_LIBRARY})
+target_link_libraries( ${LIB_NAME} ngraph_lib)
+target_link_libraries( ${LIB_NAME} lib_cpu_backend_static)
+target_link_libraries( ${LIB_NAME} lib_interpreter_backend_static)
+target_link_libraries( ${LIB_NAME} lib_tbb)
+target_link_libraries( ${LIB_NAME} lib_mkldnn)
+target_link_libraries( ${LIB_NAME} lib_mklml_intel)
+target_link_libraries( ${LIB_NAME} lib_iomp5)
+target_link_libraries( ${LIB_NAME} absl_algorithm )
+target_link_libraries( ${LIB_NAME} absl_container )
+target_link_libraries( ${LIB_NAME} absl_strings )
+
+target_compile_definitions( 
+    ${LIB_NAME} PRIVATE
+    _GLIBCXX_USE_CXX11_ABI=${TensorFlow_CXX_ABI}
+)
+
+target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_INSTALL_DIR}/include")
+target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
 
 if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_library(${LIB_NAME_STATIC} STATIC ${SRC})
@@ -119,22 +140,6 @@ if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     )
     target_include_directories(${LIB_NAME_STATIC} PUBLIC "${NGRAPH_INSTALL_DIR}/include")
     target_include_directories(${LIB_NAME_STATIC} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
-else()
-    add_library(${LIB_NAME} SHARED ${SRC})
-
-    target_link_libraries( ${LIB_NAME} ngraph_logger) 
-    target_link_libraries( ${LIB_NAME} ${TensorFlow_FRAMEWORK_LIBRARY})
-    target_link_libraries( ${LIB_NAME} absl_algorithm )
-    target_link_libraries( ${LIB_NAME} absl_container )
-    target_link_libraries( ${LIB_NAME} absl_strings )
-
-    target_compile_definitions( 
-        ${LIB_NAME} PRIVATE
-        _GLIBCXX_USE_CXX11_ABI=${TensorFlow_CXX_ABI}
-    )
-
-    target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_INSTALL_DIR}/include")
-    target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
 endif()
 
 #------------------------------------------------------------------------------
@@ -154,13 +159,13 @@ endif()
 
 message(STATUS "NGTF_INSTALL_LIB_DIR: ${NGTF_INSTALL_LIB_DIR}")
 
+# First install the libngraph_bridge.so and headers
+install(TARGETS ${LIB_NAME} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
+install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
 if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     # First install the libngraph_bridge_static.a and headers
     install(TARGETS ${LIB_NAME_STATIC} DESTINATION "${NGTF_INSTALL_LIB_DIR}")
-else()
-    # First install the libngraph_bridge.so and headers
-    install(TARGETS ${LIB_NAME} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
-    install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 endif()
 
 # Next install all the other prerequisites
