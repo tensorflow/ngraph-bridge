@@ -278,7 +278,6 @@ else()
     set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib/${LIBCPU_BACKEND_A})
     set(INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib/${LIBINTERPRETER_BACKEND_A})
     set(LIB_MKLDNN_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libmkldnn.so)
-    set(LIB_TBB_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libtbb.so)
     set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libiomp5.so)
     set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libmklml_intel.so)
 endif()
@@ -323,12 +322,9 @@ set_target_properties(
     ${LIB_MKLML_INTEL_IMPORTED_LOCATION}
 )
 
-add_library(lib_tbb SHARED IMPORTED)
-set_target_properties(
-    lib_tbb
-    PROPERTIES IMPORTED_LOCATION
-    ${LIB_TBB_IMPORTED_LOCATION}
-)
+add_library(lib_tbb INTERFACE)
+target_link_libraries(lib_tbb INTERFACE
+        ${NGRAPH_INSTALL_DIR}/lib/libtbb.so)
 
 add_library(lib_iomp5 SHARED IMPORTED)
 set_target_properties(

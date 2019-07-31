@@ -14,11 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "../test_utilities.h"
 #include "gtest/gtest.h"
-#include "ngraph_assign_clusters.h"
-#include "ngraph_backend_manager.h"
-#include "ngraph_mark_for_clustering.h"
 
 #include "tensorflow/cc/client/client_session.h"
 #include "tensorflow/cc/ops/standard_ops.h"
@@ -30,6 +26,9 @@
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "test/test_utilities.h"
+
+using namespace std;
+namespace ng = ngraph;
 
 namespace tensorflow {
 
