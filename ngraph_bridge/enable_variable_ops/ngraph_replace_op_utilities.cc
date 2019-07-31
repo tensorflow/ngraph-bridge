@@ -203,7 +203,7 @@ Status ReplaceInputControlEdges(Graph* graph, Node* node, Node* replacement) {
     edges_to_remove.push_back(edge);
   }
   for (auto edge : edges_to_remove) {
-          graph->RemoveEdge(edge);
+    graph->RemoveEdge(edge);
   }
   return Status::OK();
 }
@@ -224,7 +224,7 @@ Status ReplaceOutputEdges(Graph* graph, Node* node, Node* replacement) {
     edges_to_remove.push_back(edge);
   }
   for (auto edge : edges_to_remove) {
-          graph->RemoveEdge(edge);
+    graph->RemoveEdge(edge);
   }
   return Status::OK();
 }

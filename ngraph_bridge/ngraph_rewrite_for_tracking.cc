@@ -98,7 +98,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
                          edge->dst_input());
           edges_to_remove.push_back(edge);
         }
-     
+
         for (auto edge : edges_to_remove) {
           graph->RemoveEdge(edge);
         }
