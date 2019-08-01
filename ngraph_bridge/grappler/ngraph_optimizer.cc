@@ -53,14 +53,32 @@ Status NgraphOptimizer::Init(
   config_backend_name = params.at("ngraph_backend").s();
   config_device_id = params.at("device_id").s();
   NGRAPH_VLOG(3) << "Backend name from config: " << config_backend_name;
+  std::set<ShapeHintMap> shape_hints;
+  // typedef std::map<std::string, std::vector<int>> ShapeHintMap;
   for (auto i : params) {
     if (i.first != "ngraph_backend") {
-      config_map[(i.first == "device_id" ? "" : "_") + std::string("ngraph_") +
-                 i.first] = i.second.s();
-      NGRAPH_VLOG(3) << "Attribute: " << i.first
-                     << " Value: " << config_map["_ngraph_" + i.first];
+      // TODO: slightly hacky. The bridge reserves the right to use optional
+      // attributes whose names start with shape_hint
+      if (i.first.rfind("shape_hint", 0) != 0) {
+        config_map[(i.first == "device_id" ? "" : "_") +
+                   std::string("ngraph_") + i.first] = i.second.s();
+        NGRAPH_VLOG(3) << "Attribute: " << i.first
+                       << " Value: " << config_map["_ngraph_" + i.first];
+      } else {
+        ShapeHintMap hint;
+        for (auto k : i.second.func().attr().at("hint_body").func().attr()) {
+          cout << k.first << "<<<\n";
+          vector<int> full_or_partial_shape;
+          for (auto dim : k.second.tensor().int_val()) {
+            full_or_partial_shape.push_back(dim);
+          }
+          hint[k.first] = full_or_partial_shape;
+        }
+        shape_hints.insert(hint);
+      }
     }
   }
+  aot_info = make_pair(shape_hints.size() > 0, shape_hints);
   return Status::OK();
 }
 
@@ -231,7 +249,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
   TF_RETURN_IF_ERROR(
-      EncapsulateClusters(&graph, idx, fdeflib_new, config_map, {false, {}}));
+      EncapsulateClusters(&graph, idx, fdeflib_new, config_map, aot_info));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
   }

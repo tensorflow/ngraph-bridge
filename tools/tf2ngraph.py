@@ -116,7 +116,6 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
         session_config, ng_backend, device_id, extra_params, shape_hints)
-
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -313,3 +312,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    #python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints [\{\"x\":[2,3],\},\{\"x\":[10,-1],\},\{\"x\":[4,3]\}]
