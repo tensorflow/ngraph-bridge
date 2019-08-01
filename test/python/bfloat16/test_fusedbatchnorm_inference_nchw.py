@@ -1,0 +1,75 @@
+# ==============================================================================
+#  Copyright 2019 Intel Corporation
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+# ==============================================================================
+"""nGraph TensorFlow FusedBatchNorm test
+
+"""
+import numpy as np
+import tensorflow as tf
+import os
+import ngraph_bridge
+import pytest
+
+
+np.random.seed(5)
+
+scale = [1.0, 0.9, 1.1]
+offset = [0.1, 0.2, -.3]
+mean = [0.4, 0.5, 0.6]
+variance = [0.1, 0.2, 0.3]
+
+def tf_model():
+    x = tf.placeholder(tf.float32, shape=[4, 3, 1, 2])
+    x_c = tf.cast(x, dtype=tf.bfloat16)
+    # Since TF only accepts NHWC, we need to transpose the NCHW to NHWC
+    x_t = tf.transpose(x_c, (0, 2, 3, 1)) # shape=[4, 1, 2, 3]
+    out_list = tf.nn.fused_batch_norm(x_t, scale, offset, mean, variance, data_format='NHWC',                 is_training=False)
+    norm = [tf.cast(i, dtype=tf.float32) for i in out_list]
+    return norm, x
+
+def ng_model():
+    x = tf.placeholder(tf.float32, shape=[4, 3, 1, 2])
+    norm = tf.nn.fused_batch_norm(x, scale, offset, mean, variance, data_format='NCHW',                 is_training=False)
+    return norm, x
+
+config = tf.ConfigProto(
+    allow_soft_placement=True,
+    log_device_placement=False,
+    inter_op_parallelism_threads=1)
+
+k_np = np.random.rand(4, 3, 1, 2).astype('f') # NCHW
+
+def test_fusedbatchnorm_nchw():
+    #Test 1: tf_model TF-native
+    with tf.Session(config=config) as sess_tf:
+        ngraph_bridge.disable()
+        tf_out, in_0 = tf_model()
+        feed_dict = {in_0: k_np}
+        tf_outval = sess_tf.run(tf_out[0], feed_dict=feed_dict)
+
+    #Test 2: model2 with ngraph, NNP backend
+    with tf.Session(config=config) as sess_ng:
+        ngraph_bridge.enable()
+        ngraph_bridge.update_config(config)
+        os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
+        os.environ['NGRAPH_TF_BACKEND'] = 'NNP'
+        ng_out, in_0 = ng_model()
+        feed_dict = {in_0: k_np}
+        ng_outval = sess_ng.run(ng_out[0], feed_dict=feed_dict)
+
+    # transpose TF output from NHWC to NCHW for comparison with ngraph output
+    assert (np.allclose(np.transpose(tf_outval, (0, 3, 1, 2)), ng_outval,  rtol=0, atol=1e-02))
+
+    
