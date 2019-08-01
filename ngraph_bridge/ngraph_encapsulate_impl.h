@@ -116,6 +116,10 @@ class NGraphEncapsulateImpl {
 
   void set_number_outputs(const int& n) { m_number_outputs = n; }
 
+  const int& get_number_inputs() { return m_number_inputs; }
+
+  void set_number_inputs(const int& n) { m_number_inputs = n; }
+
   const int& get_instance_id() { return my_instance_id; }
 
   const string& get_op_backend_name() { return m_op_backend_name; }
@@ -150,6 +154,8 @@ class NGraphEncapsulateImpl {
     m_ng_exec_map[ng_map_key] = exec;
   }
 
+  void clear_ng_exec_map() { m_ng_exec_map.clear(); }
+
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      std::shared_ptr<ngraph::Function>>
   get_ng_function_map() {
@@ -162,6 +168,7 @@ class NGraphEncapsulateImpl {
     m_ng_function_map[exec] = function;
   }
 
+  void clear_ng_function_map() { m_ng_function_map.clear(); }
   // TODO:sindhu have another get function for output_cache which is only
   // readable
   std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
@@ -177,12 +184,17 @@ class NGraphEncapsulateImpl {
     m_ng_exec_output_cache_map[exec] = cache;
   }
 
+  void clear_m_ng_exec_input_cache_map() { m_ng_exec_input_cache_map.clear(); }
+
+  void clear_ng_exec_output_cache_map() { m_ng_exec_output_cache_map.clear(); }
+
  private:
   int number_of_copies = 0;
   int m_ngraph_cluster{-1};
   int m_graph_id{-1};
   int my_function_cache_depth_in_items = 16;
   int m_number_outputs = -1;
+  int m_number_inputs = -1;
   int my_instance_id{0};
   string m_op_backend_name;
   std::stringstream copy_log_str;
