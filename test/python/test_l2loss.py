@@ -26,6 +26,7 @@ import pytest
 
 from common import NgraphTest
 
+np.random.seed(5)
 
 class TestL2Loss(NgraphTest):
 
