@@ -19,6 +19,8 @@ import tensorflow as tf
 from google.protobuf import text_format
 from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
+from tensorflow.core.framework import attr_value_pb2
+from tensorflow.core.framework import tensor_pb2
 from tensorflow.python.grappler import tf_optimizer
 import ngraph_bridge
 import os
@@ -26,11 +28,15 @@ import sys
 from functools import partial
 
 
+def _initial_check(st):
+    st = st.strip(' ')
+    assert st[0] == '{' and st[
+        -1] == '}', "Expected string to be a dictionary beginning with { and ending with }"
+    return st[1:-1].strip(' ')
+
+
 def parse_extra_params_string(raw_extra_params):
-    raw_extra_params = raw_extra_params.strip(' ')
-    assert raw_extra_params[0] == '{' and raw_extra_params[
-        -1] == '}', "Expected extra_params string to be a dictionary beginning with { and ending with }"
-    raw_extra_params_contents = raw_extra_params[1:-1].strip(' ')
+    raw_extra_params_contents = _initial_check(raw_extra_params)
     extra_params_dict = {}
     if len(raw_extra_params_contents) == 0:
         return extra_params_dict
@@ -45,13 +51,18 @@ def parse_extra_params_string(raw_extra_params):
             raise type(
                 e
             )(e.message +
-              'Got an entry in extra_params, that is an invalid entry for a python dictionary: '
+              'Got an entry that is an invalid entry for a python dictionary: '
               + key_val)
     return extra_params_dict
 
 
+def parse_shape_hints_string(raw_shape_hints_string):
+    # [\{\"a\":[2,3],\"b\":[2,3]\},\{\"a\":[5,5],\"b\":[5,-1]\},\{\"a\":[-1,3]\}]
+    return eval(raw_shape_hints_string)
+
+
 def update_config_to_include_custom_config(config, backend, device_id,
-                                           extra_params):
+                                           extra_params, shape_hints):
     rewriter_options = rewriter_config_pb2.RewriterConfig()
     rewriter_options.meta_optimizer_iterations = (
         rewriter_config_pb2.RewriterConfig.ONE)
@@ -62,6 +73,18 @@ def update_config_to_include_custom_config(config, backend, device_id,
     ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
     for k in extra_params:
         ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
+    # Attach shape hints
+    for hint_id, shape_hint in enumerate(shape_hints):
+        shape_hint_name = "shape_hint_" + str(hint_id)
+        ngraph_optimizer.parameter_map[
+            shape_hint_name].func.name = shape_hint_name.encode()
+        ngraph_optimizer.parameter_map[shape_hint_name].func.attr.get_or_create(
+            'hint_body').func.name = b'hint_body'
+        for node_name in shape_hint:  # TODO: verify that node names passed in shape hints are valid node names present in the graph
+            ngraph_optimizer.parameter_map[
+                shape_hint_name].func.attr.get_or_create(
+                    'hint_body').func.attr.get_or_create(
+                        node_name).tensor.int_val.extend(shape_hint[node_name])
     config.MergeFrom(
         tf.ConfigProto(
             graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
@@ -69,7 +92,7 @@ def update_config_to_include_custom_config(config, backend, device_id,
 
 
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
-                                  device_id, extra_params):
+                                  device_id, extra_params, shape_hints):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -92,7 +115,8 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     # Pass backend and extra backend params to grappler through rewriter config by updating the config
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
-        session_config, ng_backend, device_id, extra_params)
+        session_config, ng_backend, device_id, extra_params, shape_hints)
+
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -175,6 +199,12 @@ def prepare_argparser(formats):
         help=
         "Other params that the backend needs in the form of a dictionary. Eg, {max_cores: 4}."
     )
+    parser.add_argument(
+        "--shape_hints",
+        default='{}',
+        help=
+        "Shape hints (comma separated maps) TODO expand this help line. Eg, \{\{a:[2,3],b:[2,3]\},\{a:[5,5],b:[5,-1]\},\{a:[-1,3]\}\}."
+    )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -237,7 +267,7 @@ allowed_formats = {
 
 
 def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
-            device_id, extra_params):
+            device_id, extra_params, shape_hints):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -258,8 +288,9 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     assert ngraph_bridge.is_grappler_enabled()
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
-    output_gdef = run_ngraph_grappler_optimizer(
-        input_gdef, output_nodes, ng_backend, device_id, extra_params)
+    output_gdef = run_ngraph_grappler_optimizer(input_gdef, output_nodes,
+                                                ng_backend, device_id,
+                                                extra_params, shape_hints)
     save_model(output_gdef, out_format, out_loc)
 
 
@@ -274,8 +305,9 @@ def main():
     out_format, out_loc = filter_dict("output", args.__dict__)
     output_nodes = args.output_nodes.split(',')
     extra_params = parse_extra_params_string(args.extra_params)
+    shape_hints = parse_shape_hints_string(args.shape_hints)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
-            args.ng_backend, args.device_id, extra_params)
+            args.ng_backend, args.device_id, extra_params, shape_hints)
     print('Converted the model. Exiting now')
 
 
