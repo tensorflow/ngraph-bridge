@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2019 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -39,12 +39,12 @@ C = 3
 N1 = 4
 H1 = 3
 W1 = 8
-C1 = 1
+C1 = 3
 
 N2 = 4
 H2 = 4
 W2 = 8
-C2 = 2
+C2 = 3
 
 grad_nhwc = {
     "VALID": np.random.rand(N1, C1, H1, W1).astype('f'),
@@ -79,7 +79,7 @@ def ng_model(padding):
         grad = tf.placeholder(tf.float32, shape=(N1, C1, H1, W1))
     elif padding == "SAME":
         grad = tf.placeholder(tf.float32, shape=(N2, C2, H2, W2))
-    out = max_pool_grad(orig_in, orig_out, grad, ksize, strides, padding=padding, data_format="NHWC")
+    out = max_pool_grad(orig_in, orig_out, grad, ksize, strides, padding=padding, data_format="NCHW")
     return out, orig_in, orig_out, grad
 
 config = tf.ConfigProto(
@@ -87,10 +87,10 @@ config = tf.ConfigProto(
     log_device_placement=False,
     inter_op_parallelism_threads=1)
 
-i_np = np.random.rand(N, C, H, W).astype('f') # NHWC
-o_np = np.random.rand(N, C, H, W).astype('f') # NHWC
+i_np = np.random.rand(N, C, H, W).astype('f') # NCHW
+o_np = np.random.rand(N, C, H, W).astype('f') # NCHW
 
-@pytest.mark.parametrize("padding", ("VALID",))
+@pytest.mark.parametrize("padding", ("SAME",))
 def test_maxpoolbackprop_nhwc(padding):
     np_nhwc = grad_nhwc[padding]
 
@@ -111,4 +111,4 @@ def test_maxpoolbackprop_nhwc(padding):
         feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nhwc}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
-    assert (np.allclose(tf_outval, ng_outval,  rtol=0, atol=1e-02))
+    assert (np.allclose(tf_outval[0], ng_outval[0],  rtol=0, atol=1e-02))
