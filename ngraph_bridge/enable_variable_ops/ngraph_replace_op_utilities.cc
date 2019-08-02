@@ -175,13 +175,10 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
   }
 
   // Variables and Optimizers path: We see the entire graph, so all the
-  // variables
-  // are replaced in one shot.
+  // variables are replaced in one shot.
   // Grappler path: We see the graph in pieces, so when we encounter a new
-  // variable
-  // we must keep track of previously replaced variables, and use that name if
-  // it
-  // has already been replaced.
+  // variable we must keep track of previously replaced variables, and use
+  // that name if it has already been replaced.
   // Also, we add IdentityN nodes, which changes the name of the node. Hence, we
   // have to get a nodes original name either from the node itself or from the
   // IdentityN node attached to it.
