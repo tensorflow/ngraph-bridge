@@ -528,24 +528,24 @@ Status EncapsulateClusters(
   std::set<std::map<std::string, vector<int>>> node_shapes_hints_sets;
   std::tie(aot_requested, node_shapes_hints_sets) = aot_info;
   if (aot_requested) {
-    string input_node_type =
-        ngraph_tf_is_grappler_enabled() ? "Placeholder" : "_Arg";
-    string shape_field_key =
-        ngraph_tf_is_grappler_enabled() ? "_output_shapes" : "shape";
+    NGRAPH_VLOG(3) << "AOT requested";
+    if (!ngraph_tf_is_grappler_enabled()) {
+      return errors::Internal("AOT requested for non grappler build. Please use grappler build if AOT is required");
+    }
+    string input_node_type = "Placeholder";
     // In case of grappler, we have Placeholder, which might contain shape info,
     // so it is possible we can aot without any provided shapes
     // in normal pass its args. unless shapes are provided there is no chance of
     // reading shapes from args.
-    // TOD: maybe we do not need to support this for normal pass
 
     auto get_shape_for_node_from_shape_hint = [](Node* node,
                                                  ShapeHintMap single_hint) {
       auto find_itr = single_hint.find(node->name());
+      cout << "In get_shape_for_node_from_shape_hint: " << (find_itr == single_hint.end()) << "\n";
       return find_itr == single_hint.end() ? PartialShape(vector<int>{}, false)
                                            : PartialShape(find_itr->second);
     };
 
-    // TODO: check node_shapes_for_compilation
     std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
     std::set<std::string> inputs_found;
     // Iterate over each shape hint and see if they can be used
@@ -563,15 +563,24 @@ Status EncapsulateClusters(
           NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
                          << node->type_string()
                          << "): " << node->attrs().SummarizeNode();
-          auto shape_field = node->attrs().Find(shape_field_key);
-          // TODO: maybe should be _output_shapes for _Arg.
-          // TODO: node->attrs().Find("shape") for _Arg. Thought that _Arg does
-          // not have an attribute called "shape" but now will need to revisit
-          // that assumption
+          // TODO: need to confirm if its _output_shapes or shape
+          auto shape_field = node->attrs().Find("_output_shapes");
+          if (shape_field == nullptr) {
+            shape_field = node->attrs().Find("shape");
+          }
+          // It seems that _output_shapes is not found and hence the shape is inferred only from the hints. however if "shape" is present, it is empty, and in that case the empty shape and the rank!=0 hint fuse to give an invalid shape according to our current logic. have to modify that
           PartialShape partial_shape_from_node;
           if (shape_field != nullptr) {
+            cout << "shape_field != nullptr,,,,,,,\n";
             // Get shape from the node
             partial_shape_from_node = PartialShape(shape_field->shape());
+            cout << partial_shape_from_node.to_string() << "--+++++-\n";
+          }
+          cout << partial_shape_from_node.to_string() << "--+++++-\n";
+
+          for (auto it : single_hint){
+            cout << it.first << "====\n";
+            cout << node->name() << "\n";
           }
 
           PartialShape shape_hint_for_node =
@@ -581,17 +590,32 @@ Status EncapsulateClusters(
           // shape_hints if they exist
           PartialShape combined_shape_info;
           if (shape_hint_for_node.is_valid()) {
+            cout << "shape_hint_for_node is valid\n";
             if (partial_shape_from_node.is_valid()) {
-              partial_shape_from_node.concretize(shape_hint_for_node);
-              combined_shape_info = partial_shape_from_node;
+              cout << "partial_shape_from_node is valid\n";
+              if (partial_shape_from_node.size() == 0) {
+                // TODO: revisit this if-else
+                cout << "In This If\n";
+                combined_shape_info = shape_hint_for_node;
+              } else {
+                cout << "In This else\n";
+                cout << shape_hint_for_node.to_string() << "---\n";
+                cout << partial_shape_from_node.to_string() << "---\n";
+                partial_shape_from_node.concretize(shape_hint_for_node);
+                combined_shape_info = partial_shape_from_node;
+              }
             } else {
+              cout << "partial_shape_from_node is INvalid\n";
               combined_shape_info = shape_hint_for_node;
             }
           } else {
+            cout << "shape_hint_for_node is INvalid\n";
             if (partial_shape_from_node.is_valid()) {
+              cout << "partial_shape_from_node is valid\n";
               // No shape hints found. But the node itself has some shape info
               combined_shape_info = partial_shape_from_node;
             } else {
+              cout << "partial_shape_from_node is INvalid\n";
               combined_shape_info = PartialShape(vector<int>{}, false);
             }
           }
@@ -604,6 +628,9 @@ Status EncapsulateClusters(
           } else {
             // TODO: necessarily break? Maybe some things can be AOT, others
             // maybe not
+            // TODO provide better error messages
+            NGRAPH_VLOG(3) << "Cannot AOT using this hint as it is invalid or could not be concretized";
+            cout << combined_shape_info.is_valid() << "\n";
             break;
           }
         }  // end of if (node->type_string() == input_node_type)
@@ -613,6 +640,8 @@ Status EncapsulateClusters(
       for (auto itr : inputs_found) {
         if (inputs_node_shapes_for_compilation.find(itr) ==
             inputs_node_shapes_for_compilation.end()) {
+          // TODO: print "this" hint
+          NGRAPH_VLOG(3) << "Cannot AOT using this hint for " << itr << " was not concretized";
           can_aot = false;
           break;
         }
@@ -621,6 +650,7 @@ Status EncapsulateClusters(
       if (can_aot) {
         for (auto node : graph->op_nodes()) {
           if (node->type_string() == "NGraphEncapsulate") {
+            cout << "XXX:: node->name(): " << node->name() << "\n";
             // Check inputs of the encapsulates. They can only be fed by fully
             // concrete shapes (after going through the shape hints) or consts
             std::vector<int32> st_inputs;
@@ -636,27 +666,31 @@ Status EncapsulateClusters(
             std::vector<TensorShape> input_shapes;
             std::stringstream signature_ss;
             for (auto in_node : node->in_nodes()) {
-              auto itr_shape =
-                  inputs_node_shapes_for_compilation.find(in_node->name());
-              if (itr_shape == inputs_node_shapes_for_compilation.end()) {
-                return errors::Internal(
-                    "AOT requested. Found an encapsulate that has a "
-                    "non-concrete input");
-              } else {
-                std::vector<int64> converted_to_int64(itr_shape->second.begin(),
-                                                      itr_shape->second.end());
-                input_shapes.push_back(TensorShape(converted_to_int64));
-                for (auto itr1 : itr_shape->second) {
-                  signature_ss << itr1 << ",";
+              if (!in_node->IsSource()){
+                auto itr_shape =
+                    inputs_node_shapes_for_compilation.find(in_node->name());
+                if (itr_shape == inputs_node_shapes_for_compilation.end()) {
+                  cout << "in_node->name(): " << in_node->name() << "\n";
+                  cout << "node->name(): " << node->name() << "\n";
+                  return errors::Internal(
+                      "AOT requested. Found an encapsulate that has a "
+                      "non-concrete input");
+                } else {
+                  std::vector<int64> converted_to_int64(itr_shape->second.begin(),
+                                                        itr_shape->second.end());
+                  input_shapes.push_back(TensorShape(converted_to_int64));
+                  for (auto itr1 : itr_shape->second) {
+                    signature_ss << itr1 << ",";
+                  }
+                  signature_ss << ";";
                 }
-                signature_ss << ";";
               }
             }
+
             signature_ss << "/";
             string signature = signature_ss.str();
-            cout << "Signature:: " << signature << "\n";
+            NGRAPH_VLOG(3) << "Performing AOT for " << node->name() << " for signature = " << signature << "\n";
 
-            // TODO: call TranslateGraph
             std::vector<const Tensor*> static_input_map;
             std::shared_ptr<ngraph::Function> ng_function;
             int cluster_idx;
@@ -675,12 +709,11 @@ Status EncapsulateClusters(
                 input_shapes, static_input_map, &graph_for_current_encapsulate,
                 ng_function));
 
-            // TODO remove me
             node->AddAttr("_ngraph_aot_" + signature,
                           ngraph::serialize(ng_function, 4));
           }
         }
-      }  // end of if (can_aot)
+      }// end of if (can_aot)
     }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
   }      // end of if (aot_requested)
 

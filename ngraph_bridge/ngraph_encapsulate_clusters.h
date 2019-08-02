@@ -24,6 +24,8 @@
 #include <vector>
 
 #include "tensorflow/core/graph/graph.h"
+#include<iostream>
+
 
 namespace tensorflow {
 
@@ -48,7 +50,7 @@ class PartialShape {
       for (uint shape_idx = 0; shape_idx < tensor_shape_proto.dim_size();
            shape_idx++) {
         auto num_elems_in_this_dim = tensor_shape_proto.dim(shape_idx).size();
-        m_shape.push_back(num_elems_in_this_dim);
+        m_shape[shape_idx] = num_elems_in_this_dim;
         // -1 means not specified
       }
       m_valid = true;
@@ -79,6 +81,14 @@ class PartialShape {
   }
 
   bool is_valid() const { return m_valid; }
+
+  string to_string() const {
+    std::string st = m_valid ? "valid:" : "invalid:";
+    for (auto i : m_shape) {
+      st += (std::to_string(i) + ",");
+    }
+    return st;
+  }
 
   void concretize(PartialShape shape_hint) {
     // Both PartialShapes are expected to be valid
