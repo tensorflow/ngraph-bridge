@@ -99,24 +99,22 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           edges_to_remove.push_back(edge);
         }
 
-        for (auto edge : edges_to_remove) {
-          graph->RemoveEdge(edge);
-        }
 
         std::vector<const Edge*> edges;
         for (auto edge : node->out_edges()) {
           edges.push_back(edge);
-        }
+        } 
+        
         for (auto edge : edges) {
           NGRAPH_VLOG(4) << "Replacing: " << edge->DebugString();
           graph->AddEdge(replacement, edge->src_output(), edge->dst(),
                          edge->dst_input());
-          edges_to_remove.push_back(edge);
+         graph->RemoveEdge(edge);
         }
 
         for (auto edge : edges_to_remove) {
           graph->RemoveEdge(edge);
-        }
+        } 
 
         replaced_nodes.push_back(node);
       } else {
