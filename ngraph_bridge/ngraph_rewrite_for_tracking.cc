@@ -32,7 +32,7 @@ namespace ngraph_bridge {
 //
 Status RewriteForTracking(Graph* graph, int graph_id) {
   std::vector<Node*> replaced_nodes;
-  std::vector<const Edge*> edges_to_remove;
+
   for (auto node : graph->op_nodes()) {
     if (node->type_string() == "NGraphVariable") {
       NGRAPH_VLOG(4) << "Checking: " << node->name();
@@ -90,31 +90,25 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
         NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
                        << replacement->DebugString();
 
+        std::vector<const Edge*> edges_to_remove;
         // Though edges will be removed when we remove the node
         // we specifically remove the edges to be sure
         for (auto edge : node->in_edges()) {
-          NGRAPH_VLOG(4) << "Replacing: " << edge->DebugString();
+          NGRAPH_VLOG(4) << "Replacing: In Edge " << edge->DebugString();
           graph->AddEdge(edge->src(), edge->src_output(), replacement,
                          edge->dst_input());
           edges_to_remove.push_back(edge);
         }
 
-        for (auto edge : edges_to_remove) {
-          graph->RemoveEdge(edge);
-        }
-
-        std::vector<const Edge*> edges;
         for (auto edge : node->out_edges()) {
-          edges.push_back(edge);
-        }
-        for (auto edge : edges) {
-          NGRAPH_VLOG(4) << "Replacing: " << edge->DebugString();
+          NGRAPH_VLOG(4) << "Replacing: OutEdge " << edge->DebugString();
           graph->AddEdge(replacement, edge->src_output(), edge->dst(),
                          edge->dst_input());
           edges_to_remove.push_back(edge);
         }
 
         for (auto edge : edges_to_remove) {
+          NGRAPH_VLOG(4) << "Removing: Edges " << edge->DebugString();
           graph->RemoveEdge(edge);
         }
 
