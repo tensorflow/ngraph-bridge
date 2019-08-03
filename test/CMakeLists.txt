@@ -93,15 +93,7 @@ endif()
 if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     target_link_libraries(
         gtest_ngtf -Wl,--whole-archive
-        ngraph_bridge_static
-        lib_cpu_backend_static
-        lib_interpreter_backend_static 
-        ngraph_lib -Wl,--no-whole-archive
-        dl
-        lib_tbb
-        lib_mkldnn
-        lib_mklml_intel
-        lib_iomp5
+        ngraph_bridge_static -Wl,--no-whole-archive
         libgtest
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}

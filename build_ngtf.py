@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "pruthvi/cpu_static_backend"
+    ngraph_version = "pruthvi/static_initilize"
     tf_version = "v1.14.0"
 
     # Command line parser options
