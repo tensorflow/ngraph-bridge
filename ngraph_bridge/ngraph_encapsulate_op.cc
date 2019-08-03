@@ -174,10 +174,16 @@ class NGraphEncapsulateOp : public OpKernel {
       // '_ngraph_' is only appended for the bridge.
       // For e.g. _ngraph_ice_cores --> ice_cores
       if (itx.first.find("_ngraph_") != std::string::npos) {
+        // TODO: decide what the node attributes should be.
+        // right now _ngraph_aot_ is used by aot, _ngraph_ is used for optional attributes
+        if (itx.first.find("_ngraph_aot_") != std::string::npos) {
+          m_aot_functions[ng::split(itx.first, '_')[3]] = itx.second.s();
+        } else {
         NGRAPH_VLOG(4) << "Attribute: " << itx.first.substr(strlen("_ngraph_"))
                        << " Value: " << itx.second.s();
         additional_attribute_map.insert(
             {itx.first.substr(strlen("_ngraph_")), itx.second.s()});
+        }
       }
     }
 
@@ -383,8 +389,18 @@ class NGraphEncapsulateOp : public OpKernel {
       MemoryProfile(vm0, rss0);
 
       NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
+
+      auto itr_translated = m_aot_functions.find(signature);
+      cout << "Compute:: signature: " << signature << "\n";
+      if (itr_translated == m_aot_functions.end()){
       TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                  &m_graph, ng_function));
+      } else {
+        cout << "Compute:: found aot: \n";
+        ng_function = ng::deserialize(itr_translated->second);
+        cout << "Successfully deserialized\n";
+        cout << ng_function << "\n";
+      }
       ng_function->set_friendly_name(name());
 
       auto function_size = ng_function->get_graph_size() / 1024;  // kb unit
@@ -1063,6 +1079,7 @@ class NGraphEncapsulateOp : public OpKernel {
   int my_instance_id{0};
   int m_number_outputs = -1;
   int m_number_inputs = -1;
+  map<string, string> m_aot_functions;
 };
 
 int NGraphEncapsulateOp::s_instance_count = 0;
