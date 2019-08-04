@@ -85,8 +85,6 @@ def test_conv2d():
         tf_out, input = tf_model()
         feed_dict = {input: t_np}
         tf_outval = sess_tf.run(tf_out, feed_dict=feed_dict)
-        print("Native TF: ")
-        print(tf_outval.dtype, tf_outval[0])
 
     #Test 2: model2 with ngraph, NNP backend
     with tf.Session(config=config) as sess_ng:
@@ -97,8 +95,6 @@ def test_conv2d():
         ng_out, input = ng_model()
         feed_dict = {input: n_np}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
-        print("Ngraph with NNP backend: ")
-        print(ng_outval.dtype, ng_outval[0])
 
     assert np.allclose(
         np.transpose(tf_outval, (0, 3, 1, 2)), ng_outval, rtol=0, atol=1e-02)

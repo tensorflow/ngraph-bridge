@@ -24,8 +24,8 @@ import os
 from tensorflow.python.ops import nn_ops
 import ngraph_bridge
 
-#Tests Ngraph Op: ConvolutionBackpropData with data format NHWC
-#TF Op: conv2d_backprop_input
+#Tests Ngraph Op: ConvolutionBackpropFilters with data format NHWC
+#TF Op: conv2d_backprop_filter
 
 np.random.seed(5)
 #Inputs
@@ -49,33 +49,33 @@ stride = [1, 2, 2, 1]
 
 #TF graph
 def tf_model(padding):
-    t1 = tf.constant(input_sizes_nhwc, dtype=tf.int32, name='t1')
-    t2 = tf.placeholder(dtype=tf.float32, shape=filter_size_hwio, name='t2')
+    t1 = tf.placeholder(dtype=tf.float32, shape=input_sizes_nhwc, name='t1')
+    t2 = tf.constant(filter_size_hwio, dtype=tf.int32, name='t1')
     t3 = tf.placeholder(
         dtype=tf.float32, shape=out_backprop_in_sizes[padding], name='t3')
 
     #Cast dtype to bfloat16 for TF because NNP casts ng_model inputs
-    t2 = tf.cast(t2, dtype=tf.bfloat16)
+    t1 = tf.cast(t1, dtype=tf.bfloat16)
     t3 = tf.cast(t3, dtype=tf.bfloat16)
 
-    inp = nn_ops.conv2d_backprop_input(
+    filt = nn_ops.conv2d_backprop_filter(
         t1, t2, t3, stride, padding=padding, data_format='NHWC')
 
     #Cast dtype back to float32 similar to NNP
-    inp = tf.cast(inp, dtype=tf.float32)
-    return inp, t2, t3
+    filt = tf.cast(filt, dtype=tf.float32)
+    return filt, t1, t3
 
 
 #Ngraph Graph
 def ng_model(padding):
-    t1 = tf.constant(input_sizes_nhwc, dtype=tf.int32, name='t1')
-    t2 = tf.placeholder(dtype=tf.float32, shape=filter_size_hwio, name='t2')
+    t1 = tf.placeholder(dtype=tf.float32, shape=input_sizes_nhwc, name='t1')
+    t2 = tf.constant(filter_size_hwio, dtype=tf.int32, name='t1')
     t3 = tf.placeholder(
         dtype=tf.float32, shape=out_backprop_in_sizes[padding], name='t3')
 
-    inp = nn_ops.conv2d_backprop_input(
+    filt = nn_ops.conv2d_backprop_filter(
         t1, t2, t3, stride, padding=padding, data_format='NHWC')
-    return inp, t2, t3
+    return filt, t1, t3
 
 
 config = tf.ConfigProto(
@@ -85,14 +85,14 @@ config = tf.ConfigProto(
 
 
 @pytest.mark.parametrize("padding", ("VALID", "SAME"))
-def test_conv2dbackpropinput_nhwc(padding):
-    np_filter = np.random.rand(*filter_size_hwio).astype('f')
-    n_np_out = np.random.rand(*out_backprop_in_sizes[padding]).astype('f')
+def test_conv2dbackpropfilter_nhwc(padding):
+    np_inp = np.random.rand(*input_sizes_nhwc).astype('f')
+    np_out = np.random.rand(*out_backprop_in_sizes[padding]).astype('f')
 
     with tf.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
-        tf_out, filter, out_backprop = tf_model(padding)
-        feed_dict = {filter: np_filter, out_backprop: n_np_out}
+        tf_out, input, out_backprop = tf_model(padding)
+        feed_dict = {input: np_inp, out_backprop: np_out}
         tf_outval = sess_tf.run(tf_out, feed_dict=feed_dict)
 
     #Test 2: model2 with ngraph, NNP backend
@@ -101,8 +101,8 @@ def test_conv2dbackpropinput_nhwc(padding):
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
         os.environ['NGRAPH_TF_BACKEND'] = 'NNP'
-        ng_out, filter, out_backprop = ng_model(padding)
-        feed_dict = {filter: np_filter, out_backprop: n_np_out}
+        ng_out, input, out_backprop = ng_model(padding)
+        feed_dict = {input: np_inp, out_backprop: np_out}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
     assert np.allclose(tf_outval, ng_outval, rtol=0, atol=1e-02)

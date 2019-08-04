@@ -94,6 +94,7 @@ config = tf.ConfigProto(
 def test_conv2dbackpropinput_nchw(padding):
     np_filter = np.random.rand(*filter_size_hwio).astype('f')
     n_np_out = np.random.rand(*out_backprop_in_sizes[padding]).astype('f')
+    #Reshape to NHWC for TF
     t_np_out = np.transpose(n_np_out, (0, 2, 3, 1))
 
     with tf.Session(config=config) as sess_tf:
