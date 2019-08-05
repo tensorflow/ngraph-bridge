@@ -26,7 +26,7 @@ http_archive(
     name = "ngraph",
     build_file = "//:bazel/ngraph.BUILD",
     sha256 = "067913405e9431dd71d88fc0bb946c1bfecf1d0462c64c4f736ce20a9733007c",
-    strip_prefix = "v0.25.0-rc.0",
+    strip_prefix = "ngraph-0.25.0-rc.0",
     urls = [
         "https://mirror.bazel.build/github.com/NervanaSystems/ngraph/archive/v0.25.0-rc.0.tar.gz",
         "https://github.com/NervanaSystems/ngraph/archive/v0.25.0-rc.0.tar.gz"
