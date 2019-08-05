@@ -30,6 +30,7 @@ from common import NgraphTest
 
 np.random.seed(5)
 
+
 class TestSparseSoftmaxCrossEntropyWithLogitsOperations(NgraphTest):
 
     def test_sparse_softmax_cross_entropy_with_logits_2d(self):
