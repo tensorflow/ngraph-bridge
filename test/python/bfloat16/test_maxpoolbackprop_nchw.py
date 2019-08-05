@@ -31,58 +31,60 @@ from tensorflow.python.ops.gen_nn_ops import max_pool_grad
 
 import ngraph_bridge
 
+# Test Ngraph Op MaxPoolBackprop with data format NCHW
+# TF Op:MaxPoolGrad
+
+np.random.seed(5)
+
+#Inputs
 N = 4
 H = 8
 W = 8
 C = 3
 
-N1 = 4
-H1 = 3
-W1 = 3
-C1 = 3
+grad_shape_valid = [4, 3, 3, 3]
+grad_shape_same_tf = [4, 3, 4, 8]
+grad_shape_same_ng = [4, 3, 4, 4]
 
-#NHWC
-N2 = 4
-H2 = 4
-W2 = 8
-C2 = 3
-
-#NCHW
-N3 = 4
-H3 = 4
-W3 = 4
-C3 = 3
-
-grad_nhwc = {
-    "VALID": np.random.rand(N1, C1, H1, W1).astype('f'),
-    "SAME": np.random.rand(N2, C2, H2, W2).astype('f')
+grad_tf = {
+    "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
+    "SAME": np.random.rand(4, 3, 4, 8).astype('f')
 }
 
-grad_nchw = {
-    "VALID": np.random.rand(N1, C1, H1, W1).astype('f'),
-    "SAME": np.random.rand(N3, C3, H3, W3).astype('f')
+grad_ng = {
+    "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
+    "SAME": np.random.rand(4, 3, 4, 4).astype('f')
 }
 
-strides = [1, 2, 2, 1]
-ksize = [1, 3, 3, 1]
+stride_nhwc = [1, 2, 2, 1]
+ksize_nhwc = [1, 3, 3, 1]
 stride_nchw = [1, 1, 2, 2]
 ksize_nchw = [1, 1, 3, 3]
 
 def tf_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, C, H, W])
-    orig_in_c = tf.cast(orig_in, tf.bfloat16)
-    orig_in_t = tf.transpose(orig_in_c, (0, 2, 3, 1))
     orig_out = tf.placeholder(tf.float32, shape=[N, C, H, W])
-    orig_out_c = tf.cast(orig_out, tf.bfloat16)
-    orig_out_t = tf.transpose(orig_out_c, (0, 2, 3, 1))
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=(N1, C1, H1, W1))
+        grad = tf.placeholder(tf.float32, shape=grad_shape_valid)
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=(N2, C2, H2, W2))
+        grad = tf.placeholder(tf.float32, shape=grad_shape_same_tf)
+
+    # cast the input dtype to bfloat16 for TF
+    orig_in_c = tf.cast(orig_in, tf.bfloat16)
+    orig_out_c = tf.cast(orig_out, tf.bfloat16)
     grad_c = tf.cast(grad, tf.bfloat16)
+
+    # reshape the inputs to NHWC since TF does not support NCHW
+    orig_in_t = tf.transpose(orig_in_c, (0, 2, 3, 1))
+    orig_out_t = tf.transpose(orig_out_c, (0, 2, 3, 1))
     grad_t = tf.transpose(grad_c, (0, 2, 3, 1))
-    out = max_pool_grad(orig_in_t, orig_out_t, grad_t, ksize, strides, padding=padding, data_format="NHWC")
+
+    out = max_pool_grad(orig_in_t, orig_out_t, grad_t, ksize_nhwc, stride_nhwc, padding=padding, data_format="NHWC")
+
+    # cast the output dtype back to float32
     output = tf.cast(out, tf.float32)
+
+    # reshape the output back to NCHW
     output_t = tf.transpose(output, (0, 3, 1, 2))
     return output_t, orig_in, orig_out, grad
 
@@ -90,9 +92,9 @@ def ng_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, C, H, W])
     orig_out = tf.placeholder(tf.float32, shape=[N, C, H, W])
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=(N1, C1, H1, W1))
+        grad = tf.placeholder(tf.float32, shape=grad_shape_valid)
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=(N3, C3, H3, W3))
+        grad = tf.placeholder(tf.float32, shape=grad_shape_same_ng)
     out = max_pool_grad(orig_in, orig_out, grad, ksize_nchw, stride_nchw, padding=padding, data_format="NCHW")
     return out, orig_in, orig_out, grad
 
@@ -106,14 +108,14 @@ o_np = np.random.rand(N, C, H, W).astype('f') # NCHW
 
 @pytest.mark.parametrize("padding", ("SAME",))
 def test_maxpoolbackprop_nhwc(padding):
-    np_nchw = grad_nchw[padding]
-    np_nhwc = grad_nhwc[padding]
+    np_ng = grad_ng[padding]
+    np_tf = grad_tf[padding]
 
     #Test 1: tf_model TF-native
     with tf.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
         tf_out, orig_in, orig_out, grad = tf_model(padding)
-        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nhwc}
+        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_tf}
         tf_outval = sess_tf.run(tf_out, feed_dict=feed_dict)
 
     #Test 2: model2 with ngraph, NNP backend
@@ -121,9 +123,8 @@ def test_maxpoolbackprop_nhwc(padding):
         ngraph_bridge.enable()
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
-        os.environ['NGRAPH_TF_BACKEND'] = 'NNP'
         ng_out, orig_in, orig_out, grad = ng_model(padding)
-        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nchw}
+        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_ng}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
     assert (np.allclose(tf_outval[0], ng_outval[0],  rtol=0, atol=1e-02))

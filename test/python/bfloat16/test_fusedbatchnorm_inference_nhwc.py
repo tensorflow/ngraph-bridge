@@ -25,21 +25,28 @@ import pytest
 
 np.random.seed(5)
 
+# Inputs
 scale = [1.0, 0.9, 1.1]
 offset = [0.1, 0.2, -.3]
 mean = [0.4, 0.5, 0.6]
 variance = [0.1, 0.2, 0.3]
+input_shape = [4, 1, 2, 3]
 
 def tf_model():
-    x = tf.placeholder(tf.float32, shape=[4, 1, 2, 3])
+    x = tf.placeholder(tf.float32, shape=input_shape)
+
+    # cast the input dtype to bfloat16 for TF
     x_c = tf.cast(x, dtype=tf.bfloat16)
-    out_list = tf.nn.fused_batch_norm(x_c, scale, offset, mean, variance, data_format='NHWC',                 is_training=False)
+
+    out_list = tf.nn.fused_batch_norm(x_c, scale, offset, mean, variance, data_format='NHWC', is_training=False)
+
+    # cast the output dtype back to float32
     norm = [tf.cast(i, dtype=tf.float32) for i in out_list]
     return norm, x
 
 def ng_model():
-    x = tf.placeholder(tf.float32, shape=[4, 1, 2, 3])
-    norm = tf.nn.fused_batch_norm(x, scale, offset, mean, variance, data_format='NHWC',                 is_training=False)
+    x = tf.placeholder(tf.float32, shape=input_shape)
+    norm = tf.nn.fused_batch_norm(x, scale, offset, mean, variance, data_format='NHWC', is_training=False)
     return norm, x
 
 config = tf.ConfigProto(
@@ -62,7 +69,6 @@ def test_fusedbatchnorm_nchw():
         ngraph_bridge.enable()
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
-        os.environ['NGRAPH_TF_BACKEND'] = 'NNP'
         ng_out, in_0 = ng_model()
         feed_dict = {in_0: k_np}
         ng_outval = sess_ng.run(ng_out[0], feed_dict=feed_dict)

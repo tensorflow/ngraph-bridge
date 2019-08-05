@@ -31,51 +31,58 @@ from tensorflow.python.ops.gen_nn_ops import max_pool_grad
 
 import ngraph_bridge
 
+# Test Ngraph Op MaxPoolBackprop with data format NHWC
+# TF Op:MaxPoolGrad
+
+np.random.seed(5)
+
+#Inputs
 N = 4
 H = 8
 W = 8
 C = 3
 
-N1 = 4
-H1 = 3
-W1 = 3
-C1 = 3
-
-N2 = 4
-H2 = 4
-W2 = 4
-C2 = 3
+grad_shape_valid = [4, 3, 3, 3] # NHWC
+grad_shape_same = [4, 4, 4, 3] # NHWC
 
 grad_nhwc = {
-    "VALID": np.random.rand(N1, H1, W1, C1).astype('f'),
-    "SAME": np.random.rand(N2, H2, W2, C2).astype('f')
+    "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
+    "SAME": np.random.rand(4, 4, 4, 3).astype('f')
 }
 
-strides = [1, 2, 2, 1]
-ksize = [1, 3, 3, 1]
+stride_nhwc = [1, 2, 2, 1]
+ksize_nhwc = [1, 3, 3, 1]
 
+# TF graph
 def tf_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, H, W, C])
-    orig_in_c = tf.cast(orig_in, tf.bfloat16)
     orig_out = tf.placeholder(tf.float32, shape=[N, H, W, C])
-    orig_out_c = tf.cast(orig_out, tf.bfloat16)
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=(N1, H1, W1, C1))
+        grad = tf.placeholder(tf.float32, shape=grad_shape_valid)
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=(N2, H2, W2, C2))
+        grad = tf.placeholder(tf.float32, shape=grad_shape_same)
+
+    # cast the input dtype to bfloat16 for TF
+    orig_in_c = tf.cast(orig_in, tf.bfloat16)
+    orig_out_c = tf.cast(orig_out, tf.bfloat16)
     grad_c = tf.cast(grad, tf.bfloat16)
-    out = max_pool_grad(orig_in_c, orig_out_c, grad_c, ksize, strides, padding=padding, data_format="NHWC")
+
+    out = max_pool_grad(orig_in_c, orig_out_c, grad_c, ksize_nhwc, stride_nhwc, padding=padding, data_format="NHWC")
+
+    # cast the output dtype back to float32
     output = tf.cast(out, tf.float32)
     return output, orig_in, orig_out, grad
 
+# Ngraph graph
 def ng_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, H, W, C])
     orig_out = tf.placeholder(tf.float32, shape=[N, H, W, C])
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=(N1, H1, W1, C1))
+        grad = tf.placeholder(tf.float32, shape=grad_shape_valid)
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=(N2, H2, W2, C2))
-    out = max_pool_grad(orig_in, orig_out, grad, ksize, strides, padding=padding, data_format="NHWC")
+        grad = tf.placeholder(tf.float32, shape=grad_shape_same)
+
+    out = max_pool_grad(orig_in, orig_out, grad, ksize_nhwc, stride_nhwc, padding=padding, data_format="NHWC")
     return out, orig_in, orig_out, grad
 
 config = tf.ConfigProto(
@@ -102,7 +109,6 @@ def test_maxpoolbackprop_nhwc(padding):
         ngraph_bridge.enable()
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
-        os.environ['NGRAPH_TF_BACKEND'] = 'NNP'
         ng_out, orig_in, orig_out, grad = ng_model(padding)
         feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nhwc}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
