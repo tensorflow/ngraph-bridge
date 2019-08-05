@@ -100,7 +100,6 @@ def test_conv2dbackpropfilter_nhwc(padding):
         ngraph_bridge.enable()
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
-        os.environ['NGRAPH_TF_BACKEND'] = 'NNP'
         ng_out, input, out_backprop = ng_model(padding)
         feed_dict = {input: np_inp, out_backprop: np_out}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
