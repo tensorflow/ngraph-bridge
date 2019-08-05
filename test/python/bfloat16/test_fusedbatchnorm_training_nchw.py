@@ -22,13 +22,13 @@ import os
 import ngraph_bridge
 import pytest
 
-
 np.random.seed(5)
 
 # Inputs
 scale = [1.0, 0.9, 1.1]
 offset = [0.1, 0.2, -.3]
 input_shape = [4, 3, 1, 2]
+
 
 def tf_model():
     x = tf.placeholder(tf.float32, shape=input_shape)
@@ -37,7 +37,7 @@ def tf_model():
     x_c = tf.cast(x, dtype=tf.bfloat16)
 
     # reshape the inputs to NHWC since TF does not support NCHW
-    x_t = tf.transpose(x_c, (0, 2, 3, 1)) # shape=[4, 1, 2, 3]
+    x_t = tf.transpose(x_c, (0, 2, 3, 1))  # shape=[4, 1, 2, 3]
 
     out_list = tf.nn.fused_batch_norm(x_t, scale, offset, data_format='NHWC')
 
@@ -45,17 +45,20 @@ def tf_model():
     norm = [tf.cast(i, dtype=tf.float32) for i in out_list]
     return norm, x
 
+
 def ng_model():
     x = tf.placeholder(tf.float32, shape=input_shape)
     norm = tf.nn.fused_batch_norm(x, scale, offset, data_format='NCHW')
     return norm, x
+
 
 config = tf.ConfigProto(
     allow_soft_placement=True,
     log_device_placement=False,
     inter_op_parallelism_threads=1)
 
-k_np = np.random.rand(4, 3, 1, 2).astype('f') # NCHW
+k_np = np.random.rand(4, 3, 1, 2).astype('f')  # NCHW
+
 
 def test_fusedbatchnorm_nchw():
     #Test 1: tf_model TF-native
@@ -75,11 +78,13 @@ def test_fusedbatchnorm_nchw():
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
     # transpose TF output from NHWC to NCHW for comparison with ngraph output
-    result1_bool = np.allclose(np.transpose(tf_outval[0], (0, 3, 1, 2)), ng_outval[0],  rtol=0, atol=1e-02)
+    result1_bool = np.allclose(
+        np.transpose(tf_outval[0], (0, 3, 1, 2)),
+        ng_outval[0],
+        rtol=0,
+        atol=1e-02)
     # these TF outputs do not need to be transposed since they have only 1 dimension
-    result2_bool = np.allclose(tf_outval[1], ng_outval[1],  rtol=0, atol=1e-02)
-    result3_bool = np.allclose(tf_outval[2], ng_outval[2],  rtol=0, atol=1e-02)
+    result2_bool = np.allclose(tf_outval[1], ng_outval[1], rtol=0, atol=1e-02)
+    result3_bool = np.allclose(tf_outval[2], ng_outval[2], rtol=0, atol=1e-02)
 
     assert (result1_bool and result2_bool and result3_bool)
-
-    

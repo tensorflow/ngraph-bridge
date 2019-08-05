@@ -31,22 +31,33 @@ from common import NgraphTest
 
 np.random.seed(5)
 
+
 class TestReluGradOperations(NgraphTest):
 
     def test_relugrad_2d(self):
-        gradients = tf.placeholder(tf.float32, [2,3])
-        features = tf.placeholder(tf.float32, [2,3])
-        out = relu_grad(gradients,features)
-        g = np.random.rand(2,3)
-        f = np.random.rand(2,3)
-        sess_fn = lambda sess: sess.run(out, feed_dict={gradients:g, features:f})
-        assert (np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn)))
+        gradients = tf.placeholder(tf.float32, [2, 3])
+        features = tf.placeholder(tf.float32, [2, 3])
+        out = relu_grad(gradients, features)
+        g = np.random.rand(2, 3)
+        f = np.random.rand(2, 3)
+        sess_fn = lambda sess: sess.run(
+            out, feed_dict={
+                gradients: g,
+                features: f
+            })
+        assert (np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn)))
 
     def test_relugrad_1d(self):
         gradients = tf.placeholder(tf.float32, [100])
         features = tf.placeholder(tf.float32, [100])
-        out = relu_grad(gradients,features)
+        out = relu_grad(gradients, features)
         g = np.random.rand(100)
         f = np.random.rand(100)
-        sess_fn = lambda sess: sess.run(out, feed_dict={gradients:g, features:f})
-        assert (np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn)))
+        sess_fn = lambda sess: sess.run(
+            out, feed_dict={
+                gradients: g,
+                features: f
+            })
+        assert (np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn)))

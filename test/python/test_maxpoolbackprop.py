@@ -58,10 +58,17 @@ class TestMaxPoolBackpropInput(NgraphTest):
             grad = tf.placeholder(tf.float32, shape=(128, 112, 74, 3))
         elif padding == "SAME":
             grad = tf.placeholder(tf.float32, shape=(128, 112, 75, 3))
-        out = max_pool_grad( self.input_nhwc, output, grad, ksize, strides, padding=padding, data_format="NHWC")
+        out = max_pool_grad(
+            self.input_nhwc,
+            output,
+            grad,
+            ksize,
+            strides,
+            padding=padding,
+            data_format="NHWC")
         sess_fn = lambda sess: sess.run(out, feed_dict={grad: np_nhwc})
-        assert (np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn), rtol=5e-7))
-
+        assert (np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn), rtol=5e-7))
 
     @pytest.mark.parametrize("padding", ("VALID", "SAME"))
     def test_nchw(self, padding):

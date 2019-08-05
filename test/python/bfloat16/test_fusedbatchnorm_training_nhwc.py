@@ -29,6 +29,7 @@ scale = [1.0, 0.9, 1.1]
 offset = [0.1, 0.2, -.3]
 input_shape = [4, 1, 2, 3]
 
+
 def tf_model():
     x = tf.placeholder(tf.float32, shape=input_shape)
 
@@ -41,17 +42,20 @@ def tf_model():
     norm = [tf.cast(i, dtype=tf.float32) for i in out_list]
     return norm, x
 
+
 def ng_model():
     x = tf.placeholder(tf.float32, shape=input_shape)
     norm = tf.nn.fused_batch_norm(x, scale, offset, data_format='NHWC')
     return norm, x
+
 
 config = tf.ConfigProto(
     allow_soft_placement=True,
     log_device_placement=False,
     inter_op_parallelism_threads=1)
 
-k_np = np.random.rand(4, 1, 2, 3).astype('f') # NHWC
+k_np = np.random.rand(4, 1, 2, 3).astype('f')  # NHWC
+
 
 def test_fusedbatchnorm_nchw():
     #Test 1: tf_model TF-native
@@ -70,10 +74,8 @@ def test_fusedbatchnorm_nchw():
         feed_dict = {in_0: k_np}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
-    result1_bool = np.allclose(tf_outval[0], ng_outval[0],  rtol=0, atol=1e-02)
-    result2_bool = np.allclose(tf_outval[1], ng_outval[1],  rtol=0, atol=1e-02)
-    result3_bool = np.allclose(tf_outval[2], ng_outval[2],  rtol=0, atol=1e-02)
+    result1_bool = np.allclose(tf_outval[0], ng_outval[0], rtol=0, atol=1e-02)
+    result2_bool = np.allclose(tf_outval[1], ng_outval[1], rtol=0, atol=1e-02)
+    result3_bool = np.allclose(tf_outval[2], ng_outval[2], rtol=0, atol=1e-02)
 
     assert (result1_bool and result2_bool and result3_bool)
-
-    

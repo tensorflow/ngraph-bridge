@@ -28,6 +28,7 @@ from common import NgraphTest
 
 np.random.seed(5)
 
+
 class TestL2Loss(NgraphTest):
 
     @pytest.mark.parametrize(("xshape"), ((3, 4, 5), (1,)))

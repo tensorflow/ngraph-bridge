@@ -42,8 +42,8 @@ H = 8
 W = 8
 C = 3
 
-grad_shape_valid = [4, 3, 3, 3] # NHWC
-grad_shape_same = [4, 4, 4, 3] # NHWC
+grad_shape_valid = [4, 3, 3, 3]  # NHWC
+grad_shape_same = [4, 4, 4, 3]  # NHWC
 
 grad_nhwc = {
     "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
@@ -52,6 +52,7 @@ grad_nhwc = {
 
 stride_nhwc = [1, 2, 2, 1]
 ksize_nhwc = [1, 3, 3, 1]
+
 
 # TF graph
 def tf_model(padding):
@@ -67,11 +68,19 @@ def tf_model(padding):
     orig_out_c = tf.cast(orig_out, tf.bfloat16)
     grad_c = tf.cast(grad, tf.bfloat16)
 
-    out = max_pool_grad(orig_in_c, orig_out_c, grad_c, ksize_nhwc, stride_nhwc, padding=padding, data_format="NHWC")
+    out = max_pool_grad(
+        orig_in_c,
+        orig_out_c,
+        grad_c,
+        ksize_nhwc,
+        stride_nhwc,
+        padding=padding,
+        data_format="NHWC")
 
     # cast the output dtype back to float32
     output = tf.cast(out, tf.float32)
     return output, orig_in, orig_out, grad
+
 
 # Ngraph graph
 def ng_model(padding):
@@ -82,16 +91,25 @@ def ng_model(padding):
     elif padding == "SAME":
         grad = tf.placeholder(tf.float32, shape=grad_shape_same)
 
-    out = max_pool_grad(orig_in, orig_out, grad, ksize_nhwc, stride_nhwc, padding=padding, data_format="NHWC")
+    out = max_pool_grad(
+        orig_in,
+        orig_out,
+        grad,
+        ksize_nhwc,
+        stride_nhwc,
+        padding=padding,
+        data_format="NHWC")
     return out, orig_in, orig_out, grad
+
 
 config = tf.ConfigProto(
     allow_soft_placement=True,
     log_device_placement=False,
     inter_op_parallelism_threads=1)
 
-i_np = np.random.rand(N, H, W, C).astype('f') # NHWC
-o_np = np.random.rand(N, H, W, C).astype('f') # NHWC
+i_np = np.random.rand(N, H, W, C).astype('f')  # NHWC
+o_np = np.random.rand(N, H, W, C).astype('f')  # NHWC
+
 
 @pytest.mark.parametrize("padding", ("VALID", "SAME"))
 def test_maxpoolbackprop_nhwc(padding):
@@ -113,4 +131,4 @@ def test_maxpoolbackprop_nhwc(padding):
         feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nhwc}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
-    assert (np.allclose(tf_outval, ng_outval,  rtol=0, atol=1e-02))
+    assert (np.allclose(tf_outval, ng_outval, rtol=0, atol=1e-02))

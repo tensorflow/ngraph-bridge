@@ -31,6 +31,7 @@ mean = [0.4, 0.5, 0.6]
 variance = [0.1, 0.2, 0.3]
 input_shape = [4, 3, 1, 2]
 
+
 def tf_model():
     x = tf.placeholder(tf.float32, shape=input_shape)
 
@@ -38,26 +39,37 @@ def tf_model():
     x_c = tf.cast(x, dtype=tf.bfloat16)
 
     # reshape the inputs to NHWC since TF does not support NCHW
-    x_t = tf.transpose(x_c, (0, 2, 3, 1)) # shape=[4, 1, 2, 3]
+    x_t = tf.transpose(x_c, (0, 2, 3, 1))  # shape=[4, 1, 2, 3]
 
-    out_list = tf.nn.fused_batch_norm(x_t, scale, offset, mean, variance, data_format='NHWC', is_training=False)
+    out_list = tf.nn.fused_batch_norm(
+        x_t,
+        scale,
+        offset,
+        mean,
+        variance,
+        data_format='NHWC',
+        is_training=False)
 
     # cast the output back to float32
     norm = [tf.cast(i, dtype=tf.float32) for i in out_list]
 
     return norm, x
 
+
 def ng_model():
     x = tf.placeholder(tf.float32, shape=input_shape)
-    norm = tf.nn.fused_batch_norm(x, scale, offset, mean, variance, data_format='NCHW', is_training=False)
+    norm = tf.nn.fused_batch_norm(
+        x, scale, offset, mean, variance, data_format='NCHW', is_training=False)
     return norm, x
+
 
 config = tf.ConfigProto(
     allow_soft_placement=True,
     log_device_placement=False,
     inter_op_parallelism_threads=1)
 
-k_np = np.random.rand(4, 3, 1, 2).astype('f') # NCHW
+k_np = np.random.rand(4, 3, 1, 2).astype('f')  # NCHW
+
 
 def test_fusedbatchnorm_nchw():
     #Test 1: tf_model TF-native
@@ -77,6 +89,5 @@ def test_fusedbatchnorm_nchw():
         ng_outval = sess_ng.run(ng_out[0], feed_dict=feed_dict)
 
     # transpose TF output from NHWC to NCHW for comparison with ngraph output
-    assert (np.allclose(np.transpose(tf_outval, (0, 3, 1, 2)), ng_outval,  rtol=0, atol=1e-02))
-
-    
+    assert (np.allclose(
+        np.transpose(tf_outval, (0, 3, 1, 2)), ng_outval, rtol=0, atol=1e-02))
