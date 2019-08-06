@@ -111,16 +111,16 @@ config = tf.ConfigProto(
 
 i_np = np.random.rand(N, H, W, C).astype('f')  # NHWC
 
-@pytest.mark.parametrize("padding", ("VALID",))
+@pytest.mark.parametrize("padding", ("VALID", "SAME"))
 def test_maxpoolbackprop_nhwc(padding):
-    np_nhwc = grad_nhwc[padding]
+    g_np = grad_nhwc[padding]
     o_np = output_nhwc[padding]
 
     #Test 1: tf_model TF-native
     with tf.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
         tf_out, orig_in, orig_out, grad = tf_model(padding)
-        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nhwc}
+        feed_dict = {orig_in: i_np, orig_out: o_np, grad: g_np}
         tf_outval = sess_tf.run(tf_out, feed_dict=feed_dict)
 
     #Test 2: model2 with ngraph, NNP backend
@@ -129,7 +129,7 @@ def test_maxpoolbackprop_nhwc(padding):
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
         ng_out, orig_in, orig_out, grad = ng_model(padding)
-        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nhwc}
+        feed_dict = {orig_in: i_np, orig_out: o_np, grad: g_np}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
     assert (np.allclose(tf_outval, ng_outval, rtol=0, atol=1e-02))
