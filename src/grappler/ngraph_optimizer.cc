@@ -27,6 +27,8 @@
 #include "tensorflow/core/platform/protobuf.h"
 
 #include <iomanip>
+#include <string>
+
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
 #endif
@@ -262,11 +264,14 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // Convert the graph back to Graphdef
-  graph.ToGraphDef(output);
+  graph.ToGraphDef(output);  
   // According to the doc, the message takes ownership of the allocated object
   // https://developers.google.com/protocol-buffers/docs/reference/cpp-generated#proto3_string
   // Hence no need to free fdeflib_new
   output->set_allocated_library(fdeflib_new);
+
+  DumpNGraph(output, idx);
+
   return Status::OK();
 }
 

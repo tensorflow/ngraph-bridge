@@ -19,6 +19,11 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <stdlib.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <stdio.h>
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
@@ -33,6 +38,8 @@
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
+#include "tensorflow/core/util/events_writer.h"
+#include "tensorflow/core/util/event.pb.h"
 
 #include "version.h"
 
@@ -406,6 +413,72 @@ bool IsProcessedByNgraphPass(Graph* g) {
     if (node->type_string() == "NGraphEncapsulate") return true;
   }
   return false;
+}
+
+Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx)
+{
+  const char* path = std::getenv("NGRAPH_TF_NGRAPH_PATH");
+
+  if (path == nullptr)
+  {
+    return Status::OK();
+  }
+  else
+  {
+    std::string str_path(path);
+
+    if (str_path.back() != '/')
+    {
+      str_path += "/";
+    }
+
+    struct stat buffer;
+    if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
+    {
+      mkdir(str_path.c_str(), 0777);
+    }
+
+    str_path += ("run" + to_string(file_idx) + "/");
+    if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
+    {
+      mkdir(str_path.c_str(), 0777);
+    }
+    
+    str_path += "tfevent" + to_string(file_idx);
+
+    CreateSummaryFromGraphDef(graph_def, str_path);
+
+    return Status::OK();
+  }
+}
+
+Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix)
+{
+  // convert Graph* to GraphDef*
+  tensorflow::GraphDef* gdef = nullptr;
+  graph->ToGraphDef(gdef);
+
+  // create event summary writer
+  tensorflow::EventsWriter writer(filename_prefix);
+  tensorflow::Event event;
+
+  // write graph to event summary
+  event.set_graph_def(gdef->SerializeAsString());
+  
+  return Status::OK();
+}
+
+Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def, std::string filename_prefix)
+{
+  // create event summary writer
+  tensorflow::EventsWriter writer(filename_prefix);
+  tensorflow::Event event;
+
+  // write graph to event summary
+  event.set_graph_def(graph_def->SerializeAsString());
+  writer.WriteEvent(event);
+
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge

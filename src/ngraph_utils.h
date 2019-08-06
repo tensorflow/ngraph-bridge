@@ -321,6 +321,12 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
+Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx);
+
+Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix);
+
+Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def, std::string filename_prefix);
+
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order
 void OpControlOrder(const std::shared_ptr<ngraph::Function>&,
