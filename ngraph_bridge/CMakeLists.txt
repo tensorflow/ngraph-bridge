@@ -96,19 +96,22 @@ endif()
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
 add_library(${LIB_NAME} SHARED ${SRC})
-
-target_link_libraries( ${LIB_NAME} ngraph_logger) 
-target_link_libraries( ${LIB_NAME} ${TensorFlow_FRAMEWORK_LIBRARY})
-target_link_libraries( ${LIB_NAME} -Wl,--whole-archive lib_cpu_backend_static -Wl,--no-whole-archive)
-target_link_libraries( ${LIB_NAME} -Wl,--whole-archive lib_interpreter_backend_static -Wl,--no-whole-archive)
-target_link_libraries( ${LIB_NAME} -Wl,--whole-archive ngraph_lib -Wl,--no-whole-archive)
-target_link_libraries( ${LIB_NAME} lib_tbb)
-target_link_libraries( ${LIB_NAME} lib_mkldnn)
-target_link_libraries( ${LIB_NAME} lib_mklml_intel)
-target_link_libraries( ${LIB_NAME} lib_iomp5)
-target_link_libraries( ${LIB_NAME} absl_algorithm )
-target_link_libraries( ${LIB_NAME} absl_container )
-target_link_libraries( ${LIB_NAME} absl_strings )
+target_link_libraries(
+        ${LIB_NAME}
+        ngraph_logger 
+        ${TensorFlow_FRAMEWORK_LIBRARY} -Wl,--whole-archive
+        lib_cpu_backend_static
+        lib_interpreter_backend_static 
+        ngraph_lib -Wl,--no-whole-archive
+        dl -Wl,--whole-archive
+        absl_algorithm
+        absl_container
+        absl_strings -Wl,--no-whole-archive
+        lib_tbb
+        lib_mkldnn
+        lib_mklml_intel
+        lib_iomp5
+    )
 
 target_compile_definitions( 
     ${LIB_NAME} PRIVATE
@@ -121,18 +124,23 @@ target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
 if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_library(${LIB_NAME_STATIC} STATIC ${SRC})
 
-    target_link_libraries( ${LIB_NAME_STATIC} ngraph_logger) 
-    target_link_libraries( ${LIB_NAME_STATIC} ${TensorFlow_FRAMEWORK_LIBRARY})
-    target_link_libraries( ${LIB_NAME_STATIC} -Wl,--whole-archive lib_cpu_backend_static -Wl,--no-whole-archive)
-    target_link_libraries( ${LIB_NAME_STATIC} -Wl,--whole-archive lib_interpreter_backend_static -Wl,--no-whole-archive)
-    target_link_libraries( ${LIB_NAME_STATIC} -Wl,--whole-archive ngraph_lib -Wl,--no-whole-archive dl)
-    target_link_libraries( ${LIB_NAME_STATIC} lib_tbb)
-    target_link_libraries( ${LIB_NAME_STATIC} lib_mkldnn)
-    target_link_libraries( ${LIB_NAME_STATIC} lib_mklml_intel)
-    target_link_libraries( ${LIB_NAME_STATIC} lib_iomp5)
-    target_link_libraries( ${LIB_NAME_STATIC} absl_algorithm )
-    target_link_libraries( ${LIB_NAME_STATIC} absl_container )
-    target_link_libraries( ${LIB_NAME_STATIC} absl_strings )
+    target_link_libraries(
+        ${LIB_NAME_STATIC}
+        ngraph_logger
+        ngraph_logger 
+        ${TensorFlow_FRAMEWORK_LIBRARY} -Wl,--whole-archive
+        lib_cpu_backend_static
+        lib_interpreter_backend_static 
+        ngraph_lib -Wl,--no-whole-archive
+        absl_algorithm
+        absl_container
+        absl_strings 
+        dl
+        lib_tbb
+        lib_mkldnn
+        lib_mklml_intel
+        lib_iomp5
+    )
 
     target_compile_definitions( 
     ${LIB_NAME_STATIC} PRIVATE
