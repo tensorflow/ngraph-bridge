@@ -194,6 +194,25 @@ class NGraphEncapsulateOp : public OpKernel {
     BackendManager::CreateBackend(m_op_backend_name);
     // SetConfig will be called for each EncapsulateOp
     BackendManager::SetConfig(m_op_backend_name, additional_attribute_map);
+
+    // populate m_executable_can_create_tensor
+    // Create a dummy graph, compile and try to use the ng_exec to create a
+    // tensor
+    auto arg0 =
+        make_shared<ng::op::Parameter>(ng::element::f32, ng::Shape{7, 3});
+    auto ng_func = make_shared<ng::Function>(arg0, ng::ParameterVector{arg0});
+    auto ng_exec =
+        BackendManager::GetBackend(m_op_backend_name)->compile(ng_func);
+    try {
+      ng_exec->create_input_tensor(0, 2);
+      m_executable_can_create_tensor = true;
+    } catch (...) {
+      m_executable_can_create_tensor = false;
+    }
+    NGRAPH_VLOG(5) << "Executable can "
+                   << (m_executable_can_create_tensor ? "" : "not")
+                   << " create tensors";
+
     event.Stop();
     ngraph::Event::write_trace(event);
   }
@@ -1003,6 +1022,7 @@ class NGraphEncapsulateOp : public OpKernel {
   std::vector<bool> m_input_is_static;
   std::mutex m_compute_lock;
   string m_op_backend_name;
+  bool m_executable_can_create_tensor{false};
 
   std::shared_ptr<ng::runtime::Tensor> GetCurrentNgTensor(
       void* current_tf_ptr, void* last_tf_ptr,
