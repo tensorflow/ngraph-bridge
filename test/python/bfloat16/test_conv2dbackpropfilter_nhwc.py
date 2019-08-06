@@ -36,11 +36,11 @@ C = 2
 
 I = C
 O = 2
-FW = 3
-FH = 3
+filt_width = 3
+filt_height = 3
 
 input_sizes_nhwc = [N, H, W, C]
-filter_size_hwio = [FH, FW, I, O]
+filter_size_hwio = [filt_height, filt_width, I, O]
 out_backprop_valid = [1, 3, 2, 2]
 out_backprop_same = [1, 4, 3, 2]
 out_backprop_in_sizes = {"VALID": out_backprop_valid, "SAME": out_backprop_same}
@@ -91,8 +91,8 @@ def test_conv2dbackpropfilter_nhwc(padding):
 
     with tf.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
-        tf_out, input, out_backprop = tf_model(padding)
-        feed_dict = {input: np_inp, out_backprop: np_out}
+        tf_out, input_data, out_backprop = tf_model(padding)
+        feed_dict = {input_data: np_inp, out_backprop: np_out}
         tf_outval = sess_tf.run(tf_out, feed_dict=feed_dict)
 
     #Test 2: model2 with ngraph, NNP backend
@@ -100,8 +100,8 @@ def test_conv2dbackpropfilter_nhwc(padding):
         ngraph_bridge.enable()
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
-        ng_out, input, out_backprop = ng_model(padding)
-        feed_dict = {input: np_inp, out_backprop: np_out}
+        ng_out, input_data, out_backprop = ng_model(padding)
+        feed_dict = {input_data: np_inp, out_backprop: np_out}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
     assert np.allclose(tf_outval, ng_outval, rtol=0, atol=1e-02)

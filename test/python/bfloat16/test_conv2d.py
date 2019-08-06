@@ -39,17 +39,17 @@ np.random.seed(5)
 
 #Inputs
 N = 1
+C = 1
 H = 3
 W = 5
-C = 1
 
-filter = np.random.rand(1, 1, 1, 2)
+filter_size = np.random.rand(1, 1, 1, 2)
 input_size_nhwc = [N, H, W, C]
 input_size_nchw = [N, C, H, W]
 input_nhwc = tf.placeholder(tf.float32, shape=input_size_nhwc, name='x')
 input_nchw = tf.placeholder(tf.float32, shape=input_size_nchw, name='x')
 
-n_np = np.random.rand(1, 1, 3, 5).astype('f')
+n_np = np.random.rand(*input_size_nchw).astype('f')
 #Tensorflow supports only NHWC, change input shapes from NCHW to NHWC
 t_np = np.transpose(n_np, (0, 2, 3, 1))
 
@@ -58,8 +58,9 @@ t_np = np.transpose(n_np, (0, 2, 3, 1))
 def tf_model():
     stride_nhwc = [1, 2, 2, 1]
     x = tf.cast(input_nhwc, dtype=tf.bfloat16)
+    filter_cast = tf.cast(filter_size, dtype=tf.bfloat16)
     m = tf.nn.conv2d(
-        x, filter, stride_nhwc, "SAME", data_format="NHWC", name="m")
+        x, filter_cast, stride_nhwc, "SAME", data_format="NHWC", name="m")
     m = tf.cast(m, dtype=tf.float32)
     return m, input_nhwc
 
@@ -68,7 +69,12 @@ def tf_model():
 def ng_model():
     stride_nchw = [1, 1, 2, 2]
     m = tf.nn.conv2d(
-        input_nchw, filter, stride_nchw, "SAME", data_format="NCHW", name="m")
+        input_nchw,
+        filter_size,
+        stride_nchw,
+        "SAME",
+        data_format="NCHW",
+        name="m")
     return m, input_nchw
 
 
@@ -82,8 +88,8 @@ def test_conv2d():
     #Test 1: tf_model TF-native
     with tf.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
-        tf_out, input = tf_model()
-        feed_dict = {input: t_np}
+        tf_out, input_data = tf_model()
+        feed_dict = {input_data: t_np}
         tf_outval = sess_tf.run(tf_out, feed_dict=feed_dict)
 
     #Test 2: model2 with ngraph, NNP backend
@@ -91,8 +97,8 @@ def test_conv2d():
         ngraph_bridge.enable()
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
-        ng_out, input = ng_model()
-        feed_dict = {input: n_np}
+        ng_out, input_data = ng_model()
+        feed_dict = {input_data: n_np}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
     assert np.allclose(
