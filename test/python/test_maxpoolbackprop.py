@@ -31,6 +31,7 @@ from common import NgraphTest
 NHWC_TO_NCHW = (0, 3, 1, 2)
 NCHW_TO_NHWC = (0, 2, 3, 1)
 
+np.random.seed(5)
 
 class TestMaxPoolBackpropInput(NgraphTest):
     input_nhwc = np.random.rand(128, 224, 224, 3)
@@ -44,8 +45,8 @@ class TestMaxPoolBackpropInput(NgraphTest):
         "SAME": np.random.rand(128, 112, 75, 3)
     }
     grad_nchw = {
-        "VALID": np.transpose(grad_nhwc["VALID"], NHWC_TO_NCHW),
-        "SAME": np.transpose(grad_nhwc["SAME"], NHWC_TO_NCHW)
+        "VALID": np.random.rand(128, 3, 112, 74),
+        "SAME": np.random.rand(128, 3, 112, 75)
     }
 
     @pytest.mark.parametrize("padding", ("VALID", "SAME"))
@@ -96,7 +97,7 @@ class TestMaxPoolBackpropInput(NgraphTest):
         # implementation of maxpool backprop does not support NCHW. We will
         # transpose on the way in and on the way out
         def test_on_tf(sess):
-            grad = tf.transpose(grad, NCHW_TO_NHWC)
+            grad_t = tf.transpose(grad, NCHW_TO_NHWC)
             np_nhwc = self.grad_nhwc[padding]
             output = self.output_nhwc
             ksize = self.ksize_nhwc
@@ -104,13 +105,13 @@ class TestMaxPoolBackpropInput(NgraphTest):
             b = max_pool_grad(
                 self.input_nhwc,
                 output,
-                grad,
+                grad_t,
                 ksize,
                 strides,
                 padding=padding,
                 data_format="NHWC")
             b = tf.transpose(b, NHWC_TO_NCHW)
-            return sess.run(b, feed_dict={grad: np_nhwc})
+            return sess.run(b, feed_dict={grad: np_nchw})
 
         assert np.allclose(
             self.with_ngraph(test_on_ng), self.without_ngraph(test_on_tf))
