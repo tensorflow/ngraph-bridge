@@ -33,16 +33,27 @@ NCHW_TO_NHWC = (0, 2, 3, 1)
 
 np.random.seed(5)
 
+
 class TestMaxPoolBackpropInput(NgraphTest):
+
+    # NHWC
     input_nhwc = np.random.rand(128, 224, 224, 3)
-    input_nchw = np.transpose(input_nhwc, NHWC_TO_NCHW)
-    output_nhwc = np.random.rand(128, 224, 224, 3)
-    output_nchw = np.transpose(output_nhwc, NHWC_TO_NCHW)
     strides_nhwc = ksize_nhwc = [1, 2, 3, 1]
-    strides_nchw = ksize_nchw = [1, 1, 2, 3]
+    output_nhwc = {
+        "VALID": np.random.rand(128, 112, 74, 3),
+        "SAME": np.random.rand(128, 112, 75, 3)
+    }
     grad_nhwc = {
         "VALID": np.random.rand(128, 112, 74, 3),
         "SAME": np.random.rand(128, 112, 75, 3)
+    }
+
+    # NCHW
+    input_nchw = np.transpose(input_nhwc, NHWC_TO_NCHW)
+    strides_nchw = ksize_nchw = [1, 1, 2, 3]
+    output_nchw = {
+        "VALID": np.random.rand(128, 3, 112, 74),
+        "SAME": np.random.rand(128, 3, 112, 75)
     }
     grad_nchw = {
         "VALID": np.random.rand(128, 3, 112, 74),
@@ -53,8 +64,8 @@ class TestMaxPoolBackpropInput(NgraphTest):
     def test_nhwc(self, padding):
         strides = self.strides_nhwc
         ksize = self.ksize_nhwc
-        output = self.output_nhwc
-        np_nhwc = self.grad_nhwc[padding]
+        output = self.output_nhwc[padding]
+        g_nhwc = self.grad_nhwc[padding]
         if padding == "VALID":
             grad = tf.placeholder(tf.float32, shape=(128, 112, 74, 3))
         elif padding == "SAME":
@@ -67,7 +78,7 @@ class TestMaxPoolBackpropInput(NgraphTest):
             strides,
             padding=padding,
             data_format="NHWC")
-        sess_fn = lambda sess: sess.run(out, feed_dict={grad: np_nhwc})
+        sess_fn = lambda sess: sess.run(out, feed_dict={grad: g_nhwc})
         assert (np.allclose(
             self.with_ngraph(sess_fn), self.without_ngraph(sess_fn), rtol=5e-7))
 
@@ -75,8 +86,8 @@ class TestMaxPoolBackpropInput(NgraphTest):
     def test_nchw(self, padding):
         strides = self.strides_nchw
         ksize = self.ksize_nchw
-        output = self.output_nchw
-        np_nchw = self.grad_nchw[padding]
+        output = self.output_nchw[padding]
+        g_nchw = self.grad_nchw[padding]
         if padding == "VALID":
             grad = tf.placeholder(tf.float32, shape=(128, 3, 112, 74))
         elif padding == "SAME":
@@ -91,27 +102,27 @@ class TestMaxPoolBackpropInput(NgraphTest):
                 strides,
                 padding=padding,
                 data_format="NCHW")
-            return sess.run(a, feed_dict={grad: np_nchw})
+            return sess.run(a, feed_dict={grad: g_nchw})
 
         # To validate on the CPU side we will need to run in NHWC, because the CPU
         # implementation of maxpool backprop does not support NCHW. We will
         # transpose on the way in and on the way out
         def test_on_tf(sess):
             grad_t = tf.transpose(grad, NCHW_TO_NHWC)
-            np_nhwc = self.grad_nhwc[padding]
-            output = self.output_nhwc
             ksize = self.ksize_nhwc
             strides = self.strides_nhwc
+            input_t = np.transpose(self.input_nchw, NCHW_TO_NHWC)
+            output_t = np.transpose(output, NCHW_TO_NHWC)
             b = max_pool_grad(
-                self.input_nhwc,
-                output,
+                input_t,
+                output_t,
                 grad_t,
                 ksize,
                 strides,
                 padding=padding,
                 data_format="NHWC")
             b = tf.transpose(b, NHWC_TO_NCHW)
-            return sess.run(b, feed_dict={grad: np_nchw})
+            return sess.run(b, feed_dict={grad: g_nchw})
 
         assert np.allclose(
             self.with_ngraph(test_on_ng), self.without_ngraph(test_on_tf))

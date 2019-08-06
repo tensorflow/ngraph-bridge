@@ -42,14 +42,14 @@ H = 8
 W = 8
 C = 3
 
-grad_shape_valid = [4, 3, 3, 3]  # NHWC
-grad_shape_same = [4, 4, 4, 3]  # NHWC
-
+output_nhwc = {
+    "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
+    "SAME": np.random.rand(4, 4, 4, 3).astype('f')
+}
 grad_nhwc = {
     "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
     "SAME": np.random.rand(4, 4, 4, 3).astype('f')
 }
-
 stride_nhwc = [1, 2, 2, 1]
 ksize_nhwc = [1, 3, 3, 1]
 
@@ -57,11 +57,12 @@ ksize_nhwc = [1, 3, 3, 1]
 # TF graph
 def tf_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, H, W, C])
-    orig_out = tf.placeholder(tf.float32, shape=[N, H, W, C])
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=grad_shape_valid)
+        grad = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
+        orig_out = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=grad_shape_same)
+        grad = tf.placeholder(tf.float32, shape=[4, 4, 4, 3])
+        orig_out = tf.placeholder(tf.float32, shape=[4, 4, 4, 3])
 
     # cast the input dtype to bfloat16 for TF
     orig_in_c = tf.cast(orig_in, tf.bfloat16)
@@ -85,11 +86,12 @@ def tf_model(padding):
 # Ngraph graph
 def ng_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, H, W, C])
-    orig_out = tf.placeholder(tf.float32, shape=[N, H, W, C])
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=grad_shape_valid)
+        grad = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
+        orig_out = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=grad_shape_same)
+        grad = tf.placeholder(tf.float32, shape=[4, 4, 4, 3])
+        orig_out = tf.placeholder(tf.float32, shape=[4, 4, 4, 3])
 
     out = max_pool_grad(
         orig_in,
@@ -108,18 +110,18 @@ config = tf.ConfigProto(
     inter_op_parallelism_threads=1)
 
 i_np = np.random.rand(N, H, W, C).astype('f')  # NHWC
-o_np = np.random.rand(N, H, W, C).astype('f')  # NHWC
 
 
 @pytest.mark.parametrize("padding", ("VALID", "SAME"))
 def test_maxpoolbackprop_nhwc(padding):
-    np_nhwc = grad_nhwc[padding]
+    g_np = grad_nhwc[padding]
+    o_np = output_nhwc[padding]
 
     #Test 1: tf_model TF-native
     with tf.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
         tf_out, orig_in, orig_out, grad = tf_model(padding)
-        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nhwc}
+        feed_dict = {orig_in: i_np, orig_out: o_np, grad: g_np}
         tf_outval = sess_tf.run(tf_out, feed_dict=feed_dict)
 
     #Test 2: model2 with ngraph, NNP backend
@@ -128,7 +130,7 @@ def test_maxpoolbackprop_nhwc(padding):
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
         ng_out, orig_in, orig_out, grad = ng_model(padding)
-        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_nhwc}
+        feed_dict = {orig_in: i_np, orig_out: o_np, grad: g_np}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
     assert (np.allclose(tf_outval, ng_outval, rtol=0, atol=1e-02))

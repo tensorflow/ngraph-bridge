@@ -38,44 +38,42 @@ np.random.seed(5)
 
 #Inputs
 N = 4
+C = 3
 H = 8
 W = 8
-C = 3
 
-grad_shape_valid = [4, 3, 3, 3]
-grad_shape_same_tf = [4, 3, 4, 8]
-grad_shape_same_ng = [4, 3, 4, 4]
-
-grad_tf = {
+output_nchw = {
     "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
-    "SAME": np.random.rand(4, 3, 4, 8).astype('f')
+    "SAME": np.random.rand(4, 3, 4, 4).astype('f')
 }
-
-grad_ng = {
+grad_nchw = {
     "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
     "SAME": np.random.rand(4, 3, 4, 4).astype('f')
 }
 
 stride_nhwc = [1, 2, 2, 1]
 ksize_nhwc = [1, 3, 3, 1]
+
 stride_nchw = [1, 1, 2, 2]
 ksize_nchw = [1, 1, 3, 3]
 
 
+# TF graph
 def tf_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, C, H, W])
-    orig_out = tf.placeholder(tf.float32, shape=[N, C, H, W])
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=grad_shape_valid)
+        grad = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
+        orig_out = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=grad_shape_same_tf)
+        grad = tf.placeholder(tf.float32, shape=[4, 3, 4, 4])
+        orig_out = tf.placeholder(tf.float32, shape=[4, 3, 4, 4])
 
     # cast the input dtype to bfloat16 for TF
     orig_in_c = tf.cast(orig_in, tf.bfloat16)
     orig_out_c = tf.cast(orig_out, tf.bfloat16)
     grad_c = tf.cast(grad, tf.bfloat16)
 
-    # reshape the inputs to NHWC since TF does not support NCHW
+    # transpose to NHWC
     orig_in_t = tf.transpose(orig_in_c, (0, 2, 3, 1))
     orig_out_t = tf.transpose(orig_out_c, (0, 2, 3, 1))
     grad_t = tf.transpose(grad_c, (0, 2, 3, 1))
@@ -92,18 +90,21 @@ def tf_model(padding):
     # cast the output dtype back to float32
     output = tf.cast(out, tf.float32)
 
-    # reshape the output back to NCHW
-    output_t = tf.transpose(output, (0, 3, 1, 2))
-    return output_t, orig_in, orig_out, grad
+    # transpose to NCHW
+    output_nchw = tf.transpose(output, (0, 3, 1, 2))
+    return output_nchw, orig_in, orig_out, grad
 
 
+# Ngraph graph
 def ng_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, C, H, W])
-    orig_out = tf.placeholder(tf.float32, shape=[N, C, H, W])
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=grad_shape_valid)
+        grad = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
+        orig_out = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=grad_shape_same_ng)
+        grad = tf.placeholder(tf.float32, shape=[4, 3, 4, 4])
+        orig_out = tf.placeholder(tf.float32, shape=[4, 3, 4, 4])
+
     out = max_pool_grad(
         orig_in,
         orig_out,
@@ -120,20 +121,19 @@ config = tf.ConfigProto(
     log_device_placement=False,
     inter_op_parallelism_threads=1)
 
-i_np = np.random.rand(N, C, H, W).astype('f')  # NCHW
-o_np = np.random.rand(N, C, H, W).astype('f')  # NCHW
+i_np = np.random.rand(N, C, H, W).astype('f')  # NHWC
 
 
-@pytest.mark.parametrize("padding", ("SAME",))
-def test_maxpoolbackprop_nhwc(padding):
-    np_ng = grad_ng[padding]
-    np_tf = grad_tf[padding]
+@pytest.mark.parametrize("padding", ("VALID", "SAME"))
+def test_maxpoolbackprop_nchw(padding):
+    g_np = grad_nchw[padding]
+    o_np = output_nchw[padding]
 
     #Test 1: tf_model TF-native
     with tf.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
         tf_out, orig_in, orig_out, grad = tf_model(padding)
-        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_tf}
+        feed_dict = {orig_in: i_np, orig_out: o_np, grad: g_np}
         tf_outval = sess_tf.run(tf_out, feed_dict=feed_dict)
 
     #Test 2: model2 with ngraph, NNP backend
@@ -142,7 +142,7 @@ def test_maxpoolbackprop_nhwc(padding):
         ngraph_bridge.update_config(config)
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
         ng_out, orig_in, orig_out, grad = ng_model(padding)
-        feed_dict = {orig_in: i_np, orig_out: o_np, grad: np_ng}
+        feed_dict = {orig_in: i_np, orig_out: o_np, grad: g_np}
         ng_outval = sess_ng.run(ng_out, feed_dict=feed_dict)
 
-    assert (np.allclose(tf_outval[0], ng_outval[0], rtol=0, atol=1e-02))
+    assert (np.allclose(tf_outval, ng_outval, rtol=0, atol=1e-02))
