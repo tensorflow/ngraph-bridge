@@ -83,7 +83,7 @@ class IndexLibrary {
     insert_to_free_set(id);
   }
 
-  size_t get_index() {
+  int get_index() {
     if (m_depth == 0) {
       throw std::runtime_error(
           "Depth=0, so no one should be calling get_index");
@@ -93,7 +93,7 @@ class IndexLibrary {
       return -1;
     } else {
       auto itr = m_free_depth_indexes.begin();
-      size_t retval = *itr;
+      int retval = *itr;
       m_free_depth_indexes.erase(itr);
       return retval;
     }
@@ -140,7 +140,7 @@ class PipelinedTensorsStore {
   // returns a tuple of idx, and 2 vectors of ng tensors (input and output
   // groups). If the idx is negative, then its an invalid group (because
   // pipeline is filled right now)
-  tuple<size_t, PipelinedTensorVector, PipelinedTensorVector> get_tensors() {
+  tuple<int, PipelinedTensorVector, PipelinedTensorVector> get_tensors() {
     int i = idx_lib->get_index();
     return make_tuple(i, (i < 0 ? PipelinedTensorVector{} : get_group(true, i)),
                       (i < 0 ? PipelinedTensorVector{} : get_group(false, i)));

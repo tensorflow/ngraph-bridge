@@ -560,7 +560,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
     Timer create_or_lookup_tensors;
 
-    size_t pipeline_idx;
+    int pipeline_idx;
     PipelinedTensorVector inp_group_from_pipeline;
     PipelinedTensorVector out_group_from_pipeline;
     if (m_executable_can_create_tensor) {
@@ -594,6 +594,7 @@ class NGraphEncapsulateOp : public OpKernel {
       while (true) {
         std::tie(pipeline_idx, inp_group_from_pipeline,
                  out_group_from_pipeline) = pts.get_tensors();
+        cout << "pipeline_idx: " << pipeline_idx << "\n";
         if (pipeline_idx >= 0) {
           break;
         }
