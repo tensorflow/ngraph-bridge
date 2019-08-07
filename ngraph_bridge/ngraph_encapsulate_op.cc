@@ -40,6 +40,7 @@
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_pipelined_tensors.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
@@ -559,6 +560,46 @@ class NGraphEncapsulateOp : public OpKernel {
 
     Timer create_or_lookup_tensors;
 
+    size_t pipeline_idx;
+    PipelinedTensorVector inp_group_from_pipeline;
+    PipelinedTensorVector out_group_from_pipeline;
+    if (m_executable_can_create_tensor) {
+      // get the current batch of input tensors
+      auto itr = m_executable_pipelined_tensors_map.find(ng_exec);
+      if (itr == m_executable_pipelined_tensors_map.end()) {
+        // Create these pipelined ng tensors only if needed, else reuse from
+        // cache
+        size_t num_inputs = input_shapes.size();
+        size_t num_outputs = ng_exec->get_results().size();
+        PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
+        PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
+        for (size_t i = 0; i < num_inputs; i++) {
+          pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, m_depth);
+        }
+        for (size_t i = 0; i < num_outputs; i++) {
+          pipelined_output_tensors[i] =
+              ng_exec->create_output_tensor(i, m_depth);
+        }
+        m_executable_pipelined_tensors_map.insert(
+            {ng_exec, PipelinedTensorsStore(pipelined_input_tensors,
+                                            pipelined_output_tensors)});
+      }
+
+      // Cache must contain the ng_exec at this point
+
+      PipelinedTensorsStore pts =
+          m_executable_pipelined_tensors_map.at(ng_exec);
+
+      // TODO: do something about this spin lock
+      while (true) {
+        std::tie(pipeline_idx, inp_group_from_pipeline,
+                 out_group_from_pipeline) = pts.get_tensors();
+        if (pipeline_idx >= 0) {
+          break;
+        }
+      }
+    }
+
     if (m_freshness_tracker == nullptr) {
       auto creator = [](NGraphFreshnessTracker** tracker) {
         *tracker = new NGraphFreshnessTracker();
@@ -623,10 +664,21 @@ class NGraphEncapsulateOp : public OpKernel {
       std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
           input_caches[i].second;
       void* current_src_ptr = (void*)DMAHelper::base(&ctx->input(i));
-      std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
-          GetCurrentNgTensor(current_src_ptr, last_src_ptr, last_ng_tensor,
-                             false, ng_exec, op_backend, ng_element_type,
-                             ng_shape);
+      // if m_executable_can_create_tensor, then get current tensor in a
+      // different way
+      // else use GetCurrentNgTensor.
+      // maybe try to shift the current tensor getting code inside
+      // GetCurrentNgTensor
+      std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
+      if (m_executable_can_create_tensor) {
+        current_ng_tensor = inp_group_from_pipeline[i];
+        // TODO: check.
+        current_ng_tensor->set_stale(true);
+      } else {
+        current_ng_tensor = GetCurrentNgTensor(
+            current_src_ptr, last_src_ptr, last_ng_tensor, false, ng_exec,
+            op_backend, ng_element_type, ng_shape);
+      }
       bool is_cpu = m_op_backend_name == "CPU";
 
       if (!is_cpu && current_ng_tensor->get_stale()) {
@@ -740,9 +792,13 @@ class NGraphEncapsulateOp : public OpKernel {
         continue;
       }
 #endif
-      current_ng_tensor = GetCurrentNgTensor(
-          current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
-          op_backend, ng_element_type, ng_shape);
+      if (m_executable_can_create_tensor) {
+        current_ng_tensor = out_group_from_pipeline[i];
+      } else {
+        current_ng_tensor = GetCurrentNgTensor(
+            current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
+            op_backend, ng_element_type, ng_shape);
+      }
 
       current_ng_tensor->set_stale(true);
       output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
@@ -1012,8 +1068,13 @@ class NGraphEncapsulateOp : public OpKernel {
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
 
-  // Freshness tracker maintains a set of ng::functions using a particular base
-  // pointer(for Tensor)
+  // TODO: create map of exec and pipelined tensors
+  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
+                     PipelinedTensorsStore>
+      m_executable_pipelined_tensors_map;
+
+  // Freshness tracker maintains a set of ng::functions using a particular
+  // base pointer(for Tensor)
   // A single instance of freshness_tracker is used across all
   // nGraphEncapsulateOp and nGraphVariable op
   NGraphFreshnessTracker* m_freshness_tracker;
@@ -1083,6 +1144,7 @@ class NGraphEncapsulateOp : public OpKernel {
   int my_instance_id{0};
   int m_number_outputs = -1;
   int m_number_inputs = -1;
+  int m_depth{2};  // TODO make this settable
 };
 
 int NGraphEncapsulateOp::s_instance_count = 0;

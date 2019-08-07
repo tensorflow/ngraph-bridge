@@ -140,13 +140,10 @@ class PipelinedTensorsStore {
   // returns a tuple of idx, and 2 vectors of ng tensors (input and output
   // groups). If the idx is negative, then its an invalid group (because
   // pipeline is filled right now)
-  tuple<size_t, PipelinedTensorVector, PipelinedTensorVector>
-  get_tensors() {
+  tuple<size_t, PipelinedTensorVector, PipelinedTensorVector> get_tensors() {
     int i = idx_lib->get_index();
-    return make_tuple(i, (i < 0 ? PipelinedTensorVector{}
-                                : get_group(true, i)),
-                      (i < 0 ? PipelinedTensorVector{}
-                             : get_group(false, i)));
+    return make_tuple(i, (i < 0 ? PipelinedTensorVector{} : get_group(true, i)),
+                      (i < 0 ? PipelinedTensorVector{} : get_group(false, i)));
   }
 
   void return_tensors(size_t id) { idx_lib->return_index(id); }
