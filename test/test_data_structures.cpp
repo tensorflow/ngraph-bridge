@@ -89,6 +89,7 @@ TEST(IndexLibrary, MultiThreadTest) {
   vector<shared_ptr<set<int>>> checked_out_collections = {
       make_shared<set<int>>(), make_shared<set<int>>()};
 
+  // TODO: remove thread_id. Its there for debug prints only
   auto worker = [&idx_lib, &dis, &gen,
                  &checked_out_collections](size_t thread_id) {
     shared_ptr<set<int>> my_checked_out = checked_out_collections[thread_id];
@@ -98,7 +99,7 @@ TEST(IndexLibrary, MultiThreadTest) {
     while (true) {
       if (dis(gen) > 0.5) {
         int i = idx_lib.get_index();
-        cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
+        //cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
         if (i >= 0) {
           my_checked_out->insert(i);
           count_work++;
@@ -109,8 +110,8 @@ TEST(IndexLibrary, MultiThreadTest) {
       } else {
         if (my_checked_out->begin() != my_checked_out->end()) {
           int j = *(my_checked_out->begin());
-          cout << "thread_id: " << thread_id << ". trying to return: " << j
-               << "\n";
+          //cout << "thread_id: " << thread_id << ". trying to return: " << j
+          //     << "\n";
           idx_lib.return_index(j);
           count_work++;
           my_checked_out->erase(j);
@@ -123,8 +124,8 @@ TEST(IndexLibrary, MultiThreadTest) {
       }
     }
     for (auto i : *my_checked_out) {
-      cout << "thread_id: " << thread_id << ". [Final] trying to return: " << i
-           << "\n";
+      //cout << "thread_id: " << thread_id << ". [Final] trying to return: " << i
+      //     << "\n";
       idx_lib.return_index(i);
     }
   };
