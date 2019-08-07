@@ -99,6 +99,11 @@ class IndexLibrary {
   }
 
   // TODO: if needed implement get_depth() and get_num_free_idxs()
+  // Implementing get_depth() might make some sense because if one receives an
+  // IndexLibrary object that only gives return_index()==-1 then one might want
+  // to know is there any point in waiting for it (it will never return anything
+  // other than -1 if depth==0). So the user of the object can query depth and
+  // throw an error or take appropriate steps if its 0
 
  private:
   set<int> m_free_depth_indexes;
