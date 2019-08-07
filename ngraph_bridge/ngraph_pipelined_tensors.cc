@@ -66,7 +66,7 @@ class IndexLibrary {
   void return_index(size_t id) {
     if (m_depth == 0) {
       throw std::runtime_error(
-          "Depth=0, so no one should be calling return_tensors");
+          "Depth=0, so no one should be calling return_index");
     } else {
       if (id > m_depth - 1) {
         throw std::runtime_error("Depth = " + to_string(m_depth) +
@@ -84,6 +84,10 @@ class IndexLibrary {
   }
 
   size_t get_index() {
+    if (m_depth == 0) {
+      throw std::runtime_error(
+          "Depth=0, so no one should be calling get_index");
+    }
     std::lock_guard<std::mutex> lock(m_mtx);
     if (m_free_depth_indexes.size() == 0) {
       return -1;
@@ -107,7 +111,7 @@ class IndexLibrary {
 
   bool is_free(size_t id) {
     std::lock_guard<std::mutex> lock(m_mtx);
-    if (id > m_depth) {
+    if (id > m_depth - 1) {
       throw std::runtime_error("Asked to check if id=" + to_string(id) +
                                " is free, but depth=" + to_string(m_depth));
     }
