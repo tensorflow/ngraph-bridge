@@ -14,6 +14,9 @@
  * limitations under the License.
  *******************************************************************************/
 
+#include <stdlib.h>
+#include <chrono>
+
 #include "gtest/gtest.h"
 
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
@@ -71,7 +74,67 @@ TEST(IndexLibrary, SingleThreadTest2) {
   ASSERT_EQ(idx_lib.get_index(), -1);
 }
 
-// TODO write 2 thread UT for IndexLibrary
+// 2 threads run randomly and attempt to get and return indices from the same
+// IndexLibrary 10 times.
+// The test asserts if one of the threads managed to get an index i, then the
+// other thread must not have that index i
+// TODO: dump the get/return sequence in case of a test failure.
+TEST(IndexLibrary, MultiThreadTest) {
+  IndexLibrary idx_lib{5};
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dis(0, 1);
+
+  vector<shared_ptr<set<int>>> checked_out_collections = {
+      make_shared<set<int>>(), make_shared<set<int>>()};
+
+  auto worker = [&idx_lib, &dis, &gen,
+                 &checked_out_collections](size_t thread_id) {
+    shared_ptr<set<int>> my_checked_out = checked_out_collections[thread_id];
+    shared_ptr<set<int>> other_checked_out =
+        checked_out_collections[1 - thread_id];
+    int count_work = 0;
+    while (true) {
+      if (dis(gen) > 0.5) {
+        int i = idx_lib.get_index();
+        cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
+        if (i >= 0) {
+          my_checked_out->insert(i);
+          count_work++;
+          // No need to lock access to my_checked_out and other_checked_out
+          // There is an implicit lock in between them from idx_lib
+          ASSERT_TRUE(other_checked_out->find(i) == other_checked_out->end());
+        }
+      } else {
+        if (my_checked_out->begin() != my_checked_out->end()) {
+          int j = *(my_checked_out->begin());
+          cout << "thread_id: " << thread_id << ". trying to return: " << j
+               << "\n";
+          idx_lib.return_index(j);
+          count_work++;
+          my_checked_out->erase(j);
+        }
+      }
+      std::chrono::milliseconds timespan((dis(gen) > 0.5) ? 1 : 2);
+      std::this_thread::sleep_for(timespan);
+      if (count_work >= 10) {
+        break;
+      }
+    }
+    for (auto i : *my_checked_out) {
+      cout << "thread_id: " << thread_id << ". [Final] trying to return: " << i
+           << "\n";
+      idx_lib.return_index(i);
+    }
+  };
+
+  std::thread thread0(worker, 0);
+  std::thread thread1(worker, 1);
+
+  thread0.join();
+  thread1.join();
+}
 }
 }
 }
