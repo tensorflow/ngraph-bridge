@@ -111,6 +111,7 @@ config = tf.ConfigProto(
 
 i_np = np.random.rand(N, H, W, C).astype('f')  # NHWC
 
+
 @pytest.mark.parametrize("padding", ("VALID", "SAME"))
 def test_maxpoolbackprop_nhwc(padding):
     g_np = grad_nhwc[padding]
