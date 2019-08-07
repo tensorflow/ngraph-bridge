@@ -29,8 +29,8 @@ import ngraph_bridge
 
 np.random.seed(5)
 
-# Colvolution Op is placed on NNP and conerted to 
-# bfloat16 only for the special case below, otherwise it falls 
+# Colvolution Op is placed on NNP and conerted to
+# bfloat16 only for the special case below, otherwise it falls
 # back to CPU for compute
 # Check to assure:
 # The input rank is 4-D
