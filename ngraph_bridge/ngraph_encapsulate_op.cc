@@ -594,7 +594,7 @@ class NGraphEncapsulateOp : public OpKernel {
       while (true) {
         std::tie(pipeline_idx, inp_group_from_pipeline,
                  out_group_from_pipeline) = pts.get_tensors();
-        cout << "pipeline_idx: " << pipeline_idx << "\n";
+        // cout << "pipeline_idx: " << pipeline_idx << "\n";
         if (pipeline_idx >= 0) {
           break;
         }

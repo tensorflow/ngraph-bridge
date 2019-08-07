@@ -54,7 +54,7 @@ namespace ngraph_bridge {
 typedef vector<shared_ptr<ng::runtime::Tensor>> PipelinedTensorVector;
 typedef vector<PipelinedTensorVector> PipelinedTensorMatrix;
 
-// TODO: unit test the class
+// See sample usage in test/test_data_structures.cpp
 class IndexLibrary {
  public:
   IndexLibrary(size_t depth) : m_depth(depth) {
@@ -85,8 +85,7 @@ class IndexLibrary {
 
   int get_index() {
     if (m_depth == 0) {
-      throw std::runtime_error(
-          "Depth=0, so no one should be calling get_index");
+      return -1;
     }
     std::lock_guard<std::mutex> lock(m_mtx);
     if (m_free_depth_indexes.size() == 0) {
@@ -98,6 +97,8 @@ class IndexLibrary {
       return retval;
     }
   }
+
+  // TODO: if needed implement get_depth() and get_num_free_idxs()
 
  private:
   set<int> m_free_depth_indexes;
