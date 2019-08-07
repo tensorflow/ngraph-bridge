@@ -36,6 +36,7 @@ set(SRC
    ngraph_assign_clusters.cc
    ngraph_builder.cc
    ngraph_backend_manager.cc
+   ngraph_bridge_registry.cc
    ngraph_capture_variables.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
@@ -96,6 +97,11 @@ endif()
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
 add_library(${LIB_NAME} SHARED ${SRC})
+
+if (NGRAPH_CPU_STATIC_LIB_ENABLE)
+        target_compile_definitions(${LIB_NAME} PRIVATE "NGRAPH_BRIDGE_STATIC_LIB_ENABLE")
+endif()
+
 target_link_libraries(
         ${LIB_NAME}
         ngraph_logger 
@@ -123,6 +129,8 @@ target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
 
 if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_library(${LIB_NAME_STATIC} STATIC ${SRC})
+    
+    target_compile_definitions(${LIB_NAME_STATIC} PRIVATE "NGRAPH_BRIDGE_STATIC_LIB_ENABLE")
 
     target_link_libraries(
         ${LIB_NAME_STATIC}

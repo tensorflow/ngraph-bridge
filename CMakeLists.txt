@@ -127,13 +127,19 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=${NGRAPH_TF_CXX11_ABI}")
 endif()
 
-if(APPLE)
-    set(LIBNGRAPH_SO "libngraph.dylib")
+# TODO: Should test if shared libraries need to be linked for APPLE
+
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+        set(LIBNGRAPH_A "libngraph.a")
+        set(LIBCPU_BACKEND_A "libcpu_backend.a")
+        set(LIBINTERPRETER_BACKEND_A "libinterpreter_backend.a")
 else()
-    set(LIBNGRAPH_A "libngraph.a")
-    set(LIBCPU_BACKEND_A "libcpu_backend.a")
-    set(LIBINTERPRETER_BACKEND_A "libinterpreter_backend.a")
-endif(APPLE)
+    if(APPLE)
+        set(LIBNGRAPH_SO "libngraph.dylib")
+    else()
+        set(LIBNGRAPH_SO "libngraph.so")
+    endif(APPLE)
+endif(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 
 # Build options
 option(USE_PRE_BUILT_NGRAPH "Use pre-built nGraph located in NGRAPH_ARTIFACTS_DIR" FALSE)
@@ -269,7 +275,7 @@ if(OS_VERSION STREQUAL "\"centos\"")
     set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib64/${LIBCPU_BACKEND_A})
     set(INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib64/${LIBINTERPRETER_BACKEND_A})
     set(LIB_MKLDNN_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libmkldnn.so)
-    set(LIB_TBB_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libtbb.so)
+    set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libmklml_intel.so)
     set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libiomp5.so)
     set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib64/libmklml_intel.so)
 else()
@@ -277,8 +283,8 @@ else()
     set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib/${LIBCPU_BACKEND_A})
     set(INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib/${LIBINTERPRETER_BACKEND_A})
     set(LIB_MKLDNN_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libmkldnn.so)
-    set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libiomp5.so)
     set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libmklml_intel.so)
+    set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/lib/libiomp5.so)
 endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
@@ -322,8 +328,13 @@ set_target_properties(
 )
 
 add_library(lib_tbb INTERFACE)
-target_link_libraries(lib_tbb INTERFACE
+if(OS_VERSION STREQUAL "\"centos\"")
+    target_link_libraries(lib_tbb INTERFACE
         ${NGRAPH_INSTALL_DIR}/lib/libtbb.so)
+else()
+    target_link_libraries(lib_tbb INTERFACE
+        ${NGRAPH_INSTALL_DIR}/lib/libtbb.so)
+endif()
 
 add_library(lib_iomp5 SHARED IMPORTED)
 set_target_properties(
