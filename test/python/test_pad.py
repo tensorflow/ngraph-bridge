@@ -44,7 +44,5 @@ class TestCastOperations(NgraphTest):
         def run_test(sess):
             return sess.run(out, feed_dict={input_data: inp, paddings: pad})
 
-        import pdb
-        pdb.set_trace()
         assert (
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
