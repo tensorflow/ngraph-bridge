@@ -329,7 +329,7 @@ set_target_properties(
 add_library(lib_tbb INTERFACE)
 if(OS_VERSION STREQUAL "\"centos\"")
     target_link_libraries(lib_tbb INTERFACE
-        ${NGRAPH_INSTALL_DIR}/lib/libtbb.so)
+        ${NGRAPH_INSTALL_DIR}/lib64/libtbb.so)
 else()
     target_link_libraries(lib_tbb INTERFACE
         ${NGRAPH_INSTALL_DIR}/lib/libtbb.so)
