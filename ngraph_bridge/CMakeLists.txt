@@ -99,14 +99,14 @@ add_library(${LIB_NAME} SHARED ${SRC})
 target_link_libraries(
         ${LIB_NAME}
         ngraph_logger 
-        ${TensorFlow_FRAMEWORK_LIBRARY} -Wl,--whole-archive
+        ${TensorFlow_FRAMEWORK_LIBRARY} 
+        ngraph_lib
         lib_cpu_backend_static
         lib_interpreter_backend_static 
-        ngraph_lib -Wl,--no-whole-archive
-        dl -Wl,--whole-archive
+        ngraph_lib
         absl_algorithm
         absl_container
-        absl_strings -Wl,--no-whole-archive
+        absl_strings
         lib_tbb
         lib_mkldnn
         lib_mklml_intel
@@ -128,14 +128,14 @@ if (NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${LIB_NAME_STATIC}
         ngraph_logger
         ngraph_logger 
-        ${TensorFlow_FRAMEWORK_LIBRARY} -Wl,--whole-archive
+        ${TensorFlow_FRAMEWORK_LIBRARY} 
+        ngraph_lib
         lib_cpu_backend_static
         lib_interpreter_backend_static 
-        ngraph_lib -Wl,--no-whole-archive
+        ngraph_lib
         absl_algorithm
         absl_container
-        absl_strings 
-        dl
+        absl_strings
         lib_tbb
         lib_mkldnn
         lib_mklml_intel
