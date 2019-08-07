@@ -50,6 +50,7 @@ set(SRC
    tf_graphcycles.cc
    tf_deadness_analysis.cc
    version.cc
+   ngraph_pipelined_tensors.cc
 )
 
 message(STATUS "NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS: ${NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS}")
