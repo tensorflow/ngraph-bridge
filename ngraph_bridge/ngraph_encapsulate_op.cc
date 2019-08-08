@@ -1035,6 +1035,9 @@ class NGraphEncapsulateOp : public OpKernel {
     int time_copy_output_tensors_to_host =
         copy_output_tensors_to_host.ElapsedInMS();
 
+
+    m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(pipeline_idx);
+
     NGRAPH_VLOG(4)
         << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
         << m_ngraph_cluster;
