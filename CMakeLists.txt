@@ -130,9 +130,9 @@ endif()
 # TODO: Should test if shared libraries need to be linked for APPLE
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-        set(LIBNGRAPH_A "libngraph.a")
-        set(LIBCPU_BACKEND_A "libcpu_backend.a")
-        set(LIBINTERPRETER_BACKEND_A "libinterpreter_backend.a")
+    set(LIBNGRAPH_A "libngraph.a")
+    set(LIBCPU_BACKEND_A "libcpu_backend.a")
+    set(LIBINTERPRETER_BACKEND_A "libinterpreter_backend.a")
 else()
     if(APPLE)
         set(LIBNGRAPH_SO "libngraph.dylib")
