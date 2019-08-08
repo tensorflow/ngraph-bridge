@@ -16,6 +16,8 @@
 
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 
+#include "ngraph_bridge/ngraph_bridge_registry.h"
+
 namespace tensorflow {
 
 namespace ngraph_bridge {

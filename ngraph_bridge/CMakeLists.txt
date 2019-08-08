@@ -99,7 +99,7 @@ message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIM
 add_library(${LIB_NAME} SHARED ${SRC})
 
 if (NGRAPH_CPU_STATIC_LIB_ENABLE)
-        target_compile_definitions(${LIB_NAME} PRIVATE "NGRAPH_BRIDGE_STATIC_LIB_ENABLE")
+    target_compile_definitions(${LIB_NAME} PRIVATE "NGRAPH_BRIDGE_STATIC_LIB_ENABLE")
 endif()
 
 target_link_libraries(

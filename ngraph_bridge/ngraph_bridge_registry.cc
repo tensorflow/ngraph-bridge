@@ -15,7 +15,6 @@
  *******************************************************************************/
 
 #include "ngraph_bridge/ngraph_bridge_registry.h"
-#include "tensorflow/core/common_runtime/optimization_registry.h"
 
 #ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
 namespace tensorflow {
