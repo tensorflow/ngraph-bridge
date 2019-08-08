@@ -22,12 +22,20 @@
 # Optional parameters, passed in environment variables:
 #
 # NG_TF_BUILD_OPTIONS  Command-line options for build_ngtf.py
+# NG_TF_TEST_OPTIONS   Command-line options for test_ngtf.py (CPU-backend)
+# NG_TF_TEST_PLAIDML   If defined and non-zero, also run PlaidML-CPU unit-tests
 
 set -e  # Make sure we exit on any command that returns non-zero
 set -o pipefail # Make sure cmds in pipe that are non-zero also fail immediately
 
 if [ -z "${NG_TF_BUILD_OPTIONS}" ] ; then
     export NG_TF_BUILD_OPTIONS=''
+fi
+if [ -z "${NG_TF_TEST_OPTIONS}" ] ; then
+    export NG_TF_TEST_OPTIONS=''
+fi
+if [ -z "${NG_TF_TEST_PLAIDML}" ] ; then
+    export NG_TF_TEST_PLAIDML=''
 fi
 
 set -u  # No unset variables from this point
@@ -150,8 +158,19 @@ echo  "===== Run test_ngtf.py at ${xtime} ====="
 echo  ' '
 
 cd "${bridge_dir}"
-echo "Running: ./test_ngtf.py"
-./test_ngtf.py
+echo "Running: ./test_ngtf.py ${NG_TF_TEST_OPTIONS}"
+./test_ngtf.py ${NG_TF_TEST_OPTIONS}
+
+if [ ! -z "${NG_TF_TEST_PLAIDML}" ] ; then
+    xtime="$(date)"
+    echo  ' '
+    echo  "===== Run test_ngtf.py with PlaidML at ${xtime} ====="
+    echo  ' '
+
+    cd "${bridge_dir}"
+    echo "Running: ./test_ngtf.py --plaidml_unit_tests_enable"
+    ./test_ngtf.py --plaidml_unit_tests_enable
+fi
 
 xtime="$(date)"
 echo ' '
