@@ -27,9 +27,6 @@ import ngraph_bridge
 
 class TestNgraphAPI(NgraphTest):
 
-    def test_is_enabled(self):
-        assert ngraph_bridge.is_enabled()
-
     def test_disable(self):
         ngraph_bridge.disable()
         assert ngraph_bridge.is_enabled() == 0
