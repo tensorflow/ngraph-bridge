@@ -110,6 +110,7 @@ if (NGRAPH_PLAIDML_ENABLE)
 endif()
 
 add_subdirectory(python)
+add_subdirectory(python/bfloat16)
 add_subdirectory(model_level_tests)
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
