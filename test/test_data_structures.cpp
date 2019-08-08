@@ -99,7 +99,7 @@ TEST(IndexLibrary, MultiThreadTest) {
     while (true) {
       if (dis(gen) > 0.5) {
         int i = idx_lib.get_index();
-        //cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
+        // cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
         if (i >= 0) {
           my_checked_out->insert(i);
           count_work++;
@@ -110,7 +110,7 @@ TEST(IndexLibrary, MultiThreadTest) {
       } else {
         if (my_checked_out->begin() != my_checked_out->end()) {
           int j = *(my_checked_out->begin());
-          //cout << "thread_id: " << thread_id << ". trying to return: " << j
+          // cout << "thread_id: " << thread_id << ". trying to return: " << j
           //     << "\n";
           idx_lib.return_index(j);
           count_work++;
@@ -126,7 +126,8 @@ TEST(IndexLibrary, MultiThreadTest) {
     }
     // In the end return all indices
     for (auto i : *my_checked_out) {
-      //cout << "thread_id: " << thread_id << ". [Final] trying to return: " << i
+      // cout << "thread_id: " << thread_id << ". [Final] trying to return: " <<
+      // i
       //     << "\n";
       idx_lib.return_index(i);
     }

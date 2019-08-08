@@ -30,6 +30,7 @@
 
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/version.h"
 #include "test/test_utilities.h"
 
 using namespace std;
@@ -41,6 +42,95 @@ namespace ngraph_bridge {
 namespace testing {
 
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
+
+Status LoadGraph(const string& graph_file_name,
+                 std::unique_ptr<tensorflow::Session>* session,
+                 const tensorflow::SessionOptions& options) {
+  tensorflow::GraphDef graph_def;
+  Status load_graph_status =
+      ReadBinaryProto(tensorflow::Env::Default(), graph_file_name, &graph_def);
+  if (!load_graph_status.ok()) {
+    return tensorflow::errors::NotFound("Failed to load compute graph at '",
+                                        graph_file_name, "'");
+  }
+  session->reset(tensorflow::NewSession(options));
+  Status session_create_status = (*session)->Create(graph_def);
+  if (!session_create_status.ok()) {
+    return session_create_status;
+  }
+  return Status::OK();
+}
+
+Status CreateSession(const string& graph_filename,
+                     unique_ptr<Session>& session) {
+  SessionOptions options;
+  options.config.mutable_graph_options()
+      ->mutable_optimizer_options()
+      ->set_opt_level(OptimizerOptions_Level_L0);
+  options.config.mutable_graph_options()
+      ->mutable_rewrite_options()
+      ->set_constant_folding(RewriterConfig::OFF);
+
+  // The following is related to Grappler - which we are turning off
+  // Until we get a library fully running
+  if (ngraph_tf_is_grappler_enabled()) {
+    auto* custom_config = options.config.mutable_graph_options()
+                              ->mutable_rewrite_options()
+                              ->add_custom_optimizers();
+
+    custom_config->set_name("ngraph-optimizer");
+    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s("NNPI");
+    (*custom_config->mutable_parameter_map())["device_id"].set_s("0");
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_min_graph_nodes(-1);
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_meta_optimizer_iterations(RewriterConfig::ONE);
+  }
+
+  // Load the network
+  Status load_graph_status = LoadGraph(graph_filename, &session, options);
+  return load_graph_status;
+}
+
+// TODO remove this test. This is temporary
+TEST(tf_exec, Mnist2Thread) {
+  string graph_name =
+      "/localdisk/sarkars/workspace1/ngraph_bridge_tf/nnpi_build_aug1/"
+      "ds_app_auto_testsuite/nnpi_transformer/models/trained/"
+      "mnist_inference_quantized_trained_12212018.pb";
+
+  unique_ptr<Session> session;
+  ASSERT_OK(CreateSession(graph_name, session));
+
+  auto worker = [&session](size_t thread_id) {
+    string inp_tensor_name{"Placeholder"};
+    string out_tensor_name{"softmax/Softmax"};
+    std::vector<Tensor> out_tensor_vals;
+
+    Tensor inp_tensor_val(tensorflow::DT_FLOAT,
+                          tensorflow::TensorShape({1, 28, 28, 1}));
+    AssignInputValuesRandom<float>(inp_tensor_val, 0, 10);
+
+    std::vector<std::pair<string, tensorflow::Tensor>> inputs = {
+        {inp_tensor_name, inp_tensor_val},
+    };
+
+    for (int i = 0; i < 10; i++) {
+      ASSERT_OK(session->Run(inputs, {out_tensor_name}, {}, &out_tensor_vals));
+      cout << "thread_id: " << thread_id << " finished: " << i << "\n";
+    }
+  };
+
+  std::thread thread0(worker, 0);
+  std::thread thread1(worker, 1);
+
+  thread0.join();
+  thread1.join();
+}
 
 TEST(tf_exec, hello_world) {
   Scope root = Scope::NewRootScope();
@@ -416,7 +506,7 @@ TEST(tf_exec, DISABLED_Op_L2Loss) {
   Scope root_ngraph = root.NewSubScope("sub_scope_ngraph");
   root_ngraph = root_ngraph.WithDevice("/device:NGRAPH:0");
 
-  std::vector<std::vector<int64> > input_sizes;
+  std::vector<std::vector<int64>> input_sizes;
   input_sizes.push_back({2, 3, 4});
   input_sizes.push_back({0});
 
@@ -447,7 +537,7 @@ TEST(tf_exec, DISABLED_Op_Unpack) {
   root = root.WithDevice("/device:CPU:0");
   root_ngraph = root_ngraph.WithDevice("/device:NGRAPH:0");
 
-  std::vector<std::vector<int64> > input_sizes;
+  std::vector<std::vector<int64>> input_sizes;
 
   int input_rank = 3;
 
