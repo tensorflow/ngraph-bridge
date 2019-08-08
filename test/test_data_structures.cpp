@@ -117,12 +117,14 @@ TEST(IndexLibrary, MultiThreadTest) {
           my_checked_out->erase(j);
         }
       }
+      // wait for 1 or 2 ms randomly
       std::chrono::milliseconds timespan((dis(gen) > 0.5) ? 1 : 2);
       std::this_thread::sleep_for(timespan);
       if (count_work >= 10) {
         break;
       }
     }
+    // In the end return all indices
     for (auto i : *my_checked_out) {
       //cout << "thread_id: " << thread_id << ". [Final] trying to return: " << i
       //     << "\n";
