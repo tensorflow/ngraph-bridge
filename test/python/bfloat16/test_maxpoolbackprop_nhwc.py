@@ -42,13 +42,16 @@ H = 8
 W = 8
 C = 3
 
+valid_shape = [4, 3, 3, 3]
+same_shape = [4, 4, 4, 3]
+
 output_nhwc = {
-    "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
-    "SAME": np.random.rand(4, 4, 4, 3).astype('f')
+    "VALID": np.random.rand(*valid_shape).astype('f'),
+    "SAME": np.random.rand(*same_shape).astype('f')
 }
 grad_nhwc = {
-    "VALID": np.random.rand(4, 3, 3, 3).astype('f'),
-    "SAME": np.random.rand(4, 4, 4, 3).astype('f')
+    "VALID": np.random.rand(*valid_shape).astype('f'),
+    "SAME": np.random.rand(*same_shape).astype('f')
 }
 stride_nhwc = [1, 2, 2, 1]
 ksize_nhwc = [1, 3, 3, 1]
@@ -58,11 +61,11 @@ ksize_nhwc = [1, 3, 3, 1]
 def tf_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, H, W, C])
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
-        orig_out = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
+        grad = tf.placeholder(tf.float32, shape=valid_shape)
+        orig_out = tf.placeholder(tf.float32, shape=valid_shape)
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=[4, 4, 4, 3])
-        orig_out = tf.placeholder(tf.float32, shape=[4, 4, 4, 3])
+        grad = tf.placeholder(tf.float32, shape=same_shape)
+        orig_out = tf.placeholder(tf.float32, shape=same_shape)
 
     # cast the input dtype to bfloat16 for TF
     orig_in_c = tf.cast(orig_in, tf.bfloat16)
@@ -87,11 +90,11 @@ def tf_model(padding):
 def ng_model(padding):
     orig_in = tf.placeholder(tf.float32, shape=[N, H, W, C])
     if padding == "VALID":
-        grad = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
-        orig_out = tf.placeholder(tf.float32, shape=[4, 3, 3, 3])
+        grad = tf.placeholder(tf.float32, shape=valid_shape)
+        orig_out = tf.placeholder(tf.float32, shape=valid_shape)
     elif padding == "SAME":
-        grad = tf.placeholder(tf.float32, shape=[4, 4, 4, 3])
-        orig_out = tf.placeholder(tf.float32, shape=[4, 4, 4, 3])
+        grad = tf.placeholder(tf.float32, shape=same_shape)
+        orig_out = tf.placeholder(tf.float32, shape=same_shape)
 
     out = max_pool_grad(
         orig_in,

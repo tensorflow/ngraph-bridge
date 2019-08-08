@@ -27,11 +27,11 @@ np.random.seed(5)
 # Inputs
 scale = [1.0, 0.9, 1.1]
 offset = [0.1, 0.2, -.3]
-input_shape = [4, 1, 2, 3]
+input_shape_nhwc = [4, 1, 2, 3]
 
 
 def tf_model():
-    x = tf.placeholder(tf.float32, shape=input_shape)
+    x = tf.placeholder(tf.float32, shape=input_shape_nhwc)
 
     # cast the input dtype to bfloat16 for TF
     x_c = tf.cast(x, dtype=tf.bfloat16)
@@ -44,7 +44,7 @@ def tf_model():
 
 
 def ng_model():
-    x = tf.placeholder(tf.float32, shape=input_shape)
+    x = tf.placeholder(tf.float32, shape=input_shape_nhwc)
     norm = tf.nn.fused_batch_norm(x, scale, offset, data_format='NHWC')
     return norm, x
 
