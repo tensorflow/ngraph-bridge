@@ -25,7 +25,6 @@ from common import NgraphTest
 import ngraph_bridge
 
 
-
 class TestNgraphAPI(NgraphTest):
 
     def test_is_enabled(self):

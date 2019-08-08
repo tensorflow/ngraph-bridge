@@ -38,8 +38,7 @@ class TestWhileLoop(NgraphTest):
         r = tf.while_loop(c, b, [i])
 
         # We'll need soft placement here
-        cfg = tf.ConfigProto(
-            allow_soft_placement=True)
+        cfg = tf.ConfigProto(allow_soft_placement=True)
 
         with tf.Session(config=cfg) as sess:
             sess_fn = lambda sess: sess.run((r,))

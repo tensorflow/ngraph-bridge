@@ -79,7 +79,7 @@ class TestSplitOperations(NgraphTest):
         t0plus = [0, -1] + t0
 
         sess_fn = lambda sess: sess.run([t1plus, t0plus],
-                            feed_dict={a: [0, 1, 2, 3, 4]})
+                                        feed_dict={a: [0, 1, 2, 3, 4]})
         (r1, r0) = self.with_ngraph(sess_fn)
         assert len(r1) == 3
         assert len(r0) == 2
@@ -91,7 +91,8 @@ class TestSplitOperations(NgraphTest):
 
         (t0, t1) = tf.split(a, [2, 3], 0)
         t1plus = t1 + [0, 0, 0]
-        sess_fn = lambda sess: sess.run([t1plus], feed_dict={a: [0, 1, 2, 3, 4]})
+        sess_fn = lambda sess: sess.run([t1plus],
+                                        feed_dict={a: [0, 1, 2, 3, 4]})
         r1 = self.with_ngraph(sess_fn)
         assert len(r1[0]) == 3
         assert np.allclose(r1[0], [2, 3, 4])

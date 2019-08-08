@@ -50,8 +50,7 @@ class TestProductOperations(NgraphTest):
         tensor = tf.placeholder(tf.float32, shape=(None))
         out = tf.reduce_prod(tensor)
         # Rank op is currently not supported by NGRAPH
-        cfg = tf.ConfigProto(
-            allow_soft_placement=True)
+        cfg = tf.ConfigProto(allow_soft_placement=True)
         with tf.Session(config=cfg) as sess:
             sess_fn = lambda sess: sess.run((out,), feed_dict={tensor: v1})
             assert np.allclose(self.with_ngraph(sess_fn), expected)
@@ -63,10 +62,13 @@ class TestProductOperations(NgraphTest):
         tf_axis = tf.placeholder(tf.int32, shape=(None))
         out = tf.reduce_prod(tensor, tf_axis)
         # expecting fallback to CPU
-        cfg = tf.ConfigProto(
-            allow_soft_placement=True)
+        cfg = tf.ConfigProto(allow_soft_placement=True)
         with tf.Session(config=cfg) as sess:
-            sess_fn = lambda sess: sess.run((out,), feed_dict={tensor: v1, tf_axis: axis})
+            sess_fn = lambda sess: sess.run((out,),
+                                            feed_dict={
+                                                tensor: v1,
+                                                tf_axis: axis
+                                            })
             assert np.allclose(self.with_ngraph(sess_fn), expected)
 
     @pytest.mark.parametrize(("v1", "axis", "expected"),
@@ -76,8 +78,7 @@ class TestProductOperations(NgraphTest):
         out = tf.reduce_prod(tensor, axis, keepdims=True)
         # expecting fallback to CPU,
         # remove this line when keep_dims is implemented
-        cfg = tf.ConfigProto(
-            allow_soft_placement=True)
+        cfg = tf.ConfigProto(allow_soft_placement=True)
         with tf.Session(config=cfg) as sess:
             sess_fn = lambda sess: sess.run((out,), feed_dict={tensor: v1})
             result = self.with_ngraph(sess_fn)

@@ -28,7 +28,6 @@ import tensorflow as tf
 from common import NgraphTest
 
 
-
 class TestTanhOp(NgraphTest):
 
     @pytest.mark.parametrize(("test_input", "expected"),

@@ -52,4 +52,3 @@ class TestSqueezeOperations(NgraphTest):
             a1 = tf.squeeze(a, [0, 1])
             sess_fn = lambda sess: sess.run((a1,))
             (result_a,) = self.with_ngraph(sess_fn)
-
