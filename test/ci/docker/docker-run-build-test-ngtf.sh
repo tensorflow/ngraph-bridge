@@ -23,6 +23,8 @@
 # Script environment variable parameters:
 #
 # NG_TF_BUILD_OPTIONS  Optional: additional build options for build_ngtf.py
+# NG_TF_TEST_OPTIONS   Optional: additional test options for test_ngtf.py
+# NG_TF_TEST_PLAIDML   Optional: run additional testing on PlaidML backend
 
 set -e  # Fail on any command with non-zero exit
 
@@ -60,6 +62,12 @@ volume_mounts="-v ${bridge_dir}:${bridge_mountpoint}"
 optional_env=''
 if [ ! -z "${NG_TF_BUILD_OPTIONS}" ] ; then
   optional_env="${optional_env} --env NG_TF_BUILD_OPTIONS=${NG_TF_BUILD_OPTIONS}"
+fi
+if [ ! -z "${NG_TF_TEST_OPTIONS}" ] ; then
+  optional_env="${optional_env} --env NG_TF_TEST_OPTIONS=${NG_TF_TEST_OPTIONS}"
+fi
+if [ ! -z "${NG_TF_TEST_PLAIDML}" ] ; then
+  optional_env="${optional_env} --env NG_TF_TEST_PLAIDML=${NG_TF_TEST_PLAIDML}"
 fi
 
 set -u  # No unset variables after this point
