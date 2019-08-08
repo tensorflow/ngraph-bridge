@@ -57,7 +57,7 @@ config = tf.ConfigProto(
 k_np = np.random.rand(4, 1, 2, 3).astype('f')  # NHWC
 
 
-def test_fusedbatchnorm_nchw():
+def test_fusedbatchnorm_nhwc():
     #Test 1: tf_model TF-native
     with tf.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
