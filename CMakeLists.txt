@@ -129,17 +129,13 @@ endif()
 
 # TODO: Should test if shared libraries need to be linked for APPLE
 
-if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+if(APPLE)
+    set(LIBNGRAPH_SO "libngraph.dylib")
+else()
     set(LIBNGRAPH_A "libngraph.a")
     set(LIBCPU_BACKEND_A "libcpu_backend.a")
     set(LIBINTERPRETER_BACKEND_A "libinterpreter_backend.a")
-else()
-    if(APPLE)
-        set(LIBNGRAPH_SO "libngraph.dylib")
-    else()
-        set(LIBNGRAPH_SO "libngraph.so")
-    endif(APPLE)
-endif(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+endif(APPLE)
 
 # Build options
 option(USE_PRE_BUILT_NGRAPH "Use pre-built nGraph located in NGRAPH_ARTIFACTS_DIR" FALSE)
