@@ -14,8 +14,6 @@
  * limitations under the License.
  *******************************************************************************/
 
-// TODO change name of file
-
 // Consider an ng executable, which has a inputs and b outputs. Let d_input[i]
 // be the depth of the pipeline for input i. Similarly d_output[j] is the depth
 // of the pipeline for output j.
@@ -57,46 +55,10 @@ typedef vector<PipelinedTensorVector> PipelinedTensorMatrix;
 // See sample usage in test/test_data_structures.cpp
 class IndexLibrary {
  public:
-  IndexLibrary(size_t depth) : m_depth(depth) {
-    for (size_t i = 0; i < depth; i++) {
-      m_free_depth_indexes.insert(i);
-    }
-  }
+  IndexLibrary(size_t depth);
 
-  void return_index(size_t id) {
-    if (m_depth == 0) {
-      throw std::runtime_error(
-          "Depth=0, so no one should be calling return_index");
-    } else {
-      if (id > m_depth - 1) {
-        throw std::runtime_error("Depth = " + to_string(m_depth) +
-                                 " but passed an index to return ( = " +
-                                 to_string(id) + "), which is too large");
-      } else {
-        if (is_free(id)) {
-          throw std::runtime_error(
-              "Attempted to return index " + to_string(id) +
-              " but it is already present in the free indices set");
-        }
-      }
-    }
-    insert_to_free_set(id);
-  }
-
-  int get_index() {
-    if (m_depth == 0) {
-      return -1;
-    }
-    std::lock_guard<std::mutex> lock(m_mtx);
-    if (m_free_depth_indexes.size() == 0) {
-      return -1;
-    } else {
-      auto itr = m_free_depth_indexes.begin();
-      int retval = *itr;
-      m_free_depth_indexes.erase(itr);
-      return retval;
-    }
-  }
+  void return_index(size_t id);
+  int get_index();
 
   // TODO: if needed implement get_depth() and get_num_free_idxs()
   // Implementing get_depth() might make some sense because if one receives an
@@ -110,49 +72,21 @@ class IndexLibrary {
   size_t m_depth;
   std::mutex m_mtx;
 
-  void insert_to_free_set(size_t id) {
-    std::lock_guard<std::mutex> lock(m_mtx);
-    m_free_depth_indexes.insert(id);
-  }
-
-  bool is_free(size_t id) {
-    std::lock_guard<std::mutex> lock(m_mtx);
-    if (id > m_depth - 1) {
-      throw std::runtime_error("Asked to check if id=" + to_string(id) +
-                               " is free, but depth=" + to_string(m_depth));
-    }
-    return m_free_depth_indexes.find(id) != m_free_depth_indexes.end();
-  }
+  void insert_to_free_set(size_t id);
+  bool is_free(size_t id);
 };
 
 class PipelinedTensorsStore {
  public:
-  PipelinedTensorsStore(PipelinedTensorMatrix in, PipelinedTensorMatrix out)
-      : m_in_tensors(in),
-        m_out_tensors(out),
-        m_num_inputs(in.size()),
-        m_num_outputs(out.size()) {
-    if (in.size() > 0) {
-      m_depth = in[0].size();
-    } else if (out.size() > 0) {
-      m_depth = out[0].size();
-    } else {
-      // The executable has no inputs and outputs
-      m_depth = 0;
-    }
-    idx_lib = make_shared<IndexLibrary>(m_depth);
-  }
+  PipelinedTensorsStore(PipelinedTensorMatrix in, PipelinedTensorMatrix out);
 
   // returns a tuple of idx, and 2 vectors of ng tensors (input and output
   // groups). If the idx is negative, then its an invalid group (because
   // pipeline is filled right now)
-  tuple<int, PipelinedTensorVector, PipelinedTensorVector> get_tensors() {
-    int i = idx_lib->get_index();
-    return make_tuple(i, (i < 0 ? PipelinedTensorVector{} : get_group(true, i)),
-                      (i < 0 ? PipelinedTensorVector{} : get_group(false, i)));
-  }
+  tuple<int, PipelinedTensorVector, PipelinedTensorVector> get_tensors();
 
-  void return_tensors(size_t id) { idx_lib->return_index(id); }
+  // Return an integer that was checked out by get_tensors
+  void return_tensors(size_t id);
 
  private:
   PipelinedTensorMatrix m_in_tensors;
@@ -160,16 +94,9 @@ class PipelinedTensorsStore {
   size_t m_depth;
   size_t m_num_inputs;
   size_t m_num_outputs;
-
   shared_ptr<IndexLibrary> idx_lib;
 
-  PipelinedTensorVector get_group(bool input, size_t i) {
-    PipelinedTensorVector group;
-    for (size_t idx = 0; idx < (input ? m_num_inputs : m_num_outputs); idx++) {
-      group.push_back((input ? m_in_tensors : m_out_tensors)[idx][i]);
-    }
-    return group;
-  }
+  PipelinedTensorVector get_group(bool input, size_t i);
 };
 }
 }

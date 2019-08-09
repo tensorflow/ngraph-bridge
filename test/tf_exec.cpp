@@ -97,7 +97,7 @@ Status CreateSession(const string& graph_filename,
 }
 
 // TODO remove this test. This is temporary
-TEST(tf_exec, Mnist2Thread) {
+TEST(tf_exec, DISABLED_Mnist2Thread) {
   string graph_name =
       "/localdisk/sarkars/workspace1/ngraph_bridge_tf/nnpi_build_aug1/"
       "ds_app_auto_testsuite/nnpi_transformer/models/trained/"
