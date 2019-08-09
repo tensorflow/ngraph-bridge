@@ -27,27 +27,11 @@ from functools import partial
 
 
 def parse_extra_params_string(raw_extra_params):
-    raw_extra_params = raw_extra_params.strip(' ')
-    assert raw_extra_params[0] == '{' and raw_extra_params[
-        -1] == '}', "Expected extra_params string to be a dictionary beginning with { and ending with }"
-    raw_extra_params_contents = raw_extra_params[1:-1].strip(' ')
-    extra_params_dict = {}
-    if len(raw_extra_params_contents) == 0:
-        return extra_params_dict
-    # could have used eval(extra_params_string), but then the string would have to be the cumbersome {\"abc\":1}
-    # and not {"abc":1} or {abc:1}. Hence explicity parsing the string without using eval
-    for key_val in raw_extra_params_contents.split(','):
-        key_val = key_val.strip(' ')
-        try:
-            key, val = key_val.split(':')
-            extra_params_dict[key.strip(' ')] = val.strip(' ')
-        except Exception as e:
-            raise type(
-                e
-            )(e.message +
-              'Got an entry in extra_params, that is an invalid entry for a python dictionary: '
-              + key_val)
-    return extra_params_dict
+    dct = eval(raw_extra_params)
+    assert type(dct) == type(
+        {}), "Expected a dictionary to be passed to --extra_params, " + \
+        "but got " + raw_extra_params + " which is a " + str(type(dct))
+    return dct
 
 
 def update_config_to_include_custom_config(config, backend, device_id,
@@ -173,7 +157,9 @@ def prepare_argparser(formats):
         "--extra_params",
         default='{}',
         help=
-        "Other params that the backend needs in the form of a dictionary. Eg, {max_cores: 4}."
+        "Other params that the backend needs in the form of a python dictionary. "
+        +
+        "Please make sure to escape quotes and curly braces Eg, \{\"max_cores\":\"4\",\"max_batch\":\"5\"\}."
     )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
