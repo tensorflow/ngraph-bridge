@@ -18,13 +18,13 @@
 set -e  # Make sure we exit on any command that returns non-zero
 set -u  # No unset variables
 
-if [[ -z "${SYSSW_MAJOR_VER}" ]]; then
+if [[ -z "${SYSSW_MAJOR_VER+x}" ]]; then
   MAJOR_VER="1.7"
 else
   MAJOR_VER="${SYSSW_MAJOR_VER}"
 fi
 
-if [[ -z "${SYSSW_MINOR_VER}" ]]; then
+if [[ -z "${SYSSW_MINOR_VER+x}" ]]; then
   MINOR_VER="0.4053"
 else
   MINOR_VER="${SYSSW_MINOR_VER}"
@@ -36,9 +36,19 @@ export SYSSW_MINOR_VER=${MINOR_VER}
 # Install System SW
 bash install_syssw.sh
 
-if [[ -z "${NGTF_VER}" ]]; then
+if [[ -z "${NGTF_VER+x}" ]]; then
   NGTF_VER="v0.17.0-rc2"
 fi
+
+SYSSW_VERSION=${MAJOR_VER}.${MINOR_VER}
+
+if [[ -z "${NNP_VER+x}" ]]; then
+  NNP_VER="v0.11.0-rc2"
+fi
+
+echo "nGraph-TensorFlow bridge version: " ${NGTF_VER}
+echo "NNP Transformer backend version:  " ${NNP_VER}
+echo "Argon API version: " ${SYSSW_VERSION}
 
 # Next build ngraph-tf
 pushd ngraph-bridge
@@ -52,14 +62,6 @@ cp ngraph-bridge/build_cmake/artifacts/ngraph_tensorflow_bridge-*-py2.py3-none-m
 
 # Load the virtual env
 source ngraph-bridge/build_cmake/venv-tf-py3/bin/activate
-
-
-SYSSW_VERSION=${MAJOR_VER}.${MINOR_VER}
-echo "Argon API Version: " ${SYSSW_VERSION}
-
-if [[ -z "${NNP_VER}" ]]; then
-  NNP_VER="v0.11.0-rc2"
-fi
 
 pushd nnp-transformer
 git checkout ${NNP_VER}

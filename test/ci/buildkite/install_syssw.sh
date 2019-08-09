@@ -20,13 +20,13 @@ set -e  # Make sure we exit on any command that returns non-zero
 set -u  # No unset variables
 
 # SysSW Version
-if [[ -z "${SYSSW_MAJOR_VER}" ]]; then
+if [[ -z "${SYSSW_MAJOR_VER+x}" ]]; then
   MAJOR_VER="1.7"
 else
   MAJOR_VER="${SYSSW_MAJOR_VER}"
 fi
 
-if [[ -z "${SYSSW_MINOR_VER}" ]]; then
+if [[ -z "${SYSSW_MINOR_VER+x}" ]]; then
   MINOR_VER="0.4053"
 else
   MINOR_VER="${SYSSW_MINOR_VER}"
