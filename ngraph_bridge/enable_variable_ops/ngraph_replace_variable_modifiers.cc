@@ -35,6 +35,46 @@ namespace ngraph_bridge {
 // 1. ReplaceModifiers
 // 2. RewriteForTracking
 
+template <typename T1, typename T2> 
+NodeBuilder::NodeOut CreateOpNode( std::string new_name_op, std::string op_type, T1 input1, T2 input2, DataType dtype, Node*& node, Graph*& graph )
+{
+	
+	Node* generic_op;
+    new_name_op = node->name() + new_name_op;
+	if(op_type == "Sub")
+	{	
+      TF_RETURN_IF_ERROR(NodeBuilder(new_name_op, "Sub")
+                             .Input(input1)
+                             .Input(input2)
+                             .Attr("T", dtype)
+                             .Device(node->assigned_device_name())
+                             .Finalize(graph, &(generic_op)));
+      generic_op->set_assigned_device_name(node->assigned_device_name());
+	}else if(op_type == "Add")
+	{	
+      TF_RETURN_IF_ERROR(NodeBuilder(new_name_op, "Add")
+                             .Input(input1)
+                             .Input(input2)
+                             .Attr("T", dtype)
+                             .Device(node->assigned_device_name())
+                             .Finalize(graph, &(generic_op)));
+      generic_op->set_assigned_device_name(node->assigned_device_name());
+	} 
+	else if(op_type == "Mul")
+	{	
+      TF_RETURN_IF_ERROR(NodeBuilder(new_name_op, "Mul")
+                             .Input(input1)
+                             .Input(input2)
+                             .Attr("T", dtype)
+                             .Device(node->assigned_device_name())
+                             .Finalize(graph, &(generic_op)));
+      generic_op->set_assigned_device_name(node->assigned_device_name());
+	} 
+	
+      NodeBuilder::NodeOut ndef_gen_op = NodeBuilder::NodeOut(generic_op, 0);
+	  return ndef_gen_op;
+}
+
 Status ReplaceModifiers(Graph* graph, int graph_id) {
   // Go over the nodes and replace variable modifiers
   // Each Modifier is replaced with the corresponding computational TF
@@ -183,7 +223,7 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
 	std::vector<const Edge*> input_edges;
     TF_RETURN_IF_ERROR(node->input_edges(&input_edges));
 
-    NGRAPH_VLOG(1) << "No of input edges to ApplyGradientDescent "
+    NGRAPH_VLOG(1) << "No of input edges to ApplyMomentum "
                      << input_edges.size();
 
     input_var = NodeBuilder::NodeOut(input_edges[0]->src(),
@@ -238,8 +278,16 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
       //TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, mul_op));
 	  
    bool x;
+   auto sts = GetNodeAttr(node->attrs(), "use_nesterov_", &x);
+   
+   if(sts !=  Status::OK())
+    {
+       NGRAPH_VLOG(4)<< "-------------------------------------Ypu were Right----------------------------------------------------";
+       return sts;
+
+   }
    TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "use_nesterov_", &x));
-   Node* ngraphassignsub_op;
+   Node* ngraphassign_op;
    if(x)
    {
      Node* mul_op_1;
@@ -289,18 +337,28 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
       add_op_1->set_assigned_device_name(node->assigned_device_name());
       NodeBuilder::NodeOut ndef_add_op_1 = NodeBuilder::NodeOut(add_op_1, 0);
 	  
+	  Node* sub_op;
+      string new_name_sub = node->name() + "_Sub";
+      TF_RETURN_IF_ERROR(NodeBuilder(new_name_sub, "Sub")
+                             .Input(input_var)
+                             .Input(ndef_add_op_1)
+                             .Attr("T", dtype)
+                             .Device(node->assigned_device_name())
+                             .Finalize(graph, &(sub_op)));
+      sub_op->set_assigned_device_name(node->assigned_device_name());
+      NodeBuilder::NodeOut ndef_sub_op = NodeBuilder::NodeOut(sub_op, 0);
 	  
-      string new_name_ngraphassignsub = node->name() + "_NGraphAssignSub";
-      TF_RETURN_IF_ERROR(NodeBuilder(new_name_ngraphassignsub, "NGraphAssignSub")
+      string new_name_ngraphassign = node->name() + "_NGraphAssign";
+      TF_RETURN_IF_ERROR(NodeBuilder(new_name_ngraphassign, "NGraphAssign")
                              .Attr("validate_shape", true)
                              .Attr("use_locking", true)
                              .Attr("T", dtype)
                              .Attr("ngraph_graph_id", 0)
                              .Input(input_var)
-                             .Input(ndef_add_op_1)
+                             .Input(ndef_sub_op)
                              .Device(node->assigned_device_name())
-                             .Finalize(graph, &ngraphassignsub_op));
-      ngraphassignsub_op->set_assigned_device_name(node->assigned_device_name());
+                             .Finalize(graph, &ngraphassign_op));
+      ngraphassign_op->set_assigned_device_name(node->assigned_device_name());
      } //use_nesterov
      else{
 	Node* mul_op_1;
@@ -314,25 +372,35 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
     mul_op_1->set_assigned_device_name(node->assigned_device_name());
     NodeBuilder::NodeOut ndef_mul_op_1 = NodeBuilder::NodeOut(mul_op_1, 0);	
 	
-	//TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, mul_op));
+	Node* sub_op;
+      string new_name_sub = node->name() + "_Sub";
+      TF_RETURN_IF_ERROR(NodeBuilder(new_name_sub, "Sub")
+                             .Input(input_var)
+                             .Input(ndef_mul_op_1)
+                             .Attr("T", dtype)
+                             .Device(node->assigned_device_name())
+                             .Finalize(graph, &(sub_op)));
+      sub_op->set_assigned_device_name(node->assigned_device_name());
+      NodeBuilder::NodeOut ndef_sub_op = NodeBuilder::NodeOut(sub_op, 0);
 	
-       string new_name_ngraphassignsub = node->name() + "_NGraphAssignSub";
-      TF_RETURN_IF_ERROR(NodeBuilder(new_name_ngraphassignsub, "NGraphAssignSub")
+       string new_name_ngraphassign = node->name() + "_NGraphAssign";
+      TF_RETURN_IF_ERROR(NodeBuilder(new_name_ngraphassign, "NGraphAssign")
                              .Attr("validate_shape", true)
                              .Attr("use_locking", true)
                              .Attr("T", dtype)
                              .Attr("ngraph_graph_id", 0)
                              .Input(input_var)
-                             .Input(ndef_mul_op_1)
+                             .Input(ndef_sub_op)
                              .Device(node->assigned_device_name())
-                             .Finalize(graph, &ngraphassignsub_op));
-      ngraphassignsub_op->set_assigned_device_name(node->assigned_device_name());
+                             .Finalize(graph, &ngraphassign_op));
+      ngraphassign_op->set_assigned_device_name(node->assigned_device_name());
       } //else
 
-      NGRAPH_VLOG(1) << "Assign op name: " << ngraphassignsub_op->name();
+      NGRAPH_VLOG(1) << "Assign op name: " << ngraphassign_op->name();
       NGRAPH_VLOG(1) << "Assign op assigned device: "
-                     << ngraphassignsub_op->assigned_device_name();
-      TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, ngraphassignsub_op));
+                     << ngraphassign_op->assigned_device_name();			 
+	  TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, mul_op));			 
+      TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, ngraphassign_op));
 
       remove_nodes.push_back(node);
 

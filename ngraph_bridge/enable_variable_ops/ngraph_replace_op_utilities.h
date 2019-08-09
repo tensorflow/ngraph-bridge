@@ -25,7 +25,7 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status ReplaceApplyGradientDescent(Graph* graph, Node* node, Node** replacement,
+Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
                                    const string replacement_node_name,
                                    const string replacement_op_type,
                                    const bool just_looking,

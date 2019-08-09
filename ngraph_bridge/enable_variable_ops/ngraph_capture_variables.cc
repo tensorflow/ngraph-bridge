@@ -52,7 +52,9 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
               const int graph_id, const bool is_backend_set)>>>
       CAPTURE_REPLACE_OP_MAP{
           {"ApplyGradientDescent", std::make_pair("NGraphApplyGradientDescent",
-                                                  ReplaceApplyGradientDescent)},
+                                                  ReplaceOptimizer)},
+          {"ApplyMomentum", std::make_pair("NGraphApplyMomentum",ReplaceOptimizer)},
+                                                  
           {"Assign", std::make_pair("NGraphAssign", ReplaceAssign)},
           {"AssignAdd", std::make_pair("NGraphAssignAdd", ReplaceAssign)},
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
@@ -104,7 +106,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     NGRAPH_VLOG(4) << "Removing: " << node->name();
     graph->RemoveNode(node);
   }
-
+  std::cout << "-------------------------here--------------------------" <<std::endl;
   return Status::OK();
 }
 

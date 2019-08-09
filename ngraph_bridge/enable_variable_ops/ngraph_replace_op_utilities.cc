@@ -27,7 +27,7 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status ReplaceApplyGradientDescent(Graph* graph, Node* node, Node** replacement,
+Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
                                    const string replacement_node_name,
                                    const string replacement_node_type,
                                    const bool just_looking,
@@ -38,41 +38,61 @@ Status ReplaceApplyGradientDescent(Graph* graph, Node* node, Node** replacement,
   NGRAPH_VLOG(1) << "Start replacing NGraphApplyGradientDescent "
                  << node->name();
 
-  DataType dtype;
-  TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "T", &dtype));
-  bool use_locking;
-  TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "use_locking", &use_locking));
+//  DataType dtype;
+  //TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "T", &dtype));
+  //bool use_locking;
+  //TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "use_locking", &use_locking));
 
-  NodeBuilder::NodeOut input_var;
+
+/*  NodeBuilder::NodeOut input_var;
   NodeBuilder::NodeOut input_alpha;
   NodeBuilder::NodeOut input_delta;
-
+*/
+  std::vector<NodeBuilder::NodeOut> op_inputs;
   std::vector<const Edge*> input_edges;
   TF_RETURN_IF_ERROR(node->input_edges(&input_edges));
 
   NGRAPH_VLOG(1) << "No of input edges to ApplyGradientDescent "
                  << input_edges.size();
 
-  input_var =
+  /* input_var =
       NodeBuilder::NodeOut(input_edges[0]->src(), input_edges[0]->src_output());
   input_alpha =
       NodeBuilder::NodeOut(input_edges[1]->src(), input_edges[1]->src_output());
   input_delta =
       NodeBuilder::NodeOut(input_edges[2]->src(), input_edges[2]->src_output());
+  */
 
-  TF_RETURN_IF_ERROR(NodeBuilder(replacement_node_name, replacement_node_type)
-                         .Attr("T", dtype)
-                         .Attr("use_locking", use_locking)
+  int num_inputs=node->num_inputs();
+  for(int i = 0; i < num_inputs; i++)
+   {
+   op_inputs.push_back(NodeBuilder::NodeOut(input_edges[i]->src(), input_edges[i]->src_output()));
+   }
+   
+  NodeBuilder nb=NodeBuilder(replacement_node_name, replacement_node_type)
                          .Attr("just_looking", just_looking)
                          .Attr("is_tf_just_looking", is_tf_just_looking)
                          .Attr("copy_to_tf", !outputs_ng_supported)
                          .Attr("ngraph_graph_id", graph_id)
-                         .Input(input_var)
-                         .Input(input_alpha)
-                         .Input(input_delta)
-                         .Device(node->assigned_device_name())
-                         .Finalize(graph, &(*replacement)));
-
+                         .Device(node->assigned_device_name());
+ if( node->attrs().begin() != node->attrs().end())
+  {
+    for(auto it=node->attrs().begin(); it != node->attrs().end(); it++)
+       {
+        nb.Attr(it->first, it->second);
+       }
+ 
+  }
+ if (!op_inputs.empty()) {
+      NGRAPH_VLOG(3) << "op_inputs is not empty";
+      for (auto const i : op_inputs) {
+        // Adding the all Inputs
+        nb.Input(i);
+      }
+    }
+  
+   Status status=nb.Finalize(graph, &(*replacement));
+   TF_RETURN_IF_ERROR(status);
   (*replacement)->set_assigned_device_name(node->assigned_device_name());
 
   if (is_backend_set) {
@@ -81,7 +101,7 @@ Status ReplaceApplyGradientDescent(Graph* graph, Node* node, Node** replacement,
         GetNodeAttr(node->attrs(), "_ngraph_backend", &backend_name));
     SetNodeBackend(*replacement, backend_name);
   }
-
+  std::cout<< "----------------------------------------Its Coming Here----------------------------------------------" <<endl;
   return Status::OK();
 }  // end of ReplaceApplyGradientDescent
 
