@@ -16,7 +16,10 @@
 # ==============================================================================
 
 set -e  # Make sure we exit on any command that returns non-zero
-set -u  # No unset variables
+
+# Cannot use no unset variable as virtualenv activate has unset variable PS1
+# So do not uncomment the following line
+#set -u  # No unset variables
 
 if [[ -z "${SYSSW_MAJOR_VER+x}" ]]; then
   MAJOR_VER="1.7"
