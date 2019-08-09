@@ -31,6 +31,11 @@ def parse_extra_params_string(raw_extra_params):
     assert type(dct) == type(
         {}), "Expected a dictionary to be passed to --extra_params, " + \
         "but got " + raw_extra_params + " which is a " + str(type(dct))
+    for k in dct:
+        assert type(k) == type(
+            "abc"), "Expected keys to be string, but got " + type(k)
+        assert type(dct[k]) == type(
+            "abc"), "Expected values to be string, but got " + type(dct[k])
     return dct
 
 
