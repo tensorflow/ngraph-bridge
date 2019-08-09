@@ -74,8 +74,8 @@ class Testtf2ngraph(NgraphTest):
         conversion_successful = False
         try:
             extra_params = {
-                'CPU': '{device_config:0}',
-                'INTERPRETER': '{test_echo:1}'
+                'CPU': '\{\"device_config\":\"0\"\}',
+                'INTERPRETER': '\{\"test_echo\":\"1\"\}'
             }[ng_device]
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
