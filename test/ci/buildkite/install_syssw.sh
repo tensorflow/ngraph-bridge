@@ -21,24 +21,33 @@ set -u  # No unset variables
 
 # SysSW Version
 if [[ -z "${SYSSW_MAJOR_VER+x}" ]]; then
-  MAJOR_VER="1.7"
+  echo "Must specify SYSSW_MAJOR_VER"
+  exit -1
 else
   MAJOR_VER="${SYSSW_MAJOR_VER}"
 fi
 
 if [[ -z "${SYSSW_MINOR_VER+x}" ]]; then
-  MINOR_VER="0.4053"
+  echo "Must specify SYSSW_MINOR_VER"
+  exit -1
 else
   MINOR_VER="${SYSSW_MINOR_VER}"
 fi
 
 SYSSW_VERSION=${MAJOR_VER}.${MINOR_VER}
 echo "Using System Software version: " ${SYSSW_VERSION}
+BASE_URL=http://nrv-buildstore.igk.intel.com
 
-wget http://nrv-buildstore.igk.intel.com/syssw/${MAJOR_VER}/ci/SysSW-CI-${SYSSW_VERSION}/release_internal/external/syssw-${SYSSW_VERSION}-ubuntu18.04.tar
+wget ${BASE_URL}/syssw/${MAJOR_VER}/ci/SysSW-CI-${SYSSW_VERSION}/release_internal/external/syssw-${SYSSW_VERSION}-ubuntu18.04.tar
 tar xvf syssw-${SYSSW_VERSION}-ubuntu18.04.tar
 
-wget http://nrv-buildstore.igk.intel.com/syssw/${MAJOR_VER}/ci/SysSW-CI-${SYSSW_VERSION}/documentation/external/argon-api-${SYSSW_VERSION}.tar 
+wget ${BASE_URL}/syssw/${MAJOR_VER}/ci/SysSW-CI-${SYSSW_VERSION}/release/internal/ubuntu18.04/test-package/syssw-${SYSSW_VERSION}-ubuntu18.04-test.tar
+tar xvf syssw-${SYSSW_VERSION}-ubuntu18.04-test.tar
+pushd syssw-${SYSSW_VERSION}-ubuntu18.04-test/packages
+dpkg -i  syssw-test_${SYSSW_VERSION}-1_amd64.deb
+popd
+
+wget ${BASE_URL}/syssw/${MAJOR_VER}/ci/SysSW-CI-${SYSSW_VERSION}/documentation/external/argon-api-${SYSSW_VERSION}.tar 
 tar xvf argon-api-${SYSSW_VERSION}.tar
 
 # Switch to gcc 7.x
