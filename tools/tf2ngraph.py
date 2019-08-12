@@ -164,7 +164,7 @@ def prepare_argparser(formats):
         help=
         "Other params that the backend needs in the form of a python dictionary. "
         +
-        "Please make sure to escape quotes and curly braces Eg, \{\"max_cores\":\"4\",\"max_batch\":\"5\"\}."
+        "Please make sure to escape quotes and curly braces. Eg: --extra_params \{\"max_cores\":\"4\",\"max_batch\":\"5\"\}."
     )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
