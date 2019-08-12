@@ -22,36 +22,40 @@ set -e  # Make sure we exit on any command that returns non-zero
 #set -u  # No unset variables
 
 if [[ -z "${SYSSW_MAJOR_VER+x}" ]]; then
-  MAJOR_VER="1.7"
+  echo "Must specify SYSSW_MAJOR_VER"
+  exit -1
 else
   MAJOR_VER="${SYSSW_MAJOR_VER}"
 fi
 
 if [[ -z "${SYSSW_MINOR_VER+x}" ]]; then
-  MINOR_VER="0.4053"
+  echo "Must specify SYSSW_MINOR_VER"
+  exit -1
 else
   MINOR_VER="${SYSSW_MINOR_VER}"
 fi
+
+if [[ -z "${NGTF_VER+x}" ]]; then 
+  echo "Must specify NGTF_VER"
+  exit -1
+fi
+
+SYSSW_VERSION=${MAJOR_VER}.${MINOR_VER}
+
+if [[ -z "${NNP_VER+x}" ]]; then
+  echo "Must specify NNP_VER"
+  exit -1
+fi
+
+echo "nGraph-TensorFlow bridge version: " ${NGTF_VER}
+echo "NNP Transformer backend version:  " ${NNP_VER}
+echo "Argon API version: " ${SYSSW_VERSION}
 
 export SYSSW_MAJOR_VER=${MAJOR_VER}
 export SYSSW_MINOR_VER=${MINOR_VER}
 
 # Install System SW
 bash install_syssw.sh
-
-if [[ -z "${NGTF_VER+x}" ]]; then
-  NGTF_VER="v0.17.0-rc2"
-fi
-
-SYSSW_VERSION=${MAJOR_VER}.${MINOR_VER}
-
-if [[ -z "${NNP_VER+x}" ]]; then
-  NNP_VER="v0.11.0-rc2"
-fi
-
-echo "nGraph-TensorFlow bridge version: " ${NGTF_VER}
-echo "NNP Transformer backend version:  " ${NNP_VER}
-echo "Argon API version: " ${SYSSW_VERSION}
 
 # Next build ngraph-tf
 pushd ngraph-bridge
