@@ -83,15 +83,16 @@ TEST(IndexLibrary, SingleThreadTest2) {
 TEST(IndexLibrary, MultiThreadTest) {
   IndexLibrary idx_lib{5};
 
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  // TODO: replace "3" by time(0).
+  auto seed = static_cast<long unsigned int>(3);
+  std::mt19937 gen(seed);
   std::uniform_real_distribution<> dis(0, 1);
 
   vector<shared_ptr<set<int>>> checked_out_collections = {
       make_shared<set<int>>(), make_shared<set<int>>()};
 
   // TODO: remove thread_id. Its there for debug prints only
-  auto worker = [&idx_lib, &dis, &gen,
+  auto worker = [&idx_lib, &dis, &gen, &seed,
                  &checked_out_collections](size_t thread_id) {
     shared_ptr<set<int>> my_checked_out = checked_out_collections[thread_id];
     shared_ptr<set<int>> other_checked_out =
@@ -102,17 +103,21 @@ TEST(IndexLibrary, MultiThreadTest) {
         int i = idx_lib.get_index();
         // cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
         if (i >= 0) {
+          ASSERT_TRUE(my_checked_out->find(i) == my_checked_out->end())
+              << "Failure seed: " << seed;
           my_checked_out->insert(i);
           count_work++;
           // No need to lock access to my_checked_out and other_checked_out
           // There is an implicit lock in between them from idx_lib
-          ASSERT_TRUE(other_checked_out->find(i) == other_checked_out->end());
+          cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
+          ASSERT_TRUE(other_checked_out->find(i) == other_checked_out->end())
+              << "Failure seed: " << seed;
         }
       } else {
         if (my_checked_out->begin() != my_checked_out->end()) {
           int j = *(my_checked_out->begin());
-          // cout << "thread_id: " << thread_id << ". trying to return: " << j
-          //     << "\n";
+          cout << "thread_id: " << thread_id << ". trying to return: " << j
+               << "\n";
           idx_lib.return_index(j);
           count_work++;
           my_checked_out->erase(j);
