@@ -313,4 +313,6 @@ def main():
 if __name__ == '__main__':
     main()
 
-    #python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints [\{\"x\":[2,3],\},\{\"x\":[10,-1],\},\{\"x\":[4,3]\}]
+    # TODO remove this line
+    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints [\{\"x\":[2,3],\},\{\"x\":[10,-1],\},\{\"y\":[-1,-1]\}]
+    # python run_tf2ngraph_model.py
