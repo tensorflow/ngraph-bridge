@@ -594,7 +594,6 @@ class NGraphEncapsulateOp : public OpKernel {
       while (true) {
         std::tie(pipeline_idx, inp_group_from_pipeline,
                  out_group_from_pipeline) = pts.get_tensors();
-        // cout << "pipeline_idx: " << pipeline_idx << "\n";
         if (pipeline_idx >= 0) {
           break;
         }
@@ -868,8 +867,6 @@ class NGraphEncapsulateOp : public OpKernel {
           << "NGraphEncapsulateOp::Compute call starting for cluster "
           << m_ngraph_cluster;
       try {
-        cout << "ng_outputs.size(): " << ng_outputs.size() << "\n";
-        cout << "ng_inputs.size(): " << ng_inputs.size() << "\n";
         ng_exec->call(ng_outputs, ng_inputs);
       } catch (const std::exception& exp) {
         ng_function = m_ng_function_map[ng_exec];

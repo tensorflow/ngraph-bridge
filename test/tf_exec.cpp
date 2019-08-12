@@ -71,8 +71,6 @@ Status CreateSession(const string& graph_filename,
       ->mutable_rewrite_options()
       ->set_constant_folding(RewriterConfig::OFF);
 
-  // The following is related to Grappler - which we are turning off
-  // Until we get a library fully running
   if (ngraph_tf_is_grappler_enabled()) {
     auto* custom_config = options.config.mutable_graph_options()
                               ->mutable_rewrite_options()
@@ -96,7 +94,7 @@ Status CreateSession(const string& graph_filename,
   return load_graph_status;
 }
 
-// TODO remove this test. This is temporary
+// TODO: This test is not meant for CPU CI
 TEST(tf_exec, DISABLED_Mnist2Thread) {
   string graph_name =
       "/localdisk/sarkars/workspace1/ngraph_bridge_tf/nnpi_build_aug1/"
@@ -121,7 +119,7 @@ TEST(tf_exec, DISABLED_Mnist2Thread) {
 
     for (int i = 0; i < 10; i++) {
       ASSERT_OK(session->Run(inputs, {out_tensor_name}, {}, &out_tensor_vals));
-      cout << "thread_id: " << thread_id << " finished: " << i << "\n";
+      NGRAPH_VLOG(5) << "thread_id: " << thread_id << " finished: " << i << ;
     }
   };
 
