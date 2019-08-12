@@ -313,6 +313,10 @@ def main():
 if __name__ == '__main__':
     main()
 
-    # TODO remove this line
+    # TODO remove these lines
+
+    # 2x3 and 2x3 are the only valid hints. x=[10,-1] is invalid, y=[-1,-1] doesnt add much
     # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints [\{\"x\":[2,3],\},\{\"x\":[10,-1],\},\{\"y\":[-1,-1]\}]
     # python run_tf2ngraph_model.py
+
+    # TODO what happens if same shape is passed twice

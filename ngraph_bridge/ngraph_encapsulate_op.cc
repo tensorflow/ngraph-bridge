@@ -395,13 +395,13 @@ class NGraphEncapsulateOp : public OpKernel {
       if (itr_translated == m_aot_functions.end()){
       TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                  &m_graph, ng_function));
+      ng_function->set_friendly_name(name());
       } else {
         cout << "Compute:: found aot: \n";
         ng_function = ng::deserialize(itr_translated->second);
         cout << "Successfully deserialized\n";
-        cout << ng_function << "\n";
       }
-      ng_function->set_friendly_name(name());
+      
 
       auto function_size = ng_function->get_graph_size() / 1024;  // kb unit
 
