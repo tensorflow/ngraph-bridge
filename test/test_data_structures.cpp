@@ -83,26 +83,16 @@ TEST(IndexLibrary, SingleThreadTest2) {
 TEST(IndexLibrary, MultiThreadTest) {
   IndexLibrary idx_lib{5};
 
-  // TODO: replace "3" by time(0).
-  auto seed = static_cast<long unsigned int>(3);
+  auto seed = static_cast<long unsigned int>(time(0));
   std::mt19937 gen(seed);
   std::uniform_real_distribution<> dis(0, 1);
 
   vector<shared_ptr<set<int>>> checked_out_collections = {
       make_shared<set<int>>(), make_shared<set<int>>()};
 
-  // TODO delete set_to_string
-  auto set_to_string = [](shared_ptr<set<int>> x){
-    string st;
-    for (auto i : *x){
-      st += (to_string(i) + string(","));
-    }
-    return st;
-  };
-
   // TODO: remove thread_id. Its there for debug prints only
   auto worker = [&idx_lib, &dis, &gen, &seed,
-                 &checked_out_collections, &set_to_string](size_t thread_id) {
+                 &checked_out_collections](size_t thread_id) {
     shared_ptr<set<int>> my_checked_out = checked_out_collections[thread_id];
     shared_ptr<set<int>> other_checked_out =
         checked_out_collections[1 - thread_id];
@@ -110,7 +100,6 @@ TEST(IndexLibrary, MultiThreadTest) {
     while (true) {
       if (dis(gen) > 0.5) {
         int i = idx_lib.get_index();
-        // cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
         if (i >= 0) {
           ASSERT_TRUE(my_checked_out->find(i) == my_checked_out->end())
               << "Failure seed: " << seed;
@@ -118,18 +107,13 @@ TEST(IndexLibrary, MultiThreadTest) {
           count_work++;
           // No need to lock access to my_checked_out and other_checked_out
           // There is an implicit lock in between them from idx_lib
-          cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
           ASSERT_TRUE(other_checked_out->find(i) == other_checked_out->end())
-              << "Failure seed: " << seed
-              << ". State of library: " << idx_lib.get_string()
-              << ". State of 0: " << set_to_string(checked_out_collections[0])
-              << ". State of 1: " << set_to_string(checked_out_collections[1]);
+              << "Failure seed: " << seed << "\n";
         }
       } else {
         if (my_checked_out->begin() != my_checked_out->end()) {
           int j = *(my_checked_out->begin());
-          cout << "thread_id: " << thread_id << ". trying to return: " << j
-               << "\n";
+
           idx_lib.return_index(j);
           count_work++;
           my_checked_out->erase(j);
@@ -143,11 +127,10 @@ TEST(IndexLibrary, MultiThreadTest) {
       }
     }
     // In the end return all indices
-    for (auto i : *my_checked_out) {
-      // cout << "thread_id: " << thread_id << ". [Final] trying to return: " <<
-      // i
-      //     << "\n";
-      idx_lib.return_index(i);
+    while (my_checked_out->begin() != my_checked_out->end()) {
+      int j = *(my_checked_out->begin());
+      idx_lib.return_index(j);
+      my_checked_out->erase(j);
     }
   };
 

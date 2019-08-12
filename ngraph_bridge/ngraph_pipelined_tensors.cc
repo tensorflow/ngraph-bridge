@@ -52,8 +52,7 @@ void IndexLibrary::return_index(size_t id) {
 int IndexLibrary::get_index() {
   if (m_depth == 0) {
     return -1;
-  }
-  
+  } else {
     std::lock_guard<std::mutex> lock(m_mtx);
     if (m_free_depth_indexes.size() == 0) {
       return -1;
@@ -61,10 +60,9 @@ int IndexLibrary::get_index() {
       auto itr = m_free_depth_indexes.begin();
       int retval = *itr;
       m_free_depth_indexes.erase(itr);
-      cout << "get_index: " << retval << "\n";
       return retval;
     }
-  
+  }
 }
 
 void IndexLibrary::insert_to_free_set(size_t id) {
