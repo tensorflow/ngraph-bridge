@@ -24,6 +24,12 @@
 # NG_TF_BUILD_OPTIONS  Command-line options for build_ngtf.py
 # NG_TF_TEST_OPTIONS   Command-line options for test_ngtf.py (CPU-backend)
 # NG_TF_TEST_PLAIDML   If defined and non-zero, also run PlaidML-CPU unit-tests
+#
+# General environment variables that are passed through to the docker container:
+#
+# NGRAPH_TF_BACKEND
+# PLAIDML_EXPERIMENTAL
+# PLAIDML_DEVICE_IDS
 
 set -e  # Make sure we exit on any command that returns non-zero
 set -o pipefail # Make sure cmds in pipe that are non-zero also fail immediately
@@ -36,6 +42,17 @@ if [ -z "${NG_TF_TEST_OPTIONS}" ] ; then
 fi
 if [ -z "${NG_TF_TEST_PLAIDML}" ] ; then
     export NG_TF_TEST_PLAIDML=''
+fi
+
+# Report on any recognized passthrough variables
+if [ ! -z "${NGRAPH_TF_BACKEND}" ] ; then
+    echo "NGRAPH_TF_BACKEND=${NGRAPH_TF_BACKEND}"
+fi
+if [ ! -z "${PLAIDML_EXPERIMENTAL}" ] ;  then
+    echo "PLAIDML_EXPERIMENTAL=${PLAIDML_EXPERIMENTAL}"
+fi
+if [ ! -z "${PLAIDML_DEVICES_IDS}" ; then
+    echo "PLAIDML_DEVICE_IDS=${PLAIDML_DEVICE_IDS}"
 fi
 
 set -u  # No unset variables from this point
@@ -166,6 +183,10 @@ if [ ! -z "${NG_TF_TEST_PLAIDML}" ] ; then
     echo  ' '
     echo  "===== Run test_ngtf.py with PlaidML at ${xtime} ====="
     echo  ' '
+
+    NGRAPH_TF_BACKEND=PLAIDML
+
+    echo "NGRAPH_TF_BACKEND=${NGRAPH_TF_BACKEND}"
 
     cd "${bridge_dir}"
     echo "Running: ./test_ngtf.py --plaidml_unit_tests_enable"
