@@ -79,7 +79,6 @@ TEST(IndexLibrary, SingleThreadTest2) {
 // IndexLibrary 10 times.
 // The test asserts if one of the threads managed to get an index i, then the
 // other thread must not have that index i
-// TODO: dump the get/return sequence in case of a test failure.
 TEST(IndexLibrary, MultiThreadTest) {
   IndexLibrary idx_lib{5};
 
@@ -90,7 +89,6 @@ TEST(IndexLibrary, MultiThreadTest) {
   vector<shared_ptr<set<int>>> checked_out_collections = {
       make_shared<set<int>>(), make_shared<set<int>>()};
 
-  // TODO: remove thread_id. Its there for debug prints only
   auto worker = [&idx_lib, &dis, &gen, &seed,
                  &checked_out_collections](size_t thread_id) {
     shared_ptr<set<int>> my_checked_out = checked_out_collections[thread_id];

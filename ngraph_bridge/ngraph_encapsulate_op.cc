@@ -1073,7 +1073,6 @@ class NGraphEncapsulateOp : public OpKernel {
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
 
-  // TODO: create map of exec and pipelined tensors
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      PipelinedTensorsStore>
       m_executable_pipelined_tensors_map;
