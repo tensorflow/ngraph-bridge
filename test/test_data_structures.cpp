@@ -91,9 +91,18 @@ TEST(IndexLibrary, MultiThreadTest) {
   vector<shared_ptr<set<int>>> checked_out_collections = {
       make_shared<set<int>>(), make_shared<set<int>>()};
 
+  // TODO delete set_to_string
+  auto set_to_string = [](shared_ptr<set<int>> x){
+    string st;
+    for (auto i : *x){
+      st += (to_string(i) + string(","));
+    }
+    return st;
+  };
+
   // TODO: remove thread_id. Its there for debug prints only
   auto worker = [&idx_lib, &dis, &gen, &seed,
-                 &checked_out_collections](size_t thread_id) {
+                 &checked_out_collections, &set_to_string](size_t thread_id) {
     shared_ptr<set<int>> my_checked_out = checked_out_collections[thread_id];
     shared_ptr<set<int>> other_checked_out =
         checked_out_collections[1 - thread_id];
@@ -111,7 +120,10 @@ TEST(IndexLibrary, MultiThreadTest) {
           // There is an implicit lock in between them from idx_lib
           cout << "thread_id: " << thread_id << ". Got: " << i << "\n";
           ASSERT_TRUE(other_checked_out->find(i) == other_checked_out->end())
-              << "Failure seed: " << seed;
+              << "Failure seed: " << seed
+              << ". State of library: " << idx_lib.get_string()
+              << ". State of 0: " << set_to_string(checked_out_collections[0])
+              << ". State of 1: " << set_to_string(checked_out_collections[1]);
         }
       } else {
         if (my_checked_out->begin() != my_checked_out->end()) {

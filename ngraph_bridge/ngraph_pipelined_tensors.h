@@ -59,6 +59,15 @@ class IndexLibrary {
 
   void return_index(size_t id);
   int get_index();
+  // TODO: remove
+  string get_string() {
+    string st;
+    std::lock_guard<std::mutex> lock(m_mtx);
+    for (auto i : m_free_depth_indexes) {
+      st += (to_string(i) + string(","));
+    }
+    return st;
+  }
 
   // TODO: if needed implement get_depth() and get_num_free_idxs()
   // Implementing get_depth() might make some sense because if one receives an
