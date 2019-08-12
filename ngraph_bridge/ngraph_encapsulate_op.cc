@@ -560,7 +560,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
     Timer create_or_lookup_tensors;
 
-    int pipeline_idx;
+    int pipeline_idx = -1;
     PipelinedTensorVector inp_group_from_pipeline;
     PipelinedTensorVector out_group_from_pipeline;
     if (m_executable_can_create_tensor) {
