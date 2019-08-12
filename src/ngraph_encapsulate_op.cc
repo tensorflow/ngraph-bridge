@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <utility>
+#include <string>
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/common_runtime/function.h"
@@ -902,6 +903,11 @@ class NGraphEncapsulateOp : public OpKernel {
     ngraph::Event::write_trace(event_execute_function);
     ngraph::Event::write_trace(event_copy_output);
     ngraph::Event::write_trace(event);
+
+    /* cout << "ID:" + to_string(m_graph_id) << endl;
+    cout << "Time taken:" + to_string(compute_time.ElapsedInMS())  + "\n"<< endl; */
+
+    UpdateComputeTime(m_graph_id);
 
   }  // end compute
 

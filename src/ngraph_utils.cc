@@ -23,7 +23,9 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <stdio.h>
+#include <dirent.h>
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
@@ -423,33 +425,68 @@ Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx)
   {
     return Status::OK();
   }
-  else
+
+  std::string str_path(path);
+
+  if (str_path.back() != '/')
   {
-    std::string str_path(path);
+    str_path += "/";
+  }
 
-    if (str_path.back() != '/')
-    {
-      str_path += "/";
-    }
+  struct stat buffer;
+  if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
+  {
+    mkdir(str_path.c_str(), 0777);
+  }
 
-    struct stat buffer;
-    if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
-    {
-      mkdir(str_path.c_str(), 0777);
-    }
+  str_path += ("run" + to_string(file_idx) + "/");
+  if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
+  {
+    mkdir(str_path.c_str(), 0777);
+  }
+  
+  str_path += "tfevent" + to_string(file_idx);
 
-    str_path += ("run" + to_string(file_idx) + "/");
-    if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
-    {
-      mkdir(str_path.c_str(), 0777);
-    }
-    
-    str_path += "tfevent" + to_string(file_idx);
+  CreateSummaryFromGraphDef(graph_def, str_path); // create tensorflow event
 
-    CreateSummaryFromGraphDef(graph_def, str_path);
+  return Status::OK();
+}
 
+Status UpdateComputeTime(int file_idx)
+{
+  const char* path = std::getenv("NGRAPH_TF_NGRAPH_PATH");
+
+  if (path == nullptr)
+  {
     return Status::OK();
   }
+
+  std::string str_path(path);
+
+  if (str_path.back() != '/')
+  {
+    str_path += "/";
+  }
+
+  str_path += ("run" + to_string(file_idx) + "/");
+
+  DIR* dir = opendir(str_path.c_str());
+  struct dirent* dp;
+  vector<std::string> files;
+
+  while ((dp = readdir(dir)) != nullptr)
+  {
+    files.push_back(std::string(dp->d_name));
+  }
+
+  std::sort(files.begin(), files.end()); // sort files names in order of recency (least recent --> most recent)
+
+  str_path += files.back(); // tensorflow event file to update
+
+  
+
+
+  return Status::OK();
 }
 
 Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix)

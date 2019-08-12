@@ -323,6 +323,8 @@ bool DumpTrackedGraphs();
 
 Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx);
 
+Status UpdateComputeTime(int file_idx);
+
 Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix);
 
 Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def, std::string filename_prefix);

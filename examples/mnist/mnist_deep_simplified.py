@@ -33,6 +33,11 @@ import sys
 import tempfile
 import getpass
 import time
+from google.protobuf import text_format
+from tensorflow.core.protobuf import meta_graph_pb2
+from tensorflow.python.grappler import tf_optimizer
+import os
+from functools import partial
 
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -40,7 +45,6 @@ import tensorflow as tf
 import ngraph_bridge
 
 FLAGS = None
-
 
 def deepnn(x):
     """deepnn builds the graph for a deep net for classifying digits.
@@ -94,9 +98,9 @@ def deepnn(x):
     with tf.name_scope('fc2'):
         W_fc2 = weight_variable([1024, 10], "W_fc2")
         b_fc2 = bias_variable([10])
-
         # y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
         y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
+
     return y_conv, tf.placeholder(tf.float32)
 
 
@@ -182,12 +186,13 @@ def train_mnist_cnn(FLAGS):
     tf.summary.scalar('Training accuracy', accuracy)
     tf.summary.scalar('Loss function', cross_entropy)
 
-    graph_location = "/tmp/" + getpass.getuser(
-    ) + "/tensorboard-logs/mnist-convnet"
+    graph_location = os.environ['NGRAPH_TF_NGRAPH_PATH'] if 'NGRAPH_TF_NGRAPH_PATH' in os.environ else './events'
+    
     print('Saving graph to: %s' % graph_location)
 
     merged = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter(graph_location)
+
     train_writer.add_graph(tf.get_default_graph())
 
     saver = tf.train.Saver()
@@ -216,6 +221,7 @@ def train_mnist_cnn(FLAGS):
                                             y_: batch[1],
                                             keep_prob: 0.5
                                         })
+
             loss_values.append(loss)
             print('step %d, loss %g, %g sec for training step' %
                   (i, loss, time.time() - t))
@@ -228,9 +234,9 @@ def train_mnist_cnn(FLAGS):
         y_test = mnist.test.labels[:num_test_images]
 
         test_accuracy = accuracy.eval(feed_dict={
-            x: x_test,
-            y_: y_test,
-            keep_prob: 1.0
+           x: x_test,
+           y_: y_test,
+           keep_prob: 1.0
         })
         print('test accuracy %g' % test_accuracy)
         saver.save(sess, FLAGS.model_dir)
@@ -282,3 +288,5 @@ if __name__ == '__main__':
 
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+
+print(os.environ['NGRAPH_TF_NGRAPH_PATH'])
