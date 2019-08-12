@@ -119,7 +119,7 @@ TEST(tf_exec, DISABLED_Mnist2Thread) {
 
     for (int i = 0; i < 10; i++) {
       ASSERT_OK(session->Run(inputs, {out_tensor_name}, {}, &out_tensor_vals));
-      NGRAPH_VLOG(5) << "thread_id: " << thread_id << " finished: " << i << ;
+      NGRAPH_VLOG(5) << "thread_id: " << thread_id << " finished: " << i;
     }
   };
 
