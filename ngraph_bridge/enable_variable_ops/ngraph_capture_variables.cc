@@ -60,7 +60,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
           {"VariableV2", std::make_pair("NGraphVariable", ReplaceVariable)}};
 
-  std::vector<Node*> nodes_to_capture;
+  std::set<Node*> nodes_to_capture;
 
   for (auto node : graph->op_nodes()) {
     std::set<Node*> ref_list;
@@ -79,7 +79,8 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           for (auto n : ref_list) {
             auto itr = CAPTURE_REPLACE_OP_MAP.find(n->type_string());
             if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
-              nodes_to_capture.push_back(n);
+              nodes_to_capture.insert(n);
+              std::cout << "Node pushed in node Capture " << n->DebugString() << std::endl<<std::endl; 
             }
           }
           ref_list.clear();
@@ -95,15 +96,20 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     TF_RETURN_IF_ERROR((itr->second.second)(graph, node, &replacement,
                                             node->name(), itr->second.first,
                                             true, false, false, 0, false));
-    NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
-                   << replacement->DebugString();
+    std::cout << "Replacing Node " << node->DebugString() << std::endl;
+    std::cout<< std::endl;
+    std::cout<< std::endl;
+    std::cout  << " with the ............. " << replacement->DebugString()<< std::endl;
+    std::cout<< std::endl;
 
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
   }  // end of looping through nodes in the capture list
 
   for (auto node : nodes_to_capture) {
-    NGRAPH_VLOG(4) << "Removing: " << node->name();
+    std::cout << "Removing: " << node->name();
+    std::cout << std::endl << "Node debug string is " << node->DebugString();
+    std::cout<< "print ---------------------------------------"<<std::endl; 
     graph->RemoveNode(node);
   }
   std::cout << "-------------------------here--------------------------" <<std::endl;

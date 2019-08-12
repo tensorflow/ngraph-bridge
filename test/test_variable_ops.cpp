@@ -180,23 +180,23 @@ TEST(VariableTest, SmallGraph3) {
   Scope root = Scope::NewRootScope();
 
   PartialTensorShape varShape({2, 2});
-  auto var = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
+  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
   auto var_assign = ops::Assign(root.WithOpName("Assign1"), var, init_value);
 
   auto var1 = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
-  auto init_value1 = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto init_value1 = ops::Const(root, {{2.f, 2.f}, {2.f, 2.f}});
   auto var1_assign =
-      ops::Assign(root.WithOpName("Var1_Assign"), var1, init_value);
+      ops::Assign(root.WithOpName("Var1_Assign"), var1, init_value1);
 
 
   auto var2 = ops::Variable(root.WithOpName("Var2"), varShape, DT_FLOAT);
-  auto init_value2 = ops::Const(root, {{123.f, 34.f}, {0.f, 1.f}});
+  auto init_value2 = ops::Const(root, {{3.f, 3.f}, {3.f, 3.f}});
   auto var2_assign =
       ops::Assign(root.WithOpName("Var2_Assign"), var2, init_value2);
 
-  auto s = ops::Const(root, 1.f);
-  auto d = ops::Const(root, 1.f);
+  auto s = ops::Const(root, 3.f);
+  auto d = ops::Const(root, 4.f);
 
 
   auto apply_gradient_descent =
@@ -218,7 +218,7 @@ TEST(VariableTest, SmallGraph3) {
 
   ASSERT_OK(ng_session.Run(
       {
-          var_assign,
+       {var_assign, var1_assign, var2_assign}
       },
       &ng_outputs1));
 /*
@@ -243,7 +243,7 @@ TEST(VariableTest, SmallGraph3) {
 
   ASSERT_OK(tf_session.Run(
       {
-          var_assign,
+         {var_assign, var1_assign, var2_assign}
       },
       &tf_outputs1));
 /*

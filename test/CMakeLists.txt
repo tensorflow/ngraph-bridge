@@ -56,6 +56,7 @@ set(SRC
     test_nn_ops.cpp
     test_array_ops.cpp
     test_variable_ops.cpp
+    test_var_momentum_op.cpp
     opexecuter.cpp
 )
 

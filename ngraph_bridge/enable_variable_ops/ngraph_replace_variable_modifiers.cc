@@ -278,7 +278,7 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
       //TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, mul_op));
 	  
    bool x;
-   auto sts = GetNodeAttr(node->attrs(), "use_nesterov_", &x);
+   auto sts = GetNodeAttr(node->attrs(), "use_nesterov", &x);
    
    if(sts !=  Status::OK())
     {
@@ -286,7 +286,7 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
        return sts;
 
    }
-   TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "use_nesterov_", &x));
+   TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "use_nesterov", &x));
    Node* ngraphassign_op;
    if(x)
    {
