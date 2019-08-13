@@ -471,6 +471,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
       ngraph::Event event_compile("Compile nGraph", name(), "");
       try {
+        cout << "COMPILING ng_function\n";
         ng_exec = op_backend->compile(ng_function);
 
       } catch (const std::exception& exp) {
