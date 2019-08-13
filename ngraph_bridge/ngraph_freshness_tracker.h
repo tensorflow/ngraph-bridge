@@ -95,7 +95,7 @@ class NGraphFreshnessTracker : public ResourceBase {
   // If freshness_map_ has the base_pointer, then inserts the user function into
   // its set of user functions
   void MarkFresh(const void* base_pointer,
-                 std::shared_ptr<ngraph::runtime::Executable> user);
+                 std::shared_ptr<ngraph::runtime::Executable>& user);
 
   // Checks if the freshness_map_ has the user function for base_pointer, else
   // returns false
@@ -122,7 +122,7 @@ class NGraphFreshnessTracker : public ResourceBase {
   // for each base pointer (of tensor), maintains a set of ng::Functions that
   // use it
   // Each ng function in the set is then a user of the base_pointer
-  std::map<const void*, std::set<std::shared_ptr<ngraph::runtime::Executable>>>
+  std::map<const void*, std::set<ngraph::runtime::Executable*>>
       freshness_map_;
 
   ~NGraphFreshnessTracker() override {}
