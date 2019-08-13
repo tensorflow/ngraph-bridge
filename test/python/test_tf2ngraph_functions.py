@@ -28,7 +28,7 @@ import tensorflow as tf
 import ngraph_bridge
 
 from tools.build_utils import command_executor
-from tools.tf2ngraph import parse_extra_params_string, update_config_to_include_custom_config
+from tools.tf2ngraph import update_config_to_include_custom_config
 
 from common import NgraphTest
 
