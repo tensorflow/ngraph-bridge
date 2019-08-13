@@ -23,24 +23,21 @@ from tensorflow.python.grappler import tf_optimizer
 import ngraph_bridge
 import os
 import sys
+import json
 from functools import partial
 
 
-def parse_extra_params_string(raw_extra_params):
-    dct = eval(raw_extra_params)
-    assert type(dct) == type(
-        {}), "Expected a dictionary to be passed to --extra_params, " + \
-        "but got " + raw_extra_params + " which is a " + str(type(dct))
-    for k in dct:
-        assert type(k) == type(
-            "abc"), "Expected keys to be string, but got " + type(k)
-        assert type(dct[k]) == type(
-            "abc"), "Expected values to be string, but got " + type(dct[k])
+def parse_optional_params_string(raw_optional_params_json):
+    with open(raw_optional_params_json) as f:
+        dct = json.load(f)
+        for k in dct:
+            assert type(k) == type("abc"), "Expected json keys to be strings"
+            assert type(dct[k]) == type("abc"), "Expected json values to be strings"
     return dct
 
 
 def update_config_to_include_custom_config(config, backend, device_id,
-                                           extra_params):
+                                           optional_params):
     rewriter_options = rewriter_config_pb2.RewriterConfig()
     rewriter_options.meta_optimizer_iterations = (
         rewriter_config_pb2.RewriterConfig.ONE)
@@ -49,8 +46,8 @@ def update_config_to_include_custom_config(config, backend, device_id,
     ngraph_optimizer.name = "ngraph-optimizer"
     ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
     ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
-    for k in extra_params:
-        ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
+    for k in optional_params:
+        ngraph_optimizer.parameter_map[k].s = optional_params[k].encode()
     config.MergeFrom(
         tf.ConfigProto(
             graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
@@ -58,7 +55,7 @@ def update_config_to_include_custom_config(config, backend, device_id,
 
 
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
-                                  device_id, extra_params):
+                                  device_id, optional_params):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -78,10 +75,10 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
         output_collection)
 
     session_config = tf.ConfigProto()
-    # Pass backend and extra backend params to grappler through rewriter config by updating the config
+    # Pass backend and extra optional backend params to grappler through rewriter config by updating the config
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
-        session_config, ng_backend, device_id, extra_params)
+        session_config, ng_backend, device_id, optional_params)
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -159,12 +156,10 @@ def prepare_argparser(formats):
         "--ng_backend", default='CPU', help="Ngraph backend. Eg, NNPI")
     parser.add_argument("--device_id", default='', help="Device id. Eg, 0")
     parser.add_argument(
-        "--extra_params",
-        default='{}',
+        "--optional_params",
+        default='',
         help=
-        "Other params that the backend needs in the form of a python dictionary. "
-        +
-        "Please make sure to escape quotes and curly braces. Eg: --extra_params \{\"max_cores\":\"4\",\"max_batch\":\"5\"\}."
+        "Other params that the backend needs in the form of a python dictionary, passed as a json file."
     )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -228,7 +223,7 @@ allowed_formats = {
 
 
 def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
-            device_id, extra_params):
+            device_id, optional_params):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -250,7 +245,7 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
     output_gdef = run_ngraph_grappler_optimizer(
-        input_gdef, output_nodes, ng_backend, device_id, extra_params)
+        input_gdef, output_nodes, ng_backend, device_id, optional_params)
     save_model(output_gdef, out_format, out_loc)
 
 
@@ -264,9 +259,9 @@ def main():
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
     output_nodes = args.output_nodes.split(',')
-    extra_params = parse_extra_params_string(args.extra_params)
+    optional_params = parse_optional_params_string(args.optional_params)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
-            args.ng_backend, args.device_id, extra_params)
+            args.ng_backend, args.device_id, optional_params)
     print('Converted the model. Exiting now')
 
 
