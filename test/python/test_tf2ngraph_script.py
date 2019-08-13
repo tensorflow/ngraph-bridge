@@ -28,7 +28,7 @@ import tensorflow as tf
 import ngraph_bridge
 
 from tools.build_utils import command_executor
-from tools.tf2ngraph import convert, get_gdef
+from tools.tf2ngraph import convert, get_gdef, parse_optional_params_string
 
 from common import NgraphTest
 
@@ -73,20 +73,21 @@ class Testtf2ngraph(NgraphTest):
             pass
         conversion_successful = False
         try:
-            extra_params = {
-                'CPU': '{\\"device_config\\":\\"0\\"}',
-                'INTERPRETER': '{\\"test_echo\\":\\"1\\",\\"hello\\":\\"42\\"}'
+            optional_params_json = {
+                'CPU': 'sample_optional_params.json',
+                'INTERPRETER': 'sample_optional_params.json'
             }[ng_device]
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
-                command_executor('python ../../tools/tf2ngraph.py --input_' +
-                                 inp_format + ' ' + inp_loc +
-                                 ' --output_nodes out_node --output_' +
-                                 out_format + ' ' + out_loc + ' --ng_backend ' +
-                                 ng_device + ' --extra_params ' + extra_params)
+                command_executor(
+                    'python ../../tools/tf2ngraph.py --input_' + inp_format +
+                    ' ' + inp_loc + ' --output_nodes out_node --output_' +
+                    out_format + ' ' + out_loc + ' --ng_backend ' + ng_device +
+                    ' --optional_params ' + optional_params_json)
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
-                        ng_device, extra_params)
+                        ng_device,
+                        parse_optional_params_string(optional_params_json))
             conversion_successful = True
         finally:
             if not conversion_successful:
@@ -105,7 +106,8 @@ class Testtf2ngraph(NgraphTest):
             assert len([
                 0 for i in g.get_operations() if i.type == 'NGraphEncapsulate'
             ]) == 1
-            # TODO: check that the encapsulate op has correct backend and extra params attached to it
+            # TODO: check that the encapsulate op has correct backend
+            # and extra optional params attached to it
             x = self.get_tensor(g, "x:0", False)
             y = self.get_tensor(g, "y:0", False)
             out = self.get_tensor(g, "out_node:0", False)

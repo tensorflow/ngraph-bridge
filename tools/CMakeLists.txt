@@ -34,6 +34,10 @@ install(
    FILES ${CMAKE_CURRENT_LIST_DIR}/log_parser.py
    DESTINATION ${CMAKE_INSTALL_PREFIX}/tools
 )
+install(
+   FILES ${CMAKE_CURRENT_LIST_DIR}/sample_optional_params.json
+   DESTINATION ${CMAKE_INSTALL_PREFIX}/tools
+)
 
 # copies to build_cmake/tools
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/tf2ngraph.py
@@ -41,5 +45,7 @@ file(COPY ${CMAKE_CURRENT_LIST_DIR}/tf2ngraph.py
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/build_utils.py
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/log_parser.py
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/sample_optional_params.json
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 

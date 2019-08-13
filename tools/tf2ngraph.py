@@ -32,7 +32,8 @@ def parse_optional_params_string(raw_optional_params_json):
         dct = json.load(f)
         for k in dct:
             assert type(k) == type("abc"), "Expected json keys to be strings"
-            assert type(dct[k]) == type("abc"), "Expected json values to be strings"
+            assert type(
+                dct[k]) == type("abc"), "Expected json values to be strings"
     return dct
 
 
