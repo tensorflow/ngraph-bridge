@@ -42,7 +42,7 @@ bool NGraphFreshnessTracker::IsFresh(
   if (it == freshness_map_.end()) {
     return false;
   } else {
-    return true; 
+    return (it->second.count(user.get() > 0);
   }
 }
 
