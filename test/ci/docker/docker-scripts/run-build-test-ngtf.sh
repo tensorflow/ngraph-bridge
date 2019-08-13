@@ -80,6 +80,8 @@ echo ''
 echo "  HOME=${HOME}"
 echo ''
 echo "  NG_TF_BUILD_OPTIONS=${NG_TF_BUILD_OPTIONS}"
+echo "  NG_TF_TEST_OPTIONS=${NG_TF_TEST_OPTIONS}"
+echo "  NG_TF_TEST_PLAIDML=${NG_TF_TEST_PLAIDML}"
 
 # Do some up-front checks, to make sure necessary directories are in-place and
 # build directories are not-in-place
@@ -168,6 +170,8 @@ echo  ' '
 cd "${bridge_dir}"
 echo "Running: ./build_ngtf.py ${NG_TF_BUILD_OPTIONS}"
 ./build_ngtf.py ${NG_TF_BUILD_OPTIONS}
+exit_code=$?
+echo "Exit status for build_ngtf.py is ${exit_code}"
 
 xtime="$(date)"
 echo  ' '
@@ -177,6 +181,8 @@ echo  ' '
 cd "${bridge_dir}"
 echo "Running: ./test_ngtf.py ${NG_TF_TEST_OPTIONS}"
 ./test_ngtf.py ${NG_TF_TEST_OPTIONS}
+exit_code=$?
+echo "Exit status for test_ngtf.py is ${exit_code}"
 
 if [ ! -z "${NG_TF_TEST_PLAIDML}" ] ; then
     xtime="$(date)"
@@ -191,6 +197,8 @@ if [ ! -z "${NG_TF_TEST_PLAIDML}" ] ; then
     cd "${bridge_dir}"
     echo "Running: ./test_ngtf.py --plaidml_unit_tests_enable"
     ./test_ngtf.py --plaidml_unit_tests_enable
+    exit_code=$?
+    echo "Exit status for test_ngtf.py --plaidml_unit_tests_enable is ${exit_code}"
 fi
 
 xtime="$(date)"
