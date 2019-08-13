@@ -51,7 +51,7 @@ fi
 if [ ! -z "${PLAIDML_EXPERIMENTAL}" ] ;  then
     echo "PLAIDML_EXPERIMENTAL=${PLAIDML_EXPERIMENTAL}"
 fi
-if [ ! -z "${PLAIDML_DEVICES_IDS}" ; then
+if [ ! -z "${PLAIDML_DEVICES_IDS}" ] ; then
     echo "PLAIDML_DEVICE_IDS=${PLAIDML_DEVICE_IDS}"
 fi
 
