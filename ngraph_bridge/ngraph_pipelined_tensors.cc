@@ -109,7 +109,7 @@ void PipelinedTensorsStore::return_tensors(size_t id) {
 
 PipelinedTensorVector PipelinedTensorsStore::get_group(bool is_input, size_t i) {
   PipelinedTensorVector group;
-  for (size_t idx = 0; idx < (input ? m_num_inputs : m_num_outputs); idx++) {
+  for (size_t idx = 0; idx < (is_input ? m_num_inputs : m_num_outputs); idx++) {
     group.push_back((input ? m_in_tensors : m_out_tensors)[idx][i]);
   }
   return group;
