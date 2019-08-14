@@ -202,14 +202,15 @@ class NGraphEncapsulateOp : public OpKernel {
     auto arg0 =
         make_shared<ng::op::Parameter>(ng::element::f32, ng::Shape{7, 3});
     auto ng_func = make_shared<ng::Function>(arg0, ng::ParameterVector{arg0});
-    auto ng_exec =
-        BackendManager::GetBackend(m_op_backend_name)->compile(ng_func);
+    auto backend = BackendManager::GetBackend(m_op_backend_name);
+    auto ng_exec = backend->compile(ng_func);
     try {
       ng_exec->create_input_tensor(0, 2);
       m_executable_can_create_tensor = true;
     } catch (...) {
       m_executable_can_create_tensor = false;
     }
+    backend->remove_compiled_function(ng_exec);
     NGRAPH_VLOG(5) << "Executable can "
                    << (m_executable_can_create_tensor ? "" : "not")
                    << " create tensors";
@@ -471,7 +472,6 @@ class NGraphEncapsulateOp : public OpKernel {
 
       ngraph::Event event_compile("Compile nGraph", name(), "");
       try {
-        cout << "COMPILING ng_function\n";
         ng_exec = op_backend->compile(ng_function);
 
       } catch (const std::exception& exp) {
