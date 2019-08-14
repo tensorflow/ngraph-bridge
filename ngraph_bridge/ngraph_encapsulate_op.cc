@@ -210,6 +210,8 @@ class NGraphEncapsulateOp : public OpKernel {
     } catch (...) {
       m_executable_can_create_tensor = false;
     }
+    m_executable_can_create_tensor =
+        m_executable_can_create_tensor && (backend_name != "NNP");
     backend->remove_compiled_function(ng_exec);
     NGRAPH_VLOG(5) << "Executable can "
                    << (m_executable_can_create_tensor ? "" : "not")
