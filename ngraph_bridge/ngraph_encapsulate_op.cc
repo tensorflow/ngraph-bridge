@@ -667,11 +667,7 @@ class NGraphEncapsulateOp : public OpKernel {
       std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
           input_caches[i].second;
       void* current_src_ptr = (void*)DMAHelper::base(&ctx->input(i));
-      // if m_executable_can_create_tensor, then get current tensor in a
-      // different way
-      // else use GetCurrentNgTensor.
-      // maybe try to shift the current tensor getting code inside
-      // GetCurrentNgTensor
+
       std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
       current_ng_tensor = GetCurrentNgTensor(
           current_src_ptr, last_src_ptr, last_ng_tensor, false, ng_exec,
