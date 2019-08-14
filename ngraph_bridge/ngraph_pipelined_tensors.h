@@ -131,7 +131,8 @@ class PipelinedTensorsStore {
   size_t m_num_outputs;
   shared_ptr<IndexLibrary> idx_lib;
 
-  PipelinedTensorVector get_group(bool input, size_t i);
+  // Get the i'th depth tensors for inputs if is_input is true, else for outputs
+  PipelinedTensorVector get_group(bool is_input, size_t i);
 };
 }
 }
