@@ -52,6 +52,9 @@ namespace ngraph_bridge {
 typedef vector<shared_ptr<ng::runtime::Tensor>> PipelinedTensorVector;
 typedef vector<PipelinedTensorVector> PipelinedTensorMatrix;
 
+// IndexLibrary is a class that accepts an unsigned int "depth". This means that
+// this class now owns integers from 0, 1, 2, ... depth-1
+
 // See sample usage in test/test_data_structures.cpp
 class IndexLibrary {
  public:

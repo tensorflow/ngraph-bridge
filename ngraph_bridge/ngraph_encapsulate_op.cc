@@ -594,6 +594,9 @@ class NGraphEncapsulateOp : public OpKernel {
           m_executable_pipelined_tensors_map.at(ng_exec);
 
       // TODO: do something about this spin lock
+      // get_tensors returns an index integer, that can be -1, 0, ... depth-1
+      // If it returns -1, then it indicates there are no free groups of tensors
+      // or the pipeline is full. In that case, we need to wait, hence the while
       while (true) {
         std::tie(pipeline_idx, inp_group_from_pipeline,
                  out_group_from_pipeline) = pts.get_tensors();
@@ -1024,8 +1027,15 @@ class NGraphEncapsulateOp : public OpKernel {
         copy_output_tensors_to_host.ElapsedInMS();
 
     if (m_executable_can_create_tensor) {
-      m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(
-          pipeline_idx);
+      try {
+        m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(
+            pipeline_idx);
+      } catch (const std::exception& exp) {
+        OP_REQUIRES(ctx, false,
+                    errors::Internal(
+                        "Caught exception while returning pipelined tensors: ",
+                        exp.what(), "\n"));
+      }
     }
 
     NGRAPH_VLOG(4)

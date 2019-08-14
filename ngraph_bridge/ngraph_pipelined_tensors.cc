@@ -33,19 +33,18 @@ void IndexLibrary::return_index(size_t id) {
   if (m_depth == 0) {
     throw std::runtime_error(
         "Depth=0, so no one should be calling return_index");
-  } else {
-    if (id > m_depth - 1) {
-      throw std::runtime_error("Depth = " + to_string(m_depth) +
-                               " but passed an index to return ( = " +
-                               to_string(id) + "), which is too large");
-    } else {
-      if (is_free(id)) {
-        throw std::runtime_error(
-            "Attempted to return index " + to_string(id) +
-            " but it is already present in the free indices set");
-      }
-    }
   }
+  if (id > m_depth - 1) {
+    throw std::runtime_error("Depth = " + to_string(m_depth) +
+                             " but passed an index to return ( = " +
+                             to_string(id) + "), which is too large");
+  }
+  if (is_free(id)) {
+    throw std::runtime_error(
+        "Attempted to return index " + to_string(id) +
+        " but it is already present in the free indices set");
+  }
+
   insert_to_free_set(id);
 }
 
@@ -85,13 +84,25 @@ PipelinedTensorsStore::PipelinedTensorsStore(PipelinedTensorMatrix in,
       m_out_tensors(out),
       m_num_inputs(in.size()),
       m_num_outputs(out.size()) {
-  if (in.size() > 0) {
-    m_depth = in[0].size();
-  } else if (out.size() > 0) {
-    m_depth = out[0].size();
+  // The executable could have no inputs or no outputs.
+  // Hence the if-else below to determine m_depth
+  bool has_inputs = in.size() > 0;
+  bool has_outputs = out.size() > 0;
+  if (has_inputs) {
+    if (has_outputs) {
+      auto m_depth_in = in[0].size();
+      auto m_depth_out = out[0].size();
+      // We assume that input and output depths are same
+      m_depth = std::min(m_depth_in, m_depth_out);
+    } else {
+      m_depth = in[0].size();
+    }
   } else {
-    // The executable has no inputs and outputs
-    m_depth = 0;
+    if (has_outputs) {
+      m_depth = out[0].size();
+    } else {
+      m_depth = 0;  // The executable has no inputs and outputs
+    }
   }
   idx_lib = make_shared<IndexLibrary>(m_depth);
 }
