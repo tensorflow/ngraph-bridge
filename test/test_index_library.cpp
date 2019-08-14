@@ -78,7 +78,7 @@ TEST(IndexLibrary, SingleThreadTest2) {
 // 2 threads run randomly and attempt to get and return indices from the same
 // IndexLibrary 10 times.
 // The test asserts if one of the threads managed to get an index i, then the
-// other thread must not have that index i
+// current and other thread must not have that index i
 TEST(IndexLibrary, MultiThreadTest) {
   IndexLibrary idx_lib{5};
 
