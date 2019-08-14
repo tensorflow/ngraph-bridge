@@ -56,6 +56,7 @@ int IndexLibrary::get_index() {
     if (m_free_depth_indexes.size() == 0) {
       return -1;
     } else {
+      // Find and return the smallest free integer
       int min_idx = m_depth;  // nothing can be >= m_depth
       for (auto i : m_free_depth_indexes) {
         if (i < min_idx) {
