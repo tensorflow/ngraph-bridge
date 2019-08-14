@@ -127,7 +127,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=${NGRAPH_TF_CXX11_ABI}")
 endif()
 
-# TODO: Should test if shared libraries need to be linked for APPLE
+# TODO: Should make static library changes for APPLE
 
 if(APPLE)
     set(LIBNGRAPH_SO "libngraph.dylib")
@@ -265,7 +265,6 @@ if (NOT USE_PRE_BUILT_NGRAPH)
 endif()
 set(NGRAPH_INSTALL_DIR ${NGRAPH_ARTIFACTS_DIR})
 
-
 if(OS_VERSION STREQUAL "\"centos\"")
     set(NGRAPH_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib64/${LIBNGRAPH_A})
     set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/lib64/${LIBCPU_BACKEND_A})
@@ -287,6 +286,12 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 else()
     add_library(ngraph_lib SHARED IMPORTED)
 endif()
+
+set_target_properties(
+        ngraph_lib
+        PROPERTIES IMPORTED_LOCATION
+        ${NGRAPH_IMPORTED_LOCATION_STATIC}
+)
 
 set_target_properties(
     ngraph_lib

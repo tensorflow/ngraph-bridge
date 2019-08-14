@@ -115,7 +115,6 @@ target_link_libraries(
         absl_strings
         lib_tbb
         lib_mkldnn
-        lib_mklml_intel
         lib_iomp5
     )
 
