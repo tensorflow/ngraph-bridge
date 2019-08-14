@@ -59,7 +59,7 @@
 // PipelinedTensorsStore relies on IndexLibrary to be threadsafe.
 // IndexLibrary manages a set of integers: 0,1,...depth-1
 // It supports 2 functions get_index and return_index
-// get_index returns an int from the set of free indices
+// get_index returns the smallest int from the set of free indices
 // (it returns -1 if none are available)
 // return_index accepts back a number that was checkedout earlier
 // IndexLibrary can be used safely in a multithreaded scenario since
@@ -83,7 +83,8 @@ class IndexLibrary {
  public:
   IndexLibrary(size_t depth);
 
-  // If available return a free integer (0<=i<depth-1), and if not, return -1
+  // If available return the smallest free integer (0<=i<depth-1)
+  // and if nothing is free, return -1
   // An integer once checked out will never be returned by get_index again,
   // till it is returned using return_index
   int get_index();

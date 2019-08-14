@@ -56,10 +56,20 @@ int IndexLibrary::get_index() {
     if (m_free_depth_indexes.size() == 0) {
       return -1;
     } else {
-      auto itr = m_free_depth_indexes.begin();
-      int retval = *itr;
-      m_free_depth_indexes.erase(itr);
-      return retval;
+      int min_idx = m_depth;  // nothing can be >= m_depth
+      for (auto i : m_free_depth_indexes) {
+        if (i < min_idx) {
+          min_idx = i;
+        }
+      }
+      if (min_idx >= m_depth || min_idx < 0) {
+        throw std::runtime_error(
+            "get_index can only return values between 0 to depth-1 from here, "
+            "but attempted to return " +
+            to_string(min_idx));
+      }
+      m_free_depth_indexes.erase(min_idx);
+      return min_idx;
     }
   }
 }

@@ -598,8 +598,15 @@ class NGraphEncapsulateOp : public OpKernel {
       // If it returns -1, then it indicates there are no free groups of tensors
       // or the pipeline is full. In that case, we need to wait, hence the while
       while (true) {
-        std::tie(pipeline_idx, inp_group_from_pipeline,
-                 out_group_from_pipeline) = pts.get_tensors();
+        try {
+          std::tie(pipeline_idx, inp_group_from_pipeline,
+                   out_group_from_pipeline) = pts.get_tensors();
+        } catch (const std::exception& exp) {
+          OP_REQUIRES(ctx, false,
+                      errors::Internal(
+                          "Caught exception while getting pipelined tensors: ",
+                          exp.what(), "\n"));
+        }
         if (pipeline_idx >= 0) {
           break;
         }

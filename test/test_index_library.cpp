@@ -33,26 +33,26 @@ namespace testing {
 
 TEST(IndexLibrary, SingleThreadTest1) {
   IndexLibrary idx_lib{3};
-  set<int> expected{0, 1, 2};
+  // idx_lib contains {0, 1, 2};
 
   int i0 = idx_lib.get_index();
-  ASSERT_TRUE(expected.find(i0) != expected.end());
-  expected.erase(i0);  // 2 elements left, i0 checked out
+  ASSERT_EQ(i0, 0);
+  // idx_lib contains {1, 2}; i0 = 0 checked out
 
   int i1 = idx_lib.get_index();
-  ASSERT_TRUE(expected.find(i1) != expected.end());
-  expected.erase(i1);  // 1 elements left, i0, i1 checked out
+  ASSERT_EQ(i1, 1);
+  // idx_lib contains {2}; i0 = 0, i1 = 1 checked out
 
   idx_lib.return_index(i0);
-  expected.insert(i0);  // 2 elements left, i1 checked out
+  // idx_lib contains {0, 2}; i1 = 1 checked out
 
   int i2 = idx_lib.get_index();
-  ASSERT_TRUE(expected.find(i2) != expected.end());
-  expected.erase(i2);  // 1 elements left, i1, i2 checked out
+  ASSERT_EQ(i2, 0);
+  // idx_lib contains {2}; i1 = 1, i2 = 0 checked out
 
   int i3 = idx_lib.get_index();
-  ASSERT_TRUE(expected.find(i3) != expected.end());
-  expected.erase(i3);  // 0 elements left, i1, i2, i3 checked out
+  ASSERT_EQ(i3, 2);
+  // idx_lib contains {}; i1 = 1, i2 = 0, i3 = 2 checked out
 
   int i4 = idx_lib.get_index();
   ASSERT_EQ(i4, -1)
@@ -62,7 +62,7 @@ TEST(IndexLibrary, SingleThreadTest1) {
   ASSERT_THROW(idx_lib.return_index(50), std::runtime_error);
 
   idx_lib.return_index(i1);
-  expected.insert(i1);  // 1 elements left, i2, i3 checked out
+  // idx_lib contains {1}; i2 = 0, i3 = 2 checked out
 
   // Try to return an index that is already checkedin/returned
   ASSERT_THROW(idx_lib.return_index(i1), std::runtime_error);
