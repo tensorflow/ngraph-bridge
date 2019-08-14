@@ -14,6 +14,9 @@
  * limitations under the License.
  *******************************************************************************/
 
+#include "ngraph/event_tracing.hpp"
+#include "ngraph/runtime/backend.hpp"
+
 // Consider an ng executable, which has a inputs and b outputs. Let d_input[i]
 // be the depth of the pipeline for input i. Similarly d_output[j] is the depth
 // of the pipeline for output j.
@@ -39,8 +42,28 @@
 // object. If we decide we can relax this constraint, then we can split up this
 // class into 2, one handling inputs, one for outputs.
 
-#include "ngraph/event_tracing.hpp"
-#include "ngraph/runtime/backend.hpp"
+// To implement the above design, we use the class PipelinedTensorsStore.
+// It acts as a store for 2 PipelinedTensorMatrix (input and output) and
+// supports 2 public functions get_tensors and return_tensors
+// get_tensors: get_tensors is used to get an index (representing the pipeline
+// depth)
+// and 2 PipelinedTensorVector (for inputs and outputs).
+// Note that get_tensors can return -1 as the index to indicate that
+// no tensors are available at the moment
+// return_tensors: Once we are done using it, we call return_tensors
+// with the checked out index from get_tensors to indicate to
+// PipelinedTensorsStore
+// that we are done using the tensors of that pipeline depth,
+// and it can give it to other threads that request tensors.
+
+// PipelinedTensorsStore relies on IndexLibrary to be threadsafe.
+// IndexLibrary manages a set of integers: 0,1,...depth-1
+// It supports 2 functions get_index and return_index
+// get_index returns an int from the set of free indices
+// (it returns -1 if none are available)
+// return_index accepts back a number that was checkedout earlier
+// IndexLibrary can be used safely in a multithreaded scenario since
+// the underlying store of free indices is locked by a mutex
 
 using namespace std;
 namespace ng = ngraph;
@@ -60,8 +83,13 @@ class IndexLibrary {
  public:
   IndexLibrary(size_t depth);
 
-  void return_index(size_t id);
+  // If available return a free integer (0<=i<depth-1), and if not, return -1
+  // An integer once checked out will never be returned by get_index again,
+  // till it is returned using return_index
   int get_index();
+  // the user returns a checked out (using get_index) integer,
+  // so its available again for reuse when get_index is called again
+  void return_index(size_t id);
 
   // TODO: if needed implement get_depth() and get_num_free_idxs()
   // Implementing get_depth() might make some sense because if one receives an
@@ -73,9 +101,11 @@ class IndexLibrary {
  private:
   set<int> m_free_depth_indexes;
   size_t m_depth;
-  std::mutex m_mtx;
+  std::mutex m_mtx;  // protects m_free_depth_indexes
 
+  // insert id in m_free_depth_indexes
   void insert_to_free_set(size_t id);
+  // check if id already exists in m_free_depth_indexes
   bool is_free(size_t id);
 };
 
@@ -88,7 +118,9 @@ class PipelinedTensorsStore {
   // pipeline is filled right now)
   tuple<int, PipelinedTensorVector, PipelinedTensorVector> get_tensors();
 
-  // Return an integer that was checked out by get_tensors
+  // Return an integer that was checked out by get_tensors.
+  // This indicates that the tensors corresponding to depth=id in the pipeline
+  // are ready for reuse and can be returned when get_tensors is called again
   void return_tensors(size_t id);
 
  private:
