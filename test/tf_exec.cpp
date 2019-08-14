@@ -101,7 +101,6 @@ TEST(tf_exec, SingleGraphOn2Threads) {
   ASSERT_OK(CreateSession(graph_name, session));
 
   auto worker = [&session](size_t thread_id) {
-    // TODO change these names
     string inp_tensor_name_0{"x"};
     string inp_tensor_name_1{"y"};
     string out_tensor_name{"add"};
