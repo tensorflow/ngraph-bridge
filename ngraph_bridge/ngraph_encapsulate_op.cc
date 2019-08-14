@@ -673,15 +673,11 @@ class NGraphEncapsulateOp : public OpKernel {
       // maybe try to shift the current tensor getting code inside
       // GetCurrentNgTensor
       std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
-      if (m_executable_can_create_tensor) {
-        current_ng_tensor = inp_group_from_pipeline[i];
-        // TODO: check.
-        current_ng_tensor->set_stale(true);
-      } else {
-        current_ng_tensor = GetCurrentNgTensor(
-            current_src_ptr, last_src_ptr, last_ng_tensor, false, ng_exec,
-            op_backend, ng_element_type, ng_shape);
-      }
+      current_ng_tensor = GetCurrentNgTensor(
+          current_src_ptr, last_src_ptr, last_ng_tensor, false, ng_exec,
+          op_backend, ng_element_type, ng_shape, m_executable_can_create_tensor,
+          m_executable_can_create_tensor ? inp_group_from_pipeline[i]
+                                         : nullptr);
       bool is_cpu = m_op_backend_name == "CPU";
 
       if (!is_cpu && current_ng_tensor->get_stale()) {
@@ -795,15 +791,11 @@ class NGraphEncapsulateOp : public OpKernel {
         continue;
       }
 #endif
-      if (m_executable_can_create_tensor) {
-        current_ng_tensor = out_group_from_pipeline[i];
-      } else {
-        current_ng_tensor = GetCurrentNgTensor(
-            current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
-            op_backend, ng_element_type, ng_shape);
-      }
-
-      current_ng_tensor->set_stale(true);
+      current_ng_tensor = GetCurrentNgTensor(
+          current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
+          op_backend, ng_element_type, ng_shape, m_executable_can_create_tensor,
+          m_executable_can_create_tensor ? out_group_from_pipeline[i]
+                                         : nullptr);
       output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
 
       ng_outputs.push_back(current_ng_tensor);
@@ -1098,7 +1090,9 @@ class NGraphEncapsulateOp : public OpKernel {
       const bool& output_tensor,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       ng::runtime::Backend* op_backend,
-      const ng::element::Type& ng_element_type, const ng::Shape& ng_shape) {
+      const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
+      bool m_executable_can_create_tensor,
+      std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline) {
     // NOTE: we assume that TF's pointers WILL change if it actually changes
     // values. ie, it will not reuse the same space if its rewritten it
     bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;
@@ -1131,16 +1125,20 @@ class NGraphEncapsulateOp : public OpKernel {
     }
     // create a new ng tensor or use the last one
     std::shared_ptr<ng::runtime::Tensor> current_ng_tensor;
-    if (need_new_tensor_creation) {
-      if (is_cpu) {
-        current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
-                                                      current_tf_ptr);
-      } else {
-        current_ng_tensor =
-            op_backend->create_tensor(ng_element_type, ng_shape);
-      }
+    if (m_executable_can_create_tensor) {
+      current_ng_tensor = tensor_from_pipeline;
     } else {
-      current_ng_tensor = last_ng_tensor;
+      if (need_new_tensor_creation) {
+        if (is_cpu) {
+          current_ng_tensor = op_backend->create_tensor(
+              ng_element_type, ng_shape, current_tf_ptr);
+        } else {
+          current_ng_tensor =
+              op_backend->create_tensor(ng_element_type, ng_shape);
+        }
+      } else {
+        current_ng_tensor = last_ng_tensor;
+      }
     }
     current_ng_tensor->set_stale(is_stale);
     return current_ng_tensor;
