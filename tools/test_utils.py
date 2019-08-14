@@ -124,7 +124,9 @@ def run_ngtf_pytests(venv_dir, build_dir):
     command_executor(["pip", "install", "-U", "pytest"])
     command_executor(["pip", "install", "-U", "psutil"])
 
-    cmd = 'python -m pytest ' + ('--junitxml=%s/xunit_pytest.xml' % build_dir)
+    cmd = 'python -m pytest ' + (
+        '--junitxml=%s/xunit_pytest.xml' %
+        build_dir) + " --ignore=" + build_dir + "/test/python/bfloat16"
     env = os.environ.copy()
     new_paths = venv_dir + '/bin/python3:' + os.path.abspath(
         build_dir) + ":" + os.path.abspath(mnist_dir)
@@ -159,7 +161,8 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
     command_executor(["pip", "install", "-U", "psutil"])
     command_executor([
         "python", "-m", "pytest",
-        ('--junitxml=%s/xunit_pytest.xml' % artifacts_dir)
+        ('--junitxml=%s/xunit_pytest.xml' % artifacts_dir),
+        "--ignore=" + artifacts_dir + "/test/python/bfloat16"
     ])
 
     os.chdir(root_pwd)
@@ -294,6 +297,7 @@ def run_resnet50(build_dir):
     junit_script = os.path.abspath('%s/test/ci/junit-wrap.sh' % root_pwd)
 
     # Check to see if we need to patch the repo for Grappler
+    # benchmark_cnn.patch will only work for the CPU backend
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
@@ -359,6 +363,7 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
     call(['git', 'checkout', '4c7b09ad87bbfc4b1f89650bcee40b3fc5e7dfed'])
 
     # Check to see if we need to patch the repo for Grappler
+    # benchmark_cnn.patch will only work for the CPU backend
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
@@ -446,6 +451,7 @@ def run_resnet50_forward_pass(build_dir):
     junit_script = os.path.abspath('%s/test/ci/junit-wrap.sh' % root_pwd)
 
     # Check to see if we need to patch the repo for Grappler
+    # benchmark_cnn.patch will only work for the CPU backend
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
@@ -494,6 +500,7 @@ def run_resnet50_forward_pass_from_artifacts(ngraph_tf_src_dir, artifact_dir,
     call(['git', 'checkout', '4c7b09ad87bbfc4b1f89650bcee40b3fc5e7dfed'])
 
     # Check to see if we need to patch the repo for Grappler
+    # benchmark_cnn.patch will only work for the CPU backend
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge

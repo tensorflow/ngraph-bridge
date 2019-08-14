@@ -14,11 +14,13 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "../test_utilities.h"
 #include "gtest/gtest.h"
-#include "ngraph_cluster_manager.h"
-#include "ngraph_encapsulate_clusters.h"
+
 #include "tensorflow/core/graph/node_builder.h"
+
+#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -78,7 +80,9 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, {}));
+  std::unordered_map<std::string, std::string> config_map;
+  config_map["ngraph_device_id"] = "";
+  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map));
 
   int num_encapsulates = 0;
   int num_tf_nodes = 0;

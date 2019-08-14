@@ -15,25 +15,24 @@
  *******************************************************************************/
 
 #include "gtest/gtest.h"
-#include "opexecuter.h"
-#include "test_utilities.h"
 
-#include "ngraph_utils.h"
-#include "tf_graph_writer.h"
-
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
-
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
+
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/opexecuter.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -1574,6 +1573,30 @@ TEST(NNOps, SoftmaxZeroDimTest2) {
                         sess_run_fetchoutputs);
 
   opexecuter.RunTest();
+}
+
+// Test Op :"Softplus"
+TEST(NNOps, Softplus) {
+  std::vector<std::vector<int64>> input_sizes = {
+      {3}, {3, 2}, {5, 6}, {3, 4, 5}, {2, 3, 4, 5}};
+
+  vector<int> static_input_indexes = {};
+
+  for (auto const& input_size : input_sizes) {
+    Scope root = Scope::NewRootScope();
+
+    Tensor input_data(DT_FLOAT, TensorShape(input_size));
+    AssignInputValuesRandom<float>(input_data, -2, 2);
+
+    auto R = ops::Softplus(root, input_data);
+    vector<DataType> output_datatypes = {DT_FLOAT};
+    std::vector<Output> sess_run_fetchoutputs = {R};
+
+    OpExecuter opexecuter(root, "Softplus", static_input_indexes,
+                          output_datatypes, sess_run_fetchoutputs);
+
+    opexecuter.RunTest();
+  }
 }
 
 // Computes softmax cross entropy cost and gradients to backpropagate.
