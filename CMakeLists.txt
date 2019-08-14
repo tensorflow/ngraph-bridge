@@ -127,7 +127,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=${NGRAPH_TF_CXX11_ABI}")
 endif()
 
-# TODO: Should make static library changes for APPLE
+# TODO[Sindhu]: Should make static library changes for APPLE 
+# Once Ngraph makes required changes for APPLE
 
 if(APPLE)
     set(LIBNGRAPH_SO "libngraph.dylib")
@@ -143,7 +144,6 @@ option(NGRAPH_ARTIFACTS_DIR "Where would nGraph be installed after build" FALSE)
 option(UNIT_TEST_ENABLE "Control the building of unit tests" FALSE)
 option(UNIT_TEST_TF_CC_DIR "Location where TensorFlow CC library is located" FALSE)
 option(NGRAPH_DISTRIBUTED_ENABLE "Add distributed mode to the CPU backend" FALSE)
-option(NGRAPH_BRIDGE_STATIC_LIB_ENABLE "Enable build nGraph bridge static library" TRUE)
 
 find_package(PlaidML CONFIG)
 option(NGRAPH_PLAIDML_ENABLE "Build PlaidML backend" ${PLAIDML_FOUND})
