@@ -47,8 +47,8 @@ Status LoadGraph(const string& graph_file_name,
                  std::unique_ptr<tensorflow::Session>* session,
                  const tensorflow::SessionOptions& options) {
   tensorflow::GraphDef graph_def;
-  Status load_graph_status =
-      ReadBinaryProto(tensorflow::Env::Default(), graph_file_name, &graph_def);
+  auto load_graph_status =
+      ReadTextProto(Env::Default(), graph_file_name, &graph_def);
   if (!load_graph_status.ok()) {
     return tensorflow::errors::NotFound("Failed to load compute graph at '",
                                         graph_file_name, "'");
@@ -77,7 +77,7 @@ Status CreateSession(const string& graph_filename,
                               ->add_custom_optimizers();
 
     custom_config->set_name("ngraph-optimizer");
-    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s("NNPI");
+    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s("CPU");
     (*custom_config->mutable_parameter_map())["device_id"].set_s("0");
 
     options.config.mutable_graph_options()
@@ -94,28 +94,26 @@ Status CreateSession(const string& graph_filename,
   return load_graph_status;
 }
 
-// TODO: This test is not meant for CPU CI
-TEST(tf_exec, DISABLED_Mnist2Thread) {
-  string graph_name =
-      "/localdisk/sarkars/workspace1/ngraph_bridge_tf/nnpi_build_aug1/"
-      "ds_app_auto_testsuite/nnpi_transformer/models/trained/"
-      "mnist_inference_quantized_trained_12212018.pb";
+TEST(tf_exec, SingleGraphOn2Threads) {
+  string graph_name = "test_axpy.pbtxt";
 
   unique_ptr<Session> session;
   ASSERT_OK(CreateSession(graph_name, session));
 
   auto worker = [&session](size_t thread_id) {
-    string inp_tensor_name{"Placeholder"};
-    string out_tensor_name{"softmax/Softmax"};
+    // TODO change these names
+    string inp_tensor_name_0{"x"};
+    string inp_tensor_name_1{"y"};
+    string out_tensor_name{"add"};
     std::vector<Tensor> out_tensor_vals;
 
     Tensor inp_tensor_val(tensorflow::DT_FLOAT,
-                          tensorflow::TensorShape({1, 28, 28, 1}));
+                          tensorflow::TensorShape({2, 3}));
     AssignInputValuesRandom<float>(inp_tensor_val, 0, 10);
 
     std::vector<std::pair<string, tensorflow::Tensor>> inputs = {
-        {inp_tensor_name, inp_tensor_val},
-    };
+        {inp_tensor_name_0, inp_tensor_val},
+        {inp_tensor_name_1, inp_tensor_val}};
 
     for (int i = 0; i < 10; i++) {
       NGRAPH_VLOG(5) << "thread_id: " << thread_id << " started: " << i;
