@@ -83,7 +83,7 @@ class Testtf2ngraph(NgraphTest):
                     'python ../../tools/tf2ngraph.py --input_' + inp_format +
                     ' ' + inp_loc + ' --output_nodes out_node --output_' +
                     out_format + ' ' + out_loc + ' --ng_backend ' + ng_device +
-                    ' --optional_params ' + optional_params_json)
+                    ' --optional_params ../../tools/' + optional_params_json)
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
                         ng_device,
