@@ -14,6 +14,10 @@
  * limitations under the License.
  *******************************************************************************/
 
+#ifndef NGRAPH_TF_BRIDGE_PIPELINED_TENSORS_H_
+#define NGRAPH_TF_BRIDGE_PIPELINED_TENSORS_H_
+#pragma once
+
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
 
