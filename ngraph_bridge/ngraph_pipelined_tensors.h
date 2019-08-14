@@ -141,3 +141,5 @@ class PipelinedTensorsStore {
 };
 }
 }
+
+#endif  // NGRAPH_TF_BRIDGE_PIPELINED_TENSORS_H_
