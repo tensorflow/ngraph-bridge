@@ -16,7 +16,6 @@
 
 #include "ngraph_bridge/ngraph_bridge_registry.h"
 
-#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
 namespace tensorflow {
 
 namespace ngraph_bridge {
@@ -29,4 +28,3 @@ void register_ngraph_bridge() {
 }
 }
 }
-#endif

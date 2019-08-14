@@ -15,7 +15,6 @@
  *******************************************************************************/
 #pragma once
 
-#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
 namespace tensorflow {
 
 namespace ngraph_bridge {
@@ -27,4 +26,3 @@ void register_ngraph_enable_variable_ops();
 #endif
 }
 }
-#endif
