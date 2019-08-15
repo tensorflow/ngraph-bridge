@@ -492,11 +492,17 @@ class NGraphEncapsulateOp : public OpKernel {
                 signature);
           }
           // TODO:
-          // dump temp file here
-          // load it in a stream
-          // pass stream to load
+          // dump temp file
+          string temp_exec_file =
+              "Encapsulate_" + to_string(my_instance_id) + "_temp_exec.bin";
+          ofstream serialized_exec_dump(temp_exec_file, ios::out | ios::binary);
+          serialized_exec_dump << (itr->second);
+          serialized_exec_dump.close();
+          // load it in a stream and pass stream to load
+          ifstream serialized_exec_read(temp_exec_file, ios::in | ios::binary);
+          ng_exec = op_backend->load(serialized_exec_read);
+          serialized_exec_read.close();
           // TODO: is there an easier way to do that?
-          ng_exec = op_backend->load(itr->second);
         } else {
           ng_exec = op_backend->compile(ng_function);
         }

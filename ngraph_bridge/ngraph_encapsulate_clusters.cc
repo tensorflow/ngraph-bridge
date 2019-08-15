@@ -794,7 +794,7 @@ Status EncapsulateClusters(
               BackendManager::ReleaseBackend(op_backend_name);
 
               string exec_file_name = ng_function->get_name() + ".exec";
-              ofstream dump_exec(exec_file_name);
+              ofstream dump_exec(exec_file_name, ios::out | ios::binary);
               ng_exec->save(dump_exec);
               dump_exec.close();
 
