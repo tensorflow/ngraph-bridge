@@ -25,6 +25,7 @@ from tensorflow.python.grappler import tf_optimizer
 import ngraph_bridge
 import os
 import sys
+import json
 from functools import partial
 
 
@@ -57,8 +58,11 @@ def parse_extra_params_string(raw_extra_params):
 
 
 def parse_shape_hints_string(raw_shape_hints_string):
-    # [\{\"a\":[2,3],\"b\":[2,3]\},\{\"a\":[5,5],\"b\":[5,-1]\},\{\"a\":[-1,3]\}]
-    return eval(raw_shape_hints_string)
+    with open(raw_shape_hints_string) as f:
+        dct = json.load(f)
+        # TODO add checks that the json contains data in the right format:
+        # TODO merge the 2 json inputs once #199 is merged
+    return dct['shape_hints']
 
 
 def update_config_to_include_custom_config(config, backend, device_id,
@@ -316,7 +320,7 @@ if __name__ == '__main__':
     # TODO remove these lines
 
     # 2x3 and 2x3 are the only valid hints. x=[10,-1] is invalid, y=[-1,-1] doesnt add much
-    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints [\{\"x\":[2,3],\},\{\"x\":[10,-1],\},\{\"y\":[-1,-1]\}]
+    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints sample_shape_hints.json
     # python run_tf2ngraph_model.py
 
     # TODO what happens if same shape is passed twice
