@@ -724,8 +724,26 @@ Status EncapsulateClusters(
                 input_shapes, static_input_map, &graph_for_current_encapsulate,
                 ng_function));
 
-            node->AddAttr("_ngraph_aot_" + signature,
+            // TODO. change attribute from "_ngraph_aot_" + signature to:
+            // 1: "_ngraph_aot_L1_" + signature
+            // 1: "_ngraph_aot_L2_" + signature
+            // To indicate that its a ngfunction or ng exec AOT
+            if (aot_level==2) {
+              // compile upto ngexec
+              ofstream file(ng_function->get_name() + ".exec");
+              // get backend.
+              //auto ng_exec = backend->compile(ng_function);
+              //ng_exec->save(file);
+
+              // load from file
+              // stick into graph attr
+
+            } else {
+              // compile upto ng function
+              node->AddAttr("_ngraph_aot_" + signature,
                           ngraph::serialize(ng_function, 4));
+
+            }
           }
         }
       }  // end of if (can_aot)

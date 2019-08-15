@@ -78,7 +78,18 @@ Status NgraphOptimizer::Init(
       }
     }
   }
-  aot_info = make_pair(stoi(params.at("AOT_level").s()), shape_hints);
+  auto itr = params.find("AOT_level");
+  int aot_level;
+  if (itr != params.end()){
+    aot_level = stoi(params.at("AOT_level").s());
+  } else {
+    aot_level = 0;
+  }
+  if (aot_level == 0 && shape_hints.size() > 0) {
+    return errors::Internal("Specified AOT level = 0, but passed shape hints. Please set AOT level to 1 or 2 to use shape hints, or if AOT is not desired then do not pass shape hints");
+  }
+  aot_info = make_pair(aot_level, shape_hints);
+
   return Status::OK();
 }
 
