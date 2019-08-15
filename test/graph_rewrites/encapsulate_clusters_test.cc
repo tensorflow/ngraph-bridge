@@ -204,7 +204,7 @@ TEST(EncapsulateClusters, AOT) {
       if (itr->type_string() == "NGraphEncapsulate") {
         string aot_info;
         // TODO: remove the hardcoded signature
-        bool found = GetNodeAttr(itr->attrs(), "_ngraph_aot_2,2,;2,2,;/",
+        bool found = GetNodeAttr(itr->attrs(), "_ngraph_aot_L1_2,2,;2,2,;/",
                                  &aot_info) == tensorflow::Status::OK();
         ASSERT_TRUE(found == did_aot[i]);
       }

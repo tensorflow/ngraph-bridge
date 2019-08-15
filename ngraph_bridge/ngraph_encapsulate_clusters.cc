@@ -730,17 +730,89 @@ Status EncapsulateClusters(
             // To indicate that its a ngfunction or ng exec AOT
             if (aot_level == 2) {
               // compile upto ngexec
-              ofstream file(ng_function->get_name() + ".exec");
+
               // get backend.
-              // auto ng_exec = backend->compile(ng_function);
-              // ng_exec->save(file);
+              // TODO: Note that this is code duplication of some stuff present
+              // in NGraphEncapsulateOp
+              // Once NGraphEncapsulateOp is refactored, this code should be
+              // removed and a common function should be used
 
-              // load from file
-              // stick into graph attr
+              std::string backend_name;
+              TF_RETURN_IF_ERROR(
+                  GetNodeAttr(node->attrs(), "ngraph_backend", &backend_name));
+              std::string device_id;
+              TF_RETURN_IF_ERROR(
+                  GetNodeAttr(node->attrs(), "ngraph_device_id", &device_id));
 
+              string op_backend_name;
+              try {
+                op_backend_name = BackendManager::GetBackendCreationString(
+                    backend_name, device_id);
+              } catch (const std::exception& exp) {
+                return errors::Internal(
+                    "Caught exception while creating backend string ",
+                    exp.what(), "\n");
+              }
+              BackendManager::CreateBackend(
+                  op_backend_name);  // Created a backend here. must free it
+              std::unordered_map<std::string, std::string>
+                  additional_attribute_map;
+              for (auto itr : node->attrs()) {
+                // Find the optional attributes to be sent to the backend.
+                // The optional attributes have '_ngraph_' appended to the start
+                // so we need to get rid of that and only send the remaining
+                // string
+                // since the backend will only look for that.
+                // '_ngraph_' is only appended for the bridge.
+                // For e.g. _ngraph_ice_cores --> ice_cores
+                if (itr.first.find("_ngraph_") != std::string::npos) {
+                  additional_attribute_map.insert(
+                      {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
+                }
+              }
+              BackendManager::SetConfig(op_backend_name,
+                                        additional_attribute_map);
+              ng::runtime::Backend* op_backend = nullptr;
+              try {
+                op_backend = BackendManager::GetBackend(op_backend_name);
+              } catch (const std::out_of_range& e) {
+                BackendManager::ReleaseBackend(op_backend_name);
+                throw;
+              }
+              BackendManager::LockBackend(op_backend_name);
+              std::shared_ptr<ngraph::runtime::Executable> ng_exec;
+              try {
+                ng_exec = op_backend->compile(ng_function);
+              } catch (...) {
+                BackendManager::UnlockBackend(op_backend_name);
+                NgraphSerialize("tf_function_error_aot.json", ng_function);
+                BackendManager::ReleaseBackend(op_backend_name);
+                return errors::Internal(
+                    "Failed to compile ng_function for AOT");
+              }
+              BackendManager::UnlockBackend(op_backend_name);
+              BackendManager::ReleaseBackend(op_backend_name);
+
+              string exec_file_name = ng_function->get_name() + ".exec";
+              ofstream dump_exec(exec_file_name);
+              ng_exec->save(dump_exec);
+              dump_exec.close();
+
+              // TODO: Is there some way of converting directly to string
+              // without ofstream/ifstream
+              ifstream read_exec(exec_file_name, ios::binary);
+              std::vector<char> contents_of_exec_file(
+                  (std::istreambuf_iterator<char>(read_exec)),
+                  std::istreambuf_iterator<char>());
+              read_exec.close();
+              remove(exec_file_name.data());  // delete exec_file_name
+
+              node->AddAttr("_ngraph_aot_L2_" + signature,
+                            string(contents_of_exec_file.begin(),
+                                   contents_of_exec_file.end()));
             } else {
               // compile upto ng function
-              node->AddAttr("_ngraph_aot_" + signature,
+              node->AddAttr("_ngraph_aot_L1_" + signature,
                             ngraph::serialize(ng_function, 4));
             }
           }
