@@ -178,10 +178,14 @@ class NGraphEncapsulateOp : public OpKernel {
         // right now _ngraph_aot_ is used by aot, _ngraph_ is used for optional
         // attributes
         if (itx.first.find("_ngraph_aot_") != std::string::npos) {
-          m_aot_functions[ng::split(itx.first, '_')[3]] = itx.second.s();
+          // The string is in the format: _ngraph_aot_Lx_signature  // x = {1,2}
+          m_aot_functions[ng::split(itx.first, '_')[4]] = itx.second.s();
           m_aot_level = (itx.first.find("_ngraph_aot_L2_") != std::string::npos)
                             ? AOTLevel::L2
                             : AOTLevel::L1;
+          cout << "\n==========\n"
+               << "USING AOT: " << (m_aot_level == AOTLevel::L1 ? " L1" : " L2")
+               << "\n==========\n";
         } else {
           NGRAPH_VLOG(4) << "Attribute: "
                          << itx.first.substr(strlen("_ngraph_"))
@@ -401,7 +405,8 @@ class NGraphEncapsulateOp : public OpKernel {
         if (itr_translated == m_aot_functions.end()) {
           // TODO: Soft failure? Continue to TranslateGraph?
           return errors::Internal(
-              "Requested AOT, but could not find string with the signature: ",
+              "Requested AOT L1, but could not find string with the "
+              "signature: ",
               signature);
         }
         ng_function = ng::deserialize(itr_translated->second);
@@ -488,7 +493,8 @@ class NGraphEncapsulateOp : public OpKernel {
             // One could go back and call TranslateGraph and then call compile
             // if one really wanted to salvage the situation
             return errors::Internal(
-                "Requested AOT, but could not find string with the signature: ",
+                "Requested AOT L2, but could not find string with the "
+                "signature: ",
                 signature);
           }
           // TODO:
