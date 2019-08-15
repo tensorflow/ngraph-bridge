@@ -175,14 +175,16 @@ class NGraphEncapsulateOp : public OpKernel {
       // For e.g. _ngraph_ice_cores --> ice_cores
       if (itx.first.find("_ngraph_") != std::string::npos) {
         // TODO: decide what the node attributes should be.
-        // right now _ngraph_aot_ is used by aot, _ngraph_ is used for optional attributes
+        // right now _ngraph_aot_ is used by aot, _ngraph_ is used for optional
+        // attributes
         if (itx.first.find("_ngraph_aot_") != std::string::npos) {
           m_aot_functions[ng::split(itx.first, '_')[3]] = itx.second.s();
         } else {
-        NGRAPH_VLOG(4) << "Attribute: " << itx.first.substr(strlen("_ngraph_"))
-                       << " Value: " << itx.second.s();
-        additional_attribute_map.insert(
-            {itx.first.substr(strlen("_ngraph_")), itx.second.s()});
+          NGRAPH_VLOG(4) << "Attribute: "
+                         << itx.first.substr(strlen("_ngraph_"))
+                         << " Value: " << itx.second.s();
+          additional_attribute_map.insert(
+              {itx.first.substr(strlen("_ngraph_")), itx.second.s()});
         }
       }
     }
@@ -392,16 +394,15 @@ class NGraphEncapsulateOp : public OpKernel {
 
       auto itr_translated = m_aot_functions.find(signature);
       cout << "Compute:: signature: " << signature << "\n";
-      if (itr_translated == m_aot_functions.end()){
-      TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
-                                                 &m_graph, ng_function));
-      ng_function->set_friendly_name(name());
+      if (itr_translated == m_aot_functions.end()) {
+        TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+            input_shapes, static_input_map, &m_graph, ng_function));
+        ng_function->set_friendly_name(name());
       } else {
         cout << "Compute:: found aot: \n";
         ng_function = ng::deserialize(itr_translated->second);
         cout << "Successfully deserialized\n";
       }
-      
 
       auto function_size = ng_function->get_graph_size() / 1024;  // kb unit
 

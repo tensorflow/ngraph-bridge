@@ -43,7 +43,7 @@
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
-#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_partial_shapes.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
 
@@ -530,7 +530,9 @@ Status EncapsulateClusters(
   if (aot_requested) {
     NGRAPH_VLOG(3) << "AOT requested";
     if (!ngraph_tf_is_grappler_enabled()) {
-      return errors::Internal("AOT requested for non grappler build. Please use grappler build if AOT is required");
+      return errors::Internal(
+          "AOT requested for non grappler build. Please use grappler build if "
+          "AOT is required");
     }
     string input_node_type = "Placeholder";
     // In case of grappler, we have Placeholder, which might contain shape info,
@@ -541,7 +543,8 @@ Status EncapsulateClusters(
     auto get_shape_for_node_from_shape_hint = [](Node* node,
                                                  ShapeHintMap single_hint) {
       auto find_itr = single_hint.find(node->name());
-      cout << "In get_shape_for_node_from_shape_hint: " << (find_itr == single_hint.end()) << "\n";
+      cout << "In get_shape_for_node_from_shape_hint: "
+           << (find_itr == single_hint.end()) << "\n";
       return find_itr == single_hint.end() ? PartialShape(vector<int>{}, false)
                                            : PartialShape(find_itr->second);
     };
@@ -568,7 +571,11 @@ Status EncapsulateClusters(
           if (shape_field == nullptr) {
             shape_field = node->attrs().Find("shape");
           }
-          // It seems that _output_shapes is not found and hence the shape is inferred only from the hints. however if "shape" is present, it is empty, and in that case the empty shape and the rank!=0 hint fuse to give an invalid shape according to our current logic. have to modify that
+          // It seems that _output_shapes is not found and hence the shape is
+          // inferred only from the hints. however if "shape" is present, it is
+          // empty, and in that case the empty shape and the rank!=0 hint fuse
+          // to give an invalid shape according to our current logic. have to
+          // modify that
           PartialShape partial_shape_from_node;
           if (shape_field != nullptr) {
             cout << "shape_field != nullptr,,,,,,,\n";
@@ -578,7 +585,7 @@ Status EncapsulateClusters(
           }
           cout << partial_shape_from_node.to_string() << "--+++++-\n";
 
-          for (auto it : single_hint){
+          for (auto it : single_hint) {
             cout << it.first << "====\n";
             cout << node->name() << "\n";
           }
@@ -629,7 +636,8 @@ Status EncapsulateClusters(
             // TODO: necessarily break? Maybe some things can be AOT, others
             // maybe not
             // TODO provide better error messages
-            NGRAPH_VLOG(3) << "Cannot AOT using this hint as it is invalid or could not be concretized";
+            NGRAPH_VLOG(3) << "Cannot AOT using this hint as it is invalid or "
+                              "could not be concretized";
             cout << combined_shape_info.is_valid() << "\n";
             break;
           }
@@ -641,7 +649,8 @@ Status EncapsulateClusters(
         if (inputs_node_shapes_for_compilation.find(itr) ==
             inputs_node_shapes_for_compilation.end()) {
           // TODO: print "this" hint
-          NGRAPH_VLOG(3) << "Cannot AOT using this hint for " << itr << " was not concretized";
+          NGRAPH_VLOG(3) << "Cannot AOT using this hint for " << itr
+                         << " was not concretized";
           can_aot = false;
           break;
         }
@@ -666,7 +675,7 @@ Status EncapsulateClusters(
             std::vector<TensorShape> input_shapes;
             std::stringstream signature_ss;
             for (auto in_node : node->in_nodes()) {
-              if (!in_node->IsSource()){
+              if (!in_node->IsSource()) {
                 auto itr_shape =
                     inputs_node_shapes_for_compilation.find(in_node->name());
                 if (itr_shape == inputs_node_shapes_for_compilation.end()) {
@@ -676,8 +685,8 @@ Status EncapsulateClusters(
                       "AOT requested. Found an encapsulate that has a "
                       "non-concrete input");
                 } else {
-                  std::vector<int64> converted_to_int64(itr_shape->second.begin(),
-                                                        itr_shape->second.end());
+                  std::vector<int64> converted_to_int64(
+                      itr_shape->second.begin(), itr_shape->second.end());
                   input_shapes.push_back(TensorShape(converted_to_int64));
                   for (auto itr1 : itr_shape->second) {
                     signature_ss << itr1 << ",";
@@ -689,7 +698,8 @@ Status EncapsulateClusters(
 
             signature_ss << "/";
             string signature = signature_ss.str();
-            NGRAPH_VLOG(3) << "Performing AOT for " << node->name() << " for signature = " << signature << "\n";
+            NGRAPH_VLOG(3) << "Performing AOT for " << node->name()
+                           << " for signature = " << signature << "\n";
 
             std::vector<const Tensor*> static_input_map;
             std::shared_ptr<ngraph::Function> ng_function;
@@ -713,7 +723,7 @@ Status EncapsulateClusters(
                           ngraph::serialize(ng_function, 4));
           }
         }
-      }// end of if (can_aot)
+      }  // end of if (can_aot)
     }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
   }      // end of if (aot_requested)
 
