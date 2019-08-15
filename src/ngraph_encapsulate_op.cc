@@ -904,10 +904,7 @@ class NGraphEncapsulateOp : public OpKernel {
     ngraph::Event::write_trace(event_copy_output);
     ngraph::Event::write_trace(event);
 
-    /* cout << "ID:" + to_string(m_graph_id) << endl;
-    cout << "Time taken:" + to_string(compute_time.ElapsedInMS())  + "\n"<< endl; */
-
-    UpdateComputeTime(m_graph_id);
+    //UpdateComputeTime(m_graph_id);
 
   }  // end compute
 

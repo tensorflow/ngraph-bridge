@@ -419,7 +419,7 @@ bool IsProcessedByNgraphPass(Graph* g) {
 
 Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx)
 {
-  const char* path = std::getenv("NGRAPH_TF_NGRAPH_PATH");
+  const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
 
   if (path == nullptr)
   {
@@ -454,23 +454,22 @@ Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx)
 
 Status UpdateComputeTime(int file_idx)
 {
-  const char* path = std::getenv("NGRAPH_TF_NGRAPH_PATH");
+  const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
 
   if (path == nullptr)
   {
     return Status::OK();
   }
 
-  std::string str_path(path);
-
-  if (str_path.back() != '/')
+  std::string dir_path(path);
+  if (dir_path.back() != '/')
   {
-    str_path += "/";
+    dir_path += "/";
   }
 
-  str_path += ("run" + to_string(file_idx) + "/");
+  dir_path += ("run" + to_string(file_idx) + "/");
 
-  DIR* dir = opendir(str_path.c_str());
+  DIR* dir = opendir(dir_path.c_str());
   struct dirent* dp;
   vector<std::string> files;
 
@@ -478,13 +477,12 @@ Status UpdateComputeTime(int file_idx)
   {
     files.push_back(std::string(dp->d_name));
   }
+  closedir(dir);
 
   std::sort(files.begin(), files.end()); // sort files names in order of recency (least recent --> most recent)
+  std::string file_path = dir_path + files.back(); // get most recent tensorflow event file to update
 
-  str_path += files.back(); // tensorflow event file to update
-
-  
-
+  // open tf event file at location file_path  
 
   return Status::OK();
 }
