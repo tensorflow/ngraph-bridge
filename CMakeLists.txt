@@ -127,8 +127,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=${NGRAPH_TF_CXX11_ABI}")
 endif()
 
-# TODO[Sindhu]: Should make static library changes for APPLE 
-# Once Ngraph makes required changes for APPLE
+# TODO[Sindhu]
+# Should make static library changes for APPLE 
+# after Ngraph makes required changes for Mac build
 
 if(APPLE)
     set(LIBNGRAPH_SO "libngraph.dylib")
@@ -322,13 +323,8 @@ set_target_properties(
 )
 
 add_library(lib_tbb INTERFACE)
-if(OS_VERSION STREQUAL "\"centos\"")
-    target_link_libraries(lib_tbb INTERFACE
-        ${NGRAPH_INSTALL_DIR}/lib64/libtbb.so)
-else()
-    target_link_libraries(lib_tbb INTERFACE
-        ${NGRAPH_INSTALL_DIR}/lib/libtbb.so)
-endif()
+target_link_libraries(lib_tbb INTERFACE
+    ${NGRAPH_INSTALL_DIR}/${LIB}/libtbb.so)
 
 add_library(lib_iomp5 SHARED IMPORTED)
 set_target_properties(

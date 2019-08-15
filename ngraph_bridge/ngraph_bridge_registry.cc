@@ -20,6 +20,9 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+// Dummy function for bridge specific ops
+// so when built static, the linker will include
+// all the object files which it would not do normally.
 void register_ngraph_bridge() {
   register_ngraph_ops();
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
