@@ -272,6 +272,7 @@ class NGraphEncapsulateOp : public OpKernel {
     m_ng_exec_output_cache_map.clear();
     m_ng_exec_map.clear();
     m_ng_function_map.clear();
+    m_executable_pipelined_tensors_map.clear();
 
     // Release the backend
     NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
