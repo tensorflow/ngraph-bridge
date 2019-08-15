@@ -179,6 +179,9 @@ class NGraphEncapsulateOp : public OpKernel {
         // attributes
         if (itx.first.find("_ngraph_aot_") != std::string::npos) {
           m_aot_functions[ng::split(itx.first, '_')[3]] = itx.second.s();
+          m_aot_level = (itx.first.find("_ngraph_aot_L2_") != std::string::npos)
+                            ? AOTLevel::L2
+                            : AOTLevel::L1;
         } else {
           NGRAPH_VLOG(4) << "Attribute: "
                          << itx.first.substr(strlen("_ngraph_"))
@@ -392,34 +395,45 @@ class NGraphEncapsulateOp : public OpKernel {
 
       NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
 
-      auto itr_translated = m_aot_functions.find(signature);
       cout << "Compute:: signature: " << signature << "\n";
-      if (itr_translated == m_aot_functions.end()) {
-        TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-            input_shapes, static_input_map, &m_graph, ng_function));
-        ng_function->set_friendly_name(name());
-      } else {
-        cout << "Compute:: found aot: \n";
+      if (m_aot_level == AOTLevel::L1) {
+        auto itr_translated = m_aot_functions.find(signature);
+        if (itr_translated == m_aot_functions.end()) {
+          // TODO: Soft failure? Continue to TranslateGraph?
+          return errors::Internal(
+              "Requested AOT, but could not find string with the signature: ",
+              signature);
+        }
         ng_function = ng::deserialize(itr_translated->second);
-        cout << "Successfully deserialized\n";
+      } else {
+        if (m_aot_level == AOTLevel::L0) {
+          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+              input_shapes, static_input_map, &m_graph, ng_function));
+          ng_function->set_friendly_name(name());
+        }
+        // In case of AOTLevel::L2, do not attampt to get ng_function
       }
 
-      auto function_size = ng_function->get_graph_size() / 1024;  // kb unit
+      int function_size = -1;
+      if (m_aot_level != AOTLevel::L2) {
+        function_size = ng_function->get_graph_size() / 1024;  // kb unit
 
-      // Serialize to nGraph if needed
-      if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-        std::string file_name =
-            "tf_function_" + ctx->op_kernel().name() + ".json";
-        NgraphSerialize("tf_function_" + ctx->op_kernel().name() + ".json",
-                        ng_function);
+        // Serialize to nGraph if needed
+        if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
+          std::string file_name =
+              "tf_function_" + ctx->op_kernel().name() + ".json";
+          NgraphSerialize("tf_function_" + ctx->op_kernel().name() + ".json",
+                          ng_function);
 #if defined NGRAPH_DISTRIBUTED
-        int rank_id;
-        rank_id = ng::get_distributed_interface()->get_rank();
-        NgraphSerialize("tf_function_" + ctx->op_kernel().name() + "_" +
-                            to_string(rank_id) + ".json",
-                        ng_function);
+          int rank_id;
+          rank_id = ng::get_distributed_interface()->get_rank();
+          NgraphSerialize("tf_function_" + ctx->op_kernel().name() + "_" +
+                              to_string(rank_id) + ".json",
+                          ng_function);
 #endif
+        }
       }
+
       // Evict the cache if the number of elements exceeds the limit
       const char* cache_depth_specified =
           std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
@@ -464,12 +478,28 @@ class NGraphEncapsulateOp : public OpKernel {
                        << output_tensors_bytes_free / (1024 * 1024) << " MB";
       }  // cache eviction if cache size greater than cache depth
 
-      BackendManager::LockBackend(m_op_backend_name);
-
       ngraph::Event event_compile("Compile nGraph", name(), "");
+      BackendManager::LockBackend(m_op_backend_name);
       try {
-        ng_exec = op_backend->compile(ng_function);
-
+        if (m_aot_level == AOTLevel::L2) {
+          auto itr = m_aot_functions.find(signature);
+          if (itr == m_aot_functions.end()) {
+            // Hard failure here, since ng_function is not available for L2
+            // One could go back and call TranslateGraph and then call compile
+            // if one really wanted to salvage the situation
+            return errors::Internal(
+                "Requested AOT, but could not find string with the signature: ",
+                signature);
+          }
+          // TODO:
+          // dump temp file here
+          // load it in a stream
+          // pass stream to load
+          // TODO: is there an easier way to do that?
+          ng_exec = op_backend->load(itr->second);
+        } else {
+          ng_exec = op_backend->compile(ng_function);
+        }
       } catch (const std::exception& exp) {
         BackendManager::UnlockBackend(m_op_backend_name);
         NgraphSerialize(
@@ -1080,6 +1110,11 @@ class NGraphEncapsulateOp : public OpKernel {
   int my_instance_id{0};
   int m_number_outputs = -1;
   int m_number_inputs = -1;
+
+  enum class AOTLevel { L0, L1, L2 };
+
+  AOTLevel m_aot_level = AOTLevel::L0;
+
   map<string, string> m_aot_functions;
 };
 
