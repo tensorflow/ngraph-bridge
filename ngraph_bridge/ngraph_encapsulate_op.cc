@@ -183,6 +183,7 @@ class NGraphEncapsulateOp : public OpKernel {
           m_aot_level = (itx.first.find("_ngraph_aot_L2_") != std::string::npos)
                             ? AOTLevel::L2
                             : AOTLevel::L1;
+          // TODO: what if we have a mix of L1 and L2? throw an error
           cout << "\n==========\n"
                << "USING AOT: " << (m_aot_level == AOTLevel::L1 ? " L1" : " L2")
                << "\n==========\n";
