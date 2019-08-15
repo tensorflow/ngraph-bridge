@@ -490,26 +490,14 @@ class NGraphEncapsulateOp : public OpKernel {
         if (m_aot_level == AOTLevel::L2) {
           auto itr = m_aot_functions.find(signature);
           if (itr == m_aot_functions.end()) {
-            // Hard failure here, since ng_function is not available for L2
-            // One could go back and call TranslateGraph and then call compile
-            // if one really wanted to salvage the situation
             return errors::Internal(
                 "Requested AOT L2, but could not find string with the "
                 "signature: ",
                 signature);
           }
-          // TODO:
-          // dump temp file
-          string temp_exec_file =
-              "Encapsulate_" + to_string(my_instance_id) + "_temp_exec.bin";
-          ofstream serialized_exec_dump(temp_exec_file, ios::out | ios::binary);
-          serialized_exec_dump << (itr->second);
-          serialized_exec_dump.close();
-          // load it in a stream and pass stream to load
-          ifstream serialized_exec_read(temp_exec_file, ios::in | ios::binary);
+          stringstream serialized_exec_read;
+          serialized_exec_read << (itr->second);
           ng_exec = op_backend->load(serialized_exec_read);
-          serialized_exec_read.close();
-          // TODO: is there an easier way to do that?
         } else {
           ng_exec = op_backend->compile(ng_function);
         }
