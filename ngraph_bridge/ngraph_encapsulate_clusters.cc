@@ -524,10 +524,15 @@ Status EncapsulateClusters(
   }
 
   // Pass 8:
-  bool aot_requested;
+  int aot_level;
   std::set<std::map<std::string, vector<int>>> node_shapes_hints_sets;
-  std::tie(aot_requested, node_shapes_hints_sets) = aot_info;
-  if (aot_requested) {
+  std::tie(aot_level, node_shapes_hints_sets) = aot_info;
+  if (aot_level < 0 || aot_level > 2) {
+    return errors::Internal(
+        "AOT level can only lie in the set {0, 1, 2}. Got level = ",
+        to_string(aot_level));
+  }
+  if (aot_level > 0) {
     NGRAPH_VLOG(3) << "AOT requested";
     if (!ngraph_tf_is_grappler_enabled()) {
       return errors::Internal(
@@ -725,7 +730,7 @@ Status EncapsulateClusters(
         }
       }  // end of if (can_aot)
     }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
-  }      // end of if (aot_requested)
+  }      // end of if (aot_level > 0)
 
   // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and

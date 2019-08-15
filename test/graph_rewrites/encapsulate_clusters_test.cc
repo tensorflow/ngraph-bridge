@@ -84,7 +84,7 @@ TEST(EncapsulateClusters, PopulateLibrary) {
 
   std::unordered_map<std::string, std::string> config_map;
   config_map["ngraph_device_id"] = "";
-  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map, {false, {}}));
+  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map, {0, {}}));
 
   int num_encapsulates = 0;
   int num_tf_nodes = 0;
@@ -184,7 +184,7 @@ TEST(EncapsulateClusters, AOT) {
   for (int i = 0; i < num_cases; i++) {
     ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
                                   {{"ngraph_device_id", ""}},
-                                  make_pair(true, node_shapes_hints_vect[i])));
+                                  make_pair(1, node_shapes_hints_vect[i])));
 
     int num_encapsulates = 0;
     int num_tf_nodes = 0;
@@ -213,6 +213,8 @@ TEST(EncapsulateClusters, AOT) {
 
   free(fdeflib_new);
 }
+
+// TODO: do unit tests for AOT level 1 and level 2
 
 // TODO: more test cases:
 // what of scalar inputs. placeholder shape is {}?

@@ -31,7 +31,10 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 typedef std::map<std::string, std::vector<int>> ShapeHintMap;
-typedef std::pair<bool, std::set<ShapeHintMap>> AOTInfo;
+
+// the integer represent AOT level requested.
+// 0: not requested, 1: upto ng function, 2: upto ng executable
+typedef std::pair<int, std::set<ShapeHintMap>> AOTInfo;
 
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,

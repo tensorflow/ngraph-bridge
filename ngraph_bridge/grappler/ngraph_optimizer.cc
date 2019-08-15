@@ -78,7 +78,7 @@ Status NgraphOptimizer::Init(
       }
     }
   }
-  aot_info = make_pair(shape_hints.size() > 0, shape_hints);
+  aot_info = make_pair(stoi(params.at("AOT_level").s()), shape_hints);
   return Status::OK();
 }
 
