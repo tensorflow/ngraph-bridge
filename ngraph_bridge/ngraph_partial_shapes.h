@@ -53,6 +53,8 @@ class PartialShape {
 
   // The class is not thread safe
 
+  // Any scalar is represented by {True, {}} by this class
+
  public:
   PartialShape(std::vector<int> shape, bool valid = true);
   PartialShape();
