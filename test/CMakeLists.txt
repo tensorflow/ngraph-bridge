@@ -67,6 +67,7 @@ endif()
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
     list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)
+    list(APPEND SRC graph_rewrites/partial_shapes_test.cc)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
