@@ -122,8 +122,7 @@ class NGraphFreshnessTracker : public ResourceBase {
   // for each base pointer (of tensor), maintains a set of ng::Functions that
   // use it
   // Each ng function in the set is then a user of the base_pointer
-  std::map<const void*, std::set<ngraph::runtime::Executable*>>
-      freshness_map_;
+  std::map<const void*, std::set<ngraph::runtime::Executable*>> freshness_map_;
 
   ~NGraphFreshnessTracker() override {}
 };

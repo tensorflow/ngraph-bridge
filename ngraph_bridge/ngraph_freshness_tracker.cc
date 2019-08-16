@@ -58,8 +58,7 @@ void NGraphFreshnessTracker::AddTensor(const void* base_pointer) {
   mutex_lock l(mu_);
   auto it = freshness_map_.find(base_pointer);
   if (it == freshness_map_.end()) {
-    freshness_map_[base_pointer] =
-        std::set<ngraph::runtime::Executable*>{};
+    freshness_map_[base_pointer] = std::set<ngraph::runtime::Executable*>{};
   }
 }
 
