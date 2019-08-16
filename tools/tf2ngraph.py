@@ -65,8 +65,8 @@ def parse_shape_hints_string(raw_shape_hints_string):
     return dct['shape_hints']
 
 
-def update_config_to_include_custom_config(
-        config, backend, device_id, extra_params, shape_hints, AOT_level):
+def update_config_to_include_custom_config(config, backend, device_id,
+                                           extra_params, shape_hints, do_aot):
     rewriter_options = rewriter_config_pb2.RewriterConfig()
     rewriter_options.meta_optimizer_iterations = (
         rewriter_config_pb2.RewriterConfig.ONE)
@@ -90,7 +90,8 @@ def update_config_to_include_custom_config(
                     'hint_body').func.attr.get_or_create(
                         node_name).tensor.int_val.extend(shape_hint[node_name])
     # Attach AOT_level
-    ngraph_optimizer.parameter_map["AOT_level"].s = str(AOT_level).encode()
+    ngraph_optimizer.parameter_map["aot_requested"].s = str(
+        ("0", "1")[do_aot]).encode()
     config.MergeFrom(
         tf.ConfigProto(
             graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
@@ -98,8 +99,7 @@ def update_config_to_include_custom_config(
 
 
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
-                                  device_id, extra_params, shape_hints,
-                                  AOT_level):
+                                  device_id, extra_params, shape_hints, do_aot):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -123,7 +123,7 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
         session_config, ng_backend, device_id, extra_params, shape_hints,
-        AOT_level)
+        do_aot)
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -213,12 +213,11 @@ def prepare_argparser(formats):
         "Shape hints (comma separated maps) TODO expand this help line. Eg, \{\{a:[2,3],b:[2,3]\},\{a:[5,5],b:[5,-1]\},\{a:[-1,3]\}\}."
     )
     parser.add_argument(
-        "--AOT_level",
-        type=int,
-        default=0,
+        "--precompile",
+        action='store_true',
         help=
-        "Attempt ahead of time compilation level. 0: no AOT. 1: AOT till ngraph function. 2: AOT till ngraph executable. "
-        + "For levels 1 and 2, --shape_hints might be needed")
+        "Perform precompilation to embed the ngraph executable in the dumped TF graph"
+    )
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -281,7 +280,7 @@ allowed_formats = {
 
 
 def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
-            device_id, extra_params, shape_hints, AOT_level):
+            device_id, extra_params, shape_hints, do_aot):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -300,12 +299,11 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     assert inp_format in allowed_formats['input']
     assert out_format in allowed_formats['output']
     assert ngraph_bridge.is_grappler_enabled()
-    assert AOT_level in [0, 1, 2]
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
     output_gdef = run_ngraph_grappler_optimizer(
         input_gdef, output_nodes, ng_backend, device_id, extra_params,
-        shape_hints, AOT_level)
+        shape_hints, do_aot)
     save_model(output_gdef, out_format, out_loc)
 
 
@@ -323,7 +321,7 @@ def main():
     shape_hints = parse_shape_hints_string(args.shape_hints)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
             args.ng_backend, args.device_id, extra_params, shape_hints,
-            args.AOT_level)
+            args.precompile)
     print('Converted the model. Exiting now')
 
 
@@ -333,8 +331,8 @@ if __name__ == '__main__':
     # TODO remove these lines
 
     # 2x3 and 2x3 are the only valid hints. x=[10,-1] is invalid, y=[-1,-1] doesnt add much
-    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints sample_shape_hints.json --AOT_level 1
-    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --shape_hints sample_shape_hints.json --AOT_level=2
+    # // python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints sample_shape_hints.json --precompile
+    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --shape_hints sample_shape_hints.json --precompile
     # python run_tf2ngraph_model.py
 
     # TODO what happens if same shape is passed twice

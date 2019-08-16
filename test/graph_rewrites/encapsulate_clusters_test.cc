@@ -154,7 +154,7 @@ TEST(EncapsulateClusters, AOT) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "CPU")
+                .Attr("_ngraph_backend", "INTERPRETER")
                 .Finalize(&g, &node3));
   Node* node4;
   if (ngraph_tf_is_grappler_enabled()) {
@@ -204,9 +204,14 @@ TEST(EncapsulateClusters, AOT) {
       if (itr->type_string() == "NGraphEncapsulate") {
         string aot_info;
         // TODO: remove the hardcoded signature
-        bool found = GetNodeAttr(itr->attrs(), "_ngraph_aot_L1_2,2,;2,2,;/",
-                                 &aot_info) == tensorflow::Status::OK();
-        ASSERT_TRUE(found == did_aot[i]);
+        bool found_exec =
+            GetNodeAttr(itr->attrs(), "_ngraph_aot_ngexec_2,2,;2,2,;/",
+                        &aot_info) == tensorflow::Status::OK();
+        bool found_function =
+            GetNodeAttr(itr->attrs(), "_ngraph_aot_ngfunction_2,2,;2,2,;/",
+                        &aot_info) == tensorflow::Status::OK();
+        ASSERT_TRUE(found_exec == did_aot[i]);
+        ASSERT_TRUE(found_function == did_aot[i]);
       }
     }
   }

@@ -177,22 +177,45 @@ class NGraphEncapsulateOp : public OpKernel {
         // TODO: decide what the node attributes should be.
         // right now _ngraph_aot_ is used by aot, _ngraph_ is used for optional
         // attributes
-        if (itx.first.find("_ngraph_aot_") != std::string::npos) {
-          // The string is in the format: _ngraph_aot_Lx_signature  // x = {1,2}
-          m_aot_functions[ng::split(itx.first, '_')[4]] = itx.second.s();
-          m_aot_level = (itx.first.find("_ngraph_aot_L2_") != std::string::npos)
-                            ? AOTLevel::L2
-                            : AOTLevel::L1;
-          // TODO: what if we have a mix of L1 and L2? throw an error
-          cout << "\n==========\n"
-               << "USING AOT: " << (m_aot_level == AOTLevel::L1 ? " L1" : " L2")
-               << "\n==========\n";
+        auto attr_name = itx.first;
+        auto attr_value = itx.second.s();
+        if (attr_name.find("_ngraph_aot_") != std::string::npos) {
+          // The string is in the format: _ngraph_aot_ngexec_signature or
+          // _ngraph_aot_ngfunction_signature or _ngraph_aot_requested
+          // TODO: do not pass these 3 attributes to set_config of backend
+          if (attr_name.find("_ngraph_aot_ngexec_") != std::string::npos) {
+            cout << "\n==========\n"
+                 << "USING AOT"
+                 << "\n==========\n";
+            // TODO: id m_do_aot to be determined by presence of atleast 1
+            // _ngraph_aot_ngexec_ or by a separate flag
+            // I think separate flag. One could intend AOT, but not send any
+            // _ngraph_aot_ngexec_,which should throw an error
+            m_aot_execs[ng::split(attr_name, '_')[4]] = attr_value;
+          } else if (attr_name.find("_ngraph_aot_ngfunction_") !=
+                     std::string::npos) {
+            // The other option is _ngraph_aot_ngfunction_
+            // No need to save or do anything with _ngraph_aot_ngfunction_. They
+            // are there for debugging only
+            m_aot_functions[ng::split(attr_name, '_')[4]] = attr_value;
+          } else if (attr_name.find("_ngraph_aot_requested") !=
+                     std::string::npos) {
+            m_do_aot = true;
+          } else {
+            OP_REQUIRES_OK(
+                ctx,
+                errors::Internal("Ngraph attribues beginning with _ngraph_aot_ "
+                                 "must be _ngraph_aot_ngexec_<signature> or "
+                                 "_ngraph_aot_ngfunction_<signature>. But got "
+                                 "attribute named: ",
+                                 itx.first));
+          }
         } else {
           NGRAPH_VLOG(4) << "Attribute: "
-                         << itx.first.substr(strlen("_ngraph_"))
-                         << " Value: " << itx.second.s();
+                         << attr_name.substr(strlen("_ngraph_"))
+                         << " Value: " << attr_value;
           additional_attribute_map.insert(
-              {itx.first.substr(strlen("_ngraph_")), itx.second.s()});
+              {attr_name.substr(strlen("_ngraph_")), attr_value});
         }
       }
     }
@@ -401,43 +424,35 @@ class NGraphEncapsulateOp : public OpKernel {
       NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
 
       cout << "Compute:: signature: " << signature << "\n";
-      if (m_aot_level == AOTLevel::L1) {
-        auto itr_translated = m_aot_functions.find(signature);
-        if (itr_translated == m_aot_functions.end()) {
-          // TODO: Soft failure? Continue to TranslateGraph?
+
+      if (!m_do_aot) {
+        TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+            input_shapes, static_input_map, &m_graph, ng_function));
+        ng_function->set_friendly_name(name());
+      } else {
+        auto itr = m_aot_functions.find(signature);
+        if (itr == m_aot_functions.end()) {
           return errors::Internal(
-              "Requested AOT L1, but could not find string with the "
-              "signature: ",
+              "Expected to find AOT precompiled ng function of signature: ",
               signature);
         }
-        ng_function = ng::deserialize(itr_translated->second);
-      } else {
-        if (m_aot_level == AOTLevel::L0) {
-          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-              input_shapes, static_input_map, &m_graph, ng_function));
-          ng_function->set_friendly_name(name());
-        }
-        // In case of AOTLevel::L2, do not attampt to get ng_function
+        ng_function = ng::deserialize(itr->second);
       }
 
-      int function_size = -1;
-      if (m_aot_level != AOTLevel::L2) {
-        function_size = ng_function->get_graph_size() / 1024;  // kb unit
-
-        // Serialize to nGraph if needed
-        if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-          std::string file_name =
-              "tf_function_" + ctx->op_kernel().name() + ".json";
-          NgraphSerialize("tf_function_" + ctx->op_kernel().name() + ".json",
-                          ng_function);
+      auto function_size = ng_function->get_graph_size() / 1024;  // kb unit
+      // Serialize to nGraph if needed
+      if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
+        std::string file_name =
+            "tf_function_" + ctx->op_kernel().name() + ".json";
+        NgraphSerialize("tf_function_" + ctx->op_kernel().name() + ".json",
+                        ng_function);
 #if defined NGRAPH_DISTRIBUTED
-          int rank_id;
-          rank_id = ng::get_distributed_interface()->get_rank();
-          NgraphSerialize("tf_function_" + ctx->op_kernel().name() + "_" +
-                              to_string(rank_id) + ".json",
-                          ng_function);
+        int rank_id;
+        rank_id = ng::get_distributed_interface()->get_rank();
+        NgraphSerialize("tf_function_" + ctx->op_kernel().name() + "_" +
+                            to_string(rank_id) + ".json",
+                        ng_function);
 #endif
-        }
       }
 
       // Evict the cache if the number of elements exceeds the limit
@@ -487,11 +502,12 @@ class NGraphEncapsulateOp : public OpKernel {
       ngraph::Event event_compile("Compile nGraph", name(), "");
       BackendManager::LockBackend(m_op_backend_name);
       try {
-        if (m_aot_level == AOTLevel::L2) {
-          auto itr = m_aot_functions.find(signature);
-          if (itr == m_aot_functions.end()) {
+        if (m_do_aot) {
+          auto itr = m_aot_execs.find(signature);
+          if (itr == m_aot_execs.end()) {
+            BackendManager::UnlockBackend(m_op_backend_name);
             return errors::Internal(
-                "Requested AOT L2, but could not find string with the "
+                "Requested AOT, but could not find string with the "
                 "signature: ",
                 signature);
           }
@@ -1112,10 +1128,9 @@ class NGraphEncapsulateOp : public OpKernel {
   int m_number_outputs = -1;
   int m_number_inputs = -1;
 
-  enum class AOTLevel { L0, L1, L2 };
+  bool m_do_aot = false;
 
-  AOTLevel m_aot_level = AOTLevel::L0;
-
+  map<string, string> m_aot_execs;
   map<string, string> m_aot_functions;
 };
 
