@@ -85,7 +85,7 @@ void PartialShape::concretize(const PartialShape& shape_hint) {
         } else {
           if (shape_hint[i] != -1) {
             invalidate();
-          return;
+            return;
           }
         }
       }
