@@ -64,27 +64,27 @@ namespace ngraph_bridge {
 //---------------------------------------------------------------------------
 NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     : OpKernel(ctx) {
-  ng_encap_impl = new NGraphEncapsulateImpl(name());
+  ng_encap_impl.SetName(name());
 
   std::ostringstream oss;
-  oss << "Encapsulate_" << ng_encap_impl->get_instance_id() << ": " << name();
+  oss << "Encapsulate_" << ng_encap_impl.GetInstanceId() << ": " << name();
 
   ngraph::Event event(oss.str(), name(), "");
 
-  NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << ng_encap_impl->get_instance_id()
+  NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << ng_encap_impl.GetInstanceId()
                  << " Name: " << name();
 
   GraphDef* graph_def;
 
   int cluster{-1};
   OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster", &cluster));
-  ng_encap_impl->set_ngraph_cluster(cluster);
-  graph_def = NGraphClusterManager::GetClusterGraph(
-      ng_encap_impl->get_ngraph_cluster());
+  ng_encap_impl.SetNgraphCluster(cluster);
+  graph_def =
+      NGraphClusterManager::GetClusterGraph(ng_encap_impl.GetNgraphCluster());
 
   if (graph_def == nullptr) {
     string flib_key =
-        "ngraph_cluster_" + to_string(ng_encap_impl->get_ngraph_cluster());
+        "ngraph_cluster_" + to_string(ng_encap_impl.GetNgraphCluster());
     // Read graphdef from function library
     const FunctionLibraryDefinition flib =
         *ctx->function_library()->GetFunctionLibraryDefinition();
@@ -99,17 +99,17 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       return flib.LookUpOpDef(op, sig);
     };
     FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody);
-    CopyGraph(*fnbody->graph, &ng_encap_impl->m_graph);
+    CopyGraph(*fnbody->graph, &ng_encap_impl.m_graph);
   } else {
     GraphConstructorOptions opts;
     opts.allow_internal_ops = true;
     OP_REQUIRES_OK(
-        ctx, ConvertGraphDefToGraph(opts, *graph_def, &ng_encap_impl->m_graph));
+        ctx, ConvertGraphDefToGraph(opts, *graph_def, &ng_encap_impl.m_graph));
   }
 
   int graph_id{-1};
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
-  ng_encap_impl->set_graph_id(graph_id);
+  ng_encap_impl.SetGraphId(graph_id);
   //
   // Initialize the "m_input_is_static" vector as follows:
   // (1) create m_input_is_static with n+1 elements, where n is the max arg
@@ -122,7 +122,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   int32 max_arg_index = -1;
   std::vector<const Node*> arg_nodes;
 
-  for (auto node : ng_encap_impl->m_graph.nodes()) {
+  for (auto node : ng_encap_impl.m_graph.nodes()) {
     if (node->type_string() == "_Arg") {
       arg_nodes.push_back(node);
 
@@ -133,10 +133,10 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   }
 
   int size = max_arg_index + 1;
-  ng_encap_impl->resize_static(size);
+  ng_encap_impl.ResizeStatic(size);
 
   for (int i = 0; i < size; i++) {
-    ng_encap_impl->set_static(i, false);
+    ng_encap_impl.SetStatic(i, false);
   }
 
   // Fill the vector.
@@ -160,7 +160,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       }
     }
     NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
-    ng_encap_impl->set_static(index, is_static);
+    ng_encap_impl.SetStatic(index, is_static);
   }
 
   // Set the backend type for the op
@@ -191,16 +191,16 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   try {
     string be_name =
         BackendManager::GetBackendCreationString(backend_name, device_id);
-    ng_encap_impl->set_op_backend_name(be_name);
+    ng_encap_impl.SetOpBackend(be_name);
   } catch (const std::exception& exp) {
     Status status = errors::Internal(
         "Caught exception while creating backend string ", exp.what(), "\n");
     OP_REQUIRES_OK(ctx, status);
   }
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
-  BackendManager::CreateBackend(ng_encap_impl->get_op_backend_name());
+  BackendManager::CreateBackend(ng_encap_impl.GetOpBackend());
   // SetConfig will be called for each EncapsulateOp
-  BackendManager::SetConfig(ng_encap_impl->get_op_backend_name(),
+  BackendManager::SetConfig(ng_encap_impl.GetOpBackend(),
                             additional_attribute_map);
 
   event.Stop();
@@ -212,16 +212,16 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 //---------------------------------------------------------------------------
 NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   std::ostringstream oss;
-  oss << "Destroy Encapsulate_" << ng_encap_impl->get_instance_id() << ": "
+  oss << "Destroy Encapsulate_" << ng_encap_impl.GetInstanceId() << ": "
       << name();
   ngraph::Event event(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
   // If the kernel goes away, we must de-register all of its cached
   // functions
   // from the freshness tracker.
-  if (ng_encap_impl->m_freshness_tracker != nullptr) {
-    for (auto kv : ng_encap_impl->get_ng_exec_map()) {
-      ng_encap_impl->m_freshness_tracker->RemoveUser(kv.second);
+  if (ng_encap_impl.GetNgraphFreshnessTracker() != nullptr) {
+    for (auto kv : ng_encap_impl.GetNgExecMap()) {
+      ng_encap_impl.GetNgraphFreshnessTracker()->RemoveUser(kv.second);
     }
 
     // TODO(amprocte): We should be able to unref the tracker here, but it
@@ -232,9 +232,9 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   // Remove Entries from Catalog
   // Remove entries related to outputs
-  for (int i = 0; i < ng_encap_impl->get_number_outputs(); i++) {
+  for (int i = 0; i < ng_encap_impl.GetOutputs(); i++) {
     string key =
-        NGraphCatalog::CreateNodeKey(ng_encap_impl->get_graph_id(), name(), i);
+        NGraphCatalog::CreateNodeKey(ng_encap_impl.GetGraphId(), name(), i);
     if (NGraphCatalog::ExistsInEncapOutputInfoMap(key)) {
       NGraphCatalog::DeleteFromEncapOutputInfoMap(key);
       NGRAPH_VLOG(2) << "Deleting from output info map " << key;
@@ -242,13 +242,13 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   }
 
   NGRAPH_VLOG(2) << "Deleting from Output Copy Index map " << name();
-  NGraphCatalog::DeleteFromEncapOutputCopyIndexesMap(
-      ng_encap_impl->get_graph_id(), name());
+  NGraphCatalog::DeleteFromEncapOutputCopyIndexesMap(ng_encap_impl.GetGraphId(),
+                                                     name());
 
   // Remove entries related to inputs
-  for (int i = 0; i < ng_encap_impl->get_number_outputs(); i++) {
+  for (int i = 0; i < ng_encap_impl.GetOutputs(); i++) {
     string key =
-        NGraphCatalog::CreateNodeKey(ng_encap_impl->get_graph_id(), name(), i);
+        NGraphCatalog::CreateNodeKey(ng_encap_impl.GetGraphId(), name(), i);
     if (NGraphCatalog::ExistsInInputVariableSharedNameMap(key)) {
       NGraphCatalog::DeleteFromInputVariableSharedNameMap(key);
       NGRAPH_VLOG(2) << "Deleting from input variable shared name map " << key;
@@ -257,14 +257,14 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 
 #endif
 
-  ng_encap_impl->clear_m_ng_exec_input_cache_map();
-  ng_encap_impl->clear_ng_exec_output_cache_map();
-  ng_encap_impl->clear_ng_exec_map();
-  ng_encap_impl->clear_ng_function_map();
+  ng_encap_impl.ClearNgExecInputCache();
+  ng_encap_impl.ClearNgExecOutputCache();
+  ng_encap_impl.ClearNgExecMap();
+  ng_encap_impl.ClearNgFunctionMap();
 
   // Release the backend
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
-  BackendManager::ReleaseBackend(ng_encap_impl->get_op_backend_name());
+  BackendManager::ReleaseBackend(ng_encap_impl.GetOpBackend());
   event.Stop();
   ngraph::Event::write_trace(event);
 }
@@ -274,14 +274,14 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::ostringstream oss;
-  oss << "Execute: Encapsulate_" << ng_encap_impl->get_instance_id() << ": "
+  oss << "Execute: Encapsulate_" << ng_encap_impl.GetInstanceId() << ": "
       << name();
   ngraph::Event event(oss.str(), name(), "");
 
   Timer compute_time;
-  std::lock_guard<std::mutex> lock(ng_encap_impl->m_compute_lock);
+  std::lock_guard<std::mutex> lock(m_compute_lock);
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
-                 << ng_encap_impl->get_ngraph_cluster();
+                 << ng_encap_impl.GetNgraphCluster();
 
   ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
   Timer function_lookup_or_create;
@@ -302,38 +302,39 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   int step_id = ctx->step_id();
 
   // Get ngraph executable and inputs information
-  OP_REQUIRES_OK(ctx, ng_encap_impl->GetNgExecutable(
+  OP_REQUIRES_OK(ctx, ng_encap_impl.GetNgExecutable(
                           tf_input_tensors, input_shapes, static_input_map,
                           op_backend, ng_exec));
 
   NGRAPH_VLOG(1) << " Step_ID: " << step_id;
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
-      << ng_encap_impl->get_ngraph_cluster();
+      << ng_encap_impl.GetNgraphCluster();
 
   int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
   event_func_maybe_create.Stop();
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
-                 << ng_encap_impl->get_ngraph_cluster();
+                 << ng_encap_impl.GetNgraphCluster();
 
   Timer create_or_lookup_tensors;
 
-  if (ng_encap_impl->m_freshness_tracker == nullptr) {
+  if (ng_encap_impl.GetNgraphFreshnessTracker() == nullptr) {
     auto creator = [](NGraphFreshnessTracker** tracker) {
       *tracker = new NGraphFreshnessTracker();
       return Status::OK();
     };
+    NGraphFreshnessTracker* set_tracker = nullptr;
     OP_REQUIRES_OK(
         ctx, ctx->resource_manager()->LookupOrCreate<NGraphFreshnessTracker>(
                  ctx->resource_manager()->default_container(),
-                 "ngraph_freshness_tracker",
-                 &ng_encap_impl->m_freshness_tracker, creator));
+                 "ngraph_freshness_tracker", &set_tracker, creator));
+    ng_encap_impl.SetNgraphFreshnessTracker(set_tracker);
   }
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute got freshness tracker for cluster "
-      << ng_encap_impl->get_ngraph_cluster();
+      << ng_encap_impl.GetNgraphCluster();
 
   // Allocate tensors for input arguments.
   ngraph::Event event_alloc_input("Input: maybe create", name(), "");
@@ -341,14 +342,14 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
 
-  OP_REQUIRES_OK(ctx, ng_encap_impl->AllocateNGInputTensors(
+  OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGInputTensors(
                           tf_input_tensors, ng_exec, op_backend, ng_inputs));
 
   event_alloc_input.Stop();
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                     "for cluster "
-                 << ng_encap_impl->get_ngraph_cluster();
+                 << ng_encap_impl.GetNgraphCluster();
   // Allocate tensors for the output results.
   ngraph::Event event_alloc_output("Output: maybe create", name(), "");
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
@@ -384,10 +385,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 // if the output tensor is going to be assigned to a variable
 // we ask nGraph to provide the output directly in the variable tensor
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  if (NGraphCatalog::ExistsInEncapOutputInfoMap(ng_encap_impl->get_graph_id(),
+  if (NGraphCatalog::ExistsInEncapOutputInfoMap(ng_encap_impl.GetGraphId(),
                                                 name(), i)) {
     string output_key =
-        NGraphCatalog::CreateNodeKey(ng_encap_impl->get_graph_id(), name(), i);
+        NGraphCatalog::CreateNodeKey(ng_encap_impl.GetGraphId(), name(), i);
     string ref_var_name =
         NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(output_key);
     NGraphVar* var;
@@ -408,19 +409,19 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     continue;
   }
 #endif
-  OP_REQUIRES_OK(ctx, ng_encap_impl->AllocateNGOutputTensors(
+  OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGOutputTensors(
                           tf_output_tensors, ng_exec, op_backend, ng_outputs));
-  auto output_caches = ng_encap_impl->get_ng_exec_output_cache_map(ng_exec);
+  auto output_caches = ng_encap_impl.GetNgExecOutputCacheMap(ng_exec);
 
   event_alloc_output.Stop();
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
-      << ng_encap_impl->get_ngraph_cluster();
+      << ng_encap_impl.GetNgraphCluster();
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
                     "from resource manager "
-                 << ng_encap_impl->get_ngraph_cluster();
+                 << ng_encap_impl.GetNgraphCluster();
 
   ngraph::Event event_input_check_in_catalog(
       "Get Variable Inputs from Resource Manager", name(), "");
@@ -428,7 +429,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Dealing with the input from Variable nodes here
   for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-        ng_encap_impl->get_graph_id(), def().name(), input_index);
+        ng_encap_impl.GetGraphId(), def().name(), input_index);
 
     if (!ref_exists) {
       OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
@@ -438,23 +439,23 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     }
 
     string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
-        ng_encap_impl->get_graph_id(), def().name(), input_index);
+        ng_encap_impl.GetGraphId(), def().name(), input_index);
     NGraphVar* var;
     OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
                             ctx->resource_manager()->default_container(),
                             ref_var_name, &var));
 
     if (var->sync_ng_tensor()) {
-      int copies = ng_encap_impl->get_number_of_copies();
-      ng_encap_impl->set_number_of_copies(copies++);
+      int copies = ng_encap_impl.GetNumberOfCopies();
+      ng_encap_impl.SetNumberOfCopies(copies++);
       stringstream str;
       str << "Var_Sync[" << input_index << "] ";
-      ng_encap_impl->set_copy_log_str(str.str());
+      ng_encap_impl.SetCopyLog(str.str());
     }
 
     void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
-    bool is_stale =
-        !ng_encap_impl->m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec);
+    bool is_stale = !ng_encap_impl.GetNgraphFreshnessTracker()->IsFresh(
+        current_tf_ptr, ng_exec);
     var->ng_tensor()->set_stale(is_stale);
     ng_inputs[input_index] = var->ng_tensor();
 
@@ -471,14 +472,14 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event event_execute_function("Execute nGraph", name(), "");
   Timer execute_function;
   {
-    BackendManager::LockBackend(ng_encap_impl->get_op_backend_name());
+    BackendManager::LockBackend(ng_encap_impl.GetOpBackend());
     NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "
-                   << ng_encap_impl->get_ngraph_cluster();
+                   << ng_encap_impl.GetNgraphCluster();
     try {
       ng_exec->call(ng_outputs, ng_inputs);
     } catch (const std::exception& exp) {
-      ng_function = ng_encap_impl->get_ng_function_map()[ng_exec];
-      BackendManager::UnlockBackend(ng_encap_impl->get_op_backend_name());
+      ng_function = ng_encap_impl.GetNgFunctionMap()[ng_exec];
+      BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
       NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
                       ng_function);
       OP_REQUIRES(ctx, false,
@@ -486,15 +487,15 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                       "Caught exception while executing nGraph computation: ",
                       exp.what(), "\n"));
     } catch (...) {
-      ng_function = ng_encap_impl->get_ng_function_map()[ng_exec];
-      BackendManager::UnlockBackend(ng_encap_impl->get_op_backend_name());
+      ng_function = ng_encap_impl.GetNgFunctionMap()[ng_exec];
+      BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
       NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
                       ng_function);
       OP_REQUIRES(
           ctx, false,
           errors::Internal("Error in executing the nGraph computation\n"));
     }
-    BackendManager::UnlockBackend(ng_encap_impl->get_op_backend_name());
+    BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
   }
   int time_execute_function = execute_function.ElapsedInMS();
   event_execute_function.Stop();
@@ -502,7 +503,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   long vm, rss;
   MemoryProfile(vm, rss);
   NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
-                 << ng_encap_impl->get_instance_id() << " Step_ID: " << step_id
+                 << ng_encap_impl.GetInstanceId() << " Step_ID: " << step_id
                  << " Cluster: " << name() << " Input Tensors created: "
                  << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
                  << " Output Tensors created: "
@@ -510,7 +511,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                  << " Total process memory: " << rss / (1024 * 1024) << " GB";
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
-                 << ng_encap_impl->get_ngraph_cluster();
+                 << ng_encap_impl.GetNgraphCluster();
 
   // Copy value to host if backend is not CPU
   ngraph::Event event_copy_output("Output - copy back", name(), "");
@@ -520,20 +521,20 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     size_t output_tensor_count = output_caches.size();
     std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    if (ng_encap_impl->get_number_outputs() == -1) {
+    if (ng_encap_impl.GetOutputs() == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-      ng_encap_impl->set_number_outputs(output_caches.size());
+      ng_encap_impl.SetOutputs(output_caches.size());
     }
-    if (ng_encap_impl->get_number_outputs() == -1) {
+    if (ng_encap_impl.GetOutputs() == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-      ng_encap_impl->set_number_outputs(ng_outputs.size());
+      ng_encap_impl.SetOutputs(ng_outputs.size());
       NGRAPH_VLOG(4) << "Setting number of inputs for " << def().name();
-      ng_encap_impl->set_number_inputs(ng_inputs.size());
+      ng_encap_impl.SetInputs(ng_inputs.size());
     }
     for (size_t i = 0; i < output_tensor_count; ++i) {
       // Sync the Var Tensor if required
       string output_key = NGraphCatalog::CreateNodeKey(
-          ng_encap_impl->get_graph_id(), def().name(), i);
+          ng_encap_impl.GetGraphId(), def().name(), i);
       bool ref_exists = NGraphCatalog::ExistsInEncapOutputInfoMap(output_key);
 
       if (ref_exists) {
@@ -550,14 +551,14 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
         if (NGraphCatalog::GetCopyToTFFromEncapOutputInfoMap(output_key)) {
           if (var->copy_ng_to_tf()) {
-            int copies = ng_encap_impl->get_number_of_copies();
-            set_number_of_copies(copies++);
-            ng_encap_impl->set_copy_log_str(" COPY_TF ");
+            int copies = ng_encap_impl.GetNumberOfCopies();
+            SetNumberOfCopies(copies++);
+            ng_encap_impl.SetCopyLog(" COPY_TF ");
           }
           if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
                   output_key)) {
             // Some tf op might update the ng-tensor value so mark it stale
-            ng_encap_impl->set_copy_log_str(" SET_SYNC ");
+            ng_encap_impl.SetCopyLog(" SET_SYNC ");
             var->set_sync_ng_tensor(true);
           }
         }
@@ -568,14 +569,14 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       void* dst_ptr;
       std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
 
-      if (ng_encap_impl->get_op_backend_name() != "CPU" &&
-          NGraphCatalog::EncapOutputIndexNeedsCopy(
-              ng_encap_impl->get_graph_id(), def().name(), i)) {
-        int copies = ng_encap_impl->get_number_of_copies();
-        set_number_of_copies(copies++);
+      if (ng_encap_impl.GetOpBackend() != "CPU" &&
+          NGraphCatalog::EncapOutputIndexNeedsCopy(ng_encap_impl.GetGraphId(),
+                                                   def().name(), i)) {
+        int copies = ng_encap_impl.GetNumberOfCopies();
+        SetNumberOfCopies(copies++);
         stringstream log;
         log << " COPY_OP_VAL[" << i << "]";
-        ng_encap_impl->set_copy_log_str(log.str());
+        ng_encap_impl.SetCopyLog(log.str());
 
         NGRAPH_VLOG(4) << "Copying Output " << def().name() << " ,index: " << i;
         auto ng_element_type = dst_ng_tensor->get_element_type();
@@ -592,7 +593,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       }
     }
 #else
-    if (ng_encap_impl->get_op_backend_name() != "CPU") {
+    if (ng_encap_impl.GetOpBackend() != "CPU") {
       for (size_t i = 0; i < output_tensor_count; ++i) {
         void* dst_ptr;
         std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
@@ -627,10 +628,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   std::stringstream str;
-  str << " Number of copies " << ng_encap_impl->get_number_of_copies() << "\n";
-  ng_encap_impl->set_copy_log_str(str.str());
-  if (ng_encap_impl->get_log_copies()) {
-    cout << ng_encap_impl->get_copy_log_str();
+  str << " Number of copies " << ng_encap_impl.GetNumberOfCopies() << "\n";
+  ng_encap_impl.SetCopyLog(str.str());
+  if (ng_encap_impl.GetLogCopies()) {
+    cout << ng_encap_impl.GetCopyLog();
   }
 #endif
 
@@ -639,16 +640,16 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // iteration if this encapsulate finds the tensor fresh, then it will use it
   for (int i = 0; i < input_shapes.size(); i++) {
     void* src_ptr = (void*)DMAHelper::base(&ctx->input(i));
-    ng_encap_impl->m_freshness_tracker->MarkFresh(src_ptr, ng_exec);
+    ng_encap_impl.GetNgraphFreshnessTracker()->MarkFresh(src_ptr, ng_exec);
   }
   int time_copy_output_tensors_to_host =
       copy_output_tensors_to_host.ElapsedInMS();
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
-      << ng_encap_impl->get_ngraph_cluster();
+      << ng_encap_impl.GetNgraphCluster();
   NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: "
-                 << ng_encap_impl->get_instance_id() << " Step_ID: " << step_id
+                 << ng_encap_impl.GetInstanceId() << " Step_ID: " << step_id
                  << " Cluster: " << name()
                  << " Time-Compute: " << compute_time.ElapsedInMS()
                  << " Function-Create-or-Lookup: " << time_func_create_or_lookup

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ using NgFunctionIOCache = std::unordered_map<
 class NGraphEncapsulateImpl {
  public:
   // Ngraph Encapsulate Implementation class for EncapsulateOp class
-  explicit NGraphEncapsulateImpl(string name);
+  explicit NGraphEncapsulateImpl();
 
   // Get tensorflow input tensors, input shapes, static_inputs to Compute
   // Signature
@@ -82,111 +82,110 @@ class NGraphEncapsulateImpl {
       ng::runtime::Backend* op_backend,
       const ng::element::Type& ng_element_type, const ng::Shape& ng_shape);
 
-  // TF Graph for the cluster
-  Graph m_graph;
-  // Freshness tracker maintains a set of ng::functions using a particular base
-  // pointer(for Tensor)
-  // A single instance of freshness_tracker is used across all
-  // nGraphEncapsulateOp and nGraphVariable op
-  NGraphFreshnessTracker* m_freshness_tracker;
-  string m_name;
-  std::mutex m_compute_lock;
-
   // Accessors(getters and setters) for the private data members of
   // NgraphEncapsulateImpl class
   // needed by
   // NgraphEncapsulateOp class
-  const int& get_number_of_copies() { return number_of_copies; }
+  const int& GetNumberOfCopies() { return number_of_copies; }
 
-  void set_number_of_copies(const int& number) { number_of_copies = number; }
+  void SetNumberOfCopies(const int& number) { number_of_copies = number; }
 
-  const int& get_ngraph_cluster() { return m_ngraph_cluster; }
+  const int& GetNgraphCluster() { return m_ngraph_cluster; }
 
-  void set_ngraph_cluster(const int& cluster) { m_ngraph_cluster = cluster; }
+  void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
 
-  int get_graph_id() { return m_graph_id; }
+  int GetGraphId() { return m_graph_id; }
 
-  void set_graph_id(const int& graph_id) { m_graph_id = graph_id; }
+  void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
 
-  const int& get_function_cache_depth_in_items() {
-    return my_function_cache_depth_in_items;
-  }
+  const int& GetFunctionCache() { return my_function_cache_depth_in_items; }
 
-  const int& get_number_outputs() { return m_number_outputs; }
+  const int& GetOutputs() { return m_number_outputs; }
 
-  void set_number_outputs(const int& n) { m_number_outputs = n; }
+  void SetOutputs(const int& n) { m_number_outputs = n; }
 
-  const int& get_number_inputs() { return m_number_inputs; }
+  const int& GetInputs() { return m_number_inputs; }
 
-  void set_number_inputs(const int& n) { m_number_inputs = n; }
+  void SetInputs(const int& n) { m_number_inputs = n; }
 
-  const int& get_instance_id() { return my_instance_id; }
+  const int& GetInstanceId() { return my_instance_id; }
 
-  const string& get_op_backend_name() { return m_op_backend_name; }
+  const string& GetOpBackend() { return m_op_backend_name; }
 
-  void set_op_backend_name(const string& backend_name) {
+  void SetOpBackend(const string& backend_name) {
     m_op_backend_name = backend_name;
   }
 
-  bool get_log_copies() { return log_copies; }
+  bool GetLogCopies() { return log_copies; }
 
-  const string& get_copy_log_str() { return copy_log_str.str(); }
+  void SetLogCopies(bool value) { log_copies = value; }
 
-  void set_copy_log_str(const string& str) { copy_log_str.str() = str; }
+  const string& GetCopyLog() { return copy_log_str.str(); }
 
-  void set_log_copies(bool value) { log_copies = value; }
+  void SetCopyLog(const string& str) { copy_log_str.str() = str; }
 
-  const std::vector<bool> get_static() { return m_input_is_static; }
+  const std::vector<bool> GetStatic() { return m_input_is_static; }
 
-  void resize_static(const int& size) { m_input_is_static.resize(size); }
-  void set_static(const int& index, bool value) {
+  void ResizeStatic(const int& size) { m_input_is_static.resize(size); }
+  void SetStatic(const int& index, bool value) {
     m_input_is_static[index] = value;
   }
 
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
-  get_ng_exec_map() {
+  GetNgExecMap() {
     return m_ng_exec_map;
   }
 
-  void set_ng_exec_map(
-      const std::string& ng_map_key,
-      const std::shared_ptr<ngraph::runtime::Executable>& exec) {
+  void SetNgExecMap(const std::string& ng_map_key,
+                    const std::shared_ptr<ngraph::runtime::Executable>& exec) {
     m_ng_exec_map[ng_map_key] = exec;
   }
 
-  void clear_ng_exec_map() { m_ng_exec_map.clear(); }
+  void ClearNgExecMap() { m_ng_exec_map.clear(); }
 
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      std::shared_ptr<ngraph::Function>>
-  get_ng_function_map() {
+  GetNgFunctionMap() {
     return m_ng_function_map;
   }
 
-  void set_ng_function_map(
+  void SetNgFunctionMap(
       const std::shared_ptr<ngraph::runtime::Executable>& exec,
       const std::shared_ptr<ngraph::Function>& function) {
     m_ng_function_map[exec] = function;
   }
 
-  void clear_ng_function_map() { m_ng_function_map.clear(); }
+  void ClearNgFunctionMap() { m_ng_function_map.clear(); }
   // TODO:sindhu have another get function for output_cache which is only
   // readable
   std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
-  get_ng_exec_output_cache_map(
-      std::shared_ptr<ngraph::runtime::Executable> exec) {
+  GetNgExecOutputCacheMap(std::shared_ptr<ngraph::runtime::Executable> exec) {
     return m_ng_exec_output_cache_map[exec];
   }
 
-  void set_ng_exec_output_cache_map(
+  void SetNgExecOutputCacheMap(
       const std::shared_ptr<ngraph::runtime::Executable>& exec,
       const std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
           cache) {
     m_ng_exec_output_cache_map[exec] = cache;
   }
 
-  void clear_m_ng_exec_input_cache_map() { m_ng_exec_input_cache_map.clear(); }
+  void ClearNgExecInputCache() { m_ng_exec_input_cache_map.clear(); }
 
-  void clear_ng_exec_output_cache_map() { m_ng_exec_output_cache_map.clear(); }
+  void ClearNgExecOutputCache() { m_ng_exec_output_cache_map.clear(); }
+
+  NGraphFreshnessTracker* GetNgraphFreshnessTracker() {
+    return m_freshness_tracker;
+  }
+
+  void SetNgraphFreshnessTracker(NGraphFreshnessTracker* tracker) {
+    m_freshness_tracker = tracker;
+  }
+
+  void SetName(string name) { m_name = name; }
+
+  // TF Graph for the cluster
+  Graph m_graph;
 
  private:
   int number_of_copies = 0;
@@ -197,6 +196,7 @@ class NGraphEncapsulateImpl {
   int m_number_inputs = -1;
   int my_instance_id{0};
   string m_op_backend_name;
+  string m_name;
   std::stringstream copy_log_str;
   bool log_copies = false;
   std::vector<bool> m_input_is_static;
@@ -212,6 +212,12 @@ class NGraphEncapsulateImpl {
 
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
+
+  // Freshness tracker maintains a set of ng::functions using a particular base
+  // pointer(for Tensor)
+  // A single instance of freshness_tracker is used across all
+  // nGraphEncapsulateOp and nGraphVariable op
+  NGraphFreshnessTracker* m_freshness_tracker;
 };
 
 }  // namespace ngraph_bridge
