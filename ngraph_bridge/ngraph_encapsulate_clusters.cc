@@ -545,7 +545,7 @@ Status EncapsulateClusters(
       auto find_itr = single_hint.find(node->name());
       cout << "In get_shape_for_node_from_shape_hint: "
            << (find_itr == single_hint.end()) << "\n";
-      return find_itr == single_hint.end() ? PartialShape(vector<int>{}, false)
+      return find_itr == single_hint.end() ? PartialShape()
                                            : PartialShape(find_itr->second);
     };
 
@@ -629,7 +629,7 @@ Status EncapsulateClusters(
               combined_shape_info = partial_shape_from_node;
             } else {
               cout << "partial_shape_from_node is INvalid\n";
-              combined_shape_info = PartialShape(vector<int>{}, false);
+              combined_shape_info = PartialShape();
             }
           }
 
@@ -769,7 +769,8 @@ Status EncapsulateClusters(
               // For e.g. _ngraph_ice_cores --> ice_cores
               if (itr.first.find("_ngraph_") != std::string::npos) {
                 // leave out _ngraph_aot_requested
-                if (itr.first.find("_ngraph_aot_requested") != std::string::npos){
+                if (itr.first.find("_ngraph_aot_requested") !=
+                    std::string::npos) {
                   additional_attribute_map.insert(
                       {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
                 }

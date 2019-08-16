@@ -37,8 +37,26 @@ class PartialShape {
   // Its built like an optional/maybe, so please use is_valid before accessing
   // other functions
 
+  // A sample lattice that this class operates on is shown for rank = 2 below
+  //             Invalid
+  //           /         \
+  //       (1,2)          (2,2)
+  //        /  \           /  \
+  //    (-1,2)(1,-1)    (2,-1)(-1,2)
+  //         \     \       /     /
+  //           ---- (-1,-1) ----
+  //
+  // The PartialShape allows only 2 functionsthat modify object state
+  // Copy assignment (=) and concretize()
+  // Subsequent calls to concretize() can only make one move up the lattice.
+  // Copy assignment can reset the state of teh object arbitrarily
+
+  // The class is not thread safe
+
+  // Any scalar is represented by {True, {}} by this class
+
  public:
-  PartialShape(std::vector<int> shape, bool valid = true);
+  PartialShape(std::vector<int> shape);
   PartialShape();
 
   PartialShape(const tensorflow::TensorShapeProto& tensor_shape_proto);

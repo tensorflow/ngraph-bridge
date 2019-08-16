@@ -35,6 +35,7 @@ namespace testing {
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
+<<<<<<< HEAD
 // The result of concretize would be {2, 3}
 TEST(PartialShapes, ValidConcretize1) {
     PartialShape p1({2, -1});
@@ -49,6 +50,15 @@ TEST(PartialShapes, ValidConcretize2) {
     PartialShape p2({-1, -1});
     p1.concretize(p2);
     ASSERT_EQ(p1.is_valid(), true);
+=======
+TEST(PartialShapes, Concretize) {
+  PartialShape p1({2, -1});
+  PartialShape p2({-1, 3});
+  cout << p1.is_valid() << "\n";
+  p1.concretize(p2);
+  bool result = p1.is_valid();
+  cout << "result " << result;
+>>>>>>> 26ab585cbd74e8df336aac6f11bbf2a7c2799c3a
 }
 
 // The result of concretize would be {}
