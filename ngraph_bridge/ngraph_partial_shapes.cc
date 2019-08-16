@@ -21,8 +21,13 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 PartialShape::PartialShape(std::vector<int> shape)
-    : m_shape(shape), m_valid(true) {}
-// TODO check why the default const is needed?
+    : m_shape(shape), m_valid(true) {
+  for (auto i : m_shape) {
+    if (i < -1) {
+      invalidate();
+    }
+  }
+}
 PartialShape::PartialShape() : m_valid(false) {}
 
 PartialShape::PartialShape(
