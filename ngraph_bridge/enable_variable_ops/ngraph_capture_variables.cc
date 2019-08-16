@@ -51,10 +51,11 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
               const bool is_tf_just_looking, const bool outputs_ng_supported,
               const int graph_id, const bool is_backend_set)>>>
       CAPTURE_REPLACE_OP_MAP{
-          {"ApplyGradientDescent", std::make_pair("NGraphApplyGradientDescent",
-                                                  ReplaceOptimizer)},
-          {"ApplyMomentum", std::make_pair("NGraphApplyMomentum",ReplaceOptimizer)},
-                                                  
+          {"ApplyGradientDescent",
+           std::make_pair("NGraphApplyGradientDescent", ReplaceOptimizer)},
+          {"ApplyMomentum",
+           std::make_pair("NGraphApplyMomentum", ReplaceOptimizer)},
+
           {"Assign", std::make_pair("NGraphAssign", ReplaceAssign)},
           {"AssignAdd", std::make_pair("NGraphAssignAdd", ReplaceAssign)},
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
@@ -80,7 +81,9 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
             auto itr = CAPTURE_REPLACE_OP_MAP.find(n->type_string());
             if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
               nodes_to_capture.insert(n);
-              std::cout << "Node pushed in node Capture " << n->DebugString() << std::endl<<std::endl; 
+              std::cout << "Node pushed in node Capture " << n->DebugString()
+                        << std::endl
+                        << std::endl;
             }
           }
           ref_list.clear();
@@ -97,10 +100,11 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
                                             node->name(), itr->second.first,
                                             true, false, false, 0, false));
     std::cout << "Replacing Node " << node->DebugString() << std::endl;
-    std::cout<< std::endl;
-    std::cout<< std::endl;
-    std::cout  << " with the ............. " << replacement->DebugString()<< std::endl;
-    std::cout<< std::endl;
+    std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << " with the ............. " << replacement->DebugString()
+              << std::endl;
+    std::cout << std::endl;
 
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
@@ -109,10 +113,11 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
   for (auto node : nodes_to_capture) {
     std::cout << "Removing: " << node->name();
     std::cout << std::endl << "Node debug string is " << node->DebugString();
-    std::cout<< "print ---------------------------------------"<<std::endl; 
+    std::cout << "print ---------------------------------------" << std::endl;
     graph->RemoveNode(node);
   }
-  std::cout << "-------------------------here--------------------------" <<std::endl;
+  std::cout << "-------------------------here--------------------------"
+            << std::endl;
   return Status::OK();
 }
 
