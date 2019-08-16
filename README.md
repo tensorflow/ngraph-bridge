@@ -128,7 +128,7 @@ Verify that `ngraph-bridge` installed correctly:
 
         TensorFlow version:  <1.14.0>
         nGraph bridge version: <version number>
-        nGraph version used for this build: b'Version nuymber'
+        nGraph version used for this build: b'Version number'
         TensorFlow version used for this build: <v1.14.0-...>
         CXX11_ABI flag used for this build: 0
         nGraph bridge built with Grappler: False
