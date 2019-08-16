@@ -88,7 +88,7 @@ Once TensorFlow's dependencies are installed, clone the `ngraph-bridge` repo:
 
         git clone https://github.com/tensorflow/ngraph-bridge.git
         cd ngraph-bridge
-        git checkout v0.18.0
+        git checkout v0.18.1-rc0
 
 Run the following Python script to build TensorFlow, nGraph, and the bridge. Use Python 3.5:
 
@@ -127,8 +127,8 @@ Verify that `ngraph-bridge` installed correctly:
     This will produce something like this:
 
         TensorFlow version:  <1.14.0>
-        nGraph bridge version: <b'0.18.0'>
-        nGraph version used for this build: b'0.25.0+005c118'
+        nGraph bridge version: <version number>
+        nGraph version used for this build: b'Version nuymber'
         TensorFlow version used for this build: <v1.14.0-...>
         CXX11_ABI flag used for this build: 0
         nGraph bridge built with Grappler: False
