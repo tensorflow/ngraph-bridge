@@ -48,24 +48,23 @@ TEST(AddedOpTest, Momentum1) {
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
   auto var_assign = ops::Assign(root.WithOpName("Assign1"), var, init_value);
 
-  auto var1 = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
-  auto init_value1 = ops::Const(root, {{2.f, 2.f}, {2.f, 2.f}});
-  auto var1_assign =
-      ops::Assign(root.WithOpName("Var1_Assign"), var1, init_value1);
-
-
-  auto var2 = ops::Variable(root.WithOpName("Var2"), varShape, DT_FLOAT);
+  auto accum = ops::Variable(root.WithOpName("accum"), varShape, DT_FLOAT);
   auto init_value2 = ops::Const(root, {{3.f, 3.f}, {3.f, 3.f}});
-  auto var2_assign =
-      ops::Assign(root.WithOpName("Var2_Assign"), var2, init_value2);
+  auto accum_assign = ops::Assign(root.WithOpName("Assign2"), accum, init_value2);
 
-  auto s = ops::Const(root, 1.f);
-  auto d = ops::Const(root, 1.f);
+  auto grad = ops::Const(root, {{2.f, 2.f}, {2.f, 2.f}});
+  
+  auto lr = ops::Const(root, 1.f);
+  auto momentum = ops::Const(root, 1.f);
 
-
-  auto applymomentum =
-      ops::ApplyMomentum(root.WithOpName("Momentum"), var, var2, s, var1, d);
-
+  ops::ApplyMomentum::Attrs op_attr_use_nestrov;
+  
+  op_attr_use_nestrov = op_attr_use_nestrov.UseNesterov(true);
+  auto applymomentum_f =
+      ops::ApplyMomentum(root.WithOpName("Momentum"), var, accum, lr, grad, momentum);
+  
+  auto applymomentum_t =
+      ops::ApplyMomentum(root.WithOpName("Momentum"), var, accum, lr, grad, momentum, op_attr_use_nestrov );
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
   options.config.mutable_graph_options()
@@ -80,29 +79,20 @@ TEST(AddedOpTest, Momentum1) {
   ClientSession ng_session(root, options);
   std::vector<tensorflow::Tensor> ng_outputs1;
   std::vector<tensorflow::Tensor> ng_outputs2;
+  std::vector<tensorflow::Tensor> ng_outputs3;
   ASSERT_OK(ng_session.Run(
       {
-       {var_assign, var1_assign, var2_assign}
+       {var_assign, accum_assign}
       },
       &ng_outputs1));
-/*
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs2));
-  }
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({apply_gradient_descent}, &ng_outputs3));
-  }
-
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs4));
-  }
-
-  ASSERT_OK(ng_session.Run({var}, &ng_outputs5));
-*/
   // Run on TF
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({applymomentum}, &ng_outputs2));
+    ASSERT_OK(ng_session.Run({applymomentum_f}, &ng_outputs2));
+  }
+
+   for (int i = 0; i < 10; i++) {
+    ASSERT_OK(ng_session.Run({applymomentum_t}, &ng_outputs3));
   }
 
   DeactivateNGraph();
@@ -111,32 +101,24 @@ TEST(AddedOpTest, Momentum1) {
   ClientSession tf_session(root, options);
   std::vector<tensorflow::Tensor> tf_outputs1;
   std::vector<tensorflow::Tensor> tf_outputs2;
-
+  std::vector<tensorflow::Tensor> tf_outputs3;
   ASSERT_OK(tf_session.Run(
       {
-         {var_assign, var1_assign, var2_assign}
+         {var_assign, accum_assign}
       },
       &tf_outputs1));
-/*
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs2));
-  }
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({apply_gradient_descent}, &tf_outputs3));
+    ASSERT_OK(tf_session.Run({applymomentum_f}, &tf_outputs2));
   }
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs4));
-  }
-*/
-
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({applymomentum}, &tf_outputs2));
+for (int i = 0; i < 10; i++) {
+    ASSERT_OK(tf_session.Run({applymomentum_t}, &tf_outputs3));
   }
 
   Compare(tf_outputs1, ng_outputs1);
-  Compare(tf_outputs1, ng_outputs2);
+  Compare(tf_outputs2, ng_outputs2);
+  Compare(tf_outputs3, ng_outputs3);
 
   ActivateNGraph();
 }

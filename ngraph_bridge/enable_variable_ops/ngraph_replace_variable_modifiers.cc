@@ -274,7 +274,7 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
                              .Device(node->assigned_device_name())
                              .Finalize(graph, &accumassign_op));
       accumassign_op->set_assigned_device_name(node->assigned_device_name());
-	  
+	    NodeBuilder::NodeOut ndef_accumassign_op = NodeBuilder::NodeOut(accumassign_op, 0);
       //TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, mul_op));
 	  
    bool x;
@@ -318,7 +318,7 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
 	Node* mul_op_3;
     string new_name_mul_3 = node->name() + "_Mul3";
     TF_RETURN_IF_ERROR(NodeBuilder(new_name_mul_3, "Mul")
-                             .Input(input_accum)
+                             .Input(ndef_accumassign_op)
                              .Input(ndef_mul_op_2)
                              .Attr("T", dtype)
                              .Device(node->assigned_device_name())
@@ -364,7 +364,7 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
 	Node* mul_op_1;
     string new_name_mul_1 = node->name() + "_Mul1";
     TF_RETURN_IF_ERROR(NodeBuilder(new_name_mul_1, "Mul")
-                             .Input(input_accum)
+                             .Input(ndef_accumassign_op)
                              .Input(input_lr)
                              .Attr("T", dtype)
                              .Device(node->assigned_device_name())
