@@ -90,18 +90,30 @@ if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
 endif()
 
-target_link_libraries(
-    gtest_ngtf
-    ngraph_bridge_static
-    ngraph_lib
-    lib_cpu_backend_static
-    lib_interpreter_backend_static 
-    ngraph_lib
-    libgtest
-    pthread
-    ${TensorFlow_FRAMEWORK_LIBRARY}
-    tensorflow_cc_lib
-)
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    target_link_libraries(
+        gtest_ngtf
+        ngraph_bridge_static
+        ngraph_lib
+        lib_cpu_backend_static
+        lib_interpreter_backend_static 
+        ngraph_lib
+        libgtest
+        pthread
+        ${TensorFlow_FRAMEWORK_LIBRARY}
+        tensorflow_cc_lib
+    )
+else()
+    target_link_libraries(
+        gtest_ngtf
+        ngraph_bridge
+        ngraph_lib
+        libgtest
+        pthread
+        ${TensorFlow_FRAMEWORK_LIBRARY}
+        tensorflow_cc_lib
+    )
+endif()
 
 if (NGRAPH_PLAIDML_ENABLE)
     target_link_libraries(gtest_ngtf ${PLAIDML_LIBRARIES})

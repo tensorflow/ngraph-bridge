@@ -97,8 +97,10 @@ Status EncapsulateClusters(
   // A map from cluster indices to corresponding NGraphEncapsulate nodes.
   std::map<int, Node*> cluster_node_map;
 
-  // reference all the bridge ops for static library
+// reference all the bridge ops for static library
+#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
   register_ngraph_bridge();
+#endif
 
   // Pass 1: Populate the cluster-index-to-device name map for each existing
   // cluster. PIGGYBACKING BACKEND TEST HERE, THEY WILL GET COMBINED INTO ONE

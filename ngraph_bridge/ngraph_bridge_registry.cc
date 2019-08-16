@@ -23,11 +23,14 @@ namespace ngraph_bridge {
 // Dummy function for bridge specific ops
 // so when built static, the linker will include
 // all the object files which it would not do normally.
+#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
 void register_ngraph_bridge() {
-  register_ngraph_ops();
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+#ifdef NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS
   register_ngraph_enable_variable_ops();
+#else
+  register_ngraph_ops();
 #endif
 }
+#endif
 }
 }

@@ -101,7 +101,9 @@ REGISTER_OP("NGraphVariable")
     .SetIsStateful()
     .SetShapeFn(shape_inference::ExplicitShape);
 
+#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
 void register_ngraph_enable_variable_ops() {}
+#endif
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
