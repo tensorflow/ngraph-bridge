@@ -98,6 +98,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         lib_cpu_backend_static
         lib_interpreter_backend_static 
         ngraph_lib
+        dl
         libgtest
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
