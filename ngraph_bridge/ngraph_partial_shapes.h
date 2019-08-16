@@ -56,7 +56,7 @@ class PartialShape {
   // Any scalar is represented by {True, {}} by this class
 
  public:
-  PartialShape(std::vector<int> shape, bool valid = true);
+  PartialShape(std::vector<int> shape);
   PartialShape();
 
   PartialShape(const tensorflow::TensorShapeProto& tensor_shape_proto);
