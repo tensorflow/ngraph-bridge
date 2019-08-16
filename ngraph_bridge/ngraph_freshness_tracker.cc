@@ -26,11 +26,11 @@ namespace ngraph_bridge {
 
 void NGraphFreshnessTracker::MarkFresh(
     const void* base_pointer,
-    std::shared_ptr<ngraph::runtime::Executable>& user) {
+    const std::shared_ptr<ngraph::runtime::Executable>& user) {
   mutex_lock l(mu_);
   auto it = freshness_map_.find(base_pointer);
   if (it != freshness_map_.end()) {
-    it->second.insert(user.get());
+    it->second.insert(user);
   }
 }
 
@@ -42,7 +42,7 @@ bool NGraphFreshnessTracker::IsFresh(
   if (it == freshness_map_.end()) {
     return false;
   } else {
-    return (it->second.count(user.get() > 0);
+    return (it->second.count(user) > 0);
   }
 }
 
@@ -59,7 +59,7 @@ void NGraphFreshnessTracker::AddTensor(const void* base_pointer) {
   auto it = freshness_map_.find(base_pointer);
   if (it == freshness_map_.end()) {
     freshness_map_[base_pointer] =
-        std::set<ngraph::runtime::Executable*>{};
+        std::set<std::shared_ptr<ngraph::runtime::Executable>>{};
   }
 }
 
@@ -72,7 +72,7 @@ void NGraphFreshnessTracker::RemoveUser(
     const std::shared_ptr<ngraph::runtime::Executable>& user) {
   mutex_lock l(mu_);
   for (auto& kv : freshness_map_) {
-    kv.second.erase(user.get());
+    kv.second.erase(user);
   }
 }
 
