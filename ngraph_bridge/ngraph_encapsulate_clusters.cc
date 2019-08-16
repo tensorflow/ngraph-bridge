@@ -524,10 +524,10 @@ Status EncapsulateClusters(
   }
 
   // Pass 8:
-  bool aot_level;
+  bool aot_requested;
   std::set<std::map<std::string, vector<int>>> node_shapes_hints_sets;
-  std::tie(aot_level, node_shapes_hints_sets) = aot_info;
-  if (aot_level) {
+  std::tie(aot_requested, node_shapes_hints_sets) = aot_info;
+  if (aot_requested) {
     NGRAPH_VLOG(3) << "AOT requested";
     if (!ngraph_tf_is_grappler_enabled()) {
       return errors::Internal(
@@ -551,6 +551,14 @@ Status EncapsulateClusters(
 
     std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
     std::set<std::string> inputs_found;
+
+    for (auto node : graph->op_nodes()){
+      if (node->type_string() == input_node_type) {
+        
+      }
+    }
+    //node_shapes_hints_sets
+
     // Iterate over each shape hint and see if they can be used
     for (ShapeHintMap single_hint : node_shapes_hints_sets) {
       // A boolean to determine if we can AOT for this single_hint
@@ -681,6 +689,10 @@ Status EncapsulateClusters(
                 if (itr_shape == inputs_node_shapes_for_compilation.end()) {
                   cout << "in_node->name(): " << in_node->name() << "\n";
                   cout << "node->name(): " << node->name() << "\n";
+                  // TODO: this error could potentially happen due to 2 reasons:
+                  // 1. Enough valid shape hints were not passed
+                  // 2. It is an encapsulate that has atleast 1 input fed by a non-placeholder (like another TF node or another encapsulate)
+                  // Later provide more explicit debug message (reason 1 or 2 or anything else)
                   return errors::Internal(
                       "AOT requested. Found an encapsulate that has a "
                       "non-concrete input");
@@ -797,7 +809,7 @@ Status EncapsulateClusters(
         }
       }  // end of if (can_aot)
     }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
-  }      // end of if (aot_level > 0)
+  }      // end of if (aot_requested)
 
   // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and

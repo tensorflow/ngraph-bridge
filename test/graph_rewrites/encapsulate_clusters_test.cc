@@ -120,7 +120,10 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   free(fdeflib_new);
 }
 
-TEST(EncapsulateClusters, AOT) {
+TEST(EncapsulateClusters, AOT0) {
+  if (!ngraph_tf_is_grappler_enabled())
+        return;
+
   NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
 
@@ -129,23 +132,12 @@ TEST(EncapsulateClusters, AOT) {
   Node* node1;
   Node* node2;
 
-  if (ngraph_tf_is_grappler_enabled()) {
     ASSERT_OK(NodeBuilder("node1", "Placeholder")
                   .Attr("dtype", DT_FLOAT)
                   .Finalize(&g, &node1));
     ASSERT_OK(NodeBuilder("node2", "Placeholder")
                   .Attr("dtype", DT_FLOAT)
                   .Finalize(&g, &node2));
-  } else {
-    ASSERT_OK(NodeBuilder("node1", "_Arg")
-                  .Attr("index", 0)
-                  .Attr("T", DT_FLOAT)
-                  .Finalize(&g, &node1));
-    ASSERT_OK(NodeBuilder("node2", "_Arg")
-                  .Attr("index", 0)
-                  .Attr("T", DT_FLOAT)
-                  .Finalize(&g, &node2));
-  }
 
   Node* node3;
   ASSERT_OK(NodeBuilder("node3", "Add")
@@ -157,7 +149,6 @@ TEST(EncapsulateClusters, AOT) {
                 .Attr("_ngraph_backend", "INTERPRETER")
                 .Finalize(&g, &node3));
   Node* node4;
-  if (ngraph_tf_is_grappler_enabled()) {
     std::vector<NodeBuilder::NodeOut> inputs;
     std::vector<DataType> input_types;
     inputs.push_back(NodeBuilder::NodeOut(node3, 0));
@@ -166,14 +157,13 @@ TEST(EncapsulateClusters, AOT) {
                   .Input(inputs)
                   .Attr("T", input_types)
                   .Finalize(&g, &node4));
-  }
+  
 
   Node* source = g.source_node();
   Node* sink = g.sink_node();
   g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
-  g.AddEdge(ngraph_tf_is_grappler_enabled() ? node4 : node3,
-            Graph::kControlSlot, sink, Graph::kControlSlot);
+  g.AddEdge(node4,Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
@@ -184,7 +174,7 @@ TEST(EncapsulateClusters, AOT) {
   for (int i = 0; i < num_cases; i++) {
     ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
                                   {{"ngraph_device_id", ""}},
-                                  make_pair(1, node_shapes_hints_vect[i])));
+                                  make_pair(true, node_shapes_hints_vect[i])));
 
     int num_encapsulates = 0;
     int num_tf_nodes = 0;
@@ -219,7 +209,76 @@ TEST(EncapsulateClusters, AOT) {
   free(fdeflib_new);
 }
 
-// TODO: do unit tests for AOT level 1 and level 2
+
+// TODO: populate AOT11 with tests etc.
+TEST(EncapsulateClusters, AOT1) {
+  if (!ngraph_tf_is_grappler_enabled())
+        return; // GTEST_SKIP() did not compile
+  NGraphClusterManager::EvictAllClusters();
+  Graph g(OpRegistry::Global());
+
+  int cluster_idx = NGraphClusterManager::NewCluster();
+
+  Node* node1;
+  Node* node2;
+  
+    ASSERT_OK(NodeBuilder("node1", "Placeholder")
+                  .Attr("dtype", DT_FLOAT)
+                  .Finalize(&g, &node1));
+    ASSERT_OK(NodeBuilder("node2", "Placeholder")
+                  .Attr("dtype", DT_FLOAT)
+                  .Finalize(&g, &node2));
+
+  Node* node3;
+  ASSERT_OK(NodeBuilder("node3", "Add")
+                .Input(node1, 0)
+                .Input(node2, 0)
+                .Attr("T", DT_FLOAT)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx)
+                .Attr("_ngraph_backend", "INTERPRETER")
+                .Finalize(&g, &node3));
+
+  Node* node4;
+  cluster_idx = NGraphClusterManager::NewCluster();
+  ASSERT_OK(NodeBuilder("node4", "Abs")
+                .Input(node3, 0)
+                .Attr("T", DT_FLOAT)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx)
+                .Attr("_ngraph_backend", "INTERPRETER")
+                .Finalize(&g, &node4));
+
+  Node* node5;
+    std::vector<NodeBuilder::NodeOut> inputs;
+    std::vector<DataType> input_types;
+    inputs.push_back(NodeBuilder::NodeOut(node4, 0));
+    input_types.push_back(node3->output_type(0));
+    ASSERT_OK(NodeBuilder("node5", "IdentityN")
+                  .Input(inputs)
+                  .Attr("T", input_types)
+                  .Finalize(&g, &node5));
+
+  Node* source = g.source_node();
+  Node* sink = g.sink_node();
+  g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+  g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
+
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+
+  std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {{}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
+  //std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {{}};
+  int num_cases = node_shapes_hints_vect.size();
+  for (int i = 0; i < num_cases; i++) {
+    ASSERT_NOT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
+                                  {{"ngraph_device_id", ""}},
+                                  make_pair(true, node_shapes_hints_vect[i])));
+  }
+
+  free(fdeflib_new);
+}
+
 
 // TODO: more test cases:
 // what of scalar inputs. placeholder shape is {}?
