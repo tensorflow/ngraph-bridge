@@ -581,9 +581,7 @@ Status EncapsulateClusters(
       }
     }
 
-    // We have read the shapes in Placeholders and inserted them in the set of
-    // hints. This takes care of the case when non hint is provided, but the
-    // shape is already fully specified in the Placeholders
+    // TODO: write why this line is needed
     node_shapes_hints_sets.insert(shape_from_placeholders_as_hints);
 
     // Iterate over each shape hint and see if they can be used
@@ -598,6 +596,8 @@ Status EncapsulateClusters(
 
           PartialShape shape_hint_for_node =
               get_shape_for_node_from_shape_hint(node, single_hint);
+          cout << "======= " << shape_hint_for_node.to_string() << "\n";
+          cout << "xxxxx" << partial_shape_from_node.to_string() << "\n";
 
           // If a shape has been found in the input node, match with
           // shape_hints if they exist
@@ -732,18 +732,13 @@ Status EncapsulateClusters(
                 input_shapes, static_input_map, &graph_for_current_encapsulate,
                 ng_function));
 
-            // TODO. change attribute from "_ngraph_aot_" + signature to:
-            // 1: "_ngraph_aot_L1_" + signature
-            // 1: "_ngraph_aot_L2_" + signature
-            // To indicate that its a ngfunction or ng exec AOT
-            // compile upto ngexec
-
             // get backend.
             // TODO: Note that this is code duplication of some stuff present
             // in NGraphEncapsulateOp
             // Once NGraphEncapsulateOp is refactored, this code should be
             // removed and a common function should be used
 
+            // TODO: these sections can be hoisted out of the main loop
             std::string backend_name;
             TF_RETURN_IF_ERROR(
                 GetNodeAttr(node->attrs(), "ngraph_backend", &backend_name));
@@ -773,8 +768,11 @@ Status EncapsulateClusters(
               // '_ngraph_' is only appended for the bridge.
               // For e.g. _ngraph_ice_cores --> ice_cores
               if (itr.first.find("_ngraph_") != std::string::npos) {
-                additional_attribute_map.insert(
-                    {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
+                // leave out _ngraph_aot_requested
+                if (attr_name.find("_ngraph_aot_requested") != std::string::npos){
+                  additional_attribute_map.insert(
+                      {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
+                }
               }
             }
             BackendManager::SetConfig(op_backend_name,
