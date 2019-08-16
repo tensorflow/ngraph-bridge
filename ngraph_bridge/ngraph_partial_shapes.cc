@@ -80,7 +80,7 @@ void PartialShape::concretize(const PartialShape& shape_hint) {
   } else {
     for (int i = 0; i < base_rank; i++) {
       if (m_shape[i] != shape_hint[i]) {
-        if (m_shape[i] == -1){
+        if (m_shape[i] == -1) {
           m_shape[i] = shape_hint[i];
         } else {
           if (shape_hint[i] != -1) {

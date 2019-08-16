@@ -36,13 +36,12 @@ namespace testing {
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 TEST(PartialShapes, Concretize) {
-    PartialShape p1({2,-1});
-    PartialShape p2({-1,3});
-    cout << p1.is_valid() << "\n";
-    p1.concretize(p2);
-    bool result = p1.is_valid();
-    cout << "result " << result;
-
+  PartialShape p1({2, -1});
+  PartialShape p2({-1, 3});
+  cout << p1.is_valid() << "\n";
+  p1.concretize(p2);
+  bool result = p1.is_valid();
+  cout << "result " << result;
 }
 
 }  // namespace testing

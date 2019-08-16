@@ -46,13 +46,12 @@ class PartialShape {
   //         \     \       /     /
   //           ---- (-1,-1) ----
   //
-  // The PartialShape allows only 2 functionsthat modify the state of the object:
+  // The PartialShape allows only 2 functionsthat modify object state
   // Copy assignment (=) and concretize()
   // Subsequent calls to concretize() can only make one move up the lattice.
   // Copy assignment can reset the state of teh object arbitrarily
 
   // The class is not thread safe
-
 
  public:
   PartialShape(std::vector<int> shape, bool valid = true);
