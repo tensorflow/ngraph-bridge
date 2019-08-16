@@ -184,13 +184,6 @@ class NGraphEncapsulateOp : public OpKernel {
           // _ngraph_aot_ngfunction_signature or _ngraph_aot_requested
           // TODO: do not pass these 3 attributes to set_config of backend
           if (attr_name.find("_ngraph_aot_ngexec_") != std::string::npos) {
-            cout << "\n==========\n"
-                 << "USING AOT"
-                 << "\n==========\n";
-            // TODO: id m_do_aot to be determined by presence of atleast 1
-            // _ngraph_aot_ngexec_ or by a separate flag
-            // I think separate flag. One could intend AOT, but not send any
-            // _ngraph_aot_ngexec_,which should throw an error
             m_aot_execs[ng::split(attr_name, '_')[4]] = attr_value;
           } else if (attr_name.find("_ngraph_aot_ngfunction_") !=
                      std::string::npos) {
@@ -200,6 +193,9 @@ class NGraphEncapsulateOp : public OpKernel {
             m_aot_functions[ng::split(attr_name, '_')[4]] = attr_value;
           } else if (attr_name.find("_ngraph_aot_requested") !=
                      std::string::npos) {
+            cout << "\n==========\n"
+                 << "USING AOT"
+                 << "\n==========\n";
             m_do_aot = true;
           } else {
             OP_REQUIRES_OK(
@@ -218,6 +214,14 @@ class NGraphEncapsulateOp : public OpKernel {
               {attr_name.substr(strlen("_ngraph_")), attr_value});
         }
       }
+    }
+
+    if (((m_aot_functions.size() > 0) || (m_aot_execs.size() > 0)) &&
+        !m_do_aot) {
+      OP_REQUIRES_OK(
+          ctx, errors::Internal("The encapsulate ", name(),
+                                " has ngraph functions or executables embedded "
+                                "in it, even though AOT was not requested."));
     }
 
     // Concatenate the backend_name:device_id
