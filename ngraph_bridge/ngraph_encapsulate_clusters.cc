@@ -552,6 +552,7 @@ Status EncapsulateClusters(
     std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
     // map between node name and the PartialShape it contains
     std::map<std::string, PartialShape> node_partial_shape_map;
+    // This is a map of placeholder names and the shapes we can infer from them
     std::map<std::string, vector<int>> shape_from_placeholders_as_hints;
     for (auto node : graph->op_nodes()) {
       if (node->type_string() == input_node_type) {
@@ -581,9 +582,8 @@ Status EncapsulateClusters(
     }
 
     // We have read the shapes in Placeholders and inserted them in the set of
-    // hints.
-    // This takes care of the case when non hint is provided, but the shape is
-    // already fully specified in the Placeholders
+    // hints. This takes care of the case when non hint is provided, but the
+    // shape is already fully specified in the Placeholders
     node_shapes_hints_sets.insert(shape_from_placeholders_as_hints);
 
     // Iterate over each shape hint and see if they can be used
