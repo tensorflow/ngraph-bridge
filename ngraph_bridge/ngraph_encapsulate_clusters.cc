@@ -550,14 +550,41 @@ Status EncapsulateClusters(
     };
 
     std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
-    std::set<std::string> inputs_found;
-
-    for (auto node : graph->op_nodes()){
+    // map between node name and the PartialShape it contains
+    std::map<std::string, PartialShape> node_partial_shape_map;
+    // This is a map of placeholder names and the shapes we can infer from them
+    std::map<std::string, vector<int>> shape_from_placeholders_as_hints;
+    for (auto node : graph->op_nodes()) {
       if (node->type_string() == input_node_type) {
-        
+        NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
+                       << node->type_string()
+                       << "): " << node->attrs().SummarizeNode();
+        // TODO: need to confirm if its _output_shapes or shape
+        auto shape_field = node->attrs().Find("_output_shapes");
+        if (shape_field == nullptr) {
+          shape_field = node->attrs().Find("shape");
+        }
+        // It seems that _output_shapes is not found and hence the shape is
+        // inferred only from the hints. however if "shape" is present, it is
+        // empty, and in that case the empty shape and the rank!=0 hint fuse
+        // to give an invalid shape according to our current logic. have to
+        // modify that
+        PartialShape partial_shape_from_node;
+        if (shape_field != nullptr) {
+          // Get shape from the node
+          partial_shape_from_node = PartialShape(shape_field->shape());
+        }
+        NGRAPH_VLOG(5) << partial_shape_from_node.to_string();
+        node_partial_shape_map.insert({node->name(), partial_shape_from_node});
+        shape_from_placeholders_as_hints.insert(
+            {node->name(), partial_shape_from_node.get_shape_vector()});
       }
     }
-    //node_shapes_hints_sets
+
+    // We have read the shapes in Placeholders and inserted them in the set of
+    // hints. This takes care of the case when non hint is provided, but the
+    // shape is already fully specified in the Placeholders
+    node_shapes_hints_sets.insert(shape_from_placeholders_as_hints);
 
     // Iterate over each shape hint and see if they can be used
     for (ShapeHintMap single_hint : node_shapes_hints_sets) {
@@ -565,38 +592,9 @@ Status EncapsulateClusters(
       bool can_aot = true;
 
       for (auto node : graph->op_nodes()) {
-        // Assumes that shapes are provided only for placeholders not for _Arg
-        // (TODO: this may be incorrect)
-        // Note sometimes, maybe the placeholder itself has the shape. we can
-        // AOT in that case
         if (node->type_string() == input_node_type) {
-          inputs_found.insert(node->name());
-          NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
-                         << node->type_string()
-                         << "): " << node->attrs().SummarizeNode();
-          // TODO: need to confirm if its _output_shapes or shape
-          auto shape_field = node->attrs().Find("_output_shapes");
-          if (shape_field == nullptr) {
-            shape_field = node->attrs().Find("shape");
-          }
-          // It seems that _output_shapes is not found and hence the shape is
-          // inferred only from the hints. however if "shape" is present, it is
-          // empty, and in that case the empty shape and the rank!=0 hint fuse
-          // to give an invalid shape according to our current logic. have to
-          // modify that
-          PartialShape partial_shape_from_node;
-          if (shape_field != nullptr) {
-            cout << "shape_field != nullptr,,,,,,,\n";
-            // Get shape from the node
-            partial_shape_from_node = PartialShape(shape_field->shape());
-            cout << partial_shape_from_node.to_string() << "--+++++-\n";
-          }
-          cout << partial_shape_from_node.to_string() << "--+++++-\n";
-
-          for (auto it : single_hint) {
-            cout << it.first << "====\n";
-            cout << node->name() << "\n";
-          }
+          PartialShape partial_shape_from_node =
+              node_partial_shape_map.at(node->name());
 
           PartialShape shape_hint_for_node =
               get_shape_for_node_from_shape_hint(node, single_hint);
@@ -653,11 +651,11 @@ Status EncapsulateClusters(
       }    // End of for loop that goes through all nodes
 
       // Did we manage to concretize all input shapes?
-      for (auto itr : inputs_found) {
-        if (inputs_node_shapes_for_compilation.find(itr) ==
+      for (auto itr : node_partial_shape_map) {
+        if (inputs_node_shapes_for_compilation.find(itr.first) ==
             inputs_node_shapes_for_compilation.end()) {
           // TODO: print "this" hint
-          NGRAPH_VLOG(3) << "Cannot AOT using this hint for " << itr
+          NGRAPH_VLOG(3) << "Cannot AOT using this hint for " << (itr.first)
                          << " was not concretized";
           can_aot = false;
           break;
@@ -691,8 +689,11 @@ Status EncapsulateClusters(
                   cout << "node->name(): " << node->name() << "\n";
                   // TODO: this error could potentially happen due to 2 reasons:
                   // 1. Enough valid shape hints were not passed
-                  // 2. It is an encapsulate that has atleast 1 input fed by a non-placeholder (like another TF node or another encapsulate)
-                  // Later provide more explicit debug message (reason 1 or 2 or anything else)
+                  // 2. It is an encapsulate that has atleast 1 input fed by a
+                  // non-placeholder (like another TF node or another
+                  // encapsulate)
+                  // Later provide more explicit debug message (reason 1 or 2 or
+                  // anything else)
                   return errors::Internal(
                       "AOT requested. Found an encapsulate that has a "
                       "non-concrete input");
