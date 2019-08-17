@@ -186,13 +186,12 @@ def train_mnist_cnn(FLAGS):
     tf.summary.scalar('Training accuracy', accuracy)
     tf.summary.scalar('Loss function', cross_entropy)
 
-    graph_location = os.environ['NGRAPH_TF_NGRAPH_PATH'] if 'NGRAPH_TF_NGRAPH_PATH' in os.environ else './events'
+    graph_location = os.environ['NGRAPH_TF_TB_LOGDIR'] if 'NGRAPH_TF_TB_LOGDIR' in os.environ else './events'
     
     print('Saving graph to: %s' % graph_location)
 
     merged = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter(graph_location)
-
     train_writer.add_graph(tf.get_default_graph())
 
     saver = tf.train.Saver()
@@ -258,7 +257,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--train_loop_count',
         type=int,
-        default=1000,
+        default=10000,
         help='Number of training iterations')
 
     parser.add_argument('--batch_size', type=int, default=50, help='Batch Size')

@@ -40,8 +40,12 @@
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
+
 #include "tensorflow/core/util/events_writer.h"
 #include "tensorflow/core/util/event.pb.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/file_system.h"
+#include "tensorflow/core/lib/io/record_writer.h"
 
 #include "version.h"
 
@@ -445,14 +449,14 @@ Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx)
     mkdir(str_path.c_str(), 0777);
   }
   
-  str_path += "tfevent" + to_string(file_idx);
+  str_path += ("tfevent" + to_string(file_idx));
 
   CreateSummaryFromGraphDef(graph_def, str_path); // create tensorflow event
 
   return Status::OK();
 }
 
-Status UpdateComputeTime(int file_idx)
+Status UpdateComputeTime(int file_idx, std::string cluster, int step, int compute_time)
 {
   const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
 
@@ -461,28 +465,71 @@ Status UpdateComputeTime(int file_idx)
     return Status::OK();
   }
 
-  std::string dir_path(path);
-  if (dir_path.back() != '/')
+  std::string str_path(path);
+  if (str_path.back() != '/')
   {
-    dir_path += "/";
+    str_path += "/";
   }
 
-  dir_path += ("run" + to_string(file_idx) + "/");
+  str_path += ("stats" + to_string(file_idx) + "/");
 
-  DIR* dir = opendir(dir_path.c_str());
+  struct stat buffer;
+  if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
+  {
+    mkdir(str_path.c_str(), 0777);
+  }
+
+  DIR* dir = opendir(str_path.c_str());
   struct dirent* dp;
   vector<std::string> files;
 
   while ((dp = readdir(dir)) != nullptr)
   {
-    files.push_back(std::string(dp->d_name));
+    if (dp->d_type == DT_REG) // only look for files
+    {
+      files.push_back(std::string(dp->d_name));
+    }
   }
   closedir(dir);
 
-  std::sort(files.begin(), files.end()); // sort files names in order of recency (least recent --> most recent)
-  std::string file_path = dir_path + files.back(); // get most recent tensorflow event file to update
+  tensorflow::Event event;
+  tensorflow::Summary::Value* summary_value;
 
-  // open tf event file at location file_path  
+  if (files.empty())
+  {
+    str_path += ("stats" + to_string(file_idx));
+
+    tensorflow::EventsWriter writer(str_path);
+
+    event.set_step(step);
+    summary_value = event.mutable_summary()->add_value();
+    summary_value->set_tag("Compute Time (ms)/" + cluster);
+    summary_value->set_simple_value((float) compute_time);
+    writer.WriteEvent(event);
+
+    return Status::OK();
+  }
+
+  std::sort(files.begin(), files.end()); // sort files names in order of recency (least recent --> most recent)
+  std::string file_path = str_path + files.back(); // get most recent tensorflow event file to update
+
+  /*
+   * open tf event file at location file_path 
+   */
+
+  tensorflow::Env* env = Env::Default();
+  std::unique_ptr<tensorflow::WritableFile> writable_file;
+
+  env->NewAppendableFile(file_path, &writable_file);
+  tensorflow::io::RecordWriter record_writer(writable_file.get());
+
+  event.set_step(step);
+  summary_value = event.mutable_summary()->add_value();
+  summary_value->set_tag("Compute Time (ms)/" + cluster);
+  summary_value->set_simple_value((float) compute_time);
+
+  record_writer.WriteRecord(event.SerializeAsString());
+  record_writer.Flush();
 
   return Status::OK();
 }

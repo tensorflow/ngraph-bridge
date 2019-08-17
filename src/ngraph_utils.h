@@ -25,6 +25,7 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/platform/tensor_coding.h"
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
+#include "tensorflow/core/platform/env.h"
 
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/ngraph.hpp"
@@ -323,7 +324,7 @@ bool DumpTrackedGraphs();
 
 Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx);
 
-Status UpdateComputeTime(int file_idx);
+Status UpdateComputeTime(int file_idx, std::string cluster, int step, int compute_time);
 
 Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix);
 
