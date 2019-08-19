@@ -53,10 +53,10 @@ TEST(EncapsulateOp, ComputeSignature) {
     input_tensors.push_back(input_data);
   }
   int size = 4;
-  ng_encap_impl.ResizeStatic(size);
+  ng_encap_impl.ResizeStaticInputVector(size);
 
   for (int i = 0; i < size; i++) {
-    ng_encap_impl.SetStatic(i, false);
+    ng_encap_impl.SetStaticInputVector(i, false);
   }
 
   for (int i = 0; i < input_tensors.size(); i++) {
@@ -89,10 +89,10 @@ TEST(EncapsulateOp, GetNgExecutable) {
     input_tensors.push_back(input_data);
   }
   int size = 4;
-  ng_encap_impl.ResizeStatic(size);
+  ng_encap_impl.ResizeStaticInputVector(size);
 
   for (int i = 0; i < size; i++) {
-    ng_encap_impl.SetStatic(i, false);
+    ng_encap_impl.SetStaticInputVector(i, false);
   }
 
   for (int i = 0; i < input_tensors.size(); i++) {
@@ -111,6 +111,8 @@ TEST(EncapsulateOp, GetNgExecutable) {
 
   ASSERT_OK(ng_encap_impl.GetNgExecutable(
       input_tensors, input_shapes, static_input_map, op_backend, ng_exec));
+
+  BackendManager::ReleaseBackend(op_backend);
 }
 
 // Test: Allocating ngraph input tensors
@@ -146,6 +148,7 @@ TEST(EncapsulateOp, AllocateNGInputTensors) {
 
   ASSERT_OK(ng_encap_impl.AllocateNGInputTensors(input_tensors, ng_exec,
                                                  op_backend, ng_inputs));
+  BackendManager::ReleaseBackend(op_backend);
 }
 
 // Test: Allocating ngraph output tensors
@@ -186,6 +189,8 @@ TEST(EncapsulateOp, AllocateNGOutputTensors) {
 
   ASSERT_OK(ng_encap_impl.AllocateNGOutputTensors(output_tensors, ng_exec,
                                                   op_backend, ng_outputs));
+
+  BackendManager::ReleaseBackend(op_backend);
 }
 }
 }

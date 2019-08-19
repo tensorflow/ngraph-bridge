@@ -133,10 +133,10 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   }
 
   int size = max_arg_index + 1;
-  ng_encap_impl.ResizeStatic(size);
+  ng_encap_impl.ResizeStaticInputVector(size);
 
   for (int i = 0; i < size; i++) {
-    ng_encap_impl.SetStatic(i, false);
+    ng_encap_impl.SetStaticInputVector(i, false);
   }
 
   // Fill the vector.
@@ -160,7 +160,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       }
     }
     NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
-    ng_encap_impl.SetStatic(index, is_static);
+    ng_encap_impl.SetStaticInputVector(index, is_static);
   }
 
   // Set the backend type for the op
@@ -232,7 +232,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   // Remove Entries from Catalog
   // Remove entries related to outputs
-  for (int i = 0; i < ng_encap_impl.GetOutputs(); i++) {
+  for (int i = 0; i < ng_encap_impl.GetNumberOfOutputs(); i++) {
     string key =
         NGraphCatalog::CreateNodeKey(ng_encap_impl.GetGraphId(), name(), i);
     if (NGraphCatalog::ExistsInEncapOutputInfoMap(key)) {
@@ -246,7 +246,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
                                                      name());
 
   // Remove entries related to inputs
-  for (int i = 0; i < ng_encap_impl.GetOutputs(); i++) {
+  for (int i = 0; i < ng_encap_impl.GetNumberOfOutputs(); i++) {
     string key =
         NGraphCatalog::CreateNodeKey(ng_encap_impl.GetGraphId(), name(), i);
     if (NGraphCatalog::ExistsInInputVariableSharedNameMap(key)) {
@@ -382,33 +382,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         errors::Internal("Element type inferred by nGraph does not match "
                          "the element type expected by TensorFlow"));
   }
-// if the output tensor is going to be assigned to a variable
-// we ask nGraph to provide the output directly in the variable tensor
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  if (NGraphCatalog::ExistsInEncapOutputInfoMap(ng_encap_impl.GetGraphId(),
-                                                name(), i)) {
-    string output_key =
-        NGraphCatalog::CreateNodeKey(ng_encap_impl.GetGraphId(), name(), i);
-    string ref_var_name =
-        NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(output_key);
-    NGraphVar* var;
-    OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
-                            ctx->resource_manager()->default_container(),
-                            ref_var_name, &var));
-    current_ng_tensor = var->ng_tensor();
 
-    // There might be scenarios where the input and output tensors are the
-    // same.The staleness determined for the input tensor should be the
-    // final staleness for the given tensor. The staleness of output
-    // tensor should not matter as this tensor is meant to be
-    // overwritten with the computed value.
-    // So not setting staleness here.
-    output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
-    var->Unref();
-    ng_outputs.push_back(current_ng_tensor);
-    continue;
-  }
-#endif
   OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGOutputTensors(
                           tf_output_tensors, ng_exec, op_backend, ng_outputs));
   auto output_caches = ng_encap_impl.GetNgExecOutputCacheMap(ng_exec);
@@ -427,7 +401,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       "Get Variable Inputs from Resource Manager", name(), "");
 
   // Dealing with the input from Variable nodes here
-  for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
+  for (int input_index = 0; input_index < ng_encap_impl.GetNumberOfInputs();
+       input_index++) {
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
         ng_encap_impl.GetGraphId(), def().name(), input_index);
 
@@ -518,18 +493,18 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   Timer copy_output_tensors_to_host;
 
   try {
-    size_t output_tensor_count = output_caches.size();
+    size_t output_tensor_count = ng_encap_impl.GetNumberOfOutputs();
     std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    if (ng_encap_impl.GetOutputs() == -1) {
+    if (ng_encap_impl.GetNumberOfOutputs() == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-      ng_encap_impl.SetOutputs(output_caches.size());
+      ng_encap_impl.SetNumberOfOutputs(output_caches.size());
     }
-    if (ng_encap_impl.GetOutputs() == -1) {
+    if (ng_encap_impl.GetNumberOfOutputs() == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-      ng_encap_impl.SetOutputs(ng_outputs.size());
+      ng_encap_impl.SetNumberOfOutputs(ng_outputs.size());
       NGRAPH_VLOG(4) << "Setting number of inputs for " << def().name();
-      ng_encap_impl.SetInputs(ng_inputs.size());
+      ng_encap_impl.SetNumberOfInputs(ng_inputs.size());
     }
     for (size_t i = 0; i < output_tensor_count; ++i) {
       // Sync the Var Tensor if required
@@ -552,7 +527,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         if (NGraphCatalog::GetCopyToTFFromEncapOutputInfoMap(output_key)) {
           if (var->copy_ng_to_tf()) {
             int copies = ng_encap_impl.GetNumberOfCopies();
-            SetNumberOfCopies(copies++);
+            ng_encap_impl.SetNumberOfCopies(copies++);
             ng_encap_impl.SetCopyLog(" COPY_TF ");
           }
           if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
@@ -573,7 +548,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           NGraphCatalog::EncapOutputIndexNeedsCopy(ng_encap_impl.GetGraphId(),
                                                    def().name(), i)) {
         int copies = ng_encap_impl.GetNumberOfCopies();
-        SetNumberOfCopies(copies++);
+        ng_encap_impl.SetNumberOfCopies(copies++);
         stringstream log;
         log << " COPY_OP_VAL[" << i << "]";
         ng_encap_impl.SetCopyLog(log.str());
@@ -638,7 +613,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Mark input tensors as fresh for the next time around.
   // Note: these ng_tensors are being marked fresh so that in the next
   // iteration if this encapsulate finds the tensor fresh, then it will use it
-  for (int i = 0; i < input_shapes.size(); i++) {
+  for (int i = 0; i < ng_encap_impl.GetNumberOfInputs(); i++) {
     void* src_ptr = (void*)DMAHelper::base(&ctx->input(i));
     ng_encap_impl.GetNgraphFreshnessTracker()->MarkFresh(src_ptr, ng_exec);
   }

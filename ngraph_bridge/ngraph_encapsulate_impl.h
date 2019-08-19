@@ -100,13 +100,13 @@ class NGraphEncapsulateImpl {
 
   const int& GetFunctionCache() { return my_function_cache_depth_in_items; }
 
-  const int& GetOutputs() { return m_number_outputs; }
+  const int& GetNumberOfOutputs() { return m_number_outputs; }
 
-  void SetOutputs(const int& n) { m_number_outputs = n; }
+  void SetNumberOfOutputs(const int& n) { m_number_outputs = n; }
 
-  const int& GetInputs() { return m_number_inputs; }
+  const int& GetNumberOfInputs() { return m_number_inputs; }
 
-  void SetInputs(const int& n) { m_number_inputs = n; }
+  void SetNumberOfInputs(const int& n) { m_number_inputs = n; }
 
   const int& GetInstanceId() { return my_instance_id; }
 
@@ -124,10 +124,12 @@ class NGraphEncapsulateImpl {
 
   void SetCopyLog(const string& str) { copy_log_str.str() = str; }
 
-  const std::vector<bool> GetStatic() { return m_input_is_static; }
+  const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
 
-  void ResizeStatic(const int& size) { m_input_is_static.resize(size); }
-  void SetStatic(const int& index, bool value) {
+  void ResizeStaticInputVector(const int& size) {
+    m_input_is_static.resize(size);
+  }
+  void SetStaticInputVector(const int& index, bool value) {
     m_input_is_static[index] = value;
   }
 

@@ -89,7 +89,7 @@ Status NGraphEncapsulateImpl::ComputeSignature(
   static_input_map.resize(tf_input_tensors.size());
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     const Tensor& input_tensor = tf_input_tensors[i];
-    if (GetStatic()[i]) {
+    if (m_input_is_static[i]) {
       static_input_map[i] = &input_tensor;
       TF_RETURN_IF_ERROR(TensorToStream(signature_ss, input_tensor));
       signature_ss << ";";
@@ -111,25 +111,24 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
   std::shared_ptr<ngraph::Function> ng_function;
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
-  NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: " << GetOpBackend();
-  op_backend = BackendManager::GetBackend(GetOpBackend());
+  NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: "
+                 << m_op_backend_name;
+  op_backend = BackendManager::GetBackend(m_op_backend_name);
 
   // Compute Signature
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,
                                       static_input_map, signature_ss));
   signature = signature_ss.str();
 
-  if (NGRAPH_VLOG_IS_ON(5)) {
-    NGRAPH_VLOG(5) << "Computed signature: " << signature;
-  }
+  NGRAPH_VLOG(5) << "Computed signature: " << signature;
 
-  auto it = GetNgExecMap().find(signature);
+  auto it = m_ng_exec_map.find(signature);
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
-                 << GetNgraphCluster();
+                 << m_ngraph_cluster;
 
   // Translate the TensorFlow graph to nGraph.
-  if (it == GetNgExecMap().end()) {
+  if (it == m_ng_exec_map.end()) {
     // Measure the current total memory usage
     long vm, rss, vm0, rss0;
     MemoryProfile(vm0, rss0);
@@ -159,11 +158,11 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     if (cache_depth_specified != nullptr) {
       my_function_cache_depth_in_items = atoi(cache_depth_specified);
     }
-    if (GetNgExecMap().size() >= GetFunctionCache()) {
+    if (m_ng_exec_map.size() >= my_function_cache_depth_in_items) {
       int input_tensors_bytes_free = 0;
-      evicted_ng_exec = GetNgExecMap()[m_lru.back()];
-      GetNgExecMap().erase(m_lru.back());
-      GetNgFunctionMap().erase(evicted_ng_exec);
+      evicted_ng_exec = m_ng_exec_map[m_lru.back()];
+      m_ng_exec_map.erase(m_lru.back());
+      m_ng_function_map.erase(evicted_ng_exec);
 
       // Call delete function here for the erased func
       op_backend->remove_compiled_function(evicted_ng_exec);
@@ -178,7 +177,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
       // Clean the output cache
       std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-          output_caches = GetNgExecOutputCacheMap(evicted_ng_exec);
+          output_caches = m_ng_exec_output_cache_map[evicted_ng_exec];
       int output_tensors_bytes_free = 0;
       for (auto& next_output : output_caches) {
         output_tensors_bytes_free += next_output.second->get_size_in_bytes();
@@ -186,29 +185,29 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       }
       m_ng_exec_output_cache_map.erase(evicted_ng_exec);
       m_lru.pop_back();
-      NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << GetInstanceId()
+      NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << my_instance_id
                      << " Cluster: " << m_name << " Input Tensors freed: "
                      << input_tensors_bytes_free / (1024 * 1024) << " MB"
                      << " Output Tensors freed: "
                      << output_tensors_bytes_free / (1024 * 1024) << " MB";
     }  // cache eviction if cache size greater than cache depth
 
-    BackendManager::LockBackend(GetOpBackend());
+    BackendManager::LockBackend(m_op_backend_name);
 
     ngraph::Event event_compile("Compile nGraph", m_name, "");
     try {
       ng_exec = op_backend->compile(ng_function);
     } catch (const std::exception& exp) {
-      BackendManager::UnlockBackend(GetOpBackend());
+      BackendManager::UnlockBackend(m_op_backend_name);
       NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
     } catch (...) {
-      BackendManager::UnlockBackend(GetOpBackend());
+      BackendManager::UnlockBackend(m_op_backend_name);
       NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
       return errors::Internal("Error in compiling op_backend\n");
     }
-    BackendManager::UnlockBackend(GetOpBackend());
+    BackendManager::UnlockBackend(m_op_backend_name);
     event_compile.Stop();
     ngraph::Event::write_trace(event_compile);
 
@@ -221,8 +220,8 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     MemoryProfile(vm, rss);
     auto delta_vm_mem = vm - vm0;
     auto delta_res_mem = rss - rss0;
-    NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << GetInstanceId()
-                   << " Cache length: " << GetNgExecMap().size()
+    NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
+                   << " Cache length: " << m_ng_exec_map.size()
                    << "  Cluster: " << m_name << " Delta VM: " << delta_vm_mem
                    << "  Delta RSS: " << delta_res_mem
                    << "  Function size: " << function_size
@@ -259,14 +258,14 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
   std::stringstream copy_log_str;
   copy_log_str << "["
                << "NGraphEncapsulate:"
-               << "]: " << m_name << " ,GraphID " << GetGraphId() << "\n";
+               << "]: " << m_name << " ,GraphID " << m_graph_id << "\n";
   number_of_copies = 0;
 #endif
 
   for (int i = 0; i < tf_input_tensors.size(); i++) {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-        GetGraphId(), m_name, i);
+        m_graph_id, m_name, i);
 
     // If the input is from a Variable node, we are dealing with later
     // just add a nullptr to the ng_inputs vector.
@@ -295,13 +294,13 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
         GetCurrentNgTensor(current_src_ptr, last_src_ptr, last_ng_tensor, false,
                            ng_exec, op_backend, ng_element_type, ng_shape);
-    bool is_cpu = GetOpBackend() == "CPU";
+    bool is_cpu = m_op_backend_name == "CPU";
 
     if (!is_cpu && current_ng_tensor->get_stale()) {
       // Fresh or stale, in case of CPU this step is never needed
       try {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-        int copies = GetNumberOfCopies();
+        int copies = number_of_copies;
         SetNumberOfCopies(copies++);
         copy_log_str << " COPY_INP_VAL[" << i << "]";
 #endif
@@ -344,7 +343,7 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     ng::runtime::Backend* op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs) {
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-      output_caches = GetNgExecOutputCacheMap(ng_exec);
+      output_caches = m_ng_exec_output_cache_map[ng_exec];
   output_caches.resize(ng_exec->get_results().size());
 
   // ngraph executable returns get_results, using that to get the tensor shape
@@ -359,9 +358,36 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
         output_caches[i].second;
 
     void* current_dst_ptr = DMAHelper::base(output_tensors[i]);
-    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
-        GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
-                           ng_exec, op_backend, ng_element_type, ng_shape);
+    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
+
+// if the output tensor is going to be assigned to a variable
+// we ask nGraph to provide the output directly in the variable tensor
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    if (NGraphCatalog::ExistsInEncapOutputInfoMap(m_graph_id, name(), i)) {
+      string output_key = NGraphCatalog::CreateNodeKey(m_graph_id, m_name, i);
+      string ref_var_name =
+          NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(
+              output_key);
+      NGraphVar* var;
+      OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
+                              ctx->resource_manager()->default_container(),
+                              ref_var_name, &var));
+      current_ng_tensor = var->ng_tensor();
+
+      // There might be scenarios where the input and output tensors are the
+      // same.The staleness determined for the input tensor should be the
+      // final staleness for the given tensor. The staleness of output
+      // tensor should not matter as this tensor is meant to be
+      // overwritten with the computed value.
+      // So not setting staleness here.
+      output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
+      var->Unref();
+      ng_outputs.push_back(current_ng_tensor);
+      continue;
+    }
+#endif
+    GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
+                       ng_exec, op_backend, ng_element_type, ng_shape);
 
     current_ng_tensor->set_stale(true);
     output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
@@ -383,7 +409,7 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   // values. ie, it will not reuse the same space if its rewritten it
   bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;
   bool no_ng_tensor_found = last_ng_tensor == nullptr;
-  bool is_cpu = GetOpBackend() == "CPU";
+  bool is_cpu = m_op_backend_name == "CPU";
 
   // We need to check last_ng_tensor != nullptr, since there are cases where
   // at the first call to the ng_exec, both current_dst_ptr (when the
