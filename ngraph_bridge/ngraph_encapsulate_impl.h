@@ -14,10 +14,9 @@
  * limitations under the License.
  *******************************************************************************/
 
-#pragma once
-
 #ifndef NGRAPH_TF_ENCAPSULATE_IMPL_H_
 #define NGRAPH_TF_ENCAPSULATE_IMPL_H_
+#pragma once
 
 #include <ostream>
 #include <vector>
