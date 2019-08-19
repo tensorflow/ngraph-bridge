@@ -18,21 +18,17 @@
 
 FROM ubuntu:18.04
 
-# Setup the environment
-ENV https_proxy http://proxy-chain.intel.com:912
-ENV http_proxy http://proxy-chain.intel.com:911
-
 RUN apt-get update &&  apt-get install -y \
-    vim \
+    build-essential cmake \
+    clang-format-3.9 \
+    git \
     python \
     python-pip \
     python3-pip \
-    git \
-    unzip zip wget \
     sudo \
-    zlib1g zlib1g-dev bash-completion \
-    build-essential cmake \
-    clang-format-3.9
+    unzip zip wget \
+    vim \
+    zlib1g zlib1g-dev bash-completion
 
 RUN pip install -U virtualenv==16.0.0
 
@@ -43,7 +39,7 @@ RUN sh /cmake-3.7.2-Linux-x86_64.sh --prefix=/opt/cmake --skip-license
 RUN ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
 RUN cmake --version
 
-#Install Bazel 
+#Install Bazel
 ADD https://github.com/bazelbuild/bazel/releases/download/0.24.1/bazel-0.24.1-installer-linux-x86_64.sh ./bazel-0.24.1-installer-linux-x86_64.sh
 RUN bash bazel-0.24.1-installer-linux-x86_64.sh
 RUN bazel
