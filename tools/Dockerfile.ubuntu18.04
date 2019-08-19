@@ -19,6 +19,7 @@
 FROM ubuntu:18.04
 
 RUN apt-get update &&  apt-get install -y \
+    bash-completion \
     build-essential cmake \
     clang-format-3.9 \
     git \
@@ -28,7 +29,7 @@ RUN apt-get update &&  apt-get install -y \
     sudo \
     unzip zip wget \
     vim \
-    zlib1g zlib1g-dev bash-completion
+    zlib1g zlib1g-dev
 
 RUN pip install -U virtualenv==16.0.0
 
