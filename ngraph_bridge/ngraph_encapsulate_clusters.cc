@@ -547,6 +547,15 @@ Status EncapsulateClusters(
                                            : PartialShape(find_itr->second);
     };
 
+    auto hint_as_string = [](ShapeHintMap single_hint) {
+      string hint_str;
+      for (auto itr_node : single_hint) {
+        hint_str +=
+            ((itr_node.first) + ":[" + ng::join(itr_node.second) + "],");
+      }
+      return hint_str;
+    };
+
     std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
     // map between node name and the PartialShape it contains
     std::map<std::string, PartialShape> node_partial_shape_map;
@@ -627,15 +636,12 @@ Status EncapsulateClusters(
           } else {
             // TODO: necessarily break? Maybe some things can be AOT, others
             // maybe not
-            string hint_str;
-            for (auto itr_node : single_hint) {
-              hint_str +=
-                  ((itr_node.first) + ":[" + ng::join(itr_node.second) + "],");
-            }
+            string fail_reason = (combined_shape_info.is_valid()
+                              ? (node->name() + " could not be concretized")
+                              : "it is invalid for " + node->name())
             return errors::Internal(
-                "Cannot AOT using this hint (", hint_str, ") as it ",
-                (combined_shape_info.is_valid() ? "could not be concretized"
-                                                : "is invalid"));
+                "Cannot AOT using this hint (", hint_as_string(single_hint),
+                ") as ", fail_reason);
             break;
           }
         }  // end of if (node->type_string() == input_node_type)
@@ -647,7 +653,8 @@ Status EncapsulateClusters(
             inputs_node_shapes_for_compilation.end()) {
           can_aot = false;
           // TODO: print "this" hint
-          return errors::Internal("Cannot AOT using this hint for ",
+          return errors::Internal("Cannot AOT using this hint (",
+                                  hint_as_string(single_hint), ") for ",
                                   (itr.first), " was not concretized");
         }
       }
