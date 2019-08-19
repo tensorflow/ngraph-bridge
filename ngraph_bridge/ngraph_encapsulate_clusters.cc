@@ -608,22 +608,42 @@ Status EncapsulateClusters(
           // shape_hints if they exist
           PartialShape combined_shape_info;
           if (shape_hint_for_node.is_valid()) {
+            NGRAPH_VLOG(5) << "For node " << node->name() << " shape hint (",
+                hint_as_string(single_hint),
+                ") for node is valid and is: " +
+                    shape_hint_for_node.to_string();
             if (partial_shape_from_node.is_valid()) {
+              NGRAPH_VLOG(5) << "Partial shape from node is also valid. So "
+                                "will attempt to concretize if possible";
               if (partial_shape_from_node.size() == 0) {
                 // TODO: revisit this if-else
+                NGRAPH_VLOG(5) << "Partial shape from node is empty, so will "
+                                  "use shape from hint";
                 combined_shape_info = shape_hint_for_node;
               } else {
+                NGRAPH_VLOG(5) << "Concretizing shape " +
+                                      partial_shape_from_node.to_string() +
+                                      "from node with hint for node, " +
+                                      shape_hint_for_node.to_string();
                 partial_shape_from_node.concretize(shape_hint_for_node);
                 combined_shape_info = partial_shape_from_node;
               }
             } else {
+              NGRAPH_VLOG(5) << "Partial shape from node is invalid. So using "
+                                "hint for the node as shape";
               combined_shape_info = shape_hint_for_node;
             }
           } else {
+            NGRAPH_VLOG(5) << "For node " << node->name()
+                           << " shape hint (" + hint_as_string(single_hint) +
+                                  ") for node is invalid";
             if (partial_shape_from_node.is_valid()) {
               // No shape hints found. But the node itself has some shape info
+              NGRAPH_VLOG(5) << "Partial shape from node is valid and is: " +
+                                    partial_shape_from_node.to_string();
               combined_shape_info = partial_shape_from_node;
             } else {
+              NGRAPH_VLOG(5) << "Partial shape from node is invalid";
               combined_shape_info = PartialShape();
             }
           }
@@ -636,12 +656,13 @@ Status EncapsulateClusters(
           } else {
             // TODO: necessarily break? Maybe some things can be AOT, others
             // maybe not
-            string fail_reason = (combined_shape_info.is_valid()
-                              ? (node->name() + " could not be concretized")
-                              : "it is invalid for " + node->name());
-            return errors::Internal(
-                "Cannot AOT using this hint (", hint_as_string(single_hint),
-                ") as ", fail_reason);
+            string fail_reason =
+                (combined_shape_info.is_valid()
+                     ? (node->name() + " could not be concretized")
+                     : "it is invalid for " + node->name());
+            return errors::Internal("Cannot AOT using this hint (",
+                                    hint_as_string(single_hint), ") as ",
+                                    fail_reason);
             break;
           }
         }  // end of if (node->type_string() == input_node_type)
