@@ -627,11 +627,15 @@ Status EncapsulateClusters(
           } else {
             // TODO: necessarily break? Maybe some things can be AOT, others
             // maybe not
-            // TODO provide better error messages
+            string hint_str;
+            for (auto itr_node : single_hint) {
+              hint_str +=
+                  ((itr_node.first) + ":[" + ng::join(itr_node.second) + "],");
+            }
             return errors::Internal(
-                "Cannot AOT using this hint as it is invalid or "
-                "could not be concretized");
-            // TODO: return here in case of strict failure on bad hints
+                "Cannot AOT using this hint (", hint_str, ") as it ",
+                (combined_shape_info.is_valid() ? "could not be concretized"
+                                                : "is invalid"));
             break;
           }
         }  // end of if (node->type_string() == input_node_type)
