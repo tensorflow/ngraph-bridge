@@ -194,8 +194,9 @@ class NGraphEncapsulateOp : public OpKernel {
           } else if (attr_name.find("_ngraph_aot_requested") !=
                      std::string::npos) {
             m_do_aot = (attr_value == "1");
-            if (m_do_aot){
-              NGRAPH_VLOG(1) << "Using AOT for encapsulate " + to_string(m_ngraph_cluster);
+            if (m_do_aot) {
+              NGRAPH_VLOG(1)
+                  << "Using AOT for encapsulate " + to_string(m_ngraph_cluster);
               cout << "\n======\nUsing AOT\n======TODO remove\n";
             }
           } else {

@@ -26,47 +26,77 @@ import numpy as np
 import shutil
 import tensorflow as tf
 import ngraph_bridge
+import json
 
 from tools.build_utils import command_executor
 from tools.tf2ngraph import convert, get_gdef
 
 from common import NgraphTest
 
+
 def create_graph(p0_shape, p1_shape):
-    temp_pbtxt_name = 'temp_graph_'+str(p0_shape)+'__'+str(p1_shape) + '.pbtxt'
+    temp_pbtxt_name = 'temp_graph_in_' + str(p0_shape) + '__' + str(
+        p1_shape) + '.pbtxt'
     with tf.session() as sess:
         x = tf.placeholder(tf.float32, shape=p0_shape, 'x')
         y = tf.placeholder(tf.float32, shape=p1_shape, 'y')
-        z = tf.add(x, y, name= "z")
+        z = tf.add(x, y, name="z")
         tf.io.write_graph(sess.graph, temp_pbtxt_name, name, as_text=True)
     return x, y, z
+
 
 def get_inputs(p_shape):
     return np.random.rand(*p_shape)
 
+
 def run_pbtxt(pbtxt_filename, inp0, inp1):
     pass
 
-def helper(p0_shape, p1_shape):
+
+def check_pbtxt_has_exec(pbtxt_filename):
+    with open(pbtxt_filename, 'w') as f:
+        contents = '\n'.join(f.readlines())
+        assert contents.count('_ngraph_aot_requested') == 1
+        # TODO add the shape signature to the 2 asserts below
+        assert contents.count('_ngraph_aot_ngexec_') == 1
+        assert contents.count('_ngraph_aot_ngfunction_') == 1
+
+
+def helper(p0_shape, p1_shape, shapehints):
     inp0 = get_inputs(p0_shape)
     inp1 = get_inputs(p1_shape)
-    x, y, z, temp_pbtxt_name = create_graph(p0_shape, p1_shape)
+    x, y, z, temp_in_pbtxt_name = create_graph(p0_shape, p1_shape)
+    temp_out_pbtxt_name = 'temp_graph_out_' + str(p0_shape) + '__' + str(
+        p1_shape) + '.pbtxt'
+    json_name = 'temp_shape_hints.json'
+    # shapehints is a list of dictionaries (keys are node names, vals are lists (of shapes))
+    json.dump({"shape_hints": shapehints}, open(json_name, 'w'))
     '''
+    TODO: remove this command line comment
     python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --shape_hints sample_shape_hints.json --precompile
-    python tf2ngraph.py --input_pbtxt temp_pbtxt_name --output_nodes z --output_pbtxt ???.pbtxt --ng_backend INTERPRETER --shape_hints ???.json --precompile
+    python tf2ngraph.py --input_pbtxt temp_pbtxt_name --output_nodes z --output_pbtxt out_pbtxt_name --ng_backend INTERPRETER --shape_hints json_name --precompile
     '''
-    # produce input p0_shape, p1_shape (in the caller of helper)
-    # produce hints.
-    # run tf2ngraph
-    # assert the dumped pbtxt has compiled functions
-    # Run temp_pbtxt_name on TF. tf_out_val = run_pbtxt(temp_pbtxt_name, inp0, inp1)
-    # run out pbtxt. ng_out_val = run_pbtxt(?, inp0, inp1)
-    # compare tf_out_val vs ng_out_val
-    # delete temp_pbtxt_name
+
+    command_executor('python ../../tools/tf2ngraph.py --input_pbtxt ' +
+                     temp_in_pbtxt_name + ' --output_nodes z --output_pbtxt ' +
+                     temp_out_pbtxt_name + ' --ng_backend INTERPRETER ' +
+                     ' --shape_hints ' + json_name + ' --precompile')
+
+    check_pbtxt_has_exec(temp_out_pbtxt_name)
+
+    tf_out_val = run_pbtxt(temp_in_pbtxt_name, inp0, inp1)
+    ng_out_vals = run_pbtxt(temp_out_pbtxt_name, inp0, inp1)
+
+    # TODO: compare tf_out_val vs ng_out_vals
+
+    os.remove(temp_in_pbtxt_name)
+    os.remove(temp_out_pbtxt_name)
+    os.remove(json_name)
 
 
 # TODO: Finish this pytest <<<<<<<
 class Testtf2ngraphShapehints(NgraphTest):
 
     def test_tf2ngraph_with_shape_hints(self):
+        # parameterize with input shapes and shape hints and call helper
         pass
