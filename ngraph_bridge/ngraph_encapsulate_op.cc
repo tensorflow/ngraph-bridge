@@ -392,6 +392,52 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << ng_encap_impl.GetNgraphCluster();
 
+// add comment
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting output variables "
+                    "from resource manager "
+                 << ng_encap_impl.GetNgraphCluster();
+
+  ngraph::Event event_output_check_in_catalog(
+      "Get Variable Outputs from Resource Manager", name(), "");
+
+  for (auto i = 0; i < ng_exec->get_results().size(); i++) {
+    void* current_dst_ptr = DMAHelper::base(tf_output_tensors[i]);
+    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
+    // if the output tensor is going to be assigned to a variable
+    // we ask nGraph to provide the output directly in the variable tensor
+    bool ref_exists = NGraphCatalog::ExistsInEncapOutputInfoMap(
+        ng_encap_impl.GetGraphId(), name(), i);
+    if (!ref_exists) {
+      OP_REQUIRES(ctx, ng_outputs[i] != nullptr,
+                  errors::Internal("Output ", i,
+                                   " is not in Catalog nor was set from TF"));
+      continue;
+    }
+    string output_key =
+        NGraphCatalog::CreateNodeKey(ng_encap_impl.GetGraphId(), name(), i);
+    string ref_var_name =
+        NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(output_key);
+    NGraphVar* var;
+    OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
+                            ctx->resource_manager()->default_container(),
+                            ref_var_name, &var));
+    current_ng_tensor = var->ng_tensor();
+
+    // There might be scenarios where the input and output tensors are the
+    // same.The staleness determined for the input tensor should be the
+    // final staleness for the given tensor. The staleness of output
+    // tensor should not matter as this tensor is meant to be
+    // overwritten with the computed value.
+    // So not setting staleness here.
+    output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
+    var->Unref();
+    ng_outputs[i] = current_ng_tensor;
+  }
+  event_output_check_in_catalog.Stop();
+  ngraph::Event::write_trace(event_output_check_in_catalog);
+#endif
+
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
                     "from resource manager "
@@ -401,8 +447,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       "Get Variable Inputs from Resource Manager", name(), "");
 
   // Dealing with the input from Variable nodes here
-  for (int input_index = 0; input_index < ng_encap_impl.GetNumberOfInputs();
-       input_index++) {
+  for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
         ng_encap_impl.GetGraphId(), def().name(), input_index);
 
@@ -493,7 +538,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   Timer copy_output_tensors_to_host;
 
   try {
-    size_t output_tensor_count = ng_encap_impl.GetNumberOfOutputs();
+    size_t output_tensor_count = output_caches.size();
     std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     if (ng_encap_impl.GetNumberOfOutputs() == -1) {
@@ -613,7 +658,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Mark input tensors as fresh for the next time around.
   // Note: these ng_tensors are being marked fresh so that in the next
   // iteration if this encapsulate finds the tensor fresh, then it will use it
-  for (int i = 0; i < ng_encap_impl.GetNumberOfInputs(); i++) {
+  for (int i = 0; i < input_shapes.size(); i++) {
     void* src_ptr = (void*)DMAHelper::base(&ctx->input(i));
     ng_encap_impl.GetNgraphFreshnessTracker()->MarkFresh(src_ptr, ng_exec);
   }
