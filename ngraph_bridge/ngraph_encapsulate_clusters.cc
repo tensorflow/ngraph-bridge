@@ -543,7 +543,6 @@ Status EncapsulateClusters(
     auto get_shape_for_node_from_shape_hint = [](Node* node,
                                                  ShapeHintMap single_hint) {
       auto find_itr = single_hint.find(node->name());
-      cout << "In get_shape_for_node_from_shape_hint: "
            << (find_itr == single_hint.end()) << "\n";
       return find_itr == single_hint.end() ? PartialShape()
                                            : PartialShape(find_itr->second);
@@ -596,39 +595,27 @@ Status EncapsulateClusters(
 
           PartialShape shape_hint_for_node =
               get_shape_for_node_from_shape_hint(node, single_hint);
-          cout << "======= " << shape_hint_for_node.to_string() << "\n";
-          cout << "xxxxx" << partial_shape_from_node.to_string() << "\n";
 
           // If a shape has been found in the input node, match with
           // shape_hints if they exist
           PartialShape combined_shape_info;
           if (shape_hint_for_node.is_valid()) {
-            cout << "shape_hint_for_node is valid\n";
             if (partial_shape_from_node.is_valid()) {
-              cout << "partial_shape_from_node is valid\n";
               if (partial_shape_from_node.size() == 0) {
                 // TODO: revisit this if-else
-                cout << "In This If\n";
                 combined_shape_info = shape_hint_for_node;
               } else {
-                cout << "In This else\n";
-                cout << shape_hint_for_node.to_string() << "---\n";
-                cout << partial_shape_from_node.to_string() << "---\n";
                 partial_shape_from_node.concretize(shape_hint_for_node);
                 combined_shape_info = partial_shape_from_node;
               }
             } else {
-              cout << "partial_shape_from_node is INvalid\n";
               combined_shape_info = shape_hint_for_node;
             }
           } else {
-            cout << "shape_hint_for_node is INvalid\n";
             if (partial_shape_from_node.is_valid()) {
-              cout << "partial_shape_from_node is valid\n";
               // No shape hints found. But the node itself has some shape info
               combined_shape_info = partial_shape_from_node;
             } else {
-              cout << "partial_shape_from_node is INvalid\n";
               combined_shape_info = PartialShape();
             }
           }
@@ -644,7 +631,6 @@ Status EncapsulateClusters(
             // TODO provide better error messages
             NGRAPH_VLOG(3) << "Cannot AOT using this hint as it is invalid or "
                               "could not be concretized";
-            cout << combined_shape_info.is_valid() << "\n";
             break;
           }
         }  // end of if (node->type_string() == input_node_type)
@@ -665,7 +651,6 @@ Status EncapsulateClusters(
       if (can_aot) {
         for (auto node : graph->op_nodes()) {
           if (node->type_string() == "NGraphEncapsulate") {
-            cout << "XXX:: node->name(): " << node->name() << "\n";
             // Check inputs of the encapsulates. They can only be fed by fully
             // concrete shapes (after going through the shape hints) or consts
             std::vector<int32> st_inputs;
@@ -685,8 +670,6 @@ Status EncapsulateClusters(
                 auto itr_shape =
                     inputs_node_shapes_for_compilation.find(in_node->name());
                 if (itr_shape == inputs_node_shapes_for_compilation.end()) {
-                  cout << "in_node->name(): " << in_node->name() << "\n";
-                  cout << "node->name(): " << node->name() << "\n";
                   // TODO: this error could potentially happen due to 2 reasons:
                   // 1. Enough valid shape hints were not passed
                   // 2. It is an encapsulate that has atleast 1 input fed by a

@@ -67,7 +67,6 @@ Status NgraphOptimizer::Init(
       } else {
         ShapeHintMap hint;
         for (auto k : i.second.func().attr().at("hint_body").func().attr()) {
-          cout << k.first << "<<<\n";
           vector<int> full_or_partial_shape;
           for (auto dim : k.second.tensor().int_val()) {
             full_or_partial_shape.push_back(dim);

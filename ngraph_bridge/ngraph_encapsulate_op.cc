@@ -193,9 +193,7 @@ class NGraphEncapsulateOp : public OpKernel {
             m_aot_functions[ng::split(attr_name, '_')[4]] = attr_value;
           } else if (attr_name.find("_ngraph_aot_requested") !=
                      std::string::npos) {
-            cout << "\n==========\n"
-                 << "USING AOT"
-                 << "\n==========\n";
+            NGRAPH_VLOG(1) << "Using AOT";
             m_do_aot = true;
           } else {
             OP_REQUIRES_OK(
