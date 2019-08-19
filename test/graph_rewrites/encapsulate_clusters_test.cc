@@ -530,18 +530,23 @@ TEST(EncapsulateClusters, AOT4) {
   // The first hint is empty (but placeholders contain complete information so
   // can AOT)
   // The second hint contains info that matches info in placeholders
-  // The third hint contains hints that do not match. So they are ignored and
-  // AOT is done for 2x2 as specified in the placeholder
+  // The third hint contains hints that do not match. So Encapsulation fails
   std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
       {},
       {{{"node1", {2, 3}}, {"node2", {2, 3}}}},
       {{{"node1", {5, 10}}, {"node2", {15, 20}}}}};
-  std::vector<bool> did_aot = {true, true, true};
+  std::vector<bool> did_aot = {true, true, false};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
-    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
-                                  {{"ngraph_device_id", ""}},
-                                  make_pair(true, node_shapes_hints_vect[i])));
+    auto encapsulate_status =
+        EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
+                            make_pair(true, node_shapes_hints_vect[i]));
+    if (did_aot[i]) {
+      ASSERT_OK(encapsulate_status);
+    } else {
+      ASSERT_NOT_OK(encapsulate_status);
+      return;
+    }
 
     int num_encapsulates = 0;
     int num_tf_nodes = 0;

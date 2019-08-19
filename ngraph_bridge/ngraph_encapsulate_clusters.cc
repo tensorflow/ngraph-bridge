@@ -628,8 +628,10 @@ Status EncapsulateClusters(
             // TODO: necessarily break? Maybe some things can be AOT, others
             // maybe not
             // TODO provide better error messages
-            NGRAPH_VLOG(3) << "Cannot AOT using this hint as it is invalid or "
-                              "could not be concretized";
+            return errors::Internal(
+                "Cannot AOT using this hint as it is invalid or "
+                "could not be concretized");
+            // TODO: return here in case of strict failure on bad hints
             break;
           }
         }  // end of if (node->type_string() == input_node_type)
@@ -639,11 +641,10 @@ Status EncapsulateClusters(
       for (auto itr : node_partial_shape_map) {  // iterate over all inputs
         if (inputs_node_shapes_for_compilation.find(itr.first) ==
             inputs_node_shapes_for_compilation.end()) {
-          // TODO: print "this" hint
-          NGRAPH_VLOG(3) << "Cannot AOT using this hint for " << (itr.first)
-                         << " was not concretized";
           can_aot = false;
-          break;
+          // TODO: print "this" hint
+          return errors::Internal("Cannot AOT using this hint for ",
+                                  (itr.first), " was not concretized");
         }
       }
 
@@ -794,7 +795,9 @@ Status EncapsulateClusters(
             // and for bridge
           }
         }
-      }  // end of if (can_aot)
+      } else {
+        return errors::Internal("AOT requested, but could not perform AOT");
+      }  // end of if-else (can_aot)
     }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
   }      // end of if (aot_requested)
 
