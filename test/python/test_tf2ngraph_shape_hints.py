@@ -38,8 +38,8 @@ def create_graph(p0_shape, p1_shape):
     temp_pbtxt_name = 'temp_graph_in_' + str(p0_shape) + '__' + str(
         p1_shape) + '.pbtxt'
     with tf.session() as sess:
-        x = tf.placeholder(tf.float32, shape=p0_shape, 'x')
-        y = tf.placeholder(tf.float32, shape=p1_shape, 'y')
+        x = tf.placeholder(tf.float32, shape=p0_shape, name='x')
+        y = tf.placeholder(tf.float32, shape=p1_shape, name='y')
         z = tf.add(x, y, name="z")
         tf.io.write_graph(sess.graph, temp_pbtxt_name, name, as_text=True)
     return x, y, z

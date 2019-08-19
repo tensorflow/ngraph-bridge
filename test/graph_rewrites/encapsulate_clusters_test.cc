@@ -583,14 +583,14 @@ TEST(EncapsulateClusters, AOT4) {
 // TODO: more test cases:
 // 1. what of scalar inputs. placeholder shape is {}?
 // 2. Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2]
-// with
-// [2,4]? (done, AOT3)
+// with [2,4]? (done, AOT3)
 // 3. Encapsulate being fed by another enc (wont work) (done, AOT1)
 // 4. 2 encapsulates, but both are attached to inputs, so we can AOT (done,
 // AOT2)
 // 5. Have a test where enc is fed by a const and a placeholder (done, AOT0)
 // 6. Placeholders contain full shape. Then even with no shape hints, AOT can
 // happen (done, AOT4)
+// 7. Fail on bad hints (partly done, AOT4)
 }
 }
 }
