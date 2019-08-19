@@ -638,7 +638,7 @@ Status EncapsulateClusters(
             // maybe not
             string fail_reason = (combined_shape_info.is_valid()
                               ? (node->name() + " could not be concretized")
-                              : "it is invalid for " + node->name())
+                              : "it is invalid for " + node->name());
             return errors::Internal(
                 "Cannot AOT using this hint (", hint_as_string(single_hint),
                 ") as ", fail_reason);
