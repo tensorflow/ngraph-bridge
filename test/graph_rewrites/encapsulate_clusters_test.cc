@@ -120,94 +120,122 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   free(fdeflib_new);
 }
 
+//   Placeholder-->Add(0)--->IdN
+//                  ^
+//                  |
+//              Placeholder or Const(0)
 TEST(EncapsulateClusters, AOT0) {
   if (!ngraph_tf_is_grappler_enabled()) return;
 
-  NGraphClusterManager::EvictAllClusters();
-  Graph g(OpRegistry::Global());
+  vector<bool> fed_by_placeholder{true, false};
+  for (auto using_placeholder : fed_by_placeholder) {
+    NGraphClusterManager::EvictAllClusters();
+    Graph g(OpRegistry::Global());
 
-  int cluster_idx = NGraphClusterManager::NewCluster();
+    int cluster_idx = NGraphClusterManager::NewCluster();
 
-  Node* node1;
-  Node* node2;
+    Node* node1;
+    Node* node2;
 
-  ASSERT_OK(NodeBuilder("node1", "Placeholder")
-                .Attr("dtype", DT_FLOAT)
-                .Finalize(&g, &node1));
-  ASSERT_OK(NodeBuilder("node2", "Placeholder")
-                .Attr("dtype", DT_FLOAT)
-                .Finalize(&g, &node2));
+    ASSERT_OK(NodeBuilder("node1", "Placeholder")
+                  .Attr("dtype", DT_FLOAT)
+                  .Finalize(&g, &node1));
 
-  Node* node3;
-  ASSERT_OK(NodeBuilder("node3", "Add")
-                .Input(node1, 0)
-                .Input(node2, 0)
-                .Attr("T", DT_FLOAT)
-                .Attr("_ngraph_marked_for_clustering", true)
-                .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "INTERPRETER")
-                .Finalize(&g, &node3));
-  Node* node4;
-  std::vector<NodeBuilder::NodeOut> inputs;
-  std::vector<DataType> input_types;
-  inputs.push_back(NodeBuilder::NodeOut(node3, 0));
-  input_types.push_back(node3->output_type(0));
-  ASSERT_OK(NodeBuilder("node4", "IdentityN")
-                .Input(inputs)
-                .Attr("T", input_types)
-                .Finalize(&g, &node4));
-
-  Node* source = g.source_node();
-  Node* sink = g.sink_node();
-  g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
-  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
-  g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
-
-  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-
-  std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
-      {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
-  std::vector<bool> did_aot = {false, true};
-  int num_cases = node_shapes_hints_vect.size();
-  for (int i = 0; i < num_cases; i++) {
-    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
-                                  {{"ngraph_device_id", ""}},
-                                  make_pair(true, node_shapes_hints_vect[i])));
-
-    int num_encapsulates = 0;
-    int num_tf_nodes = 0;
-    for (auto itr : g.nodes()) {
-      auto node_type = itr->type_string();
-      num_encapsulates += (node_type == "NGraphEncapsulate" ? 1 : 0);
-      num_tf_nodes += ((node_type == "Add" || node_type == "Const") ? 1 : 0);
+    if (using_placeholder) {
+      ASSERT_OK(NodeBuilder("node2", "Placeholder")
+                    .Attr("dtype", DT_FLOAT)
+                    .Finalize(&g, &node2));
+    } else {
+      Tensor t_shape(DT_INT32, TensorShape{2});
+      t_shape.flat<int32>().data()[0] = 2;
+      t_shape.flat<int32>().data()[1] = 2;
+      ASSERT_OK(NodeBuilder("node1", "Const")
+                    .Attr("dtype", DT_FLOAT)
+                    .Attr("value", t_shape)
+                    .Attr("_ngraph_marked_for_clustering", true)
+                    .Attr("_ngraph_cluster", cluster_idx)
+                    .Attr("_ngraph_backend", "INTERPRETER")
+                    .Finalize(&g, &node2));
     }
 
-    ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
+    Node* node3;
+    ASSERT_OK(NodeBuilder("node3", "Add")
+                  .Input(node1, 0)
+                  .Input(node2, 0)
+                  .Attr("T", DT_FLOAT)
+                  .Attr("_ngraph_marked_for_clustering", true)
+                  .Attr("_ngraph_cluster", cluster_idx)
+                  .Attr("_ngraph_backend", "INTERPRETER")
+                  .Finalize(&g, &node3));
+    Node* node4;
+    std::vector<NodeBuilder::NodeOut> inputs;
+    std::vector<DataType> input_types;
+    inputs.push_back(NodeBuilder::NodeOut(node3, 0));
+    input_types.push_back(node3->output_type(0));
+    ASSERT_OK(NodeBuilder("node4", "IdentityN")
+                  .Input(inputs)
+                  .Attr("T", input_types)
+                  .Finalize(&g, &node4));
 
-    // No Add or Const nodes left in the graph
-    ASSERT_EQ(num_tf_nodes, 0);
+    Node* source = g.source_node();
+    Node* sink = g.sink_node();
+    g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+    g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+    g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
 
-    // TODO: assert that a json is created
-    for (auto itr : g.nodes()) {
-      if (itr->type_string() == "NGraphEncapsulate") {
-        string aot_info;
-        // TODO: remove the hardcoded signature
-        bool found_exec =
-            GetNodeAttr(itr->attrs(), "_ngraph_aot_ngexec_2,2,;2,2,;/",
-                        &aot_info) == tensorflow::Status::OK();
-        bool found_function =
-            GetNodeAttr(itr->attrs(), "_ngraph_aot_ngfunction_2,2,;2,2,;/",
-                        &aot_info) == tensorflow::Status::OK();
-        ASSERT_TRUE(found_exec == did_aot[i]);
-        ASSERT_TRUE(found_function == did_aot[i]);
+    FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+
+    std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
+        {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
+    std::vector<bool> did_aot = {false, true};
+    int num_cases = node_shapes_hints_vect.size();
+    for (int i = 0; i < num_cases; i++) {
+      ASSERT_OK(
+          EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
+                              make_pair(true, node_shapes_hints_vect[i])));
+
+      int num_encapsulates = 0;
+      int num_tf_nodes = 0;
+      for (auto itr : g.nodes()) {
+        auto node_type = itr->type_string();
+        num_encapsulates += (node_type == "NGraphEncapsulate" ? 1 : 0);
+        num_tf_nodes += ((node_type == "Add" || node_type == "Const") ? 1 : 0);
+      }
+
+      ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
+      ASSERT_EQ(num_encapsulates, 1);
+
+      // No Add or Const nodes left in the graph
+      ASSERT_EQ(num_tf_nodes, 0);
+
+      for (auto itr : g.nodes()) {
+        if (itr->type_string() == "NGraphEncapsulate") {
+          string aot_info;
+          bool found_exec =
+              GetNodeAttr(itr->attrs(),
+                          string("_ngraph_aot_ngexec_2,2,;") +
+                              (using_placeholder ? "2,2,;" : "") + "/",
+                          &aot_info) == tensorflow::Status::OK();
+          bool found_function =
+              GetNodeAttr(itr->attrs(),
+                          string("_ngraph_aot_ngfunction_2,2,;") +
+                              (using_placeholder ? "2,2,;" : "") + "/",
+                          &aot_info) == tensorflow::Status::OK();
+          ASSERT_TRUE(found_exec == did_aot[i]);
+          ASSERT_TRUE(found_function == did_aot[i]);
+        }
       }
     }
-  }
 
-  free(fdeflib_new);
+    free(fdeflib_new);
+  }
 }
 
-// TODO: populate AOT11 with tests etc.
+//   Placeholder-->Add(0)--->Abs(1)-->IdN
+//                  ^
+//                  |
+//              Placeholder
+// 2 Encapsulates connected in serial
 TEST(EncapsulateClusters, AOT1) {
   if (!ngraph_tf_is_grappler_enabled()) return;  // GTEST_SKIP() did not compile
   NGraphClusterManager::EvictAllClusters();
@@ -249,7 +277,7 @@ TEST(EncapsulateClusters, AOT1) {
   std::vector<NodeBuilder::NodeOut> inputs;
   std::vector<DataType> input_types;
   inputs.push_back(NodeBuilder::NodeOut(node4, 0));
-  input_types.push_back(node3->output_type(0));
+  input_types.push_back(node4->output_type(0));
   ASSERT_OK(NodeBuilder("node5", "IdentityN")
                 .Input(inputs)
                 .Attr("T", input_types)
@@ -259,13 +287,12 @@ TEST(EncapsulateClusters, AOT1) {
   Node* sink = g.sink_node();
   g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
-  g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
+  g.AddEdge(node5, Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
   std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
       {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
-  // std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {{}};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
     ASSERT_NOT_OK(
@@ -276,14 +303,120 @@ TEST(EncapsulateClusters, AOT1) {
   free(fdeflib_new);
 }
 
+//   Placeholder-->Abs(0)-->IdN
+//
+//   Placeholder-->Abs(1)-->IdN
+// 2 Encapsulates connected in parallel
+TEST(EncapsulateClusters, AOT2) {
+  if (!ngraph_tf_is_grappler_enabled()) return;
+  NGraphClusterManager::EvictAllClusters();
+  Graph g(OpRegistry::Global());
+
+  int cluster_idx = NGraphClusterManager::NewCluster();
+
+  Node* node1;
+  Node* node2;
+
+  ASSERT_OK(NodeBuilder("node1", "Placeholder")
+                .Attr("dtype", DT_FLOAT)
+                .Finalize(&g, &node1));
+  ASSERT_OK(NodeBuilder("node2", "Placeholder")
+                .Attr("dtype", DT_FLOAT)
+                .Finalize(&g, &node2));
+  Node* node3;
+  ASSERT_OK(NodeBuilder("node3", "Abs")
+                .Input(node1, 0)
+                .Attr("T", DT_FLOAT)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx)
+                .Attr("_ngraph_backend", "INTERPRETER")
+                .Finalize(&g, &node3));
+
+  Node* node4;
+  cluster_idx = NGraphClusterManager::NewCluster();
+  ASSERT_OK(NodeBuilder("node4", "Abs")
+                .Input(node2, 0)
+                .Attr("T", DT_FLOAT)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx)
+                .Attr("_ngraph_backend", "INTERPRETER")
+                .Finalize(&g, &node4));
+
+  Node* node5;
+  std::vector<NodeBuilder::NodeOut> inputs;
+  std::vector<DataType> input_types;
+  inputs.push_back(NodeBuilder::NodeOut(node3, 0));
+  input_types.push_back(node3->output_type(0));
+  ASSERT_OK(NodeBuilder("node5", "IdentityN")
+                .Input(inputs)
+                .Attr("T", input_types)
+                .Finalize(&g, &node5));
+  Node* node6;
+  inputs.clear();
+  input_types.clear();
+  inputs.push_back(NodeBuilder::NodeOut(node4, 0));
+  input_types.push_back(node4->output_type(0));
+  ASSERT_OK(NodeBuilder("node6", "IdentityN")
+                .Input(inputs)
+                .Attr("T", input_types)
+                .Finalize(&g, &node6));
+
+  Node* source = g.source_node();
+  Node* sink = g.sink_node();
+  g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+  g.AddEdge(node5, Graph::kControlSlot, sink, Graph::kControlSlot);
+  g.AddEdge(node6, Graph::kControlSlot, sink, Graph::kControlSlot);
+
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+
+  std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
+      {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
+  std::vector<bool> did_aot = {false, true};
+  int num_cases = node_shapes_hints_vect.size();
+  for (int i = 0; i < num_cases; i++) {
+    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
+                                  {{"ngraph_device_id", ""}},
+                                  make_pair(true, node_shapes_hints_vect[i])));
+    int num_encapsulates = 0;
+    int num_tf_nodes = 0;
+    for (auto itr : g.nodes()) {
+      auto node_type = itr->type_string();
+      num_encapsulates += (node_type == "NGraphEncapsulate" ? 1 : 0);
+      num_tf_nodes += ((node_type == "Abs") ? 1 : 0);
+    }
+
+    ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
+    ASSERT_EQ(num_encapsulates, 2);
+
+    // No Abs nodes left in the graph
+    ASSERT_EQ(num_tf_nodes, 0);
+
+    for (auto itr : g.nodes()) {
+      if (itr->type_string() == "NGraphEncapsulate") {
+        string aot_info;
+        bool found_exec = GetNodeAttr(itr->attrs(), "_ngraph_aot_ngexec_2,2,;/",
+                                      &aot_info) == tensorflow::Status::OK();
+        bool found_function =
+            GetNodeAttr(itr->attrs(), "_ngraph_aot_ngfunction_2,2,;/",
+                        &aot_info) == tensorflow::Status::OK();
+        ASSERT_TRUE(found_exec == did_aot[i]);
+        ASSERT_TRUE(found_function == did_aot[i]);
+      }
+    }
+  }
+
+  free(fdeflib_new);
+}
+
 // TODO: more test cases:
 // what of scalar inputs. placeholder shape is {}?
 // add a test with 2 encs. should fail for now
 // Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2] with
 // [2,4]?
-// Encapsulate being fed by another enc
-// 2 encapsulates, but both are attached to inputs, so we can AOT
-// Have a test where enc is fed by a const and a placeholder
+// Encapsulate being fed by another enc (wont work) (done, AOT1)
+// 2 encapsulates, but both are attached to inputs, so we can AOT (done, AOT2)
+// Have a test where enc is fed by a const and a placeholder (done, AOT0)
 }
 }
 }

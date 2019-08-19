@@ -543,7 +543,6 @@ Status EncapsulateClusters(
     auto get_shape_for_node_from_shape_hint = [](Node* node,
                                                  ShapeHintMap single_hint) {
       auto find_itr = single_hint.find(node->name());
-           << (find_itr == single_hint.end()) << "\n";
       return find_itr == single_hint.end() ? PartialShape()
                                            : PartialShape(find_itr->second);
     };
@@ -637,7 +636,7 @@ Status EncapsulateClusters(
       }    // End of for loop that goes through all nodes
 
       // Did we manage to concretize all input shapes?
-      for (auto itr : node_partial_shape_map) {
+      for (auto itr : node_partial_shape_map) {  // iterate over all inputs
         if (inputs_node_shapes_for_compilation.find(itr.first) ==
             inputs_node_shapes_for_compilation.end()) {
           // TODO: print "this" hint
