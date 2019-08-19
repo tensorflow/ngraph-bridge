@@ -221,12 +221,8 @@ TEST(EncapsulateClusters, AOT0) {
                           string("_ngraph_aot_ngfunction_2,2,;") +
                               (using_placeholder ? "2,2,;" : "") + "/",
                           &aot_info) == tensorflow::Status::OK();
-          bool found_aot_request =
-              GetNodeAttr(itr->attrs(), "_ngraph_aot_requested", &aot_info) ==
-              tensorflow::Status::OK();
           ASSERT_TRUE(found_exec == did_aot[i]);
           ASSERT_TRUE(found_function == did_aot[i]);
-          ASSERT_TRUE(found_aot_request == did_aot[i]);
         }
       }
     }
@@ -404,13 +400,8 @@ TEST(EncapsulateClusters, AOT2) {
         bool found_function =
             GetNodeAttr(itr->attrs(), "_ngraph_aot_ngfunction_2,2,;/",
                         &aot_info) == tensorflow::Status::OK();
-        bool found_aot_request =
-            GetNodeAttr(itr->attrs(), "_ngraph_aot_requested", &aot_info) ==
-            tensorflow::Status::OK();
         ASSERT_TRUE(found_exec == did_aot[i]);
         ASSERT_TRUE(found_function == did_aot[i]);
-        cout << "i = :" << i << "\n";
-        ASSERT_TRUE(found_aot_request == did_aot[i]);
       }
     }
   }
@@ -575,12 +566,8 @@ TEST(EncapsulateClusters, AOT4) {
         bool found_function =
             GetNodeAttr(itr->attrs(), "_ngraph_aot_ngfunction_2,3,;2,3,;/",
                         &aot_info) == tensorflow::Status::OK();
-        bool found_aot_request =
-            GetNodeAttr(itr->attrs(), "_ngraph_aot_requested", &aot_info) ==
-            tensorflow::Status::OK();
         ASSERT_TRUE(found_exec == did_aot[i]);
         ASSERT_TRUE(found_function == did_aot[i]);
-        ASSERT_TRUE(found_aot_request == did_aot[i]);
       }
     }
   }
