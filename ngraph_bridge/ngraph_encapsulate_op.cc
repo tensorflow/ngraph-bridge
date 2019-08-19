@@ -392,7 +392,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << ng_encap_impl.GetNgraphCluster();
 
-// add comment
+// Dealing with the output from Variable nodes here
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting output variables "
                     "from resource manager "
@@ -573,7 +573,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           if (var->copy_ng_to_tf()) {
             int copies = ng_encap_impl.GetNumberOfCopies();
             ng_encap_impl.SetNumberOfCopies(copies++);
-            ng_encap_impl.SetCopyLog(" COPY_TF ");
+            ng_encap_impl.SetCopyLog(" COPY_TO_TF ");
           }
           if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
                   output_key)) {
