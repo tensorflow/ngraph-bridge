@@ -473,13 +473,12 @@ TEST(EncapsulateClusters, AOT3) {
   free(fdeflib_new);
 }
 
-
-
 //   Placeholder-->Add(0)--->IdN
 //                  ^
 //                  |
 //              Placeholder
-// Placeholders contain full shape information
+// Placeholders contain full shape information. So AOT can happen even hints are
+// empty
 TEST(EncapsulateClusters, AOT4) {
   if (!ngraph_tf_is_grappler_enabled()) return;
 
@@ -491,18 +490,14 @@ TEST(EncapsulateClusters, AOT4) {
   Node* node1;
   Node* node2;
 
-  Tensor t_shape(DT_INT32, TensorShape{2});
-  t_shape.flat<int32>().data()[0] = 2;
-  t_shape.flat<int32>().data()[1] = 2;
-
   ASSERT_OK(NodeBuilder("node1", "Placeholder")
                 .Attr("dtype", DT_FLOAT)
-                .Attr("shape", t_shape)
+                .Attr("shape", TensorShape{2, 3})
                 .Finalize(&g, &node1));
 
   ASSERT_OK(NodeBuilder("node2", "Placeholder")
                 .Attr("dtype", DT_FLOAT)
-                .Attr("shape", t_shape)
+                .Attr("shape", TensorShape{2, 3})
                 .Finalize(&g, &node2));
 
   Node* node3;
@@ -532,14 +527,50 @@ TEST(EncapsulateClusters, AOT4) {
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
+  // The first hint is empty (but placeholders contain complete information so
+  // can AOT)
+  // The second hint contains info that matches info in placeholders
+  // The third hint contains hints that do not match. So they are ignored and
+  // AOT is done for 2x2 as specified in the placeholder
   std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
-      {{{"node1", {2, 4}}, {"node2", {2, 2}}}},
-      {{{"node1", {3, 2}}, {"node2", {2, 2}}}}};
+      {},
+      {{{"node1", {2, 3}}, {"node2", {2, 3}}}},
+      {{{"node1", {5, 10}}, {"node2", {15, 20}}}}};
+  std::vector<bool> did_aot = {true, true, true};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
-    ASSERT_NOT_OK(
-        EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
-                            make_pair(true, node_shapes_hints_vect[i])));
+    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
+                                  {{"ngraph_device_id", ""}},
+                                  make_pair(true, node_shapes_hints_vect[i])));
+
+    int num_encapsulates = 0;
+    int num_tf_nodes = 0;
+    for (auto itr : g.nodes()) {
+      auto node_type = itr->type_string();
+      num_encapsulates += (node_type == "NGraphEncapsulate" ? 1 : 0);
+      num_tf_nodes += ((node_type == "Add" || node_type == "Const") ? 1 : 0);
+    }
+
+    ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
+    ASSERT_EQ(num_encapsulates, 1);
+
+    // No Add or Const nodes left in the graph
+    ASSERT_EQ(num_tf_nodes, 0);
+
+    for (auto itr : g.nodes()) {
+      if (itr->type_string() == "NGraphEncapsulate") {
+        string aot_info;
+        bool found_exec =
+            GetNodeAttr(itr->attrs(), string("_ngraph_aot_ngexec_2,3,;2,3,;/"),
+                        &aot_info) == tensorflow::Status::OK();
+        bool found_function =
+            GetNodeAttr(itr->attrs(),
+                        string("_ngraph_aot_ngfunction_2,3,;2,3,;/"),
+                        &aot_info) == tensorflow::Status::OK();
+        ASSERT_TRUE(found_exec == did_aot[i]);
+        ASSERT_TRUE(found_function == did_aot[i]);
+      }
+    }
   }
 
   free(fdeflib_new);
@@ -547,11 +578,15 @@ TEST(EncapsulateClusters, AOT4) {
 
 // TODO: more test cases:
 // 1. what of scalar inputs. placeholder shape is {}?
-// 2. Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2] with
+// 2. Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2]
+// with
 // [2,4]? (done, AOT3)
 // 3. Encapsulate being fed by another enc (wont work) (done, AOT1)
-// 4. 2 encapsulates, but both are attached to inputs, so we can AOT (done, AOT2)
+// 4. 2 encapsulates, but both are attached to inputs, so we can AOT (done,
+// AOT2)
 // 5. Have a test where enc is fed by a const and a placeholder (done, AOT0)
+// 6. Placeholders contain full shape. Then even with no shape hints, AOT can
+// happen (done, AOT4)
 }
 }
 }
