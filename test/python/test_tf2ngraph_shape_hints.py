@@ -34,15 +34,20 @@ from tools.tf2ngraph import convert, get_gdef
 from common import NgraphTest
 
 
+def get_pbtxt_name(tag, p0_shape, p1_shape):
+    return 'temp_graph_in_' + ','.join(
+        map(lambda x: str(x), p0_shape)) + '__' + ','.join(
+            map(lambda x: str(x), p1_shape)) + '.pbtxt'
+
+
 def create_graph(p0_shape, p1_shape):
-    temp_pbtxt_name = 'temp_graph_in_' + str(p0_shape) + '__' + str(
-        p1_shape) + '.pbtxt'
-    with tf.session() as sess:
+    temp_pbtxt_name = get_pbtxt_name('temp_graph_in_', p0_shape, p1_shape)
+    with tf.Session() as sess:
         x = tf.placeholder(tf.float32, shape=p0_shape, name='x')
         y = tf.placeholder(tf.float32, shape=p1_shape, name='y')
         z = tf.add(x, y, name="z")
-        tf.io.write_graph(sess.graph, temp_pbtxt_name, name, as_text=True)
-    return x, y, z
+        tf.io.write_graph(sess.graph, '.', temp_pbtxt_name, as_text=True)
+    return x, y, z, temp_pbtxt_name
 
 
 def get_inputs(p_shape):
@@ -54,7 +59,7 @@ def run_pbtxt(pbtxt_filename, inp0, inp1):
 
 
 def check_pbtxt_has_exec(pbtxt_filename):
-    with open(pbtxt_filename, 'w') as f:
+    with open(pbtxt_filename, 'r') as f:
         contents = '\n'.join(f.readlines())
         assert contents.count('_ngraph_aot_requested') == 1
         # TODO add the shape signature to the 2 asserts below
@@ -62,12 +67,11 @@ def check_pbtxt_has_exec(pbtxt_filename):
         assert contents.count('_ngraph_aot_ngfunction_') == 1
 
 
-def helper(p0_shape, p1_shape, shapehints):
-    inp0 = get_inputs(p0_shape)
-    inp1 = get_inputs(p1_shape)
+def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
+    inp0 = get_inputs(p0_actual_shape)
+    inp1 = get_inputs(p1_actual_shape)
     x, y, z, temp_in_pbtxt_name = create_graph(p0_shape, p1_shape)
-    temp_out_pbtxt_name = 'temp_graph_out_' + str(p0_shape) + '__' + str(
-        p1_shape) + '.pbtxt'
+    temp_out_pbtxt_name = get_pbtxt_name('temp_graph_out_', p0_shape, p1_shape)
     json_name = 'temp_shape_hints.json'
     # shapehints is a list of dictionaries (keys are node names, vals are lists (of shapes))
     json.dump({"shape_hints": shapehints}, open(json_name, 'w'))
@@ -76,8 +80,14 @@ def helper(p0_shape, p1_shape, shapehints):
     python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --shape_hints sample_shape_hints.json --precompile
     python tf2ngraph.py --input_pbtxt temp_pbtxt_name --output_nodes z --output_pbtxt out_pbtxt_name --ng_backend INTERPRETER --shape_hints json_name --precompile
     '''
-
+    '''
+    TODO: bring this command back
     command_executor('python ../../tools/tf2ngraph.py --input_pbtxt ' +
+                     temp_in_pbtxt_name + ' --output_nodes z --output_pbtxt ' +
+                     temp_out_pbtxt_name + ' --ng_backend INTERPRETER ' +
+                     ' --shape_hints ' + json_name + ' --precompile')
+    '''
+    command_executor('python ./tools/tf2ngraph.py --input_pbtxt ' +
                      temp_in_pbtxt_name + ' --output_nodes z --output_pbtxt ' +
                      temp_out_pbtxt_name + ' --ng_backend INTERPRETER ' +
                      ' --shape_hints ' + json_name + ' --precompile')
@@ -89,9 +99,10 @@ def helper(p0_shape, p1_shape, shapehints):
 
     # TODO: compare tf_out_val vs ng_out_vals
 
-    os.remove(temp_in_pbtxt_name)
-    os.remove(temp_out_pbtxt_name)
-    os.remove(json_name)
+    if (False):  # TODO: here for debugging purposes. remove later
+        os.remove(temp_in_pbtxt_name)
+        os.remove(temp_out_pbtxt_name)
+        os.remove(json_name)
 
 
 # TODO: Finish this pytest <<<<<<<
@@ -100,3 +111,9 @@ class Testtf2ngraphShapehints(NgraphTest):
     def test_tf2ngraph_with_shape_hints(self):
         # parameterize with input shapes and shape hints and call helper
         pass
+
+
+# TODO remove these:
+# These are here to run it quickly/singly without test_runner
+# PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples/mnist python test/python/test_tf2ngraph_shape_hints.py
+helper([2, 2], [None, 2], [2, 2], [2, 2], [{'y': [2, -1]}])
