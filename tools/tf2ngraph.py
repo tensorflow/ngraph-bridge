@@ -89,7 +89,7 @@ def update_config_to_include_custom_config(config, backend, device_id,
                 shape_hint_name].func.attr.get_or_create(
                     'hint_body').func.attr.get_or_create(
                         node_name).tensor.int_val.extend(shape_hint[node_name])
-    # Attach AOT_level
+    # Attach aot request
     ngraph_optimizer.parameter_map["aot_requested"].s = str(
         ("0", "1")[do_aot]).encode()
     config.MergeFrom(

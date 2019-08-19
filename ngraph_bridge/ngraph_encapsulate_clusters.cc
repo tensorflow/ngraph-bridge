@@ -787,6 +787,8 @@ Status EncapsulateClusters(
                           ngraph::serialize(ng_function, 4));
             // Compute will use this ngexec
             node->AddAttr("_ngraph_aot_ngexec_" + signature, exec_dump.str());
+            // We do not need to add "_ngraph_aot_requested" attribute since it already is already present in device_config and inserted into the currently created NGraphEncapsulate
+            // TODO: create a separate namespace of node attributes for backend and for bridge
           }
         }
       }  // end of if (can_aot)
