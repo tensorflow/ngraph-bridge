@@ -15,10 +15,6 @@
  *******************************************************************************/
 #include "gtest/gtest.h"
 
-#include "tensorflow/core/graph/graph.h"
-#include "tensorflow/core/graph/node_builder.h"
-
-#include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_partial_shapes.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
@@ -35,13 +31,81 @@ namespace testing {
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
-TEST(PartialShapes, Concretize) {
+// The result of concretize would be {2, 3}
+TEST(PartialShapes, ValidConcretize1) {
   PartialShape p1({2, -1});
   PartialShape p2({-1, 3});
-  cout << p1.is_valid() << "\n";
   p1.concretize(p2);
-  bool result = p1.is_valid();
-  cout << "result " << result;
+  ASSERT_EQ(p1.is_valid(), true);
+}
+
+// The result of concretize would be {-1, -1}
+TEST(PartialShapes, ValidConcretize2) {
+  PartialShape p1({-1, -1});
+  PartialShape p2({-1, -1});
+  p1.concretize(p2);
+  ASSERT_EQ(p1.is_valid(), true);
+}
+
+// The result of concretize would be {}
+TEST(PartialShapes, ValidConcretize3) {
+  PartialShape p1(vector<int>{});
+  PartialShape p2(vector<int>{});
+  p1.concretize(p2);
+  ASSERT_EQ(p1.is_valid(), true);
+}
+
+// This would result in an invalid case and should fail because
+// p1[0] = 2 does not match p2[0] = 3
+TEST(PartialShapes, InvalidConcretize1) {
+  PartialShape p1({2, -1});
+  PartialShape p2({3, 3});
+  p1.concretize(p2);
+  ASSERT_EQ(p1.is_valid(), false);
+}
+
+// This would result in an invalid case and should fail because
+// the ranks are not same
+TEST(PartialShapes, InvalidConcretize2) {
+  PartialShape p1({2, -1, -1});
+  PartialShape p2({3, 3});
+  p1.concretize(p2);
+  ASSERT_EQ(p1.is_valid(), false);
+}
+
+// The result of concretize would be {3, 3}, which is a concrete shape
+TEST(PartialShapes, IsConcrete1) {
+  PartialShape p1({-1, -1});
+  PartialShape p2({3, 3});
+  p1.concretize(p2);
+  ASSERT_EQ(p1.is_concrete(), true);
+}
+
+// The result of concretize would be {3, -1}, which is not a concrete shape
+TEST(PartialShapes, IsConcrete2) {
+  PartialShape p1({-1, -1});
+  PartialShape p2({3, -1});
+  p1.concretize(p2);
+  ASSERT_EQ(p1.is_concrete(), false);
+}
+
+// The result of concretize would be {}, which is a concrete shape
+TEST(PartialShapes, IsConcrete3) {
+  PartialShape p1(vector<int>{});
+  PartialShape p2(vector<int>{});
+  p1.concretize(p2);
+  ASSERT_EQ(p1.is_concrete(), true);
+}
+
+// Test default constructor
+TEST(PartialShapes, DefaultConstructor) {
+  PartialShape p1;
+  ASSERT_EQ(p1.is_valid(), false);
+}
+
+TEST(PartialShapes, Constructor) {
+  PartialShape p1({-2, 1});
+  ASSERT_EQ(p1.is_valid(), false);
 }
 
 }  // namespace testing
