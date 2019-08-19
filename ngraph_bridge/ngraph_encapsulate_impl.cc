@@ -358,7 +358,9 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
         output_caches[i].second;
 
     void* current_dst_ptr = DMAHelper::base(output_tensors[i]);
-    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
+    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
+        GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
+                           ng_exec, op_backend, ng_element_type, ng_shape);
 
 // if the output tensor is going to be assigned to a variable
 // we ask nGraph to provide the output directly in the variable tensor
@@ -386,8 +388,6 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
       continue;
     }
 #endif
-    GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
-                       ng_exec, op_backend, ng_element_type, ng_shape);
 
     current_ng_tensor->set_stale(true);
     output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
