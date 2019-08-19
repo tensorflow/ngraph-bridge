@@ -473,6 +473,78 @@ TEST(EncapsulateClusters, AOT3) {
   free(fdeflib_new);
 }
 
+
+
+//   Placeholder-->Add(0)--->IdN
+//                  ^
+//                  |
+//              Placeholder
+// Placeholders contain full shape information
+TEST(EncapsulateClusters, AOT4) {
+  if (!ngraph_tf_is_grappler_enabled()) return;
+
+  NGraphClusterManager::EvictAllClusters();
+  Graph g(OpRegistry::Global());
+
+  int cluster_idx = NGraphClusterManager::NewCluster();
+
+  Node* node1;
+  Node* node2;
+
+  Tensor t_shape(DT_INT32, TensorShape{2});
+  t_shape.flat<int32>().data()[0] = 2;
+  t_shape.flat<int32>().data()[1] = 2;
+
+  ASSERT_OK(NodeBuilder("node1", "Placeholder")
+                .Attr("dtype", DT_FLOAT)
+                .Attr("shape", t_shape)
+                .Finalize(&g, &node1));
+
+  ASSERT_OK(NodeBuilder("node2", "Placeholder")
+                .Attr("dtype", DT_FLOAT)
+                .Attr("shape", t_shape)
+                .Finalize(&g, &node2));
+
+  Node* node3;
+  ASSERT_OK(NodeBuilder("node3", "Add")
+                .Input(node1, 0)
+                .Input(node2, 0)
+                .Attr("T", DT_FLOAT)
+                .Attr("_ngraph_marked_for_clustering", true)
+                .Attr("_ngraph_cluster", cluster_idx)
+                .Attr("_ngraph_backend", "INTERPRETER")
+                .Finalize(&g, &node3));
+  Node* node4;
+  std::vector<NodeBuilder::NodeOut> inputs;
+  std::vector<DataType> input_types;
+  inputs.push_back(NodeBuilder::NodeOut(node3, 0));
+  input_types.push_back(node3->output_type(0));
+  ASSERT_OK(NodeBuilder("node4", "IdentityN")
+                .Input(inputs)
+                .Attr("T", input_types)
+                .Finalize(&g, &node4));
+
+  Node* source = g.source_node();
+  Node* sink = g.sink_node();
+  g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+  g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
+  g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
+
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+
+  std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
+      {{{"node1", {2, 4}}, {"node2", {2, 2}}}},
+      {{{"node1", {3, 2}}, {"node2", {2, 2}}}}};
+  int num_cases = node_shapes_hints_vect.size();
+  for (int i = 0; i < num_cases; i++) {
+    ASSERT_NOT_OK(
+        EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
+                            make_pair(true, node_shapes_hints_vect[i])));
+  }
+
+  free(fdeflib_new);
+}
+
 // TODO: more test cases:
 // 1. what of scalar inputs. placeholder shape is {}?
 // 2. Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2] with
