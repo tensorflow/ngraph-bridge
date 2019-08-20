@@ -87,7 +87,7 @@ def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
     # shapehints is a list of dictionaries (keys are node names, vals are lists (of shapes))
     Tf2ngraphJson.dump_json(json_name, None, shapehints)
 
-    command_executor('python .../../tools/tf2ngraph.py --input_pbtxt ' +
+    command_executor('python ../../tools/tf2ngraph.py --input_pbtxt ' +
                      temp_in_pbtxt_name + ' --output_nodes z --output_pbtxt ' +
                      temp_out_pbtxt_name + ' --ng_backend INTERPRETER ' +
                      ' --config_file ' + json_name + ' --precompile')
