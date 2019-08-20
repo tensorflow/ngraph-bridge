@@ -196,23 +196,9 @@ class NGraphEncapsulateOp : public OpKernel {
     // SetConfig will be called for each EncapsulateOp
     BackendManager::SetConfig(m_op_backend_name, additional_attribute_map);
 
-    // populate m_executable_can_create_tensor
-    // Create a dummy graph, compile and try to use the ng_exec to create a
-    // tensor
-    auto arg0 =
-        make_shared<ng::op::Parameter>(ng::element::f32, ng::Shape{7, 3});
-    auto ng_func = make_shared<ng::Function>(arg0, ng::ParameterVector{arg0});
-    auto backend = BackendManager::GetBackend(m_op_backend_name);
-    auto ng_exec = backend->compile(ng_func);
-    try {
-      ng_exec->create_input_tensor(0, 2);
-      m_executable_can_create_tensor = true;
-    } catch (...) {
-      m_executable_can_create_tensor = false;
-    }
     m_executable_can_create_tensor =
-        m_executable_can_create_tensor && (backend_name != "NNP");
-    backend->remove_compiled_function(ng_exec);
+        BackendManager::GetBackend(m_op_backend_name)
+            ->executable_can_create_tensors();
     NGRAPH_VLOG(5) << "Executable can "
                    << (m_executable_can_create_tensor ? "" : "not")
                    << " create tensors";
