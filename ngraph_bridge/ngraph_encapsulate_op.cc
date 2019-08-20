@@ -436,9 +436,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   }
   event_output_check_in_catalog.Stop();
   ngraph::Event::write_trace(event_output_check_in_catalog);
-#endif
 
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
                     "from resource manager "
                  << ng_encap_impl.GetNgraphCluster();
@@ -541,10 +539,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     size_t output_tensor_count = output_caches.size();
     std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    if (ng_encap_impl.GetNumberOfOutputs() == -1) {
-      NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-      ng_encap_impl.SetNumberOfOutputs(output_caches.size());
-    }
     if (ng_encap_impl.GetNumberOfOutputs() == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
       ng_encap_impl.SetNumberOfOutputs(ng_outputs.size());
