@@ -39,8 +39,8 @@
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
-#include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_bridge_registry.h"
+#include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -695,160 +695,158 @@ Status EncapsulateClusters(
         }
       }
 
-      if (can_aot) {
-        for (auto node : graph->op_nodes()) {
-          if (node->type_string() == "NGraphEncapsulate") {
-            // Check inputs of the encapsulates. They can only be fed by fully
-            // concrete shapes (after going through the shape hints) or consts
-            std::vector<int32> st_inputs;
-            GetStaticInputs(node, &st_inputs);
-            // Current assumption is that only encapsulates without static
-            // inputs are AOT
-            if (st_inputs.size() != 0) {
-              return errors::Internal(
-                  "AOT requested. Found an encapsulate with static inputs, but "
-                  "that is not supported");
-            }
-
-            std::vector<TensorShape> input_shapes;
-            std::stringstream signature_ss;
-            for (auto in_node : node->in_nodes()) {
-              if (!in_node->IsSource()) {
-                auto itr_shape =
-                    inputs_node_shapes_for_compilation.find(in_node->name());
-                if (itr_shape == inputs_node_shapes_for_compilation.end()) {
-                  // TODO: this error could potentially happen due to 2 reasons:
-                  // 1. Enough valid shape hints were not passed
-                  // 2. It is an encapsulate that has atleast 1 input fed by a
-                  // non-placeholder (like another TF node or another
-                  // encapsulate)
-                  // Later provide more explicit debug message (reason 1 or 2 or
-                  // anything else)
-                  return errors::Internal(
-                      "AOT requested. Found an encapsulate that has a "
-                      "non-concrete input");
-                } else {
-                  std::vector<int64> converted_to_int64(
-                      itr_shape->second.begin(), itr_shape->second.end());
-                  input_shapes.push_back(TensorShape(converted_to_int64));
-                  for (auto itr1 : itr_shape->second) {
-                    signature_ss << itr1 << ",";
-                  }
-                  signature_ss << ";";
-                }
-              }
-            }
-
-            signature_ss << "/";
-            string signature = signature_ss.str();
-            NGRAPH_VLOG(3) << "Performing AOT for " << node->name()
-                           << " for signature = " << signature << "\n";
-
-            std::vector<const Tensor*> static_input_map;
-            std::shared_ptr<ngraph::Function> ng_function;
-            int cluster_idx;
-            TF_RETURN_IF_ERROR(
-                GetNodeAttr(node->attrs(), "ngraph_cluster", &cluster_idx));
-            GraphDef* gdef_for_current_encapsulate;
-            gdef_for_current_encapsulate =
-                NGraphClusterManager::GetClusterGraph(cluster_idx);
-            GraphConstructorOptions opts;
-            opts.allow_internal_ops = true;
-            Graph graph_for_current_encapsulate(OpRegistry::Global());
-            TF_RETURN_IF_ERROR(
-                ConvertGraphDefToGraph(opts, *gdef_for_current_encapsulate,
-                                       &graph_for_current_encapsulate));
-            TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-                input_shapes, static_input_map, &graph_for_current_encapsulate,
-                ng_function));
-            string serialized_ngfunc(ngraph::serialize(ng_function, 4));
-
-            // get backend.
-            // TODO: Note that this is code duplication of some stuff present
-            // in NGraphEncapsulateOp
-            // Once NGraphEncapsulateOp is refactored, this code should be
-            // removed and a common function should be used
-
-            // TODO: these sections can be hoisted out of the main loop
-            std::string backend_name;
-            TF_RETURN_IF_ERROR(
-                GetNodeAttr(node->attrs(), "ngraph_backend", &backend_name));
-            std::string device_id;
-            TF_RETURN_IF_ERROR(
-                GetNodeAttr(node->attrs(), "ngraph_device_id", &device_id));
-
-            string op_backend_name;
-            try {
-              op_backend_name = BackendManager::GetBackendCreationString(
-                  backend_name, device_id);
-            } catch (const std::exception& exp) {
-              return errors::Internal(
-                  "Caught exception while creating backend string ", exp.what(),
-                  "\n");
-            }
-            BackendManager::CreateBackend(
-                op_backend_name);  // Created a backend here. must free it
-            std::unordered_map<std::string, std::string>
-                additional_attribute_map;
-            for (auto itr : node->attrs()) {
-              // Find the optional attributes to be sent to the backend.
-              // The optional attributes have '_ngraph_' appended to the start
-              // so we need to get rid of that and only send the remaining
-              // string
-              // since the backend will only look for that.
-              // '_ngraph_' is only appended for the bridge.
-              // For e.g. _ngraph_ice_cores --> ice_cores
-              if (itr.first.find("_ngraph_") != std::string::npos) {
-                // leave out _ngraph_aot_requested
-                if (itr.first.find("_ngraph_aot_requested") !=
-                    std::string::npos) {
-                  additional_attribute_map.insert(
-                      {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
-                }
-              }
-            }
-            BackendManager::SetConfig(op_backend_name,
-                                      additional_attribute_map);
-            ng::runtime::Backend* op_backend = nullptr;
-            try {
-              op_backend = BackendManager::GetBackend(op_backend_name);
-            } catch (const std::out_of_range& e) {
-              BackendManager::ReleaseBackend(op_backend_name);
-              throw;
-            }
-            BackendManager::LockBackend(op_backend_name);
-            std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-            try {
-              ng_exec = op_backend->compile(ng_function);
-            } catch (...) {
-              BackendManager::UnlockBackend(op_backend_name);
-              NgraphSerialize("tf_function_error_aot.json", ng_function);
-              BackendManager::ReleaseBackend(op_backend_name);
-              return errors::Internal("Failed to compile ng_function for AOT");
-            }
-            BackendManager::UnlockBackend(op_backend_name);
-            BackendManager::ReleaseBackend(op_backend_name);
-
-            stringstream exec_dump;
-            ng_exec->save(exec_dump);
-            // ng function attached as debugging information
-            node->AddAttr("_ngraph_aot_ngfunction_" + signature,
-                          serialized_ngfunc);
-            // Compute will use this ngexec
-            node->AddAttr("_ngraph_aot_ngexec_" + signature, exec_dump.str());
-            // We do not need to add "_ngraph_aot_requested" attribute since it
-            // already is already present in device_config and inserted into the
-            // currently created NGraphEncapsulate
-            // TODO: create a separate namespace of node attributes for backend
-            // and for bridge
-            performed_aot_on_enc.insert(node->name());
-            NGRAPH_VLOG(5) << "Performed AOT on " << node->name();
-          }
-        }
-      } else {
+      if (!can_aot) {
         return errors::Internal("AOT requested, but could not perform AOT");
-      }  // end of if-else (can_aot)
-    }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
+      }
+      for (auto node : graph->op_nodes()) {
+        if (node->type_string() == "NGraphEncapsulate") {
+          // Check inputs of the encapsulates. They can only be fed by fully
+          // concrete shapes (after going through the shape hints) or consts
+          std::vector<int32> st_inputs;
+          GetStaticInputs(node, &st_inputs);
+          // Current assumption is that only encapsulates without static
+          // inputs are AOT
+          if (st_inputs.size() != 0) {
+            return errors::Internal(
+                "AOT requested. Found an encapsulate with static inputs, but "
+                "that is not supported");
+          }
+
+          std::vector<TensorShape> input_shapes;
+          std::stringstream signature_ss;
+          for (auto in_node : node->in_nodes()) {
+            if (!in_node->IsSource()) {
+              auto itr_shape =
+                  inputs_node_shapes_for_compilation.find(in_node->name());
+              if (itr_shape == inputs_node_shapes_for_compilation.end()) {
+                // TODO: this error could potentially happen due to 2 reasons:
+                // 1. Enough valid shape hints were not passed
+                // 2. It is an encapsulate that has atleast 1 input fed by a
+                // non-placeholder (like another TF node or another
+                // encapsulate)
+                // Later provide more explicit debug message (reason 1 or 2 or
+                // anything else)
+                return errors::Internal(
+                    "AOT requested. Found an encapsulate that has a "
+                    "non-concrete input");
+              } else {
+                std::vector<int64> converted_to_int64(itr_shape->second.begin(),
+                                                      itr_shape->second.end());
+                input_shapes.push_back(TensorShape(converted_to_int64));
+                for (auto itr1 : itr_shape->second) {
+                  signature_ss << itr1 << ",";
+                }
+                signature_ss << ";";
+              }
+            }
+          }
+
+          signature_ss << "/";
+          string signature = signature_ss.str();
+          NGRAPH_VLOG(3) << "Performing AOT for " << node->name()
+                         << " for signature = " << signature << "\n";
+
+          std::vector<const Tensor*> static_input_map;
+          std::shared_ptr<ngraph::Function> ng_function;
+          int cluster_idx;
+          TF_RETURN_IF_ERROR(
+              GetNodeAttr(node->attrs(), "ngraph_cluster", &cluster_idx));
+          GraphDef* gdef_for_current_encapsulate;
+          gdef_for_current_encapsulate =
+              NGraphClusterManager::GetClusterGraph(cluster_idx);
+          GraphConstructorOptions opts;
+          opts.allow_internal_ops = true;
+          Graph graph_for_current_encapsulate(OpRegistry::Global());
+          TF_RETURN_IF_ERROR(
+              ConvertGraphDefToGraph(opts, *gdef_for_current_encapsulate,
+                                     &graph_for_current_encapsulate));
+          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+              input_shapes, static_input_map, &graph_for_current_encapsulate,
+              ng_function));
+          string serialized_ngfunc(ngraph::serialize(ng_function, 4));
+
+          // get backend.
+          // TODO: Note that this is code duplication of some stuff present
+          // in NGraphEncapsulateOp
+          // Once NGraphEncapsulateOp is refactored, this code should be
+          // removed and a common function should be used
+
+          // TODO: these sections can be hoisted out of the main loop
+          std::string backend_name;
+          TF_RETURN_IF_ERROR(
+              GetNodeAttr(node->attrs(), "ngraph_backend", &backend_name));
+          std::string device_id;
+          TF_RETURN_IF_ERROR(
+              GetNodeAttr(node->attrs(), "ngraph_device_id", &device_id));
+
+          string op_backend_name;
+          try {
+            op_backend_name = BackendManager::GetBackendCreationString(
+                backend_name, device_id);
+          } catch (const std::exception& exp) {
+            return errors::Internal(
+                "Caught exception while creating backend string ", exp.what(),
+                "\n");
+          }
+          BackendManager::CreateBackend(
+              op_backend_name);  // Created a backend here. must free it
+          std::unordered_map<std::string, std::string> additional_attribute_map;
+          for (auto itr : node->attrs()) {
+            // Find the optional attributes to be sent to the backend.
+            // The optional attributes have '_ngraph_' appended to the start
+            // so we need to get rid of that and only send the remaining
+            // string
+            // since the backend will only look for that.
+            // '_ngraph_' is only appended for the bridge.
+            // For e.g. _ngraph_ice_cores --> ice_cores
+            if (itr.first.find("_ngraph_") != std::string::npos) {
+              // leave out _ngraph_aot_requested
+              if (itr.first.find("_ngraph_aot_requested") !=
+                  std::string::npos) {
+                additional_attribute_map.insert(
+                    {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
+              }
+            }
+          }
+          BackendManager::SetConfig(op_backend_name, additional_attribute_map);
+          ng::runtime::Backend* op_backend = nullptr;
+          try {
+            op_backend = BackendManager::GetBackend(op_backend_name);
+          } catch (const std::out_of_range& e) {
+            BackendManager::ReleaseBackend(op_backend_name);
+            throw;
+          }
+          BackendManager::LockBackend(op_backend_name);
+          std::shared_ptr<ngraph::runtime::Executable> ng_exec;
+          try {
+            ng_exec = op_backend->compile(ng_function);
+          } catch (...) {
+            BackendManager::UnlockBackend(op_backend_name);
+            NgraphSerialize("tf_function_error_aot.json", ng_function);
+            BackendManager::ReleaseBackend(op_backend_name);
+            return errors::Internal("Failed to compile ng_function for AOT");
+          }
+          BackendManager::UnlockBackend(op_backend_name);
+          BackendManager::ReleaseBackend(op_backend_name);
+
+          stringstream exec_dump;
+          ng_exec->save(exec_dump);
+          // ng function attached as debugging information
+          node->AddAttr("_ngraph_aot_ngfunction_" + signature,
+                        serialized_ngfunc);
+          // Compute will use this ngexec
+          node->AddAttr("_ngraph_aot_ngexec_" + signature, exec_dump.str());
+          // We do not need to add "_ngraph_aot_requested" attribute since it
+          // already is already present in device_config and inserted into the
+          // currently created NGraphEncapsulate
+          // TODO: create a separate namespace of node attributes for backend
+          // and for bridge
+          performed_aot_on_enc.insert(node->name());
+          NGRAPH_VLOG(5) << "Performed AOT on " << node->name();
+        }
+      }
+
+    }  // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
 
     for (auto node : graph->op_nodes()) {
       if (node->type_string() == "NGraphEncapsulate") {
