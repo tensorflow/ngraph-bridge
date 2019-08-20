@@ -598,6 +598,7 @@ Status EncapsulateClusters(
     // If no shape hints are provided but the placeholders contain complete shape, then we still need to enter the for loop below to compute AOT.
     // Hence adding the shapes from placeholders as hints.
     if (node_shapes_hints_sets.size() == 0){
+      NGRAPH_VLOG(5) << "Using shapes from placeholders as hint";
       node_shapes_hints_sets.insert(shape_from_placeholders_as_hints);
     }
     // TODO: .....CHECK ABOVE IF

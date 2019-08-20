@@ -385,7 +385,7 @@ TEST(EncapsulateClusters, AOT2) {
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
   std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
-      {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
+      {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}} , {{"node1", {2, 3}}, {"node2", {2, 3}}}}};
   std::vector<bool> did_aot = {true, true};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
@@ -421,6 +421,12 @@ TEST(EncapsulateClusters, AOT2) {
         bool found_function =
             GetNodeAttr(itr->attrs(), string("_ngraph_aot_ngfunction_") + (i==0 ? "" : "2,2,") +";/",
                         &aot_info) == tensorflow::Status::OK();
+        if (i == 1){
+          bool found_second_exec = GetNodeAttr(itr->attrs(), "_ngraph_aot_ngexec_2,3,;/", &aot_info) == tensorflow::Status::OK();
+          found_exec = found_exec && found_second_exec;
+          bool found_second_function = GetNodeAttr(itr->attrs(), "_ngraph_aot_ngfunction_2,3,;/", &aot_info) == tensorflow::Status::OK();
+          found_function = found_function && found_second_function;
+        }
         ASSERT_TRUE(found_exec == did_aot[i]);
         ASSERT_TRUE(found_function == did_aot[i]);
       }
@@ -612,7 +618,7 @@ TEST(EncapsulateClusters, AOT4) {
 // 6. Placeholders contain full shape. Then even with no shape hints, AOT can
 // happen (done, AOT4)
 // 7. Fail on bad hints (partly done, AOT4)
-// 8. EncapsulateClusters compiles 2 executables due to 2 different shape hints
+// 8. EncapsulateClusters compiles 2 executables due to 2 different shape hints (done, AOT2)
 }
 }
 }
