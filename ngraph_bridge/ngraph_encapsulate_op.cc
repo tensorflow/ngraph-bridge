@@ -428,8 +428,6 @@ class NGraphEncapsulateOp : public OpKernel {
 
       NGRAPH_VLOG(1) << "Compilation cache miss: " << ctx->op_kernel().name();
 
-      cout << "Compute:: signature: " << signature << "\n";
-
       if (!m_do_aot) {
         TF_RETURN_IF_ERROR(Builder::TranslateGraph(
             input_shapes, static_input_map, &m_graph, ng_function));

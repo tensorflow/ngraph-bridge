@@ -65,6 +65,8 @@ class Tf2ngraphJson(object):
 
     @staticmethod
     def parse_json(json_name):
+        if json_name == '':
+            return {}, []
         optional_backend_params = {}
         shape_hints = []
         with open(json_name) as f:
@@ -235,7 +237,7 @@ def prepare_argparser(formats):
     parser.add_argument("--device_id", default='', help="Device id. Eg, 0")
     parser.add_argument(
         "--config_file",
-        default='{}',
+        default='',
         help=
         "Json file that contains optional backend configuration settings and shape hints"
     )
