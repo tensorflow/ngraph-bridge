@@ -591,13 +591,6 @@ Status EncapsulateClusters(
       }
     }
 
-    cout << "shape_from_placeholders_as_hints:: "
-         << shape_from_placeholders_as_hints.size() << "\n=====\n";
-    for (ShapeHintMap single_hint : node_shapes_hints_sets) {
-      cout << "XXX: " << hint_as_string(single_hint) << "\n";
-    }
-    cout << "YYY: " << hint_as_string(shape_from_placeholders_as_hints) << "\n";
-
     // If no shape hints are provided but the placeholders contain complete
     // shape, then we still need to enter the for loop below to compute AOT.
     // Hence adding the shapes from placeholders as hints.
@@ -852,7 +845,6 @@ Status EncapsulateClusters(
 
     for (auto node : graph->op_nodes()) {
       if (node->type_string() == "NGraphEncapsulate") {
-        cout << "=====HERExxx\n";
         if (performed_aot_on_enc.find(node->name()) ==
             performed_aot_on_enc.end()) {
           return errors::Internal("Requested AOT, but did not perform AOT on ",
