@@ -67,8 +67,8 @@ NGraphEncapsulateImpl::NGraphEncapsulateImpl()
   s_instance_count++;
 }
 
-// Get tensorflow input tensors, input shapes, static_inputs to Compute
-// Signature
+// Use tensorflow input tensors to get input_shapes, static_input_map
+// and compute the signature
 Status NGraphEncapsulateImpl::ComputeSignature(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
@@ -98,7 +98,7 @@ Status NGraphEncapsulateImpl::ComputeSignature(
   return Status::OK();
 }
 
-// Calls Compute Signature and gets ngraph executable
+// Calls ComputeSignature and gets ngraph executable
 Status NGraphEncapsulateImpl::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
@@ -245,7 +245,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     const std::vector<Tensor>& tf_input_tensors,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    ng::runtime::Backend* op_backend,
+    ng::runtime::Backend* const op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
   std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
   std::vector<TensorShape> input_shapes;
@@ -340,7 +340,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
 Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     const std::vector<Tensor*>& output_tensors,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    ng::runtime::Backend* op_backend,
+    ng::runtime::Backend* const op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs) {
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
       output_caches = m_ng_exec_output_cache_map[ng_exec];
@@ -392,8 +392,8 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
     const std::shared_ptr<ng::runtime::Tensor>& last_ng_tensor,
     const bool& output_tensor,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    ng::runtime::Backend* op_backend, const ng::element::Type& ng_element_type,
-    const ng::Shape& ng_shape) {
+    ng::runtime::Backend* const op_backend,
+    const ng::element::Type& ng_element_type, const ng::Shape& ng_shape) {
   // NOTE: we assume that TF's pointers WILL change if it actually changes
   // values. ie, it will not reuse the same space if its rewritten it
   bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;

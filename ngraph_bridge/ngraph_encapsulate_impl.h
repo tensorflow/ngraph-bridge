@@ -61,7 +61,7 @@ class NGraphEncapsulateImpl {
   Status AllocateNGInputTensors(
       const std::vector<Tensor>& tf_input_tensors,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      ng::runtime::Backend* op_backend,
+      ng::runtime::Backend* const op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
 
   // Allocate tensors for output results.  Creates ngraph output tensors using
@@ -69,7 +69,7 @@ class NGraphEncapsulateImpl {
   Status AllocateNGOutputTensors(
       const std::vector<Tensor*>& tf_output_tensors,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      ng::runtime::Backend* op_backend,
+      ng::runtime::Backend* const op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
 
   // Get current ngraph tensor
@@ -78,7 +78,7 @@ class NGraphEncapsulateImpl {
       const std::shared_ptr<ng::runtime::Tensor>& last_ng_tensor,
       const bool& output_tensor,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      ng::runtime::Backend* op_backend,
+      ng::runtime::Backend* const op_backend,
       const ng::element::Type& ng_element_type, const ng::Shape& ng_shape);
 
   // Accessors(getters and setters) for the private data members of
@@ -119,9 +119,9 @@ class NGraphEncapsulateImpl {
 
   void SetLogCopies(bool value) { log_copies = value; }
 
-  const string& GetCopyLog() { return copy_log_str.str(); }
+  const string GetCopyLog() { return copy_log_str.str(); }
 
-  void SetCopyLog(const string& str) { copy_log_str.str() = str; }
+  void SetCopyLog(const string str) { copy_log_str.str() = str; }
 
   const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
 
