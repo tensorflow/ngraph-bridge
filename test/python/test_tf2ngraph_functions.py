@@ -40,14 +40,14 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
                                                         '0', {
                                                             'abc': '1',
                                                             'def': '2'
-                                                        })
+                                                        }, True)
         assert config.HasField('graph_options')
         assert config.graph_options.HasField('rewrite_options')
         custom_opts = config.graph_options.rewrite_options.custom_optimizers
         assert len(custom_opts) == 1
         assert custom_opts[0].name == 'ngraph-optimizer'
         assert set(custom_opts[0].parameter_map.keys()) == {
-            'abc', 'ngraph_backend', 'def', 'device_id'
+            'abc', 'ngraph_backend', 'def', 'device_id', 'aot_requested'
         }
         retrieved_dict = {}
         for key, val in custom_opts[0].parameter_map.items():
@@ -56,5 +56,6 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
             'abc': '1',
             'def': '2',
             'ngraph_backend': 'CPU',
-            'device_id': '0'
+            'device_id': '0',
+            'aot_requested': '1'
         }
