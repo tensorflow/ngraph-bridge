@@ -187,12 +187,20 @@ TEST(EncapsulateClusters, AOT0) {
 
     std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
         {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
-    std::vector<bool> did_aot = {false, true};
+    std::vector<bool> did_aot = {true, true};
+    // Interesting case when shape hints = {}.
+    // The placeholder has shape = [].
+    // Which means, given no hints it is indeed possible to compile that, since its fully specified (no -1s)
     int num_cases = node_shapes_hints_vect.size();
     for (int i = 0; i < num_cases; i++) {
-      ASSERT_OK(
-          EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
-                              make_pair(true, node_shapes_hints_vect[i])));
+      auto status = EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
+                              make_pair(true, node_shapes_hints_vect[i]));
+      if (did_aot[i]){
+        ASSERT_OK(status);
+      } else {
+        ASSERT_NOT_OK(status);
+        continue;
+      }
 
       int num_encapsulates = 0;
       int num_tf_nodes = 0;
@@ -208,18 +216,24 @@ TEST(EncapsulateClusters, AOT0) {
       // No Add or Const nodes left in the graph
       ASSERT_EQ(num_tf_nodes, 0);
 
+      auto get_attr_name_for_aot = [&i, &using_placeholder](bool is_exec){
+        string attrname = "_ngraph_aot_";
+        attrname += (string(is_exec ? "ngexec" : "ngfunction") + "_");
+        string signature_portion = (string(i==0 ? "" : "2,2,") + ";");
+        attrname += signature_portion;
+        attrname += (using_placeholder ? signature_portion : "");
+        attrname += "/";
+        return attrname;
+      };
+
       for (auto itr : g.nodes()) {
         if (itr->type_string() == "NGraphEncapsulate") {
           string aot_info;
           bool found_exec =
-              GetNodeAttr(itr->attrs(),
-                          string("_ngraph_aot_ngexec_2,2,;") +
-                              (using_placeholder ? "2,2,;" : "") + "/",
+              GetNodeAttr(itr->attrs(), get_attr_name_for_aot(true),
                           &aot_info) == tensorflow::Status::OK();
           bool found_function =
-              GetNodeAttr(itr->attrs(),
-                          string("_ngraph_aot_ngfunction_2,2,;") +
-                              (using_placeholder ? "2,2,;" : "") + "/",
+              GetNodeAttr(itr->attrs(), get_attr_name_for_aot(false),
                           &aot_info) == tensorflow::Status::OK();
           ASSERT_TRUE(found_exec == did_aot[i]);
           ASSERT_TRUE(found_function == did_aot[i]);
@@ -372,12 +386,19 @@ TEST(EncapsulateClusters, AOT2) {
 
   std::vector<std::set<ShapeHintMap>> node_shapes_hints_vect = {
       {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
-  std::vector<bool> did_aot = {false, true};
+  std::vector<bool> did_aot = {true, true};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
-    ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new,
+    auto status = EncapsulateClusters(&g, 0, fdeflib_new,
                                   {{"ngraph_device_id", ""}},
-                                  make_pair(true, node_shapes_hints_vect[i])));
+                                  make_pair(true, node_shapes_hints_vect[i]));
+    if (did_aot[i]){
+      ASSERT_OK(status);
+    } else {
+      ASSERT_NOT_OK(status);
+      continue;
+    }
+    
     int num_encapsulates = 0;
     int num_tf_nodes = 0;
     for (auto itr : g.nodes()) {
@@ -395,10 +416,10 @@ TEST(EncapsulateClusters, AOT2) {
     for (auto itr : g.nodes()) {
       if (itr->type_string() == "NGraphEncapsulate") {
         string aot_info;
-        bool found_exec = GetNodeAttr(itr->attrs(), "_ngraph_aot_ngexec_2,2,;/",
+        bool found_exec = GetNodeAttr(itr->attrs(), string("_ngraph_aot_ngexec_") + (i==0 ? "" : "2,2,") +";/",
                                       &aot_info) == tensorflow::Status::OK();
         bool found_function =
-            GetNodeAttr(itr->attrs(), "_ngraph_aot_ngfunction_2,2,;/",
+            GetNodeAttr(itr->attrs(), string("_ngraph_aot_ngfunction_") + (i==0 ? "" : "2,2,") +";/",
                         &aot_info) == tensorflow::Status::OK();
         ASSERT_TRUE(found_exec == did_aot[i]);
         ASSERT_TRUE(found_function == did_aot[i]);
@@ -545,7 +566,7 @@ TEST(EncapsulateClusters, AOT4) {
       ASSERT_OK(encapsulate_status);
     } else {
       ASSERT_NOT_OK(encapsulate_status);
-      return;
+      continue;
     }
 
     int num_encapsulates = 0;
@@ -591,6 +612,7 @@ TEST(EncapsulateClusters, AOT4) {
 // 6. Placeholders contain full shape. Then even with no shape hints, AOT can
 // happen (done, AOT4)
 // 7. Fail on bad hints (partly done, AOT4)
+// 8. EncapsulateClusters compiles 2 executables due to 2 different shape hints
 }
 }
 }

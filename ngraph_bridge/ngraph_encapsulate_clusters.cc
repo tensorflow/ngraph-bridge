@@ -525,6 +525,7 @@ Status EncapsulateClusters(
 
   // Pass 8:
   bool aot_requested;
+  set<string> performed_aot_on_enc;
   std::set<std::map<std::string, vector<int>>> node_shapes_hints_sets;
   std::tie(aot_requested, node_shapes_hints_sets) = aot_info;
   if (aot_requested) {
@@ -581,15 +582,25 @@ Status EncapsulateClusters(
           // Get shape from the node
           partial_shape_from_node = PartialShape(shape_field->shape());
         }
-        NGRAPH_VLOG(5) << partial_shape_from_node.to_string();
+        NGRAPH_VLOG(5) << "For node " << node->name() << " got shape from nose: " << partial_shape_from_node.to_string();
         node_partial_shape_map.insert({node->name(), partial_shape_from_node});
         shape_from_placeholders_as_hints.insert(
             {node->name(), partial_shape_from_node.get_shape_vector()});
       }
     }
 
-    // TODO: write why this line is needed
-    node_shapes_hints_sets.insert(shape_from_placeholders_as_hints);
+    cout << "shape_from_placeholders_as_hints:: " << shape_from_placeholders_as_hints.size() << "\n=====\n";
+    for (ShapeHintMap single_hint : node_shapes_hints_sets){
+      cout << "XXX: " << hint_as_string(single_hint) << "\n";
+    }
+    cout << "YYY: " << hint_as_string(shape_from_placeholders_as_hints) << "\n";
+
+    // If no shape hints are provided but the placeholders contain complete shape, then we still need to enter the for loop below to compute AOT.
+    // Hence adding the shapes from placeholders as hints.
+    if (node_shapes_hints_sets.size() == 0){
+      node_shapes_hints_sets.insert(shape_from_placeholders_as_hints);
+    }
+    // TODO: .....CHECK ABOVE IF
 
     // Iterate over each shape hint and see if they can be used
     for (ShapeHintMap single_hint : node_shapes_hints_sets) {
@@ -825,12 +836,23 @@ Status EncapsulateClusters(
             // currently created NGraphEncapsulate
             // TODO: create a separate namespace of node attributes for backend
             // and for bridge
+            performed_aot_on_enc.insert(node->name());
+            NGRAPH_VLOG(5) << "Performed AOT on " << node->name();
           }
         }
       } else {
         return errors::Internal("AOT requested, but could not perform AOT");
       }  // end of if-else (can_aot)
     }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
+
+    for (auto node : graph->op_nodes()) {
+        if (node->type_string() == "NGraphEncapsulate") {
+          cout << "=====HERExxx\n";
+          if (performed_aot_on_enc.find(node->name()) == performed_aot_on_enc.end()){ 
+            return errors::Internal("Requested AOT, but did not perform AOT on ", node->name());
+          }
+        }
+    }
   }      // end of if (aot_requested)
 
   // Pass 9 (optional, only run if environment variable
