@@ -28,6 +28,8 @@ import tensorflow as tf
 import ngraph_bridge
 import json
 
+from google.protobuf import text_format
+from tensorflow.core.framework import graph_pb2
 from tools.build_utils import command_executor
 from tools.tf2ngraph import convert, get_gdef, Tf2ngraphJson
 
@@ -54,7 +56,17 @@ def get_inputs(p_shape):
 
 
 def run_pbtxt(pbtxt_filename, inp0, inp1):
-    pass
+    tf.reset_default_graph()
+    gdef = graph_pb2.GraphDef()
+    with open(pbtxt_filename, 'r') as f:
+        raw_contents = f.read()
+    text_format.Parse(raw_contents, gdef)
+    with tf.Session() as sess:
+        tf.import_graph_def(gdef, name='')
+        x = tf.get_default_graph().get_tensor_by_name("x:0")
+        y = tf.get_default_graph().get_tensor_by_name("y:0")
+        z = tf.get_default_graph().get_tensor_by_name("z:0")
+        return sess.run(z, feed_dict={x: inp0, y: inp1})
 
 
 def check_pbtxt_has_exec(pbtxt_filename):
@@ -74,19 +86,8 @@ def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
     json_name = 'temp_config_file.json'
     # shapehints is a list of dictionaries (keys are node names, vals are lists (of shapes))
     Tf2ngraphJson.dump_json(json_name, None, shapehints)
-    '''
-    TODO: remove this command line comment
-    python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --shape_hints sample_shape_hints.json --precompile
-    python tf2ngraph.py --input_pbtxt temp_pbtxt_name --output_nodes z --output_pbtxt out_pbtxt_name --ng_backend INTERPRETER --shape_hints json_name --precompile
-    '''
-    '''
-    TODO: bring this command back
-    command_executor('python ../../tools/tf2ngraph.py --input_pbtxt ' +
-                     temp_in_pbtxt_name + ' --output_nodes z --output_pbtxt ' +
-                     temp_out_pbtxt_name + ' --ng_backend INTERPRETER ' +
-                     ' --shape_hints ' + json_name + ' --precompile')
-    '''
-    command_executor('python ./tools/tf2ngraph.py --input_pbtxt ' +
+
+    command_executor('python .../../tools/tf2ngraph.py --input_pbtxt ' +
                      temp_in_pbtxt_name + ' --output_nodes z --output_pbtxt ' +
                      temp_out_pbtxt_name + ' --ng_backend INTERPRETER ' +
                      ' --config_file ' + json_name + ' --precompile')
@@ -95,24 +96,30 @@ def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
 
     tf_out_val = run_pbtxt(temp_in_pbtxt_name, inp0, inp1)
     ng_out_vals = run_pbtxt(temp_out_pbtxt_name, inp0, inp1)
+    assert ((tf_out_val == ng_out_vals).all())
 
-    # TODO: compare tf_out_val vs ng_out_vals
-
-    if (False):  # TODO: here for debugging purposes. remove later
-        os.remove(temp_in_pbtxt_name)
-        os.remove(temp_out_pbtxt_name)
-        os.remove(json_name)
+    os.remove(temp_in_pbtxt_name)
+    os.remove(temp_out_pbtxt_name)
+    os.remove(json_name)
 
 
 # TODO: Finish this pytest <<<<<<<
 class Testtf2ngraphShapehints(NgraphTest):
 
-    def test_tf2ngraph_with_shape_hints(self):
-        # parameterize with input shapes and shape hints and call helper
-        pass
+    @pytest.mark.parametrize(('p0_shape', 'p1_shape', 'p0_actual_shape',
+                              'p1_actual_shape', 'shapehints'),
+                             (([2, 2], [None, 2], [2, 2], [2, 2], [{
+                                 'y': [2, -1]
+                             }]),))
+    def test_tf2ngraph_with_shape_hints(self, p0_shape, p1_shape,
+                                        p0_actual_shape, p1_actual_shape,
+                                        shapehints):
+        helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints)
+
+    # TODO: add tests that fail AOT
 
 
 # TODO remove these:
 # These are here to run it quickly/singly without test_runner
 # PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples/mnist python test/python/test_tf2ngraph_shape_hints.py
-helper([2, 2], [None, 2], [2, 2], [2, 2], [{'y': [2, -1]}])
+# helper([2, 2], [None, 2], [2, 2], [2, 2], [{'y': [2, -1]}])

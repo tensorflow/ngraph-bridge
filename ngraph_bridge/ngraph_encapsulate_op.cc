@@ -197,7 +197,6 @@ class NGraphEncapsulateOp : public OpKernel {
             if (m_do_aot) {
               NGRAPH_VLOG(1)
                   << "Using AOT for encapsulate " + to_string(m_ngraph_cluster);
-              cout << "\n======\nUsing AOT\n======TODO remove\n";
             }
           } else {
             OP_REQUIRES_OK(
