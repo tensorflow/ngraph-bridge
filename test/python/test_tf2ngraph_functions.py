@@ -28,7 +28,7 @@ import tensorflow as tf
 import ngraph_bridge
 
 from tools.build_utils import command_executor
-from tools.tf2ngraph import parse_extra_params_string, update_config_to_include_custom_config
+from tools.tf2ngraph import update_config_to_include_custom_config
 
 from common import NgraphTest
 
@@ -58,35 +58,3 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
             'ngraph_backend': 'CPU',
             'device_id': '0'
         }
-
-    # In this test we test that the spaces are handled correctly
-    @pytest.mark.parametrize(('ng_device',),
-                             (('{abc:1,def:2}',), ('{abc:1, def:2}',),
-                              ('{abc :1,def: 2}',), ('{abc:1,def: 2} ',)))
-    def parse_extra_params_string(self, raw_string):
-        assert (parse_extra_params_string(raw_string) == {
-            'abc': '1',
-            'def': '2'
-        })
-
-    # This test checks the parsing of the empty dictionary {}
-    def parse_extra_params_empty(self):
-        assert (parse_extra_params_string('{}') == {})
-
-    # In this test we pass badly formatted strings,
-    # and expect parse_extra_params_string to fail
-    @pytest.mark.parametrize(('ng_device',), (
-        ('abc:1,def:2}',),
-        ('{abc:1, def:2',),
-        ('{abc :1:2 ,def: 2}',),
-    ))
-    def parse_extra_params_string(self, raw_string):
-        function_failed = False
-        try:
-            parse_extra_params_string(raw_string)
-        except:
-            function_failed = True
-        assert function_failed
-
-    # TODO: write a test for parse_extra_params_string for incorrect parsings
-    # where parse_extra_params_string is expected to fail

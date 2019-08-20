@@ -29,44 +29,56 @@ import json
 from functools import partial
 
 
-def _initial_check(st):
-    st = st.strip(' ')
-    assert st[0] == '{' and st[
-        -1] == '}', "Expected string to be a dictionary beginning with { and ending with }"
-    return st[1:-1].strip(' ')
+class Tf2ngraphJson(object):
+
+    @staticmethod
+    def allowed_fields():
+        return set(["shape_hints", "backend_optional_params"])
+
+    @staticmethod
+    def check_shape_hints(shape_hints):
+        assert type(shape_hints) == type([]), "Expected shape_hints to be a list"
+        for item in shape_hints:
+            assert type(item) == type({}), "Expected each element of the shape_hints list to be a dictionary"
+            for k in item:
+                assert type(k) == type(""), "Expected the dictionaries in shape_hints list to have string keys"
+                assert type(item[k]) == type([]), "Expected the dictionaries in shape_hints list to have list values"
+
+    @staticmethod
+    def check_optional_params(opt_params):
+        for optional_attr in opt_params:
+            assert type(opt_params[optional_attr]) == type(optional_attr) == type(""), "Expected backend_optional_params to be a dictionary with string keys and values"
 
 
-def parse_extra_params_string(raw_extra_params):
-    raw_extra_params_contents = _initial_check(raw_extra_params)
-    extra_params_dict = {}
-    if len(raw_extra_params_contents) == 0:
-        return extra_params_dict
-    # could have used eval(extra_params_string), but then the string would have to be the cumbersome {\"abc\":1}
-    # and not {"abc":1} or {abc:1}. Hence explicity parsing the string without using eval
-    for key_val in raw_extra_params_contents.split(','):
-        key_val = key_val.strip(' ')
-        try:
-            key, val = key_val.split(':')
-            extra_params_dict[key.strip(' ')] = val.strip(' ')
-        except Exception as e:
-            raise type(
-                e
-            )(e.message +
-              'Got an entry that is an invalid entry for a python dictionary: '
-              + key_val)
-    return extra_params_dict
+    @staticmethod
+    def parse_json(json_name):
+        optional_backend_params = {}
+        shape_hints = []
+        with open(json_name) as f:
+            dct = json.load(f)
+            for k in dct:
+                if k == 'shape_hints':
+                    Tf2ngraphJson.check_shape_hints(dct[k])
+                    shape_hints = dct[k]
+                elif k == 'backend_optional_params':
+                    Tf2ngraphJson.check_optional_params(dct[k])
+                    optional_backend_params = dct[k]
+                else:
+                    assert False, "Expected keys to be only in " + str(allowed_fields())
+        return optional_backend_params, shape_hints
 
-
-def parse_shape_hints_string(raw_shape_hints_string):
-    with open(raw_shape_hints_string) as f:
-        dct = json.load(f)
-        # TODO add checks that the json contains data in the right format:
-        # TODO merge the 2 json inputs once #199 is merged
-    return dct['shape_hints']
+    @staticmethod
+    def dump_json(json_name, optional_params=None, shape_hints=None):
+        optional_params = {} if optional_params is None else optional_params
+        shape_hints = [] if shape_hints is None else shape_hints
+        Tf2ngraphJson.check_optional_params(optional_params)
+        Tf2ngraphJson.check_shape_hints(shape_hints)
+        with open(json_name, 'w') as fp:
+            json.dump({"shape_hints" : shape_hints, "backend_optional_params" : optional_params}, fp)
 
 
 def update_config_to_include_custom_config(config, backend, device_id,
-                                           extra_params, shape_hints, do_aot):
+                                           backend_optional_params, shape_hints, do_aot):
     rewriter_options = rewriter_config_pb2.RewriterConfig()
     rewriter_options.meta_optimizer_iterations = (
         rewriter_config_pb2.RewriterConfig.ONE)
@@ -75,8 +87,8 @@ def update_config_to_include_custom_config(config, backend, device_id,
     ngraph_optimizer.name = "ngraph-optimizer"
     ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
     ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
-    for k in extra_params:
-        ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
+    for k in backend_optional_params:
+        ngraph_optimizer.parameter_map[k].s = backend_optional_params[k].encode()
     # Attach shape hints
     for hint_id, shape_hint in enumerate(shape_hints):
         shape_hint_name = "shape_hint_" + str(hint_id)
@@ -99,7 +111,7 @@ def update_config_to_include_custom_config(config, backend, device_id,
 
 
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
-                                  device_id, extra_params, shape_hints, do_aot):
+                                  device_id, backend_optional_params, shape_hints, do_aot):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -119,10 +131,10 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
         output_collection)
 
     session_config = tf.ConfigProto()
-    # Pass backend and extra backend params to grappler through rewriter config by updating the config
+    # Pass backend and backend_optional_params to grappler through rewriter config by updating the config
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
-        session_config, ng_backend, device_id, extra_params, shape_hints,
+        session_config, ng_backend, device_id, backend_optional_params, shape_hints,
         do_aot)
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
@@ -201,16 +213,10 @@ def prepare_argparser(formats):
         "--ng_backend", default='CPU', help="Ngraph backend. Eg, NNPI")
     parser.add_argument("--device_id", default='', help="Device id. Eg, 0")
     parser.add_argument(
-        "--extra_params",
+        "--config_file",
         default='{}',
         help=
-        "Other params that the backend needs in the form of a dictionary. Eg, {max_cores: 4}."
-    )
-    parser.add_argument(
-        "--shape_hints",
-        default='{}',
-        help=
-        "Shape hints (comma separated maps) TODO expand this help line. Eg, \{\{a:[2,3],b:[2,3]\},\{a:[5,5],b:[5,-1]\},\{a:[-1,3]\}\}."
+        "Json file that contains optional backend configuration settings and shape hints"
     )
     parser.add_argument(
         "--precompile",
@@ -280,7 +286,7 @@ allowed_formats = {
 
 
 def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
-            device_id, extra_params, shape_hints, do_aot):
+            device_id, backend_optional_params, shape_hints, do_aot):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -302,7 +308,7 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
     output_gdef = run_ngraph_grappler_optimizer(
-        input_gdef, output_nodes, ng_backend, device_id, extra_params,
+        input_gdef, output_nodes, ng_backend, device_id, backend_optional_params,
         shape_hints, do_aot)
     save_model(output_gdef, out_format, out_loc)
 
@@ -317,10 +323,9 @@ def main():
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
     output_nodes = args.output_nodes.split(',')
-    extra_params = parse_extra_params_string(args.extra_params)
-    shape_hints = parse_shape_hints_string(args.shape_hints)
+    backend_optional_params, shape_hints = Tf2ngraphJson.parse_json(args.config_file)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
-            args.ng_backend, args.device_id, extra_params, shape_hints,
+            args.ng_backend, args.device_id, backend_optional_params, shape_hints,
             args.precompile)
     print('Converted the model. Exiting now')
 
@@ -331,8 +336,7 @@ if __name__ == '__main__':
     # TODO remove these lines
 
     # 2x3 and 2x3 are the only valid hints. x=[10,-1] is invalid, y=[-1,-1] doesnt add much
-    # // python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU --shape_hints sample_shape_hints.json --precompile
-    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --shape_hints sample_shape_hints.json --precompile
+    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --config_file sample_shape_hints.json --precompile
     # python run_tf2ngraph_model.py
 
     # TODO what happens if same shape is passed twice
