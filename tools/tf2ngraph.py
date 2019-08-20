@@ -336,7 +336,7 @@ if __name__ == '__main__':
     # TODO remove these lines
 
     # 2x3 and 2x3 are the only valid hints. x=[10,-1] is invalid, y=[-1,-1] doesnt add much
-    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --config_file sample_shape_hints.json --precompile
+    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --config_file sample_optional_params_and_shape_hints.json --precompile
     # python run_tf2ngraph_model.py
 
     # TODO what happens if same shape is passed twice
