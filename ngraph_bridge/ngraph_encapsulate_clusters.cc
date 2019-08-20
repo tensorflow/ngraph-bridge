@@ -845,9 +845,9 @@ Status EncapsulateClusters(
           NGRAPH_VLOG(5) << "Performed AOT on " << node->name();
         }
       }
-
     }  // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
 
+    // In the end assert that all encapsulates have performed AOT
     for (auto node : graph->op_nodes()) {
       if (node->type_string() == "NGraphEncapsulate") {
         if (performed_aot_on_enc.find(node->name()) ==
