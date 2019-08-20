@@ -755,6 +755,7 @@ Status EncapsulateClusters(
             TF_RETURN_IF_ERROR(Builder::TranslateGraph(
                 input_shapes, static_input_map, &graph_for_current_encapsulate,
                 ng_function));
+            string serialized_ngfunc(ngraph::serialize(ng_function, 4));
 
             // get backend.
             // TODO: Note that this is code duplication of some stuff present
@@ -826,7 +827,7 @@ Status EncapsulateClusters(
             ng_exec->save(exec_dump);
             // ng function attached as debugging information
             node->AddAttr("_ngraph_aot_ngfunction_" + signature,
-                          ngraph::serialize(ng_function, 4));
+                          serialized_ngfunc);
             // Compute will use this ngexec
             node->AddAttr("_ngraph_aot_ngexec_" + signature, exec_dump.str());
             // We do not need to add "_ngraph_aot_requested" attribute since it
