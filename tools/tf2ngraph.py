@@ -190,6 +190,7 @@ def prepare_argparser(formats):
     python tf2ngraph.py --input_pbtxt mobilenet.pbtxt --output_nodes out_node --output_pbtxt mobilenet_ngraph.pbtxt
     python tf2ngraph.py --input_pb inception_v3_2016_08_28_frozen.pb --output_nodes InceptionV3/Predictions/Reshape_1 --output_pb inception_v3_2016_08_28_frozen_ngraph.pb
     python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend CPU
+    python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --config_file sample_optional_params_and_shape_hints.json --precompile
     ''')
     in_out_groups = [
         parser.add_argument_group(i, j) for i, j in zip(
@@ -334,8 +335,6 @@ if __name__ == '__main__':
     main()
 
     # TODO remove these lines
-
-    # 2x3 and 2x3 are the only valid hints. x=[10,-1] is invalid, y=[-1,-1] doesnt add much
     # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --config_file sample_optional_params_and_shape_hints.json --precompile
     # python run_tf2ngraph_model.py
 

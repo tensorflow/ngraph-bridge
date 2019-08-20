@@ -607,8 +607,8 @@ TEST(EncapsulateClusters, AOT4) {
   free(fdeflib_new);
 }
 
-// TODO: more test cases:
-// 1. what of scalar inputs. placeholder shape is {}?
+// Test cases for AOT:
+// TODO: 1. what of scalar inputs. placeholder shape is {}?
 // 2. Shape hints that cause errors in TranslateGraph?. eg trying to add [2,2]
 // with [2,4]? (done, AOT3)
 // 3. Encapsulate being fed by another enc (wont work) (done, AOT1)
@@ -619,6 +619,7 @@ TEST(EncapsulateClusters, AOT4) {
 // happen (done, AOT4)
 // 7. Fail on bad hints (partly done, AOT4)
 // 8. EncapsulateClusters compiles 2 executables due to 2 different shape hints (done, AOT2)
+// TODO: 9. Same hint passed twice or functionally same hint passed twice (it should create 1 exec only).
 }
 }
 }
