@@ -100,7 +100,7 @@ TEST(tf_exec, SingleGraphOn2Threads) {
   vector<string> backends{"CPU", "INTERPRETER"};
   for (auto be : backends) {
     unique_ptr<Session> session;
-    ASSERT_OK(CreateSession(graph_name, session, be));
+    ASSERT_OK(CreateSession(graph_name, be, session));
 
     auto worker = [&session](size_t thread_id) {
       string inp_tensor_name_0{"x"};
