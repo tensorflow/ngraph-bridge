@@ -49,7 +49,8 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
         assert len(custom_opts) == 1
         assert custom_opts[0].name == 'ngraph-optimizer'
         assert set(custom_opts[0].parameter_map.keys()) == {
-            'abc', 'ngraph_backend', 'def', 'device_id', 'aot_requested'
+            'abc', 'ngraph_backend', 'def', 'device_id', 'aot_requested',
+            'shape_hint_0'
         }
         retrieved_dict = {}
         for key, val in custom_opts[0].parameter_map.items():
