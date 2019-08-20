@@ -63,7 +63,7 @@ class Testtf2ngraph(NgraphTest):
                               ('INTERPRETER', {}, False)))
     # In sample_graph.pbtxt, the input shape is fully specified, so we don't need to pass shape hints for precompile
     def test_command_line_api(self, inp_format, inp_loc, out_format,
-                              commandline, ng_device):
+                              commandline, ng_device, shape_hints, precompile):
         # Only run this test when grappler is enabled
         if not ngraph_bridge.is_grappler_enabled():
             return
