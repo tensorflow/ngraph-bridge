@@ -98,9 +98,9 @@ Status CreateSession(const string& graph_filename, const string& backend_name,
 TEST(tf_exec, SingleGraphOn2Threads) {
   string graph_name = "test_axpy.pbtxt";
   vector<string> backends{"CPU", "INTERPRETER"};
-  for (auto i : backends) {
+  for (auto be : backends) {
     unique_ptr<Session> session;
-    ASSERT_OK(CreateSession(graph_name, session));
+    ASSERT_OK(CreateSession(graph_name, session, be));
 
     auto worker = [&session](size_t thread_id) {
       string inp_tensor_name_0{"x"};
