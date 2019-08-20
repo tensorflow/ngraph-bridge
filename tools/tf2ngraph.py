@@ -36,29 +36,32 @@ class Tf2ngraphJson(object):
         return set(["shape_hints", "backend_optional_params"])
 
     @staticmethod
+    def assert_type(obj, expected_type, tag):
+        assert type(
+            obj
+        ) == expected_type, "Expected " + tag + " to be " + expected_type + " but got " + type(
+            obj)
+
+    @staticmethod
     def check_shape_hints(shape_hints):
-        assert type(shape_hints) == type(
-            []), "Expected shape_hints to be a list"
+        Tf2ngraphJson.assert_type(shape_hints, type([]), 'shape_hints')
         for item in shape_hints:
-            assert type(item) == type(
-                {}
-            ), "Expected each element of the shape_hints list to be a dictionary"
+            Tf2ngraphJson.assert_type(item, type({}),
+                                      'each element of the shape_hints list')
             for k in item:
-                assert type(k) == type(
-                    ""
-                ), "Expected the dictionaries in shape_hints list to have string keys"
-                assert type(item[k]) == type(
-                    []
-                ), "Expected the dictionaries in shape_hints list to have list values"
+                Tf2ngraphJson.assert_type(
+                    k, type(""), 'the keys of dictionaries in shape_hints list')
+                Tf2ngraphJson.assert_type(
+                    item[k], type([]),
+                    'the values of dictionaries in shape_hints list')
 
     @staticmethod
     def check_optional_params(opt_params):
         for optional_attr in opt_params:
-            assert type(
-                opt_params[optional_attr]
-            ) == type(optional_attr) == type(
-                ""
-            ), "Expected backend_optional_params to be a dictionary with string keys and values"
+            Tf2ngraphJson.assert_type(opt_params[optional_attr], type(""),
+                                      'keys of backend_optional_params')
+            Tf2ngraphJson.assert_type(optional_attr, type(""),
+                                      'values of backend_optional_params')
 
     @staticmethod
     def parse_json(json_name):
