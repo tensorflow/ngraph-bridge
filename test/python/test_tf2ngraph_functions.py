@@ -40,8 +40,9 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
                                                         '0', {
                                                             'abc': '1',
                                                             'def': '2'
-                                                        }, [{'x':[1]}],
-                                                        True)
+                                                        }, [{
+                                                            'x': [1]
+                                                        }], True)
         assert config.HasField('graph_options')
         assert config.graph_options.HasField('rewrite_options')
         custom_opts = config.graph_options.rewrite_options.custom_optimizers
