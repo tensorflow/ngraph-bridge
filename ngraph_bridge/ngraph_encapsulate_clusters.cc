@@ -582,22 +582,26 @@ Status EncapsulateClusters(
           // Get shape from the node
           partial_shape_from_node = PartialShape(shape_field->shape());
         }
-        NGRAPH_VLOG(5) << "For node " << node->name() << " got shape from nose: " << partial_shape_from_node.to_string();
+        NGRAPH_VLOG(5) << "For node " << node->name()
+                       << " got shape from nose: "
+                       << partial_shape_from_node.to_string();
         node_partial_shape_map.insert({node->name(), partial_shape_from_node});
         shape_from_placeholders_as_hints.insert(
             {node->name(), partial_shape_from_node.get_shape_vector()});
       }
     }
 
-    cout << "shape_from_placeholders_as_hints:: " << shape_from_placeholders_as_hints.size() << "\n=====\n";
-    for (ShapeHintMap single_hint : node_shapes_hints_sets){
+    cout << "shape_from_placeholders_as_hints:: "
+         << shape_from_placeholders_as_hints.size() << "\n=====\n";
+    for (ShapeHintMap single_hint : node_shapes_hints_sets) {
       cout << "XXX: " << hint_as_string(single_hint) << "\n";
     }
     cout << "YYY: " << hint_as_string(shape_from_placeholders_as_hints) << "\n";
 
-    // If no shape hints are provided but the placeholders contain complete shape, then we still need to enter the for loop below to compute AOT.
+    // If no shape hints are provided but the placeholders contain complete
+    // shape, then we still need to enter the for loop below to compute AOT.
     // Hence adding the shapes from placeholders as hints.
-    if (node_shapes_hints_sets.size() == 0){
+    if (node_shapes_hints_sets.size() == 0) {
       NGRAPH_VLOG(5) << "Using shapes from placeholders as hint";
       node_shapes_hints_sets.insert(shape_from_placeholders_as_hints);
     }
@@ -847,14 +851,16 @@ Status EncapsulateClusters(
     }    // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
 
     for (auto node : graph->op_nodes()) {
-        if (node->type_string() == "NGraphEncapsulate") {
-          cout << "=====HERExxx\n";
-          if (performed_aot_on_enc.find(node->name()) == performed_aot_on_enc.end()){ 
-            return errors::Internal("Requested AOT, but did not perform AOT on ", node->name());
-          }
+      if (node->type_string() == "NGraphEncapsulate") {
+        cout << "=====HERExxx\n";
+        if (performed_aot_on_enc.find(node->name()) ==
+            performed_aot_on_enc.end()) {
+          return errors::Internal("Requested AOT, but did not perform AOT on ",
+                                  node->name());
         }
+      }
     }
-  }      // end of if (aot_requested)
+  }  // end of if (aot_requested)
 
   // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and

@@ -58,7 +58,9 @@ class Testtf2ngraph(NgraphTest):
         ('pb',),
         ('savedmodel',),
     ))
-    @pytest.mark.parametrize(('ng_device','shape_hints','precompile'), (('CPU',{},false), ('INTERPRETER',{},true), ('INTERPRETER',{},false)))
+    @pytest.mark.parametrize(('ng_device', 'shape_hints', 'precompile'),
+                             (('CPU', {}, false), ('INTERPRETER', {}, true),
+                              ('INTERPRETER', {}, false)))
     # In sample_graph.pbtxt, the input shape is fully specified, so we don't need to pass shape hints for precompile
     def test_command_line_api(self, inp_format, inp_loc, out_format,
                               commandline, ng_device):
@@ -75,21 +77,28 @@ class Testtf2ngraph(NgraphTest):
         conversion_successful = False
         try:
             optional_backend_params = {
-                'CPU': {'device_config':'0'},
-                'INTERPRETER': {'test_echo':'1'}
+                'CPU': {
+                    'device_config': '0'
+                },
+                'INTERPRETER': {
+                    'test_echo': '1'
+                }
             }[ng_device]
             config_file_name = 'temp_config_file.json'
-            Tf2ngraphJson.dump_json(config_file_name, optional_backend_params, shape_hints)
+            Tf2ngraphJson.dump_json(config_file_name, optional_backend_params,
+                                    shape_hints)
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
-                command_executor('python ../../tools/tf2ngraph.py --input_' +
-                                 inp_format + ' ' + inp_loc +
-                                 ' --output_nodes out_node --output_' +
-                                 out_format + ' ' + out_loc + ' --ng_backend ' +
-                                 ng_device + ' --config_file ' + config_file_name + (""," --precompile ")[precompile])
+                command_executor(
+                    'python ../../tools/tf2ngraph.py --input_' + inp_format +
+                    ' ' + inp_loc + ' --output_nodes out_node --output_' +
+                    out_format + ' ' + out_loc + ' --ng_backend ' + ng_device +
+                    ' --config_file ' + config_file_name +
+                    ("", " --precompile ")[precompile])
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
-                        ng_device, optional_backend_params, shape_hints, precompile)
+                        ng_device, optional_backend_params, shape_hints,
+                        precompile)
             conversion_successful = True
         finally:
             if not conversion_successful:

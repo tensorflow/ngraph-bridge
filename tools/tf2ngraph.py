@@ -37,18 +37,28 @@ class Tf2ngraphJson(object):
 
     @staticmethod
     def check_shape_hints(shape_hints):
-        assert type(shape_hints) == type([]), "Expected shape_hints to be a list"
+        assert type(shape_hints) == type(
+            []), "Expected shape_hints to be a list"
         for item in shape_hints:
-            assert type(item) == type({}), "Expected each element of the shape_hints list to be a dictionary"
+            assert type(item) == type(
+                {}
+            ), "Expected each element of the shape_hints list to be a dictionary"
             for k in item:
-                assert type(k) == type(""), "Expected the dictionaries in shape_hints list to have string keys"
-                assert type(item[k]) == type([]), "Expected the dictionaries in shape_hints list to have list values"
+                assert type(k) == type(
+                    ""
+                ), "Expected the dictionaries in shape_hints list to have string keys"
+                assert type(item[k]) == type(
+                    []
+                ), "Expected the dictionaries in shape_hints list to have list values"
 
     @staticmethod
     def check_optional_params(opt_params):
         for optional_attr in opt_params:
-            assert type(opt_params[optional_attr]) == type(optional_attr) == type(""), "Expected backend_optional_params to be a dictionary with string keys and values"
-
+            assert type(
+                opt_params[optional_attr]
+            ) == type(optional_attr) == type(
+                ""
+            ), "Expected backend_optional_params to be a dictionary with string keys and values"
 
     @staticmethod
     def parse_json(json_name):
@@ -64,7 +74,8 @@ class Tf2ngraphJson(object):
                     Tf2ngraphJson.check_optional_params(dct[k])
                     optional_backend_params = dct[k]
                 else:
-                    assert False, "Expected keys to be only in " + str(allowed_fields())
+                    assert False, "Expected keys to be only in " + str(
+                        allowed_fields())
         return optional_backend_params, shape_hints
 
     @staticmethod
@@ -74,11 +85,15 @@ class Tf2ngraphJson(object):
         Tf2ngraphJson.check_optional_params(optional_params)
         Tf2ngraphJson.check_shape_hints(shape_hints)
         with open(json_name, 'w') as fp:
-            json.dump({"shape_hints" : shape_hints, "backend_optional_params" : optional_params}, fp)
+            json.dump({
+                "shape_hints": shape_hints,
+                "backend_optional_params": optional_params
+            }, fp)
 
 
 def update_config_to_include_custom_config(config, backend, device_id,
-                                           backend_optional_params, shape_hints, do_aot):
+                                           backend_optional_params, shape_hints,
+                                           do_aot):
     rewriter_options = rewriter_config_pb2.RewriterConfig()
     rewriter_options.meta_optimizer_iterations = (
         rewriter_config_pb2.RewriterConfig.ONE)
@@ -88,7 +103,8 @@ def update_config_to_include_custom_config(config, backend, device_id,
     ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
     ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
     for k in backend_optional_params:
-        ngraph_optimizer.parameter_map[k].s = backend_optional_params[k].encode()
+        ngraph_optimizer.parameter_map[k].s = backend_optional_params[k].encode(
+        )
     # Attach shape hints
     for hint_id, shape_hint in enumerate(shape_hints):
         shape_hint_name = "shape_hint_" + str(hint_id)
@@ -111,7 +127,8 @@ def update_config_to_include_custom_config(config, backend, device_id,
 
 
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
-                                  device_id, backend_optional_params, shape_hints, do_aot):
+                                  device_id, backend_optional_params,
+                                  shape_hints, do_aot):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -134,8 +151,8 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     # Pass backend and backend_optional_params to grappler through rewriter config by updating the config
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
-        session_config, ng_backend, device_id, backend_optional_params, shape_hints,
-        do_aot)
+        session_config, ng_backend, device_id, backend_optional_params,
+        shape_hints, do_aot)
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -309,8 +326,8 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
     output_gdef = run_ngraph_grappler_optimizer(
-        input_gdef, output_nodes, ng_backend, device_id, backend_optional_params,
-        shape_hints, do_aot)
+        input_gdef, output_nodes, ng_backend, device_id,
+        backend_optional_params, shape_hints, do_aot)
     save_model(output_gdef, out_format, out_loc)
 
 
@@ -324,10 +341,11 @@ def main():
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
     output_nodes = args.output_nodes.split(',')
-    backend_optional_params, shape_hints = Tf2ngraphJson.parse_json(args.config_file)
+    backend_optional_params, shape_hints = Tf2ngraphJson.parse_json(
+        args.config_file)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
-            args.ng_backend, args.device_id, backend_optional_params, shape_hints,
-            args.precompile)
+            args.ng_backend, args.device_id, backend_optional_params,
+            shape_hints, args.precompile)
     print('Converted the model. Exiting now')
 
 
