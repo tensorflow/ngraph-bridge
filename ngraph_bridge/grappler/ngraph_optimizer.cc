@@ -84,8 +84,8 @@ Status NgraphOptimizer::Init(
   }
   if (!do_aot && shape_hints.size() > 0) {
     return errors::Internal(
-        "Requested AOT, but passed shape hints. Please request to use shape "
-        "hints (by using --precompile in tf2ngraph.py), or if AOT is not "
+        "Did not requested AOT, but passed shape hints. Please request to use "
+        "shape hints (by using --precompile in tf2ngraph.py), or if AOT is not "
         "desired then do not pass shape hints");
   }
   aot_info = make_pair(do_aot, shape_hints);

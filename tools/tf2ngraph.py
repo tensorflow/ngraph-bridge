@@ -87,11 +87,11 @@ class Tf2ngraphJson(object):
         shape_hints = [] if shape_hints is None else shape_hints
         Tf2ngraphJson.check_optional_params(optional_params)
         Tf2ngraphJson.check_shape_hints(shape_hints)
+        dict_to_dump = {"backend_optional_params": optional_params}
+        if len(shape_hints) > 0:
+            dict_to_dump["shape_hints"] = shape_hints
         with open(json_name, 'w') as fp:
-            json.dump({
-                "shape_hints": shape_hints,
-                "backend_optional_params": optional_params
-            }, fp)
+            json.dump(dict_to_dump, fp)
 
 
 def update_config_to_include_custom_config(config, backend, device_id,
