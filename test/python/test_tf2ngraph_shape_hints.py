@@ -103,23 +103,63 @@ def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
     os.remove(json_name)
 
 
-# TODO: Finish this pytest <<<<<<<
+# TODO: Add more test cases
 class Testtf2ngraphShapehints(NgraphTest):
 
-    @pytest.mark.parametrize(('p0_shape', 'p1_shape', 'p0_actual_shape',
-                              'p1_actual_shape', 'shapehints'),
-                             (([2, 2], [None, 2], [2, 2], [2, 2], [{
-                                 'y': [2, -1]
-                             }]),))
+    @pytest.mark.parametrize(
+        ('p0_shape', 'p1_shape', 'p0_actual_shape', 'p1_actual_shape',
+         'shapehints'),
+        (
+            ([2, 2], [2, 2], [2, 2], [2, 2], [{}
+                                             ]),  # np input needs shape hints
+            ([2, 2], [None, 2], [2, 2], [2, 2], [{
+                'y': [2, -1]
+            }]),  # only 1 input needs shape hints
+            (
+                [2, None],
+                [None, 3],
+                [2, 3],
+                [2, 3],
+                [{
+                    'y': [2, -1],
+                    'x': [2, 3]  # both inputs need shape hints
+                }]),
+            ([None, None], [None, None], [5, 1], [5, 1], [{
+                'y': [2, 3],
+                'x': [2, 3]
+            }, {
+                'y': [5, 1],
+                'x': [5, 1]
+            }]),  # 2 executables are compiled
+            ([2, 2], [None, 2], [2, 2], [2, 2], [{
+                'y': [2, -1],
+                'bogus': [1, 2]
+            }]
+            ),  # only 1 input needs shape hints, but passing a bogus node name
+            # TODO fix this. this should fail
+        ))
     def test_tf2ngraph_with_shape_hints(self, p0_shape, p1_shape,
                                         p0_actual_shape, p1_actual_shape,
                                         shapehints):
         helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints)
 
-    # TODO: add tests that fail AOT
-
-
-# TODO remove these:
-# These are here to run it quickly/singly without test_runner
-# PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples/mnist python test/python/test_tf2ngraph_shape_hints.py
-# helper([2, 2], [None, 2], [2, 2], [2, 2], [{'y': [2, -1]}])
+    @pytest.mark.parametrize(
+        ('p0_shape', 'p1_shape', 'p0_actual_shape', 'p1_actual_shape',
+         'shapehints'),
+        (
+            ([2, 2], [None, 2], [2, 2], [2, 2], [{
+                'y': [2, 3]
+            }]),  # conflicting shape hint
+            ([2, 2], [None, 2], [2, 5], [2, 5], [{
+                'y': [2, 2]
+            }]),  # During run time bad shapes are passed
+            ([2, 2], [None, 2], [2, 2], [2, 2], [{
+                'x': [2, -1]
+            }]),  # Input y does not have enough hints to concretize it
+        ))
+    def test_tf2ngraph_with_shape_hints(self, p0_shape, p1_shape,
+                                        p0_actual_shape, p1_actual_shape,
+                                        shapehints):
+        with pytest.raises(Exception):
+            helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
+                   shapehints)
