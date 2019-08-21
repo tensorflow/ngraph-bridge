@@ -452,7 +452,7 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
 
 Status NGraphEncapsulateImpl::CachePipelinedTensorIfNeeded(
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
-  if (m_executable_can_create_tensor) {
+  if (!m_executable_can_create_tensor) {
     return errors::Internal(
         "CachePipelinedTensorIfNeeded called, but executable cannot create "
         "tensors");
