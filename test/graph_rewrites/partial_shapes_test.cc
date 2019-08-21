@@ -45,6 +45,7 @@ TEST(PartialShapes, ValidConcretize2) {
   PartialShape p2({-1, -1});
   p1.concretize(p2);
   ASSERT_EQ(p1.is_valid(), true);
+  ASSERT_EQ(p1.to_string(), "valid:-1,-1,");
 }
 
 // The result of concretize would be {}
@@ -53,6 +54,7 @@ TEST(PartialShapes, ValidConcretize3) {
   PartialShape p2(vector<int>{});
   p1.concretize(p2);
   ASSERT_EQ(p1.is_valid(), true);
+  ASSERT_EQ(p1.to_string(), "valid:");
 }
 
 // This would result in an invalid case and should fail because
@@ -79,6 +81,8 @@ TEST(PartialShapes, IsConcrete1) {
   PartialShape p2({3, 3});
   p1.concretize(p2);
   ASSERT_EQ(p1.is_concrete(), true);
+  ASSERT_EQ(p2.is_concrete(), true);
+  ASSERT_EQ(p1.to_string(), "valid:3,3,");
 }
 
 // The result of concretize would be {3, -1}, which is not a concrete shape
@@ -87,6 +91,8 @@ TEST(PartialShapes, IsConcrete2) {
   PartialShape p2({3, -1});
   p1.concretize(p2);
   ASSERT_EQ(p1.is_concrete(), false);
+  ASSERT_EQ(p1.is_valid(), true);
+  ASSERT_EQ(p2.is_valid(), true);
 }
 
 // The result of concretize would be {}, which is a concrete shape
@@ -106,6 +112,24 @@ TEST(PartialShapes, DefaultConstructor) {
 TEST(PartialShapes, Constructor) {
   PartialShape p1({-2, 1});
   ASSERT_EQ(p1.is_valid(), false);
+}
+
+// Concretizing a shape with invalid shape should fail
+TEST(PartialShapes, ConcretizeWithInvalid) {
+  PartialShape p1({2, -1});
+  PartialShape p2({3, -1});
+  p1.concretize(p2);  // p1 is now invalid
+  ASSERT_EQ(p1.is_valid(), false);
+  ASSERT_EQ(p2.is_valid(), true);
+
+  PartialShape p3({-1, -1});
+  bool test_passed = true;
+  try {
+    p3.concretize(p1);
+  } catch (...) {
+    test_passed = false;
+  }
+  ASSERT_EQ(test_passed, false);
 }
 
 }  // namespace testing
