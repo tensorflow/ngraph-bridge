@@ -421,7 +421,7 @@ bool IsProcessedByNgraphPass(Graph* g) {
   return false;
 }
 
-Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx)
+Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def, std::set<std::string> nodes)
 {
   const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
 
@@ -443,20 +443,22 @@ Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx)
     mkdir(str_path.c_str(), 0777);
   }
 
-  str_path += ("run" + to_string(file_idx) + "/");
+  std::string dname = GetSessionName(file_idx, nodes);
+  str_path += (dname.insert(0, "ngraph") + "/");
+
   if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
   {
     mkdir(str_path.c_str(), 0777);
   }
   
-  str_path += ("tfevent" + to_string(file_idx));
+  str_path += ("ngraph" + to_string(file_idx));
 
   CreateSummaryFromGraphDef(graph_def, str_path); // create tensorflow event
 
   return Status::OK();
 }
 
-Status UpdateComputeTime(int file_idx, std::string cluster, int step, int compute_time)
+Status UpdateComputeTime(int file_idx, std::string cluster, std::string sess_name, int step, int compute_time)
 {
   const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
 
@@ -471,7 +473,8 @@ Status UpdateComputeTime(int file_idx, std::string cluster, int step, int comput
     str_path += "/";
   }
 
-  str_path += ("stats" + to_string(file_idx) + "/");
+  std::string dname(sess_name);
+  str_path += (dname.insert(0, "stats") + "/");
 
   struct stat buffer;
   if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
@@ -479,57 +482,17 @@ Status UpdateComputeTime(int file_idx, std::string cluster, int step, int comput
     mkdir(str_path.c_str(), 0777);
   }
 
-  DIR* dir = opendir(str_path.c_str());
-  struct dirent* dp;
-  vector<std::string> files;
-
-  while ((dp = readdir(dir)) != nullptr)
-  {
-    if (dp->d_type == DT_REG) // only look for files
-    {
-      files.push_back(std::string(dp->d_name));
-    }
-  }
-  closedir(dir);
-
+  str_path += ("stats" + to_string(file_idx));
+  
+  tensorflow::EventsWriter writer(str_path);
   tensorflow::Event event;
   tensorflow::Summary::Value* summary_value;
 
-  if (files.empty())
-  {
-    str_path += ("stats" + to_string(file_idx));
-
-    tensorflow::EventsWriter writer(str_path);
-
-    event.set_step(step);
-    summary_value = event.mutable_summary()->add_value();
-    summary_value->set_tag("Compute Time (ms)/" + cluster);
-    summary_value->set_simple_value((float) compute_time);
-    writer.WriteEvent(event);
-
-    return Status::OK();
-  }
-
-  std::sort(files.begin(), files.end()); // sort files names in order of recency (least recent --> most recent)
-  std::string file_path = str_path + files.back(); // get most recent tensorflow event file to update
-
-  /*
-   * open tf event file at location file_path 
-   */
-
-  tensorflow::Env* env = Env::Default();
-  std::unique_ptr<tensorflow::WritableFile> writable_file;
-
-  env->NewAppendableFile(file_path, &writable_file);
-  tensorflow::io::RecordWriter record_writer(writable_file.get());
-
   event.set_step(step);
   summary_value = event.mutable_summary()->add_value();
-  summary_value->set_tag("Compute Time (ms)/" + cluster);
+  summary_value->set_tag(dname + " Compute Time (ms)/" + cluster);
   summary_value->set_simple_value((float) compute_time);
-
-  record_writer.WriteRecord(event.SerializeAsString());
-  record_writer.Flush();
+  writer.WriteEvent(event);
 
   return Status::OK();
 }
@@ -561,6 +524,51 @@ Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def, std::string fi
   writer.WriteEvent(event);
 
   return Status::OK();
+}
+
+Status AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph)
+{ 
+  for (auto node : graph->op_nodes())
+  {
+    if (node->type_string() == "NGraphEncapsulate")
+    {
+      node->AddAttr(("_session_name" + to_string(file_idx)), GetSessionName(file_idx, nodes));
+    }
+  }
+
+  return Status::OK();
+}
+
+std::string GetSessionName(int file_idx, std::set<std::string> nodes)
+{
+  std::string name = "";
+
+  if (nodes.size() == 0)
+  {
+    name = to_string(file_idx);
+  }
+  else
+  {
+    std::string entry;
+
+    for (auto it = nodes.begin(); it != nodes.end(); ++it) // get last element in set
+    {
+      entry = *it;
+    }
+
+    int scope_idx = entry.find_first_of("/");
+
+    if (scope_idx != std::string::npos)
+    {
+      name = to_string(file_idx) + "_" + entry.substr(0, scope_idx);
+    }
+    else
+    {
+      name = to_string(file_idx) + "_" + entry;
+    }
+  }
+
+  return name;
 }
 
 }  // namespace ngraph_bridge

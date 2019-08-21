@@ -19,6 +19,7 @@
 #include <fstream>
 #include <ostream>
 #include <sstream>
+#include <vector>
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -322,13 +323,17 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
-Status DumpNGraph(tensorflow::GraphDef* graph_def, int file_idx);
+Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def, std::set<std::string> nodes);
 
-Status UpdateComputeTime(int file_idx, std::string cluster, int step, int compute_time);
+Status UpdateComputeTime(int file_idx, std::string cluster, std::string sess_name, int step, int compute_time);
 
 Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix);
 
 Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def, std::string filename_prefix);
+
+Status AddSessionNameAttr(int file_idx, std::set<std::string> nodes, Graph* graph);
+
+std::string GetSessionName(int file_idx, std::set<std::string> nodes);
 
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order

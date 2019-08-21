@@ -119,6 +119,11 @@ class NGraphEncapsulateOp : public OpKernel {
       OP_REQUIRES_OK(ctx, ConvertGraphDefToGraph(opts, *graph_def, &m_graph));
     }
     OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &m_graph_id));
+
+    std::string sess_name;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr(("_session_name" + to_string(m_graph_id)), &sess_name));
+    session_names[m_graph_id] = sess_name;
+
     //
     // Initialize the "m_input_is_static" vector as follows:
     // (1) create m_input_is_static with n+1 elements, where n is the max arg
@@ -904,7 +909,7 @@ class NGraphEncapsulateOp : public OpKernel {
     ngraph::Event::write_trace(event_copy_output);
     ngraph::Event::write_trace(event);
 
-    UpdateComputeTime(m_graph_id, ctx->op_kernel().name(), ctx->step_id(), compute_time.ElapsedInMS());
+    UpdateComputeTime(m_graph_id, ctx->op_kernel().name(), session_names[m_graph_id], ctx->step_id(), compute_time.ElapsedInMS());
 
   }  // end compute
 
@@ -990,6 +995,8 @@ class NGraphEncapsulateOp : public OpKernel {
   static int s_instance_count;
   int my_instance_id{0};
   int m_number_outputs = -1;
+
+  std::map<int, std::string> session_names;
 };
 
 int NGraphEncapsulateOp::s_instance_count = 0;
