@@ -131,11 +131,12 @@ class Testtf2ngraphShapehints(NgraphTest):
                 'y': [5, 1],
                 'x': [5, 1]
             }]),  # 2 executables are compiled
-            ([2, 2], [None, 2], [2, 2], [2, 2], [{
-                'y': [2, -1],
-                'bogus': [1, 2]
-            }]
-            ),  # only 1 input needs shape hints, but passing a bogus node name
+            ([2, 2], [None, 2], [2, 2], [2, 2], [
+                {
+                    'y': [2, -1],
+                    'bogus': [1, 2]
+                }
+            ]),  # only 1 input needs shape hints, but passing a bogus node name
             # TODO fix this. this should fail
         ))
     def test_tf2ngraph_with_shape_hints(self, p0_shape, p1_shape,
@@ -150,6 +151,9 @@ class Testtf2ngraphShapehints(NgraphTest):
             ([2, 2], [None, 2], [2, 2], [2, 2], [{
                 'y': [2, 3]
             }]),  # conflicting shape hint
+            ([2, 2], [None, 2], [2, 2], [2, 2], [{
+                'y': [2]
+            }]),  # shape hint is of conflicting rank
             ([2, 2], [None, 2], [2, 5], [2, 5], [{
                 'y': [2, 2]
             }]),  # During run time bad shapes are passed
