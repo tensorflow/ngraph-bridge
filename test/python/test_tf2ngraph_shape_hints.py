@@ -69,13 +69,12 @@ def run_pbtxt(pbtxt_filename, inp0, inp1):
         return sess.run(z, feed_dict={x: inp0, y: inp1})
 
 
-def check_pbtxt_has_exec(pbtxt_filename):
+def check_pbtxt_has_exec(pbtxt_filename, num_expected_execs):
     with open(pbtxt_filename, 'r') as f:
         contents = '\n'.join(f.readlines())
         assert contents.count('_ngraph_aot_requested') == 1
-        # TODO add the shape signature to the 2 asserts below
-        assert contents.count('_ngraph_aot_ngexec_') >= 1
-        assert contents.count('_ngraph_aot_ngfunction_') >= 1
+        assert contents.count('_ngraph_aot_ngexec_') == num_expected_execs
+        assert contents.count('_ngraph_aot_ngfunction_') == num_expected_execs
 
 
 def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
@@ -92,7 +91,8 @@ def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
                      temp_out_pbtxt_name + ' --ng_backend INTERPRETER ' +
                      ' --config_file ' + json_name + ' --precompile')
 
-    check_pbtxt_has_exec(temp_out_pbtxt_name)
+    num_expected_execs = (len(shapehints), 1)[len(shapehints) == 0]
+    check_pbtxt_has_exec(temp_out_pbtxt_name, num_expected_execs)
 
     tf_out_val = run_pbtxt(temp_in_pbtxt_name, inp0, inp1)
     ng_out_vals = run_pbtxt(temp_out_pbtxt_name, inp0, inp1)
