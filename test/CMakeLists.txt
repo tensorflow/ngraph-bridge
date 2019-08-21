@@ -45,6 +45,7 @@ set(SRC
     tf_exec.cpp
     padding.cpp
     conversions.cpp
+    encapsulate_op/encapsulate_op_test.cc
     graph_rewrites/assign_clusters.cc
     graph_rewrites/deadness_test.cc
     graph_rewrites/backend_manager_test.cc
@@ -66,8 +67,8 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
 endif()
 
-if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
-    list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)
+if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)	
+    list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)	
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -95,15 +96,31 @@ if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
 endif()
 
-target_link_libraries(
-    gtest_ngtf
-    ngraph_bridge
-    ngraph_lib
-    libgtest
-    pthread
-    ${TensorFlow_FRAMEWORK_LIBRARY}
-    tensorflow_cc_lib
-)
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    target_link_libraries(
+        gtest_ngtf
+        ngraph_bridge_static
+        ngraph_lib
+        lib_cpu_backend_static
+        lib_interpreter_backend_static 
+        ngraph_lib
+        dl
+        libgtest
+        pthread
+        ${TensorFlow_FRAMEWORK_LIBRARY}
+        tensorflow_cc_lib
+    )
+else()
+    target_link_libraries(
+        gtest_ngtf
+        ngraph_bridge
+        ngraph_lib
+        libgtest
+        pthread
+        ${TensorFlow_FRAMEWORK_LIBRARY}
+        tensorflow_cc_lib
+    )
+endif()
 
 if (NGRAPH_PLAIDML_ENABLE)
     target_link_libraries(gtest_ngtf ${PLAIDML_LIBRARIES})
