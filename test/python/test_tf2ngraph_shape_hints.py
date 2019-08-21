@@ -132,6 +132,9 @@ class Testtf2ngraphShapehints(NgraphTest):
                 'x': [5, 1]
             }]),  # 2 executables are compiled
         ))
+    @pytest.mark.skipif(
+        ngraph_bridge.is_grappler_enabled(),
+        reason="Requires grappler build for tf2ngraph and AOT")
     def test_tf2ngraph_with_shape_hints_0(self, p0_shape, p1_shape,
                                           p0_actual_shape, p1_actual_shape,
                                           shapehints):
@@ -158,6 +161,9 @@ class Testtf2ngraphShapehints(NgraphTest):
                 'bogus': [1, 2]
             }]),  # passing a bogus node name
         ))
+    @pytest.mark.skipif(
+        ngraph_bridge.is_grappler_enabled(),
+        reason="Requires grappler build for tf2ngraph and AOT")
     def test_tf2ngraph_with_shape_hints_1(self, p0_shape, p1_shape,
                                           p0_actual_shape, p1_actual_shape,
                                           shapehints):
