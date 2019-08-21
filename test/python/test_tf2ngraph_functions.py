@@ -54,7 +54,10 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
         }
         retrieved_dict = {}
         for key, val in custom_opts[0].parameter_map.items():
-            retrieved_dict[key] = val.ListFields()[0][1].decode()
+            # For everything other than shape_hint_0, the values are simple strings
+            # shape_hint_0 contains a complex data structure representing shape hint
+            if (key != "shape_hint_0"):
+                retrieved_dict[key] = val.ListFields()[0][1].decode()
         assert retrieved_dict == {
             'abc': '1',
             'def': '2',
