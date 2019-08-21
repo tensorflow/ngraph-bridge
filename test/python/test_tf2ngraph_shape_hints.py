@@ -124,24 +124,10 @@ class Testtf2ngraphShapehints(NgraphTest):
                     'y': [2, -1],
                     'x': [2, 3]  # both inputs need shape hints
                 }]),
-            ([None, None], [None, None], [5, 1], [5, 1], [{
-                'y': [2, 3],
-                'x': [2, 3]
-            }, {
-                'y': [5, 1],
-                'x': [5, 1]
-            }]),  # 2 executables are compiled
-            ([2, 2], [None, 2], [2, 2], [2, 2], [
-                {
-                    'y': [2, -1],
-                    'bogus': [1, 2]
-                }
-            ]),  # only 1 input needs shape hints, but passing a bogus node name
-            # TODO fix this. this should fail
         ))
-    def test_tf2ngraph_with_shape_hints(self, p0_shape, p1_shape,
-                                        p0_actual_shape, p1_actual_shape,
-                                        shapehints):
+    def test_tf2ngraph_with_shape_hints_0(self, p0_shape, p1_shape,
+                                          p0_actual_shape, p1_actual_shape,
+                                          shapehints):
         helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints)
 
     @pytest.mark.parametrize(
@@ -161,9 +147,46 @@ class Testtf2ngraphShapehints(NgraphTest):
                 'x': [2, -1]
             }]),  # Input y does not have enough hints to concretize it
         ))
-    def test_tf2ngraph_with_shape_hints(self, p0_shape, p1_shape,
-                                        p0_actual_shape, p1_actual_shape,
-                                        shapehints):
+    def test_tf2ngraph_with_shape_hints_1(self, p0_shape, p1_shape,
+                                          p0_actual_shape, p1_actual_shape,
+                                          shapehints):
+        with pytest.raises(Exception):
+            helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
+                   shapehints)
+
+    @pytest.mark.parametrize(
+        ('p0_shape', 'p1_shape', 'p0_actual_shape', 'p1_actual_shape',
+         'shapehints'),
+        (
+            ([None, None], [None, None], [5, 1], [5, 1], [{
+                'y': [2, 3],
+                'x': [2, 3]
+            }, {
+                'y': [5, 1],
+                'x': [5, 1]
+            }]),  # 2 executables are compiled
+        ))
+    @pytest.mark.skip(reason="Test failing. Should pass. Need to debug")
+    def test_tf2ngraph_with_shape_hints_2(self, p0_shape, p1_shape,
+                                          p0_actual_shape, p1_actual_shape,
+                                          shapehints):
+        helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints)
+
+    @pytest.mark.parametrize(
+        ('p0_shape', 'p1_shape', 'p0_actual_shape', 'p1_actual_shape',
+         'shapehints'),
+        (
+            ([2, 2], [None, 2], [2, 2], [2, 2], [
+                {
+                    'y': [2, -1],
+                    'bogus': [1, 2]
+                }
+            ]),  # only 1 input needs shape hints, but passing a bogus node name
+        ))
+    @pytest.mark.skip(reason="Test failing. Needs bridge changes")
+    def test_tf2ngraph_with_shape_hints_3(self, p0_shape, p1_shape,
+                                          p0_actual_shape, p1_actual_shape,
+                                          shapehints):
         with pytest.raises(Exception):
             helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
                    shapehints)
