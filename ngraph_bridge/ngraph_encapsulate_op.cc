@@ -207,11 +207,9 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   ng_encap_impl.SetExecCanCreateTensor(
       BackendManager::GetBackend(ng_encap_impl.GetOpBackend())
           ->executable_can_create_tensors());
-  if (ng_encap_impl.GetExecCanCreateTensor()) {
-    NGRAPH_VLOG(5) << "Executable can "
-                   << (ng_encap_impl.GetExecCanCreateTensor() ? "" : "not")
-                   << " create tensors";
-  }
+  NGRAPH_VLOG(5) << "Executable can "
+                 << (ng_encap_impl.GetExecCanCreateTensor() ? "" : "not")
+                 << " create tensors";
 
   event.Stop();
   ngraph::Event::write_trace(event);
