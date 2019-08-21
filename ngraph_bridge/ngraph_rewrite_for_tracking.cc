@@ -91,8 +91,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
                        << replacement->DebugString();
 
         std::vector<const Edge*> edges_to_remove;
-        // Though edges will be removed when we remove the node
-        // we specifically remove the edges to be sure
+
         for (auto edge : node->in_edges()) {
           NGRAPH_VLOG(4) << "Replacing: In Edge " << edge->DebugString();
           graph->AddEdge(edge->src(), edge->src_output(), replacement,
@@ -107,6 +106,8 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           edges_to_remove.push_back(edge);
         }
 
+        // Though edges will be removed when we remove the node
+        // we specifically remove the edges to be sure
         for (auto edge : edges_to_remove) {
           NGRAPH_VLOG(4) << "Removing: Edges " << edge->DebugString();
           graph->RemoveEdge(edge);
