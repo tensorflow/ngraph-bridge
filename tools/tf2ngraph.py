@@ -37,10 +37,8 @@ class Tf2ngraphJson(object):
 
     @staticmethod
     def assert_type(obj, expected_type, tag):
-        assert type(
-            obj
-        ) == expected_type, "Expected " + tag + " to be " + expected_type + " but got " + type(
-            obj)
+        assert type(obj) == expected_type, "Expected " + tag + " to be " + str(
+            expected_type) + " but got " + str(type(obj))
 
     @staticmethod
     def check_shape_hints(shape_hints):
