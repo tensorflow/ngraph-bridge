@@ -194,9 +194,23 @@ TEST(EncapsulateClusters, AOT0) {
     // its fully specified (no -1s)
     int num_cases = node_shapes_hints_vect.size();
     for (int i = 0; i < num_cases; i++) {
+      std::set<ShapeHintMap> hint;
+      for (auto itr : node_shapes_hints_vect[i]) {
+        if (using_placeholder) {
+          hint.insert(itr);
+        } else {
+          ShapeHintMap temp;
+          for (auto it : itr) {
+            if (it.first != "node2") {
+              temp.insert({it.first, it.second});
+            }
+          }
+          hint.insert(temp);
+        }
+      }
       auto status =
           EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
-                              make_pair(true, node_shapes_hints_vect[i]));
+                              make_pair(true, hint));
       if (did_aot[i]) {
         ASSERT_OK(status);
       } else {

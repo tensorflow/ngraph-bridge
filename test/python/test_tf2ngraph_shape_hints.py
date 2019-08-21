@@ -153,27 +153,12 @@ class Testtf2ngraphShapehints(NgraphTest):
             ([2, 2], [None, 2], [2, 2], [2, 2], [{
                 'x': [2, -1]
             }]),  # Input y does not have enough hints to concretize it
+            ([2, 2], [None, 2], [2, 2], [2, 2], [{
+                'y': [2, -1],
+                'bogus': [1, 2]
+            }]),  # passing a bogus node name
         ))
     def test_tf2ngraph_with_shape_hints_1(self, p0_shape, p1_shape,
-                                          p0_actual_shape, p1_actual_shape,
-                                          shapehints):
-        with pytest.raises(Exception):
-            helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
-                   shapehints)
-
-    @pytest.mark.parametrize(
-        ('p0_shape', 'p1_shape', 'p0_actual_shape', 'p1_actual_shape',
-         'shapehints'),
-        (
-            ([2, 2], [None, 2], [2, 2], [2, 2], [
-                {
-                    'y': [2, -1],
-                    'bogus': [1, 2]
-                }
-            ]),  # only 1 input needs shape hints, but passing a bogus node name
-        ))
-    @pytest.mark.skip(reason="Test failing. Needs bridge changes")
-    def test_tf2ngraph_with_shape_hints_2(self, p0_shape, p1_shape,
                                           p0_actual_shape, p1_actual_shape,
                                           shapehints):
         with pytest.raises(Exception):

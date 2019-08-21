@@ -611,6 +611,15 @@ Status EncapsulateClusters(
       // A boolean to determine if we can AOT for this single_hint
       bool can_aot = true;
 
+      for (auto itr_single_hint : single_hint) {
+        if (shape_from_placeholders_as_hints.find(itr_single_hint.first) ==
+            shape_from_placeholders_as_hints.end()) {
+          return errors::Internal("Passed hint for node ",
+                                  itr_single_hint.first,
+                                  " but there is no input with that name");
+        }
+      }
+
       for (auto node : graph->op_nodes()) {
         if (node->type_string() == input_node_type) {
           PartialShape partial_shape_from_node =
