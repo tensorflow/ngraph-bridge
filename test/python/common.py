@@ -21,6 +21,8 @@ import random
 import tensorflow as tf
 from tensorflow.core.protobuf import rewriter_config_pb2
 
+from google.protobuf import text_format
+
 import ngraph_bridge
 
 __all__ = ['LIBNGRAPH_BRIDGE', 'NgraphTest']
@@ -31,6 +33,19 @@ LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
 
 
 class NgraphTest(object):
+
+    def get_tensor(self, graph, tname, loading_from_protobuf):
+        return graph.get_tensor_by_name(("", "import/")[loading_from_protobuf] +
+                                        tname)
+
+    def import_pbtxt(self, pb_filename):
+        graph_def = tf.GraphDef()
+        with open(pb_filename, "r") as f:
+            text_format.Merge(f.read(), graph_def)
+
+        with tf.Graph().as_default() as graph:
+            tf.import_graph_def(graph_def)
+        return graph
 
     def with_ngraph(self, l, config=tf.ConfigProto()):
         # TODO: Stop grappler on failure (Add fail_on_optimizer_errors=True)
@@ -76,3 +91,29 @@ class NgraphTest(object):
         if datatype == "DTYPE_INT":
             return [random.randint(start, end) for i in range(vector_length)]
         return [random.uniform(start, end) for i in range(vector_length)]
+
+    # returns true if the the env variable is set
+    def is_env_variable_set(self, env_var):
+        return env_var in os.environ
+
+    # sets the env variable
+    def set_env_variable(self, env_var, env_var_val):
+        os.putenv(env_var, env_var_val)
+        print("Setting env variable ", env_var, " to ", env_var_val)
+
+    # store env variables
+    def store_env_variables(self):
+        # store the env variables in map
+        env_var_map = {}
+        backend_env_var = "NGRAPH_TF_BACKEND"
+        if self.is_env_variable_set(backend_env_var):
+            env_backend = os.getenv(backend_env_var)
+            env_var_map[backend_env_var] = env_backend
+            print("Got env backend", env_backend)
+            os.environ.pop(backend_env_var)
+        return env_var_map
+
+    # restore env variables
+    def restore_env_variables(self, env_var_map):
+        for k, v in env_var_map.items():
+            self.set_env_variable(k, v)

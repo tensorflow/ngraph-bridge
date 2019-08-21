@@ -30,11 +30,12 @@
 #include "tensorflow/core/public/session.h"
 
 #include "ngraph/ngraph.hpp"
-#include "ngraph_backend_manager.h"
-#include "ngraph_builder.h"
-#include "ngraph_utils.h"
-#include "test_utilities.h"
-#include "tf_graph_writer.h"
+
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_builder.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -88,8 +89,6 @@ class OpExecuter {
   void RunTest(float rtol, float atol) { return RunTest("CPU", rtol, atol); };
 
   shared_ptr<ng::Function> get_ng_function() { return ng_function; }
-
-  // TODO(malikshr) : Overload RunTest() to take in tolerance
 
  private:
   Scope tf_scope_;

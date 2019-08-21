@@ -18,7 +18,7 @@ set -u
 # limitations under the License.
 # ******************************************************************************
 
-declare SRC_DIRS="src examples test logging tools diagnostics python"
+declare SRC_DIRS="ngraph_bridge examples test logging tools diagnostics python"
 
 # NOTE: The results of `clang-format` depend _both_ of the following factors:
 # - The `.clang-format` file, and
@@ -110,6 +110,13 @@ for ROOT_SUBDIR in ${SRC_DIRS}; do
             fi
             NUM_FILES_CHECKED_YAPF=$((NUM_FILES_CHECKED_YAPF+1))
         done
+    fi
+done
+
+# Check format of py files at root (build_ngtf.py, build_tf.py, test_ngtf.py etc)
+for SRC_FILE in $(find . -maxdepth 1  -name '*py' -print); do
+    if ! python3 -m yapf -d -p --style google --no-local-style "${SRC_FILE}">/dev/null; then
+        FAILED_FILES_YAPF+=( "${SRC_FILE}" )
     fi
 done
 

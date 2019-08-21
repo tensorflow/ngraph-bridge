@@ -14,26 +14,26 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "../test_utilities.h"
 #include "gtest/gtest.h"
-#include "ngraph_assign_clusters.h"
-#include "ngraph_mark_for_clustering.h"
-#include "ngraph_utils.h"
-#include "tf_graph_writer.h"
 
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
-
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
+
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/test_utilities.h"
 
 #if !defined(NGRAPH_TF_DISABLE_DEADNESS_CHECK)
 using namespace std;
@@ -48,22 +48,17 @@ namespace testing {
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 
 /*******************************************************************************
-
 This test is inspired from the deadness test, mentioned in the commit message of
 the deadness analysis found in the below revision
-
 Github repository: https://github.com/tensorflow/tensorflow
 Revision: 6619dd5fdcad02f087f5758083e2585bdfef9e78
-
 Quoted from the commit message **
 TensorFlow allows nodes to have some live inputs and some dead inputs.  The
 executor does not execute these nodes but instead propagates a dead signal to
 all their outputs (i.e. these nodes are treated as fully dead).
-
 This is a problem for auto-clustering because it means auto-clustering can kill
 nodes that used to be alive.  For instance say before clustering we have a graph
 like
-
 digraph {
   Alive0 -> P
   Alive1 -> Q
@@ -73,13 +68,10 @@ digraph {
   Q -> Y
   R -> Y
 }
-
 and we cluster P, Q, R, X and Y into a single XLA cluster.
-
 Then after clustering both X and Y are dead because the cluster is a single node
 as far as the executor is concerned and said node won't get scheduled if any of
 its inputs are dead.
-
 *******************************************************************************/
 //
 //
@@ -111,7 +103,7 @@ TEST(DeadnessCheck, livedead1) {
 
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(root.ToGraph(&graph));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
 
   std::map<std::string, Node*> node_map;
@@ -150,7 +142,7 @@ TEST(DeadnessCheck, DTestG1) {
 
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(root.ToGraph(&graph));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
 
   std::map<std::string, Node*> node_map;
@@ -201,7 +193,7 @@ TEST(DeadnessCheck, DTestG2) {
 
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(root.ToGraph(&graph));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
 
   std::map<std::string, Node*> node_map;
@@ -254,7 +246,7 @@ TEST(DeadnessCheck, DTestG3) {
 
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(root.ToGraph(&graph));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
 
   std::map<std::string, Node*> node_map;
@@ -320,7 +312,7 @@ TEST(DeadnessCheck, DISABLED_DTestG4) {
 
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(root.ToGraph(&graph));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
 
   std::map<std::string, Node*> node_map;
@@ -374,7 +366,7 @@ TEST(DeadnessCheck, DTestG4New) {
 
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(root.ToGraph(&graph));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
 
   std::map<std::string, Node*> node_map;
@@ -391,7 +383,7 @@ TEST(DeadnessCheck, DTestG4New) {
     auto group = arrangement_specs[group_id];
     ASSERT_OK(GetNodeCluster(node_map[group[0]],
                              &(representative_group_id[group_id])));
-    for (int i = 1; i < group.size(); i++) {
+    for (size_t i = 1; i < group.size(); i++) {
       int curr_node_cluster_id;
       ASSERT_OK(GetNodeCluster(node_map[group[i]], &curr_node_cluster_id));
       ASSERT_TRUE(curr_node_cluster_id == representative_group_id[group_id])
@@ -463,7 +455,7 @@ TEST(DeadnessCheck, DTestG5) {
 
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(root.ToGraph(&graph));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
 
   std::map<std::string, Node*> node_map;

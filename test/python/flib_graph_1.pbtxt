@@ -97,9 +97,15 @@ node {
     }
   }
   attr {
-    key: "_ngraph_backend"
+    key: "ngraph_backend"
     value {
       s: "CPU"
+    }
+  }
+  attr {
+    key: "ngraph_device_id"
+    value {
+      s: ""
     }
   }
   attr {

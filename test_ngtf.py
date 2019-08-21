@@ -26,6 +26,7 @@ from distutils.sysconfig import get_python_lib
 
 #from tools.build_utils import load_venv, command_executor
 from tools.test_utils import *
+from tools.build_utils import download_repo
 
 
 def main():
@@ -42,7 +43,12 @@ def main():
 
     parser.add_argument(
         '--gpu_unit_tests_enable',
-        help="Builds and tests the examples.\n",
+        help="Builds and tests the examples on GPU.\n",
+        action="store_true")
+
+    parser.add_argument(
+        '--plaidml_unit_tests_enable',
+        help="Builds and tests the examples on PLAIDML.\n",
         action="store_true")
 
     arguments = parser.parse_args()
@@ -59,7 +65,7 @@ def main():
     tf_src_dir = 'build_cmake/tensorflow'
 
     if (platform.system() != 'Darwin'):
-        # Run the bazel based buil
+        # Run the bazel based build
         run_bazel_build_test(venv_dir, build_dir)
 
     # First run the C++ gtests
@@ -76,6 +82,11 @@ def main():
                 "NNOps.Qu*:NNOps.SoftmaxZeroDimTest*:"
                 "NNOps.SparseSoftmaxCrossEntropyWithLogits"))
 
+    # If the PLAIDML tests are requested, then run them as well
+    if (arguments.plaidml_unit_tests_enable):
+        os.environ['NGRAPH_TF_BACKEND'] = 'PLAIDML'
+        run_ngtf_gtests(build_dir, str(""))
+
     os.environ['NGRAPH_TF_BACKEND'] = 'CPU'
 
     # Next run Python unit tests
@@ -86,11 +97,19 @@ def main():
         # Run the C++ example build/run test
         run_cpp_example_test('build')
 
+    if (not os.path.isdir(build_dir + '/tensorflow')):
+        download_repo(build_dir + "/tensorflow",
+                      "https://github.com/tensorflow/tensorflow.git", "v1.14.0")
+
     # Next run the TensorFlow python tests
+    os.environ['NGRAPH_TF_LOG_0_DISABLED'] = '1'
     run_tensorflow_pytests(venv_dir, build_dir, './', tf_src_dir)
 
     # Finally run Resnet50 based training and inferences
-    run_resnet50(build_dir)
+    if (platform.system() == 'Darwin'):
+        run_resnet50_forward_pass(build_dir)
+    else:
+        run_resnet50(build_dir)
 
     os.chdir(root_pwd)
 

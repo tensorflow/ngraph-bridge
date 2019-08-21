@@ -36,7 +36,7 @@ add_library(tensorflow_cc_lib SHARED IMPORTED)
 set_target_properties(
     tensorflow_cc_lib
     PROPERTIES IMPORTED_LOCATION
-    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.1
 )
 
 set(SRC
@@ -45,11 +45,13 @@ set(SRC
     tf_exec.cpp
     padding.cpp
     conversions.cpp
+    encapsulate_op/encapsulate_op_test.cc
     graph_rewrites/assign_clusters.cc
     graph_rewrites/deadness_test.cc
     graph_rewrites/backend_manager_test.cc
     graph_rewrites/encapsulate_clusters_test.cc
     graph_rewrites/disable_ops_test.cc
+    graph_rewrites/mark_for_clustering_test.cc
     test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
@@ -60,6 +62,12 @@ set(SRC
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/capture_variables.cc)
+    list(APPEND SRC graph_rewrites/enter_in_catalog_test.cc)
+    list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
+endif()
+
+if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)	
+    list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)	
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -87,17 +95,39 @@ if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
 endif()
 
-target_link_libraries(
-    gtest_ngtf
-    ngraph_bridge
-    ngraph_lib
-    libgtest
-    pthread
-    tensorflow_framework_lib
-    tensorflow_cc_lib
-)
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    target_link_libraries(
+        gtest_ngtf
+        ngraph_bridge_static
+        ngraph_lib
+        lib_cpu_backend_static
+        lib_interpreter_backend_static 
+        ngraph_lib
+        dl
+        libgtest
+        pthread
+        ${TensorFlow_FRAMEWORK_LIBRARY}
+        tensorflow_cc_lib
+    )
+else()
+    target_link_libraries(
+        gtest_ngtf
+        ngraph_bridge
+        ngraph_lib
+        libgtest
+        pthread
+        ${TensorFlow_FRAMEWORK_LIBRARY}
+        tensorflow_cc_lib
+    )
+endif()
+
+if (NGRAPH_PLAIDML_ENABLE)
+    target_link_libraries(gtest_ngtf ${PLAIDML_LIBRARIES})
+endif()
 
 add_subdirectory(python)
+add_subdirectory(python/bfloat16)
+add_subdirectory(model_level_tests)
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
@@ -118,4 +148,14 @@ install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
     FILES_MATCHING PATTERN "*.pbtxt"
+)
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "*.pb"
+)
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
 )

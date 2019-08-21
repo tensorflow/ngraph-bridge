@@ -14,11 +14,13 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "../test_utilities.h"
 #include "gtest/gtest.h"
-#include "ngraph_cluster_manager.h"
-#include "ngraph_encapsulate_clusters.h"
+
 #include "tensorflow/core/graph/node_builder.h"
+
+#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -36,17 +38,17 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
 
-  Tensor t_input(DT_FLOAT, TensorShape{2, 3});
-  Tensor t_shape(DT_INT32, TensorShape{2});
-  t_shape.flat<int32>().data()[0] = 3;
-  t_shape.flat<int32>().data()[1] = 2;
+  Tensor t_input_0(DT_FLOAT, TensorShape{2, 3});
+  Tensor t_input_1(DT_INT32, TensorShape{2});
+  t_input_1.flat<int32>().data()[0] = 3;
+  t_input_1.flat<int32>().data()[1] = 2;
 
   int cluster_idx = NGraphClusterManager::NewCluster();
 
   Node* node1;
   ASSERT_OK(NodeBuilder("node1", "Const")
                 .Attr("dtype", DT_FLOAT)
-                .Attr("value", t_input)
+                .Attr("value", t_input_0)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
                 .Attr("_ngraph_backend", "CPU")
@@ -55,7 +57,7 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   Node* node2;
   ASSERT_OK(NodeBuilder("node2", "Const")
                 .Attr("dtype", DT_FLOAT)
-                .Attr("value", t_shape)
+                .Attr("value", t_input_1)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
                 .Attr("_ngraph_backend", "CPU")
@@ -78,7 +80,9 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new));
+  std::unordered_map<std::string, std::string> config_map;
+  config_map["ngraph_device_id"] = "";
+  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map));
 
   int num_encapsulates = 0;
   int num_tf_nodes = 0;

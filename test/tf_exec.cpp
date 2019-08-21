@@ -15,23 +15,23 @@
  *******************************************************************************/
 #include "gtest/gtest.h"
 
-#include "ngraph_builder.h"
-#include "ngraph_utils.h"
-#include "test_utilities.h"
-
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/default_device.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
-
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
+
+#include "ngraph_bridge/ngraph_builder.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/test_utilities.h"
+
 using namespace std;
 
 namespace tensorflow {
@@ -204,6 +204,9 @@ TEST(tf_exec, BatchMatMul) {
   ASSERT_EQ(outputs_z2_ng[0].shape(), outputs_z2_tf[0].shape());
   Compare<float>(outputs_z1_ng[0], outputs_z1_tf[0]);
   Compare<float>(outputs_z2_ng[0], outputs_z2_tf[0]);
+
+  // Activate NGraph : Otherwise the tests dont run through NGraph
+  ActivateNGraph();
 }
 
 TEST(tf_exec, DISABLED_BatchMatMul_3D) {
@@ -454,7 +457,7 @@ TEST(tf_exec, DISABLED_Op_Unpack) {
 
   std::vector<int64> axes({0, 1, 2});
 
-  for (auto i = 0; i < input_sizes.size(); ++i) {
+  for (size_t i = 0; i < input_sizes.size(); ++i) {
     Tensor input_data(DT_FLOAT, TensorShape(input_sizes[i]));
     AssignInputValues(input_data, 0.0);
 
