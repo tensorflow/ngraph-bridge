@@ -29,6 +29,7 @@
 #include "tensorflow/core/public/session.h"
 
 #include "ngraph_backend_manager.h"
+#include "ngraph_api.h"
 
 using namespace std;
 
@@ -97,7 +98,7 @@ void RunSimpleNetworkExample() {
 int main(int argc, char** argv) {
   PrintAvailableBackends();
 
-  const char* backend = "INTERPRETER";
+  const char* backend = "CPU";
 
   if (argc > 1) {
     backend = argv[1];

@@ -38,7 +38,9 @@ cc_library(
         "src/ngraph/op/*.cpp",
         "src/ngraph/op/fused/*.cpp",
         "src/ngraph/op/experimental/batch_mat_mul.cpp",
+        "src/ngraph/op/experimental/compiled_kernel.cpp",
         "src/ngraph/op/experimental/dyn_broadcast.cpp",
+        "src/ngraph/op/experimental/dyn_replace_slice.cpp",
         "src/ngraph/op/experimental/dyn_pad.cpp",
         "src/ngraph/op/experimental/dyn_reshape.cpp",
         "src/ngraph/op/experimental/dyn_slice.cpp",
@@ -50,6 +52,7 @@ cc_library(
         "src/ngraph/op/experimental/quantized_conv_relu.cpp",
         "src/ngraph/op/experimental/quantized_max_pool.cpp",
         "src/ngraph/op/experimental/shape_of.cpp",
+        "src/ngraph/op/experimental/range.cpp",
         "src/ngraph/op/experimental/quantized_dot.cpp",
         "src/ngraph/op/experimental/quantized_dot_bias.cpp",
         "src/ngraph/op/experimental/tile.cpp",
@@ -85,6 +88,7 @@ cc_library(
         '-D NGRAPH_VERSION=\\"v0.20.0-rc.0\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
+        '-D NGRAPH_STATIC_LIB_ENABLE'
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
@@ -189,7 +193,9 @@ cc_library(
         "src/ngraph/runtime/cpu/kernel/*.hpp",
         "src/ngraph/runtime/cpu/cpu_backend.cpp",
         "src/ngraph/runtime/cpu/cpu_builder.cpp",
+        "src/ngraph/runtime/cpu/cpu_builder_registry.cpp",
         "src/ngraph/runtime/cpu/cpu_call_frame.cpp",
+        "src/ngraph/runtime/cpu/cpu_debug_tracer.cpp",
         "src/ngraph/runtime/cpu/cpu_executor.cpp",
         "src/ngraph/runtime/cpu/cpu_external_function.cpp",
         "src/ngraph/runtime/cpu/cpu_kernels.cpp",
@@ -215,6 +221,7 @@ cc_library(
         "src/ngraph/runtime/cpu/builder/convert_layout.cpp",
         "src/ngraph/runtime/cpu/builder/convolution.cpp",
         "src/ngraph/runtime/cpu/builder/dot.cpp",
+        "src/ngraph/runtime/cpu/builder/dropout.cpp",
         "src/ngraph/runtime/cpu/builder/embedding_lookup.cpp",
         "src/ngraph/runtime/cpu/builder/erf.cpp",
         "src/ngraph/runtime/cpu/builder/gather.cpp",
@@ -253,6 +260,7 @@ cc_library(
         "src/ngraph/runtime/cpu/builder/get_output_element.cpp",
         "src/ngraph/runtime/cpu/builder/sum.cpp",
         "src/ngraph/runtime/cpu/builder/topk.cpp",
+        "src/ngraph/runtime/cpu/builder/tile.cpp",
         "src/ngraph/runtime/cpu/builder/update_slice.cpp",
         "src/ngraph/runtime/cpu/kernel/pad.cpp",
         "src/ngraph/runtime/cpu/kernel/reduce_max.cpp",
@@ -268,6 +276,7 @@ cc_library(
         "src/ngraph/runtime/cpu/op/conv_relu.cpp",
         "src/ngraph/runtime/cpu/op/convert_layout.cpp",
         "src/ngraph/runtime/cpu/op/deconv.cpp",
+        "src/ngraph/runtime/cpu/op/dropout.cpp",
         "src/ngraph/runtime/cpu/op/group_conv_bias.cpp",
         "src/ngraph/runtime/cpu/op/halide_op.cpp",
         "src/ngraph/runtime/cpu/op/leaky_relu.cpp",
@@ -318,6 +327,8 @@ cc_library(
         "-D NGRAPH_DEX_ONLY",
         "-D NGRAPH_TBB_ENABLE",
         '-D PROJECT_ROOT_DIR=\\"\\"',
+        '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
+
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
