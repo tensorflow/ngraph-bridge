@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,33 +14,37 @@
  * limitations under the License.
  *******************************************************************************/
 
-#ifndef NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
-#define NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
+#ifndef NGRAPH_TF_ENCAPSULATE_OP_H_
+#define NGRAPH_TF_ENCAPSULATE_OP_H_
 #pragma once
 
-#include <map>
-#include <set>
-#include <string>
+#include <ostream>
 #include <vector>
 
-#include <iostream>
+#include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/graph/graph.h"
+
+#include "logging/ngraph_log.h"
+#include "ngraph/ngraph.hpp"
+#include "ngraph_bridge/ngraph_encapsulate_impl.h"
+#include "ngraph_bridge/ngraph_freshness_tracker.h"
 
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
-typedef std::map<std::string, std::vector<int>> ShapeHintMap;
+class NGraphEncapsulateOp : public OpKernel {
+ public:
+  explicit NGraphEncapsulateOp(OpKernelConstruction* ctx);
+  ~NGraphEncapsulateOp() override;
+  void Compute(OpKernelContext* ctx) override;
 
-// the integer represent AOT level requested.
-typedef std::pair<bool, std::set<ShapeHintMap>> AOTInfo;
-
-Status EncapsulateClusters(
-    Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
-    std::unordered_map<std::string, std::string> device_config,
-    AOTInfo aot_info);
+ private:
+  NGraphEncapsulateImpl ng_encap_impl;
+  std::mutex m_compute_lock;
+};
 
 }  // namespace ngraph_bridge
-}  // namespace tensorflow
 
-#endif  // NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
+}  // namespace tensorflow
+#endif  // NGRAPH_TF_ENCAPSULATE_OP_H_
