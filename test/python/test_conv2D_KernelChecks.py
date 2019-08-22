@@ -63,8 +63,10 @@ class TestConv2DBackpropInput(NgraphTest):
 
         return x1, x2
 
-
-    @pytest.mark.parametrize(("strides",), (([2, 1, 1, 1],), ([2, 1, 1, 1],),))
+    @pytest.mark.parametrize(("strides",), (
+        ([2, 1, 1, 1],),
+        ([2, 1, 1, 1],),
+    ))
     def test_conv2d_stride_in_batch_not_supported(self, strides):
         inp_values, filt_values = self.make_filter_and_backprop_args()
 
