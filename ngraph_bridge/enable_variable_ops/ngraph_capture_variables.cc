@@ -81,9 +81,6 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
             auto itr = CAPTURE_REPLACE_OP_MAP.find(n->type_string());
             if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
               nodes_to_capture.insert(n);
-              std::cout << "Node pushed in node Capture " << n->DebugString()
-                        << std::endl
-                        << std::endl;
             }
           }
           ref_list.clear();
@@ -99,25 +96,16 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     TF_RETURN_IF_ERROR((itr->second.second)(graph, node, &replacement,
                                             node->name(), itr->second.first,
                                             true, false, false, 0, false));
-    std::cout << "Replacing Node " << node->DebugString() << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << " with the ............. " << replacement->DebugString()
-              << std::endl;
-    std::cout << std::endl;
-
+    NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
+                                        << replacement->DebugString();
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
   }  // end of looping through nodes in the capture list
 
   for (auto node : nodes_to_capture) {
-    std::cout << "Removing: " << node->name();
-    std::cout << std::endl << "Node debug string is " << node->DebugString();
-    std::cout << "print ---------------------------------------" << std::endl;
+    NGRAPH_VLOG(4) << "Removing: " << node->name();
     graph->RemoveNode(node);
   }
-  std::cout << "-------------------------here--------------------------"
-            << std::endl;
   return Status::OK();
 }
 

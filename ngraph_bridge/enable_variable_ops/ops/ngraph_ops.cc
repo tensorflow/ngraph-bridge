@@ -21,6 +21,20 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 // ------------------------------------------------------------------
+REGISTER_OP("NGraphApplyGradientDescent")
+    .Input("var: Ref(T)")
+    .Input("alpha: T")
+    .Input("delta: T")
+    .Output("out: Ref(T)")
+    .Attr("T: numbertype")
+    .Attr("use_locking: bool = false")
+    .Attr("just_looking: bool = false")
+    .Attr("is_tf_just_looking: bool = false")
+    .Attr("copy_to_tf: bool = false")
+    .Attr("ngraph_graph_id: int");
+
+// ------------------------------------------------------------------
+
 REGISTER_OP("NGraphApplyMomentum")
     .Input("var: Ref(T)")
     .Input("accum: Ref(T)")
@@ -35,20 +49,6 @@ REGISTER_OP("NGraphApplyMomentum")
     .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
-
-// ------------------------------------------------------------------
-REGISTER_OP("NGraphApplyGradientDescent")
-    .Input("var: Ref(T)")
-    .Input("alpha: T")
-    .Input("delta: T")
-    .Output("out: Ref(T)")
-    .Attr("T: numbertype")
-    .Attr("use_locking: bool = false")
-    .Attr("just_looking: bool = false")
-    .Attr("is_tf_just_looking: bool = false")
-    .Attr("copy_to_tf: bool = false")
-    .Attr("ngraph_graph_id: int");
-
 // ------------------------------------------------------------------
 REGISTER_OP("NGraphAssign")
     .Input("ref: Ref(T)")
