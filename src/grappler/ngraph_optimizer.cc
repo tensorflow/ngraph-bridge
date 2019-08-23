@@ -25,6 +25,7 @@
 #include "tensorflow/core/grappler/optimizers/custom_graph_optimizer_registry.h"
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/platform/protobuf.h"
+#include "ngraph_utils.h"
 
 #include <iomanip>
 #include <string>
@@ -43,6 +44,7 @@ namespace ngraph_bridge {
 
 Status NgraphOptimizer::Init(
     const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
+
   const auto params = config->parameter_map();
   if (params.count("ngraph_backend")) {
     config_backend_name = params.at("ngraph_backend").s();
@@ -61,6 +63,7 @@ Status NgraphOptimizer::Init(
     NGRAPH_VLOG(5)
         << "NGTF_OPTIMIZER: parameter_map does not have ngraph_backend";
   }
+  
   return Status::OK();
 }
 

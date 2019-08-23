@@ -442,7 +442,7 @@ Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def, std::set<std::s
   {
     mkdir(str_path.c_str(), 0777);
   }
-
+  
   std::string dname = GetSessionName(file_idx, nodes);
   str_path += (dname.insert(0, "ngraph") + "/");
 
@@ -482,18 +482,63 @@ Status UpdateComputeTime(int file_idx, std::string cluster, std::string sess_nam
     mkdir(str_path.c_str(), 0777);
   }
 
-  str_path += ("stats" + to_string(file_idx));
-  
-  tensorflow::EventsWriter writer(str_path);
+  // if grappler just began and if dir already exists, return error if tf event files exist inside dir
+  if (step == 1)
+  {
+    TF_RETURN_IF_ERROR(VerifyEmptyTBDir(str_path));
+  }
+
+  // inspect directory's files
+  DIR* dir = opendir(str_path.c_str());
+  struct dirent* dp;
+  vector<std::string> files;
+
+  while ((dp = readdir(dir)) != nullptr)
+  {
+    if (dp->d_type == DT_REG) // look at all files in directory
+    {
+      files.push_back(std::string(dp->d_name));
+    }
+  }
+
+  closedir(dir);
+  // done inspecting directory's files
+
+  // create event object
   tensorflow::Event event;
   tensorflow::Summary::Value* summary_value;
+  tensorflow::Env* env = Env::Default();
 
+  event.set_wall_time(env->NowMicros() / 1e6);
   event.set_step(step);
   summary_value = event.mutable_summary()->add_value();
   summary_value->set_tag(dname + " Compute Time (ms)/" + cluster);
   summary_value->set_simple_value((float) compute_time);
-  writer.WriteEvent(event);
+  // done creating event object
 
+  if (files.empty()) // create new tf event file
+  {
+    str_path += ("stats" + to_string(file_idx));    
+
+    tensorflow::EventsWriter writer(str_path);
+
+    writer.WriteEvent(event);
+  }
+  else // append to tf event file in dir
+  {
+    std::string file_path = str_path + files[0];
+
+    // open tf event file at location file_path
+    std::unique_ptr<tensorflow::WritableFile> writable_file;
+
+    env->NewAppendableFile(file_path, &writable_file);
+    tensorflow::io::RecordWriter record_writer(writable_file.get());
+    // done opening tf event file at location file_path
+
+
+    record_writer.WriteRecord(event.SerializeAsString());
+  }
+  
   return Status::OK();
 }
 
@@ -569,6 +614,28 @@ std::string GetSessionName(int file_idx, std::set<std::string> nodes)
   }
 
   return name;
+}
+
+Status VerifyEmptyTBDir(std::string path)
+{
+  // make sure directory is empty
+
+  DIR* dir = opendir(path.c_str());
+  struct dirent* dp;
+  int num_obj = 0;
+
+  while ((dp = readdir(dir)) != nullptr)
+  {
+    num_obj++;
+  }
+
+  if (num_obj)
+  {
+    NGRAPH_VLOG(0) << "Directory " + path + " contains " + to_string(num_obj) + " objects. Directory must be empty." << endl;
+    return errors::Internal("STOPPING GRAPPLER - empty directory error.");
+  }
+
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge

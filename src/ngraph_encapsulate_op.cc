@@ -120,9 +120,7 @@ class NGraphEncapsulateOp : public OpKernel {
     }
     OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &m_graph_id));
 
-    std::string sess_name;
-    OP_REQUIRES_OK(ctx, ctx->GetAttr(("_session_name" + to_string(m_graph_id)), &sess_name));
-    session_names[m_graph_id] = sess_name;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr(("_session_name" + to_string(m_graph_id)), &session_names[m_graph_id]));
 
     //
     // Initialize the "m_input_is_static" vector as follows:
