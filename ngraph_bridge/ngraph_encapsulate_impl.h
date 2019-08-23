@@ -28,6 +28,7 @@
 
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
+#include "ngraph_bridge/ngraph_pipelined_tensors.h"
 
 namespace tensorflow {
 
@@ -61,6 +62,7 @@ class NGraphEncapsulateImpl {
   Status AllocateNGInputTensors(
       const std::vector<Tensor>& tf_input_tensors,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      const PipelinedTensorVector& inp_group_from_pipeline,
       ng::runtime::Backend* const op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
 
@@ -69,6 +71,7 @@ class NGraphEncapsulateImpl {
   Status AllocateNGOutputTensors(
       const std::vector<Tensor*>& tf_output_tensors,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      const PipelinedTensorVector& out_group_from_pipeline,
       ng::runtime::Backend* const op_backend,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
 
@@ -79,7 +82,8 @@ class NGraphEncapsulateImpl {
       const bool& output_tensor,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       ng::runtime::Backend* const op_backend,
-      const ng::element::Type& ng_element_type, const ng::Shape& ng_shape);
+      const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
+      std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline);
 
   // Accessors(getters and setters) for the private data members of
   // NgraphEncapsulateImpl class
@@ -185,6 +189,28 @@ class NGraphEncapsulateImpl {
 
   void SetName(string name) { m_name = name; }
 
+  Status ParseNodeAttributes(
+      const google::protobuf::Map<string, AttrValue>& additional_attributes,
+      std::unordered_map<std::string, std::string>* additional_attribute_map);
+  void SetExecCanCreateTensor(bool b) { m_executable_can_create_tensor = b; }
+
+  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
+
+  void ClearNgExecPipelinedTensorMap() {
+    m_executable_pipelined_tensors_map.clear();
+  }
+
+  Status CachePipelinedTensorIfNeeded(
+      std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
+  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+
+  void ReturnPipelinedTensors(
+      std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
+    m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
+  }
+
   // TF Graph for the cluster
   Graph m_graph;
 
@@ -203,6 +229,9 @@ class NGraphEncapsulateImpl {
   std::vector<bool> m_input_is_static;
   std::list<std::string> m_lru;
   static int s_instance_count;
+  bool m_do_aot = false;
+  map<string, string> m_aot_functions;
+  map<string, string> m_aot_execs;
 
   // ng_function, ng_executable, Output and Input Cache maps
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
@@ -219,6 +248,13 @@ class NGraphEncapsulateImpl {
   // A single instance of freshness_tracker is used across all
   // nGraphEncapsulateOp and nGraphVariable op
   NGraphFreshnessTracker* m_freshness_tracker;
+
+  bool m_executable_can_create_tensor = false;
+  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
+                     PipelinedTensorsStore>
+      m_executable_pipelined_tensors_map;
+
+  int m_depth{2};  // TODO make this settable
 };
 
 }  // namespace ngraph_bridge
