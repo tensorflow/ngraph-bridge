@@ -40,8 +40,8 @@ Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
   std::vector<const Edge*> input_edges;
   TF_RETURN_IF_ERROR(node->input_edges(&input_edges));
 
-  NGRAPH_VLOG(1) << "No of input edges to Optimizer" << node->type_string() << " "
-                 << input_edges.size();
+  NGRAPH_VLOG(1) << "No of input edges to Optimizer" << node->type_string()
+                 << " " << input_edges.size();
 
   int num_inputs = node->num_inputs();
   for (int i = 0; i < num_inputs; i++) {
@@ -55,18 +55,16 @@ Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
                        .Attr("copy_to_tf", !outputs_ng_supported)
                        .Attr("ngraph_graph_id", graph_id)
                        .Device(node->assigned_device_name());
-  
-    for (auto it = node->attrs().begin(); it != node->attrs().end(); it++) {
-      nb.Attr(it->first, it->second);
-    }
 
-  
-   
-    for (auto const i : op_inputs) {
-       NGRAPH_VLOG(3) << "op_inputs is not empty";
-      // Adding the all inputs
-      nb.Input(i);
-    }
+  for (auto it = node->attrs().begin(); it != node->attrs().end(); it++) {
+    nb.Attr(it->first, it->second);
+  }
+
+  for (auto const i : op_inputs) {
+    NGRAPH_VLOG(3) << "op_inputs is not empty";
+    // Adding the all inputs
+    nb.Input(i);
+  }
 
   Status status = nb.Finalize(graph, &(*replacement));
   TF_RETURN_IF_ERROR(status);

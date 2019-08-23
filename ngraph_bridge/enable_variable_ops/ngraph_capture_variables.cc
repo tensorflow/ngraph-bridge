@@ -97,7 +97,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
                                             node->name(), itr->second.first,
                                             true, false, false, 0, false));
     NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
-                                        << replacement->DebugString();
+                   << replacement->DebugString();
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
   }  // end of looping through nodes in the capture list

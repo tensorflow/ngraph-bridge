@@ -36,28 +36,28 @@ namespace ngraph_bridge {
 // 2. RewriteForTracking
 
 template <typename T1, typename T2>
- Status CreateBinaryOpNode(NodeBuilder::NodeOut* ndef_gen_op,std::string new_name_op, std::string op_type,
-                                  T1 input1, T2 input2, DataType dtype,
-                                  Node*& node, Graph*& graph, bool replace_input, bool replace_output) {
+Status CreateBinaryOpNode(NodeBuilder::NodeOut* ndef_gen_op,
+                          std::string new_name_op, std::string op_type,
+                          T1 input1, T2 input2, DataType dtype, Node*& node,
+                          Graph*& graph, bool replace_input,
+                          bool replace_output) {
   Node* generic_op;
   new_name_op = node->name() + new_name_op;
 
-   TF_RETURN_IF_ERROR( NodeBuilder(new_name_op, op_type)
-                           .Input(input1)
-                           .Input(input2)
-                           .Attr("T", dtype)
-                           .Device(node->assigned_device_name())
-                           .Finalize(graph, &(generic_op)));
-    generic_op->set_assigned_device_name(node->assigned_device_name());
-  
-   if(replace_input)
-   {
-      ReplaceInputControlEdges(graph, node, generic_op);
-   }
-   if(replace_output)
-   {
-   ReplaceOutputEdges(graph, node, generic_op);
-   }
+  TF_RETURN_IF_ERROR(NodeBuilder(new_name_op, op_type)
+                         .Input(input1)
+                         .Input(input2)
+                         .Attr("T", dtype)
+                         .Device(node->assigned_device_name())
+                         .Finalize(graph, &(generic_op)));
+  generic_op->set_assigned_device_name(node->assigned_device_name());
+
+  if (replace_input) {
+    ReplaceInputControlEdges(graph, node, generic_op);
+  }
+  if (replace_output) {
+    ReplaceOutputEdges(graph, node, generic_op);
+  }
   *ndef_gen_op = NodeBuilder::NodeOut(generic_op, 0);
   return Status::OK();
 }
@@ -208,25 +208,29 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
                      << input_edges.size();
 
       auto input_var = NodeBuilder::NodeOut(input_edges[0]->src(),
-                                       input_edges[0]->src_output());
+                                            input_edges[0]->src_output());
       auto input_accum = NodeBuilder::NodeOut(input_edges[1]->src(),
-                                         input_edges[1]->src_output());
+                                              input_edges[1]->src_output());
       auto input_lr = NodeBuilder::NodeOut(input_edges[2]->src(),
-                                      input_edges[2]->src_output());
+                                           input_edges[2]->src_output());
       auto input_grad = NodeBuilder::NodeOut(input_edges[3]->src(),
-                                        input_edges[3]->src_output());
+                                             input_edges[3]->src_output());
       auto input_momentum = NodeBuilder::NodeOut(input_edges[4]->src(),
-                                            input_edges[4]->src_output());
+                                                 input_edges[4]->src_output());
       DataType dtype;
       TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "T", &dtype));
 
       string new_name_mul = node->name() + "_Mul";
       NodeBuilder::NodeOut ndef_mul_op;
-      TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_mul_op, new_name_mul, "Mul", input_accum, input_momentum, dtype, node, graph, true, false));
+      TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_mul_op, new_name_mul, "Mul",
+                                            input_accum, input_momentum, dtype,
+                                            node, graph, true, false));
 
       string new_name_add = node->name() + "_Add";
       NodeBuilder::NodeOut ndef_add_op;
-      TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_add_op, new_name_add, "Add", input_grad, ndef_mul_op, dtype, node, graph, false, false));
+      TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_add_op, new_name_add, "Add",
+                                            input_grad, ndef_mul_op, dtype,
+                                            node, graph, false, false));
 
       Node* accumassign_op;
       string new_name_accumassign = node->name() + "_AccumAssign";
@@ -245,31 +249,42 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
           NodeBuilder::NodeOut(accumassign_op, 0);
 
       bool use_nesterov;
-      TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "use_nesterov", &use_nesterov));
+      TF_RETURN_IF_ERROR(
+          GetNodeAttr(node->attrs(), "use_nesterov", &use_nesterov));
       Node* ngraphassign_op;
-      if (use_nesterov) { 
+      if (use_nesterov) {
         // Equation in this case:
         //  var.device(d) - = grad * lr() + accum * momentum() * lr();
-     
+
         string new_name_mul_1 = node->name() + "_Mul1";
         NodeBuilder::NodeOut ndef_mul_op_1;
-        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_mul_op_1, new_name_mul_1, "Mul", input_grad, input_lr, dtype, node, graph, false, false));
+        TF_RETURN_IF_ERROR(CreateBinaryOpNode(
+            &ndef_mul_op_1, new_name_mul_1, "Mul", input_grad, input_lr, dtype,
+            node, graph, false, false));
 
         string new_name_mul_2 = node->name() + "_Mul2";
         NodeBuilder::NodeOut ndef_mul_op_2;
-        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_mul_op_2, new_name_mul_2, "Mul", input_momentum, input_lr, dtype, node, graph, false, false));
+        TF_RETURN_IF_ERROR(CreateBinaryOpNode(
+            &ndef_mul_op_2, new_name_mul_2, "Mul", input_momentum, input_lr,
+            dtype, node, graph, false, false));
 
         string new_name_mul_3 = node->name() + "_Mul3";
         NodeBuilder::NodeOut ndef_mul_op_3;
-        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_mul_op_3, new_name_mul_3, "Mul", ndef_accumassign_op, ndef_mul_op_2, dtype, node, graph, false, false));
+        TF_RETURN_IF_ERROR(CreateBinaryOpNode(
+            &ndef_mul_op_3, new_name_mul_3, "Mul", ndef_accumassign_op,
+            ndef_mul_op_2, dtype, node, graph, false, false));
 
         string new_name_add_1 = node->name() + "_Add_1";
         NodeBuilder::NodeOut ndef_add_op_1;
-        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_add_op_1, new_name_add_1, "Add", ndef_mul_op_1, ndef_mul_op_3, dtype, node, graph, false, false));
+        TF_RETURN_IF_ERROR(CreateBinaryOpNode(
+            &ndef_add_op_1, new_name_add_1, "Add", ndef_mul_op_1, ndef_mul_op_3,
+            dtype, node, graph, false, false));
 
         string new_name_sub = node->name() + "_Sub";
         NodeBuilder::NodeOut ndef_sub_op;
-        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_sub_op, new_name_sub, "Sub", input_var, ndef_add_op_1, dtype, node, graph, false, false));
+        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_sub_op, new_name_sub, "Sub",
+                                              input_var, ndef_add_op_1, dtype,
+                                              node, graph, false, false));
 
         string new_name_ngraphassign = node->name() + "_NGraphAssign";
         TF_RETURN_IF_ERROR(NodeBuilder(new_name_ngraphassign, "NGraphAssign")
@@ -284,16 +299,20 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
         ngraphassign_op->set_assigned_device_name(node->assigned_device_name());
       }  // use_nesterov
       else {
-        //Equation in this case:
+        // Equation in this case:
         // var.device(d) -= accum * lr();
-        
+
         string new_name_mul_1 = node->name() + "_Mul1";
         NodeBuilder::NodeOut ndef_mul_op_1;
-        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_mul_op_1, new_name_mul_1, "Mul", ndef_accumassign_op, input_lr, dtype, node, graph, false, false));
+        TF_RETURN_IF_ERROR(CreateBinaryOpNode(
+            &ndef_mul_op_1, new_name_mul_1, "Mul", ndef_accumassign_op,
+            input_lr, dtype, node, graph, false, false));
 
         string new_name_sub = node->name() + "_Sub";
         NodeBuilder::NodeOut ndef_sub_op;
-        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_sub_op, new_name_sub, "Sub", input_var, ndef_mul_op_1, dtype, node, graph, false, false));
+        TF_RETURN_IF_ERROR(CreateBinaryOpNode(&ndef_sub_op, new_name_sub, "Sub",
+                                              input_var, ndef_mul_op_1, dtype,
+                                              node, graph, false, false));
 
         string new_name_ngraphassign = node->name() + "_NGraphAssign";
         TF_RETURN_IF_ERROR(NodeBuilder(new_name_ngraphassign, "NGraphAssign")
@@ -311,7 +330,7 @@ Status ReplaceModifiers(Graph* graph, int graph_id) {
       NGRAPH_VLOG(1) << "Assign op name: " << ngraphassign_op->name();
       NGRAPH_VLOG(1) << "Assign op assigned device: "
                      << ngraphassign_op->assigned_device_name();
-       TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, ngraphassign_op));
+      TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, ngraphassign_op));
 
       remove_nodes.push_back(node);
 

@@ -178,8 +178,8 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
     // Do variable capture then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
     TF_RETURN_IF_ERROR(
-           CaptureVariables(options.graph->get(), skip_these_nodes));
-    
+        CaptureVariables(options.graph->get(), skip_these_nodes));
+
     if (DumpCapturedGraphs()) {
       DumpGraphs(options, idx, "captured", "Graph With Variables Captured");
     }
