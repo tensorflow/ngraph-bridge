@@ -134,9 +134,19 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     MemoryProfile(vm0, rss0);
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
-    TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
-                                               &m_graph, ng_function));
-    ng_function->set_friendly_name(m_name);
+    if (!m_do_aot) {
+      TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
+                                                 &m_graph, ng_function));
+      ng_function->set_friendly_name(m_name);
+    } else {
+      auto itr = m_aot_functions.find(signature);
+      if (itr == m_aot_functions.end()) {
+        return errors::Internal(
+            "Expected to find AOT precompiled ng function of signature: ",
+            signature);
+      }
+      ng_function = ng::deserialize(itr->second);
+    }
 
     auto function_size = ng_function->get_graph_size() / 1024;  // kb unit
 
@@ -192,11 +202,24 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                      << output_tensors_bytes_free / (1024 * 1024) << " MB";
     }  // cache eviction if cache size greater than cache depth
 
-    BackendManager::LockBackend(m_op_backend_name);
-
     ngraph::Event event_compile("Compile nGraph", m_name, "");
+    BackendManager::LockBackend(m_op_backend_name);
     try {
-      ng_exec = op_backend->compile(ng_function);
+      if (m_do_aot) {
+        auto itr = m_aot_execs.find(signature);
+        if (itr == m_aot_execs.end()) {
+          BackendManager::UnlockBackend(m_op_backend_name);
+          return errors::Internal(
+              "Requested AOT, but could not find string with the "
+              "signature: ",
+              signature);
+        }
+        stringstream serialized_exec_read;
+        serialized_exec_read << (itr->second);
+        ng_exec = op_backend->load(serialized_exec_read);
+      } else {
+        ng_exec = op_backend->compile(ng_function);
+      }
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
       NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
@@ -245,6 +268,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     const std::vector<Tensor>& tf_input_tensors,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    const PipelinedTensorVector& inp_group_from_pipeline,
     ng::runtime::Backend* const op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
   std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
@@ -291,9 +315,10 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
         input_caches[i].second;
     void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[i]);
-    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
-        GetCurrentNgTensor(current_src_ptr, last_src_ptr, last_ng_tensor, false,
-                           ng_exec, op_backend, ng_element_type, ng_shape);
+    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = GetCurrentNgTensor(
+        current_src_ptr, last_src_ptr, last_ng_tensor, false, ng_exec,
+        op_backend, ng_element_type, ng_shape,
+        m_executable_can_create_tensor ? inp_group_from_pipeline[i] : nullptr);
     bool is_cpu = m_op_backend_name == "CPU";
 
     if (!is_cpu && current_ng_tensor->get_stale()) {
@@ -340,6 +365,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
 Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     const std::vector<Tensor*>& output_tensors,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    const PipelinedTensorVector& out_group_from_pipeline,
     ng::runtime::Backend* const op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs) {
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
@@ -374,9 +400,10 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     NGRAPH_VLOG(4) << "NGraphEncapsulateImpl:: Output from non Variable Node";
 #endif
 
-    current_ng_tensor =
-        GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
-                           ng_exec, op_backend, ng_element_type, ng_shape);
+    current_ng_tensor = GetCurrentNgTensor(
+        current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
+        op_backend, ng_element_type, ng_shape,
+        m_executable_can_create_tensor ? out_group_from_pipeline[i] : nullptr);
 
     current_ng_tensor->set_stale(true);
     output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
@@ -393,7 +420,8 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
     const bool& output_tensor,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     ng::runtime::Backend* const op_backend,
-    const ng::element::Type& ng_element_type, const ng::Shape& ng_shape) {
+    const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
+    std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline) {
   // NOTE: we assume that TF's pointers WILL change if it actually changes
   // values. ie, it will not reuse the same space if its rewritten it
   bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;
@@ -426,18 +454,129 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   }
   // create a new ng tensor or use the last one
   std::shared_ptr<ng::runtime::Tensor> current_ng_tensor;
-  if (need_new_tensor_creation) {
-    if (is_cpu) {
-      current_ng_tensor =
-          op_backend->create_tensor(ng_element_type, ng_shape, current_tf_ptr);
-    } else {
-      current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape);
-    }
+  if (m_executable_can_create_tensor) {
+    current_ng_tensor = tensor_from_pipeline;
   } else {
-    current_ng_tensor = last_ng_tensor;
+    if (need_new_tensor_creation) {
+      if (is_cpu) {
+        current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
+                                                      current_tf_ptr);
+      } else {
+        current_ng_tensor =
+            op_backend->create_tensor(ng_element_type, ng_shape);
+      }
+    } else {
+      current_ng_tensor = last_ng_tensor;
+    }
   }
   current_ng_tensor->set_stale(is_stale);
   return current_ng_tensor;
+}
+
+Status NGraphEncapsulateImpl::ParseNodeAttributes(
+    const google::protobuf::Map<string, AttrValue>& additional_attributes,
+    std::unordered_map<std::string, std::string>* additional_attribute_map) {
+  for (auto itx : additional_attributes) {
+    // Find the optional attributes to be sent to the backend.
+    // The optional attributes have '_ngraph_' appended to the start
+    // so we need to get rid of that and only send the remaining string
+    // since the backend will only look for that.
+    // '_ngraph_' is only appended for the bridge.
+    // For e.g. _ngraph_ice_cores --> ice_cores
+    if (itx.first.find("_ngraph_") != std::string::npos) {
+      // TODO: decide what the node attributes should be.
+      // right now _ngraph_aot_ is used by aot, _ngraph_ is used for optional
+      // attributes
+      auto attr_name = itx.first;
+      auto attr_value = itx.second.s();
+      if (attr_name.find("_ngraph_aot_") != std::string::npos) {
+        // The string is in the format: _ngraph_aot_ngexec_signature or
+        // _ngraph_aot_ngfunction_signature or _ngraph_aot_requested
+        // TODO: do not pass these 3 attributes to set_config of backend
+        if (attr_name.find("_ngraph_aot_ngexec_") != std::string::npos) {
+          m_aot_execs[ng::split(attr_name, '_')[4]] = attr_value;
+        } else if (attr_name.find("_ngraph_aot_ngfunction_") !=
+                   std::string::npos) {
+          // The other option is _ngraph_aot_ngfunction_
+          // No need to save or do anything with _ngraph_aot_ngfunction_. They
+          // are there for debugging only
+          m_aot_functions[ng::split(attr_name, '_')[4]] = attr_value;
+        } else if (attr_name.find("_ngraph_aot_requested") !=
+                   std::string::npos) {
+          m_do_aot = (attr_value == "1");
+          if (m_do_aot) {
+            NGRAPH_VLOG(1) << "Using AOT for encapsulate " +
+                                  to_string(m_ngraph_cluster);
+          }
+        } else {
+          return errors::Internal(
+              "Ngraph attribues beginning with _ngraph_aot_ "
+              "must be _ngraph_aot_ngexec_<signature> or "
+              "_ngraph_aot_ngfunction_<signature>. But got "
+              "attribute named: ",
+              itx.first);
+        }
+      } else {
+        NGRAPH_VLOG(4) << "Attribute: " << attr_name.substr(strlen("_ngraph_"))
+                       << " Value: " << attr_value;
+        additional_attribute_map->insert(
+            {attr_name.substr(strlen("_ngraph_")), attr_value});
+      }
+    }
+  }
+  if (((m_aot_functions.size() > 0) || (m_aot_execs.size() > 0)) && !m_do_aot) {
+    return errors::Internal("The encapsulate ", m_name,
+                            " has ngraph functions or executables embedded "
+                            "in it, even though AOT was not requested.");
+  }
+  return Status::OK();
+}
+
+Status NGraphEncapsulateImpl::CachePipelinedTensorIfNeeded(
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
+  if (!m_executable_can_create_tensor) {
+    return errors::Internal(
+        "CachePipelinedTensorIfNeeded called, but executable cannot create "
+        "tensors");
+  }
+  auto itr = m_executable_pipelined_tensors_map.find(ng_exec);
+  if (itr == m_executable_pipelined_tensors_map.end()) {
+    // Create these pipelined ng tensors only if needed, else reuse from cache
+    size_t num_inputs = ng_exec->get_parameters().size();
+    size_t num_outputs = ng_exec->get_results().size();
+    PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
+    PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
+    for (size_t i = 0; i < num_inputs; i++) {
+      pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, m_depth);
+    }
+    for (size_t i = 0; i < num_outputs; i++) {
+      pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, m_depth);
+    }
+    m_executable_pipelined_tensors_map.insert(
+        {ng_exec, PipelinedTensorsStore(pipelined_input_tensors,
+                                        pipelined_output_tensors)});
+  }
+  return Status::OK();
+}
+
+std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
+NGraphEncapsulateImpl::GetTensorsFromPipeline(
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
+  PipelinedTensorsStore pts = m_executable_pipelined_tensors_map.at(ng_exec);
+
+  // TODO: do something about this spin lock
+  // get_tensors returns an index integer, that can be -1, 0, ... depth-1
+  // If it returns -1, then it indicates there are no free groups of tensors
+  // or the pipeline is full. In that case, we need to wait, hence the while
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> out_tpl;
+  while (true) {
+    out_tpl = pts.get_tensors();
+
+    if (std::get<0>(out_tpl) >= 0) {
+      break;
+    }
+  }
+  return out_tpl;
 }
 
 }  // namespace ngraph_bridge
