@@ -180,25 +180,20 @@ TEST(VariableTest, SmallGraph3) {
   Scope root = Scope::NewRootScope();
 
   PartialTensorShape varShape({2, 2});
-  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
+  auto var = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
   auto var_assign = ops::Assign(root.WithOpName("Assign1"), var, init_value);
 
-  auto var1 = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
-  auto init_value1 = ops::Const(root, {{2.f, 2.f}, {2.f, 2.f}});
-  auto var1_assign =
-      ops::Assign(root.WithOpName("Var1_Assign"), var1, init_value1);
+  auto c = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto s = ops::Const(root, 1.f);
+  auto d = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
 
-  auto var2 = ops::Variable(root.WithOpName("Var2"), varShape, DT_FLOAT);
-  auto init_value2 = ops::Const(root, {{3.f, 3.f}, {3.f, 3.f}});
-  auto var2_assign =
-      ops::Assign(root.WithOpName("Var2_Assign"), var2, init_value2);
+  auto add = ops::Add(root, var, c);
 
-  auto s = ops::Const(root, 3.f);
-  auto d = ops::Const(root, 4.f);
+  auto assign_sub = ops::AssignSub(root.WithOpName("AssignSub"), var, add);
 
   auto apply_gradient_descent =
-      ops::ApplyMomentum(root.WithOpName("Momentum"), var, var2, s, var1, d);
+      ops::ApplyGradientDescent(root.WithOpName("AGD"), assign_sub, s, d);
 
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
@@ -213,46 +208,64 @@ TEST(VariableTest, SmallGraph3) {
   ActivateNGraph();
   ClientSession ng_session(root, options);
   std::vector<tensorflow::Tensor> ng_outputs1;
+  std::vector<tensorflow::Tensor> ng_outputs2;
+  std::vector<tensorflow::Tensor> ng_outputs3;
+  std::vector<tensorflow::Tensor> ng_outputs4;
+  std::vector<tensorflow::Tensor> ng_outputs5;
 
-  ASSERT_OK(
-      ng_session.Run({{var_assign, var1_assign, var2_assign}}, &ng_outputs1));
-  /*
-    for (int i = 0; i < 10; i++) {
-      ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs2));
-    }
+  ASSERT_OK(ng_session.Run(
+      {
+          var_assign,
+      },
+      &ng_outputs1));
 
-    for (int i = 0; i < 10; i++) {
-      ASSERT_OK(ng_session.Run({apply_gradient_descent}, &ng_outputs3));
-    }
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs2));
+  }
 
-    for (int i = 0; i < 10; i++) {
-      ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs4));
-    }
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(ng_session.Run({apply_gradient_descent}, &ng_outputs3));
+  }
 
-    ASSERT_OK(ng_session.Run({var}, &ng_outputs5));
-  */
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(ng_session.Run({assign_sub}, &ng_outputs4));
+  }
+
+  ASSERT_OK(ng_session.Run({var}, &ng_outputs5));
+
   // Run on TF
   DeactivateNGraph();
   ClientSession tf_session(root, options);
   std::vector<tensorflow::Tensor> tf_outputs1;
+  std::vector<tensorflow::Tensor> tf_outputs2;
+  std::vector<tensorflow::Tensor> tf_outputs3;
+  std::vector<tensorflow::Tensor> tf_outputs4;
+  std::vector<tensorflow::Tensor> tf_outputs5;
 
-  ASSERT_OK(
-      tf_session.Run({{var_assign, var1_assign, var2_assign}}, &tf_outputs1));
-  /*
-    for (int i = 0; i < 10; i++) {
-      ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs2));
-    }
+  ASSERT_OK(tf_session.Run(
+      {
+          var_assign,
+      },
+      &tf_outputs1));
 
-    for (int i = 0; i < 10; i++) {
-      ASSERT_OK(tf_session.Run({apply_gradient_descent}, &tf_outputs3));
-    }
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs2));
+  }
 
-    for (int i = 0; i < 10; i++) {
-      ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs4));
-    }
-  */
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(tf_session.Run({apply_gradient_descent}, &tf_outputs3));
+  }
 
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(tf_session.Run({assign_sub}, &tf_outputs4));
+  }
+
+  ASSERT_OK(tf_session.Run({var}, &tf_outputs5));
   Compare(tf_outputs1, ng_outputs1);
+  Compare(tf_outputs2, ng_outputs2);
+  Compare(tf_outputs3, ng_outputs3);
+  Compare(tf_outputs4, ng_outputs4);
+  Compare(tf_outputs5, ng_outputs5);
 
   ActivateNGraph();
 }
