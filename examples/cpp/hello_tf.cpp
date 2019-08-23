@@ -44,14 +44,12 @@ void PrintAvailableBackends() {
   for (auto& backend_name : backends) {
     cout << "Backend: " << backend_name << std::endl;
   }
-  cout << "Got here \n";
 }
 
 // Sets the specified backend. This backend must be set BEFORE running
 // the computation
 tensorflow::Status SetNGraphBackend(const string& backend_name) {
   // Select a backend
-  cout<<"Trying to set backend\n";
   tensorflow::Status status =
       tensorflow::ngraph_bridge::BackendManager::SetBackendName(backend_name);
   return status;
@@ -59,13 +57,10 @@ tensorflow::Status SetNGraphBackend(const string& backend_name) {
 
 // Create a simple computation graph and run
 void RunSimpleNetworkExample() {
-  cout << "running simple example\n";
   // Create the graph
   tensorflow::Scope root = tensorflow::Scope::NewRootScope();
-  cout << "here0\n";
   // Matrix A = [3 2; -1 0]
   auto A = tensorflow::ops::Const(root, {{0.03f, 0.022f}, {-0.001f, 0.025f}});
-    cout << "here1\n";
   // Vector b = [3 5]
   auto b = tensorflow::ops::Const(root, {{0.345f, 0.35f}});
   // v = Ab^T
@@ -73,7 +68,6 @@ void RunSimpleNetworkExample() {
                                    tensorflow::ops::MatMul::TransposeB(true));
   // R = softmax(v)
   auto R = tensorflow::ops::Softmax(root, v);
-  cout << "here\n";
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
   options.config.mutable_graph_options()
@@ -84,7 +78,6 @@ void RunSimpleNetworkExample() {
       ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
   std::string name;
-  cout << "trying to get current backend name\n";
   auto status = tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(&name);
   std::cout
       << "Currently selected backend: "
