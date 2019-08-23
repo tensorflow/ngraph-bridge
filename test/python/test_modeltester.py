@@ -27,6 +27,7 @@ import os
 
 from common import NgraphTest
 from tools.build_utils import command_executor
+import ngraph_bridge
 
 
 class TestModelTester(NgraphTest):
