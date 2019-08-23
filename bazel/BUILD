@@ -105,10 +105,12 @@ cc_library(
         "-D NDEBUG",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
+        '-D NGRAPH_BRIDGE_STATIC_LIB_ENABLE',
         "-I ngraph_bridge",
         "-I logging",
         "-I external/ngraph/src",
     ] + CXX_ABI,
+    linkstatic=1,
     linkopts = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",

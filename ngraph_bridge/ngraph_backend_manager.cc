@@ -24,7 +24,7 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 BackendManager::~BackendManager() {
-  NGRAPH_VLOG(2) << "BackendManager::~BackendManager()";
+  cout << "BackendManager::~BackendManager() \n";
 }
 
 // initialize backend manager
@@ -35,11 +35,15 @@ mutex BackendManager::ng_backend_map_mutex_;
 map<std::string, int> BackendManager::ref_count_each_backend_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
+  cout << "setting backend\n";
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_name_mutex_);
+  cout << "locking\n";
   if (backend_name.empty() || !IsSupportedBackend(backend_name)) {
+    cout << "not supported \n";
     return errors::Internal("Backend ", backend_name,
                             " is not supported on nGraph");
   }
+  cout << "setting ng_backend_name_ \n";
   BackendManager::ng_backend_name_ = backend_name;
   return Status::OK();
 }
@@ -150,7 +154,7 @@ Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
   // NGRAPH_TF_BACKEND is not set
   if (ng_backend_env_value == nullptr) {
     *backend_name = BackendManager::ng_backend_name_;
-    NGRAPH_VLOG(1) << "Using the currently set backend " << (*backend_name);
+    cout << "Using the currently set backend " << (*backend_name) <<std::endl;
     return Status::OK();
   }
 
@@ -162,9 +166,9 @@ Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
   }
 
   *backend_name = backend_env;
-  NGRAPH_VLOG(1) << "Overriding backend using the environment variable "
+  cout << "Overriding backend using the environment variable "
                     "to "
-                 << (*backend_name);
+                 << (*backend_name)<<std::endl;
   return Status::OK();
 };
 
