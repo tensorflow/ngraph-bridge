@@ -35,8 +35,17 @@ class TestModelTester(NgraphTest):
     def test_MLP(self):
         cwd = os.getcwd()
         os.chdir('../model_level_tests/')
+        grappler = ngraph_bridge.is_grappler_enabled()
+        varopts = ngraph_bridge.are_variables_enabled()
+        if grappler:
+            if varopts:
+                assert False, "Varopts and grappler does not build together right now"
+            else:
+                config = "grappler"
+        else:
+            config = "varopts" if varopts else "default"
         try:
             command_executor(
-                "python test_main.py --run_basic_tests --models MLP")
+                "python test_main.py --run_basic_tests --models MLP --configuration " + config)
         finally:
             os.chdir(cwd)
