@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
-load("//:cxx_abi_option.bzl", "CXX_ABI")
+#load("//:cxx_abi_option.bzl", "CXX_ABI")
 
 cc_library(
     name = "ngraph_bridge_headers",
@@ -109,7 +109,7 @@ cc_library(
         "-I ngraph_bridge",
         "-I logging",
         "-I external/ngraph/src",
-    ] + CXX_ABI,
+    ] ,#+ CXX_ABI,
     linkstatic=1,
     linkopts = [
         "-Wl,-z,noexecstack",
@@ -144,7 +144,7 @@ cc_library(
         "-I ngraph_bridge",
         "-I logging",
         "-I external/ngraph/src",
-    ] + CXX_ABI,
+    ] , #+ CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
@@ -170,7 +170,8 @@ cc_binary(
         "ngraph_bridge/ngraph_encapsulate_op.cc",
         "ngraph_bridge/ngraph_freshness_tracker.cc",
         "ngraph_bridge/ngraph_mark_for_clustering.cc",
-        #"ngraph_bridge/ngraph_pipelined_tensors.cc",
+        "ngraph_bridge/ngraph_partial_shapes.cc",
+        "ngraph_bridge/ngraph_pipelined_tensors.cc",
         "ngraph_bridge/ngraph_rewrite_for_tracking.cc",
         "ngraph_bridge/ngraph_tracked_variable.cc",
         "ngraph_bridge/ngraph_utils.cc",
@@ -205,7 +206,7 @@ cc_binary(
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
         '-D NGRAPH_TF_USE_GRAPPLER_OPTIMIZER',
         "-I external/ngraph/src",
-    ] + CXX_ABI,
+    ] ,#+ CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
@@ -246,7 +247,7 @@ tf_cc_binary(
         "-I ngraph_bridge",
         "-I external/ngraph/src",
         "-I logging",
-    ] + CXX_ABI,
+    ] ,#+ CXX_ABI,
     linkstatic=False,
     visibility = ["//visibility:public"],
 )

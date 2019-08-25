@@ -44,6 +44,7 @@
 #include "ngraph_bridge/ngraph_encapsulate_op.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_pipelined_tensors.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
@@ -171,21 +172,8 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   // Get the optional attributes
   std::unordered_map<std::string, std::string> additional_attribute_map;
   auto node_def = ctx->def();
-  auto additional_attributes = node_def.attr();
-  for (auto itx : additional_attributes) {
-    // Find the optional attributes to be sent to the backend.
-    // The optional attributes have '_ngraph_' appended to the start
-    // so we need to get rid of that and only send the remaining string
-    // since the backend will only look for that.
-    // '_ngraph_' is only appended for the bridge.
-    // For e.g. _ngraph_ice_cores --> ice_cores
-    if (itx.first.find("_ngraph_") != std::string::npos) {
-      NGRAPH_VLOG(4) << "Attribute: " << itx.first.substr(strlen("_ngraph_"))
-                     << " Value: " << itx.second.s();
-      additional_attribute_map.insert(
-          {itx.first.substr(strlen("_ngraph_")), itx.second.s()});
-    }
-  }
+  OP_REQUIRES_OK(ctx, ng_encap_impl.ParseNodeAttributes(
+                          node_def.attr(), &additional_attribute_map));
 
   // Concatenate the backend_name:device_id
   try {
@@ -202,6 +190,13 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   // SetConfig will be called for each EncapsulateOp
   BackendManager::SetConfig(ng_encap_impl.GetOpBackend(),
                             additional_attribute_map);
+
+  ng_encap_impl.SetExecCanCreateTensor(
+      BackendManager::GetBackend(ng_encap_impl.GetOpBackend())
+          ->executable_can_create_tensors());
+  NGRAPH_VLOG(5) << "Executable can "
+                 << (ng_encap_impl.GetExecCanCreateTensor() ? "" : "not")
+                 << " create tensors";
 
   event.Stop();
   ngraph::Event::write_trace(event);
@@ -261,6 +256,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   ng_encap_impl.ClearNgExecOutputCache();
   ng_encap_impl.ClearNgExecMap();
   ng_encap_impl.ClearNgFunctionMap();
+  ng_encap_impl.ClearNgExecPipelinedTensorMap();
 
   // Release the backend
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
@@ -319,6 +315,31 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   Timer create_or_lookup_tensors;
 
+  int pipeline_idx = -1;
+  PipelinedTensorVector inp_group_from_pipeline;
+  PipelinedTensorVector out_group_from_pipeline;
+  if (ng_encap_impl.GetExecCanCreateTensor()) {
+    OP_REQUIRES_OK(ctx, ng_encap_impl.CachePipelinedTensorIfNeeded(ng_exec));
+    // Cache must contain the ng_exec at this point
+
+    try {
+      std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
+          ng_encap_impl.GetTensorsFromPipeline(ng_exec);
+    } catch (const std::exception& exp) {
+      OP_REQUIRES(
+          ctx, false,
+          errors::Internal("Caught exception while getting pipelined tensors: ",
+                           exp.what(), "\n"));
+    }
+
+    if (pipeline_idx < 0) {
+      OP_REQUIRES(ctx, false,
+                  errors::Internal("Expected GetTensorsFromPipeline to return "
+                                   "an index >= 0, but got ",
+                                   pipeline_idx));
+    }
+  }
+
   if (ng_encap_impl.GetNgraphFreshnessTracker() == nullptr) {
     auto creator = [](NGraphFreshnessTracker** tracker) {
       *tracker = new NGraphFreshnessTracker();
@@ -343,7 +364,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   int ng_input_tensor_size_in_bytes = 0;
 
   OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGInputTensors(
-                          tf_input_tensors, ng_exec, op_backend, ng_inputs));
+                          tf_input_tensors, ng_exec, inp_group_from_pipeline,
+                          op_backend, ng_inputs));
 
   event_alloc_input.Stop();
 
@@ -384,7 +406,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   }
 
   OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGOutputTensors(
-                          tf_output_tensors, ng_exec, op_backend, ng_outputs));
+                          tf_output_tensors, ng_exec, out_group_from_pipeline,
+                          op_backend, ng_outputs));
   auto output_caches = ng_encap_impl.GetNgExecOutputCacheMap(ng_exec);
 
   event_alloc_output.Stop();
@@ -658,6 +681,17 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   }
   int time_copy_output_tensors_to_host =
       copy_output_tensors_to_host.ElapsedInMS();
+
+  if (ng_encap_impl.GetExecCanCreateTensor()) {
+    try {
+      ng_encap_impl.ReturnPipelinedTensors(ng_exec, pipeline_idx);
+    } catch (const std::exception& exp) {
+      OP_REQUIRES(ctx, false,
+                  errors::Internal(
+                      "Caught exception while returning pipelined tensors: ",
+                      exp.what(), "\n"));
+    }
+  }
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
