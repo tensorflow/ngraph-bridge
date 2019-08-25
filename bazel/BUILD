@@ -227,7 +227,6 @@ tf_cc_binary(
         "@org_tensorflow//tensorflow/cc:client_session",
         "@com_google_absl//absl/strings",
         "@org_tensorflow//tensorflow/core:lib",
-        # "@org_tensorflow//tensorflow/core:core_cpu",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
