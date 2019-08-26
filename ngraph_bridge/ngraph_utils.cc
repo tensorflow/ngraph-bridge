@@ -18,6 +18,13 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <stdlib.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <dirent.h>
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/common_runtime/optimization_registry.h"
@@ -28,6 +35,11 @@
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
+#include "tensorflow/core/util/events_writer.h"
+#include "tensorflow/core/util/event.pb.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/file_system.h"
+#include "tensorflow/core/lib/io/record_writer.h"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
@@ -461,6 +473,224 @@ bool IsProcessedByNgraphPass(Graph* g) {
     if (node->type_string() == "NGraphEncapsulate") return true;
   }
   return false;
+}
+
+Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def, std::set<std::string> nodes)
+{
+  const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
+
+  if (path == nullptr)
+  {
+    return Status::OK();
+  }
+
+  std::string str_path(path);
+
+  if (str_path.back() != '/')
+  {
+    str_path += "/";
+  }
+
+  struct stat buffer;
+  if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
+  {
+    mkdir(str_path.c_str(), 0777);
+  }
+  
+  std::string dname = GetSessionName(file_idx, nodes);
+  str_path += (dname.insert(0, "ngraph") + "/");
+
+  if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
+  {
+    mkdir(str_path.c_str(), 0777);
+  }
+  
+  str_path += ("ngraph" + to_string(file_idx));
+
+  CreateSummaryFromGraphDef(graph_def, str_path); // create tensorflow event
+
+  return Status::OK();
+}
+
+Status UpdateComputeTime(int file_idx, std::string cluster, std::string sess_name, int step, int compute_time)
+{
+  const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
+
+  if (path == nullptr)
+  {
+    return Status::OK();
+  }
+
+  std::string str_path(path);
+  if (str_path.back() != '/')
+  {
+    str_path += "/";
+  }
+
+  std::string dname(sess_name);
+  str_path += (dname.insert(0, "stats") + "/");
+
+  struct stat buffer;
+  if (stat(str_path.c_str(), &buffer) != 0) // path doesn't exist
+  {
+    mkdir(str_path.c_str(), 0777);
+  }
+
+  // if grappler just began and if dir already exists, return error if tf event files exist inside dir
+  if (step == 1)
+  {
+    TF_RETURN_IF_ERROR(VerifyEmptyTBDir(str_path));
+  }
+
+  // inspect directory's files
+  DIR* dir = opendir(str_path.c_str());
+  struct dirent* dp;
+  vector<std::string> files;
+
+  while ((dp = readdir(dir)) != nullptr)
+  {
+    if (dp->d_type == DT_REG) // look at all files in directory
+    {
+      files.push_back(std::string(dp->d_name));
+    }
+  }
+
+  closedir(dir);
+  // done inspecting directory's files
+
+  // create event object
+  tensorflow::Event event;
+  tensorflow::Summary::Value* summary_value;
+  tensorflow::Env* env = Env::Default();
+
+  event.set_wall_time(env->NowMicros() / 1e6);
+  event.set_step(step);
+  summary_value = event.mutable_summary()->add_value();
+  summary_value->set_tag(dname + " Compute Time (ms)/" + cluster);
+  summary_value->set_simple_value((float) compute_time);
+  // done creating event object
+
+  if (files.empty()) // create new tf event file
+  {
+    str_path += ("stats" + to_string(file_idx));    
+
+    tensorflow::EventsWriter writer(str_path);
+
+    writer.WriteEvent(event);
+  }
+  else // append to tf event file in dir
+  {
+    std::string file_path = str_path + files[0];
+
+    // open tf event file at location file_path
+    std::unique_ptr<tensorflow::WritableFile> writable_file;
+
+    env->NewAppendableFile(file_path, &writable_file);
+    tensorflow::io::RecordWriter record_writer(writable_file.get());
+    // done opening tf event file at location file_path
+    
+
+    record_writer.WriteRecord(event.SerializeAsString());
+  }
+  
+  return Status::OK();
+}
+
+Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix)
+{
+  // convert Graph* to GraphDef*
+  tensorflow::GraphDef* gdef = nullptr;
+  graph->ToGraphDef(gdef);
+
+  // create event summary writer
+  tensorflow::EventsWriter writer(filename_prefix);
+  tensorflow::Event event;
+
+  // write graph to event summary
+  event.set_graph_def(gdef->SerializeAsString());
+  
+  return Status::OK();
+}
+
+Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def, std::string filename_prefix)
+{
+  // create event summary writer
+  tensorflow::EventsWriter writer(filename_prefix);
+  tensorflow::Event event;
+
+  // write graph to event summary
+  event.set_graph_def(graph_def->SerializeAsString());
+  writer.WriteEvent(event);
+
+  return Status::OK();
+}
+
+Status AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph)
+{ 
+  for (auto node : graph->op_nodes())
+  {
+    if (node->type_string() == "NGraphEncapsulate")
+    {
+      node->AddAttr(("_session_name" + to_string(file_idx)), GetSessionName(file_idx, nodes));
+    }
+  }
+
+  return Status::OK();
+}
+
+std::string GetSessionName(int file_idx, std::set<std::string> nodes)
+{
+  std::string name = "";
+
+  if (nodes.size() == 0)
+  {
+    name = to_string(file_idx);
+  }
+  else
+  {
+    std::string entry;
+
+    for (auto it = nodes.begin(); it != nodes.end(); ++it) // get last element in set
+    {
+      entry = *it;
+    }
+
+    int scope_idx = entry.find_first_of("/");
+
+    if (scope_idx != std::string::npos)
+    {
+      name = to_string(file_idx) + "_" + entry.substr(0, scope_idx);
+    }
+    else
+    {
+      name = to_string(file_idx) + "_" + entry;
+    }
+  }
+
+  return name;
+}
+
+Status VerifyEmptyTBDir(std::string path)
+{
+  // make sure directory is empty
+
+  DIR* dir = opendir(path.c_str());
+  struct dirent* dp;
+  int num_obj = 0;
+
+  while ((dp = readdir(dir)) != nullptr)
+  {
+    num_obj++;
+  }
+
+  if (num_obj)
+  {
+    std::string err = "Directory " + path + " contains " + to_string(num_obj) + " objects. Directory must be empty.";
+    NGRAPH_VLOG(0) << err << endl;
+    return errors::Internal(err);
+  }
+
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge

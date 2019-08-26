@@ -28,6 +28,7 @@
 #include "ngraph_bridge/grappler/ngraph_optimizer.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_utils.h"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
@@ -278,6 +279,9 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // https://developers.google.com/protocol-buffers/docs/reference/cpp-generated#proto3_string
   // Hence no need to free fdeflib_new
   output->set_allocated_library(fdeflib_new);
+
+  DumpNGraph(idx, output, fetch_nodes); // dump NGraphs to tfevent files, separated individually by directories
+  
   return Status::OK();
 }
 

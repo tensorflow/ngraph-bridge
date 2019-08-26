@@ -333,6 +333,20 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
+Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def, std::set<std::string> nodes);
+
+Status UpdateComputeTime(int file_idx, std::string cluster, std::string sess_name, int step, int compute_time);
+
+Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix);
+
+Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def, std::string filename_prefix);
+
+Status AddSessionNameAttr(int file_idx, std::set<std::string> nodes, Graph* graph);
+
+std::string GetSessionName(int file_idx, std::set<std::string> nodes);
+
+Status VerifyEmptyTBDir(std::string path);
+
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order
 void OpControlOrder(const std::shared_ptr<ngraph::Function>&,
