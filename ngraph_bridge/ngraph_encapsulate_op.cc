@@ -112,7 +112,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
   ng_encap_impl.SetGraphId(graph_id);
 
-  //OP_REQUIRES_OK(ctx, ctx->GetAttr(("_session_name" + to_string(graph_id)), &session_names[graph_id]));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr(("_session_name" + to_string(graph_id)), &session_names[graph_id]));
   
   //
   // Initialize the "m_input_is_static" vector as follows:
@@ -717,7 +717,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event::write_trace(event_copy_output);
   ngraph::Event::write_trace(event);
 
-  //UpdateComputeTime(ng_encap_impl.GetGraphId(), ctx->op_kernel().name(), session_names[ng_encap_impl.GetGraphId()], ctx->step_id(), compute_time.ElapsedInMS());
+  UpdateComputeTime(ng_encap_impl.GetGraphId(), ctx->op_kernel().name(), session_names[ng_encap_impl.GetGraphId()], ctx->step_id(), compute_time.ElapsedInMS());
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;
