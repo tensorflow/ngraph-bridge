@@ -21,8 +21,8 @@
 
 #include "inference_engine.h"
 #include "ngraph/event_tracing.hpp"
-#include "ngraph_backend_manager.h"
-#include "version.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/version.h"
 
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/protobuf/rewriter_config.pb.h"
