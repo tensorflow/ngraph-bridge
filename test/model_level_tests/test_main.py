@@ -242,7 +242,7 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed,
                             assert False, 'Failed to parse ' + expected_json_file
                         if 'logparse' in expected and 'logparse' not in ignore_test:
                             passed, fail_help_string = compare_parsed_values(
-                                parsed_vals, expected.get('logparse', {}))
+                                parsed_vals, expected['logparse'])
                             if not passed:
                                 print('Failed in test ' + flname +
                                       '. Help message: ' + fail_help_string)
