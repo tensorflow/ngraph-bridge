@@ -273,6 +273,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                "Graph with Variables Rewritten for Tracking");
   }
 
+  AddSessionNameAttr(idx, fetch_nodes, &graph); // embed the names of those directories in graph as an attribute
+
   // Convert the graph back to Graphdef
   graph.ToGraphDef(output);
   // According to the doc, the message takes ownership of the allocated object

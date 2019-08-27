@@ -345,8 +345,6 @@ Status AddSessionNameAttr(int file_idx, std::set<std::string> nodes, Graph* grap
 
 std::string GetSessionName(int file_idx, std::set<std::string> nodes);
 
-Status VerifyEmptyTBDir(std::string path);
-
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order
 void OpControlOrder(const std::shared_ptr<ngraph::Function>&,

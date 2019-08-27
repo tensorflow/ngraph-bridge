@@ -536,12 +536,6 @@ Status UpdateComputeTime(int file_idx, std::string cluster, std::string sess_nam
     mkdir(str_path.c_str(), 0777);
   }
 
-  // if grappler just began and if dir already exists, return error if tf event files exist inside dir
-  if (step == 1)
-  {
-    TF_RETURN_IF_ERROR(VerifyEmptyTBDir(str_path));
-  }
-
   // inspect directory's files
   DIR* dir = opendir(str_path.c_str());
   struct dirent* dp;
@@ -668,29 +662,6 @@ std::string GetSessionName(int file_idx, std::set<std::string> nodes)
   }
 
   return name;
-}
-
-Status VerifyEmptyTBDir(std::string path)
-{
-  // make sure directory is empty
-
-  DIR* dir = opendir(path.c_str());
-  struct dirent* dp;
-  int num_obj = 0;
-
-  while ((dp = readdir(dir)) != nullptr)
-  {
-    num_obj++;
-  }
-
-  if (num_obj)
-  {
-    std::string err = "Directory " + path + " contains " + to_string(num_obj) + " objects. Directory must be empty.";
-    NGRAPH_VLOG(0) << err << endl;
-    return errors::Internal(err);
-  }
-
-  return Status::OK();
 }
 
 }  // namespace ngraph_bridge
