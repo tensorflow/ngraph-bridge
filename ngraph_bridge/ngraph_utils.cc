@@ -308,7 +308,7 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank) {
   return Status::OK();
 }
 
-void NgraphSerialize(const std::string& file_name,
+Status NgraphSerialize(const std::string& file_name,
                      const std::shared_ptr<ngraph::Function>& ng_function) {
   NGRAPH_VLOG(0) << "Serializing graph to: " << file_name << std::endl;
   std::string js = ngraph::serialize(ng_function, 4);
@@ -322,7 +322,9 @@ void NgraphSerialize(const std::string& file_name,
     NGRAPH_VLOG(0) << "Exception opening/closing file " << file_name
                    << std::endl;
     NGRAPH_VLOG(0) << e.what() << std::endl;
+    return errors::Internal("Failed NgraphSerialize: ", e.what());
   }
+  return Status::OK();
 }
 
 void MemoryProfile(long& vm_usage, long& resident_set) {

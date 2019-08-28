@@ -153,13 +153,13 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     // Serialize to nGraph if needed
     if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
       std::string file_name = "tf_function_" + m_name + ".json";
-      NgraphSerialize("tf_function_" + m_name + ".json", ng_function);
+      TF_RETURN_IF_ERROR(NgraphSerialize("tf_function_" + m_name + ".json", ng_function));
 #if defined NGRAPH_DISTRIBUTED
       int rank_id;
       rank_id = ng::get_distributed_interface()->get_rank();
-      NgraphSerialize(
+      TF_RETURN_IF_ERROR(NgraphSerialize(
           "tf_function_" + m_name + "_" + to_string(rank_id) + ".json",
-          ng_function);
+          ng_function));
 #endif
     }
     // Evict the cache if the number of elements exceeds the limit
@@ -222,12 +222,12 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       }
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
+      auto serialize_status = NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
+      auto serialize_status = NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
       return errors::Internal("Error in compiling op_backend\n");
     }
     BackendManager::UnlockBackend(m_op_backend_name);
