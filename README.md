@@ -26,7 +26,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 |Python 3| Python 3|
 |TensorFlow v1.14|GCC 4.8 (Ubuntu), Clang/LLVM (macOS)|
 |        |`cmake` 3.4 or higher|
-|        |Bazel 0.25.2|
+|        |Bazel 0.24.1|
 |        |`virtualenv` 16.0.0|
 |        ||
 
@@ -71,8 +71,8 @@ TensorFlow uses a build system called "bazel". For the current
 
 Install `bazel`:
 
-        wget https://github.com/bazelbuild/bazel/releases/download/0.25.2/bazel-0.25.2-installer-linux-x86_64.sh      
-        bash bazel-0.25.2-installer-linux-x86_64.sh --user
+        wget https://github.com/bazelbuild/bazel/releases/download/0.24.1/bazel-0.24.1-installer-linux-x86_64.sh
+        bash bazel-0.24.1-installer-linux-x86_64.sh --user
 
 Add and source the `bin` path to your `~/.bashrc` file to call
 bazel:
@@ -265,7 +265,7 @@ See the full documentation here:  <http://ngraph.nervanasys.com/docs/latest>
 [Github issues]: https://github.com/tensorflow/ngraph-bridge/issues
 [pull request]: https://github.com/tensorflow/ngraph-bridge/pulls
 [DSO]:http://csweb.cs.wfu.edu/~torgerse/Kokua/More_SGI/007-2360-010/sgi_html/ch03.html
-[bazel version]: https://github.com/bazelbuild/bazel/releases/tag/0.25.2
+[bazel version]: https://github.com/bazelbuild/bazel/releases/tag/0.24.1
 [TensorFlow configuration]: https://www.tensorflow.org/install/source
 [diagnostics]:diagnostics/README.md
 [examples]:examples/README.md
