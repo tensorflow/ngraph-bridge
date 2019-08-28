@@ -90,7 +90,6 @@ cc_library(
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_STATIC_LIB_ENABLE'
     ] + CXX_ABI,
-    linkstatic=1,
     linkopts = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
@@ -331,7 +330,6 @@ cc_library(
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
 
     ] + CXX_ABI,
-    linkstatic=1,
     linkopts = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
