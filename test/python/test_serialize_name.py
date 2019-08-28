@@ -42,8 +42,9 @@ class TestDumpingGraphs(NgraphTest):
             b = self.get_tensor(g, "Sigmoid:0", True)
 
             sess_fn = lambda sess: sess.run(
-                [a, b], feed_dict={i: np.full((2, 3), 1.0) for i in [x, y, z]})
+                b, feed_dict={i: np.full((2, 3), 1.0) for i in [x, y, z]})
             
-            xx = self.without_ngraph(sess_fn)
-            print(xx)
+            assert np.isclose(self.with_ngraph(sess_fn), 0.95257413*np.ones([2,3])).all()
+            assert 'tf_function_import--ngraph_cluster_0.json' in os.listdir('.')
+            os.remove('tf_function_import--ngraph_cluster_0.json')
 

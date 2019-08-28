@@ -310,16 +310,18 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank) {
 
 Status NgraphSerialize(const std::string& file_name,
                      const std::shared_ptr<ngraph::Function>& ng_function) {
-  NGRAPH_VLOG(0) << "Serializing graph to: " << file_name << std::endl;
   std::string js = ngraph::serialize(ng_function, 4);
   std::ofstream f;
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  string new_file_name(file_name);
+  new_file_name.replace(new_file_name.find(string("/")), 1 ,"--");
+  NGRAPH_VLOG(0) << "Serializing graph to: " << new_file_name << std::endl;
   try {
-    f.open(file_name);
+    f.open(new_file_name);
     f << js;
     f.close();
   } catch (std::ofstream::failure& e) {
-    NGRAPH_VLOG(0) << "Exception opening/closing file " << file_name
+    NGRAPH_VLOG(0) << "Exception opening/closing file " << new_file_name
                    << std::endl;
     NGRAPH_VLOG(0) << e.what() << std::endl;
     return errors::Internal("Failed NgraphSerialize: ", e.what());
