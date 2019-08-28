@@ -30,14 +30,22 @@ import os
 
 class TestDumpingGraphs(NgraphTest):
 
-    def test(self):
+    @pytest.mark.parametrize(('import_name_tag',), ((None,)("",)))
+    def test(self, import_name_tag):
         os.environ['NGRAPH_ENABLE_SERIALIZE'] = '1'
         os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
         # In this test we dump the serialized graph
         # This checks NgraphSerialize function
         # Specifically we want NgraphSerialize to work
         # even when there are '/' in the file name
-        graph = self.import_pbtxt('flib_graph_1.pbtxt')
+        pb_filename = 'flib_graph_1.pbtxt'
+        graph_def = tf.GraphDef()
+        with open(pb_filename, "r") as f:
+            text_format.Merge(f.read(), graph_def)
+
+        with tf.Graph().as_default() as graph:
+            tf.import_graph_def(graph_def, name=import_name_tag)
+
         with graph.as_default() as g:
             x = self.get_tensor(g, "Placeholder:0", True)
             y = self.get_tensor(g, "Placeholder_1:0", True)
@@ -51,6 +59,13 @@ class TestDumpingGraphs(NgraphTest):
 
             assert np.isclose(
                 self.with_ngraph(sess_fn), 0.95257413 * np.ones([2, 3])).all()
-            assert 'tf_function_import--ngraph_cluster_0.json' in os.listdir(
-                '.')
-            os.remove('tf_function_import--ngraph_cluster_0.json')
+            # This graph has a node named ngraph_cluster_0
+            # So we attempt to dump tf_function_import/ngraph_cluster_0.json
+            # but we replace / with -- in NgraphSerialize
+            # and dump tf_function_import--ngraph_cluster_0.json
+            # When import_name_tag == "", we dump tf_function_ngraph_cluster_0.json
+
+            expected_file = 'tf_function_' + ("", "import--")[
+                import_name_tag is None] + 'ngraph_cluster_0.json'
+            assert expected_file in os.listdir('.')
+            os.remove(expected_file)
