@@ -556,165 +556,167 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Copy value to host if backend is not CPU
   ngraph::Event event_copy_output("Output - copy back", name(), "");
   Timer copy_output_tensors_to_host;
-{   // lock block begins
-std::lock_guard<std::mutex> lock(m_compute_lock);
-  try {
-    size_t output_tensor_count = output_caches.size();
-    std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    if (ng_encap_impl.GetNumberOfOutputs() == -1) {
-      NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-      ng_encap_impl.SetNumberOfOutputs(ng_outputs.size());
-      NGRAPH_VLOG(4) << "Setting number of inputs for " << def().name();
-      ng_encap_impl.SetNumberOfInputs(ng_inputs.size());
-    }
-    for (size_t i = 0; i < output_tensor_count; ++i) {
-      // Sync the Var Tensor if required
-      string output_key = NGraphCatalog::CreateNodeKey(
-          ng_encap_impl.GetGraphId(), def().name(), i);
-      bool ref_exists = NGraphCatalog::ExistsInEncapOutputInfoMap(output_key);
-
-      if (ref_exists) {
-        NGRAPH_VLOG(4) << "Syncing the output var tensor " << output_key;
-
-        // Get var
-        string ref_var_name =
-            NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(
-                output_key);
-        NGraphVar* var;
-        OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
-                                ctx->resource_manager()->default_container(),
-                                ref_var_name, &var));
-
-        if (NGraphCatalog::GetCopyToTFFromEncapOutputInfoMap(output_key)) {
-          if (var->copy_ng_to_tf()) {
-            int copies = ng_encap_impl.GetNumberOfCopies();
-            ng_encap_impl.SetNumberOfCopies(copies++);
-            ng_encap_impl.SetCopyLog(" COPY_TO_TF ");
-          }
-          if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
-                  output_key)) {
-            // Some tf op might update the ng-tensor value so mark it stale
-            ng_encap_impl.SetCopyLog(" SET_SYNC ");
-            var->set_sync_ng_tensor(true);
-          }
-        }
-        var->Unref();
-      }
-
-      std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
-      void* dst_ptr;
-      std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
-
-      if (ng_encap_impl.GetOpBackend() != "CPU" &&
-          NGraphCatalog::EncapOutputIndexNeedsCopy(ng_encap_impl.GetGraphId(),
-                                                   def().name(), i)) {
-        int copies = ng_encap_impl.GetNumberOfCopies();
-        ng_encap_impl.SetNumberOfCopies(copies++);
-        stringstream log;
-        log << " COPY_OP_VAL[" << i << "]";
-        ng_encap_impl.SetCopyLog(log.str());
-
-        NGRAPH_VLOG(4) << "Copying Output " << def().name() << " ,index: " << i;
-        auto ng_element_type = dst_ng_tensor->get_element_type();
-        size_t copy_size =
-            dst_ng_tensor->get_element_count() * ng_element_type.size();
-        string event_name =
-            "Output_" + to_string(i) + "_" + to_string(copy_size);
-        std::unique_ptr<ngraph::Event> event_copy_output_next(
-            new ngraph::Event(event_name, name(), ""));
-        dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
-                                            ng_element_type.size());
-        event_copy_output_next->Stop();
-        output_copy_events.push_back(std::move(event_copy_output_next));
-      }
-    }
-#else
-    if (ng_encap_impl.GetOpBackend() != "CPU") {
-      for (size_t i = 0; i < output_tensor_count; ++i) {
-        void* dst_ptr;
-        std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
-        std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
-        auto ng_element_type = dst_ng_tensor->get_element_type();
-        std::unique_ptr<ngraph::Event> event_copy_output_next(new ngraph::Event(
-            ("Output_" + std::to_string(i) + "_" +
-             std::to_string(dst_ng_tensor->get_element_count() *
-                            ng_element_type.size())),
-            name(), ""));
-        dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
-                                            ng_element_type.size());
-        event_copy_output_next->Stop();
-        output_copy_events.push_back(std::move(event_copy_output_next));
-      }
-    }
-#endif
-    // Now write the events back
-    for (auto& next : output_copy_events) {
-      ngraph::Event::write_trace(*next.get());
-    }
-  } catch (const std::exception& exp) {
-    OP_REQUIRES(ctx, false,
-                errors::Internal(
-                    "Caught exception while transferring tensor data to host: ",
-                    exp.what(), "\n"));
-  } catch (...) {
-    OP_REQUIRES(ctx, false, errors::Internal(
-                                "Error in transferring tensor data to host\n"));
-  }
-  event_copy_output.Stop();
-
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  std::stringstream str;
-  str << " Number of copies " << ng_encap_impl.GetNumberOfCopies() << "\n";
-  ng_encap_impl.SetCopyLog(str.str());
-  if (ng_encap_impl.GetLogCopies()) {
-    cout << ng_encap_impl.GetCopyLog();
-  }
-#endif
-
-  // Mark input tensors as fresh for the next time around.
-  // Note: these ng_tensors are being marked fresh so that in the next
-  // iteration if this encapsulate finds the tensor fresh, then it will use it
-  for (int i = 0; i < input_shapes.size(); i++) {
-    void* src_ptr = (void*)DMAHelper::base(&ctx->input(i));
-    ng_encap_impl.GetNgraphFreshnessTracker()->MarkFresh(src_ptr, ng_exec);
-  }
-  int time_copy_output_tensors_to_host =
-      copy_output_tensors_to_host.ElapsedInMS();
-
-  if (ng_encap_impl.GetExecCanCreateTensor()) {
+  {  // lock block begins
+    std::lock_guard<std::mutex> lock(m_compute_lock);
     try {
-      ng_encap_impl.ReturnPipelinedTensors(ng_exec, pipeline_idx);
+      size_t output_tensor_count = output_caches.size();
+      std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+      if (ng_encap_impl.GetNumberOfOutputs() == -1) {
+        NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
+        ng_encap_impl.SetNumberOfOutputs(ng_outputs.size());
+        NGRAPH_VLOG(4) << "Setting number of inputs for " << def().name();
+        ng_encap_impl.SetNumberOfInputs(ng_inputs.size());
+      }
+      for (size_t i = 0; i < output_tensor_count; ++i) {
+        // Sync the Var Tensor if required
+        string output_key = NGraphCatalog::CreateNodeKey(
+            ng_encap_impl.GetGraphId(), def().name(), i);
+        bool ref_exists = NGraphCatalog::ExistsInEncapOutputInfoMap(output_key);
+
+        if (ref_exists) {
+          NGRAPH_VLOG(4) << "Syncing the output var tensor " << output_key;
+
+          // Get var
+          string ref_var_name =
+              NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(
+                  output_key);
+          NGraphVar* var;
+          OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
+                                  ctx->resource_manager()->default_container(),
+                                  ref_var_name, &var));
+
+          if (NGraphCatalog::GetCopyToTFFromEncapOutputInfoMap(output_key)) {
+            if (var->copy_ng_to_tf()) {
+              int copies = ng_encap_impl.GetNumberOfCopies();
+              ng_encap_impl.SetNumberOfCopies(copies++);
+              ng_encap_impl.SetCopyLog(" COPY_TO_TF ");
+            }
+            if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
+                    output_key)) {
+              // Some tf op might update the ng-tensor value so mark it stale
+              ng_encap_impl.SetCopyLog(" SET_SYNC ");
+              var->set_sync_ng_tensor(true);
+            }
+          }
+          var->Unref();
+        }
+
+        std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
+        void* dst_ptr;
+        std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
+
+        if (ng_encap_impl.GetOpBackend() != "CPU" &&
+            NGraphCatalog::EncapOutputIndexNeedsCopy(ng_encap_impl.GetGraphId(),
+                                                     def().name(), i)) {
+          int copies = ng_encap_impl.GetNumberOfCopies();
+          ng_encap_impl.SetNumberOfCopies(copies++);
+          stringstream log;
+          log << " COPY_OP_VAL[" << i << "]";
+          ng_encap_impl.SetCopyLog(log.str());
+
+          NGRAPH_VLOG(4) << "Copying Output " << def().name()
+                         << " ,index: " << i;
+          auto ng_element_type = dst_ng_tensor->get_element_type();
+          size_t copy_size =
+              dst_ng_tensor->get_element_count() * ng_element_type.size();
+          string event_name =
+              "Output_" + to_string(i) + "_" + to_string(copy_size);
+          std::unique_ptr<ngraph::Event> event_copy_output_next(
+              new ngraph::Event(event_name, name(), ""));
+          dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
+                                              ng_element_type.size());
+          event_copy_output_next->Stop();
+          output_copy_events.push_back(std::move(event_copy_output_next));
+        }
+      }
+#else
+      if (ng_encap_impl.GetOpBackend() != "CPU") {
+        for (size_t i = 0; i < output_tensor_count; ++i) {
+          void* dst_ptr;
+          std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
+          std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
+          auto ng_element_type = dst_ng_tensor->get_element_type();
+          std::unique_ptr<ngraph::Event> event_copy_output_next(
+              new ngraph::Event(
+                  ("Output_" + std::to_string(i) + "_" +
+                   std::to_string(dst_ng_tensor->get_element_count() *
+                                  ng_element_type.size())),
+                  name(), ""));
+          dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
+                                              ng_element_type.size());
+          event_copy_output_next->Stop();
+          output_copy_events.push_back(std::move(event_copy_output_next));
+        }
+      }
+#endif
+      // Now write the events back
+      for (auto& next : output_copy_events) {
+        ngraph::Event::write_trace(*next.get());
+      }
     } catch (const std::exception& exp) {
-      OP_REQUIRES(ctx, false,
-                  errors::Internal(
-                      "Caught exception while returning pipelined tensors: ",
-                      exp.what(), "\n"));
+      OP_REQUIRES(
+          ctx, false,
+          errors::Internal(
+              "Caught exception while transferring tensor data to host: ",
+              exp.what(), "\n"));
+    } catch (...) {
+      OP_REQUIRES(
+          ctx, false,
+          errors::Internal("Error in transferring tensor data to host\n"));
     }
-  }
+    event_copy_output.Stop();
 
-  NGRAPH_VLOG(4)
-      << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
-      << ng_encap_impl.GetNgraphCluster();
-  NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: "
-                 << ng_encap_impl.GetInstanceId() << " Step_ID: " << step_id
-                 << " Cluster: " << name()
-                 << " Time-Compute: " << compute_time.ElapsedInMS()
-                 << " Function-Create-or-Lookup: " << time_func_create_or_lookup
-                 << " Create-and-copy-tensors: "
-                 << time_create_or_lookup_tensors
-                 << " Execute: " << time_execute_function
-                 << " Copy-outputs-to-host: "
-                 << time_copy_output_tensors_to_host;
-  event.Stop();
-  ngraph::Event::write_trace(event_func_maybe_create);
-  ngraph::Event::write_trace(event_alloc_output);
-  ngraph::Event::write_trace(event_alloc_input);
-  ngraph::Event::write_trace(event_execute_function);
-  ngraph::Event::write_trace(event_copy_output);
-  ngraph::Event::write_trace(event);
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    std::stringstream str;
+    str << " Number of copies " << ng_encap_impl.GetNumberOfCopies() << "\n";
+    ng_encap_impl.SetCopyLog(str.str());
+    if (ng_encap_impl.GetLogCopies()) {
+      cout << ng_encap_impl.GetCopyLog();
+    }
+#endif
 
-  }   //lock block ends.
+    // Mark input tensors as fresh for the next time around.
+    // Note: these ng_tensors are being marked fresh so that in the next
+    // iteration if this encapsulate finds the tensor fresh, then it will use it
+    for (int i = 0; i < input_shapes.size(); i++) {
+      void* src_ptr = (void*)DMAHelper::base(&ctx->input(i));
+      ng_encap_impl.GetNgraphFreshnessTracker()->MarkFresh(src_ptr, ng_exec);
+    }
+    int time_copy_output_tensors_to_host =
+        copy_output_tensors_to_host.ElapsedInMS();
+
+    if (ng_encap_impl.GetExecCanCreateTensor()) {
+      try {
+        ng_encap_impl.ReturnPipelinedTensors(ng_exec, pipeline_idx);
+      } catch (const std::exception& exp) {
+        OP_REQUIRES(ctx, false,
+                    errors::Internal(
+                        "Caught exception while returning pipelined tensors: ",
+                        exp.what(), "\n"));
+      }
+    }
+
+    NGRAPH_VLOG(4)
+        << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
+        << ng_encap_impl.GetNgraphCluster();
+    NGRAPH_VLOG(1)
+        << "NGRAPH_TF_TIMING_PROFILE: OP_ID: " << ng_encap_impl.GetInstanceId()
+        << " Step_ID: " << step_id << " Cluster: " << name()
+        << " Time-Compute: " << compute_time.ElapsedInMS()
+        << " Function-Create-or-Lookup: " << time_func_create_or_lookup
+        << " Create-and-copy-tensors: " << time_create_or_lookup_tensors
+        << " Execute: " << time_execute_function
+        << " Copy-outputs-to-host: " << time_copy_output_tensors_to_host;
+    event.Stop();
+    ngraph::Event::write_trace(event_func_maybe_create);
+    ngraph::Event::write_trace(event_alloc_output);
+    ngraph::Event::write_trace(event_alloc_input);
+    ngraph::Event::write_trace(event_execute_function);
+    ngraph::Event::write_trace(event_copy_output);
+    ngraph::Event::write_trace(event);
+
+  }  // lock block ends.
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;
