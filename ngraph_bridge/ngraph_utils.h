@@ -333,15 +333,20 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
-Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def, std::set<std::string> nodes);
+Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def,
+                  std::set<std::string> nodes);
 
-Status UpdateComputeTime(int file_idx, std::string cluster, std::string sess_name, int step, int compute_time);
+Status UpdateComputeTime(int file_idx, std::string cluster,
+                         std::string sess_name, int step, int compute_time);
 
-Status CreateSummaryFromGraph(tensorflow::Graph* graph, std::string filename_prefix);
+Status CreateSummaryFromGraph(tensorflow::Graph* graph,
+                              std::string filename_prefix);
 
-Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def, std::string filename_prefix);
+Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def,
+                                 std::string filename_prefix);
 
-Status AddSessionNameAttr(int file_idx, std::set<std::string> nodes, Graph* graph);
+Status AddSessionNameAttr(int file_idx, std::set<std::string> nodes,
+                          Graph* graph);
 
 std::string GetSessionName(int file_idx, std::set<std::string> nodes);
 

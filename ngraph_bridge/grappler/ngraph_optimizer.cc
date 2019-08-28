@@ -273,7 +273,9 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                "Graph with Variables Rewritten for Tracking");
   }
 
-  AddSessionNameAttr(idx, fetch_nodes, &graph); // embed the names of those directories in graph as an attribute
+  AddSessionNameAttr(
+      idx, fetch_nodes,
+      &graph);  // embed the names of those directories in graph as an attribute
 
   // Convert the graph back to Graphdef
   graph.ToGraphDef(output);
@@ -282,8 +284,10 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // Hence no need to free fdeflib_new
   output->set_allocated_library(fdeflib_new);
 
-  DumpNGraph(idx, output, fetch_nodes); // dump NGraphs to tfevent files, separated individually by directories
-  
+  DumpNGraph(idx, output, fetch_nodes);  // dump NGraphs to tfevent files,
+                                         // separated individually by
+                                         // directories
+
   return Status::OK();
 }
 
