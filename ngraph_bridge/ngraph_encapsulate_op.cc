@@ -524,19 +524,31 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       auto serialize_status = NgraphSerialize(
           "tf_function_error_" + ctx->op_kernel().name() + ".json",
           ng_function);
-      OP_REQUIRES(ctx, false,
-                  errors::Internal(
-                      "Caught exception while executing nGraph computation: ",
-                      exp.what(), "\n"));
+      const string& serialize_errmsg = serialize_status.error_message();
+      OP_REQUIRES(
+          ctx, false,
+          errors::Internal(
+              "Caught exception while executing nGraph computation: ",
+              exp.what(), (serialize_errmsg == ""
+                               ? ""
+                               : ". Also failed to serialize with error: " +
+                                     serialize_errmsg),
+              "\n"));
     } catch (...) {
       ng_function = ng_encap_impl.GetNgFunctionMap()[ng_exec];
       BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
       auto serialize_status = NgraphSerialize(
           "tf_function_error_" + ctx->op_kernel().name() + ".json",
           ng_function);
+      const string& serialize_errmsg = serialize_status.error_message();
       OP_REQUIRES(
           ctx, false,
-          errors::Internal("Error in executing the nGraph computation\n"));
+          errors::Internal("Error in executing the nGraph computation",
+                           (serialize_errmsg == ""
+                                ? ""
+                                : ". Also failed to serialize with error: " +
+                                      serialize_errmsg),
+                           "\n"));
     }
     BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
   }

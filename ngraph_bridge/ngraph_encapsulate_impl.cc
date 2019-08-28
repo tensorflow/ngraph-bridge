@@ -225,13 +225,24 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       BackendManager::UnlockBackend(m_op_backend_name);
       auto serialize_status =
           NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
-      return errors::Internal("Caught exception while compiling op_backend: ",
-                              exp.what(), "\n");
+      const string& serialize_errmsg = serialize_status.error_message();
+      return errors::Internal(
+          "Caught exception while compiling op_backend: ", exp.what(),
+          (serialize_errmsg == ""
+               ? ""
+               : ". Also failed to serialize with error: " + serialize_errmsg),
+          "\n");
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
       auto serialize_status =
           NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
-      return errors::Internal("Error in compiling op_backend\n");
+      const string& serialize_errmsg = serialize_status.error_message();
+      return errors::Internal(
+          "Error in compiling op_backend",
+          (serialize_errmsg == ""
+               ? ""
+               : ". Also failed to serialize with error: " + serialize_errmsg),
+          "\n");
     }
     BackendManager::UnlockBackend(m_op_backend_name);
     event_compile.Stop();

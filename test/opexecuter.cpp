@@ -420,12 +420,22 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     BackendManager::UnlockBackend(ng_backend_type);
     auto serialize_status = NgraphSerialize(
         "unit_test_error_" + test_op_type_ + ".json", ng_function);
-    FAIL() << "Exception while executing on nGraph " << exp.what();
+    const string& serialize_errmsg = serialize_status.error_message();
+    FAIL() << "Exception while executing on nGraph " << exp.what()
+           << (serialize_errmsg == ""
+                   ? ""
+                   : ". Also failed to serialize with error: " +
+                         serialize_errmsg);
   } catch (...) {
     BackendManager::UnlockBackend(ng_backend_type);
     auto serialize_status = NgraphSerialize(
         "unit_test_error_" + test_op_type_ + ".json", ng_function);
-    FAIL() << "Exception while executing on nGraph";
+    const string& serialize_errmsg = serialize_status.error_message();
+    FAIL() << "Exception while executing on nGraph"
+           << (serialize_errmsg == ""
+                   ? ""
+                   : ". Also failed to serialize with error: " +
+                         serialize_errmsg);
   }
   BackendManager::UnlockBackend(ng_backend_type);
 

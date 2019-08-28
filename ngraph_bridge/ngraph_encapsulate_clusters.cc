@@ -833,8 +833,14 @@ Status EncapsulateClusters(
             BackendManager::UnlockBackend(op_backend_name);
             auto serialize_status =
                 NgraphSerialize("tf_function_error_aot.json", ng_function);
+            const string& serialize_errmsg = serialize_status.error_message();
             BackendManager::ReleaseBackend(op_backend_name);
-            return errors::Internal("Failed to compile ng_function for AOT");
+            return errors::Internal(
+                "Failed to compile ng_function for AOT" +
+                (serialize_errmsg == ""
+                     ? ""
+                     : ". Also failed to serialize with error: " +
+                           serialize_errmsg));
           }
           BackendManager::UnlockBackend(op_backend_name);
           BackendManager::ReleaseBackend(op_backend_name);
