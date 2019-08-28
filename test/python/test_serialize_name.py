@@ -23,6 +23,8 @@ import pytest
 import platform
 
 import tensorflow as tf
+from google.protobuf import text_format
+
 import numpy as np
 from common import NgraphTest
 import os
@@ -30,7 +32,7 @@ import os
 
 class TestDumpingGraphs(NgraphTest):
 
-    @pytest.mark.parametrize(('import_name_tag',), ((None,)("",)))
+    @pytest.mark.parametrize(('import_name_tag',), ((None,), ("",)))
     def test(self, import_name_tag):
         os.environ['NGRAPH_ENABLE_SERIALIZE'] = '1'
         os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
@@ -46,13 +48,14 @@ class TestDumpingGraphs(NgraphTest):
         with tf.Graph().as_default() as graph:
             tf.import_graph_def(graph_def, name=import_name_tag)
 
+        has_import_tag = import_name_tag is None
         with graph.as_default() as g:
-            x = self.get_tensor(g, "Placeholder:0", True)
-            y = self.get_tensor(g, "Placeholder_1:0", True)
-            z = self.get_tensor(g, "Placeholder_2:0", True)
+            x = self.get_tensor(g, "Placeholder:0", has_import_tag)
+            y = self.get_tensor(g, "Placeholder_1:0", has_import_tag)
+            z = self.get_tensor(g, "Placeholder_2:0", has_import_tag)
 
-            a = self.get_tensor(g, "add_1:0", True)
-            b = self.get_tensor(g, "Sigmoid:0", True)
+            a = self.get_tensor(g, "add_1:0", has_import_tag)
+            b = self.get_tensor(g, "Sigmoid:0", has_import_tag)
 
             sess_fn = lambda sess: sess.run(
                 b, feed_dict={i: np.full((2, 3), 1.0) for i in [x, y, z]})
@@ -65,7 +68,7 @@ class TestDumpingGraphs(NgraphTest):
             # and dump tf_function_import--ngraph_cluster_0.json
             # When import_name_tag == "", we dump tf_function_ngraph_cluster_0.json
 
-            expected_file = 'tf_function_' + ("", "import--")[
-                import_name_tag is None] + 'ngraph_cluster_0.json'
+            expected_file = 'tf_function_' + (
+                "", "import--")[has_import_tag] + 'ngraph_cluster_0.json'
             assert expected_file in os.listdir('.')
             os.remove(expected_file)
