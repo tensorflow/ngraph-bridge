@@ -56,6 +56,7 @@ if ngraph is enabled by calling ```ngraph.is_enabled()```
 If the directory name you passed in doesn't exist, the tool will automatically create one for you.
 * You can show the original TensorFlow graph along with accuracy/loss scalar graphs (both generated/updated in the script) in the same TensorBoard. To do this, save the TF graph and scalar graphs 
 in your script via this piece of code: ```graph_location = os.environ['NGRAPH_TF_TB_LOGDIR'] if 'NGRAPH_TF_TB_LOGDIR' in os.environ else '<other directory>'```.
+* Please ensure that libz-dev is installed.
 
 ## Protobuf Visualization
 The python script ngtf_graph_viewer.py can convert a protobuf (pb or pbtxt) into a dot file or a TB log, which can be viewed using TB. If the input is a pbtxt then ngtf_graph_viewer can also sanitize node names to remove underscores from the front of node names (which indicate they are internal nodes and might cause TB to complain). It can also prepend strings in front of certain node names, a feature which can be used  to append encapsulate information for clustering nodes together
