@@ -314,7 +314,7 @@ Status NgraphSerialize(const std::string& file_name,
   std::ofstream f;
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   string new_file_name;
-  for (const auto& itr : file_name){
+  for (const auto& itr : file_name) {
     new_file_name += ((itr == '/') ? string("--") : string({itr}));
   }
 

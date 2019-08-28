@@ -36,7 +36,15 @@ class TestDumpingGraphs(NgraphTest):
         return graph.get_tensor_by_name(tag + tname)
 
     # Parameterized to have 0, 1 or more slashes
-    @pytest.mark.parametrize(('import_name_tag',), ((None,), ("",), ("import/scope1/scope2",), ("hello",), ("hello/",), ("hello//",), ("hello//a",),))
+    @pytest.mark.parametrize(('import_name_tag',), (
+        (None,),
+        ("",),
+        ("import/scope1/scope2",),
+        ("hello",),
+        ("hello/",),
+        ("hello//",),
+        ("hello//a",),
+    ))
     def test(self, import_name_tag):
         os.environ['NGRAPH_ENABLE_SERIALIZE'] = '1'
         os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
@@ -53,7 +61,12 @@ class TestDumpingGraphs(NgraphTest):
             tf.import_graph_def(graph_def, name=import_name_tag)
 
         tag = (import_name_tag, "import/")[import_name_tag is None]
-        tag = (tag + ('/',"")[tag[-1] == '/'])
+        if tag != "":
+            if tag[-1] == '/':
+                if tag[-2] == '/':
+                    tag = tag[:-1]
+            else:
+                tag += '/'
         with graph.as_default() as g:
             x = self.get_tensor(g, "Placeholder:0", tag)
             y = self.get_tensor(g, "Placeholder_1:0", tag)
@@ -73,6 +86,7 @@ class TestDumpingGraphs(NgraphTest):
             # and dump tf_function_import--ngraph_cluster_0.json
             # When import_name_tag == "", we dump tf_function_ngraph_cluster_0.json
 
-            expected_file = 'tf_function_' + tag.replace("/", "--") + 'ngraph_cluster_0.json'
+            expected_file = 'tf_function_' + tag.replace(
+                "/", "--") + 'ngraph_cluster_0.json'
             assert expected_file in os.listdir('.')
             os.remove(expected_file)
