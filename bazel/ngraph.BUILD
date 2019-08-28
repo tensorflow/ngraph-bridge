@@ -90,6 +90,7 @@ cc_library(
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_STATIC_LIB_ENABLE'
     ] + CXX_ABI,
+    linkstatic=1,
     linkopts = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
@@ -330,12 +331,14 @@ cc_library(
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
 
     ] + CXX_ABI,
+    linkstatic=1,
     linkopts = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
         "-Wl,-z,now",
     ],
     visibility = ["//visibility:public"],
+    alwayslink = 1,
 )
 
 cc_binary(
@@ -365,7 +368,6 @@ cc_binary(
         "-Wl,-z,relro",
         "-Wl,-z,now",
     ],
-    linkstatic=1,
     visibility = ["//visibility:public"],
 )
 
