@@ -324,7 +324,8 @@ Status NgraphSerialize(const std::string& file_name,
     NGRAPH_VLOG(0) << "Exception opening/closing file " << new_file_name
                    << std::endl;
     NGRAPH_VLOG(0) << e.what() << std::endl;
-    return errors::Internal("Failed NgraphSerialize: ", e.what());
+    return errors::Internal("Failed NgraphSerialize when dumping to ",
+                            new_file_name, " Exception: ", e.what());
   }
   return Status::OK();
 }
