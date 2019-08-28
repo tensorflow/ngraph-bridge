@@ -28,8 +28,8 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
 
-#include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
 
 using namespace std;
 
@@ -78,11 +78,10 @@ void RunSimpleNetworkExample() {
       ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
   std::string name;
-  auto status = tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(&name);
-  std::cout
-      << "Currently selected backend: "
-      << name
-      << std::endl;
+  auto status =
+      tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(
+          &name);
+  std::cout << "Currently selected backend: " << name << std::endl;
 
   tensorflow::ClientSession session(root, options);
 

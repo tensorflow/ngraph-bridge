@@ -64,6 +64,7 @@ cc_library(
         "ngraph_bridge/ngraph_bridge_registry.cc",
         "ngraph_bridge/ngraph_capture_variables.cc",
         "ngraph_bridge/ngraph_cluster_manager.cc",
+        "ngraph_bridge/ngraph_conversions.cc",
         "ngraph_bridge/ngraph_deassign_clusters.cc",
         "ngraph_bridge/ngraph_encapsulate_clusters.cc",
         "ngraph_bridge/ngraph_encapsulate_impl.cc",
@@ -170,6 +171,7 @@ cc_binary(
         "ngraph_bridge/ngraph_bridge_registry.cc",
         "ngraph_bridge/ngraph_capture_variables.cc",
         "ngraph_bridge/ngraph_cluster_manager.cc",
+        "ngraph_bridge/ngraph_conversions.cc",
         "ngraph_bridge/ngraph_deassign_clusters.cc",
         "ngraph_bridge/ngraph_encapsulate_clusters.cc",
         "ngraph_bridge/ngraph_encapsulate_impl.cc",
@@ -272,6 +274,12 @@ tf_cc_binary(
     deps = [
         ":ngraph_bridge_headers",
         ":ngraph_bridge_lib",
+        "@ngraph//:ngraph_headers",
+        "@ngraph//:ngraph_core",
+        "@ngraph//:cpu_backend",
+        "@tbb",
+        "@eigen",
+        "@mkl_dnn",
         "@org_tensorflow//tensorflow/cc:cc_ops",
         "@org_tensorflow//tensorflow/cc:client_session",
         "@com_google_absl//absl/strings",
@@ -279,9 +287,6 @@ tf_cc_binary(
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
         "@org_tensorflow//tensorflow/core:tensorflow",
-
-        "@ngraph//:ngraph_headers",
-        "@ngraph//:cpu_backend",
     ],
     copts = [
         "-pthread", 
