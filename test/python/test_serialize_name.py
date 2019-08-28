@@ -27,6 +27,7 @@ import numpy as np
 from common import NgraphTest
 import os
 
+
 class TestDumpingGraphs(NgraphTest):
 
     def test(self):
@@ -43,8 +44,9 @@ class TestDumpingGraphs(NgraphTest):
 
             sess_fn = lambda sess: sess.run(
                 b, feed_dict={i: np.full((2, 3), 1.0) for i in [x, y, z]})
-            
-            assert np.isclose(self.with_ngraph(sess_fn), 0.95257413*np.ones([2,3])).all()
-            assert 'tf_function_import--ngraph_cluster_0.json' in os.listdir('.')
-            os.remove('tf_function_import--ngraph_cluster_0.json')
 
+            assert np.isclose(
+                self.with_ngraph(sess_fn), 0.95257413 * np.ones([2, 3])).all()
+            assert 'tf_function_import--ngraph_cluster_0.json' in os.listdir(
+                '.')
+            os.remove('tf_function_import--ngraph_cluster_0.json')

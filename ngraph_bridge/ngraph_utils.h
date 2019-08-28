@@ -298,7 +298,7 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank);
 
 // Serialize a ngraph function into a file
 Status NgraphSerialize(const std::string&,
-                     const std::shared_ptr<ngraph::Function>&);
+                       const std::shared_ptr<ngraph::Function>&);
 
 // Collect the total memory usage through /proc/self/stat
 void MemoryProfile(long&, long&);
