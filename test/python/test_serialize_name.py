@@ -33,6 +33,10 @@ class TestDumpingGraphs(NgraphTest):
     def test(self):
         os.environ['NGRAPH_ENABLE_SERIALIZE'] = '1'
         os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
+        # In this test we dump the serialized graph
+        # This checks NgraphSerialize function
+        # Specifically we want NgraphSerialize to work
+        # even when there are '/' in the file name
         graph = self.import_pbtxt('flib_graph_1.pbtxt')
         with graph.as_default() as g:
             x = self.get_tensor(g, "Placeholder:0", True)
