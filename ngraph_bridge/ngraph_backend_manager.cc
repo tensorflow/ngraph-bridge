@@ -45,15 +45,18 @@ Status BackendManager::SetBackendName(const string& backend_name) {
 }
 
 Status BackendManager::CreateBackend(const string& backend_name) {
+    NGRAPH_VLOG(2) << "Creating backend " << backend_name;
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   auto itr = BackendManager::ng_backend_map_.find(backend_name);
   // if backend does not exist create it
   if (itr == BackendManager::ng_backend_map_.end()) {
+      NGRAPH_VLOG(2) << "Backend does not exist";
     Backend* bend = new Backend;
     std::shared_ptr<ng::runtime::Backend> bend_ptr;
     try {
       bend_ptr = ng::runtime::Backend::create(backend_name);
     } catch (const std::exception& e) {
+        NGRAPH_VLOG(2) << "Error creating backend " << e.what();
       return errors::Internal("Could not create backend of type ", backend_name,
                               ". Got exception ", e.what());
     }
