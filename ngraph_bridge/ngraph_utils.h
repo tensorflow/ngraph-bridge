@@ -345,8 +345,8 @@ Status CreateSummaryFromGraph(tensorflow::Graph* graph,
 Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def,
                                  std::string filename_prefix);
 
-Status AddSessionNameAttr(int file_idx, std::set<std::string> nodes,
-                          Graph* graph);
+void AddSessionNameAttr(int file_idx, std::set<std::string> nodes,
+                        Graph* graph);
 
 std::string GetSessionName(int file_idx, std::set<std::string> nodes);
 

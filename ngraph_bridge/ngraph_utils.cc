@@ -505,7 +505,8 @@ Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def,
 
   str_path += ("ngraph" + to_string(file_idx));
 
-  CreateSummaryFromGraphDef(graph_def, str_path);  // create tensorflow event
+  TF_RETURN_IF_ERROR(CreateSummaryFromGraphDef(
+      graph_def, str_path));  // create tensorflow event
 
   return Status::OK();
 }
@@ -532,19 +533,24 @@ Status UpdateComputeTime(int file_idx, std::string cluster,
     mkdir(str_path.c_str(), 0777);
   }
 
-  // inspect directory's files
-  DIR* dir = opendir(str_path.c_str());
   struct dirent* dp;
   vector<std::string> files;
 
-  while ((dp = readdir(dir)) != nullptr) {
-    if (dp->d_type == DT_REG)  // look at all files in directory
-    {
-      files.push_back(std::string(dp->d_name));
-    }
-  }
+  // inspect directory's files
+  try {
+    DIR* dir = opendir(str_path.c_str());
 
-  closedir(dir);
+    while ((dp = readdir(dir)) != nullptr) {
+      if (dp->d_type == DT_REG)  // look at all files in directory
+      {
+        files.push_back(std::string(dp->d_name));
+      }
+    }
+
+    closedir(dir);
+  } catch (...) {
+    return errors::Internal("Error inspecting files in directory: " + str_path);
+  }
   // done inspecting directory's files
 
   // create event object
@@ -565,7 +571,11 @@ Status UpdateComputeTime(int file_idx, std::string cluster,
 
     tensorflow::EventsWriter writer(str_path);
 
-    writer.WriteEvent(event);
+    try {
+      writer.WriteEvent(event);
+    } catch (...) {
+      return errors::Internal("Error writing event to new event file");
+    }
   } else  // append to tf event file in dir
   {
     std::string file_path = str_path + files[0];
@@ -577,7 +587,11 @@ Status UpdateComputeTime(int file_idx, std::string cluster,
     tensorflow::io::RecordWriter record_writer(writable_file.get());
     // done opening tf event file at location file_path
 
-    record_writer.WriteRecord(event.SerializeAsString());
+    try {
+      record_writer.WriteRecord(event.SerializeAsString());
+    } catch (...) {
+      return errors::Internal("Error updating event file with new event");
+    }
   }
 
   return Status::OK();
@@ -594,7 +608,11 @@ Status CreateSummaryFromGraph(tensorflow::Graph* graph,
   tensorflow::Event event;
 
   // write graph to event summary
-  event.set_graph_def(gdef->SerializeAsString());
+  try {
+    event.set_graph_def(gdef->SerializeAsString());
+  } catch (...) {
+    return errors::Internal("Error writing graph to event file");
+  }
 
   return Status::OK();
 }
@@ -606,21 +624,23 @@ Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def,
   tensorflow::Event event;
 
   // write graph to event summary
-  event.set_graph_def(graph_def->SerializeAsString());
-  writer.WriteEvent(event);
+  try {
+    event.set_graph_def(graph_def->SerializeAsString());
+    writer.WriteEvent(event);
+  } catch (...) {
+    return errors::Internal("Error writing graph def to event file");
+  }
 
   return Status::OK();
 }
 
-Status AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph) {
+void AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph) {
   for (auto node : graph->op_nodes()) {
     if (node->type_string() == "NGraphEncapsulate") {
       node->AddAttr(("_session_name" + to_string(file_idx)),
                     GetSessionName(file_idx, nodes));
     }
   }
-
-  return Status::OK();
 }
 
 std::string GetSessionName(int file_idx, std::set<std::string> nodes) {
