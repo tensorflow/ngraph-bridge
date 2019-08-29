@@ -35,9 +35,9 @@
 
 #include "ngraph/event_tracing.hpp"
 
+#include "examples/cpp/infer_multiple_networks/inference_engine.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/version.h"
-#include "examples/cpp/infer_multiple_networks/inference_engine.h"
 
 using namespace std;
 namespace tf = tensorflow;
