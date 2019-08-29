@@ -54,7 +54,6 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-
 cc_library(
     name = 'ngraph_bridge_lib',
     srcs = [
