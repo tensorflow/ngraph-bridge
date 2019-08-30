@@ -61,7 +61,6 @@ Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
   }
 
   for (auto const i : op_inputs) {
-    NGRAPH_VLOG(3) << "op_inputs is not empty";
     // Adding the all inputs
     nb.Input(i);
   }
@@ -118,7 +117,7 @@ Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
                          .Input(input_ref)
                          .Input(input_val)
                          .Device(node->assigned_device_name())
-                         .Finalize(graph, &(*replacement)));
+                         .Finalize(graph, replacement));
 
   (*replacement)->set_assigned_device_name(node->assigned_device_name());
 
