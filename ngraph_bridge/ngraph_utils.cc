@@ -610,6 +610,7 @@ Status CreateSummaryFromGraph(tensorflow::Graph* graph,
   // write graph to event summary
   try {
     event.set_graph_def(gdef->SerializeAsString());
+    writer.WriteEvent(event);
   } catch (...) {
     return errors::Internal("Error writing graph to event file");
   }
