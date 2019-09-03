@@ -41,7 +41,6 @@ Status CreateBinaryOpNode(NodeBuilder::NodeOut* ndef_gen_op,
                           Graph*& graph, bool replace_input)
                            {
   Node* generic_op;
-  new_name_op = node->name() + new_name_op;
 
   TF_RETURN_IF_ERROR(NodeBuilder(new_name_op, op_type)
                          .Input(input1)
