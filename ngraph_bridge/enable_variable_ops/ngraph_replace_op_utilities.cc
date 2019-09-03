@@ -40,7 +40,7 @@ Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
   std::vector<const Edge*> input_edges;
   TF_RETURN_IF_ERROR(node->input_edges(&input_edges));
 
-  NGRAPH_VLOG(1) << "No of input edges to Optimizer" << node->type_string()
+  NGRAPH_VLOG(1) << "No of input edges to Optimizer " << node->type_string()
                  << " " << input_edges.size();
 
   int num_inputs = node->num_inputs();
