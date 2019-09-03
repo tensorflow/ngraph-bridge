@@ -65,7 +65,7 @@ Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
     nb.Input(i);
   }
 
-  Status status = nb.Finalize(graph, &(*replacement));
+  Status status = nb.Finalize(graph, replacement);
   TF_RETURN_IF_ERROR(status);
   (*replacement)->set_assigned_device_name(node->assigned_device_name());
 
