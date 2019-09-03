@@ -489,19 +489,12 @@ Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def,
     str_path += "/";
   }
 
-  struct stat buffer;
-  if (stat(str_path.c_str(), &buffer) != 0)  // path doesn't exist
-  {
-    mkdir(str_path.c_str(), 0777);
-  }
+  MakeTBDir(str_path);
 
   std::string dname = GetSessionName(file_idx, nodes);
   str_path += (dname.insert(0, "ngraph") + "/");
 
-  if (stat(str_path.c_str(), &buffer) != 0)  // path doesn't exist
-  {
-    mkdir(str_path.c_str(), 0777);
-  }
+  MakeTBDir(str_path);
 
   str_path += ("ngraph" + to_string(file_idx));
 
@@ -527,11 +520,7 @@ Status UpdateComputeTime(int file_idx, std::string cluster,
   std::string dname(sess_name);
   str_path += (dname.insert(0, "stats") + "/");
 
-  struct stat buffer;
-  if (stat(str_path.c_str(), &buffer) != 0)  // path doesn't exist
-  {
-    mkdir(str_path.c_str(), 0777);
-  }
+  MakeTBDir(str_path);
 
   struct dirent* dp;
   vector<std::string> files;
@@ -668,6 +657,14 @@ std::string GetSessionName(int file_idx, std::set<std::string> nodes) {
   }
 
   return name;
+}
+
+void MakeTBDir(std::string str_path) {
+  struct stat buffer;
+  if (stat(str_path.c_str(), &buffer) != 0)  // path doesn't exist
+  {
+    mkdir(str_path.c_str(), 0750);
+  }
 }
 
 }  // namespace ngraph_bridge

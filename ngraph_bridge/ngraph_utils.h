@@ -350,6 +350,8 @@ void AddSessionNameAttr(int file_idx, std::set<std::string> nodes,
 
 std::string GetSessionName(int file_idx, std::set<std::string> nodes);
 
+void MakeTBDir(std::string str_path);
+
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order
 void OpControlOrder(const std::shared_ptr<ngraph::Function>&,
