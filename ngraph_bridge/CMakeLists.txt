@@ -147,7 +147,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 
     target_link_libraries(
         ${LIB_NAME_STATIC}
-        ngraph_logger
         ngraph_logger 
         ${TensorFlow_FRAMEWORK_LIBRARY} 
         ngraph_lib
