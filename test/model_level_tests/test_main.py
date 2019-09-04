@@ -127,6 +127,16 @@ def ready_repo(model_dir, repo_dl_loc):
         command_executor(model_dir + '/getting_repo_ready.sh', verbose=True)
 
 
+# Currently there are 2 types of tests. parsing the logs and timing the run
+def valid_test_types():
+    return set(['time', 'logparse'])
+
+
+# Check if the contents of this iterable contains only valid test types
+def check_test_types(iterable):
+    return all(map(lambda i: i in valid_test_types(), iterable))
+
+
 # TODO: this function needs to accept "do-i-dump-pbtxt"? and if so, a cleanup needs to happen later.
 # Also this function could return the list of pbtxts it generated (but does it need to? we can infer it)
 # TODO: this function should also take the level/intensity of test to run
@@ -240,6 +250,11 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed,
                                 not custom_parser_present)
                         except:
                             assert False, 'Failed to parse ' + expected_json_file
+                        assert check_test_types(expected.keys(
+                        )), "Got unexpected key in " + expected.keys(
+                        ) + ". Should have been " + ','.join(valid_test_types)
+                        # We run the test if 'logparse' is present in the expected values to check
+                        # for and it is not in the ignore list
                         if 'logparse' in expected and 'logparse' not in ignore_test:
                             passed, fail_help_string = compare_parsed_values(
                                 parsed_vals, expected['logparse'])
@@ -429,9 +444,9 @@ if __name__ == '__main__':
     ), 'No type of test enabled. Please choose --run_basic_tests, --run_functional_tests or both'
 
     ignore_test = args.ignore_test.split(',')
-    assert (
-        all(map(lambda i: i in ['time', 'logparse'], ignore_test))
-    ), "2 types of tests are possible which can be skipped: logparse or time, but requested to skip " + args.ignore_test
+    assert (check_test_types(ignore_test)
+           ), "Types of possible tests: " + ','.join(valid_test_types())
+    + ", but requested to skip " + args.ignore_test
 
     requested_test_suites = os.listdir(
         'models') if args.models == '' else args.models.split(',')
