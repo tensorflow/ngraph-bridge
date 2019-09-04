@@ -446,8 +446,8 @@ if __name__ == '__main__':
 
     ignore_test = args.ignore_test.split(',')
     assert (check_test_types(ignore_test)
-           ), "Types of possible tests: " + ','.join(valid_test_types())
-    + ", but requested to skip " + args.ignore_test
+           ), "Types of possible tests: " + ','.join(valid_test_types()) + \
+    ", but requested to skip " + args.ignore_test
 
     requested_test_suites = os.listdir(
         'models') if args.models == '' else args.models.split(',')
