@@ -124,6 +124,7 @@ ngraph_bridge_lib.ngraph_tf_is_grappler_enabled.restype = ctypes.c_bool
 ngraph_bridge_lib.ngraph_tf_are_variables_enabled.restype = ctypes.c_bool
 ngraph_bridge_lib.ngraph_set_disabled_ops.argtypes = [ctypes.c_char_p]
 ngraph_bridge_lib.ngraph_get_disabled_ops.restype = ctypes.c_char_p
+ngraph_bridge_lib.ngraph_tf_is_distributed_enabled.restype = ctypes.c_bool
 
 try:
     importlib.import_module('plaidml.settings')
@@ -233,6 +234,9 @@ def set_disabled_ops(unsupported_ops):
 def get_disabled_ops():
     return ngraph_bridge_lib.ngraph_get_disabled_ops()
 
+def is_distributed_ops():
+    return ngraph_bridge_lib.ngraph_tf_is_distributed_enabled()
+
 __version__ = \
   "nGraph bridge version: " + str(ngraph_bridge_lib.ngraph_tf_version()) + "\n" + \
   "nGraph version used for this build: " + str(ngraph_bridge_lib.ngraph_lib_version()) + "\n" + \
@@ -240,4 +244,6 @@ __version__ = \
   "CXX11_ABI flag used for this build: " + str(ngraph_bridge_lib.ngraph_tf_cxx11_abi_flag()) + "\n" \
   "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()) + "\n" \
   "nGraph bridge built with Variables and Optimizers Enablement: " \
-      + str(ngraph_bridge_lib.ngraph_tf_are_variables_enabled())
+      + str(ngraph_bridge_lib.ngraph_tf_are_variables_enabled()) + "\n" \
+  "nGraph bridge built with Distributed Build: " \
+      + str(ngraph_bridge_lib.ngraph_tf_is_distributed_enabled())
