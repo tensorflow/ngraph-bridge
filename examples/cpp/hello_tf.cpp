@@ -30,6 +30,7 @@
 
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/version.h"
 
 using namespace std;
 
@@ -77,6 +78,27 @@ void RunSimpleNetworkExample() {
       ->mutable_rewrite_options()
       ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
+  if (tensorflow::ngraph_bridge::ngraph_tf_is_grappler_enabled()) {
+
+    auto *custom_config = options.config.mutable_graph_options()
+                              ->mutable_rewrite_options()
+                              ->add_custom_optimizers();
+
+    custom_config->set_name("ngraph-optimizer");
+    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s(
+        "CPU");
+    (*custom_config->mutable_parameter_map())["device_id"].set_s(
+        "1");
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_min_graph_nodes(-1);
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_meta_optimizer_iterations(tensorflow::RewriterConfig::ONE);
+  }
+
   std::string name;
   auto status =
       tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(
@@ -92,8 +114,30 @@ void RunSimpleNetworkExample() {
   std::cout << "Result: " << outputs[0].matrix<float>() << std::endl;
 }
 
-int main(int argc, char** argv) {
+void PrintVersion() {
+  // nGraph Bridge version info
+  std::cout << "Bridge version: " << tensorflow::ngraph_bridge::ngraph_tf_version()
+            << std::endl;
+  std::cout << "nGraph version: " << tensorflow::ngraph_bridge::ngraph_lib_version()
+            << std::endl;
+  std::cout << "CXX11_ABI Used: "
+            << tensorflow::ngraph_bridge::ngraph_tf_cxx11_abi_flag() << std::endl;
+  std::cout << "Grappler Enabled? "
+            << (tensorflow::ngraph_bridge::ngraph_tf_is_grappler_enabled()
+                    ? std::string("Yes")
+                    : std::string("No"))
+            << std::endl;
+  std::cout << "Variables Enabled? "
+            << (tensorflow::ngraph_bridge::ngraph_tf_are_variables_enabled()
+                    ? std::string("Yes")
+                    : std::string("No"))
+            << std::endl;
+
   PrintAvailableBackends();
+}
+
+int main(int argc, char** argv) {
+  PrintVersion();
 
   const char* backend = "CPU";
 
@@ -101,10 +145,10 @@ int main(int argc, char** argv) {
     backend = argv[1];
   }
 
-  if (SetNGraphBackend(backend) != tensorflow::Status::OK()) {
-    std::cout << "Error: Cannot set the backend: " << backend << std::endl;
-    return -1;
-  }
+  // if (SetNGraphBackend(backend) != tensorflow::Status::OK()) {
+  //   std::cout << "Error: Cannot set the backend: " << backend << std::endl;
+  //   return -1;
+  // }
 
   // Run the MatMul example
   RunSimpleNetworkExample();

@@ -87,7 +87,6 @@ cc_library(
     ],
     deps = [
         ":ngraph_bridge_headers",
-        ":ngraph_bridge_version",
         "@org_tensorflow//tensorflow/core:lib",
         "@org_tensorflow//tensorflow/core:framework",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
@@ -123,40 +122,7 @@ cc_library(
         "-Wl,-z,now",
     ],
     visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = 'ngraph_bridge_version',
-    srcs = [
-        "ngraph_bridge/version.h",
-        "ngraph_bridge/version.cc",
-    ],
-    deps = [
-        "@ngraph//:ngraph_headers",
-    ],
-    copts = [
-        "-pthread",
-        "-std=c++11",
-        "-D_FORTIFY_SOURCE=2",
-        "-Wformat",
-        "-Wformat-security",
-        "-Wformat",
-        "-fstack-protector-all",
-        "-D NDEBUG",
-        '-D SHARED_LIB_PREFIX=\\"lib\\"',
-        '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_BRIDGE_STATIC_LIB_ENABLE',
-        '-D NGRAPH_TF_USE_GRAPPLER_OPTIMIZER',
-        "-I ngraph_bridge",
-        "-I logging",
-        "-I external/ngraph/src",
-    ] + CXX_ABI,
-    linkopts = [
-        "-Wl,-z,noexecstack",
-        "-Wl,-z,relro",
-        "-Wl,-z,now",
-    ],
-    visibility = ["//visibility:public"],
+    alwayslink = 1,
 )
 
 load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_cc_binary")
