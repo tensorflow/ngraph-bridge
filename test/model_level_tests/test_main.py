@@ -255,7 +255,8 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed,
                         ) + ". Should have been " + ','.join(valid_test_types)
                         # We run the test if 'logparse' is present in the expected values to check
                         # for and it is not in the ignore list
-                        if 'logparse' in expected and 'logparse' not in ignore_test:
+                        if ('logparse' in expected) and (
+                                'logparse' not in ignore_test):
                             passed, fail_help_string = compare_parsed_values(
                                 parsed_vals, expected['logparse'])
                             if not passed:
@@ -263,7 +264,7 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed,
                                       '. Help message: ' + fail_help_string)
                                 failed_tests.append(flname)
                                 continue
-                        if 'time' in expected and 'time' not in ignore_test:
+                        if ('time' in expected) and ('time' not in ignore_test):
                             actual_runtime = tend - tstart
                             # TODO: decide this criteria. time can be pretty variable
                             # TODO: the percentage (0.1) for the time bound might be passed through `expected.json`
