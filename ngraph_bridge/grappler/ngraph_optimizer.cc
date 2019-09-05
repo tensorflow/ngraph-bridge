@@ -284,9 +284,10 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // Hence no need to free fdeflib_new
   output->set_allocated_library(fdeflib_new);
 
-  AddGraphToEventFile(idx, output, fetch_nodes);  // dump NGraphs to tfevent files,
-                                                  // separated individually by
-                                                  // directories
+  AddGraphToEventFile(idx, output,
+                      fetch_nodes);  // dump NGraphs to tfevent files,
+                                     // separated individually by
+                                     // directories
 
   return Status::OK();
 }

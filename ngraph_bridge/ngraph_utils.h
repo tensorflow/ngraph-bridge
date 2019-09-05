@@ -27,9 +27,9 @@
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
 
 #include "ngraph/event_tracing.hpp"
+#include "ngraph/file_util.hpp"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
-#include "ngraph/file_util.hpp"
 
 #include "logging/ngraph_log.h"
 
@@ -337,7 +337,7 @@ bool DumpTrackedGraphs();
 bool TBDirExists();
 
 Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
-                  std::set<std::string> nodes);
+                           std::set<std::string> nodes);
 
 Status UpdateComputeTime(int file_idx, std::string cluster,
                          std::string sess_name, int step, int compute_time);

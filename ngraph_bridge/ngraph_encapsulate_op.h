@@ -42,7 +42,9 @@ class NGraphEncapsulateOp : public OpKernel {
  private:
   NGraphEncapsulateImpl ng_encap_impl;
   std::mutex m_compute_lock;
-  std::map<int, std::string> session_names; // key: graph_id, value: session name (for session's graph, and Encapsulate usage statistics)
+  std::map<int, std::string> session_names;  // key: graph_id, value: session
+                                             // name (for session's graph, and
+                                             // Encapsulate usage statistics)
 };
 
 }  // namespace ngraph_bridge

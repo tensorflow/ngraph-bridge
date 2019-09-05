@@ -475,12 +475,10 @@ bool IsProcessedByNgraphPass(Graph* g) {
   return false;
 }
 
-bool TBDirExists() 
-{
+bool TBDirExists() {
   const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
 
-  if (path == nullptr)
-  {
+  if (path == nullptr) {
     return false;
   }
 
@@ -488,9 +486,8 @@ bool TBDirExists()
 }
 
 Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
-                  std::set<std::string> nodes) {
-  if (!TBDirExists())
-  {
+                           std::set<std::string> nodes) {
+  if (!TBDirExists()) {
     return Status::OK();
   }
 
@@ -517,8 +514,7 @@ Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
 
 Status UpdateComputeTime(int file_idx, std::string cluster,
                          std::string sess_name, int step, int compute_time) {
-  if (!TBDirExists())
-  {
+  if (!TBDirExists()) {
     return Status::OK();
   }
 
@@ -615,8 +611,7 @@ Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def,
 }
 
 void AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph) {
-  if (!TBDirExists())
-  {
+  if (!TBDirExists()) {
     return;
   }
 
@@ -634,17 +629,20 @@ std::string GetSessionName(int file_idx, std::set<std::string> nodes) {
   std::string name = "";
 
   if (nodes.size() == 0) {
-    name = to_string(file_idx); // if target nodes empty, use unique file index for session name
+    name = to_string(file_idx);  // if target nodes empty, use unique file index
+                                 // for session name
   } else {
     // extract session name from first target node
     std::string entry;
 
-    for (auto it = nodes.begin(); it != nodes.end(); ++it) // get last entry from nodes
+    for (auto it = nodes.begin(); it != nodes.end();
+         ++it)  // get last entry from nodes
     {
       entry = *it;
     }
 
-    int scope_idx = entry.find_first_of("/"); // try to isolate TF scope name from target node
+    int scope_idx = entry.find_first_of(
+        "/");  // try to isolate TF scope name from target node
 
     if (scope_idx != std::string::npos) {
       name = to_string(file_idx) + "_" + entry.substr(0, scope_idx);
