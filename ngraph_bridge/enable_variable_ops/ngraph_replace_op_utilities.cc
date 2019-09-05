@@ -55,11 +55,15 @@ Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
                        .Attr("copy_to_tf", !outputs_ng_supported)
                        .Attr("ngraph_graph_id", graph_id)
                        .Device(node->assigned_device_name());
-
+  // Threre can be varying no of attributes for  different Op ex. Momentum or
+  // SGD or Adam
+  // for loop below generalizes this
   for (auto it = node->attrs().begin(); it != node->attrs().end(); it++) {
     nb.Attr(it->first, it->second);
   }
-
+  // Threre can be varying no of inputs for different Op ex. Momentum or SGD or
+  // Adam
+  // for loop below generalizes this
   for (auto const i : op_inputs) {
     // Adding the all inputs
     nb.Input(i);

@@ -59,10 +59,10 @@ TEST(AddedOpTest, Momentum1) {
 
   ops::ApplyMomentum::Attrs op_attr_use_nestrov;
 
-  op_attr_use_nestrov = op_attr_use_nestrov.UseNesterov(true);
   auto applymomentum_f = ops::ApplyMomentum(root.WithOpName("Momentum"), var,
                                             accum, lr, grad, momentum);
 
+  op_attr_use_nestrov = op_attr_use_nestrov.UseNesterov(true);
   auto applymomentum_t =
       ops::ApplyMomentum(root.WithOpName("Momentum"), var, accum, lr, grad,
                          momentum, op_attr_use_nestrov);
