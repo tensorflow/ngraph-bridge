@@ -36,9 +36,9 @@ map<std::string, int> BackendManager::ref_count_each_backend_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_name_mutex_);
-  if (backend_name.empty() || !IsSupportedBackend(backend_name)) {
-    return errors::Internal("Backend ", backend_name,
-                            " is not supported on nGraph");
+  auto status = BackendManager::CanCreateBackend(backend_name);
+  if (status != Status::OK()) {
+    return errors::Internal("Failed to set backend: ", status.error_message());
   }
   BackendManager::ng_backend_name_ = backend_name;
   return Status::OK();
@@ -58,8 +58,8 @@ Status BackendManager::CreateBackend(const string& backend_name) {
     }
 
     if (bend_ptr == nullptr) {
-      return errors::Internal("Could not create backend of type ",
-                              backend_name);
+      return errors::Internal("Could not create backend of type ", backend_name,
+                              " got nullptr");
     }
     std::unique_ptr<Backend> bend = std::unique_ptr<Backend>(new Backend);
     bend->backend_ptr = std::move(bend_ptr);
@@ -134,14 +134,22 @@ size_t BackendManager::GetNumOfSupportedBackends() {
 }
 
 bool BackendManager::IsSupportedBackend(const string& backend_name) {
-  auto status = BackendManager::CreateBackend(backend_name);
-  if (status != Status::OK()) {
-    return false;
+  vector<string> registered_backends =
+      ng::runtime::BackendManager::get_registered_backends();
+  vector<string>::iterator itr = find(registered_backends.begin(),
+                                      registered_backends.end(), backend_name);
+
+  return itr != registered_backends.end();
+};
+
+Status BackendManager::CanCreateBackend(const string& backend_string) {
+  auto status = BackendManager::CreateBackend(backend_string);
+  if (status == Status::OK()) {
+    // The call to create backend increases the ref count
+    // so releasing the backend here
+    BackendManager::ReleaseBackend(backend_string);
   }
-  // The call to create backend increases the ref count
-  // so releasing the backend here
-  BackendManager::ReleaseBackend(backend_name);
-  return true;
+  return status;
 };
 
 Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
@@ -156,9 +164,9 @@ Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
 
   // NGRAPH_TF_BACKEND is set
   string backend_env = std::string(ng_backend_env_value);
-  if (backend_env.empty() || !BackendManager::IsSupportedBackend(backend_env)) {
-    return errors::Internal("NGRAPH_TF_BACKEND: ", backend_env,
-                            " is not supported");
+  auto status = BackendManager::CanCreateBackend(backend_env);
+  if (status != Status::OK()) {
+    return errors::Internal("NGRAPH_TF_BACKEND: ", status.error_message());
   }
 
   *backend_name = backend_env;
