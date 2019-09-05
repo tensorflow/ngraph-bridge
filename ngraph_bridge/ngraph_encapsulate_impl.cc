@@ -108,7 +108,10 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
   std::stringstream signature_ss;
   string signature;
 
+  // TODO: ng_function and serialized_ng_function are either/or.
+  // Maybe they should be an uniontype
   std::shared_ptr<ngraph::Function> ng_function;
+  string serialized_ng_function;
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
   NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: "
@@ -134,7 +137,6 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     MemoryProfile(vm0, rss0);
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
-    string serialized_ng_func;
     if (!m_do_aot) {
       TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                  &m_graph, ng_function));
@@ -146,8 +148,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
             "Expected to find AOT precompiled ng function of signature: ",
             signature);
       }
-      serialized_ng_func = itr->second;
-      ng_function = ng::deserialize(serialized_ng_func);
+      serialized_ng_function = itr->second;
     }
 
     int function_size;
@@ -165,7 +166,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 #endif
       file_name += ".json";
       if (m_do_aot){
-        NgraphSerialize(file_name, serialized_ng_func);
+        NgraphSerialize(file_name, serialized_ng_function);
       } else {
         NgraphSerialize(file_name, ng_function);
       }
@@ -180,7 +181,11 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       int input_tensors_bytes_free = 0;
       evicted_ng_exec = m_ng_exec_map[m_lru.back()];
       m_ng_exec_map.erase(m_lru.back());
-      m_ng_function_map.erase(evicted_ng_exec);
+      if (m_do_aot){
+        m_serialized_ng_function_map.erase(evicted_ng_exec);
+      } else {
+        m_ng_function_map.erase(evicted_ng_exec);
+      }
 
       // Call delete function here for the erased func
       op_backend->remove_compiled_function(evicted_ng_exec);
@@ -232,7 +237,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       BackendManager::UnlockBackend(m_op_backend_name);
       string file_name = "tf_function_error_" + m_name + ".json";
       if (m_do_aot){
-        NgraphSerialize(file_name, serialized_ng_func);
+        NgraphSerialize(file_name, serialized_ng_function);
       } else {
         NgraphSerialize(file_name, ng_function);
       }
@@ -242,7 +247,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       BackendManager::UnlockBackend(m_op_backend_name);
       string file_name = "tf_function_error_" + m_name + ".json";
       if (m_do_aot){
-        NgraphSerialize(file_name, serialized_ng_func);
+        NgraphSerialize(file_name, serialized_ng_function);
       } else {
         NgraphSerialize(file_name, ng_function);
       }
@@ -256,8 +261,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
     // caching ng_function to serialize to ngraph if needed
     if (m_do_aot){
-      // TODO: similar to a map exec->function, we may need a map exec->serialized_function
-      // Union ng_function and string serialized_ng_function? How to hide (ng_func | string)
+      m_serialized_ng_function_map[ng_exec] = serialized_ng_function;
     } else {
       m_ng_function_map[ng_exec] = ng_function;
     }
@@ -600,6 +604,15 @@ NGraphEncapsulateImpl::GetTensorsFromPipeline(
     }
   }
   return out_tpl;
+}
+
+void NGraphEncapsulateImpl::ClearExecMaps(){
+  m_ng_exec_input_cache_map.clear();
+  m_ng_exec_output_cache_map.clear();
+  m_ng_exec_map.clear();
+  m_serialized_ng_function_map.clear();
+  m_ng_function_map.clear();
+  m_executable_pipelined_tensors_map.clear();
 }
 
 }  // namespace ngraph_bridge

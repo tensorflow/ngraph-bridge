@@ -137,20 +137,14 @@ class NGraphEncapsulateImpl {
     return m_ng_exec_map;
   }
 
-  void ClearNgExecMap() { m_ng_exec_map.clear(); }
+  void ClearExecMaps();
 
-
-  void ClearNgFunctionMap() { m_ng_function_map.clear(); }
   // TODO:sindhu have another get function for output_cache which is only
   // readable
   std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
   GetNgExecOutputCacheMap(std::shared_ptr<ngraph::runtime::Executable> exec) {
     return m_ng_exec_output_cache_map[exec];
   }
-
-  void ClearNgExecInputCache() { m_ng_exec_input_cache_map.clear(); }
-
-  void ClearNgExecOutputCache() { m_ng_exec_output_cache_map.clear(); }
 
   NGraphFreshnessTracker* GetNgraphFreshnessTracker() {
     return m_freshness_tracker;
@@ -213,6 +207,8 @@ class NGraphEncapsulateImpl {
                      std::shared_ptr<ngraph::Function>>
       m_ng_function_map;
 
+  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
+                     std::string> m_serialized_ng_function_map;
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
 
