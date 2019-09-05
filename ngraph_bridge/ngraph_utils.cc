@@ -475,15 +475,26 @@ bool IsProcessedByNgraphPass(Graph* g) {
   return false;
 }
 
-Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
-                  std::set<std::string> nodes) {
+bool TBDirExists() 
+{
   const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
 
-  if (path == nullptr) {
+  if (path == nullptr)
+  {
+    return false;
+  }
+
+  return true;
+}
+
+Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
+                  std::set<std::string> nodes) {
+  if (!TBDirExists())
+  {
     return Status::OK();
   }
 
-  std::string str_path(path);
+  std::string str_path(std::getenv("NGRAPH_TF_TB_LOGDIR"));
 
   if (str_path.back() != '/') {
     str_path += "/";
@@ -506,13 +517,13 @@ Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
 
 Status UpdateComputeTime(int file_idx, std::string cluster,
                          std::string sess_name, int step, int compute_time) {
-  const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
-
-  if (path == nullptr) {
+  if (!TBDirExists())
+  {
     return Status::OK();
   }
 
-  std::string str_path(path);
+  std::string str_path(std::getenv("NGRAPH_TF_TB_LOGDIR"));
+
   if (str_path.back() != '/') {
     str_path += "/";
   }
@@ -604,9 +615,8 @@ Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def,
 }
 
 void AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph) {
-  const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
-
-  if (path == nullptr) {
+  if (!TBDirExists())
+  {
     return;
   }
 

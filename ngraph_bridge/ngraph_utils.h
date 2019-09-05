@@ -334,6 +334,8 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
+bool TBDirExists();
+
 Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
                   std::set<std::string> nodes);
 

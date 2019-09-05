@@ -112,7 +112,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
   ng_encap_impl.SetGraphId(graph_id);
 
-  if (std::getenv("NGRAPH_TF_TB_LOGDIR") != nullptr) {
+  if (TBDirExists()) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr(("_tensorboard_session_name" + to_string(graph_id)),
                                    &session_names[graph_id]));
   }
