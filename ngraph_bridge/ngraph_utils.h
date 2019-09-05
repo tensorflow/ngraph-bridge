@@ -29,6 +29,7 @@
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
+#include "ngraph/file_util.hpp"
 
 #include "logging/ngraph_log.h"
 
@@ -333,14 +334,11 @@ bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
 
-Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def,
+Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
                   std::set<std::string> nodes);
 
 Status UpdateComputeTime(int file_idx, std::string cluster,
                          std::string sess_name, int step, int compute_time);
-
-Status CreateSummaryFromGraph(tensorflow::Graph* graph,
-                              std::string filename_prefix);
 
 Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def,
                                  std::string filename_prefix);
@@ -349,8 +347,6 @@ void AddSessionNameAttr(int file_idx, std::set<std::string> nodes,
                         Graph* graph);
 
 std::string GetSessionName(int file_idx, std::set<std::string> nodes);
-
-void MakeTBDir(std::string str_path);
 
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order

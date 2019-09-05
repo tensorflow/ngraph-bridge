@@ -112,8 +112,10 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
   ng_encap_impl.SetGraphId(graph_id);
 
-  OP_REQUIRES_OK(ctx, ctx->GetAttr(("_session_name" + to_string(graph_id)),
+  if (std::getenv("NGRAPH_TF_TB_LOGDIR") != nullptr) {
+    OP_REQUIRES_OK(ctx, ctx->GetAttr(("_session_name" + to_string(graph_id)),
                                    &session_names[graph_id]));
+  }
 
   //
   // Initialize the "m_input_is_static" vector as follows:

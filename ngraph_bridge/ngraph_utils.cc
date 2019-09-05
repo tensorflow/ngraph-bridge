@@ -475,7 +475,7 @@ bool IsProcessedByNgraphPass(Graph* g) {
   return false;
 }
 
-Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def,
+Status AddGraphToEventFile(int file_idx, tensorflow::GraphDef* graph_def,
                   std::set<std::string> nodes) {
   const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
 
@@ -489,12 +489,12 @@ Status DumpNGraph(int file_idx, tensorflow::GraphDef* graph_def,
     str_path += "/";
   }
 
-  MakeTBDir(str_path);
+  ngraph::file_util::make_directory(str_path);
 
   std::string dname = GetSessionName(file_idx, nodes);
   str_path += (dname.insert(0, "ngraph") + "/");
 
-  MakeTBDir(str_path);
+  ngraph::file_util::make_directory(str_path);
 
   str_path += ("ngraph" + to_string(file_idx));
 
@@ -520,7 +520,7 @@ Status UpdateComputeTime(int file_idx, std::string cluster,
   std::string dname(sess_name);
   str_path += (dname.insert(0, "stats") + "/");
 
-  MakeTBDir(str_path);
+  ngraph::file_util::make_directory(str_path);
 
   struct dirent* dp;
   vector<std::string> files;
@@ -586,27 +586,6 @@ Status UpdateComputeTime(int file_idx, std::string cluster,
   return Status::OK();
 }
 
-Status CreateSummaryFromGraph(tensorflow::Graph* graph,
-                              std::string filename_prefix) {
-  // convert Graph* to GraphDef*
-  tensorflow::GraphDef* gdef = nullptr;
-  graph->ToGraphDef(gdef);
-
-  // create event summary writer
-  tensorflow::EventsWriter writer(filename_prefix);
-  tensorflow::Event event;
-
-  // write graph to event summary
-  try {
-    event.set_graph_def(gdef->SerializeAsString());
-    writer.WriteEvent(event);
-  } catch (...) {
-    return errors::Internal("Error writing graph to event file");
-  }
-
-  return Status::OK();
-}
-
 Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def,
                                  std::string filename_prefix) {
   // create event summary writer
@@ -625,6 +604,12 @@ Status CreateSummaryFromGraphDef(tensorflow::GraphDef* graph_def,
 }
 
 void AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph) {
+  const char* path = std::getenv("NGRAPH_TF_TB_LOGDIR");
+
+  if (path == nullptr) {
+    return;
+  }
+
   for (auto node : graph->op_nodes()) {
     if (node->type_string() == "NGraphEncapsulate") {
       node->AddAttr(("_session_name" + to_string(file_idx)),
@@ -634,20 +619,19 @@ void AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph) {
 }
 
 std::string GetSessionName(int file_idx, std::set<std::string> nodes) {
+  // get appropriate session name from target nodes
+
   std::string name = "";
 
   if (nodes.size() == 0) {
-    name = to_string(file_idx);
+    name = to_string(file_idx); // if target nodes empty, use unique file index for session name
   } else {
-    std::string entry;
+    // extract session name from first target node
 
-    for (auto it = nodes.begin(); it != nodes.end();
-         ++it)  // get last element in set
-    {
-      entry = *it;
-    }
+    auto it = nodes.begin();
+    std::string entry(*it);
 
-    int scope_idx = entry.find_first_of("/");
+    int scope_idx = entry.find_first_of("/"); // try to isolate TF scope name from target node
 
     if (scope_idx != std::string::npos) {
       name = to_string(file_idx) + "_" + entry.substr(0, scope_idx);
@@ -657,14 +641,6 @@ std::string GetSessionName(int file_idx, std::set<std::string> nodes) {
   }
 
   return name;
-}
-
-void MakeTBDir(std::string str_path) {
-  struct stat buffer;
-  if (stat(str_path.c_str(), &buffer) != 0)  // path doesn't exist
-  {
-    mkdir(str_path.c_str(), 0750);
-  }
 }
 
 }  // namespace ngraph_bridge
