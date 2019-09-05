@@ -254,7 +254,12 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
     SetNgExecMap(signature, ng_exec);
     // caching ng_function to serialize to ngraph if needed
-    SetNgFunctionMap(ng_exec, ng_function);
+    if (m_do_aot){
+      // TODO: similar to a map exec->function, we may need a map exec->serialized_function
+      // Union ng_function and string serialized_ng_function? How to hide (ng_func | string)
+    } else {
+      SetNgFunctionMap(ng_exec, ng_function);
+    }
 
     m_lru.push_front(signature);
     // Memory after

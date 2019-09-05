@@ -148,11 +148,6 @@ class NGraphEncapsulateImpl {
 
   void ClearNgExecMap() { m_ng_exec_map.clear(); }
 
-  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
-                     std::shared_ptr<ngraph::Function>>
-  GetNgFunctionMap() {
-    return m_ng_function_map;
-  }
 
   void SetNgFunctionMap(
       const std::shared_ptr<ngraph::runtime::Executable>& exec,
