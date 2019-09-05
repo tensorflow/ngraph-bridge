@@ -491,7 +491,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       ng_encap_impl.SetNumberOfCopies(copies++);
       stringstream str;
       str << "Var_Sync[" << input_index << "] ";
-      ng_encap_impl.SetCopyLog(str.str());
+      ng_encap_impl.AppendCopyLog(str.str());
     }
 
     void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
@@ -586,12 +586,12 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           if (var->copy_ng_to_tf()) {
             int copies = ng_encap_impl.GetNumberOfCopies();
             ng_encap_impl.SetNumberOfCopies(copies++);
-            ng_encap_impl.SetCopyLog(" COPY_TO_TF ");
+            ng_encap_impl.AppendCopyLog(" COPY_TO_TF ");
           }
           if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
                   output_key)) {
             // Some tf op might update the ng-tensor value so mark it stale
-            ng_encap_impl.SetCopyLog(" SET_SYNC ");
+            ng_encap_impl.AppendCopyLog(" SET_SYNC ");
             var->set_sync_ng_tensor(true);
           }
         }
@@ -609,7 +609,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ng_encap_impl.SetNumberOfCopies(copies++);
         stringstream log;
         log << " COPY_OP_VAL[" << i << "]";
-        ng_encap_impl.SetCopyLog(log.str());
+        ng_encap_impl.AppendCopyLog(log.str());
 
         NGRAPH_VLOG(4) << "Copying Output " << def().name() << " ,index: " << i;
         auto ng_element_type = dst_ng_tensor->get_element_type();
@@ -662,7 +662,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   std::stringstream str;
   str << " Number of copies " << ng_encap_impl.GetNumberOfCopies() << "\n";
-  ng_encap_impl.SetCopyLog(str.str());
+  ng_encap_impl.AppendCopyLog(str.str());
   if (ng_encap_impl.GetLogCopies()) {
     cout << ng_encap_impl.GetCopyLog();
   }

@@ -252,13 +252,14 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     event_compile.Stop();
     ngraph::Event::write_trace(event_compile);
 
-    SetNgExecMap(signature, ng_exec);
+    m_ng_exec_map[signature] = ng_exec;
+
     // caching ng_function to serialize to ngraph if needed
     if (m_do_aot){
       // TODO: similar to a map exec->function, we may need a map exec->serialized_function
       // Union ng_function and string serialized_ng_function? How to hide (ng_func | string)
     } else {
-      SetNgFunctionMap(ng_exec, ng_function);
+      m_ng_function_map[ng_exec] = ng_function;
     }
 
     m_lru.push_front(signature);
@@ -348,8 +349,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
       // Fresh or stale, in case of CPU this step is never needed
       try {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-        int copies = number_of_copies;
-        SetNumberOfCopies(copies++);
+        number_of_copies++;
         copy_log_str << " COPY_INP_VAL[" << i << "]";
 #endif
         size_t copy_size =

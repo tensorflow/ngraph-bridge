@@ -91,8 +91,6 @@ class NGraphEncapsulateImpl {
   // NgraphEncapsulateOp class
   const int& GetNumberOfCopies() { return number_of_copies; }
 
-  void SetNumberOfCopies(const int& number) { number_of_copies = number; }
-
   const int& GetNgraphCluster() { return m_ngraph_cluster; }
 
   void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
@@ -121,11 +119,9 @@ class NGraphEncapsulateImpl {
 
   bool GetLogCopies() { return log_copies; }
 
-  void SetLogCopies(bool value) { log_copies = value; }
-
   const string GetCopyLog() { return copy_log_str.str(); }
 
-  void SetCopyLog(const string str) { copy_log_str.str() = str; }
+  void AppendCopyLog(const string str) { copy_log_str << str; }
 
   const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
 
@@ -141,19 +137,8 @@ class NGraphEncapsulateImpl {
     return m_ng_exec_map;
   }
 
-  void SetNgExecMap(const std::string& ng_map_key,
-                    const std::shared_ptr<ngraph::runtime::Executable>& exec) {
-    m_ng_exec_map[ng_map_key] = exec;
-  }
-
   void ClearNgExecMap() { m_ng_exec_map.clear(); }
 
-
-  void SetNgFunctionMap(
-      const std::shared_ptr<ngraph::runtime::Executable>& exec,
-      const std::shared_ptr<ngraph::Function>& function) {
-    m_ng_function_map[exec] = function;
-  }
 
   void ClearNgFunctionMap() { m_ng_function_map.clear(); }
   // TODO:sindhu have another get function for output_cache which is only
@@ -161,13 +146,6 @@ class NGraphEncapsulateImpl {
   std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
   GetNgExecOutputCacheMap(std::shared_ptr<ngraph::runtime::Executable> exec) {
     return m_ng_exec_output_cache_map[exec];
-  }
-
-  void SetNgExecOutputCacheMap(
-      const std::shared_ptr<ngraph::runtime::Executable>& exec,
-      const std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
-          cache) {
-    m_ng_exec_output_cache_map[exec] = cache;
   }
 
   void ClearNgExecInputCache() { m_ng_exec_input_cache_map.clear(); }
