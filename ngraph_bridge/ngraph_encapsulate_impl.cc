@@ -615,6 +615,14 @@ void NGraphEncapsulateImpl::ClearExecMaps(){
   m_executable_pipelined_tensors_map.clear();
 }
 
+void NGraphEncapsulateImpl::DumpNgFunction(const string& file_name, std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
+    if (m_do_aot) {
+      NgraphSerialize(file_name, m_serialized_ng_function_map[ng_exec]);
+    } else {
+      NgraphSerialize(file_name, m_ng_function_map[ng_exec]);
+    }
+  }
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

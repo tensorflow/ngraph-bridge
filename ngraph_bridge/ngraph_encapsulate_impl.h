@@ -156,6 +156,8 @@ class NGraphEncapsulateImpl {
 
   void SetName(string name) { m_name = name; }
 
+  void DumpNgFunction(const string&, std::shared_ptr<ngraph::runtime::Executable>);
+
   Status ParseNodeAttributes(
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
       std::unordered_map<std::string, std::string>* additional_attribute_map);
