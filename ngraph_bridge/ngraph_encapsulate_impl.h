@@ -156,7 +156,8 @@ class NGraphEncapsulateImpl {
 
   void SetName(string name) { m_name = name; }
 
-  void DumpNgFunction(const string&, std::shared_ptr<ngraph::runtime::Executable>);
+  void DumpNgFunction(const string&,
+                      std::shared_ptr<ngraph::runtime::Executable>);
 
   Status ParseNodeAttributes(
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
@@ -209,8 +210,8 @@ class NGraphEncapsulateImpl {
                      std::shared_ptr<ngraph::Function>>
       m_ng_function_map;
 
-  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
-                     std::string> m_serialized_ng_function_map;
+  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>, std::string>
+      m_serialized_ng_function_map;
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
 

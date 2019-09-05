@@ -301,8 +301,7 @@ void NgraphSerialize(const std::string&,
                      const std::shared_ptr<ngraph::Function>&);
 
 // Serialize a ngraph function into a file
-void NgraphSerialize(const std::string&,
-                     const std::string&);
+void NgraphSerialize(const std::string&, const std::string&);
 
 // Collect the total memory usage through /proc/self/stat
 void MemoryProfile(long&, long&);

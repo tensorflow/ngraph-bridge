@@ -152,7 +152,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     }
 
     int function_size;
-    if (!m_do_aot){
+    if (!m_do_aot) {
       function_size = ng_function->get_graph_size() / 1024;  // kb unit
     }
 
@@ -165,7 +165,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       file_name += ("_" + to_string(rank_id));
 #endif
       file_name += ".json";
-      if (m_do_aot){
+      if (m_do_aot) {
         NgraphSerialize(file_name, serialized_ng_function);
       } else {
         NgraphSerialize(file_name, ng_function);
@@ -181,7 +181,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       int input_tensors_bytes_free = 0;
       evicted_ng_exec = m_ng_exec_map[m_lru.back()];
       m_ng_exec_map.erase(m_lru.back());
-      if (m_do_aot){
+      if (m_do_aot) {
         m_serialized_ng_function_map.erase(evicted_ng_exec);
       } else {
         m_ng_function_map.erase(evicted_ng_exec);
@@ -236,7 +236,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
       string file_name = "tf_function_error_" + m_name + ".json";
-      if (m_do_aot){
+      if (m_do_aot) {
         NgraphSerialize(file_name, serialized_ng_function);
       } else {
         NgraphSerialize(file_name, ng_function);
@@ -246,7 +246,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
       string file_name = "tf_function_error_" + m_name + ".json";
-      if (m_do_aot){
+      if (m_do_aot) {
         NgraphSerialize(file_name, serialized_ng_function);
       } else {
         NgraphSerialize(file_name, ng_function);
@@ -260,7 +260,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     m_ng_exec_map[signature] = ng_exec;
 
     // caching ng_function to serialize to ngraph if needed
-    if (m_do_aot){
+    if (m_do_aot) {
       m_serialized_ng_function_map[ng_exec] = serialized_ng_function;
     } else {
       m_ng_function_map[ng_exec] = ng_function;
@@ -275,7 +275,8 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                    << " Cache length: " << m_ng_exec_map.size()
                    << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
                    << " Delta RSS: " << delta_res_mem
-                   << (m_do_aot ? "" : " Function size: " + to_string(function_size))
+                   << (m_do_aot ? ""
+                                : " Function size: " + to_string(function_size))
                    << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
                    << " VM: " << vm / (1024 * 1024) << " GB" << endl;
   }  // end of input signature not found in m_ng_exec_map
@@ -606,7 +607,7 @@ NGraphEncapsulateImpl::GetTensorsFromPipeline(
   return out_tpl;
 }
 
-void NGraphEncapsulateImpl::ClearExecMaps(){
+void NGraphEncapsulateImpl::ClearExecMaps() {
   m_ng_exec_input_cache_map.clear();
   m_ng_exec_output_cache_map.clear();
   m_ng_exec_map.clear();
@@ -615,13 +616,15 @@ void NGraphEncapsulateImpl::ClearExecMaps(){
   m_executable_pipelined_tensors_map.clear();
 }
 
-void NGraphEncapsulateImpl::DumpNgFunction(const string& file_name, std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
-    if (m_do_aot) {
-      NgraphSerialize(file_name, m_serialized_ng_function_map[ng_exec]);
-    } else {
-      NgraphSerialize(file_name, m_ng_function_map[ng_exec]);
-    }
+void NGraphEncapsulateImpl::DumpNgFunction(
+    const string& file_name,
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
+  if (m_do_aot) {
+    NgraphSerialize(file_name, m_serialized_ng_function_map[ng_exec]);
+  } else {
+    NgraphSerialize(file_name, m_ng_function_map[ng_exec]);
   }
+}
 
 }  // namespace ngraph_bridge
 

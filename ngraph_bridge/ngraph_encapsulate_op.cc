@@ -515,14 +515,16 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       ng_exec->call(ng_outputs, ng_inputs);
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
-      ng_encap_impl.DumpNgFunction("tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
+      ng_encap_impl.DumpNgFunction(
+          "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       OP_REQUIRES(ctx, false,
                   errors::Internal(
                       "Caught exception while executing nGraph computation: ",
                       exp.what(), "\n"));
     } catch (...) {
       BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
-      ng_encap_impl.DumpNgFunction("tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
+      ng_encap_impl.DumpNgFunction(
+          "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       OP_REQUIRES(
           ctx, false,
           errors::Internal("Error in executing the nGraph computation\n"));
