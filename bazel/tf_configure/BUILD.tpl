@@ -8,6 +8,13 @@ cc_library(
 )
 
 cc_library(
+    name = "tf_header_lib_external_zlib",
+    hdrs = [":tf_header_include"],
+    includes = ["include/external/zlib_archive/"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "libtensorflow_framework",
     srcs = [":libtensorflow_framework.so.1"],
     visibility = ["//visibility:public"],

@@ -89,6 +89,7 @@ cc_binary(
         ":ngraph_bridge_headers",
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",
+        "@local_config_tf//:tf_header_lib_external_zlib",
         "@ngraph//:ngraph_headers",
         "@ngraph//:ngraph_core",
         "@ngraph//:ngraph_version",
