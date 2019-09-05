@@ -16,6 +16,7 @@ set(LIB_NAME_STATIC ngraph_bridge_static)
 
 include_directories(${TensorFlow_INCLUDE_DIR})
 include_directories(${TensorFlow_INCLUDE_DIR}/external/nsync/public)
+include_directories(${TensorFlow_INCLUDE_DIR}/external/zlib_archive)
 include_directories(${NGRAPH_INSTALL_DIR}/include)
 include_directories(${ABSL_INCLUDE_DIR})
 
