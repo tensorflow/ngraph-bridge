@@ -612,7 +612,7 @@ void AddSessionNameAttr(int file_idx, std::set<string> nodes, Graph* graph) {
 
   for (auto node : graph->op_nodes()) {
     if (node->type_string() == "NGraphEncapsulate") {
-      node->AddAttr(("_session_name" + to_string(file_idx)),
+      node->AddAttr(("_tensorboard_session_name" + to_string(file_idx)),
                     GetSessionName(file_idx, nodes));
     }
   }
@@ -627,9 +627,12 @@ std::string GetSessionName(int file_idx, std::set<std::string> nodes) {
     name = to_string(file_idx); // if target nodes empty, use unique file index for session name
   } else {
     // extract session name from first target node
+    std::string entry;
 
-    auto it = nodes.begin();
-    std::string entry(*it);
+    for (auto it = nodes.begin(); it != nodes.end(); ++it) // get last entry from nodes
+    {
+      entry = *it;
+    }
 
     int scope_idx = entry.find_first_of("/"); // try to isolate TF scope name from target node
 

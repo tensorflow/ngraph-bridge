@@ -120,7 +120,7 @@ class TestTensorBoardNGraphStats(NgraphTest):
 
     @pytest.mark.skipif(
         not ngraph_bridge.is_grappler_enabled(), reason="Only for Grappler")
-    def train_mnist_cnn(self):
+    def test_train_mnist_cnn(self):
         # Config
         config = tf.ConfigProto(
             allow_soft_placement=True,
@@ -142,7 +142,7 @@ class TestTensorBoardNGraphStats(NgraphTest):
 
         # Build the graph for the deep net
         y_conv, keep_prob = deepnn(x)
-
+        
         # guard loss/optimizer/accuracy with TF scopes 
         with tf.name_scope('loss'):
             cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
@@ -170,7 +170,7 @@ class TestTensorBoardNGraphStats(NgraphTest):
             shutil.rmtree(graph_location)
 
         print('Saving graph to: %s' % graph_location)
-
+        
         merged = tf.summary.merge_all()
         train_writer = tf.summary.FileWriter(graph_location)
         train_writer.add_graph(tf.get_default_graph())
@@ -223,8 +223,3 @@ class TestTensorBoardNGraphStats(NgraphTest):
         assert "stats0_init" in dirs
         assert "stats1_accuracy" in dirs
         assert "stats2_loss" in dirs
-
-@pytest.fixture
-def test():
-    tb_test = TestTensorBoardNGraphStats()
-    tb_test.train_mnist_cnn()
