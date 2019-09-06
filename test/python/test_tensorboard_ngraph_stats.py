@@ -114,8 +114,10 @@ class TestTensorBoardNGraphStats(NgraphTest):
         and verify that subdirectories were created based off these scope names.
     '''
 
-    @pytest.mark.skipif(
-        not ngraph_bridge.is_grappler_enabled(), reason="Only for Grappler")
+    # @pytest.mark.skipif(
+    #     not ngraph_bridge.is_grappler_enabled(), reason="Only for Grappler")
+
+    @pytest.mark.skip(reason="Skipping this grappler enabled test for now.")
     def test_train_mnist_cnn(self):
         os.environ['NGRAPH_TF_TB_LOGDIR'] = './test'
 
