@@ -81,7 +81,6 @@ cc_library(
         "-D_FORTIFY_SOURCE=2",
         "-Wformat",
         "-Wformat-security",
-        "-Wformat",
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
@@ -134,10 +133,13 @@ cc_library(
 
 cc_library(
     name = 'cpu_backend',
-    srcs = glob([
+    hdrs = glob([
         "src/ngraph/runtime/cpu/*.hpp",
         "src/ngraph/runtime/cpu/*.h",
         "src/ngraph/runtime/cpu/kernel/*.hpp",
+        "src/ngraph/state/rng_state.hpp",
+    ]),
+    srcs = glob([
         "src/ngraph/runtime/cpu/cpu_backend.cpp",
         "src/ngraph/runtime/cpu/cpu_builder.cpp",
         "src/ngraph/runtime/cpu/cpu_builder_registry.cpp",
@@ -249,7 +251,6 @@ cc_library(
         "src/ngraph/runtime/cpu/pass/cpu_rnn_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_workspace_insertion.cpp",
         "src/ngraph/runtime/cpu/ngraph_version.cpp",
-        "src/ngraph/state/rng_state.hpp", 
         "src/ngraph/state/rng_state.cpp", 
     ]),
     deps = [
@@ -275,12 +276,13 @@ cc_library(
         "-D NGRAPH_TBB_ENABLE",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
-
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
         "-Wl,-z,relro",
         "-Wl,-z,now",
+        "-Wl,-Bsymbolic-functions",
+        "-Wl,--exclude-libs=ALL",
     ],
     linkstatic = True,
     visibility = ["//visibility:public"],
