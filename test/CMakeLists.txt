@@ -59,6 +59,7 @@ set(SRC
     test_array_ops.cpp
     test_variable_ops.cpp
     test_momentum_op.cpp
+    test_replace_optimizer.cpp
     opexecuter.cpp
 )
 
