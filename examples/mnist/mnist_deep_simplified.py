@@ -33,6 +33,7 @@ import sys
 import tempfile
 import getpass
 import time
+import os
 
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -165,7 +166,7 @@ def train_mnist_cnn(FLAGS):
     with tf.name_scope('loss'):
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
             labels=y_, logits=y_conv)
-    cross_entropy = tf.reduce_mean(cross_entropy)
+        cross_entropy = tf.reduce_mean(cross_entropy)
 
     optimizer_scope = FLAGS.optimizer + "_optimizer"
     with tf.name_scope(optimizer_scope):
@@ -178,12 +179,14 @@ def train_mnist_cnn(FLAGS):
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
         correct_prediction = tf.cast(correct_prediction, tf.float32)
-    accuracy = tf.reduce_mean(correct_prediction)
+        accuracy = tf.reduce_mean(correct_prediction)
+
     tf.summary.scalar('Training accuracy', accuracy)
     tf.summary.scalar('Loss function', cross_entropy)
 
-    graph_location = "/tmp/" + getpass.getuser(
-    ) + "/tensorboard-logs/mnist-convnet"
+    graph_location = os.environ[
+        'NGRAPH_TF_TB_LOGDIR'] if 'NGRAPH_TF_TB_LOGDIR' in os.environ else "/tmp/" + getpass.getuser(
+        ) + "/tensorboard-logs/mnist-convnet"
     print('Saving graph to: %s' % graph_location)
 
     merged = tf.summary.merge_all()
