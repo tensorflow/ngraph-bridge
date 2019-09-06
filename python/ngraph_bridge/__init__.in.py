@@ -234,7 +234,7 @@ def set_disabled_ops(unsupported_ops):
 def get_disabled_ops():
     return ngraph_bridge_lib.ngraph_get_disabled_ops()
 
-def is_distributed_ops():
+def is_distributed_enabled():
     return ngraph_bridge_lib.ngraph_tf_is_distributed_enabled()
 
 __version__ = \
