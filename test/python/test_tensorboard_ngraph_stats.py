@@ -113,6 +113,7 @@ class TestTensorBoardNGraphStats(NgraphTest):
         Add TF scope names to various modules of the network (loss, accuracy, etc.), 
         and verify that subdirectories were created based off these scope names.
     '''
+
     @pytest.mark.skipif(
         not ngraph_bridge.is_grappler_enabled(), reason="Only for Grappler")
     def test_train_mnist_cnn(self):
@@ -222,4 +223,3 @@ class TestTensorBoardNGraphStats(NgraphTest):
         assert "stats0_init" in dirs
         assert "stats1_accuracy" in dirs
         assert "stats2_loss" in dirs
-
