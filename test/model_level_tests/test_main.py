@@ -420,7 +420,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--ignore_test',
         type=str,
-        default='',
+        default=None,
         help=
         'Comma separated string. Given an expected json file, ignore these tests. Can take values "", "logparse", "time", "logparse,time", "time,logparse"'
     )
@@ -444,8 +444,8 @@ if __name__ == '__main__':
         args.run_basic_tests or args.run_functional_tests
     ), 'No type of test enabled. Please choose --run_basic_tests, --run_functional_tests or both'
 
-    ignore_test = args.ignore_test.split(',')
-    assert (check_test_types(ignore_test)
+    ignore_test = [] if (args.ignore_test is None) else args.ignore_test.split(',')
+    assert ((ignore_test=='') or check_test_types(ignore_test)
            ), "Types of possible tests: " + ','.join(valid_test_types()) + \
     ", but requested to skip " + args.ignore_test
 
