@@ -272,7 +272,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     DumpGraphs(graph, idx, "tracked",
                "Graph with Variables Rewritten for Tracking");
   }
-  
+
   // TODO: sayantan, see if these changes can be moved into rewrite_pass.cc
   AddSessionNameAttr(
       idx, fetch_nodes,
