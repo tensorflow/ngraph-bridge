@@ -444,7 +444,8 @@ if __name__ == '__main__':
         args.run_basic_tests or args.run_functional_tests
     ), 'No type of test enabled. Please choose --run_basic_tests, --run_functional_tests or both'
 
-    ignore_test = [] if (args.ignore_test is None) else args.ignore_test.split(',')
+    ignore_test = [] if (
+        args.ignore_test is None) else args.ignore_test.split(',')
     assert ((ignore_test=='') or check_test_types(ignore_test)
            ), "Types of possible tests: " + ','.join(valid_test_types()) + \
     ", but requested to skip " + args.ignore_test
