@@ -69,6 +69,7 @@ void RunSimpleNetworkExample() {
                                    tensorflow::ops::MatMul::TransposeB(true));
   // R = softmax(v)
   auto R = tensorflow::ops::Softmax(root, v);
+  
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
   options.config.mutable_graph_options()
@@ -137,7 +138,7 @@ void PrintVersion() {
 }
 
 int main(int argc, char** argv) {
-  PrintVersion();
+  //PrintVersion();
 
   const char* backend = "CPU";
 
@@ -145,12 +146,12 @@ int main(int argc, char** argv) {
     backend = argv[1];
   }
 
-  // if (SetNGraphBackend(backend) != tensorflow::Status::OK()) {
-  //   std::cout << "Error: Cannot set the backend: " << backend << std::endl;
-  //   return -1;
-  // }
+  if (SetNGraphBackend(backend) != tensorflow::Status::OK()) {
+    std::cout << "Error: Cannot set the backend: " << backend << std::endl;
+    return -1;
+  }
 
-  // Run the MatMul example
+  // Run a simple example
   RunSimpleNetworkExample();
 
   return 0;

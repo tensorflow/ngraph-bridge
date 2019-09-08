@@ -14,6 +14,10 @@
 #  limitations under the License.
 # ==============================================================================
 load("//:cxx_abi_option.bzl", "CXX_ABI")
+load(
+    "@org_tensorflow//tensorflow:tensorflow.bzl", 
+    "tf_cc_binary",
+    "tf_native_cc_binary")
 
 cc_library(
     name = "ngraph_bridge_headers",
@@ -87,15 +91,15 @@ cc_library(
     ],
     deps = [
         ":ngraph_bridge_headers",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:framework",
+        "@org_tensorflow//tensorflow/core:core_cpu_headers_lib",
+        "@org_tensorflow//tensorflow/core/grappler/clusters:cluster",
+        "@org_tensorflow//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
+        "@org_tensorflow//tensorflow/core:framework_headers_lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@ngraph//:ngraph_headers",
         "@ngraph//:ngraph_core",
         "@ngraph//:ngraph_version",
         "@ngraph//:cpu_backend",
-        "@com_google_absl//absl/strings",
         "@tbb",
         "@eigen",
         "@mkl_dnn",
@@ -125,67 +129,19 @@ cc_library(
     alwayslink = 1,
 )
 
-load("@org_tensorflow//tensorflow:tensorflow.bzl", "tf_cc_binary")
 tf_cc_binary(
     name = 'hello_tf',
     srcs = [
         "examples/cpp/hello_tf.cpp",
     ],
     deps = [
-        ":ngraph_bridge_headers",
-        ":ngraph_bridge_lib",
-        "@org_tensorflow//tensorflow/cc:cc_ops",
         "@org_tensorflow//tensorflow/cc:client_session",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/cc:ops",
         "@org_tensorflow//tensorflow/core:tensorflow",
-        "@ngraph//:ngraph_headers",
-        "@ngraph//:ngraph_core",
-        "@ngraph//:cpu_backend",
-        "@com_google_absl//absl/strings",
-        "@tbb",
-        "@eigen",
-        "@mkl_dnn",
-    ],
-    copts = [
-        "-pthread",
-        "-std=c++11",
-        "-D_FORTIFY_SOURCE=2",
-        "-Wformat",
-        "-Wformat-security",
-        "-Wformat",
-        "-fstack-protector-all",
-        "-D NDEBUG",
-        "-I ngraph_bridge",
-        "-I external/ngraph/src",
-        "-I logging",
-    ] + CXX_ABI,
-    linkstatic=True,
-    visibility = ["//visibility:public"],
-)
-
-tf_cc_binary(
-    name = 'infer_multi',
-    srcs = [
-        "examples/cpp/infer_multiple_networks/inference_engine.cc",
-        "examples/cpp/infer_multiple_networks/inference_engine.h",
-        "examples/cpp/infer_multiple_networks/main.cc",
-        "examples/cpp/tf_label_image_utils.cc",
-    ],
-    deps = [
         ":ngraph_bridge_headers",
-        ":ngraph_bridge_lib",
-        "@org_tensorflow//tensorflow/cc:cc_ops",
-        "@org_tensorflow//tensorflow/cc:client_session",
-        "@org_tensorflow//tensorflow/core:lib",
-        "@org_tensorflow//tensorflow/core:framework",
-        "@org_tensorflow//tensorflow/core:protos_all_cc",
-        "@org_tensorflow//tensorflow/core:tensorflow",
         "@ngraph//:ngraph_headers",
-        "@ngraph//:ngraph_core",
+        ":ngraph_bridge_lib",
         "@ngraph//:cpu_backend",
-        "@com_google_absl//absl/strings",
         "@tbb",
         "@eigen",
         "@mkl_dnn",
