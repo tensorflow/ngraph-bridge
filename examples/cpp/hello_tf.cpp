@@ -47,15 +47,6 @@ void PrintAvailableBackends() {
   }
 }
 
-// Sets the specified backend. This backend must be set BEFORE running
-// the computation
-tensorflow::Status SetNGraphBackend(const string& backend_name) {
-  // Select a backend
-  tensorflow::Status status =
-      tensorflow::ngraph_bridge::BackendManager::SetBackendName(backend_name);
-  return status;
-}
-
 // Create a simple computation graph and run
 void RunSimpleNetworkExample() {
   // Create the graph
@@ -100,12 +91,6 @@ void RunSimpleNetworkExample() {
         ->set_meta_optimizer_iterations(tensorflow::RewriterConfig::ONE);
   }
 
-  std::string name;
-  auto status =
-      tensorflow::ngraph_bridge::BackendManager::GetCurrentlySetBackendName(
-          &name);
-  std::cout << "Currently selected backend: " << name << std::endl;
-
   tensorflow::ClientSession session(root, options);
 
   std::vector<tensorflow::Tensor> outputs;
@@ -138,18 +123,7 @@ void PrintVersion() {
 }
 
 int main(int argc, char** argv) {
-  //PrintVersion();
-
-  const char* backend = "CPU";
-
-  if (argc > 1) {
-    backend = argv[1];
-  }
-
-  if (SetNGraphBackend(backend) != tensorflow::Status::OK()) {
-    std::cout << "Error: Cannot set the backend: " << backend << std::endl;
-    return -1;
-  }
+  PrintVersion();
 
   // Run a simple example
   RunSimpleNetworkExample();
