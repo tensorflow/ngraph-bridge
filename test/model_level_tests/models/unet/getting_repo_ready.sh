@@ -1,7 +1,7 @@
 pip install Pillow
 
-# Clear the file
-> train_unet.py
+# Create/Clear the file
+truncate -s 0 train_unet.py
 
 # Populate the file
 echo "from tf_unet import image_gen
@@ -20,5 +20,3 @@ if __name__ == '__main__':
     path = trainer.train(generator, './unet_trained', training_iters=TRAIN_ITER, epochs=TRAIN_EPOCH, display_step=1)
     print('Done training unet')" > train_unet.py
 
-git add train_unet.py
-git commit -m "Adding train script"
