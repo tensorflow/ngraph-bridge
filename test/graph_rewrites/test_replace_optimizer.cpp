@@ -19,11 +19,14 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
 
+#include "enable_variable_ops/ngraph_replace_op_utilities.h"
+#include "enable_variable_ops/ngraph_replace_variable_modifiers.h"
 #include "gtest/gtest.h"
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_capture_variables.h"
 #include "test/test_utilities.h"
 
 using namespace std;
@@ -39,7 +42,7 @@ namespace testing {
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 // ReplaceModifier
-TEST(ReplaceModifier, Momentum1) {
+TEST(ReplaceModifierTest, Momentum2) {
   Scope root = Scope::NewRootScope();
 
   PartialTensorShape varShape({2, 2});
@@ -59,63 +62,60 @@ TEST(ReplaceModifier, Momentum1) {
 
   ops::ApplyMomentum::Attrs op_attr_use_nestrov;
 
-  auto applymomentum_f = ops::ApplyMomentum(root.WithOpName("Momentum"), var,
-                                            accum, lr, grad, momentum);
-
   op_attr_use_nestrov = op_attr_use_nestrov.UseNesterov(true);
   auto applymomentum_t =
       ops::ApplyMomentum(root.WithOpName("Momentum"), var, accum, lr, grad,
                          momentum, op_attr_use_nestrov);
-  // Turn off optimizations so that all the nodes are processed
-  tensorflow::SessionOptions options;
-  options.config.mutable_graph_options()
-      ->mutable_optimizer_options()
-      ->set_opt_level(tensorflow::OptimizerOptions_Level_L0);
-  options.config.mutable_graph_options()
-      ->mutable_rewrite_options()
-      ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
-  // Run on nGraph
-  ActivateNGraph();
-  ClientSession ng_session(root, options);
-  std::vector<tensorflow::Tensor> ng_outputs1;
-  std::vector<tensorflow::Tensor> ng_outputs2;
-  std::vector<tensorflow::Tensor> ng_outputs3;
-  ASSERT_OK(ng_session.Run({{var_assign, accum_assign}}, &ng_outputs1));
+  std::set<string> skip_these_nodes = {};
 
-  // Run on TF
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({applymomentum_f}, &ng_outputs2));
+  Graph graph(OpRegistry::Global());
+  TF_CHECK_OK(root.ToGraph(&graph));
+  map<string, Node*> node_map;
+  for (auto node : graph.op_nodes()) {
+    node_map[node->name()] = node;
+  }
+  ASSERT_NE(node_map.find("Momentum"), node_map.end());
+  ASSERT_EQ(node_map.find("Momentum")->second->type_string(), "ApplyMomentum");
+  node_map.clear();
+  // Execute all the passes one by one
+  ASSERT_OK(CaptureVariables(&graph, skip_these_nodes));
+  // Get all the nodes in map [utility]
+  for (auto node : graph.op_nodes()) {
+    node_map[node->name()] = node;
+  }
+  ASSERT_EQ(node_map.find("Momentum")->second->type_string(),
+            "NGraphApplyMomentum");
+  node_map.clear();
+  ASSERT_OK(ReplaceModifiers(&graph, 0));
+  for (auto node : graph.op_nodes()) {
+    node_map[node->name()] = node;
   }
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({applymomentum_t}, &ng_outputs3));
+  ASSERT_NE(node_map.find("Momentum_Mul"), node_map.end());
+  ASSERT_NE(node_map.find("Momentum_Add"), node_map.end());
+  ASSERT_NE(node_map.find("Momentum_AccumAssign"), node_map.end());
+  ASSERT_NE(node_map.find("Momentum_Mul1"), node_map.end());
+  ASSERT_NE(node_map.find("Momentum_Mul2"), node_map.end());
+  ASSERT_NE(node_map.find("Momentum_Mul3"), node_map.end());
+  ASSERT_NE(node_map.find("Momentum_Add_1"), node_map.end());
+  ASSERT_NE(node_map.find("Momentum_Sub"), node_map.end());
+  ASSERT_NE(node_map.find("Momentum_NGraphAssign"), node_map.end());
+  for (auto edge : graph.edges()) {
+    if(edge->src()->name() == "Momentum_AccumAssign")
+      {
+        ASSERT_EQ(edge->dst()->name(),"Momentum_Mul1");
+      }
+     else if(edge->src()->name() == "Momentum_NGraphAssign")
+      {
+        ASSERT_EQ(edge->dst()->name(),"_SINK");
+      }
+     else if(edge->src()->name() == "Momentum_Mul1")
+      {
+        ASSERT_EQ(edge->dst()->name(),"Momentum_Mul3");
+      }
   }
-
-  DeactivateNGraph();
-
-  // Run on TF
-  ClientSession tf_session(root, options);
-  std::vector<tensorflow::Tensor> tf_outputs1;
-  std::vector<tensorflow::Tensor> tf_outputs2;
-  std::vector<tensorflow::Tensor> tf_outputs3;
-  ASSERT_OK(tf_session.Run({{var_assign, accum_assign}}, &tf_outputs1));
-
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({applymomentum_f}, &tf_outputs2));
-  }
-
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({applymomentum_t}, &tf_outputs3));
-  }
-
-  Compare(tf_outputs1, ng_outputs1);
-  Compare(tf_outputs2, ng_outputs2);
-  Compare(tf_outputs3, ng_outputs3);
-
-  ActivateNGraph();
 }
-
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
