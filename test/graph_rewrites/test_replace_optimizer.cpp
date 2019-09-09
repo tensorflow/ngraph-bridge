@@ -102,18 +102,13 @@ TEST(ReplaceModifierTest, Momentum2) {
   ASSERT_NE(node_map.find("Momentum_Sub"), node_map.end());
   ASSERT_NE(node_map.find("Momentum_NGraphAssign"), node_map.end());
   for (auto edge : graph.edges()) {
-    if(edge->src()->name() == "Momentum_AccumAssign")
-      {
-        ASSERT_EQ(edge->dst()->name(),"Momentum_Mul1");
-      }
-     else if(edge->src()->name() == "Momentum_NGraphAssign")
-      {
-        ASSERT_EQ(edge->dst()->name(),"_SINK");
-      }
-     else if(edge->src()->name() == "Momentum_Mul1")
-      {
-        ASSERT_EQ(edge->dst()->name(),"Momentum_Mul3");
-      }
+    if (edge->src()->name() == "Momentum_AccumAssign") {
+      ASSERT_EQ(edge->dst()->name(), "Momentum_Mul1");
+    } else if (edge->src()->name() == "Momentum_NGraphAssign") {
+      ASSERT_EQ(edge->dst()->name(), "_SINK");
+    } else if (edge->src()->name() == "Momentum_Mul1") {
+      ASSERT_EQ(edge->dst()->name(), "Momentum_Mul3");
+    }
   }
 }
 }  // namespace testing
