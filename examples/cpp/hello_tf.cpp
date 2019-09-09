@@ -60,7 +60,7 @@ void RunSimpleNetworkExample() {
                                    tensorflow::ops::MatMul::TransposeB(true));
   // R = softmax(v)
   auto R = tensorflow::ops::Softmax(root, v);
-  
+
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
   options.config.mutable_graph_options()
@@ -71,16 +71,13 @@ void RunSimpleNetworkExample() {
       ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
   if (tensorflow::ngraph_bridge::ngraph_tf_is_grappler_enabled()) {
-
-    auto *custom_config = options.config.mutable_graph_options()
+    auto* custom_config = options.config.mutable_graph_options()
                               ->mutable_rewrite_options()
                               ->add_custom_optimizers();
 
     custom_config->set_name("ngraph-optimizer");
-    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s(
-        "CPU");
-    (*custom_config->mutable_parameter_map())["device_id"].set_s(
-        "1");
+    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s("CPU");
+    (*custom_config->mutable_parameter_map())["device_id"].set_s("1");
 
     options.config.mutable_graph_options()
         ->mutable_rewrite_options()
@@ -102,12 +99,13 @@ void RunSimpleNetworkExample() {
 
 void PrintVersion() {
   // nGraph Bridge version info
-  std::cout << "Bridge version: " << tensorflow::ngraph_bridge::ngraph_tf_version()
-            << std::endl;
-  std::cout << "nGraph version: " << tensorflow::ngraph_bridge::ngraph_lib_version()
-            << std::endl;
+  std::cout << "Bridge version: "
+            << tensorflow::ngraph_bridge::ngraph_tf_version() << std::endl;
+  std::cout << "nGraph version: "
+            << tensorflow::ngraph_bridge::ngraph_lib_version() << std::endl;
   std::cout << "CXX11_ABI Used: "
-            << tensorflow::ngraph_bridge::ngraph_tf_cxx11_abi_flag() << std::endl;
+            << tensorflow::ngraph_bridge::ngraph_tf_cxx11_abi_flag()
+            << std::endl;
   std::cout << "Grappler Enabled? "
             << (tensorflow::ngraph_bridge::ngraph_tf_is_grappler_enabled()
                     ? std::string("Yes")
