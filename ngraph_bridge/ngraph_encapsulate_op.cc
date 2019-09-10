@@ -556,8 +556,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Copy value to host if backend is not CPU
   ngraph::Event event_copy_output("Output - copy back", name(), "");
   Timer copy_output_tensors_to_host;
-  {  // lock block begins
-    std::lock_guard<std::mutex> lock(m_compute_lock);
     try {
       size_t output_tensor_count = output_caches.size();
       std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
@@ -716,7 +714,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     ngraph::Event::write_trace(event_copy_output);
     ngraph::Event::write_trace(event);
 
-  }  // lock block ends.
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;

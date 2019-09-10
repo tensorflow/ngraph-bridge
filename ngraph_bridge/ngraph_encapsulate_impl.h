@@ -45,13 +45,13 @@ class NGraphEncapsulateImpl {
 
   // Get tensorflow input tensors, input shapes, static_inputs to Compute
   // Signature
-  Status ComputeSignature(const std::vector<Tensor>& tf_input_tensors,
+  Status ComputeSignature (const std::vector<Tensor>& tf_input_tensors,
                           std::vector<TensorShape>& input_shapes,
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
 
   // Calls Compute Signature and gets ngraph executable
-  Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
+  Status GetNgExecutable (const std::vector<Tensor>& tf_input_tensors,
                          std::vector<TensorShape>& input_shapes,
                          std::vector<const Tensor*>& static_input_map,
                          ng::runtime::Backend*& op_backend,
@@ -59,7 +59,7 @@ class NGraphEncapsulateImpl {
 
   // Allocate tensors for input arguments. Creates ngraph input tensors using
   // tensorflow tensors required to execute ngraph function
-  Status AllocateNGInputTensors(
+  Status AllocateNGInputTensors (
       const std::vector<Tensor>& tf_input_tensors,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       const PipelinedTensorVector& inp_group_from_pipeline,
@@ -68,7 +68,7 @@ class NGraphEncapsulateImpl {
 
   // Allocate tensors for output results.  Creates ngraph output tensors using
   // tensorflow tensors required to execute ngraph function
-  Status AllocateNGOutputTensors(
+  Status AllocateNGOutputTensors (
       const std::vector<Tensor*>& tf_output_tensors,
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       const PipelinedTensorVector& out_group_from_pipeline,
@@ -76,7 +76,7 @@ class NGraphEncapsulateImpl {
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
 
   // Get current ngraph tensor
-  std::shared_ptr<ng::runtime::Tensor> GetCurrentNgTensor(
+  std::shared_ptr<ng::runtime::Tensor> GetCurrentNgTensor (
       void* current_tf_ptr, void* last_tf_ptr,
       const std::shared_ptr<ng::runtime::Tensor>& last_ng_tensor,
       const bool& output_tensor,
@@ -89,59 +89,60 @@ class NGraphEncapsulateImpl {
   // NgraphEncapsulateImpl class
   // needed by
   // NgraphEncapsulateOp class
-  const int& GetNumberOfCopies() { return number_of_copies; }
+  const int& GetNumberOfCopies() const { return number_of_copies; }
 
-  void SetNumberOfCopies(const int& number) { number_of_copies = number; }
+  void SetNumberOfCopies (const int& number) { number_of_copies = number; }
 
-  const int& GetNgraphCluster() { return m_ngraph_cluster; }
+  const int& GetNgraphCluster() const { return m_ngraph_cluster; }
 
-  void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
+  void SetNgraphCluster (const int& cluster) { m_ngraph_cluster = cluster; }
 
   int GetGraphId() { return m_graph_id; }
 
-  void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
+  void SetGraphId (const int& graph_id) { m_graph_id = graph_id; }
 
-  const int& GetFunctionCache() { return my_function_cache_depth_in_items; }
+  const int& GetFunctionCache() const { return my_function_cache_depth_in_items; }
 
-  const int& GetNumberOfOutputs() { return m_number_outputs; }
+  const int& GetNumberOfOutputs() const { return m_number_outputs; }
 
-  void SetNumberOfOutputs(const int& n) { m_number_outputs = n; }
+  void SetNumberOfOutputs (const int& n) { m_number_outputs = n; }
 
-  const int& GetNumberOfInputs() { return m_number_inputs; }
+  const int& GetNumberOfInputs() const { return m_number_inputs; }
 
-  void SetNumberOfInputs(const int& n) { m_number_inputs = n; }
+  void SetNumberOfInputsconst (const int& n) { m_number_inputs = n; }
 
-  const int& GetInstanceId() { return my_instance_id; }
+  const int& GetInstanceId() const { return my_instance_id; }
 
-  const string& GetOpBackend() { return m_op_backend_name; }
+  const string& GetOpBackend() const { return m_op_backend_name; }
 
-  void SetOpBackend(const string& backend_name) {
+  void SetOpBackend (const string& backend_name) {
     m_op_backend_name = backend_name;
   }
 
-  bool GetLogCopies() { return log_copies; }
+  bool GetLogCopies() const { return log_copies; }
 
   void SetLogCopies(bool value) { log_copies = value; }
 
-  const string GetCopyLog() { return copy_log_str.str(); }
+  const string GetCopyLog() const { return copy_log_str.str(); }
 
-  void SetCopyLog(const string str) { copy_log_str.str() = str; }
+  void SetCopyLog (const string str) { copy_log_str.str() = str; }
 
-  const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
+  const std::vector<bool> GetStaticInputVector() const { return m_input_is_static; }
 
-  void ResizeStaticInputVector(const int& size) {
+  void ResizeStaticInputVector (const int& size) {
     m_input_is_static.resize(size);
   }
+
   void SetStaticInputVector(const int& index, bool value) {
     m_input_is_static[index] = value;
   }
 
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
-  GetNgExecMap() {
+  GetNgExecMap() const {
     return m_ng_exec_map;
   }
 
-  void SetNgExecMap(const std::string& ng_map_key,
+  void SetNgExecMap (const std::string& ng_map_key,
                     const std::shared_ptr<ngraph::runtime::Executable>& exec) {
     m_ng_exec_map[ng_map_key] = exec;
   }
@@ -150,11 +151,11 @@ class NGraphEncapsulateImpl {
 
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      std::shared_ptr<ngraph::Function>>
-  GetNgFunctionMap() {
+  GetNgFunctionMap() const {
     return m_ng_function_map;
   }
 
-  void SetNgFunctionMap(
+  void SetNgFunctionMap (
       const std::shared_ptr<ngraph::runtime::Executable>& exec,
       const std::shared_ptr<ngraph::Function>& function) {
     m_ng_function_map[exec] = function;
@@ -164,11 +165,11 @@ class NGraphEncapsulateImpl {
   // TODO:sindhu have another get function for output_cache which is only
   // readable
   std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
-  GetNgExecOutputCacheMap(std::shared_ptr<ngraph::runtime::Executable> exec) {
+  GetNgExecOutputCacheMap (std::shared_ptr<ngraph::runtime::Executable> exec) {
     return m_ng_exec_output_cache_map[exec];
   }
 
-  void SetNgExecOutputCacheMap(
+  void SetNgExecOutputCacheMap (
       const std::shared_ptr<ngraph::runtime::Executable>& exec,
       const std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
           cache) {
@@ -179,7 +180,7 @@ class NGraphEncapsulateImpl {
 
   void ClearNgExecOutputCache() { m_ng_exec_output_cache_map.clear(); }
 
-  NGraphFreshnessTracker* GetNgraphFreshnessTracker() {
+  NGraphFreshnessTracker* GetNgraphFreshnessTracker() const {
     return m_freshness_tracker;
   }
 
@@ -189,24 +190,24 @@ class NGraphEncapsulateImpl {
 
   void SetName(string name) { m_name = name; }
 
-  Status ParseNodeAttributes(
+  Status ParseNodeAttributes (
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
       std::unordered_map<std::string, std::string>* additional_attribute_map);
-  void SetExecCanCreateTensor(bool b) { m_executable_can_create_tensor = b; }
+  void SetExecCanCreateTensor (bool b) { m_executable_can_create_tensor = b; }
 
-  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
+  bool GetExecCanCreateTensor() const { return m_executable_can_create_tensor; }
 
   void ClearNgExecPipelinedTensorMap() {
     m_executable_pipelined_tensors_map.clear();
   }
 
-  Status CachePipelinedTensorIfNeeded(
+  Status CachePipelinedTensorIfNeeded (
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
 
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
-  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+  GetTensorsFromPipeline (std::shared_ptr<ngraph::runtime::Executable> ng_exec);
 
-  void ReturnPipelinedTensors(
+  void ReturnPipelinedTensors (
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
     m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
   }
