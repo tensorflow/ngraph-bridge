@@ -16,8 +16,7 @@
 load("//:cxx_abi_option.bzl", "CXX_ABI")
 load(
     "@org_tensorflow//tensorflow:tensorflow.bzl", 
-    "tf_cc_binary",
-    "tf_native_cc_binary")
+    "tf_cc_binary")
 
 cc_library(
     name = "ngraph_bridge_headers",
