@@ -93,16 +93,13 @@ class NGraphEncapsulateImpl {
   const int& GetNumberOfCopies() { return number_of_copies; }
   void SetNumberOfCopies(const int& number) { number_of_copies = number; }
   int GetGraphId() { return m_graph_id; }
+  void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
   void AppendCopyLog(const string str) { copy_log_str << str; }
 #endif
 
   const int& GetNgraphCluster() { return m_ngraph_cluster; }
 
   void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
-
-  int GetGraphId() { return m_graph_id; }
-
-  void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
 
   const int& GetFunctionCache() { return my_function_cache_depth_in_items; }
 

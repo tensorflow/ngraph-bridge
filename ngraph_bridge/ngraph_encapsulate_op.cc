@@ -108,9 +108,11 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
         ctx, ConvertGraphDefToGraph(opts, *graph_def, &ng_encap_impl_.m_graph));
   }
 
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   int graph_id{-1};
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
   ng_encap_impl_.SetGraphId(graph_id);
+#endif
   //
   // Initialize the "m_input_is_static" vector as follows:
   // (1) create m_input_is_static with n+1 elements, where n is the max arg
