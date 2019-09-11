@@ -93,6 +93,27 @@ void SetNGraphTFBackend(const string& backend_name) {
   SetEnvVariable("NGRAPH_TF_BACKEND", backend_name);
 }
 
+// Generating Random Seed
+int GetSeedForRandomFunctions() {
+  string env_name = "NGRAPH_TF_SEED";
+  int seed = static_cast<unsigned>(time(0));
+  if (!IsEnvVariableSet(env_name)) {
+    NGRAPH_VLOG(5) << "Got seed " << seed;
+    return seed;
+  }
+
+  string seedstr = GetEnvVariable(env_name);
+  try {
+    seed = stoi(seedstr);
+  } catch (const std::exception& exp) {
+    throw std::runtime_error{"Cannot set " + env_name + " with value " +
+                             seedstr + " ,got exception " + exp.what()};
+  }
+
+  NGRAPH_VLOG(5) << "Got seed " << env_name << " : seed " << seed;
+  return seed;
+}
+
 // Input x will be used as an anchor
 // Actual value assigned equals to x * i
 void AssignInputValuesAnchor(Tensor& A, float x) {
@@ -107,7 +128,7 @@ void AssignInputValuesAnchor(Tensor& A, float x) {
 void AssignInputValuesRandom(Tensor& A) {
   auto A_flat = A.flat<float>();
   auto A_flat_data = A_flat.data();
-  srand(static_cast<unsigned>(time(0)));
+  srand(GetSeedForRandomFunctions());
   for (int i = 0; i < A_flat.size(); i++) {
     // give a number between 0 and 20
     float value =
