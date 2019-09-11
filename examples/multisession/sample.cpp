@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
       ->set_constant_folding(tensorflow::RewriterConfig::OFF);
 
 #if 0
-  // The following is related to Grapler - which we are turning off
+  // The following is related to Grappler - which we are turning off
   // Until we get a library fully running
   options.config.mutable_graph_options()
       ->mutable_rewrite_options()
