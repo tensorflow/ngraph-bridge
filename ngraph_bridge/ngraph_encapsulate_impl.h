@@ -93,6 +93,7 @@ class NGraphEncapsulateImpl {
   const int& GetNumberOfCopies() { return number_of_copies; }
   void SetNumberOfCopies(const int& number) { number_of_copies = number; }
   int GetGraphId() { return m_graph_id; }
+  void AppendCopyLog(const string str) { copy_log_str << str; }
 #endif
 
   const int& GetNgraphCluster() { return m_ngraph_cluster; }
@@ -126,8 +127,6 @@ class NGraphEncapsulateImpl {
   void SetLogCopies(bool value) { log_copies = value; }
 
   const string GetCopyLog() { return copy_log_str.str(); }
-
-  void SetCopyLog(const string str) { copy_log_str.str() = str; }
 
   const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
 
