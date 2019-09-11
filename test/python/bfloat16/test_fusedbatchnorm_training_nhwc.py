@@ -26,8 +26,8 @@ np.random.seed(5)
 
 # Inputs
 channels = 32
-scale = np.random.rand(channels)
-offset = np.random.rand(channels)
+scale = np.random.rand(channels).astype('f')
+offset = np.random.rand(channels).astype('f')
 input_shape_nhwc = [4, 1, 2, channels]
 
 

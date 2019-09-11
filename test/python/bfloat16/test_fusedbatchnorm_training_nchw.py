@@ -25,8 +25,9 @@ import pytest
 np.random.seed(5)
 
 # Inputs
-scale = np.random.rand(channels)
-offset = np.random.rand(channels)
+channels = 32
+scale = np.random.rand(channels).astype('f')
+offset = np.random.rand(channels).astype('f')
 input_shape_nchw = [4, channels, 1, 2]
 
 
