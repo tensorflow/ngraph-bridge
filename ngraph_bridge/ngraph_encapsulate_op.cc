@@ -237,8 +237,8 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   }
 
   NGRAPH_VLOG(2) << "Deleting from Output Copy Index map " << name();
-  NGraphCatalog::DeleteFromEncapOutputCopyIndexesMap(ng_encap_impl_.GetGraphId(),
-                                                     name());
+  NGraphCatalog::DeleteFromEncapOutputCopyIndexesMap(
+      ng_encap_impl_.GetGraphId(), name());
 
   // Remove entries related to inputs
   for (int i = 0; i < ng_encap_impl_.GetNumberOfOutputs(); i++) {
