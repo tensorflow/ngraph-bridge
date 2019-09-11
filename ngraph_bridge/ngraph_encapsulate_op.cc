@@ -275,7 +275,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event event(oss.str(), name(), "");
 
   Timer compute_time;
-  std::lock_guard<std::mutex> lock(m_compute_lock);
+  std::lock_guard<std::mutex> lock(compute_lock_);
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
                  << ng_encap_impl_.GetNgraphCluster();
 
