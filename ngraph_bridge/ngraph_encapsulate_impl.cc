@@ -587,6 +587,31 @@ void NGraphEncapsulateImpl::ClearExecMaps() {
   m_executable_pipelined_tensors_map.clear();
 }
 
+Status NGraphEncapsulateImpl::Populate(
+    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>& tpl) {
+  if (GetExecCanCreateTensor()) {
+    TF_RETURN_IF_ERROR(UpdatePipelinedTensorCache(ng_exec));
+    // Cache must contain the ng_exec at this point
+
+    try {
+      tpl = GetTensorsFromPipeline(ng_exec);
+    } catch (const std::exception& exp) {
+      return errors::Internal(
+          "Caught exception while getting pipelined tensors: ", exp.what(),
+          "\n");
+    }
+
+    auto pipeline_idx = get<0>(tpl);
+    if (pipeline_idx < 0) {
+      return errors::Internal(
+          "Expected GetTensorsFromPipeline to return an index >= 0, but got ",
+          pipeline_idx);
+    }
+  }
+  return Status::OK();
+}
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

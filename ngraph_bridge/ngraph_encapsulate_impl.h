@@ -198,6 +198,11 @@ class NGraphEncapsulateImpl {
     m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
   }
 
+  // TODO: find better name
+  Status Populate(
+      const std::shared_ptr<ngraph::runtime::Executable>&,
+      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&);
+
   void ClearExecMaps();
 
   // TF Graph for the cluster
