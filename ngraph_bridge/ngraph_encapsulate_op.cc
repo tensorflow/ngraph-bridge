@@ -319,7 +319,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   PipelinedTensorVector inp_group_from_pipeline;
   PipelinedTensorVector out_group_from_pipeline;
   if (ng_encap_impl_.GetExecCanCreateTensor()) {
-    OP_REQUIRES_OK(ctx, ng_encap_impl_.CachePipelinedTensorIfNeeded(ng_exec));
+    OP_REQUIRES_OK(ctx, ng_encap_impl_.UpdatePipelinedTensorCache(ng_exec));
     // Cache must contain the ng_exec at this point
 
     try {
