@@ -252,11 +252,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 
 #endif
 
-  ng_encap_impl_.ClearNgExecInputCache();
-  ng_encap_impl_.ClearNgExecOutputCache();
-  ng_encap_impl_.ClearNgExecMap();
-  ng_encap_impl_.ClearNgFunctionMap();
-  ng_encap_impl_.ClearNgExecPipelinedTensorMap();
+  ng_encap_impl_.ClearExecMaps();
 
   // Release the backend
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";

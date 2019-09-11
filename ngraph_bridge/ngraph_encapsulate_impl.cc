@@ -579,6 +579,14 @@ NGraphEncapsulateImpl::GetTensorsFromPipeline(
   return out_tpl;
 }
 
+void NGraphEncapsulateImpl::ClearExecMaps() {
+  m_ng_exec_input_cache_map.clear();
+  m_ng_exec_output_cache_map.clear();
+  m_ng_exec_map.clear();
+  m_ng_function_map.clear();
+  m_executable_pipelined_tensors_map.clear();
+}
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

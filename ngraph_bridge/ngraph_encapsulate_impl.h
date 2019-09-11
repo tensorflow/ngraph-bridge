@@ -146,8 +146,6 @@ class NGraphEncapsulateImpl {
     m_ng_exec_map[ng_map_key] = exec;
   }
 
-  void ClearNgExecMap() { m_ng_exec_map.clear(); }
-
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      std::shared_ptr<ngraph::Function>>
   GetNgFunctionMap() {
@@ -160,7 +158,6 @@ class NGraphEncapsulateImpl {
     m_ng_function_map[exec] = function;
   }
 
-  void ClearNgFunctionMap() { m_ng_function_map.clear(); }
   // TODO:sindhu have another get function for output_cache which is only
   // readable
   std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
@@ -174,10 +171,6 @@ class NGraphEncapsulateImpl {
           cache) {
     m_ng_exec_output_cache_map[exec] = cache;
   }
-
-  void ClearNgExecInputCache() { m_ng_exec_input_cache_map.clear(); }
-
-  void ClearNgExecOutputCache() { m_ng_exec_output_cache_map.clear(); }
 
   NGraphFreshnessTracker* GetNgraphFreshnessTracker() {
     return m_freshness_tracker;
@@ -196,10 +189,6 @@ class NGraphEncapsulateImpl {
 
   bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
 
-  void ClearNgExecPipelinedTensorMap() {
-    m_executable_pipelined_tensors_map.clear();
-  }
-
   Status UpdatePipelinedTensorCache(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
 
@@ -210,6 +199,8 @@ class NGraphEncapsulateImpl {
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
     m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
   }
+
+  void ClearExecMaps();
 
   // TF Graph for the cluster
   Graph m_graph;
