@@ -30,9 +30,9 @@ import ngraph_bridge
 
 
 # TODO move this to tools in the logs parsing functions there
-def parse_str(str):
+def parse_str(log_str):
     info_dct = {}
-    lines = str.split('\n')
+    lines = log_str.split('\n')
     # Only select lines with TF_to_NG:
     lines = filter(lambda x: 'TF_to_NG:' in x, lines)
     for ln in lines:
