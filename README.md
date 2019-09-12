@@ -129,22 +129,22 @@ When the build finishes, a new `virtualenv` directory is created in `build_cmake
 
 Add the following flags to build PlaidML and Intel GPU backends (optional):
 
-        --build_plaidml_backend
-        --build_intelgpu_backend
+    --build_plaidml_backend
+    --build_intelgpu_backend
 
 For more build options:
         
-        python3 build_ngtf.py --help
+    python3 build_ngtf.py --help
 
 Test the installation:
       
-        python3 test_ngtf.py
+    python3 test_ngtf.py
 
 This command runs all C++ and Python unit tests from the `ngraph-bridge` source tree. It also runs various TensorFlow Python tests using nGraph.
 
 To use the `ngraph-tensorflow-bridge`, activate the following `virtualenv` to start using nGraph with TensorFlow. 
 
-        source build_cmake/venv-tf-py3/bin/activate
+    source build_cmake/venv-tf-py3/bin/activate
  
 Alternatively, you can also install the TensorFlow and nGraph bridge outside of a `virtualenv`. The Python `whl` files are located in the `build_cmake/artifacts/` and `build_cmake/artifacts/tensorflow` directories, respectively.
 
@@ -152,10 +152,10 @@ Select the help option of `build_ngtf.py` script to learn more about various bui
 
 Verify that `ngraph-bridge` installed correctly:
 
-        python -c "import tensorflow as tf; print('TensorFlow version: ',tf.__version__);\
+    python -c "import tensorflow as tf; print('TensorFlow version: ',tf.__version__);\
                 import ngraph_bridge; print(ngraph_bridge.__version__)"
 
-    This will produce something like this:
+Which will produce something like this:
 
         TensorFlow version:  <1.14.0>
         nGraph bridge version: <b'0.14.0'>
@@ -165,7 +165,9 @@ Verify that `ngraph-bridge` installed correctly:
         nGraph bridge built with Grappler: False
         nGraph bridge built with Variables and Optimizers Enablement: False
 
-    Note: The version of the ngraph-tensorflow-bridge is not going to be exactly the same as when you build from source. This is due to delay in the source release and publishing the corresponding Python wheel. 
+
+**Note:** The version of the ngraph-tensorflow-bridge is not going to be exactly the same as when you build from source. This is due to delay in the source release and publishing the corresponding Python wheel. 
+
 
 ## Classify an image
 
@@ -175,43 +177,43 @@ Use TensorFlow with nGraph to classify an image using a [frozen model].
 
 Download the Inception v3 trained model and labels file:
 
-        wget https://storage.googleapis.com/download.tensorflow.org/models/inception_v3_2016_08_28_frozen.pb.tar.gz
+    wget https://storage.googleapis.com/download.tensorflow.org/models/inception_v3_2016_08_28_frozen.pb.tar.gz
 
 Extract the frozen model and labels file from the tarball:
 
-        tar xvf inception_v3_2016_08_28_frozen.pb.tar.gz
+    tar xvf inception_v3_2016_08_28_frozen.pb.tar.gz
         
 Download the image file: 
 
-        wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/data/grace_hopper.jpg
+    wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/data/grace_hopper.jpg
 
 Download the TensorFlow script:
 
-       wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/label_image.py
+    wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/label_image.py
        
 Modify the downloaded TensorFlow script to run TensorFlow with nGraph optimizations:
 
-        import ngraph_bridge
-        ...
-        config = tf.ConfigProto()
-        config_ngraph_enabled = ngraph_bridge.update_config(config)
-        sess = tf.Session(config=config_ngraph_enabled) 
+    import ngraph_bridge
+    ...
+    config = tf.ConfigProto()
+    config_ngraph_enabled = ngraph_bridge.update_config(config)
+    sess = tf.Session(config=config_ngraph_enabled) 
 
 Run the classification:
 
-        python label_image.py --graph inception_v3_2016_08_28_frozen.pb \
-                --image grace_hopper.jpg --input_layer=input \
-                --output_layer=InceptionV3/Predictions/Reshape_1 \
-                --input_height=299 --input_width=299 \
+    python label_image.py --graph inception_v3_2016_08_28_frozen.pb \
+        --image grace_hopper.jpg --input_layer=input \
+        --output_layer=InceptionV3/Predictions/Reshape_1 \
+        --input_height=299 --input_width=299 \
                 --labels imagenet_slim_labels.txt 
 
 This will print the following results:
 
-        military uniform 0.8343056
-        mortarboard 0.021869544
-        academic gown 0.010358088
-        pickelhaube 0.008008157
-        bulletproof vest 0.005350913
+    military uniform 0.8343056
+    mortarboard 0.021869544
+    academic gown 0.010358088
+    pickelhaube 0.008008157
+    bulletproof vest 0.005350913
 
 The above instructions are derived from the [TensorFlow C++ and Python Image Recognition Demo]. 
 
@@ -223,12 +225,12 @@ Adding runtime options for a CPU backend applies to training and inference.
 
 By default nGraph runs with a CPU backend. To get the best performance of the CPU backend, add the following option:
 
-        OMP_NUM_THREADS=<num_cores> KMP_AFFINITY=granularity=fine,compact,1,0 \ 
-        python label_image.py --graph inception_v3_2016_08_28_frozen.pb 
-                --image grace_hopper.jpg --input_layer=input \
-                --output_layer=InceptionV3/Predictions/Reshape_1 \
-                --input_height=299 --input_width=299 \
-                --labels imagenet_slim_labels.txt 
+    OMP_NUM_THREADS=<num_cores> KMP_AFFINITY=granularity=fine,compact,1,0 \ 
+    python label_image.py --graph inception_v3_2016_08_28_frozen.pb 
+        --image grace_hopper.jpg --input_layer=input \
+        --output_layer=InceptionV3/Predictions/Reshape_1 \
+        --input_height=299 --input_width=299 \
+        --labels imagenet_slim_labels.txt 
 
 Where `<num_cores>` equals the number of cores in your processor. 
 
@@ -250,23 +252,28 @@ results = sess.run(output_operation.outputs[0], {
 elapsed = time.time() - start
 print('Time elapsed: %f seconds' % elapsed)
 ```
-Observe that the output time runs faster than TensorFlow native (i.e., without nGraph).
+
+Observe that the output time runs faster than TensorFlow native.
 
 #### Add additional backends
 
-You can substitute the default CPU backend with a different backend such as `PLAIDML` or `INTELGPU`. Use the following API:
+You can substitute the default CPU backend with a different backend such as 
+`PLAIDML` or `INTELGPU`. Use the following API:
 
-        ngraph_bridge.set_backend('PLAIDML')
+    ngraph_bridge.set_backend('PLAIDML')
 
 To determine what backends are available on your system, use the following API:
 
-        ngraph_bridge.list_backends()
+    ngraph_bridge.list_backends()
 
 More detailed examples on how to use ngraph_bridge are located in the [examples] directory.
 
 ## Debugging 
 
-During the build, often there are missing configuration steps for building TensorFlow. If you run into build issues, first ensure that you can build TensorFlow. For debugging run time issues, see the instructions provided in the [diagnostics] directory.
+During the build, often there are missing configuration steps for building 
+TensorFlow. If you run into build issues, first ensure that you can build 
+TensorFlow. For debugging run time issues, see the instructions provided 
+in the [diagnostics] directory.
 
 ## Support
 
