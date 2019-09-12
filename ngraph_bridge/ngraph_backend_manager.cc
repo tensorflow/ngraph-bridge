@@ -54,7 +54,7 @@ Status BackendManager::CreateBackend(const string& backend_name) {
       bend_ptr = ng::runtime::Backend::create(backend_name);
     } catch (const std::exception& e) {
       return errors::Internal("Could not create backend of type ", backend_name,
-                              ". Got exception ", e.what());
+                              ". Got exception: ", e.what());
     }
 
     if (bend_ptr == nullptr) {
