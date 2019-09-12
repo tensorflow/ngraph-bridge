@@ -110,7 +110,7 @@ int GetSeedForRandomFunctions() {
                              seedstr + " ,got exception " + exp.what()};
   }
 
-  NGRAPH_VLOG(5) << "Got seed " << env_name << " : seed " << seed;
+  NGRAPH_VLOG(5) << "Got seed from " << env_name << " : " << seed;
   return seed;
 }
 
