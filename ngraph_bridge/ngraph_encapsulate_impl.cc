@@ -591,6 +591,8 @@ Status NGraphEncapsulateImpl::GetPipelineIdxAndTensors(
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>& tpl) {
   if (GetExecCanCreateTensor()) {
+    // Check if the pipelined tensors for this executable is created
+    // If not create and add them to the cache
     TF_RETURN_IF_ERROR(UpdatePipelinedTensorCache(ng_exec));
     // Cache must contain the ng_exec at this point
 
