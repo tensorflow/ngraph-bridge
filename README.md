@@ -71,7 +71,15 @@ More detail in the [ngraph bridge examples] directory.
 ### Standard installation method: build nGraph from source
 
 To use the latest version of nGraph Library, complete the following steps to
-build nGraph bridge from source. 
+build nGraph bridge from source.
+
+** Software requriements for standard installation method**
+
+- GCC 4.8 (Ubuntu), Clang/LLVM (macOS)
+- `cmake` 3.4 or higher
+- Bazel 0.25.2
+- `virtualenv` 16.0.0
+
 
 #### Note to macOS users
 
