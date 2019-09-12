@@ -29,6 +29,22 @@ from subprocess import Popen, PIPE
 import ngraph_bridge
 
 
+# TODO move this to tools in the logs parsing functions there
+def parse_str(str):
+    info_dct = {}
+    lines = str.split('\n')
+    # Only select lines with TF_to_NG:
+    lines = filter(lambda x: 'TF_to_NG:' in x, lines)
+    for ln in lines:
+        # Each line is of the form:
+        # TF_to_NG: Relu6_ngraph/_0 --> Constant_679, Relu_680, Minimum_681
+        splitvals = ln.split('TF_to_NG:')[1].split('-->')
+        info_dct[splitvals[0].strip()] = [
+            i.split('_')[0] for i in splitvals[1].strip().split(',')
+        ]
+    return info_dct
+
+
 def test_logging_placement_output():
 
     log_placement = os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
@@ -47,6 +63,13 @@ def test_logging_placement_output():
     if log_placement is not None:
         os.environ['NGRAPH_TF_LOG_PLACEMENT'] = \
             log_placement
-
-    assert output.decode(
-    ) == '\n=============New sub-graph logs=============\nNGTF_SUMMARY: Op_not_supported: None\nNGTF_SUMMARY: Op_failed_confirmation: None\nNGTF_SUMMARY: Op_failed_type_constraint: None\nEncapsulate i->j: non contraction reason histogram (Cannot be UNSUPPORTED, NOTANOP or SAMECLUSTER because unsupported ops will not be assigned an encapsulate)\n\nNGTF_SUMMARY: Summary of reasons why a pair of edge connected encapsulates did not merge\nNGTF_SUMMARY: DEADNESS: 0, BACKEND: 0, STATICINPUT: 0, PATHEXISTS: 0\nNGTF_SUMMARY: Summary of reasons why a pair of edge connected clusters did not merge\nNGTF_SUMMARY: NOTANOP: 5, UNSUPPORTED: 3, DEADNESS: 0, BACKEND: 0, SAMECLUSTER: 6, STATICINPUT: 0, PATHEXISTS: 0\n\nNGTF_SUMMARY: Number of nodes in the graph: 11\nNGTF_SUMMARY: Number of nodes marked for clustering: 7 (63% of total nodes)\nNGTF_SUMMARY: Number of nodes assigned a cluster: 7 (63% of total nodes) \t (100% of nodes marked for clustering) \t\nNGTF_SUMMARY: Number of ngraph clusters :1\nNGTF_SUMMARY: Nodes per cluster: 7\nNGTF_SUMMARY: Size of nGraph Cluster[0]:\t7\nNGTF_SUMMARY: Op_deassigned: None\n\nOP_placement:\tHost\t_SOURCE (NoOp)\nOP_placement:\tHost\t_SINK (NoOp)\nOP_placement:\tHost\tPlaceholder (Placeholder)\nOP_placement:\tHost\tRelu6 (IdentityN)\nOP_placement:\tnGraph[0]\tadd_1/y (Const)\nOP_placement:\tnGraph[0]\tmul_1/x (Const)\nOP_placement:\tnGraph[0]\tArithmeticOptimizer/ReplaceMulWithSquare_mul (Square)\nOP_placement:\tnGraph[0]\tmul_1 (Mul)\nOP_placement:\tnGraph[0]\tadd (Add)\nOP_placement:\tnGraph[0]\tadd_1 (Add)\nOP_placement:\tnGraph[0]\tRelu6_ngraph/_0 (Relu6)\n\nNGTF_SUMMARY: Types of edges:: args: 1, retvals: 2, both arg and retval: 0, free: 5, encapsulated: 6, total: 14, computed total: 14\n[array([[4., 4., 4.],\n       [4., 4., 4.]], dtype=float32)]\n\n=============Ending sub-graph logs=============\nTF_to_NG: ArithmeticOptimizer/ReplaceMulWithSquare_mul --> Multiply_673\nTF_to_NG: Relu6_ngraph/_0 --> Constant_679, Relu_680, Minimum_681\nTF_to_NG: add --> Add_677\nTF_to_NG: add_1 --> Add_678\nTF_to_NG: add_1/y --> Constant_671\nTF_to_NG: mul_1 --> Multiply_675\nTF_to_NG: mul_1/x --> Constant_672\n'
+    expected = {
+        'ArithmeticOptimizer/ReplaceMulWithSquare_mul': ['Multiply'],
+        'Relu6_ngraph/_0': ['Constant', ' Relu', ' Minimum'],
+        'add': ['Add'],
+        'add_1': ['Add'],
+        'add_1/y': ['Constant'],
+        'mul_1': ['Multiply'],
+        'mul_1/x': ['Constant']
+    }
+    assert parse_str(output.decode) == expected
