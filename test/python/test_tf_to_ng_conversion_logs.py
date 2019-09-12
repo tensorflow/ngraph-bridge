@@ -29,7 +29,7 @@ from subprocess import Popen, PIPE
 import ngraph_bridge
 
 
-def test_myoutput():
+def test_logging_placement_output():
 
     log_placement = os.environ.pop('NGRAPH_TF_LOG_PLACEMENT', None)
 
