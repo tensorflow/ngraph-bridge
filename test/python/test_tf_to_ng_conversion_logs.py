@@ -72,4 +72,4 @@ def test_logging_placement_output():
         'mul_1': ['Multiply'],
         'mul_1/x': ['Constant']
     }
-    assert parse_str(output.decode) == expected
+    assert parse_str(output.decode()) == expected
