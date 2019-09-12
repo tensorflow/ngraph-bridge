@@ -48,6 +48,8 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+std::map<string, std::vector<string>> Builder::tf_node_to_ng_node_ = {};
+
 static bool VecStrCmp(const std::vector<string>& a,
                       const std::vector<string>& b) {
   return a == b;
@@ -5094,8 +5096,6 @@ Status Builder::TranslateGraph(
 
   return Status::OK();
 }
-
-std::map<string, std::vector<string>> Builder::tf_node_to_ng_node = {};
 
 }  // namespace ngraph_bridge
 

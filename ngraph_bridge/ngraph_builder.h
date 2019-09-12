@@ -156,7 +156,7 @@ class Builder {
 
   static const std::map<string, std::vector<string>>&
   GetTFNodeToNgNodeConversionTable() {
-    return tf_node_to_ng_node;
+    return tf_node_to_ng_node_;
   }
 
  private:
@@ -165,11 +165,11 @@ class Builder {
                                        const bool& scaled, const int min_range,
                                        const int max_range, float* scale,
                                        int* offset);
-  static std::map<string, std::vector<string>> tf_node_to_ng_node;
+  static std::map<string, std::vector<string>> tf_node_to_ng_node_;
   static void InsertInLogs(string tf_op_name, string ng_op_name) {
-    auto itr = tf_node_to_ng_node.find(tf_op_name);
-    if (itr == tf_node_to_ng_node.end()) {
-      tf_node_to_ng_node.insert({tf_op_name, {ng_op_name}});
+    auto itr = tf_node_to_ng_node_.find(tf_op_name);
+    if (itr == tf_node_to_ng_node_.end()) {
+      tf_node_to_ng_node_.insert({tf_op_name, {ng_op_name}});
     } else {
       itr->second.push_back(ng_op_name);
     }
