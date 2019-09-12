@@ -85,6 +85,26 @@ class NGraphEncapsulateImpl {
       const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
       std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline);
 
+  // Get pipeline index and input and output tensor groups from executable (if
+  // they can create tensors)
+  Status GetPipelineIdxAndTensors(
+      const std::shared_ptr<ngraph::runtime::Executable>&,
+      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&);
+
+  // Once done using, return the index to indicate that those executable created
+  // tensors are free for reuse
+  Status ReturnPipelinedTensors(std::shared_ptr<ngraph::runtime::Executable>,
+                                size_t);
+
+  // Clear all maps with ng_exec as keys
+  void ClearExecMaps();
+
+  // Parse additional attributes attached to the encapsulate node and filter out
+  // the ones needed for backend->SetConfig
+  Status ParseNodeAttributes(
+      const google::protobuf::Map<string, AttrValue>& additional_attributes,
+      std::unordered_map<std::string, std::string>* additional_attribute_map);
+
 // Accessors(getters and setters) for the private data members of
 // NgraphEncapsulateImpl class
 // needed by NgraphEncapsulateOp class
@@ -180,19 +200,7 @@ class NGraphEncapsulateImpl {
 
   void SetName(string name) { m_name = name; }
 
-  Status ParseNodeAttributes(
-      const google::protobuf::Map<string, AttrValue>& additional_attributes,
-      std::unordered_map<std::string, std::string>* additional_attribute_map);
   void SetExecCanCreateTensor(bool b) { m_executable_can_create_tensor = b; }
-
-  Status ReturnPipelinedTensors(std::shared_ptr<ngraph::runtime::Executable>,
-                                size_t);
-
-  Status GetPipelineIdxAndTensors(
-      const std::shared_ptr<ngraph::runtime::Executable>&,
-      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&);
-
-  void ClearExecMaps();
 
   // TF Graph for the cluster
   Graph m_graph;
