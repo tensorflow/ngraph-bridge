@@ -3,39 +3,46 @@
   <img src="images/ngraph-logo.png">
 </p>
 
-# Intel(R) nGraph(TM) Compiler and Runtime for TensorFlow*
+#  Bridge to nGraph Compiler stack
 
-This repository contains the code needed to enable Intel(R) nGraph(TM) Compiler and 
-runtime engine for TensorFlow. Use it to speed up your TensorFlow training and 
-inference workloads. The nGraph Library and runtime suite can also be used to 
-customize and deploy Deep Learning inference models that will "just work" with 
-a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the 
-[Intel(R) Nervana(TM) NNP](https://itpeernetwork.intel.com/inteldcisummit-artificial-intelligence/).
+This submodule contains the instructions and code needed to build and install 
+`ngraph-tensorflow-bridge`. The bridge is an extension of the [nGraph Compiler stack] 
+and supports [a variety of workloads] used by TensorFlow and other native 
+data science frameworks, including:
+
+* Image generation
+* Image recognition
+* Image segmentation
+* Object detection
+* Generative adversarial network
+* Reinforcement learning
+* Language translation
+* Recommender systems
+
+At the bare metal level, nGraph works on a variety of backends: CPU, 
+[GPU via PlaidML], and the [upcoming] Intel&copy; Nervana&reg; Neural Network 
+Processor (NNP) family of chips, which are being designed to deliver additional 
+acceleration for training and inference cycles.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/tensorflow/ngraph-bridge/blob/master/LICENSE)
 [![Build Status](https://badge.buildkite.com/180bbf814f1a884219849b4838cbda5fa1e03715e494185be3.svg?branch=master)](https://buildkite.com/ngraph/ngtf-cpu-ubuntu)
 [![Build Status](https://badge.buildkite.com/ae8d39ef4a18eb238b58ab0637fb97e85b86e85822a08b96d1.svg?branch=master)](https://buildkite.com/ngraph/ngtf-cpu-centos)
 [![Build Status](https://badge.buildkite.com/0aeaff43e378d387a160d30083f203f7147f010e3fb15b01d1.svg?branch=master)](https://buildkite.com/ngraph/ngtf-cpu-ubuntu-binary-tf)
 
-## Installation
+## Easy installation method
 
-### Software requirements
+The easiest way to get started is to use the latest PyPI `ngraph-tensorflow-bridge`, 
+which has instructions for Linux* systems, and tips for users of Mac OS X.
 
-|Using pre-built packages| Building from source|
-| -----------------------|-------------------|
-|Python 3| Python 3|
-|TensorFlow v1.14|GCC 4.8 (Ubuntu), Clang/LLVM (macOS)|
-|        |`cmake` 3.4 or higher|
-|        |Bazel 0.25.2|
-|        |`virtualenv` 16.0.0|
-|        ||
+You can install TensorFlow and nGraph to a virtual environment; otherwise, the 
+code will install to a system location.
 
 
-### Use pre-built packages
+**Software requirements for easy installation method**
 
- nGraph bridge enables you to use the nGraph Library with TensorFlow.
- Complete the following steps to install a pre-built nGraph bridge for
- TensorFlow.
+- Python 3                
+- TensorFlow v1.14
+
 
 1. Install TensorFlow:
 
@@ -45,7 +52,23 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 
         pip install -U ngraph-tensorflow-bridge
    
-### Build nGraph from source
+That's it! Now you can test the installation by running the following command:
+
+    python -c "import tensorflow as tf; print('TensorFlow version: ',tf.__version__);import ngraph_bridge; print(ngraph_bridge.__version__)"
+
+
+Output will look something like:
+
+    TensorFlow version:  [version]
+    nGraph bridge version: b'[version]'
+    nGraph version used for this build: b'[version-rc-hash]'
+    TensorFlow version used for this build: v[version-hash]
+    CXX11_ABI flag used for this build: boolean
+
+More detail in the [ngraph bridge examples] directory. 
+
+
+### Standard installation method: build nGraph from source
 
 To use the latest version of nGraph Library, complete the following steps to
 build nGraph bridge from source. 
@@ -255,22 +278,25 @@ improve it:
   accepted, your pull request will be merged to the repository.
 
 
-## About Intel(R) nGraph(TM)
+## About
 
-See the full documentation here:  <http://ngraph.nervanasys.com/docs/latest>
+See the latest documentation here:  <http://ngraph.nervanasys.com/docs/latest>
  
 [linux-based install instructions on the TensorFlow website]:https://www.tensorflow.org/install/install_linux
-[tensorflow]:https://github.com/tensorflow/tensorflow.git
-[open-source C++ library, compiler and runtime]: http://ngraph.nervanasys.com/docs/latest/
+[nGraph Compiler stack]: http://ngraph.nervanasys.com/docs/latest/
+[GPU via PlaidML]: http://ngraph.nervanasys.com/docs/latest/buildlb.html#building-ngraph-plaidml-from-source
+[a variety of workloads]: http://ngraph.nervanasys.com/docs/latest/frameworks/validated/list.html
+[upcoming]: https://itpeernetwork.intel.com/inteldcisummit-artificial-intelligence
+[ngraph bridge examples]:https://github.com/tensorflow/ngraph-bridge/blob/master/examples/README.md
 [Github issues]: https://github.com/tensorflow/ngraph-bridge/issues
 [pull request]: https://github.com/tensorflow/ngraph-bridge/pulls
-[DSO]:http://csweb.cs.wfu.edu/~torgerse/Kokua/More_SGI/007-2360-010/sgi_html/ch03.html
 [bazel version]: https://github.com/bazelbuild/bazel/releases/tag/0.25.2
 [TensorFlow configuration]: https://www.tensorflow.org/install/source
 [diagnostics]:diagnostics/README.md
 [examples]:examples/README.md
-[ops]:http://ngraph.nervanasys.com/docs/latest/ops/index.html
-[nGraph]:https://github.com/NervanaSystems/ngraph 
+[ops]:https://ngraph.nervanasys.com/docs/latest/ops/index.html
+[nGraph]:https://github.com/NervanaSystems/ngraph
+[many workloads]: https://aipg-rancher.intel.com/jenkins/algo/job/ngraph-ci-premerge/job/PR-3553/2/artifact/doc/sphinx/build/html/frameworks/validated/list.html
 [ngraph-bridge]:https://github.com/tensorflow/ngraph-bridge.git
 [frozen model]: https://www.tensorflow.org/guide/extend/model_files#freezing
 [TensorFlow C++ and Python Image Recognition Demo]: https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/label_image
