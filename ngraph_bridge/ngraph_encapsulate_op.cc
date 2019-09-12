@@ -193,11 +193,11 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   BackendManager::SetConfig(ng_encap_impl_.GetOpBackend(),
                             additional_attribute_map);
 
-  ng_encap_impl_.SetExecCanCreateTensor(
+  bool exec_can_create_tensor =
       BackendManager::GetBackend(ng_encap_impl_.GetOpBackend())
-          ->executable_can_create_tensors());
-  NGRAPH_VLOG(5) << "Executable can "
-                 << (ng_encap_impl_.GetExecCanCreateTensor() ? "" : "not")
+          ->executable_can_create_tensors();
+  ng_encap_impl_.SetExecCanCreateTensor(exec_can_create_tensor);
+  NGRAPH_VLOG(5) << "Executable can " << (exec_can_create_tensor ? "" : "not")
                  << " create tensors";
 
   event.Stop();
@@ -318,7 +318,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   PipelinedTensorVector out_group_from_pipeline;
 
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> tmp_tpl;
-  OP_REQUIRES_OK(ctx, ng_encap_impl_.Populate(ng_exec, tmp_tpl));
+  OP_REQUIRES_OK(ctx,
+                 ng_encap_impl_.GetPipelineIdxAndTensors(ng_exec, tmp_tpl));
   std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
       tmp_tpl;
 
@@ -664,16 +665,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   int time_copy_output_tensors_to_host =
       copy_output_tensors_to_host.ElapsedInMS();
 
-  if (ng_encap_impl_.GetExecCanCreateTensor()) {
-    try {
-      ng_encap_impl_.ReturnPipelinedTensors(ng_exec, pipeline_idx);
-    } catch (const std::exception& exp) {
-      OP_REQUIRES(ctx, false,
-                  errors::Internal(
-                      "Caught exception while returning pipelined tensors: ",
-                      exp.what(), "\n"));
-    }
-  }
+  OP_REQUIRES_OK(ctx,
+                 ng_encap_impl_.ReturnPipelinedTensors(ng_exec, pipeline_idx));
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "

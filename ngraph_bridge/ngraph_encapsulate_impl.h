@@ -185,21 +185,10 @@ class NGraphEncapsulateImpl {
       std::unordered_map<std::string, std::string>* additional_attribute_map);
   void SetExecCanCreateTensor(bool b) { m_executable_can_create_tensor = b; }
 
-  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
+  Status ReturnPipelinedTensors(std::shared_ptr<ngraph::runtime::Executable>,
+                                size_t);
 
-  Status UpdatePipelinedTensorCache(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec);
-
-  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
-  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
-
-  void ReturnPipelinedTensors(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
-    m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
-  }
-
-  // TODO: find better name
-  Status Populate(
+  Status GetPipelineIdxAndTensors(
       const std::shared_ptr<ngraph::runtime::Executable>&,
       std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&);
 
@@ -249,6 +238,12 @@ class NGraphEncapsulateImpl {
       m_executable_pipelined_tensors_map;
 
   int m_depth{2};  // TODO make this settable
+
+  Status UpdatePipelinedTensorCache(
+      std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
+  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
 };
 
 }  // namespace ngraph_bridge

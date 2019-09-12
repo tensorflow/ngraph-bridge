@@ -587,7 +587,7 @@ void NGraphEncapsulateImpl::ClearExecMaps() {
   m_executable_pipelined_tensors_map.clear();
 }
 
-Status NGraphEncapsulateImpl::Populate(
+Status NGraphEncapsulateImpl::GetPipelineIdxAndTensors(
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>& tpl) {
   if (GetExecCanCreateTensor()) {
@@ -607,6 +607,20 @@ Status NGraphEncapsulateImpl::Populate(
       return errors::Internal(
           "Expected GetTensorsFromPipeline to return an index >= 0, but got ",
           pipeline_idx);
+    }
+  }
+  return Status::OK();
+}
+
+Status NGraphEncapsulateImpl::ReturnPipelinedTensors(
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
+  if (GetExecCanCreateTensor()) {
+    try {
+      m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
+    } catch (const std::exception& exp) {
+      return errors::Internal(
+          "Caught exception while returning pipelined tensors: ", exp.what(),
+          "\n");
     }
   }
   return Status::OK();
