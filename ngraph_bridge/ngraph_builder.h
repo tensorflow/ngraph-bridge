@@ -144,12 +144,36 @@ class Builder {
                 const ngraph::element::Type>>&
   TF_NGRAPH_CONST_MAP();
 
+  template <class TOpType, class... TArg>
+  static std::shared_ptr<TOpType> ConstructNgNode(const std::string& op_name,
+                                                  TArg&&... Args) {
+    auto ng_node = std::make_shared<TOpType>(std::forward<TArg>(Args)...);
+    ng_node->set_friendly_name(op_name);
+    ng_node->add_provenance_tag(op_name);
+    InsertInLogs(op_name, ng_node->get_name());
+    return ng_node;
+  }
+
+  static const std::map<string, std::vector<string>>&
+  GetTFNodeToNgNodeConversionTable() {
+    return tf_node_to_ng_node;
+  }
+
  private:
   static void ComputeScaleOffsetFolded(const uint& num_bits,
                                        const bool& unsigned_type,
                                        const bool& scaled, const int min_range,
                                        const int max_range, float* scale,
                                        int* offset);
+  static std::map<string, std::vector<string>> tf_node_to_ng_node;
+  static void InsertInLogs(string tf_op_name, string ng_op_name) {
+    auto itr = tf_node_to_ng_node.find(tf_op_name);
+    if (itr == tf_node_to_ng_node.end()) {
+      tf_node_to_ng_node.insert({tf_op_name, {ng_op_name}});
+    } else {
+      itr->second.push_back(ng_op_name);
+    }
+  }
 };
 
 }  // namespace ngraph_bridge
