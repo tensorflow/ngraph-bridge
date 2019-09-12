@@ -317,36 +317,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   PipelinedTensorVector inp_group_from_pipeline;
   PipelinedTensorVector out_group_from_pipeline;
 
-  if (true) {
-    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> tmp_tpl;
-    OP_REQUIRES_OK(ctx, ng_encap_impl_.Populate(ng_exec, tmp_tpl));
-    std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
-        tmp_tpl;
-
-  } else {
-    if (ng_encap_impl_.GetExecCanCreateTensor()) {
-      OP_REQUIRES_OK(ctx, ng_encap_impl_.UpdatePipelinedTensorCache(ng_exec));
-      // Cache must contain the ng_exec at this point
-
-      try {
-        std::tie(pipeline_idx, inp_group_from_pipeline,
-                 out_group_from_pipeline) =
-            ng_encap_impl_.GetTensorsFromPipeline(ng_exec);
-      } catch (const std::exception& exp) {
-        OP_REQUIRES(ctx, false,
-                    errors::Internal(
-                        "Caught exception while getting pipelined tensors: ",
-                        exp.what(), "\n"));
-      }
-
-      if (pipeline_idx < 0) {
-        OP_REQUIRES(ctx, false, errors::Internal(
-                                    "Expected GetTensorsFromPipeline to return "
-                                    "an index >= 0, but got ",
-                                    pipeline_idx));
-      }
-    }
-  }
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> tmp_tpl;
+  OP_REQUIRES_OK(ctx, ng_encap_impl_.Populate(ng_exec, tmp_tpl));
+  std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
+      tmp_tpl;
 
   if (ng_encap_impl_.GetNgraphFreshnessTracker() == nullptr) {
     auto creator = [](NGraphFreshnessTracker** tracker) {
