@@ -19,7 +19,7 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
 
-#include "enable_variable_ops/ngraph_replace_op_utilities.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 #include "enable_variable_ops/ngraph_replace_variable_modifiers.h"
 #include "gtest/gtest.h"
 #include "logging/tf_graph_writer.h"
