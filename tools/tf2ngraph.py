@@ -94,9 +94,17 @@ class Tf2ngraphJson(object):
             json.dump(dict_to_dump, fp)
 
 
+def check_string_is_integer(s):
+    try:
+        _ = int(s)
+    except:
+        return False
+    return True
+
+
 def update_config_to_include_custom_config(config, backend, device_id,
                                            backend_optional_params, shape_hints,
-                                           do_aot):
+                                           do_aot, pipeline_depth):
     rewriter_options = rewriter_config_pb2.RewriterConfig()
     rewriter_options.meta_optimizer_iterations = (
         rewriter_config_pb2.RewriterConfig.ONE)
@@ -105,6 +113,12 @@ def update_config_to_include_custom_config(config, backend, device_id,
     ngraph_optimizer.name = "ngraph-optimizer"
     ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
     ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
+    if (pipeline_depth is not ''):
+        assert check_string_is_integer(
+            pipeline_depth
+        ), "Could not convert pipeline depth string to integer: " + pipeline_depth
+        ngraph_optimizer.parameter_map[
+            "pipeline_depth"].s = pipeline_depth.encode()
     for k in backend_optional_params:
         ngraph_optimizer.parameter_map[k].s = backend_optional_params[k].encode(
         )
@@ -131,7 +145,7 @@ def update_config_to_include_custom_config(config, backend, device_id,
 
 def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
                                   device_id, backend_optional_params,
-                                  shape_hints, do_aot):
+                                  shape_hints, do_aot, pipeline_depth):
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
@@ -155,7 +169,7 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
         session_config, ng_backend, device_id, backend_optional_params,
-        shape_hints, do_aot)
+        shape_hints, do_aot, pipeline_depth)
     output_gdef = tf_optimizer.OptimizeGraph(
         session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
     return output_gdef
@@ -234,6 +248,8 @@ def prepare_argparser(formats):
         "--ng_backend", default='CPU', help="Ngraph backend. Eg, NNPI")
     parser.add_argument("--device_id", default='', help="Device id. Eg, 0")
     parser.add_argument(
+        "--pipeline_depth", default='', help="Depth of pipeline. Eg, 2")
+    parser.add_argument(
         "--config_file",
         default='',
         help=
@@ -307,7 +323,8 @@ allowed_formats = {
 
 
 def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
-            device_id, backend_optional_params, shape_hints, do_aot):
+            device_id, backend_optional_params, shape_hints, do_aot,
+            pipeline_depth):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -330,7 +347,7 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     attach_device(input_gdef)
     output_gdef = run_ngraph_grappler_optimizer(
         input_gdef, output_nodes, ng_backend, device_id,
-        backend_optional_params, shape_hints, do_aot)
+        backend_optional_params, shape_hints, do_aot, pipeline_depth)
     save_model(output_gdef, out_format, out_loc)
 
 
@@ -348,7 +365,7 @@ def main():
         args.config_file)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
             args.ng_backend, args.device_id, backend_optional_params,
-            shape_hints, args.precompile)
+            shape_hints, args.precompile, args.pipeline_depth)
     print('Converted the model. Exiting now')
 
 

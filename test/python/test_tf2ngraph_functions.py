@@ -35,23 +35,30 @@ from common import NgraphTest
 
 class Testtf2ngraphHelperFunctions(NgraphTest):
 
-    def test_config_updater_api(self):
+    @pytest.mark.parametrize(("pipeline",), (
+        ('',),
+        ('2',),
+    ))
+    def test_config_updater_api(self, pipeline):
         config = update_config_to_include_custom_config(tf.ConfigProto(), 'CPU',
                                                         '0', {
                                                             'abc': '1',
                                                             'def': '2'
                                                         }, [{
                                                             'x': [1]
-                                                        }], True)
+                                                        }], True, pipeline)
         assert config.HasField('graph_options')
         assert config.graph_options.HasField('rewrite_options')
         custom_opts = config.graph_options.rewrite_options.custom_optimizers
         assert len(custom_opts) == 1
         assert custom_opts[0].name == 'ngraph-optimizer'
-        assert set(custom_opts[0].parameter_map.keys()) == {
+        expected = {
             'abc', 'ngraph_backend', 'def', 'device_id', 'aot_requested',
             'shape_hint_0'
         }
+        if pipeline is not '':
+            expected.add('pipeline_depth')
+        assert set(custom_opts[0].parameter_map.keys()) == expected
         retrieved_dict = {}
         for key, val in custom_opts[0].parameter_map.items():
             # For everything other than shape_hint_0, the values are simple strings
