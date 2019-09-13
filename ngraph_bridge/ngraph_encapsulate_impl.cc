@@ -177,7 +177,11 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       int input_tensors_bytes_free = 0;
       evicted_ng_exec = m_ng_exec_map[m_lru.back()];
       m_ng_exec_map.erase(m_lru.back());
-      m_ng_function_map.erase(evicted_ng_exec);
+      if (m_do_aot) {
+        m_serialized_ng_function_map.erase(evicted_ng_exec);
+      } else {
+        m_ng_function_map.erase(evicted_ng_exec);
+      }
 
       // Call delete function here for the erased func
       op_backend->remove_compiled_function(evicted_ng_exec);
@@ -240,8 +244,12 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     ngraph::Event::write_trace(event_compile);
 
     SetNgExecMap(signature, ng_exec);
-    // caching ng_function to serialize to ngraph if needed
-    SetNgFunctionMap(ng_exec, ng_function);
+    if (m_do_aot) {
+      m_serialized_ng_function_map[ng_exec] = serialized_ng_func;
+    } else {
+      // caching ng_function to serialize to ngraph if needed
+      SetNgFunctionMap(ng_exec, ng_function);
+    }
 
     m_lru.push_front(signature);
     // Memory after

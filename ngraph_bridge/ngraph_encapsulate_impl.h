@@ -239,6 +239,8 @@ class NGraphEncapsulateImpl {
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      std::shared_ptr<ngraph::Function>>
       m_ng_function_map;
+  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>, std::string>
+      m_serialized_ng_function_map;
 
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
