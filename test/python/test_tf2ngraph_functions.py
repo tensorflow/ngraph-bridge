@@ -52,23 +52,25 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
         custom_opts = config.graph_options.rewrite_options.custom_optimizers
         assert len(custom_opts) == 1
         assert custom_opts[0].name == 'ngraph-optimizer'
-        expected = {
+        expected_keys = {
             'abc', 'ngraph_backend', 'def', 'device_id', 'aot_requested',
             'shape_hint_0'
         }
-        if pipeline is not '':
-            expected.add('pipeline_depth')
-        assert set(custom_opts[0].parameter_map.keys()) == expected
-        retrieved_dict = {}
-        for key, val in custom_opts[0].parameter_map.items():
-            # For everything other than shape_hint_0, the values are simple strings
-            # shape_hint_0 contains a complex data structure representing shape hint
-            if (key != "shape_hint_0"):
-                retrieved_dict[key] = val.ListFields()[0][1].decode()
-        assert retrieved_dict == {
+        expected_dict = {
             'abc': '1',
             'def': '2',
             'ngraph_backend': 'CPU',
             'device_id': '0',
             'aot_requested': '1'
         }
+        if pipeline is not '':
+            expected_keys.add('pipeline_depth')
+            expected_dict['pipeline_depth'] = pipeline
+        assert set(custom_opts[0].parameter_map.keys()) == expected_keys
+        retrieved_dict = {}
+        for key, val in custom_opts[0].parameter_map.items():
+            # For everything other than shape_hint_0, the values are simple strings
+            # shape_hint_0 contains a complex data structure representing shape hint
+            if (key != "shape_hint_0"):
+                retrieved_dict[key] = val.ListFields()[0][1].decode()
+        assert retrieved_dict == expected_dict
