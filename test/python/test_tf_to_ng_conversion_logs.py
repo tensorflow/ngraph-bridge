@@ -65,7 +65,8 @@ def test_logging_placement_output():
             log_placement
     expected = {
         'ArithmeticOptimizer/ReplaceMulWithSquare_mul': ['Multiply'],
-        'Relu6_ngraph/_0': ['Constant', ' Relu', ' Minimum'],
+        ('Relu6_ngraph/_0' if ngraph_bridge.is_grappler_enabled() else 'Relu6'):
+        ['Constant', ' Relu', ' Minimum'],
         'add': ['Add'],
         'add_1': ['Add'],
         'add_1/y': ['Constant'],
