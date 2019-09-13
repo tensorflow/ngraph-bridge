@@ -60,7 +60,7 @@ void PrintTensorAllValues(
     int64 max_entries);  // print max_entries of elements in the Tensor
 
 // Generating Random Seed
-int GetSeedForRandomFunctions();
+unsigned int GetSeedForRandomFunctions();
 
 // Assignment Functions
 // TODO : Retire AssignInputValuesAnchor and AssignInputValuesRandom

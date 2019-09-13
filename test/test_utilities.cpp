@@ -94,9 +94,9 @@ void SetNGraphTFBackend(const string& backend_name) {
 }
 
 // Generating Random Seed
-int GetSeedForRandomFunctions() {
+unsigned int GetSeedForRandomFunctions() {
   string env_name = "NGRAPH_TF_SEED";
-  int seed = static_cast<unsigned>(time(0));
+  unsigned int seed = static_cast<unsigned>(time(0));
   if (!IsEnvVariableSet(env_name)) {
     NGRAPH_VLOG(5) << "Got seed " << seed;
     return seed;
@@ -104,10 +104,14 @@ int GetSeedForRandomFunctions() {
 
   string seedstr = GetEnvVariable(env_name);
   try {
-    seed = stoi(seedstr);
+    int temp_seed = stoi(seedstr);
+    if (temp_seed < 0) {
+      throw std::runtime_error{"Cannot set negative seed"};
+    }
+    seed = static_cast<unsigned>(temp_seed);
   } catch (const std::exception& exp) {
     throw std::runtime_error{"Cannot set " + env_name + " with value " +
-                             seedstr + " ,got exception " + exp.what()};
+                             seedstr + " ,got exception : " + exp.what()};
   }
 
   NGRAPH_VLOG(5) << "Got seed " << env_name << " : seed " << seed;

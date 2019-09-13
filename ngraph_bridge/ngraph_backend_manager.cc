@@ -37,7 +37,7 @@ map<std::string, int> BackendManager::ref_count_each_backend_;
 Status BackendManager::SetBackendName(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_name_mutex_);
   auto status = BackendManager::CanCreateBackend(backend_name);
-  if (status != Status::OK()) {
+  if (!status.ok()) {
     return errors::Internal("Failed to set backend: ", status.error_message());
   }
   BackendManager::ng_backend_name_ = backend_name;
@@ -144,7 +144,7 @@ bool BackendManager::IsSupportedBackend(const string& backend_name) {
 
 Status BackendManager::CanCreateBackend(const string& backend_string) {
   auto status = BackendManager::CreateBackend(backend_string);
-  if (status == Status::OK()) {
+  if (status.ok()) {
     // The call to create backend increases the ref count
     // so releasing the backend here
     BackendManager::ReleaseBackend(backend_string);
@@ -165,7 +165,7 @@ Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
   // NGRAPH_TF_BACKEND is set
   string backend_env = std::string(ng_backend_env_value);
   auto status = BackendManager::CanCreateBackend(backend_env);
-  if (status != Status::OK()) {
+  if (!status.ok()) {
     return errors::Internal("NGRAPH_TF_BACKEND: ", status.error_message());
   }
 
