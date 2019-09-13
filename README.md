@@ -298,9 +298,9 @@ improve it:
 See the latest documentation here:  <http://ngraph.nervanasys.com/docs/latest>
  
 [linux-based install instructions on the TensorFlow website]:https://www.tensorflow.org/install/install_linux
-[nGraph Compiler stack]: http://ngraph.nervanasys.com/docs/latest/
-[GPU via PlaidML]: http://ngraph.nervanasys.com/docs/latest/buildlb.html#building-ngraph-plaidml-from-source
-[a variety of workloads]: http://ngraph.nervanasys.com/docs/latest/frameworks/validated/list.html
+[nGraph Compiler stack]: https://ngraph.nervanasys.com/docs/latest/
+[GPU via PlaidML]: https://ngraph.nervanasys.com/docs/latest/buildlb.html#building-ngraph-plaidml-from-source
+[a variety of workloads]: https://ngraph.nervanasys.com/docs/latest/frameworks/validated/list.html
 [upcoming]: https://itpeernetwork.intel.com/inteldcisummit-artificial-intelligence
 [ngraph bridge examples]:https://github.com/tensorflow/ngraph-bridge/blob/master/examples/README.md
 [Github issues]: https://github.com/tensorflow/ngraph-bridge/issues

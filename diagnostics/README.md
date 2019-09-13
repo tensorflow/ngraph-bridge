@@ -63,7 +63,7 @@ To get a **full** dump use the following set of flags
 * For example usage, take a look at the ```model_test/verify_model.py``` in the diagnostics folder
 
 
-## Protobuf Visualization
+## Protobuf visualization
 
 The [ngtf_graph_viewer] script can convert a protobuf (`pb` or `pbtxt`) into a 
 dot file or a TB log, which can be viewed using TB. If the input is a `pbtxt`, 
