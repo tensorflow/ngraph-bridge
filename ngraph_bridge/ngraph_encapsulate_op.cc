@@ -198,6 +198,13 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
                  << (ng_encap_impl.GetExecCanCreateTensor() ? "" : "not")
                  << " create tensors";
 
+  for (auto itx : node_def.attr()) {
+    if (itx.first == "_ngraph_pipeline_depth") {
+      ng_encap_impl.SetPipelineDepth(stoi(itx.second.s()));
+      break;
+    }
+  }
+
   event.Stop();
   ngraph::Event::write_trace(event);
 }

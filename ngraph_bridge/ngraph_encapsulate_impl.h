@@ -196,6 +196,8 @@ class NGraphEncapsulateImpl {
 
   bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
 
+  void SetPipelineDepth(int depth) { m_depth = depth; }
+
   void ClearNgExecPipelinedTensorMap() {
     m_executable_pipelined_tensors_map.clear();
   }
@@ -254,7 +256,7 @@ class NGraphEncapsulateImpl {
                      PipelinedTensorsStore>
       m_executable_pipelined_tensors_map;
 
-  int m_depth{2};  // TODO make this settable
+  int m_depth{2};
 };
 
 }  // namespace ngraph_bridge
