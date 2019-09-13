@@ -93,7 +93,7 @@ void SetNGraphTFBackend(const string& backend_name) {
   SetEnvVariable("NGRAPH_TF_BACKEND", backend_name);
 }
 
-// Generating Random Seed
+// Generating Seed for PseudoRandomNumberGenerator
 unsigned int GetSeedForRandomFunctions() {
   string env_name = "NGRAPH_TF_SEED";
   unsigned int seed = static_cast<unsigned>(time(0));

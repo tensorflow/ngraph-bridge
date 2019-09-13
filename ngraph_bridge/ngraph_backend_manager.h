@@ -59,7 +59,9 @@ class BackendManager {
 
   // Returns True if the backend is supported
   // Searches the registered backends with nGraph to determine this
-  // Meant to find whether CPU, GPU is supported or not
+  // Meant to be used without device_id
+  // For eg. IsSupportedBackend("GPU") --> returns True
+  //         IsSupportedBackend("GPU:0") --> returns False
   static bool IsSupportedBackend(const string& backend_name);
 
   // Set the BackendManager backend ng_backend_name_
@@ -70,7 +72,9 @@ class BackendManager {
 
   // Tries to create a backend using the backend_string
   // which is a combination of backend_name:device_id
-  // Meant to check whether a backend with GPU:0 can be created or not
+  // Meant to check whether a backend (with or without device id)
+  // can be created or not
+  // For e.g CanCreateBackend("GPU") and CanCreateBackend("GPU:0")
   static Status CanCreateBackend(const string& backend_string);
 
   static void ReleaseBackend(const string& backend_name);
