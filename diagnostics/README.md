@@ -1,7 +1,7 @@
 # Diagnostics tools
 
-What follows here is a collection of tools to help triage and diagnose 
-misbehaving networks.
+What follows here is a collection of tools to help triage 
+and diagnose or troubleshoot.
 
 Notation used:
 
@@ -18,7 +18,7 @@ See the [nGraph Library documentation] for how to enable tracing and logs.
 
 ### Capturing logs in text file
 
-NGTF uses the std error to output its logs, so it is necessary to pipe 
+**NGTF** uses the std error to output its logs, so it is necessary to pipe 
 it correctly to capture all logs.
 
     python run_TF_network.py > log.txt 2>&1
@@ -31,17 +31,17 @@ To get a **full** dump use the following set of flags
 
 ## Debug flags
 
-* Generate nGraph-level serialized graphs .json: ```NGRAPH_ENABLE_SERIALIZE=1```
-* Generate nGraph-level function timelines: ```NGRAPH_CPU_TRACING=1```
-* Generate ngraph-tf logging info for different passes: ```NGRAPH_TF_VLOG_LEVEL=5```
-* Generate op placement log at stdout: ```NGRAPH_TF_LOG_PLACEMENT=1```
-* Dump Encapsulated TF Graphs `ngraph_cluster_<cluster_num>`: ```NGRAPH_TF_DUMP_CLUSTERS=1```
-* Dump TF graphs for different passes ```NGRAPH_TF_DUMP_GRAPHS=1```
-  precapture, capture, unmarked, marked, clustered, declustered, encapsulated
-* Enable TF CPP Logs: ```TF_CPP_MIN_VLOG_LEVEL=1``` 
-* Dump graphs with final clusters assigned. Use this to view TF computation 
-  graph with colored nodes indicating clusters: ```NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS=1```
-
+|Name                          |Description                            |
+|------------------------------|---------------------------------------|
+| `NGRAPH_ENABLE_SERIALIZE=1`  | Generate nGraph-level serialized graphs|
+| `NGRAPH_CPU_TRACING=1`       | Generate nGraph-level function timelines|
+| `NGRAPH_TF_VLOG_LEVEL=5`     | Generate ngraph-tf logging info for different passes|
+| `NGRAPH_TF_LOG_PLACEMENT=1`  | Generate op placement log at stdout   |
+| `NGRAPH_TF_DUMP_CLUSTERS=1`  | Dump Encapsulated TF Graphs `ngraph_cluster_<cluster_num>` |
+| `NGRAPH_TF_DUMP_GRAPHS=1`    | Dump TF graphs for different passes: precapture, capture, unmarked, marked, clustered, declustered, encapsulated |
+| `TF_CPP_MIN_VLOG_LEVEL=1`    | Enable TF CPP logs                    |
+| `NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS=1` | Dump graphs with final clusters assigned. Use this to view TF computation graph with colored nodes indicating clusters|
+|
 
 ### Visualizing encapsulates using TB
 
@@ -65,13 +65,13 @@ To get a **full** dump use the following set of flags
 
 ## Protobuf visualization
 
-The [ngtf_graph_viewer] script can convert a protobuf (`pb` or `pbtxt`) into a 
+A `ngtf_graph_viewer` script can convert a protobuf (`pb` or `pbtxt`) into a 
 dot file or a TB log, which can be viewed using TB. If the input is a `pbtxt`, 
-[ngtf_graph_viewer] can also sanitize node names to remove underscores from 
-the front of node names. It can also prepend strings in front of certain node 
-names, a feature which can be used to append encapsulate information for 
-clustering nodes together. [ngtf_graph_viewer] has been tested on Python 2 
-TF-1.9, but should work with Python 3 and other versions of TF.
+it can also sanitize node names to remove underscores from the front of node 
+names. It can also prepend strings in front of certain node names, a feature 
+which can be used to append encapsulate information for clustering nodes 
+together. (Tested on Python 2 TF-1.9; however, it should work with Python 3 
+and other versions of TF.)
 
 Run the following for detailed help:
 
@@ -80,11 +80,11 @@ Run the following for detailed help:
 
 ### Examples for command-line use
 
-* pbtxt to TB: ```python ngtf_graph_viewer.py pbtxtfile.pbtxt ./vis```
-* pbtxt to dot: ```python ngtf_graph_viewer.py -v 0 pbtxtfile.pbtxt ./vis```
-* pb to TB: ```python ngtf_graph_viewer.py -b pbtxtfile.pb ./vis```
-* pb to dot: ```python ngtf_graph_viewer.py -b -v 0 pbtxtfile.pb ./vis```
-* pbtxt to TB after prepending cluster information. See **Visualizing encapsulates using TB**: ```python ngtf_graph_viewer.py -c nodemap.pkl pbtxtfile.pbtxt ./vis```
+* `pbtxt` to TB: ```python ngtf_graph_viewer.py pbtxtfile.pbtxt ./vis```
+* `pbtxt` to dot: ```python ngtf_graph_viewer.py -v 0 pbtxtfile.pbtxt ./vis```
+* `pb` to TB: ```python ngtf_graph_viewer.py -b pbtxtfile.pb ./vis```
+* `pb` to dot: ```python ngtf_graph_viewer.py -b -v 0 pbtxtfile.pb ./vis```
+* `pbtxt` to TB (after prepending cluster information): ```python ngtf_graph_viewer.py -c nodemap.pkl pbtxtfile.pbtxt ./vis``` 
 
 
 ### Some other use cases
