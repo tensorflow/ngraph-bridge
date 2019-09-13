@@ -36,19 +36,10 @@ class TestDumpingGraphs(NgraphTest):
         return graph.get_tensor_by_name(tag + tname)
 
     # Parameterized to have 0, 1 or more slashes
-    @pytest.mark.parametrize(('import_name_tag',), (
-        (None,),
-        ("",),
-        ("import/scope1/scope2",),
-        ("hello",),
-        ("hello/",),
-        ("hello//",),
-        ("hello//a",),
-        (".",),
-        ("./",),
-        ("a/.",),
-        ("a/./b/",)
-    ))
+    @pytest.mark.parametrize(
+        ('import_name_tag',),
+        ((None,), ("",), ("import/scope1/scope2",), ("hello",), ("hello/",),
+         ("hello//",), ("hello//a",), (".",), ("./",), ("a/.",), ("a/./b/",)))
     def test(self, import_name_tag):
         os.environ['NGRAPH_ENABLE_SERIALIZE'] = '1'
         os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
