@@ -246,10 +246,11 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     ngraph::Event::write_trace(event_compile);
 
     SetNgExecMap(signature, ng_exec);
+
+    // caching ng_function to serialize to ngraph if needed
     if (m_do_aot) {
       m_serialized_ng_function_map[ng_exec] = serialized_ng_func;
     } else {
-      // caching ng_function to serialize to ngraph if needed
       SetNgFunctionMap(ng_exec, ng_function);
     }
 
