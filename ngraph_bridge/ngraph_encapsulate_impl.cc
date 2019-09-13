@@ -547,10 +547,22 @@ Status NGraphEncapsulateImpl::CachePipelinedTensorIfNeeded(
     PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
     PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
     for (size_t i = 0; i < num_inputs; i++) {
-      pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, m_depth);
+      try {
+        pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, m_depth);
+      } catch (const std::exception& exp) {
+        return errors::Internal(
+            "Failed to create pipelined input tensor of depth ", m_depth,
+            " at index ", i, ". Exception message: ", exp.what());
+      }
     }
     for (size_t i = 0; i < num_outputs; i++) {
-      pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, m_depth);
+      try {
+        pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, m_depth);
+      } catch (const std::exception& exp) {
+        return errors::Internal(
+            "Failed to create pipelined output tensor of depth ", m_depth,
+            " at index ", i, ". Exception message: ", exp.what());
+      }
     }
     m_executable_pipelined_tensors_map.insert(
         {ng_exec, PipelinedTensorsStore(pipelined_input_tensors,
