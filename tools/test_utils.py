@@ -600,7 +600,7 @@ def run_bazel_build_test(venv_dir, build_dir):
 
     # Now built the bigger app
     command_executor([
-        'bazel', 'build', '//examples/cpp/infer_multiple_networks:infer_multi'
+        'bazel', 'build', 'infer_multi'
     ])
 
     # Return to the original directory
@@ -619,6 +619,11 @@ def run_bazel_build():
 
     # Run the cpp app - hello_tf
     command_executor(['bazel-bin/hello_tf'])
+
+    # Now built the bigger app
+    command_executor([
+        'bazel', 'build', 'infer_multi'
+    ])
 
     # Return to the original directory
     os.chdir(root_pwd)
