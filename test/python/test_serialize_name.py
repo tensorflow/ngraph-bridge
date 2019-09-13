@@ -44,6 +44,10 @@ class TestDumpingGraphs(NgraphTest):
         ("hello/",),
         ("hello//",),
         ("hello//a",),
+        (".",),
+        ("./",),
+        ("a/.",),
+        ("a/./b/",)
     ))
     def test(self, import_name_tag):
         os.environ['NGRAPH_ENABLE_SERIALIZE'] = '1'
