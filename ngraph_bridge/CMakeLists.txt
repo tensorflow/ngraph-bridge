@@ -43,6 +43,7 @@ set(SRC
    ngraph_encapsulate_clusters.cc
    ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
+   ngraph_executor.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
    ngraph_freshness_tracker.cc
@@ -97,6 +98,9 @@ if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
 endif()
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
+
+message(STATUS "NGRAPH_TF_ENABLE_PARALLEL_EXECUTION: 
+    ${NGRAPH_TF_ENABLE_PARALLEL_EXECUTION}")
 
 add_library(${LIB_NAME} SHARED ${SRC})
 

@@ -21,11 +21,14 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/public/session.h"
 
 #include "ngraph/ngraph.hpp"
+#include "ngraph_bridge/version.h"
 
 using namespace std;
 namespace ng = ngraph;
+namespace tf = tensorflow;
 
 namespace tensorflow {
 
@@ -155,6 +158,13 @@ void Compare(const Tensor& T1, const Tensor& T2,
 // Compares Tensors considering tolerance
 void Compare(Tensor& T1, Tensor& T2, float tol);
 
+Status CreateSession(const string& graph_filename, const string& backend_name,
+                     unique_ptr<tf::Session>& session);
+
+Status LoadGraph(const string& graph_file_name,
+                 std::unique_ptr<tensorflow::Session>* session,
+                 const tensorflow::SessionOptions& options);
+                 
 }  // namespace testing
 
 }  // namespace ngraph_bridge

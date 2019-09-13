@@ -43,58 +43,6 @@ namespace testing {
 
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 
-Status LoadGraph(const string& graph_file_name,
-                 std::unique_ptr<tensorflow::Session>* session,
-                 const tensorflow::SessionOptions& options) {
-  tensorflow::GraphDef graph_def;
-  auto load_graph_status =
-      ReadTextProto(Env::Default(), graph_file_name, &graph_def);
-  if (!load_graph_status.ok()) {
-    return tensorflow::errors::NotFound("Failed to load compute graph at '",
-                                        graph_file_name, "'");
-  }
-  session->reset(tensorflow::NewSession(options));
-  Status session_create_status = (*session)->Create(graph_def);
-  if (!session_create_status.ok()) {
-    return session_create_status;
-  }
-  return Status::OK();
-}
-
-Status CreateSession(const string& graph_filename, const string& backend_name,
-                     unique_ptr<Session>& session) {
-  SessionOptions options;
-  options.config.mutable_graph_options()
-      ->mutable_optimizer_options()
-      ->set_opt_level(OptimizerOptions_Level_L0);
-  options.config.mutable_graph_options()
-      ->mutable_rewrite_options()
-      ->set_constant_folding(RewriterConfig::OFF);
-
-  if (ngraph_tf_is_grappler_enabled()) {
-    auto* custom_config = options.config.mutable_graph_options()
-                              ->mutable_rewrite_options()
-                              ->add_custom_optimizers();
-
-    custom_config->set_name("ngraph-optimizer");
-    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s(
-        backend_name);
-    (*custom_config->mutable_parameter_map())["device_id"].set_s("0");
-
-    options.config.mutable_graph_options()
-        ->mutable_rewrite_options()
-        ->set_min_graph_nodes(-1);
-
-    options.config.mutable_graph_options()
-        ->mutable_rewrite_options()
-        ->set_meta_optimizer_iterations(RewriterConfig::ONE);
-  }
-
-  // Load the network
-  Status load_graph_status = LoadGraph(graph_filename, &session, options);
-  return load_graph_status;
-}
-
 TEST(tf_exec, SingleGraphOn2Threads) {
   string graph_name = "test_axpy.pbtxt";
   vector<string> backends{"CPU", "INTERPRETER"};
