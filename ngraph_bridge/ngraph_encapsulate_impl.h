@@ -243,6 +243,9 @@ class NGraphEncapsulateImpl {
   // ng_function, ng_executable, Output and Input Cache maps
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
       m_ng_exec_map;
+  // TODO: we might not need m_ng_function_map.
+  // m_serialized_ng_function_map might be sufficient,
+  // since we are only keeping the functions to dump them later
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      std::shared_ptr<ngraph::Function>>
       m_ng_function_map;
