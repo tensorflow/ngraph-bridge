@@ -85,6 +85,9 @@ class NGraphEncapsulateImpl {
       const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
       std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline);
 
+  void DumpNgFunction(const string&,
+                      std::shared_ptr<ngraph::runtime::Executable>);
+
   // Accessors(getters and setters) for the private data members of
   // NgraphEncapsulateImpl class
   // needed by
@@ -178,6 +181,10 @@ class NGraphEncapsulateImpl {
   void ClearNgExecInputCache() { m_ng_exec_input_cache_map.clear(); }
 
   void ClearNgExecOutputCache() { m_ng_exec_output_cache_map.clear(); }
+
+  void ClearNgExecSerializedFunctionCache() {
+    m_serialized_ng_function_map.clear();
+  }
 
   NGraphFreshnessTracker* GetNgraphFreshnessTracker() {
     return m_freshness_tracker;

@@ -151,7 +151,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     }
 
     int function_size;
-    if (!m_do_aot){
+    if (!m_do_aot) {
       function_size = ng_function->get_graph_size() / 1024;  // kb unit
     }
 
@@ -231,12 +231,14 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       }
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      DumpStringToFile("tf_function_error_" + m_name + ".json", serialized_ng_func);
+      DumpStringToFile("tf_function_error_" + m_name + ".json",
+                       serialized_ng_func);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      DumpStringToFile("tf_function_error_" + m_name + ".json", serialized_ng_func);
+      DumpStringToFile("tf_function_error_" + m_name + ".json",
+                       serialized_ng_func);
       return errors::Internal("Error in compiling op_backend\n");
     }
     BackendManager::UnlockBackend(m_op_backend_name);
@@ -260,7 +262,8 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                    << " Cache length: " << m_ng_exec_map.size()
                    << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
                    << " Delta RSS: " << delta_res_mem
-                   << (m_do_aot ? "" : " Function size: " + to_string(function_size))
+                   << (m_do_aot ? ""
+                                : " Function size: " + to_string(function_size))
                    << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
                    << " VM: " << vm / (1024 * 1024) << " GB" << endl;
   }  // end of input signature not found in m_ng_exec_map
@@ -590,6 +593,16 @@ NGraphEncapsulateImpl::GetTensorsFromPipeline(
     }
   }
   return out_tpl;
+}
+
+void NGraphEncapsulateImpl::DumpNgFunction(
+    const string& file_name,
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
+  if (m_do_aot) {
+    DumpStringToFile(file_name, m_serialized_ng_function_map[ng_exec]);
+  } else {
+    NgraphSerialize(file_name, m_ng_function_map[ng_exec]);
+  }
 }
 
 }  // namespace ngraph_bridge

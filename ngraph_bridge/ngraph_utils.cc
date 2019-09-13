@@ -314,7 +314,8 @@ void NgraphSerialize(const std::string& file_name,
   DumpStringToFile(file_name, ngraph::serialize(ng_function, 4));
 }
 
-void DumpStringToFile(const std::string& file_name, const std::string& contents) {
+void DumpStringToFile(const std::string& file_name,
+                      const std::string& contents) {
   std::ofstream f;
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   try {
@@ -322,7 +323,8 @@ void DumpStringToFile(const std::string& file_name, const std::string& contents)
     f << contents;
     f.close();
   } catch (std::ofstream::failure& e) {
-    NGRAPH_VLOG(0) << "Exception opening/closing file " << file_name << std::endl;
+    NGRAPH_VLOG(0) << "Exception opening/closing file " << file_name
+                   << std::endl;
     NGRAPH_VLOG(0) << e.what() << std::endl;
   }
 }
