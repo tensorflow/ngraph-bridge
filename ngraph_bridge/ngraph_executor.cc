@@ -106,7 +106,10 @@ Status NGraphExecutor::GetNgExecutable(
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     ng::runtime::Backend*& op_backend,
-    std::shared_ptr<ngraph::runtime::Executable>& ng_exec) {
+    std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    bool& cache_hit) {
+  
+  // FIRST Compute the signature
   std::stringstream signature_ss;
   string signature;
 
@@ -124,10 +127,8 @@ Status NGraphExecutor::GetNgExecutable(
 
   NGRAPH_VLOG(5) << "Computed signature: " << signature;
 
+  cache_hit = false;
   auto it = m_ng_exec_map.find(signature);
-
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
-                 << m_ngraph_cluster;
 
   // Translate the TensorFlow graph to nGraph.
   if (it == m_ng_exec_map.end()) {
@@ -261,6 +262,8 @@ Status NGraphExecutor::GetNgExecutable(
       m_lru.push_front(signature);
     }
     ng_exec = it->second;
+    cache_hit = true;
+    NGRAPH_VLOG(1) << "Compilation cache hit: " << m_name;
   }
   return Status::OK();
 }

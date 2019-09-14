@@ -34,7 +34,7 @@ namespace ngraph_bridge {
 namespace testing {
 
 TEST(parallel_executor, compiler_test) {
-  string graph_name = "test_axpy.pbtxt";
+  string graph_name = "test_axpy_const.pbtxt";
   tensorflow::GraphDef graph_def;
   auto load_graph_status =
       ReadTextProto(Env::Default(), graph_name, &graph_def);
@@ -68,8 +68,6 @@ TEST(parallel_executor, compiler_test) {
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
-  // tf::ngraph_bridge::BackendManager::SetBackendName("INTERPRETER");
-
   executor.SetOpBackend("INTERPRETER");
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
 
@@ -80,9 +78,17 @@ TEST(parallel_executor, compiler_test) {
     executor.SetStaticInputVector(i, false);
   }
 
+  bool cache_hit = false;
   status = executor.GetNgExecutable(tf_input_tensors, input_shapes,
-                                    static_input_map, op_backend, ng_exec);
+                                    static_input_map, op_backend, ng_exec, cache_hit);
   ASSERT_EQ(tensorflow::Status::OK(), status);
+  ASSERT_FALSE(cache_hit);
+
+  status = executor.GetNgExecutable(tf_input_tensors, input_shapes,
+                                    static_input_map, op_backend, ng_exec, cache_hit);
+  ASSERT_EQ(tensorflow::Status::OK(), status);
+  ASSERT_TRUE(cache_hit);
+
 }
 
 }  // namespace testing

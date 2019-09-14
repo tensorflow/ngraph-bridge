@@ -40,22 +40,41 @@ using NgFunctionIOCache = std::unordered_map<
 
 class NGraphExecutor {
  public:
+  // TODO
+  //  Try to remove the following members and pass them through the constructor
+  //  SetNgraphCluster()
+  //    - Also, rename the corresponding data member to m_ckluster_id;
+  //  SetGraphId()
+  //  Investigate whether the static input map can be created within the c-tor of the 
+  //    NGraphExecutor()
+  //  SetOpBackend() 
+  //    This can easily be passed via the ctor
+  //  SetExecCanCreateTensor()
+  //
   // Ngraph Encapsulate Implementation class for EncapsulateOp class
   explicit NGraphExecutor(int instance_id,
                           unique_ptr<tensorflow::Graph>& graph);
 
   // Calls Compute Signature and gets ngraph executable
+  // Update the cache and if called again with the same input shapes, 
+  // return fromm the cache
   Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
                          std::vector<TensorShape>& input_shapes,
                          std::vector<const Tensor*>& static_input_map,
                          ng::runtime::Backend*& op_backend,
-                         std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
+                         std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+                         bool& cache_hit);
 
   const string& GetOpBackend() { return m_op_backend_name; }
 
   void SetOpBackend(const string& backend_name) {
     m_op_backend_name = backend_name;
   }
+
+  // TODO Rename this to DecodeAttributes
+  Status ParseNodeAttributes(
+      const google::protobuf::Map<string, AttrValue>& additional_attributes,
+      std::unordered_map<std::string, std::string>* additional_attribute_map);
 
  private:
   // Get tensorflow input tensors, input shapes, static_inputs to Compute
@@ -193,9 +212,6 @@ class NGraphExecutor {
 
   void SetName(string name) { m_name = name; }
 
-  Status ParseNodeAttributes(
-      const google::protobuf::Map<string, AttrValue>& additional_attributes,
-      std::unordered_map<std::string, std::string>* additional_attribute_map);
   void SetExecCanCreateTensor(bool b) { m_executable_can_create_tensor = b; }
 
   bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
@@ -258,6 +274,10 @@ class NGraphExecutor {
       m_executable_pipelined_tensors_map;
 
   int m_depth{2};  // TODO make this settable
+
+  // Synchronization objects
+  // 1. Protect the functioncache
+
 };
 
 }  // namespace ngraph_bridge
