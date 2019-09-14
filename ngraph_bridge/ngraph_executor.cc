@@ -57,26 +57,39 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-// Ngraph Encapsulate Implementation class for EncapsulateOp class
 //---------------------------------------------------------------------------
 //  NGraphExecutor::ctor
 //---------------------------------------------------------------------------
 NGraphExecutor::NGraphExecutor(int instance_id,
-                               unique_ptr<tensorflow::Graph>& graph)
+                               unique_ptr<tensorflow::Graph>& graph,
+                               const string& backend_name)
     : my_instance_id(instance_id),
       m_graph(std::move(graph)),
+      m_op_backend_name(backend_name),
       m_freshness_tracker(nullptr) {
-  NGRAPH_VLOG(5) << "In NGraphExecutor(): " << instance_id;
+  NGRAPH_VLOG(3) << "NGraphExecutor(): " << instance_id
+                 << " Backend: " << backend_name;
+
+  // Getthe backend. Note that the backend may not be available
+  // so that's a programmng error.
+  try {
+    auto backend = BackendManager::GetBackend(m_op_backend_name);
+    m_executable_can_create_tensor = backend->executable_can_create_tensors();
+  } catch (...) {
+    throw std::runtime_error("No backend available. Cannot execute graph");
+  }
 }
 
-// Use tensorflow input tensors to get input_shapes, static_input_map
-// and compute the signature
+//---------------------------------------------------------------------------
+//  NGraphExecutor::ComputeSignature
+//---------------------------------------------------------------------------
 Status NGraphExecutor::ComputeSignature(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     std::stringstream& signature_ss) {
-  // Get the inputs
+  // Use tensorflow input tensors to get input_shapes, static_input_map
+  // and compute the signature
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     const Tensor& input_tensor = tf_input_tensors[i];
     input_shapes.push_back(input_tensor.shape());
@@ -100,15 +113,15 @@ Status NGraphExecutor::ComputeSignature(
   return Status::OK();
 }
 
-// Calls ComputeSignature and gets ngraph executable
+//---------------------------------------------------------------------------
+//  NGraphExecutor::ComputeSignature
+//---------------------------------------------------------------------------
 Status NGraphExecutor::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     ng::runtime::Backend*& op_backend,
-    std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    bool& cache_hit) {
-  
+    std::shared_ptr<ngraph::runtime::Executable>& ng_exec, bool& cache_hit) {
   // FIRST Compute the signature
   std::stringstream signature_ss;
   string signature;
@@ -118,9 +131,15 @@ Status NGraphExecutor::GetNgExecutable(
 
   NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: "
                  << m_op_backend_name;
-  op_backend = BackendManager::GetBackend(m_op_backend_name);
 
-  // Compute Signature
+  // Get the backend. Note that the backend may not be available
+  // so that's a programmng error.
+  try {
+    op_backend = BackendManager::GetBackend(m_op_backend_name);
+  } catch (...) {
+    return errors::Internal("Backend not available: ", m_op_backend_name);
+  }
+
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,
                                       static_input_map, signature_ss));
   signature = signature_ss.str();
@@ -268,14 +287,18 @@ Status NGraphExecutor::GetNgExecutable(
   return Status::OK();
 }
 
-// Allocate tensors for input arguments. Creates ngraph input tensors using
-// tensorflow tensors required to execute ngraph function
+//---------------------------------------------------------------------------
+//  NGraphExecutor::ComputeSignature
+//---------------------------------------------------------------------------
 Status NGraphExecutor::AllocateNGInputTensors(
     const std::vector<Tensor>& tf_input_tensors,
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     const PipelinedTensorVector& inp_group_from_pipeline,
     ng::runtime::Backend* const op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
+  // Allocate tensors for input arguments. Creates ngraph input tensors using
+  // tensorflow tensors required to execute ngraph function
+
   std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
   std::vector<TensorShape> input_shapes;
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&

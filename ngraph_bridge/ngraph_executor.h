@@ -45,18 +45,19 @@ class NGraphExecutor {
   //  SetNgraphCluster()
   //    - Also, rename the corresponding data member to m_ckluster_id;
   //  SetGraphId()
-  //  Investigate whether the static input map can be created within the c-tor of the 
+  //  Investigate whether the static input map can be created within the c-tor
+  //  of the
   //    NGraphExecutor()
-  //  SetOpBackend() 
+  //  SetOpBackend()
   //    This can easily be passed via the ctor
   //  SetExecCanCreateTensor()
   //
   // Ngraph Encapsulate Implementation class for EncapsulateOp class
-  explicit NGraphExecutor(int instance_id,
-                          unique_ptr<tensorflow::Graph>& graph);
+  explicit NGraphExecutor(int instance_id, unique_ptr<tensorflow::Graph>& graph,
+                          const string& backend_name);
 
   // Calls Compute Signature and gets ngraph executable
-  // Update the cache and if called again with the same input shapes, 
+  // Update the cache and if called again with the same input shapes,
   // return fromm the cache
   Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
                          std::vector<TensorShape>& input_shapes,
@@ -66,10 +67,7 @@ class NGraphExecutor {
                          bool& cache_hit);
 
   const string& GetOpBackend() { return m_op_backend_name; }
-
-  void SetOpBackend(const string& backend_name) {
-    m_op_backend_name = backend_name;
-  }
+  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
 
   // TODO Rename this to DecodeAttributes
   Status ParseNodeAttributes(
@@ -212,10 +210,6 @@ class NGraphExecutor {
 
   void SetName(string name) { m_name = name; }
 
-  void SetExecCanCreateTensor(bool b) { m_executable_can_create_tensor = b; }
-
-  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
-
   void ClearNgExecPipelinedTensorMap() {
     m_executable_pipelined_tensors_map.clear();
   }
@@ -242,7 +236,7 @@ class NGraphExecutor {
   int m_number_outputs = -1;
   int m_number_inputs = -1;
   const int my_instance_id;
-  string m_op_backend_name;
+  const string m_op_backend_name;
   string m_name;
   std::stringstream copy_log_str;
   bool log_copies = false;
@@ -268,7 +262,7 @@ class NGraphExecutor {
   // nGraphEncapsulateOp and nGraphVariable op
   NGraphFreshnessTracker* m_freshness_tracker;
 
-  bool m_executable_can_create_tensor = false;
+  bool m_executable_can_create_tensor;
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      PipelinedTensorsStore>
       m_executable_pipelined_tensors_map;
@@ -277,7 +271,6 @@ class NGraphExecutor {
 
   // Synchronization objects
   // 1. Protect the functioncache
-
 };
 
 }  // namespace ngraph_bridge

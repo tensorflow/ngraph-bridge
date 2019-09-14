@@ -28,12 +28,39 @@ namespace ng = ngraph;
 namespace tf = tensorflow;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
-
 namespace testing {
 
+TEST(parallel_executor, construction) {
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  unique_ptr<tf::Graph> input_graph =
+      unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
+
+  // First test with a backend not yet created
+  unique_ptr<NGraphExecutor> executor;
+  ASSERT_THROW(executor = unique_ptr<NGraphExecutor>(
+                   new NGraphExecutor(100, input_graph, "bogus")),
+               std::runtime_error);
+
+  // Next test with a backend after creating
+  tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
+  ASSERT_NO_THROW(executor = unique_ptr<NGraphExecutor>(
+                      new NGraphExecutor(100, input_graph, "INTERPRETER")));
+
+  // Now that the object has been cobstructed, test various internal parts
+  // TODO: Create a Test Class and mark that as a friend of the Executor class
+  ASSERT_EQ(executor->GetOpBackend(), "INTERPRETER");
+  ASSERT_TRUE(executor->GetExecCanCreateTensor());
+}
+
 TEST(parallel_executor, compiler_test) {
+  // TODO: Need to use a more realistic graph with _Arg and _Retval
+  // addded i.e., a PB that is saved after the initial processing of the
+  // TF graph transformation.
+  // Call Grappler here to get the graph transformed?
+
+  // Read the graph
   string graph_name = "test_axpy_const.pbtxt";
   tensorflow::GraphDef graph_def;
   auto load_graph_status =
@@ -46,7 +73,8 @@ TEST(parallel_executor, compiler_test) {
       unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
   auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph.get());
 
-  NGraphExecutor executor(100, input_graph);
+  tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
+  NGraphExecutor executor(100, input_graph, "INTERPRETER");
 
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -68,9 +96,10 @@ TEST(parallel_executor, compiler_test) {
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
-  executor.SetOpBackend("INTERPRETER");
-  tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
+  // executor.SetOpBackend("INTERPRETER");
 
+  // TODO: Investigate is the executor can decifer the static inputs
+  // from the given graph (as opposed to feeding this in externally)
   int size = 5;
   executor.ResizeStaticInputVector(size);
 
@@ -79,16 +108,17 @@ TEST(parallel_executor, compiler_test) {
   }
 
   bool cache_hit = false;
-  status = executor.GetNgExecutable(tf_input_tensors, input_shapes,
-                                    static_input_map, op_backend, ng_exec, cache_hit);
+  status =
+      executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
+                               op_backend, ng_exec, cache_hit);
   ASSERT_EQ(tensorflow::Status::OK(), status);
   ASSERT_FALSE(cache_hit);
 
-  status = executor.GetNgExecutable(tf_input_tensors, input_shapes,
-                                    static_input_map, op_backend, ng_exec, cache_hit);
+  status =
+      executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
+                               op_backend, ng_exec, cache_hit);
   ASSERT_EQ(tensorflow::Status::OK(), status);
   ASSERT_TRUE(cache_hit);
-
 }
 
 }  // namespace testing
