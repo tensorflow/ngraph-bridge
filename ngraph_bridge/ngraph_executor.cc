@@ -288,7 +288,7 @@ Status NGraphExecutor::GetNgExecutable(
 }
 
 //---------------------------------------------------------------------------
-//  NGraphExecutor::ComputeSignature
+//  NGraphExecutor::AllocateNGInputTensors
 //---------------------------------------------------------------------------
 Status NGraphExecutor::AllocateNGInputTensors(
     const std::vector<Tensor>& tf_input_tensors,

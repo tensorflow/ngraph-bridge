@@ -31,6 +31,24 @@ namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
 
+Status LoadGraphFromPbTxt(const string& pb_file, unique_ptr<tf::Graph>& new_graph){
+  // Read the graph
+  tensorflow::GraphDef graph_def;
+  auto load_graph_status =
+      ReadTextProto(Env::Default(), pb_file, &graph_def);
+  if (!load_graph_status.ok()) {
+    return errors::Internal("Failed to load compute graph");
+  }
+
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  unique_ptr<tf::Graph> input_graph =
+      unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
+  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph.get());
+  new_graph = move(input_graph);
+  return status;
+}
+
 TEST(parallel_executor, construction) {
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
@@ -62,16 +80,12 @@ TEST(parallel_executor, compiler_test) {
 
   // Read the graph
   string graph_name = "test_axpy_const.pbtxt";
-  tensorflow::GraphDef graph_def;
-  auto load_graph_status =
-      ReadTextProto(Env::Default(), graph_name, &graph_def);
-  ASSERT_FALSE(!load_graph_status.ok()) << "Failed to load compute graph";
 
-  GraphConstructorOptions opts;
-  opts.allow_internal_ops = true;
-  unique_ptr<tf::Graph> input_graph =
-      unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
-  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph.get());
+  unique_ptr<tf::Graph> input_graph; 
+  LoadGraphFromPbTxt(graph_name, input_graph);
+  // Note - we are NOT checking the return status as the status will be non OK
+  // due to no TF Op registration tdone yet. For out test - we don't need to 
+  // worry about it as the TF Ops will be converted to nGraph Op
 
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutor executor(100, input_graph, "INTERPRETER");
@@ -108,16 +122,18 @@ TEST(parallel_executor, compiler_test) {
   }
 
   bool cache_hit = false;
-  status =
+  Status status =
       executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
                                op_backend, ng_exec, cache_hit);
   ASSERT_EQ(tensorflow::Status::OK(), status);
   ASSERT_FALSE(cache_hit);
 
+  // Now call again to test that the cache works
   status =
       executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
                                op_backend, ng_exec, cache_hit);
   ASSERT_EQ(tensorflow::Status::OK(), status);
+  // If the cache doesn't work then the following will fire
   ASSERT_TRUE(cache_hit);
 }
 
