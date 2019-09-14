@@ -15,8 +15,13 @@
  *******************************************************************************/
 #include "gtest/gtest.h"
 
-#include "ngraph_bridge/ngraph_executor.h"
+#include <memory>
+
+#include "tensorflow/core/common_runtime/optimization_registry.h"
+#include "tensorflow/core/graph/graph_constructor.h"
+
 #include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_executor.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -29,14 +34,19 @@ namespace ngraph_bridge {
 namespace testing {
 
 TEST(parallel_executor, compiler_test) {
-  NGraphExecutor executor(100);
-
   string graph_name = "test_axpy.pbtxt";
   tensorflow::GraphDef graph_def;
   auto load_graph_status =
       ReadTextProto(Env::Default(), graph_name, &graph_def);
-  ASSERT_FALSE(!load_graph_status.ok()) 
-    << "Failed to load compute graph";
+  ASSERT_FALSE(!load_graph_status.ok()) << "Failed to load compute graph";
+
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  unique_ptr<tf::Graph> input_graph =
+      unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
+  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph.get());
+
+  NGraphExecutor executor(100, input_graph);
 
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -51,14 +61,14 @@ TEST(parallel_executor, compiler_test) {
     y_flat.data()[i] = 1.0;
   }
 
-  std::vector<Tensor> tf_input_tensors {x, y};
+  std::vector<Tensor> tf_input_tensors{x, y};
   vector<TensorShape> input_shapes;
   vector<const Tensor*> static_input_map;
   ng::runtime::Backend* op_backend;
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
-  //tf::ngraph_bridge::BackendManager::SetBackendName("INTERPRETER");
+  // tf::ngraph_bridge::BackendManager::SetBackendName("INTERPRETER");
 
   executor.SetOpBackend("INTERPRETER");
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
@@ -70,8 +80,9 @@ TEST(parallel_executor, compiler_test) {
     executor.SetStaticInputVector(i, false);
   }
 
-  auto status = executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
-                          op_backend, ng_exec);
+  status = executor.GetNgExecutable(tf_input_tensors, input_shapes,
+                                    static_input_map, op_backend, ng_exec);
+  ASSERT_EQ(tensorflow::Status::OK(), status);
 }
 
 }  // namespace testing

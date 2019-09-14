@@ -164,7 +164,7 @@ Status CreateSession(const string& graph_filename, const string& backend_name,
 Status LoadGraph(const string& graph_file_name,
                  std::unique_ptr<tensorflow::Session>* session,
                  const tensorflow::SessionOptions& options);
-                 
+
 }  // namespace testing
 
 }  // namespace ngraph_bridge

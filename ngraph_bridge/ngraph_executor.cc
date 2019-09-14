@@ -61,11 +61,12 @@ namespace ngraph_bridge {
 //---------------------------------------------------------------------------
 //  NGraphExecutor::ctor
 //---------------------------------------------------------------------------
-NGraphExecutor::NGraphExecutor(int instance_id)
-    : my_instance_id(instance_id)
-    , m_graph(OpRegistry::Global())
-    , m_freshness_tracker(nullptr) {
-      NGRAPH_VLOG(5) << "In NGraphExecutor(): " << instance_id;
+NGraphExecutor::NGraphExecutor(int instance_id,
+                               unique_ptr<tensorflow::Graph>& graph)
+    : my_instance_id(instance_id),
+      m_graph(std::move(graph)),
+      m_freshness_tracker(nullptr) {
+  NGRAPH_VLOG(5) << "In NGraphExecutor(): " << instance_id;
 }
 
 // Use tensorflow input tensors to get input_shapes, static_input_map
@@ -137,7 +138,7 @@ Status NGraphExecutor::GetNgExecutable(
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
     if (!m_do_aot) {
       TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
-                                                 &m_graph, ng_function));
+                                                 m_graph.get(), ng_function));
       ng_function->set_friendly_name(m_name);
     } else {
       auto itr = m_aot_functions.find(signature);
