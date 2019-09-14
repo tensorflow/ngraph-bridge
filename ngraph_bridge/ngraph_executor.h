@@ -74,6 +74,9 @@ class NGraphExecutor {
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
       std::unordered_map<std::string, std::string>* additional_attribute_map);
 
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
+  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+
  private:
   // Get tensorflow input tensors, input shapes, static_inputs to Compute
   // Signature
@@ -214,11 +217,10 @@ class NGraphExecutor {
     m_executable_pipelined_tensors_map.clear();
   }
 
+  public:
   Status CachePipelinedTensorIfNeeded(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
-
-  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
-  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+  private:
 
   void ReturnPipelinedTensors(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {

@@ -79,12 +79,10 @@ TEST(parallel_executor, compiler_test) {
   // Call Grappler here to get the graph transformed?
 
   // Read the graph
-  string graph_name = "test_axpy_const.pbtxt";
-
   unique_ptr<tf::Graph> input_graph; 
-  LoadGraphFromPbTxt(graph_name, input_graph);
+  LoadGraphFromPbTxt("test_axpy_const.pbtxt", input_graph);
   // Note - we are NOT checking the return status as the status will be non OK
-  // due to no TF Op registration tdone yet. For out test - we don't need to 
+  // due to no TF Op registration being done yet. For our test - we don't need to 
   // worry about it as the TF Ops will be converted to nGraph Op
 
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
@@ -110,9 +108,8 @@ TEST(parallel_executor, compiler_test) {
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
-  // executor.SetOpBackend("INTERPRETER");
 
-  // TODO: Investigate is the executor can decifer the static inputs
+  // TODO: Investigate is the executor can decipher the static inputs
   // from the given graph (as opposed to feeding this in externally)
   int size = 5;
   executor.ResizeStaticInputVector(size);
@@ -135,6 +132,69 @@ TEST(parallel_executor, compiler_test) {
   ASSERT_EQ(tensorflow::Status::OK(), status);
   // If the cache doesn't work then the following will fire
   ASSERT_TRUE(cache_hit);
+}
+
+TEST(parallel_executor, DISABLED_execute_one_thread) {
+  // Read the graph
+  unique_ptr<tf::Graph> input_graph; 
+  LoadGraphFromPbTxt("test_axpy_const.pbtxt", input_graph);
+  // Note - we are NOT checking the return status as the status will be non OK
+  // due to no TF Op registration being done yet. For our test - we don't need to 
+  // worry about it as the TF Ops will be converted to nGraph Op
+
+  tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
+  NGraphExecutor executor(100, input_graph, "INTERPRETER");
+
+  // Create the inputs for this graph
+  Tensor x(DT_FLOAT, TensorShape({2, 3}));
+  auto x_flat = x.flat<float>();
+  for (int i = 0; i < x_flat.size(); i++) {
+    x_flat.data()[i] = 1.0;
+  }
+
+  Tensor y(DT_FLOAT, TensorShape({2, 3}));
+  auto y_flat = y.flat<float>();
+  for (int i = 0; i < y_flat.size(); i++) {
+    y_flat.data()[i] = 1.0;
+  }
+
+  std::vector<Tensor> tf_input_tensors{x, y};
+  vector<TensorShape> input_shapes;
+  vector<const Tensor*> static_input_map;
+  ng::runtime::Backend* op_backend;
+  shared_ptr<ngraph::runtime::Executable> ng_exec;
+
+  // Call the Executor to compile the funcion
+
+  // TODO: Investigate is the executor can decipher the static inputs
+  // from the given graph (as opposed to feeding this in externally)
+  int size = 5;
+  executor.ResizeStaticInputVector(size);
+
+  for (int i = 0; i < size; i++) {
+    executor.SetStaticInputVector(i, false);
+  }
+
+  bool cache_hit = false;
+  Status status =
+      executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
+                               op_backend, ng_exec, cache_hit);
+  ASSERT_EQ(tensorflow::Status::OK(), status);
+  ASSERT_FALSE(cache_hit);
+
+  int pipeline_idx = -1;
+  PipelinedTensorVector inp_group_from_pipeline;
+  PipelinedTensorVector out_group_from_pipeline;
+
+  executor.CachePipelinedTensorIfNeeded(ng_exec);
+
+  // Get the pipelned tensors
+  ASSERT_NO_THROW(std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
+        executor.GetTensorsFromPipeline(ng_exec));
+
+  ASSERT_GE(pipeline_idx, 0) 
+    << "GetTensorsFromPipeline() Returned: " << pipeline_idx;
+
 }
 
 }  // namespace testing
