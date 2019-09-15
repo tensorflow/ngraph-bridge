@@ -383,10 +383,11 @@ Status NGraphExecutor::AllocateNGInputTensors(
         input_copy_events.push_back(std::move(event_copy_input_next));
 
       } catch (const std::exception& exp) {
-        errors::Internal(
+        return errors::Internal(
             "Caught exception while transferring tensor data to nGraph\n");
       } catch (...) {
-        errors::Internal("Error in transferring tensor data to nGraph\n");
+        return errors::Internal(
+            "Error in transferring tensor data to nGraph\n");
       }
     }
     input_caches[i] = std::make_pair(current_src_ptr, current_ng_tensor);
@@ -572,11 +573,11 @@ Status NGraphExecutor::ParseNodeAttributes(
   return Status::OK();
 }
 
-Status NGraphExecutor::CachePipelinedTensorIfNeeded(
+Status NGraphExecutor::InitializeIOTensorPipeline(
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
   if (!m_executable_can_create_tensor) {
     return errors::Internal(
-        "CachePipelinedTensorIfNeeded called, but executable cannot create "
+        "InitializeIOTensorPipeline called, but executable cannot create "
         "tensors");
   }
   auto itr = m_executable_pipelined_tensors_map.find(ng_exec);
@@ -585,8 +586,13 @@ Status NGraphExecutor::CachePipelinedTensorIfNeeded(
     size_t num_inputs = ng_exec->get_parameters().size();
     size_t num_outputs = ng_exec->get_results().size();
 
+    if (num_inputs == 0 || num_outputs == 0) {
+      return errors::Internal("Bad input/output length. Input size: ",
+                              num_inputs, " Output size: ", num_outputs);
+    }
+
     // If the input or the output size if 0 then???
-    NGRAPH_VLOG(0) << "CachePipelinedTensorIfNeeded: In: " << num_inputs
+    NGRAPH_VLOG(5) << "InitializeIOTensorPipeline: In: " << num_inputs
                    << " Out: " << num_outputs;
     PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
     PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
@@ -596,32 +602,39 @@ Status NGraphExecutor::CachePipelinedTensorIfNeeded(
     for (size_t i = 0; i < num_outputs; i++) {
       pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, m_depth);
     }
-    m_executable_pipelined_tensors_map.insert(
-        {ng_exec, PipelinedTensorsStore(pipelined_input_tensors,
-                                        pipelined_output_tensors)});
+    shared_ptr<PipelinedTensorsStore> pts(new PipelinedTensorsStore(
+        pipelined_input_tensors, pipelined_output_tensors));
+    m_executable_pipelined_tensors_map.insert({ng_exec, pts});
   }
   return Status::OK();
 }
 
-std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
-NGraphExecutor::GetTensorsFromPipeline(
-    std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
-  PipelinedTensorsStore pts = m_executable_pipelined_tensors_map.at(ng_exec);
+Status NGraphExecutor::GetTensorsFromPipeline(
+    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>& io_tensors) {
+  auto status = InitializeIOTensorPipeline(ng_exec);
+  if (status != Status::OK()) {
+    return status;
+  }
 
-  // TODO: do something about this spin lock
+  // Lookup the executable
+  PipelinedTensorsStore* pts(nullptr);
+  try {
+    const auto& item = m_executable_pipelined_tensors_map.at(ng_exec);
+    pts = item.get();
+  } catch (...) {
+    return errors::Internal("Executable not found in the cache");
+  }
+
   // get_tensors returns an index integer, that can be -1, 0, ... depth-1
   // If it returns -1, then it indicates there are no free groups of tensors
-  // or the pipeline is full. In that case, we need to wait, hence the while
-  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> out_tpl;
-  while (true) {
-    out_tpl = pts.get_tensors();
-    static int count = 0;
-
-    if (std::get<0>(out_tpl) >= 0) {
-      break;
-    }
+  // or the pipeline is full.
+  io_tensors = pts->get_tensors();
+  if (std::get<0>(io_tensors) < 0) {
+    return errors::Internal("No free tensor available");
   }
-  return out_tpl;
+
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge

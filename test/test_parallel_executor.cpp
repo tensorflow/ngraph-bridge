@@ -54,7 +54,7 @@ Status LoadGraphFromPbTxt(const string& pb_file, const string& backend_name,
   return status;
 }
 
-TEST(parallel_executor, construction) {
+TEST(ParallelExecutor, Construction) {
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
   unique_ptr<tf::Graph> input_graph =
@@ -74,19 +74,17 @@ TEST(parallel_executor, construction) {
   // Now that the object has been cobstructed, test various internal parts
   // TODO: Create a Test Class and mark that as a friend of the Executor class
   ASSERT_EQ(executor->GetOpBackend(), "INTERPRETER");
-  ASSERT_TRUE(executor->GetExecCanCreateTensor());
+  ASSERT_TRUE(executor->IsTensorPipelineSupported());
 }
 
-TEST(parallel_executor, compiler_test) {
-  // TODO: Need to use a more realistic graph with _Arg and _Retval
-  // addded i.e., a PB that is saved after the initial processing of the
-  // TF graph transformation.
-  // Call Grappler here to get the graph transformed?
-
+TEST(ParallelExecutor, CompilerTest) {
   // Read the graph
   unique_ptr<tf::Graph> input_graph;
   unique_ptr<tf::Session> session;
 
+  // We are using a graph with _Arg and _Retval
+  // addded i.e., a PB that is saved after the initial processing of the
+  // TF graph transformation.
   ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
                                input_graph, session));
 
@@ -144,13 +142,16 @@ TEST(parallel_executor, compiler_test) {
 
   // Validate the nGraph Function
   const auto& parameters = ng_function->get_parameters();
-
+  ASSERT_EQ(2, parameters.size());
   cout << " Friendly name: " << ng_function->get_friendly_name()
        << " PArameters: " << parameters.size() << std::endl;
 }
 
-TEST(parallel_executor, execute_one_thread) {
+TEST(ParallelExecutor, PipelinedTensorCreate) {
   // Read the graph
+  // We are using a graph with _Arg and _Retval
+  // addded i.e., a PB that is saved after the initial processing of the
+  // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
   unique_ptr<tf::Session> session;
   ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
@@ -194,20 +195,81 @@ TEST(parallel_executor, execute_one_thread) {
                                      cache_hit));
   ASSERT_FALSE(cache_hit);
 
-  int pipeline_idx = -1;
-  PipelinedTensorVector inp_group_from_pipeline;
-  PipelinedTensorVector out_group_from_pipeline;
-
-  executor.CachePipelinedTensorIfNeeded(ng_exec);
-  std::cout << "HERE" << std::endl;
+  ASSERT_EQ(2, executor.TensorPipelineDepth());
 
   // Get the pipelned tensors
-  ASSERT_NO_THROW(
-      std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
-          executor.GetTensorsFromPipeline(ng_exec));
+  int pipeline_idx = -1;
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
+  for (int i = 0; i < executor.TensorPipelineDepth(); i++) {
+    ASSERT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
+    pipeline_idx = get<0>(io_tensors);
+    ASSERT_EQ(i, pipeline_idx) << "GetTensorsFromPipeline() Returned: "
+                               << pipeline_idx;
+  }
 
-  ASSERT_GE(pipeline_idx, 0) << "GetTensorsFromPipeline() Returned: "
-                             << pipeline_idx;
+  // Now we have exhausted all the tensors. So the next call fails
+  ASSERT_NOT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
+}
+
+TEST(ParallelExecutor, ExecuteOneThread) {
+  // Read the graph
+  // We are using a graph with _Arg and _Retval
+  // addded i.e., a PB that is saved after the initial processing of the
+  // TF graph transformation.
+  unique_ptr<tf::Graph> input_graph;
+  unique_ptr<tf::Session> session;
+  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
+                               input_graph, session));
+  tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
+  NGraphExecutor executor(100, input_graph, "INTERPRETER");
+
+  // Create the inputs for this graph
+  Tensor x(DT_FLOAT, TensorShape({2, 3}));
+  auto x_flat = x.flat<float>();
+  for (int i = 0; i < x_flat.size(); i++) {
+    x_flat.data()[i] = 1.0;
+  }
+
+  Tensor y(DT_FLOAT, TensorShape({2, 3}));
+  auto y_flat = y.flat<float>();
+  for (int i = 0; i < y_flat.size(); i++) {
+    y_flat.data()[i] = 1.0;
+  }
+
+  std::vector<Tensor> tf_input_tensors{x, y};
+  vector<TensorShape> input_shapes;
+  vector<const Tensor*> static_input_map;
+  ng::runtime::Backend* op_backend;
+  shared_ptr<ngraph::runtime::Executable> ng_exec;
+
+  // Call the Executor to compile the funcion
+
+  // TODO: Investigate is the executor can decipher the static inputs
+  // from the given graph (as opposed to feeding this in externally)
+  int size = 5;
+  executor.ResizeStaticInputVector(size);
+
+  for (int i = 0; i < size; i++) {
+    executor.SetStaticInputVector(i, false);
+  }
+
+  bool cache_hit = false;
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
+                                     static_input_map, op_backend, ng_exec,
+                                     cache_hit));
+  ASSERT_FALSE(cache_hit);
+
+  ASSERT_EQ(2, executor.TensorPipelineDepth());
+
+  // Get the pipelned tensors
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
+  ASSERT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
+
+  // Now Fill in the tensor
+
+  // And execute
+
+  // And validate
 }
 
 }  // namespace testing

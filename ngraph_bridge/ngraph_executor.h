@@ -71,17 +71,32 @@ class NGraphExecutor {
       std::shared_ptr<ngraph::Function>& ng_function);
 
   const string& GetOpBackend() { return m_op_backend_name; }
-  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
+  bool IsTensorPipelineSupported() { return m_executable_can_create_tensor; }
+  int TensorPipelineDepth() {
+    return m_executable_can_create_tensor ? m_depth : 1;
+  }
 
   // TODO Rename this to DecodeAttributes
   Status ParseNodeAttributes(
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
       std::unordered_map<std::string, std::string>* additional_attribute_map);
 
-  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
-  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+  // Returns true when a set of i/o tensor is available. Returns false otherwse.
+  // The caller can wait or come back later - based on what the application
+  // demands
+  Status GetTensorsFromPipeline(
+      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
+          io_tensors);
 
  private:
+  // Allocates the necessary tensors from the Executable (or backend in future)
+  // Since the pipeline cannot be created at the construction time, we need to
+  // provide the this as a separate function. It's ok to call this multiple
+  // times - the Pipeline will be initialized only once
+  Status InitializeIOTensorPipeline(
+      std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+
   // Get tensorflow input tensors, input shapes, static_inputs to Compute
   // Signature
   Status ComputeSignature(const std::vector<Tensor>& tf_input_tensors,
@@ -221,14 +236,10 @@ class NGraphExecutor {
     m_executable_pipelined_tensors_map.clear();
   }
 
- public:
-  Status CachePipelinedTensorIfNeeded(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec);
-
  private:
   void ReturnPipelinedTensors(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
-    m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
+    m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
   }
 
   // TF Graph for the cluster
@@ -270,7 +281,7 @@ class NGraphExecutor {
 
   bool m_executable_can_create_tensor;
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
-                     PipelinedTensorsStore>
+                     shared_ptr<PipelinedTensorsStore>>
       m_executable_pipelined_tensors_map;
 
   int m_depth{2};  // TODO make this settable
