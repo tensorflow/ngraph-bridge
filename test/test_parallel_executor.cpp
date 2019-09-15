@@ -35,7 +35,8 @@ namespace ngraph_bridge {
 namespace testing {
 
 Status LoadGraphFromPbTxt(const string& pb_file, const string& backend_name,
-                          unique_ptr<tf::Graph>& new_graph, unique_ptr<tf::Session>& session) {
+                          unique_ptr<tf::Graph>& new_graph,
+                          unique_ptr<tf::Session>& session) {
   // Read the graph
   tensorflow::GraphDef graph_def;
   auto load_graph_status = ReadTextProto(Env::Default(), pb_file, &graph_def);
@@ -48,25 +49,9 @@ Status LoadGraphFromPbTxt(const string& pb_file, const string& backend_name,
   unique_ptr<tf::Graph> input_graph =
       unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
 
-  // Note: The status returned from the function below will complain that:
-  //
-  // Op type not registered 'Constant' in binary running on <host-name>. 
-  // Make sure the Op and Kernel are registered in the binary running in 
-  // this process. Note that if you are loading a saved graph which used ops 
-  // from tf.contrib, accessing (e.g.) `tf.contrib.resampler` should be done 
-  // before importing the graph, as contrib ops are lazily registered when the 
-  // module is first accessed.
-  //
-  // This is because we haven't loaded the TF op registration modules
-  // and is not needed for the graph conversion. So we will ignore 
-  // the resulting status.
-  // To see the error message of the returned Status:
-  // Call: cout << status.error_message() << endl;
-  // After the following line
-
   auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph.get());
   new_graph = move(input_graph);
-  return Status::OK();
+  return status;
 }
 
 TEST(parallel_executor, construction) {
@@ -102,7 +87,8 @@ TEST(parallel_executor, compiler_test) {
   unique_ptr<tf::Graph> input_graph;
   unique_ptr<tf::Session> session;
 
-  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_const.pbtxt", "INTERPRETER", input_graph, session));
+  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
+                               input_graph, session));
 
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutor executor(100, input_graph, "INTERPRETER");
@@ -138,16 +124,16 @@ TEST(parallel_executor, compiler_test) {
   }
 
   bool cache_hit = false;
-  Status status =
-      executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
-                               op_backend, ng_exec, cache_hit);
-  ASSERT_OK(status);
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
+                                     static_input_map, op_backend, ng_exec,
+                                     cache_hit));
   ASSERT_FALSE(cache_hit);
 
   // Now call again to test that the cache works
-  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
-                            op_backend, ng_exec, cache_hit));
-  
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
+                                     static_input_map, op_backend, ng_exec,
+                                     cache_hit));
+
   // If the cache doesn't work then the following will fire
   ASSERT_TRUE(cache_hit);
 
@@ -163,16 +149,12 @@ TEST(parallel_executor, compiler_test) {
        << " PArameters: " << parameters.size() << std::endl;
 }
 
-TEST(parallel_executor, DISABLED_execute_one_thread) {
+TEST(parallel_executor, execute_one_thread) {
   // Read the graph
   unique_ptr<tf::Graph> input_graph;
   unique_ptr<tf::Session> session;
-  LoadGraphFromPbTxt("test_axpy_const.pbtxt", "INTERPRETER", input_graph, session);
-  // Note - we are NOT checking the return status as the status will be non OK
-  // due to no TF Op registration being done yet. For our test - we don't need
-  // to
-  // worry about it as the TF Ops will be converted to nGraph Op
-
+  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
+                               input_graph, session));
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutor executor(100, input_graph, "INTERPRETER");
 
@@ -207,8 +189,9 @@ TEST(parallel_executor, DISABLED_execute_one_thread) {
   }
 
   bool cache_hit = false;
-  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
-                               op_backend, ng_exec, cache_hit));
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
+                                     static_input_map, op_backend, ng_exec,
+                                     cache_hit));
   ASSERT_FALSE(cache_hit);
 
   int pipeline_idx = -1;
