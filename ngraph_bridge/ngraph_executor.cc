@@ -287,6 +287,18 @@ Status NGraphExecutor::GetNgExecutable(
   return Status::OK();
 }
 
+Status NGraphExecutor::GetNgFunction(
+    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    std::shared_ptr<ngraph::Function>& ng_function) {
+  // Lookup the function from the Map
+  auto it = m_ng_function_map.find(ng_exec);
+  if (it == m_ng_function_map.end()) {
+    errors::Internal("Function not found for this executable");
+  }
+  ng_function = it->second;
+  return Status::OK();
+}
+
 //---------------------------------------------------------------------------
 //  NGraphExecutor::AllocateNGInputTensors
 //---------------------------------------------------------------------------
@@ -572,6 +584,10 @@ Status NGraphExecutor::CachePipelinedTensorIfNeeded(
     // Create these pipelined ng tensors only if needed, else reuse from cache
     size_t num_inputs = ng_exec->get_parameters().size();
     size_t num_outputs = ng_exec->get_results().size();
+
+    // If the input or the output size if 0 then???
+    NGRAPH_VLOG(0) << "CachePipelinedTensorIfNeeded: In: " << num_inputs
+                   << " Out: " << num_outputs;
     PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
     PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
     for (size_t i = 0; i < num_inputs; i++) {
@@ -599,6 +615,7 @@ NGraphExecutor::GetTensorsFromPipeline(
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> out_tpl;
   while (true) {
     out_tpl = pts.get_tensors();
+    static int count = 0;
 
     if (std::get<0>(out_tpl) >= 0) {
       break;

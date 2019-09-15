@@ -66,6 +66,10 @@ class NGraphExecutor {
                          std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
                          bool& cache_hit);
 
+  Status GetNgFunction(
+      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      std::shared_ptr<ngraph::Function>& ng_function);
+
   const string& GetOpBackend() { return m_op_backend_name; }
   bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
 
@@ -217,11 +221,11 @@ class NGraphExecutor {
     m_executable_pipelined_tensors_map.clear();
   }
 
-  public:
+ public:
   Status CachePipelinedTensorIfNeeded(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
-  private:
 
+ private:
   void ReturnPipelinedTensors(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
     m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);

@@ -14,7 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "test_utilities.h"
+#include "test/test_utilities.h"
 #include <assert.h>
 #include <cassert>
 #include <cstdlib>

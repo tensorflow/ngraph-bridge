@@ -12,7 +12,7 @@ node {
     value {
       shape {
         dim {
-          size: -1
+          size: 2
         }
         dim {
           size: 3

@@ -19,9 +19,12 @@
 
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/graph/graph_constructor.h"
+#include "tensorflow/core/public/session.h"
 
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_executor.h"
+#include "ngraph_bridge/version.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -31,22 +34,39 @@ namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
 
-Status LoadGraphFromPbTxt(const string& pb_file, unique_ptr<tf::Graph>& new_graph){
+Status LoadGraphFromPbTxt(const string& pb_file, const string& backend_name,
+                          unique_ptr<tf::Graph>& new_graph, unique_ptr<tf::Session>& session) {
   // Read the graph
   tensorflow::GraphDef graph_def;
-  auto load_graph_status =
-      ReadTextProto(Env::Default(), pb_file, &graph_def);
+  auto load_graph_status = ReadTextProto(Env::Default(), pb_file, &graph_def);
   if (!load_graph_status.ok()) {
-    return errors::Internal("Failed to load compute graph");
+    return load_graph_status;
   }
 
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
   unique_ptr<tf::Graph> input_graph =
       unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
+
+  // Note: The status returned from the function below will complain that:
+  //
+  // Op type not registered 'Constant' in binary running on <host-name>. 
+  // Make sure the Op and Kernel are registered in the binary running in 
+  // this process. Note that if you are loading a saved graph which used ops 
+  // from tf.contrib, accessing (e.g.) `tf.contrib.resampler` should be done 
+  // before importing the graph, as contrib ops are lazily registered when the 
+  // module is first accessed.
+  //
+  // This is because we haven't loaded the TF op registration modules
+  // and is not needed for the graph conversion. So we will ignore 
+  // the resulting status.
+  // To see the error message of the returned Status:
+  // Call: cout << status.error_message() << endl;
+  // After the following line
+
   auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph.get());
   new_graph = move(input_graph);
-  return status;
+  return Status::OK();
 }
 
 TEST(parallel_executor, construction) {
@@ -79,11 +99,10 @@ TEST(parallel_executor, compiler_test) {
   // Call Grappler here to get the graph transformed?
 
   // Read the graph
-  unique_ptr<tf::Graph> input_graph; 
-  LoadGraphFromPbTxt("test_axpy_const.pbtxt", input_graph);
-  // Note - we are NOT checking the return status as the status will be non OK
-  // due to no TF Op registration being done yet. For our test - we don't need to 
-  // worry about it as the TF Ops will be converted to nGraph Op
+  unique_ptr<tf::Graph> input_graph;
+  unique_ptr<tf::Session> session;
+
+  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_const.pbtxt", "INTERPRETER", input_graph, session));
 
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutor executor(100, input_graph, "INTERPRETER");
@@ -122,24 +141,36 @@ TEST(parallel_executor, compiler_test) {
   Status status =
       executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
                                op_backend, ng_exec, cache_hit);
-  ASSERT_EQ(tensorflow::Status::OK(), status);
+  ASSERT_OK(status);
   ASSERT_FALSE(cache_hit);
 
   // Now call again to test that the cache works
-  status =
-      executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
-                               op_backend, ng_exec, cache_hit);
-  ASSERT_EQ(tensorflow::Status::OK(), status);
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
+                            op_backend, ng_exec, cache_hit));
+  
   // If the cache doesn't work then the following will fire
   ASSERT_TRUE(cache_hit);
+
+  // Now validate that the nGraph function is available
+  std::shared_ptr<ngraph::Function> ng_function;
+  ASSERT_EQ(executor.GetNgFunction(ng_exec, ng_function),
+            tensorflow::Status::OK());
+
+  // Validate the nGraph Function
+  const auto& parameters = ng_function->get_parameters();
+
+  cout << " Friendly name: " << ng_function->get_friendly_name()
+       << " PArameters: " << parameters.size() << std::endl;
 }
 
 TEST(parallel_executor, DISABLED_execute_one_thread) {
   // Read the graph
-  unique_ptr<tf::Graph> input_graph; 
-  LoadGraphFromPbTxt("test_axpy_const.pbtxt", input_graph);
+  unique_ptr<tf::Graph> input_graph;
+  unique_ptr<tf::Session> session;
+  LoadGraphFromPbTxt("test_axpy_const.pbtxt", "INTERPRETER", input_graph, session);
   // Note - we are NOT checking the return status as the status will be non OK
-  // due to no TF Op registration being done yet. For our test - we don't need to 
+  // due to no TF Op registration being done yet. For our test - we don't need
+  // to
   // worry about it as the TF Ops will be converted to nGraph Op
 
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
@@ -176,10 +207,8 @@ TEST(parallel_executor, DISABLED_execute_one_thread) {
   }
 
   bool cache_hit = false;
-  Status status =
-      executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
-                               op_backend, ng_exec, cache_hit);
-  ASSERT_EQ(tensorflow::Status::OK(), status);
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes, static_input_map,
+                               op_backend, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
 
   int pipeline_idx = -1;
@@ -187,14 +216,15 @@ TEST(parallel_executor, DISABLED_execute_one_thread) {
   PipelinedTensorVector out_group_from_pipeline;
 
   executor.CachePipelinedTensorIfNeeded(ng_exec);
+  std::cout << "HERE" << std::endl;
 
   // Get the pipelned tensors
-  ASSERT_NO_THROW(std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
-        executor.GetTensorsFromPipeline(ng_exec));
+  ASSERT_NO_THROW(
+      std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
+          executor.GetTensorsFromPipeline(ng_exec));
 
-  ASSERT_GE(pipeline_idx, 0) 
-    << "GetTensorsFromPipeline() Returned: " << pipeline_idx;
-
+  ASSERT_GE(pipeline_idx, 0) << "GetTensorsFromPipeline() Returned: "
+                             << pipeline_idx;
 }
 
 }  // namespace testing

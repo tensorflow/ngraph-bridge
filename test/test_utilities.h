@@ -26,6 +26,15 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph_bridge/version.h"
 
+// Define useful macros used by others
+#if !defined(ASSERT_OK)
+#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK())
+#endif
+
+#if !defined(ASSERT_NOT_OK)
+#define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
+#endif
+
 using namespace std;
 namespace ng = ngraph;
 namespace tf = tensorflow;

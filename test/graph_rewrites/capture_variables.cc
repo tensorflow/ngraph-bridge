@@ -35,8 +35,6 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
-
 // Test that an Assign attached to a Temporary Variable is not
 // captured and replaced by NGraphAssign
 TEST(CaptureVariables, TempVar) {
