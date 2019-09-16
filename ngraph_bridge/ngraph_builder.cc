@@ -48,6 +48,7 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 std::map<string, std::vector<string>> Builder::tf_node_to_ng_node_ = {};
+std::mutex Builder::tf_to_ng_table_lock_ = {};
 
 static bool VecStrCmp(const std::vector<string>& a,
                       const std::vector<string>& b) {
@@ -5009,38 +5010,41 @@ Status Builder::TranslateGraph(
   //
   // Now create the nGraph ops from TensorFlow ops.
   //
-  for (auto op : tf_ops) {
-    NGRAPH_VLOG(2) << "Constructing op " << op->name() << " which is "
-                   << op->type_string();
+  {
+    std::lock_guard<std::mutex> lock(tf_to_ng_table_lock_);
+    for (auto op : tf_ops) {
+      NGRAPH_VLOG(2) << "Constructing op " << op->name() << " which is "
+                     << op->type_string();
 
-    const function<Status(const Node*, const std::vector<const Tensor*>&,
-                          Builder::OpMap&)>* op_fun;
+      const function<Status(const Node*, const std::vector<const Tensor*>&,
+                            Builder::OpMap&)>* op_fun;
 
-    try {
-      op_fun = &(TRANSLATE_OP_MAP.at(op->type_string()));
-    } catch (const std::out_of_range&) {
-      // -----------------------------
-      // Catch-all for unsupported ops
-      // -----------------------------
-      NGRAPH_VLOG(3) << "No translation handler registered for op: "
-                     << op->name() << " (" << op->type_string() << ")";
-      NGRAPH_VLOG(3) << op->def().DebugString();
-      return errors::InvalidArgument(
-          "No translation handler registered for op: ", op->name(), " (",
-          op->type_string(), ")\n", op->def().DebugString());
+      try {
+        op_fun = &(TRANSLATE_OP_MAP.at(op->type_string()));
+      } catch (const std::out_of_range&) {
+        // -----------------------------
+        // Catch-all for unsupported ops
+        // -----------------------------
+        NGRAPH_VLOG(3) << "No translation handler registered for op: "
+                       << op->name() << " (" << op->type_string() << ")";
+        NGRAPH_VLOG(3) << op->def().DebugString();
+        return errors::InvalidArgument(
+            "No translation handler registered for op: ", op->name(), " (",
+            op->type_string(), ")\n", op->def().DebugString());
+      }
+
+      try {
+        TF_RETURN_IF_ERROR((*op_fun)(op, static_input_map, ng_op_map));
+      } catch (const std::exception& e) {
+        return errors::Internal("Unhandled exception in op handler: ",
+                                op->name(), " (", op->type_string(), ")\n",
+                                op->def().DebugString(), "\n", "what(): ",
+                                e.what());
+      }
     }
 
-    try {
-      TF_RETURN_IF_ERROR((*op_fun)(op, static_input_map, ng_op_map));
-    } catch (const std::exception& e) {
-      return errors::Internal("Unhandled exception in op handler: ", op->name(),
-                              " (", op->type_string(), ")\n",
-                              op->def().DebugString(), "\n", "what(): ",
-                              e.what());
-    }
+    Builder::PrintTfNodeToNgNodeConversionTable();
   }
-
-  Builder::PrintTfNodeToNgNodeConversionTable();
 
   //
   // Populate the result list.

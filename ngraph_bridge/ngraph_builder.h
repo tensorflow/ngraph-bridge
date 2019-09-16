@@ -16,6 +16,7 @@
 #ifndef NGRAPH_TF_BRIDGE_BUILDER_H_
 #define NGRAPH_TF_BRIDGE_BUILDER_H_
 
+#include <mutex>
 #include <ostream>
 #include <vector>
 
@@ -172,6 +173,7 @@ class Builder {
                                        const int max_range, float* scale,
                                        int* offset);
   static std::map<string, std::vector<string>> tf_node_to_ng_node_;
+  static std::mutex tf_to_ng_table_lock_;
   static void InsertInLogs(string tf_op_name, string ng_op_name) {
     auto itr = tf_node_to_ng_node_.find(tf_op_name);
     if (itr == tf_node_to_ng_node_.end()) {
