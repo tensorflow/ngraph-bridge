@@ -14,7 +14,8 @@ Notation used:
 
 ## What to do if your network fails?
 
-See the [nGraph Library documentation] for how to enable tracing and logs.
+**TODO**: List steps to generate logs or run diagnostic tools
+
 
 ### Capturing logs in text file
 
@@ -57,10 +58,12 @@ To get a **full** dump use the following set of flags
 * In your script, import ngraph_bridge by using: ```import ngraph_bridge```
 * Disable ngraph by calling: ```ngraph_bridge.disable()```
 * Enable ngraph by calling: ```ngraph_bridge.enable()```
-* Checking whether ngraph is enabled by calling: ```ngraph.is_enabled()```
+* Check whether ngraph is enabled by calling: ```ngraph.is_enabled()```
 * You need to enable ngraph every time you called ```ngraph_bridge.disable()```, so it is good to check whether ngraph is enabled by calling ```ngraph.is_enabled()```
-* _Caution_: The above functions are only effective at the beginning of the execution. Once the session is created and ```run``` is called, the above functions will not be able to disable ngraph. 
-* For example usage, take a look at the ```model_test/verify_model.py``` in the diagnostics folder
+   * _Caution_: The above functions are only effective at the beginning of the execution. Once the session is created and ```run``` is called, the above functions will not be able to disable ngraph. 
+
+
+For example usage, take a look at the ```model_test/verify_model.py``` in the diagnostics folder
 
 
 ## Protobuf visualization
