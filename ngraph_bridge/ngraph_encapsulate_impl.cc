@@ -603,6 +603,7 @@ Status NGraphEncapsulateImpl::SetPipelineDepth(int depth) {
                             m_op_backend_name,
                             " that does not support this feature");
   }
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge

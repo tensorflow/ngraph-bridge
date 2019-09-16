@@ -80,7 +80,9 @@ Status CreateSession(const string& graph_filename, const string& backend_name,
     (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s(
         backend_name);
     (*custom_config->mutable_parameter_map())["device_id"].set_s("0");
-    (*custom_config->mutable_parameter_map())["pipeline_depth"].set_s("5");
+    if (backend_name == "INTERPRETER") {
+      (*custom_config->mutable_parameter_map())["pipeline_depth"].set_s("5");
+    }
 
     options.config.mutable_graph_options()
         ->mutable_rewrite_options()
