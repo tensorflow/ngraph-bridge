@@ -200,7 +200,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 
   for (auto itx : node_def.attr()) {
     if (itx.first == "_ngraph_pipeline_depth") {
-      int depth;
+      int depth = -1;
       string depth_string = itx.second.s();
       try {
         depth = stoi(depth_string);
@@ -208,7 +208,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
         OP_REQUIRES_OK(
             ctx, errors::Internal(
                      "Tried to convert pipeline_depth string ", depth_string,
-                     " to integer but failed. Please pass a valid integer."))
+                     " to integer but failed. Please pass a valid integer."));
       }
       OP_REQUIRES_OK(ctx, ng_encap_impl.SetPipelineDepth(depth));
       break;

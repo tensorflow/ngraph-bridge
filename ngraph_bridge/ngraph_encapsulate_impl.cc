@@ -594,7 +594,7 @@ NGraphEncapsulateImpl::GetTensorsFromPipeline(
 Status NGraphEncapsulateImpl::SetPipelineDepth(int depth) {
   if (depth < 0) {
     return errors::Internal("Attempting to set pipeline depth to ", depth,
-                            ". Please set a positive number")
+                            ". Please set a positive number");
   }
   if (m_executable_can_create_tensor) {
     m_depth = depth;
