@@ -162,6 +162,7 @@ class Builder {
              << "\n";
       }
     }
+    tf_node_to_ng_node_.clear();
   }
 
  private:
