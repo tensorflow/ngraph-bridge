@@ -150,21 +150,15 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       serialized_ng_func = itr->second;
     }
 
-    int function_size;
-    if (!m_do_aot) {
-      function_size = ng_function->get_graph_size() / 1024;  // kb unit
-    }
-
     // Serialize to nGraph if needed
     if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
       std::string file_name = "tf_function_" + m_name + ".json";
-      DumpStringToFile("tf_function_" + m_name + ".json", serialized_ng_func);
+      StringToFile("tf_function_" + m_name + ".json", serialized_ng_func);
 #if defined NGRAPH_DISTRIBUTED
       int rank_id;
       rank_id = ng::get_distributed_interface()->get_rank();
-      DumpStringToFile(
-          "tf_function_" + m_name + "_" + to_string(rank_id) + ".json",
-          serialized_ng_func);
+      StringToFile("tf_function_" + m_name + "_" + to_string(rank_id) + ".json",
+                   serialized_ng_func);
 #endif
     }
     // Evict the cache if the number of elements exceeds the limit
@@ -231,14 +225,12 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       }
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      DumpStringToFile("tf_function_error_" + m_name + ".json",
-                       serialized_ng_func);
+      StringToFile("tf_function_error_" + m_name + ".json", serialized_ng_func);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      DumpStringToFile("tf_function_error_" + m_name + ".json",
-                       serialized_ng_func);
+      StringToFile("tf_function_error_" + m_name + ".json", serialized_ng_func);
       return errors::Internal("Error in compiling op_backend\n");
     }
     BackendManager::UnlockBackend(m_op_backend_name);
@@ -263,8 +255,6 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                    << " Cache length: " << m_ng_exec_map.size()
                    << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
                    << " Delta RSS: " << delta_res_mem
-                   << (m_do_aot ? ""
-                                : " Function size: " + to_string(function_size))
                    << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
                    << " VM: " << vm / (1024 * 1024) << " GB" << endl;
   }  // end of input signature not found in m_ng_exec_map
@@ -600,7 +590,7 @@ void NGraphEncapsulateImpl::DumpNgFunction(
     const string& file_name,
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
   if (m_do_aot) {
-    DumpStringToFile(file_name, m_serialized_ng_function_map[ng_exec]);
+    StringToFile(file_name, m_serialized_ng_function_map[ng_exec]);
   } else {
     NgraphSerialize(file_name, m_ng_function_map[ng_exec]);
   }
