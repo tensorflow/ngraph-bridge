@@ -144,7 +144,7 @@ TEST(ParallelExecutor, CompilerTest) {
   const auto& parameters = ng_function->get_parameters();
   ASSERT_EQ(2, parameters.size());
   cout << " Friendly name: " << ng_function->get_friendly_name()
-       << " PArameters: " << parameters.size() << std::endl;
+       << " Parameters: " << parameters.size() << std::endl;
 }
 
 TEST(ParallelExecutor, PipelinedTensorCreate) {
@@ -194,7 +194,6 @@ TEST(ParallelExecutor, PipelinedTensorCreate) {
                                      static_input_map, op_backend, ng_exec,
                                      cache_hit));
   ASSERT_FALSE(cache_hit);
-
   ASSERT_EQ(2, executor.TensorPipelineDepth());
 
   // Get the pipelned tensors
@@ -211,7 +210,7 @@ TEST(ParallelExecutor, PipelinedTensorCreate) {
   ASSERT_NOT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
 }
 
-TEST(ParallelExecutor, ExecuteOneThread) {
+TEST(ParallelExecutor, ExecuteOnSingleThread) {
   // Read the graph
   // We are using a graph with _Arg and _Retval
   // addded i.e., a PB that is saved after the initial processing of the
@@ -225,16 +224,102 @@ TEST(ParallelExecutor, ExecuteOneThread) {
 
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
+  Tensor y(DT_FLOAT, TensorShape({2, 3}));
+
+  std::vector<Tensor> tf_input_tensors{x, y};
+  vector<TensorShape> input_shapes;
+  vector<const Tensor*> static_input_map;
+  ng::runtime::Backend* op_backend;
+  shared_ptr<ngraph::runtime::Executable> ng_exec;
+
+  // Call the Executor to compile the funcion
+
+  // TODO: Investigate is the executor can decipher the static inputs
+  // from the given graph (as opposed to feeding this in externally)
+  int size = 5;
+  executor.ResizeStaticInputVector(size);
+  for (int i = 0; i < size; i++) {
+    executor.SetStaticInputVector(i, false);
+  }
+
+  bool cache_hit = false;
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
+                                     static_input_map, op_backend, ng_exec,
+                                     cache_hit));
+  ASSERT_FALSE(cache_hit);
+
+  ASSERT_EQ(2, executor.TensorPipelineDepth());
+
+  // Get the pipelned tensors
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
+  ASSERT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
+
+  // Now Fill in the tensor - X
   auto x_flat = x.flat<float>();
   for (int i = 0; i < x_flat.size(); i++) {
     x_flat.data()[i] = 1.0;
   }
 
-  Tensor y(DT_FLOAT, TensorShape({2, 3}));
+  ng::element::Type ng_element_type;
+  ASSERT_OK(TFDataTypeToNGraphElementType(x.dtype(), &ng_element_type));
+
+  get<1>(io_tensors)[0]->write(
+      &x_flat.data()[0], 0,
+      get<1>(io_tensors)[0]->get_element_count() * ng_element_type.size());
+
+  // Now Fill in the tensor - Y
   auto y_flat = y.flat<float>();
   for (int i = 0; i < y_flat.size(); i++) {
     y_flat.data()[i] = 1.0;
   }
+
+  ASSERT_OK(TFDataTypeToNGraphElementType(y.dtype(), &ng_element_type));
+
+  get<1>(io_tensors)[1]->write(
+      &y_flat.data()[0], 0,
+      get<1>(io_tensors)[1]->get_element_count() * ng_element_type.size());
+
+  // Output
+  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+  for (size_t i = 0; i < ng_exec->get_results().size(); i++) {
+    ng_outputs.push_back(get<2>(io_tensors)[i]);
+  }
+
+  // And execute
+  ng_exec->call(ng_outputs, {get<1>(io_tensors)[0], get<1>(io_tensors)[1]});
+
+  // Pick up the output
+  vector<tf::Tensor> ngraph_outputs;
+  // Convert to tf tensor
+  Tensor tf_output_tensor(DT_FLOAT, TensorShape({2, 3}));
+  void* dst_ptr = DMAHelper::base(&tf_output_tensor);
+  ng_outputs[0]->read(dst_ptr, 0, tf_output_tensor.TotalBytes());
+
+  cout << " NGRAPH inout X " << x.DebugString() << endl;
+  cout << " NGRAPH inout Y " << y.DebugString() << endl;
+  cout << " NGRAPH output " << tf_output_tensor.DebugString() << endl;
+
+  // And validate
+  // z = a * x + y
+  //   a ==> 5.0
+  // TODO
+}
+
+TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
+  // Read the graph
+  // We are using a graph with _Arg and _Retval
+  // addded i.e., a PB that is saved after the initial processing of the
+  // TF graph transformation.
+  unique_ptr<tf::Graph> input_graph;
+  unique_ptr<tf::Session> session;
+  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
+                               input_graph, session));
+  tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
+  NGraphExecutor executor(100, input_graph, "INTERPRETER");
+
+  // Create the inputs for this graph
+  Tensor x(DT_FLOAT, TensorShape({2, 3}));
+  Tensor y(DT_FLOAT, TensorShape({2, 3}));
 
   std::vector<Tensor> tf_input_tensors{x, y};
   vector<TensorShape> input_shapes;
@@ -258,18 +343,72 @@ TEST(ParallelExecutor, ExecuteOneThread) {
                                      static_input_map, op_backend, ng_exec,
                                      cache_hit));
   ASSERT_FALSE(cache_hit);
-
   ASSERT_EQ(2, executor.TensorPipelineDepth());
 
-  // Get the pipelned tensors
-  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
-  ASSERT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
+  // Now Fill in the tensor - X
+  auto x_flat = x.flat<float>();
+  for (int i = 0; i < x_flat.size(); i++) {
+    x_flat.data()[i] = 1.0;
+  }
 
-  // Now Fill in the tensor
+  ng::element::Type ng_element_type;
+  ASSERT_OK(TFDataTypeToNGraphElementType(x.dtype(), &ng_element_type));
 
-  // And execute
+  auto worker = [&](size_t thread_id) {
+    // Get the pipelned tensors
+    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
+    ASSERT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
 
-  // And validate
+    // Copy the tensors from TensorFlow Tensor to nGraph Tensor
+    // First X
+    get<1>(io_tensors)[0]->write(
+        &x_flat.data()[0], 0,
+        get<1>(io_tensors)[0]->get_element_count() * ng_element_type.size());
+
+    // Fill in the tensor - Y
+    auto y_flat = y.flat<float>();
+    for (int i = 0; i < y_flat.size(); i++) {
+      y_flat.data()[i] = thread_id;
+    }
+    ASSERT_OK(TFDataTypeToNGraphElementType(y.dtype(), &ng_element_type));
+
+    // Copy the tensors from TensorFlow Tensor to nGraph Tensor
+    // Next Y
+    get<1>(io_tensors)[1]->write(
+        &y_flat.data()[0], 0,
+        get<1>(io_tensors)[1]->get_element_count() * ng_element_type.size());
+
+    // Output
+    vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+    for (size_t i = 0; i < ng_exec->get_results().size(); i++) {
+      ng_outputs.push_back(get<2>(io_tensors)[i]);
+    }
+
+    // And execute
+    ng_exec->call(ng_outputs, {get<1>(io_tensors)[0], get<1>(io_tensors)[1]});
+
+    // Pick up the output
+    vector<tf::Tensor> ngraph_outputs;
+    // Convert to tf tensor
+    Tensor tf_output_tensor(DT_FLOAT, TensorShape({2, 3}));
+    void* dst_ptr = DMAHelper::base(&tf_output_tensor);
+    ng_outputs[0]->read(dst_ptr, 0, tf_output_tensor.TotalBytes());
+
+    cout << " NGRAPH inout X " << x.DebugString() << endl;
+    cout << " NGRAPH inout Y " << y.DebugString() << endl;
+    cout << " NGRAPH output " << tf_output_tensor.DebugString() << endl;
+
+    // And validate
+    // z = a * x + y
+    //   a ==> 5.0
+    // TODO
+  };
+
+  std::thread thread0(worker, 0);
+  std::thread thread1(worker, 1);
+
+  thread0.join();
+  thread1.join();
 }
 
 }  // namespace testing
