@@ -196,7 +196,7 @@ class NGraphEncapsulateImpl {
 
   bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
 
-  void SetPipelineDepth(int depth) { m_depth = depth; }
+  Status SetPipelineDepth(int depth);
 
   void ClearNgExecPipelinedTensorMap() {
     m_executable_pipelined_tensors_map.clear();
