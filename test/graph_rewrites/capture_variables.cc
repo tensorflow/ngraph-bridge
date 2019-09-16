@@ -25,6 +25,7 @@
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
