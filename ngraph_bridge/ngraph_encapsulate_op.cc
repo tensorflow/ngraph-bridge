@@ -262,7 +262,6 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   ng_encap_impl.ClearNgExecInputCache();
   ng_encap_impl.ClearNgExecOutputCache();
   ng_encap_impl.ClearNgExecMap();
-  ng_encap_impl.ClearNgFunctionMap();
   ng_encap_impl.ClearNgExecPipelinedTensorMap();
   ng_encap_impl.ClearNgExecSerializedFunctionCache();
 
@@ -292,7 +291,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
-  std::shared_ptr<ngraph::Function> ng_function;
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   ng::runtime::Backend* op_backend;
 
