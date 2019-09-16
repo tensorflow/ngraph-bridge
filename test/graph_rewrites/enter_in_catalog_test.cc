@@ -47,9 +47,6 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-#(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
-#define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
-
 // Graph with Assign ops which should have the attribute
 // _ngraph_remove added and set to true.
 TEST(CatalogTest, SmallGraph1) {
