@@ -29,7 +29,6 @@
 #include "ngraph/op/util/logical_reduction.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_conversions.h"
@@ -5041,13 +5040,7 @@ Status Builder::TranslateGraph(
     }
   }
 
-  if (config::IsLoggingPlacement()) {
-    auto tf_to_ng_node_info = Builder::GetTFNodeToNgNodeConversionTable();
-    for (const auto& itr : tf_to_ng_node_info) {
-      cout << "TF_to_NG: " << itr.first << " --> " << ng::join(itr.second)
-           << "\n";
-    }
-  }
+  Builder::PrintTfNodeToNgNodeConversionTable();
 
   //
   // Populate the result list.

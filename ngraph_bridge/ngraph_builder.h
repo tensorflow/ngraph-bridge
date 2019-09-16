@@ -25,6 +25,7 @@
 #include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_api.h"
 
 namespace tensorflow {
 
@@ -154,9 +155,13 @@ class Builder {
     return ng_node;
   }
 
-  static const std::map<string, std::vector<string>>&
-  GetTFNodeToNgNodeConversionTable() {
-    return tf_node_to_ng_node_;
+  static void PrintTfNodeToNgNodeConversionTable() {
+    if (config::IsLoggingPlacement()) {
+      for (const auto& itr : tf_node_to_ng_node_) {
+        cout << "TF_to_NG: " << itr.first << " --> " << ng::join(itr.second)
+             << "\n";
+      }
+    }
   }
 
  private:
