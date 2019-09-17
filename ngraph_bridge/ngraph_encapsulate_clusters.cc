@@ -804,7 +804,7 @@ Status EncapsulateClusters(
             // For e.g. _ngraph_ice_cores --> ice_cores
             if (itr.first.find("_ngraph_") != std::string::npos) {
               // leave out _ngraph_aot_requested
-              if (itr.first.find("_ngraph_aot_requested") !=
+              if (itr.first.find("_ngraph_aot_requested") ==
                   std::string::npos) {
                 additional_attribute_map.insert(
                     {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
