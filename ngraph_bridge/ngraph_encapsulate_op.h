@@ -28,6 +28,7 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
+#include "ngraph_executor.h"
 
 namespace tensorflow {
 
@@ -40,8 +41,12 @@ class NGraphEncapsulateOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override;
 
  private:
+  void ComputeUsingLegacyExecutor(OpKernelContext* ctx);
+  void ComputeUsingParallelExecutor(OpKernelContext* ctx);
   NGraphEncapsulateImpl ng_encap_impl;
   std::mutex m_compute_lock;
+
+  unique_ptr<NGraphExecutor> m_parallel_executor;
 };
 
 }  // namespace ngraph_bridge

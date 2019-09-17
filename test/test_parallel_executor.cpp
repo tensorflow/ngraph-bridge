@@ -35,8 +35,7 @@ namespace ngraph_bridge {
 namespace testing {
 
 Status LoadGraphFromPbTxt(const string& pb_file, const string& backend_name,
-                          unique_ptr<tf::Graph>& new_graph,
-                          unique_ptr<tf::Session>& session) {
+                          unique_ptr<tf::Graph>& new_graph) {
   // Read the graph
   tensorflow::GraphDef graph_def;
   auto load_graph_status = ReadTextProto(Env::Default(), pb_file, &graph_def);
@@ -57,19 +56,27 @@ Status LoadGraphFromPbTxt(const string& pb_file, const string& backend_name,
 TEST(ParallelExecutor, Construction) {
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
-  unique_ptr<tf::Graph> input_graph =
-      unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
+  unique_ptr<tf::Graph> input_graph;
 
   // First test with a backend not yet created
   unique_ptr<NGraphExecutor> executor;
   ASSERT_THROW(executor = unique_ptr<NGraphExecutor>(
-                   new NGraphExecutor(100, input_graph, "bogus")),
+                   new NGraphExecutor(100, 500, 600, input_graph, "bogus")),
                std::runtime_error);
+
+  // Next test with a null graph not yet created
+  ASSERT_THROW(executor = unique_ptr<NGraphExecutor>(
+                   new NGraphExecutor(100, 500, 600, input_graph, "bogus")),
+               std::runtime_error);
+
+  // Now read the graph
+  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
+                               input_graph));
 
   // Next test with a backend after creating
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
-  ASSERT_NO_THROW(executor = unique_ptr<NGraphExecutor>(
-                      new NGraphExecutor(100, input_graph, "INTERPRETER")));
+  ASSERT_NO_THROW(executor = unique_ptr<NGraphExecutor>(new NGraphExecutor(
+                      100, 500, 600, input_graph, "INTERPRETER")));
 
   // Now that the object has been cobstructed, test various internal parts
   // TODO: Create a Test Class and mark that as a friend of the Executor class
@@ -80,16 +87,15 @@ TEST(ParallelExecutor, Construction) {
 TEST(ParallelExecutor, CompilerTest) {
   // Read the graph
   unique_ptr<tf::Graph> input_graph;
-  unique_ptr<tf::Session> session;
 
   // We are using a graph with _Arg and _Retval
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
-                               input_graph, session));
+                               input_graph));
 
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
-  NGraphExecutor executor(100, input_graph, "INTERPRETER");
+  NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
 
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -112,14 +118,14 @@ TEST(ParallelExecutor, CompilerTest) {
 
   // Call the Executor to compile the funcion
 
-  // TODO: Investigate is the executor can decipher the static inputs
-  // from the given graph (as opposed to feeding this in externally)
-  int size = 5;
-  executor.ResizeStaticInputVector(size);
+  // // TODO: Investigate is the executor can decipher the static inputs
+  // // from the given graph (as opposed to feeding this in externally)
+  // int size = 5;
+  // executor.ResizeStaticInputVector(size);
 
-  for (int i = 0; i < size; i++) {
-    executor.SetStaticInputVector(i, false);
-  }
+  // for (int i = 0; i < size; i++) {
+  //   executor.SetStaticInputVector(i, false);
+  // }
 
   bool cache_hit = false;
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
@@ -153,11 +159,10 @@ TEST(ParallelExecutor, PipelinedTensorCreate) {
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
-  unique_ptr<tf::Session> session;
   ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
-                               input_graph, session));
+                               input_graph));
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
-  NGraphExecutor executor(100, input_graph, "INTERPRETER");
+  NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
 
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -182,12 +187,12 @@ TEST(ParallelExecutor, PipelinedTensorCreate) {
 
   // TODO: Investigate is the executor can decipher the static inputs
   // from the given graph (as opposed to feeding this in externally)
-  int size = 5;
-  executor.ResizeStaticInputVector(size);
+  // int size = 5;
+  // executor.ResizeStaticInputVector(size);
 
-  for (int i = 0; i < size; i++) {
-    executor.SetStaticInputVector(i, false);
-  }
+  // for (int i = 0; i < size; i++) {
+  //   executor.SetStaticInputVector(i, false);
+  // }
 
   bool cache_hit = false;
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
@@ -216,11 +221,10 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
-  unique_ptr<tf::Session> session;
   ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
-                               input_graph, session));
+                               input_graph));
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
-  NGraphExecutor executor(100, input_graph, "INTERPRETER");
+  NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
 
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -236,11 +240,11 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
 
   // TODO: Investigate is the executor can decipher the static inputs
   // from the given graph (as opposed to feeding this in externally)
-  int size = 5;
-  executor.ResizeStaticInputVector(size);
-  for (int i = 0; i < size; i++) {
-    executor.SetStaticInputVector(i, false);
-  }
+  // int size = 5;
+  // executor.ResizeStaticInputVector(size);
+  // for (int i = 0; i < size; i++) {
+  //   executor.SetStaticInputVector(i, false);
+  // }
 
   bool cache_hit = false;
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
@@ -311,11 +315,10 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
-  unique_ptr<tf::Session> session;
   ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
-                               input_graph, session));
+                               input_graph));
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
-  NGraphExecutor executor(100, input_graph, "INTERPRETER");
+  NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
 
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -331,12 +334,12 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
 
   // TODO: Investigate is the executor can decipher the static inputs
   // from the given graph (as opposed to feeding this in externally)
-  int size = 5;
-  executor.ResizeStaticInputVector(size);
+  // int size = 5;
+  // executor.ResizeStaticInputVector(size);
 
-  for (int i = 0; i < size; i++) {
-    executor.SetStaticInputVector(i, false);
-  }
+  // for (int i = 0; i < size; i++) {
+  //   executor.SetStaticInputVector(i, false);
+  // }
 
   bool cache_hit = false;
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,

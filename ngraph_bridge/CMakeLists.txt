@@ -98,9 +98,7 @@ if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
 endif()
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
-
-message(STATUS "NGRAPH_TF_ENABLE_PARALLEL_EXECUTION: 
-    ${NGRAPH_TF_ENABLE_PARALLEL_EXECUTION}")
+message(STATUS "NGRAPH_TF_ENABLE_PARALLEL_EXECUTION: ${NGRAPH_TF_ENABLE_PARALLEL_EXECUTION}")
 
 add_library(${LIB_NAME} SHARED ${SRC})
 
@@ -177,6 +175,18 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     target_include_directories(${LIB_NAME_STATIC} PUBLIC "${NGRAPH_INSTALL_DIR}/include")
     target_include_directories(${LIB_NAME_STATIC} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
 
+endif()
+
+if (NGRAPH_TF_ENABLE_PARALLEL_EXECUTION)
+    if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+        target_compile_definitions(
+            ${LIB_NAME_STATIC} PRIVATE 
+            "NGRAPH_BRIDGE_USE_PARALLEL_EXECUTOR")
+    else()
+        target_compile_definitions(
+            ${LIB_NAME} PRIVATE 
+            "NGRAPH_BRIDGE_USE_PARALLEL_EXECUTOR")
+    endif()
 endif()
 
 #------------------------------------------------------------------------------

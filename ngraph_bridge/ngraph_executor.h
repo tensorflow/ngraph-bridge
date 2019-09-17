@@ -53,7 +53,8 @@ class NGraphExecutor {
   //  SetExecCanCreateTensor()
   //
   // Ngraph Encapsulate Implementation class for EncapsulateOp class
-  explicit NGraphExecutor(int instance_id, unique_ptr<tensorflow::Graph>& graph,
+  explicit NGraphExecutor(int instance_id, int cluster_id, int graph_id,
+                          unique_ptr<tensorflow::Graph>& graph,
                           const string& backend_name);
 
   // Calls Compute Signature and gets ngraph executable
@@ -88,6 +89,14 @@ class NGraphExecutor {
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
           io_tensors);
+
+  void ReturnPipelinedTensors(
+      std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
+    m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
+  }
+
+  const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
+  int GetGraphId() { return m_graph_id; }
 
  private:
   // Allocates the necessary tensors from the Executable (or backend in future)
@@ -140,13 +149,10 @@ class NGraphExecutor {
 
   void SetNumberOfCopies(const int& number) { number_of_copies = number; }
 
-  const int& GetNgraphCluster() { return m_ngraph_cluster; }
+  // void SetNgraphCluster(const int& cluster) { m_ngraph_cluster_id = cluster;
+  // }
 
-  void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
-
-  int GetGraphId() { return m_graph_id; }
-
-  void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
+  // void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
 
   const int& GetFunctionCache() { return my_function_cache_depth_in_items; }
 
@@ -170,7 +176,6 @@ class NGraphExecutor {
 
   const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
 
- public:
   void ResizeStaticInputVector(const int& size) {
     m_input_is_static.resize(size);
   }
@@ -178,7 +183,6 @@ class NGraphExecutor {
     m_input_is_static[index] = value;
   }
 
- private:
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
   GetNgExecMap() {
     return m_ng_exec_map;
@@ -237,18 +241,13 @@ class NGraphExecutor {
   }
 
  private:
-  void ReturnPipelinedTensors(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
-    m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
-  }
-
   // TF Graph for the cluster
   const unique_ptr<Graph> m_graph;
 
  private:
   int number_of_copies = 0;
-  int m_ngraph_cluster{-1};
-  int m_graph_id{-1};
+  const int m_ngraph_cluster_id{-1};
+  const int m_graph_id{-1};
   int my_function_cache_depth_in_items = 16;
   int m_number_outputs = -1;
   int m_number_inputs = -1;

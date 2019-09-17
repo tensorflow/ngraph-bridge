@@ -226,6 +226,12 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   // using RewriteConfig
   string backend_creation_string = BackendManager::GetBackendCreationString(
       config_backend_name, config_device_id);
+
+  // Override from the env. for debugging purposes
+  if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
+    backend_creation_string = std::getenv("NGRAPH_TF_BACKEND");
+  }
+
   if (!config_backend_name.empty()) {
     if (!BackendManager::IsSupportedBackend(backend_creation_string)) {
       return errors::Internal("NGRAPH_TF_BACKEND: ", backend_creation_string,

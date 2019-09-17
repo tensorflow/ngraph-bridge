@@ -60,14 +60,20 @@ namespace ngraph_bridge {
 //---------------------------------------------------------------------------
 //  NGraphExecutor::ctor
 //---------------------------------------------------------------------------
-NGraphExecutor::NGraphExecutor(int instance_id,
+NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                                unique_ptr<tensorflow::Graph>& graph,
                                const string& backend_name)
     : my_instance_id(instance_id),
+      m_ngraph_cluster_id(cluster_id),
+      m_graph_id(graph_id),
       m_graph(std::move(graph)),
       m_op_backend_name(backend_name),
       m_freshness_tracker(nullptr) {
-  NGRAPH_VLOG(3) << "NGraphExecutor(): " << instance_id
+  // Sanity checks
+  if (m_graph == nullptr) {
+    throw std::runtime_error("Graph is nullptr!");
+  }
+  NGRAPH_VLOG(0) << "NGraphExecutor(): " << instance_id
                  << " Backend: " << backend_name;
 
   // Getthe backend. Note that the backend may not be available
@@ -77,6 +83,68 @@ NGraphExecutor::NGraphExecutor(int instance_id,
     m_executable_can_create_tensor = backend->executable_can_create_tensors();
   } catch (...) {
     throw std::runtime_error("No backend available. Cannot execute graph");
+  }
+
+  //
+  // Initialize the "m_input_is_static" vector as follows:
+  // (1) create m_input_is_static with n+1 elements, where n is the max arg
+  //     index
+  // (2) for each _Arg node n, set m_input_is_static[n.index] to true if n
+  //     is driving any static input; else set it to false.
+  //
+
+  // Create the vector.
+  int32 max_arg_index = -1;
+  std::vector<const Node*> arg_nodes;
+
+  for (auto node : m_graph->nodes()) {
+    if (node->type_string() == "_Arg") {
+      arg_nodes.push_back(node);
+
+      int32 index;
+      auto status = GetNodeAttr(node->attrs(), "index", &index);
+      if (status != Status::OK()) {
+        throw std::runtime_error("error getting node attribute index");
+      }
+
+      if (index > max_arg_index) {
+        max_arg_index = index;
+      }
+    }
+  }
+
+  int size = max_arg_index + 1;
+  ResizeStaticInputVector(size);
+
+  for (int i = 0; i < size; i++) {
+    SetStaticInputVector(i, false);
+  }
+
+  // Fill the vector.
+  for (auto node : arg_nodes) {
+    int32 index;
+    auto status = GetNodeAttr(node->attrs(), "index", &index);
+    if (status != Status::OK()) {
+      throw std::runtime_error("error getting node attribute index");
+    }
+
+    bool is_static = false;
+    for (auto edge : node->out_edges()) {
+      if (edge->IsControlEdge() || !edge->dst()->IsOp()) {
+        continue;
+      }
+
+      NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
+                     << edge->DebugString();
+
+      if (InputIsStatic(edge->dst(), edge->dst_input())) {
+        NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
+        is_static = true;
+        break;
+      }
+    }
+    NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
+    SetStaticInputVector(index, is_static);
   }
 }
 
@@ -547,7 +615,7 @@ Status NGraphExecutor::ParseNodeAttributes(
           m_do_aot = (attr_value == "1");
           if (m_do_aot) {
             NGRAPH_VLOG(1) << "Using AOT for encapsulate " +
-                                  to_string(m_ngraph_cluster);
+                                  to_string(m_ngraph_cluster_id);
           }
         } else {
           return errors::Internal(
