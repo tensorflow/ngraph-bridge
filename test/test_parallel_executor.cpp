@@ -405,9 +405,9 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
     // z = a * x + y
     //   a ==> 5.0
     // TODO
-     Tensor expected_val(DT_FLOAT, TensorShape({2, 3}));
-       AssignInputValues(expected_val, 5.0f+thread_id );
-         Compare(tf_output_tensor, expected_val, 0.0f);
+    Tensor expected_val(DT_FLOAT, TensorShape({2, 3}));
+    AssignInputValues(expected_val, 5.0f + thread_id);
+    Compare(tf_output_tensor, expected_val, 0.0f);
   };
 
   std::thread thread0(worker, 0);
