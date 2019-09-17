@@ -75,7 +75,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 //---------------------------------------------------------------------------
 //  CreateParallelExecutor
 //---------------------------------------------------------------------------
-void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx){
+void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx) {
   GraphDef* graph_def;
   unique_ptr<Graph> encap_subgraph(new Graph(OpRegistry::Global()));
 
@@ -152,7 +152,7 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx){
 //---------------------------------------------------------------------------
 //  CreateLegacyExecutor
 //---------------------------------------------------------------------------
-void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx){
+void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx) {
   ng_encap_impl.SetName(name());
 
   std::ostringstream oss;
@@ -278,7 +278,8 @@ void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx){
     OP_REQUIRES_OK(ctx, status);
   }
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
-  OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
+  OP_REQUIRES_OK(ctx,
+                 BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
 
   // SetConfig will be called for each EncapsulateOp
   BackendManager::SetConfig(ng_encap_impl.GetOpBackend(),
