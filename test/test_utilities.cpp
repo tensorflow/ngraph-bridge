@@ -156,7 +156,7 @@ void Compare(Tensor& T1, Tensor& T2, float tol) {
     } else {
       auto rel = a - b;
       auto rel_div = std::abs(rel / a);
-      EXPECT_TRUE(rel_div < tol);
+      EXPECT_TRUE(rel_div <= tol);
     }
   }
 }
