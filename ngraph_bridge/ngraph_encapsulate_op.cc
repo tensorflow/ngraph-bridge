@@ -400,9 +400,9 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
     void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[i]);
     try {
-      get<1>(io_tensors)[0]->write(
+      get<1>(io_tensors)[i]->write(
           current_src_ptr, 0,
-          get<1>(io_tensors)[0]->get_element_count() * ng_element_type.size());
+          get<1>(io_tensors)[i]->get_element_count() * ng_element_type.size());
     } catch (const std::exception& exp) {
       OP_REQUIRES(ctx, false,
                   errors::Internal("Error copying TF tensor to device tensor: ",
