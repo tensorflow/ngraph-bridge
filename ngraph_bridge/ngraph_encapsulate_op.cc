@@ -66,6 +66,16 @@ namespace ngraph_bridge {
 NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     : OpKernel(ctx) {
 #if defined(NGRAPH_BRIDGE_USE_PARALLEL_EXECUTOR)
+  CreateParallelExecutor(ctx);
+#else
+  CreateLegacyExecutor(ctx);
+#endif
+}
+
+//---------------------------------------------------------------------------
+//  CreateParallelExecutor
+//---------------------------------------------------------------------------
+void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx){
   GraphDef* graph_def;
   unique_ptr<Graph> encap_subgraph(new Graph(OpRegistry::Global()));
 
@@ -126,6 +136,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
 
   // Create the Executor object
+  // TODO: Replace 100 with the instance id
   m_parallel_executor = move(unique_ptr<NGraphExecutor>(
       new NGraphExecutor(100, cluster, graph_id, encap_subgraph, be_name)));
 
@@ -136,8 +147,12 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
                           node_def.attr(), &additional_attribute_map));
   // SetConfig will be called for each EncapsulateOp
   BackendManager::SetConfig(be_name, additional_attribute_map);
+}
 
-#else   // NGRAPH_BRIDGE_USE_PARALLEL_EXECUTOR
+//---------------------------------------------------------------------------
+//  CreateLegacyExecutor
+//---------------------------------------------------------------------------
+void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx){
   ng_encap_impl.SetName(name());
 
   std::ostringstream oss;
@@ -263,7 +278,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     OP_REQUIRES_OK(ctx, status);
   }
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
-  OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(be_name));
+  OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
 
   // SetConfig will be called for each EncapsulateOp
   BackendManager::SetConfig(ng_encap_impl.GetOpBackend(),
@@ -278,7 +293,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 
   event.Stop();
   ngraph::Event::write_trace(event);
-#endif  // NGRAPH_BRIDGE_USE_PARALLEL_EXECUTOR
 }
 
 //---------------------------------------------------------------------------

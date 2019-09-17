@@ -41,8 +41,11 @@ class NGraphEncapsulateOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override;
 
  private:
+  void CreateParallelExecutor(OpKernelConstruction* ctx);
+  void CreateLegacyExecutor(OpKernelConstruction* ctx);
   void ComputeUsingLegacyExecutor(OpKernelContext* ctx);
   void ComputeUsingParallelExecutor(OpKernelContext* ctx);
+
   NGraphEncapsulateImpl ng_encap_impl;
   std::mutex m_compute_lock;
 
