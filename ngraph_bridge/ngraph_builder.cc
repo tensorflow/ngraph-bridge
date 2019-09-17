@@ -22,8 +22,9 @@
 #include "tensorflow/core/lib/core/errors.h"
 
 #include "ngraph/builder/autobroadcast.hpp"
+#include "ngraph/builder/dequantize_builder.hpp"
 #include "ngraph/builder/numpy_transpose.hpp"
-#include "ngraph/builder/quantization.hpp"
+#include "ngraph/builder/quantize_builder.hpp"
 #include "ngraph/op/argmax.hpp"
 #include "ngraph/op/argmin.hpp"
 #include "ngraph/op/util/logical_reduction.hpp"
@@ -513,14 +514,15 @@ static Status TranslateQuantizedPoolOp(const Node* op,
   if (is_quantizedAvgPool) {
     // QuantizeAvgPool
     // TF doesn't include padding in avg calculation
-    ng_quant_pool = ng::builder::ScaledQuantizedAvgPool(
-        ng_input, ng_kernel_shape, ng_strides, ng_padding_below,
-        ng_padding_above, false, dummy_min, dummy_max);
+
+    ng_quant_pool = ConstructNgNode<ng::op::AvgPool>(
+        op->name(), ng_input, ng_kernel_shape, ng_strides, ng_padding_below,
+        ng_padding_above, false);
   } else {
     // QuantizeMaxPool
-    ng_quant_pool = ng::builder::ScaledQuantizedMaxPool(
-        ng_input, ng_kernel_shape, ng_strides, ng_padding_below,
-        ng_padding_above, dummy_min, dummy_max);
+    ng_quant_pool = ConstructNgNode<ng::op::MaxPool>(
+        op->name(), ng_input, ng_kernel_shape, ng_strides, ng_padding_below,
+        ng_padding_above);
   }
 
   BatchToTensorflow(is_nhwc, ng_quant_pool);
@@ -3305,7 +3307,7 @@ static Status TranslateQuantizedConcatOpHelper(
   shared_ptr<ng::Node> ng_max_of_maxs =
       make_shared<ng::op::Constant>(ng::element::f32, ng::Shape{}, max_of_maxs);
 
-  auto ng_qconcat = ng::builder::ScaledQuantizedConcat(
+  auto ng_qconcat = ng::builder::QuantizedConcatBuilder(
       ng_args, size_t(concat_axis), ng_all_mins, ng_all_maxs);
 
   SaveNgOp(ng_op_map, op->name(), ng_qconcat);
@@ -3373,7 +3375,7 @@ static Status TranslateQuantizedConv(
                        ng_strides, ng_dilations, ng_padding_below,
                        ng_padding_above);
 
-  // It is expected by ScaledQuantizedConvolutionBias (and other builder
+  // It is expected by QuantizedConvolutionBiasBuilder (and other builder
   // functions) that the min max inputs be constant nodes
   // Hence declaring them static, reading their values and converting to
   // constant nodes
@@ -3401,7 +3403,7 @@ static Status TranslateQuantizedConv2DWithBiasMaybeReluAndRequantizeOp(
       std::vector<std::shared_ptr<ng::Node>> node_inps, ng::Strides ng_strides,
       ng::Strides ng_dilations, ng::CoordinateDiff ng_padding_below,
       ng::CoordinateDiff ng_padding_above, ng::Strides ng_data_dilations) {
-    return ng::builder::ScaledQuantizedConvolutionBias(
+    return ng::builder::QuantizedConvolutionBiasBuilder(
         node_inps[0], node_inps[1], node_inps[2], ng_strides, ng_dilations,
         ng_padding_below, ng_padding_above, ng_data_dilations, node_inps[3],
         node_inps[4], node_inps[5], node_inps[6], node_inps[7], node_inps[8],
@@ -3417,7 +3419,7 @@ static Status TranslateQuantizedConv2DWithBiasSumAndReluAndRequantizeOp(
       std::vector<std::shared_ptr<ng::Node>> node_inps, ng::Strides ng_strides,
       ng::Strides ng_dilations, ng::CoordinateDiff ng_padding_below,
       ng::CoordinateDiff ng_padding_above, ng::Strides ng_data_dilations) {
-    return ng::builder::ScaledQuantizedConvolutionBiasAdd(
+    return ng::builder::QuantizedConvolutionBiasAddBuilder(
         node_inps[0], node_inps[1], node_inps[2], node_inps[9], ng_strides,
         ng_dilations, ng_padding_below, ng_padding_above, ng_data_dilations,
         node_inps[3], node_inps[4], node_inps[5], node_inps[6], node_inps[7],
@@ -3433,7 +3435,7 @@ static Status TranslateQuantizedConv2DWithBiasSignedSumAndReluAndRequantizeOp(
       std::vector<std::shared_ptr<ng::Node>> node_inps, ng::Strides ng_strides,
       ng::Strides ng_dilations, ng::CoordinateDiff ng_padding_below,
       ng::CoordinateDiff ng_padding_above, ng::Strides ng_data_dilations) {
-    return ng::builder::ScaledQuantizedConvolutionBiasSignedAdd(
+    return ng::builder::QuantizedConvolutionBiasSignedAddBuilder(
         node_inps[0], node_inps[1], node_inps[2], node_inps[9], ng_strides,
         ng_dilations, ng_padding_below, ng_padding_above, ng_data_dilations,
         node_inps[3], node_inps[4], node_inps[5], node_inps[6], node_inps[7],
@@ -3467,8 +3469,8 @@ static Status TranslateQuantizeV2Op(const Node* op,
       ng::op::Quantize::RoundMode::ROUND_NEAREST_TOWARD_EVEN;
 
   SaveNgOp(ng_op_map, op->name(),
-           ng::builder::ScaledQuantize(ng_input, ng_min, ng_max, ng_et,
-                                       ng::AxisSet(), ng_round_mode));
+           ng::builder::QuantizeBuilder(ng_input, ng_min, ng_max, ng_et,
+                                        ng::AxisSet(), ng_round_mode));
   SaveNgOp(ng_op_map, op->name(), ng_min);
   SaveNgOp(ng_op_map, op->name(), ng_max);
 
@@ -3483,8 +3485,8 @@ static Status TranslateDequantizeOp(const Node* op,
 
   // TF only dequantizes to fp32
   SaveNgOp(ng_op_map, op->name(),
-           ng::builder::ScaledDequantize(ng_input, ng_min, ng_max,
-                                         ng::element::f32, ng::AxisSet()));
+           ng::builder::DequantizeBuilder(ng_input, ng_min, ng_max,
+                                          ng::element::f32, ng::AxisSet()));
   return Status::OK();
 }
 
