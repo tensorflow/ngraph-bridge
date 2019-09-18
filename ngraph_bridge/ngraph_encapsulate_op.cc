@@ -60,22 +60,51 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+int NGraphEncapsulateOp::s_instance_id = 0;
+
 //---------------------------------------------------------------------------
 //  NGraphEncapsulateOp::ctor
 //---------------------------------------------------------------------------
 NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     : OpKernel(ctx) {
-#if defined(NGRAPH_BRIDGE_USE_PARALLEL_EXECUTOR)
-  CreateParallelExecutor(ctx);
-#else
-  CreateLegacyExecutor(ctx);
-#endif
+  // Set the backend type for the this NGraphEncapsulate Op
+  std::string backend_name;
+  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &backend_name));
+  std::string device_id;
+  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_device_id", &device_id));
+
+  // Concatenate the backend_name:device_id
+  string be_name;
+  try {
+    be_name = BackendManager::GetBackendCreationString(backend_name, device_id);
+  } catch (const std::exception& exp) {
+    Status status = errors::Internal(
+        "Caught exception while creating backend string ", exp.what(), "\n");
+    OP_REQUIRES_OK(ctx, status);
+  }
+
+  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name()
+                 << "BE: " << be_name;
+  OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(be_name));
+
+  auto backend = BackendManager::GetBackend(be_name);
+  OP_REQUIRES(
+      ctx, backend != nullptr,
+      errors::Internal("Cannot get the backend object for BE: ", be_name));
+  m_does_backend_support_pipelining = backend->executable_can_create_tensors();
+
+  if (m_does_backend_support_pipelining) {
+    CreateParallelExecutor(ctx, be_name);
+  } else {
+    CreateLegacyExecutor(ctx, be_name);
+  }
 }
 
 //---------------------------------------------------------------------------
 //  CreateParallelExecutor
 //---------------------------------------------------------------------------
-void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx) {
+void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
+                                                 const string& backend_name) {
   GraphDef* graph_def;
   unique_ptr<Graph> encap_subgraph(new Graph(OpRegistry::Global()));
 
@@ -112,33 +141,13 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx) {
         ctx, ConvertGraphDefToGraph(opts, *graph_def, encap_subgraph.get()));
   }
 
-  // Set the backend type for the op
-  std::string backend_name;
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &backend_name));
-  std::string device_id;
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_device_id", &device_id));
-
-  // Concatenate the backend_name:device_id
-  string be_name;
-  try {
-    be_name = BackendManager::GetBackendCreationString(backend_name, device_id);
-  } catch (const std::exception& exp) {
-    Status status = errors::Internal(
-        "Caught exception while creating backend string ", exp.what(), "\n");
-    OP_REQUIRES_OK(ctx, status);
-  }
-
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name()
-                 << "BE: " << be_name;
-  OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(be_name));
-
   int graph_id{-1};
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
 
   // Create the Executor object
-  // TODO: Replace 100 with the instance id
-  m_parallel_executor = move(unique_ptr<NGraphExecutor>(
-      new NGraphExecutor(100, cluster, graph_id, encap_subgraph, be_name)));
+  m_parallel_executor = move(unique_ptr<NGraphExecutor>(new NGraphExecutor(
+      s_instance_id, cluster, graph_id, encap_subgraph, backend_name)));
+  s_instance_id++;
 
   // Get the optional attributes
   std::unordered_map<std::string, std::string> additional_attribute_map;
@@ -146,13 +155,14 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx) {
   OP_REQUIRES_OK(ctx, m_parallel_executor->ParseNodeAttributes(
                           node_def.attr(), &additional_attribute_map));
   // SetConfig will be called for each EncapsulateOp
-  BackendManager::SetConfig(be_name, additional_attribute_map);
+  BackendManager::SetConfig(backend_name, additional_attribute_map);
 }
 
 //---------------------------------------------------------------------------
 //  CreateLegacyExecutor
 //---------------------------------------------------------------------------
-void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx) {
+void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx,
+                                               const string& backend_name) {
   ng_encap_impl.SetName(name());
 
   std::ostringstream oss;
@@ -256,32 +266,15 @@ void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx) {
     ng_encap_impl.SetStaticInputVector(index, is_static);
   }
 
-  // Set the backend type for the op
-  std::string backend_name;
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &backend_name));
-  std::string device_id;
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_device_id", &device_id));
   // Get the optional attributes
   std::unordered_map<std::string, std::string> additional_attribute_map;
   auto node_def = ctx->def();
   OP_REQUIRES_OK(ctx, ng_encap_impl.ParseNodeAttributes(
                           node_def.attr(), &additional_attribute_map));
 
-  // Concatenate the backend_name:device_id
-  try {
-    string be_name =
-        BackendManager::GetBackendCreationString(backend_name, device_id);
-    ng_encap_impl.SetOpBackend(be_name);
-  } catch (const std::exception& exp) {
-    Status status = errors::Internal(
-        "Caught exception while creating backend string ", exp.what(), "\n");
-    OP_REQUIRES_OK(ctx, status);
-  }
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
-  OP_REQUIRES_OK(ctx,
-                 BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
-
   // SetConfig will be called for each EncapsulateOp
+  ng_encap_impl.SetOpBackend(backend_name);
+
   BackendManager::SetConfig(ng_encap_impl.GetOpBackend(),
                             additional_attribute_map);
 
@@ -303,6 +296,10 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   std::ostringstream oss;
   oss << "Destroy Encapsulate_" << ng_encap_impl.GetInstanceId() << ": "
       << name();
+  if (m_does_backend_support_pipelining) {
+    return;
+  }
+
   ngraph::Event event(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
   // If the kernel goes away, we must de-register all of its cached
@@ -363,22 +360,20 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
-#if defined(NGRAPH_BRIDGE_USE_PARALLEL_EXECUTOR)
-  ComputeUsingParallelExecutor(ctx);
-#else
-  ComputeUsingLegacyExecutor(ctx);
-#endif
+  if (m_does_backend_support_pipelining) {
+    NGRAPH_VLOG(0) << "NGraphEncapsulateOp::Compute: Using Pipelined Executor";
+    ComputeUsingParallelExecutor(ctx);
+  } else {
+    NGRAPH_VLOG(0) << "NGraphEncapsulateOp::Compute: Using Legacy Executor";
+    ComputeUsingLegacyExecutor(ctx);
+  }
 }
 
 //---------------------------------------------------------------------------
 // ComputeUsingParallelExecutor
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
-  std::vector<TensorShape> input_shapes;
-  std::vector<const Tensor*> static_input_map;
-  std::shared_ptr<ngraph::Function> ng_function;
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-  ng::runtime::Backend* op_backend;
 
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;
@@ -391,14 +386,12 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // Get ngraph executable and inputs information
   bool cache_hit;
-  OP_REQUIRES_OK(ctx, m_parallel_executor->GetNgExecutable(
-                          tf_input_tensors, input_shapes, static_input_map,
-                          op_backend, ng_exec, cache_hit));
+  OP_REQUIRES_OK(ctx, m_parallel_executor->GetNgExecutable(tf_input_tensors,
+                                                           ng_exec, cache_hit));
 
-  cout << "CACHE HIT: " << (cache_hit ? "YES" : "NO") << endl;
-
-  NGRAPH_VLOG(0) << " Step_ID: " << step_id;
-  NGRAPH_VLOG(0)
+  NGRAPH_VLOG(2) << "CACHE HIT: " << (cache_hit ? "YES" : "NO") << endl;
+  NGRAPH_VLOG(2) << " Step_ID: " << step_id;
+  NGRAPH_VLOG(2)
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
       << m_parallel_executor->GetNgraphClusterId();
 
@@ -407,7 +400,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   OP_REQUIRES_OK(
       ctx, m_parallel_executor->GetTensorsFromPipeline(ng_exec, io_tensors));
 
-  // Allocate the input
+  // Allocate the input/
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     ng::element::Type ng_element_type;
     OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(

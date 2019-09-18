@@ -111,32 +111,15 @@ TEST(ParallelExecutor, CompilerTest) {
   }
 
   std::vector<Tensor> tf_input_tensors{x, y};
-  vector<TensorShape> input_shapes;
-  vector<const Tensor*> static_input_map;
-  ng::runtime::Backend* op_backend;
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
-
-  // // TODO: Investigate is the executor can decipher the static inputs
-  // // from the given graph (as opposed to feeding this in externally)
-  // int size = 5;
-  // executor.ResizeStaticInputVector(size);
-
-  // for (int i = 0; i < size; i++) {
-  //   executor.SetStaticInputVector(i, false);
-  // }
-
   bool cache_hit = false;
-  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
-                                     static_input_map, op_backend, ng_exec,
-                                     cache_hit));
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
 
   // Now call again to test that the cache works
-  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
-                                     static_input_map, op_backend, ng_exec,
-                                     cache_hit));
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
 
   // If the cache doesn't work then the following will fire
   ASSERT_TRUE(cache_hit);
@@ -149,8 +132,6 @@ TEST(ParallelExecutor, CompilerTest) {
   // Validate the nGraph Function
   const auto& parameters = ng_function->get_parameters();
   ASSERT_EQ(2, parameters.size());
-  cout << " Friendly name: " << ng_function->get_friendly_name()
-       << " Parameters: " << parameters.size() << std::endl;
 }
 
 TEST(ParallelExecutor, PipelinedTensorCreate) {
@@ -184,20 +165,8 @@ TEST(ParallelExecutor, PipelinedTensorCreate) {
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
-
-  // TODO: Investigate is the executor can decipher the static inputs
-  // from the given graph (as opposed to feeding this in externally)
-  // int size = 5;
-  // executor.ResizeStaticInputVector(size);
-
-  // for (int i = 0; i < size; i++) {
-  //   executor.SetStaticInputVector(i, false);
-  // }
-
   bool cache_hit = false;
-  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
-                                     static_input_map, op_backend, ng_exec,
-                                     cache_hit));
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
   ASSERT_EQ(2, executor.TensorPipelineDepth());
 
@@ -237,19 +206,8 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
-
-  // TODO: Investigate is the executor can decipher the static inputs
-  // from the given graph (as opposed to feeding this in externally)
-  // int size = 5;
-  // executor.ResizeStaticInputVector(size);
-  // for (int i = 0; i < size; i++) {
-  //   executor.SetStaticInputVector(i, false);
-  // }
-
   bool cache_hit = false;
-  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
-                                     static_input_map, op_backend, ng_exec,
-                                     cache_hit));
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
 
   ASSERT_EQ(2, executor.TensorPipelineDepth());
@@ -299,10 +257,6 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
   void* dst_ptr = DMAHelper::base(&tf_output_tensor);
   ng_outputs[0]->read(dst_ptr, 0, tf_output_tensor.TotalBytes());
 
-  cout << " NGRAPH inout X " << x.DebugString() << endl;
-  cout << " NGRAPH inout Y " << y.DebugString() << endl;
-  cout << " NGRAPH output " << tf_output_tensor.DebugString() << endl;
-
   // And validate
   // z = a * x + y
   //   a ==> 5.0
@@ -334,20 +288,8 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
-
-  // TODO: Investigate is the executor can decipher the static inputs
-  // from the given graph (as opposed to feeding this in externally)
-  // int size = 5;
-  // executor.ResizeStaticInputVector(size);
-
-  // for (int i = 0; i < size; i++) {
-  //   executor.SetStaticInputVector(i, false);
-  // }
-
   bool cache_hit = false;
-  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, input_shapes,
-                                     static_input_map, op_backend, ng_exec,
-                                     cache_hit));
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
   ASSERT_EQ(2, executor.TensorPipelineDepth());
 
@@ -399,10 +341,6 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
     Tensor tf_output_tensor(DT_FLOAT, TensorShape({2, 3}));
     void* dst_ptr = DMAHelper::base(&tf_output_tensor);
     ng_outputs[0]->read(dst_ptr, 0, tf_output_tensor.TotalBytes());
-
-    cout << " NGRAPH inout X " << x.DebugString() << endl;
-    cout << " NGRAPH inout Y " << y.DebugString() << endl;
-    cout << " NGRAPH output " << tf_output_tensor.DebugString() << endl;
 
     // And validate
     // z = a * x + y

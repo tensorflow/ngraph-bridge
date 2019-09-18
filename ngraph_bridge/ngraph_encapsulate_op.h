@@ -41,15 +41,17 @@ class NGraphEncapsulateOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override;
 
  private:
-  void CreateParallelExecutor(OpKernelConstruction* ctx);
-  void CreateLegacyExecutor(OpKernelConstruction* ctx);
+  void CreateParallelExecutor(OpKernelConstruction* ctx,
+                              const string& backend_name);
+  void CreateLegacyExecutor(OpKernelConstruction* ctx,
+                            const string& backend_name);
   void ComputeUsingLegacyExecutor(OpKernelContext* ctx);
   void ComputeUsingParallelExecutor(OpKernelContext* ctx);
 
+  static int s_instance_id;
   NGraphEncapsulateImpl ng_encap_impl;
   bool m_does_backend_support_pipelining;
   std::mutex m_compute_lock;
-
   unique_ptr<NGraphExecutor> m_parallel_executor;
 };
 

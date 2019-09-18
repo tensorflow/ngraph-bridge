@@ -46,11 +46,8 @@ c = a * x
 axpy = c + y
 
 # Configure the session
-config = tf.ConfigProto(
-    allow_soft_placement=True,
-    log_device_placement=False,
-    inter_op_parallelism_threads=1)
-config_ngraph_enabled = ngraph_bridge.update_config(config)
+config = tf.ConfigProto(inter_op_parallelism_threads=1)
+config_ngraph_enabled = ngraph_bridge.update_config(config, backend_name='CPU')
 
 # Create session and run
 with tf.Session(config=config_ngraph_enabled) as sess:

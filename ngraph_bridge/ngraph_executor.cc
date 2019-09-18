@@ -40,7 +40,6 @@
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_executor.h"
-//#include "ngraph_bridge/ngraph_encapsulate_op.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -73,7 +72,7 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
   if (m_graph == nullptr) {
     throw std::runtime_error("Graph is nullptr!");
   }
-  NGRAPH_VLOG(0) << "NGraphExecutor(): " << instance_id
+  NGRAPH_VLOG(3) << "NGraphExecutor(): " << instance_id
                  << " Backend: " << backend_name;
 
   // Getthe backend. Note that the backend may not be available
@@ -182,13 +181,10 @@ Status NGraphExecutor::ComputeSignature(
 }
 
 //---------------------------------------------------------------------------
-//  NGraphExecutor::ComputeSignature
+//  NGraphExecutor::GetNgExecutable
 //---------------------------------------------------------------------------
 Status NGraphExecutor::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
-    std::vector<TensorShape>& input_shapes,
-    std::vector<const Tensor*>& static_input_map,
-    ng::runtime::Backend*& op_backend,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec, bool& cache_hit) {
   // FIRST Compute the signature
   std::stringstream signature_ss;
@@ -202,12 +198,15 @@ Status NGraphExecutor::GetNgExecutable(
 
   // Get the backend. Note that the backend may not be available
   // so that's a programmng error.
+  ng::runtime::Backend* op_backend;
   try {
     op_backend = BackendManager::GetBackend(m_op_backend_name);
   } catch (...) {
     return errors::Internal("Backend not available: ", m_op_backend_name);
   }
 
+  std::vector<TensorShape> input_shapes;
+  std::vector<const Tensor*> static_input_map;
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,
                                       static_input_map, signature_ss));
   signature = signature_ss.str();

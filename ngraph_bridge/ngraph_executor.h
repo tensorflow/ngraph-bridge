@@ -61,9 +61,9 @@ class NGraphExecutor {
   // Update the cache and if called again with the same input shapes,
   // return fromm the cache
   Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
-                         std::vector<TensorShape>& input_shapes,
-                         std::vector<const Tensor*>& static_input_map,
-                         ng::runtime::Backend*& op_backend,
+                         // std::vector<TensorShape>& input_shapes,
+                         // std::vector<const Tensor*>& static_input_map,
+                         // ng::runtime::Backend*& op_backend,
                          std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
                          bool& cache_hit);
 
