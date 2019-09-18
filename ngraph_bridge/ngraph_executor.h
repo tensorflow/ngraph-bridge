@@ -40,8 +40,7 @@ using NgFunctionIOCache = std::unordered_map<
 
 class NGraphExecutor {
  public:
-
-  // Transforms, compiles and executes TesnorFlow computation graph using nGraph 
+  // Transforms, compiles and executes TesnorFlow computation graph using nGraph
   explicit NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                           unique_ptr<tensorflow::Graph>& graph,
                           const string& backend_name);
@@ -86,7 +85,6 @@ class NGraphExecutor {
   int TensorPipelineDepth() {
     return m_executable_can_create_tensor ? m_depth : 1;
   }
-
 
  private:
   // Allocates the necessary tensors from the Executable (or backend in future)

@@ -150,11 +150,11 @@ def main():
         help="Builds and links ngraph statically\n",
         action="store_true")
 
-    parser.add_argument(
-        '--use_parallel_executor',
-        help=
-        "Uses the parallel Executor that speeds up the inference use cases for certain backends.\n",
-        action="store_true")
+    # parser.add_argument(
+    #     '--use_parallel_executor',
+    #     help=
+    #     "Uses the parallel Executor that speeds up the inference use cases for certain backends.\n",
+    #     action="store_true")
 
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
@@ -463,11 +463,6 @@ def main():
     ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=" +
         flag_string_map[arguments.use_grappler_optimizer]
-    ])
-
-    ngraph_tf_cmake_flags.extend([
-        "-DNGRAPH_TF_ENABLE_PARALLEL_EXECUTION=" +
-        flag_string_map[arguments.use_parallel_executor]
     ])
 
     # Now build the bridge
