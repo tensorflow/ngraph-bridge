@@ -763,10 +763,6 @@ Status EncapsulateClusters(
           TF_RETURN_IF_ERROR(
               ConvertGraphDefToGraph(opts, *gdef_for_current_encapsulate,
                                      &graph_for_current_encapsulate));
-          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-              input_shapes, static_input_map, &graph_for_current_encapsulate,
-              ng_function));
-          string serialized_ngfunc(ngraph::serialize(ng_function, 4));
 
           // get backend.
           // TODO: Note that this is code duplication of some stuff present
@@ -793,6 +789,12 @@ Status EncapsulateClusters(
           }
           TF_RETURN_IF_ERROR(BackendManager::CreateBackend(
               op_backend_name));  // Created a backend here. must free it
+          // TranslateGraph must be called AFTER CreateBackend because some TF
+          // ops like CNMS and gather use backend specific nodes
+          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+              input_shapes, static_input_map, &graph_for_current_encapsulate,
+              ng_function));
+          string serialized_ngfunc(ngraph::serialize(ng_function, 4));
           std::unordered_map<std::string, std::string> additional_attribute_map;
           for (auto itr : node->attrs()) {
             // Find the optional attributes to be sent to the backend.
