@@ -47,6 +47,7 @@ class NGraphEncapsulateOp : public OpKernel {
   void ComputeUsingParallelExecutor(OpKernelContext* ctx);
 
   NGraphEncapsulateImpl ng_encap_impl;
+  bool m_does_backend_support_pipelining;
   std::mutex m_compute_lock;
 
   unique_ptr<NGraphExecutor> m_parallel_executor;
