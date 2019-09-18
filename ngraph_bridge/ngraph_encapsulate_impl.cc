@@ -139,7 +139,8 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                  &m_graph, ng_function));
       ng_function->set_friendly_name(m_name);
-      serialized_ng_func = ngraph::serialize(ng_function, /*indent=*/4);
+      int json_indentation = 4;
+      serialized_ng_func = ngraph::serialize(ng_function, json_indentation);
     } else {
       auto itr = m_aot_functions.find(signature);
       if (itr == m_aot_functions.end()) {
