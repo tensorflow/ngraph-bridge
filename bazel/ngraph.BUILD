@@ -45,12 +45,10 @@ cc_library(
         "src/ngraph/op/experimental/dyn_reshape.cpp",
         "src/ngraph/op/experimental/dyn_slice.cpp",
         "src/ngraph/op/experimental/generate_mask.cpp",
-        "src/ngraph/op/experimental/quantized_avg_pool.cpp",
         "src/ngraph/op/experimental/quantized_concat.cpp",
         "src/ngraph/op/experimental/quantized_conv.cpp",
         "src/ngraph/op/experimental/quantized_conv_bias.cpp",
         "src/ngraph/op/experimental/quantized_conv_relu.cpp",
-        "src/ngraph/op/experimental/quantized_max_pool.cpp",
         "src/ngraph/op/experimental/shape_of.cpp",
         "src/ngraph/op/experimental/range.cpp",
         "src/ngraph/op/experimental/quantized_dot.cpp",
@@ -84,7 +82,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"v0.25.1-rc.2\\"',
+        '-D NGRAPH_VERSION=\\"v0.26.0-rc.0\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_STATIC_LIB_ENABLE'
@@ -117,7 +115,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"v0.25.1-rc.2\\"',
+        '-D NGRAPH_VERSION=\\"v0.26.0-rc.0\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
     ] + CXX_ABI,
@@ -129,6 +127,9 @@ cc_library(
     visibility = ["//visibility:public"],
     alwayslink = 1,
 )
+# TODO: If we update to mkl_dnn v1.0 in future, we should include
+# the source file "src/ngraph/runtime/cpu/pass/cpu_mkldnn_primitive_build.cpp"
+# Currently we use legacy mkl_dnn, NGRAPH_USE_LEGACY_MKLDNN is set to TRUE by default
 
 cc_library(
     name = 'cpu_backend',
@@ -269,7 +270,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"0.25.1-rc.2\\"',
+        '-D NGRAPH_VERSION=\\"v0.26.0-rc.0\\"',
         "-D NGRAPH_DEX_ONLY",
         "-D NGRAPH_TBB_ENABLE",
         '-D PROJECT_ROOT_DIR=\\"\\"',
