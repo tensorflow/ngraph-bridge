@@ -128,6 +128,10 @@ cc_library(
     alwayslink = 1,
 )
 
+# TODO: If we update to mkl_dnn v1.0 in future, we should include 
+# the source file "src/ngraph/runtime/cpu/pass/cpu_mkldnn_primitive_build.cpp"
+# Currently we use legacy mkl_dnn, NGRAPH_USE_LEGACY_MKLDNN is set to TRUE by default
+
 cc_library(
     name = 'cpu_backend',
     hdrs = glob([
@@ -241,7 +245,6 @@ cc_library(
         "src/ngraph/runtime/cpu/pass/cpu_mat_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_memory_assignment.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_memory_optimization.cpp",
-        "src/ngraph/runtime/cpu/pass/cpu_mkldnn_primitive_build.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_post_layout_optimizations.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_rnn_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_workspace_insertion.cpp",
