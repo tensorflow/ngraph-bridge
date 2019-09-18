@@ -795,7 +795,8 @@ Status EncapsulateClusters(
               input_shapes, static_input_map, &graph_for_current_encapsulate,
               ng_function));
           int json_indentation = 4;
-          string serialized_ngfunc(ngraph::serialize(ng_function, json_indentation));
+          string serialized_ngfunc(
+              ngraph::serialize(ng_function, json_indentation));
           std::unordered_map<std::string, std::string> additional_attribute_map;
           for (auto itr : node->attrs()) {
             // Find the optional attributes to be sent to the backend.

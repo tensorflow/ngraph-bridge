@@ -31,6 +31,7 @@ import numpy as np
 from common import NgraphTest
 import ngraph_bridge
 
+
 class TestNgraphSerialize(NgraphTest):
 
     def test_ng_serialize_to_json(self):
@@ -43,9 +44,9 @@ class TestNgraphSerialize(NgraphTest):
         sess_fn = lambda sess: sess.run((out), feed_dict={x: values})
         os.environ.pop('NGRAPH_ENABLE_SERIALIZE', None)
         final_contents = set(os.listdir())
-        assert(len(final_contents) - len(initial_contents) == 1)
+        assert (len(final_contents) - len(initial_contents) == 1)
         expected_file_name = 'tf_function_.--ngraph_cluster_0.json'
-        assert(final_contents.difference(initial_contents) == {expected_file_name})
+        assert (final_contents.difference(initial_contents) == {
+            expected_file_name
+        })
         os.remove(expected_file_name)
-        
-
