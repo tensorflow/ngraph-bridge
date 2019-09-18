@@ -40,19 +40,8 @@ using NgFunctionIOCache = std::unordered_map<
 
 class NGraphExecutor {
  public:
-  // TODO
-  //  Try to remove the following members and pass them through the constructor
-  //  SetNgraphCluster()
-  //    - Also, rename the corresponding data member to m_ckluster_id;
-  //  SetGraphId()
-  //  Investigate whether the static input map can be created within the c-tor
-  //  of the
-  //    NGraphExecutor()
-  //  SetOpBackend()
-  //    This can easily be passed via the ctor
-  //  SetExecCanCreateTensor()
-  //
-  // Ngraph Encapsulate Implementation class for EncapsulateOp class
+
+  // Transforms, compiles and executes TesnorFlow computation graph using nGraph 
   explicit NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                           unique_ptr<tensorflow::Graph>& graph,
                           const string& backend_name);
@@ -61,21 +50,12 @@ class NGraphExecutor {
   // Update the cache and if called again with the same input shapes,
   // return fromm the cache
   Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
-                         // std::vector<TensorShape>& input_shapes,
-                         // std::vector<const Tensor*>& static_input_map,
-                         // ng::runtime::Backend*& op_backend,
                          std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
                          bool& cache_hit);
 
   Status GetNgFunction(
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
       std::shared_ptr<ngraph::Function>& ng_function);
-
-  const string& GetOpBackend() { return m_op_backend_name; }
-  bool IsTensorPipelineSupported() { return m_executable_can_create_tensor; }
-  int TensorPipelineDepth() {
-    return m_executable_can_create_tensor ? m_depth : 1;
-  }
 
   // TODO Rename this to DecodeAttributes
   Status ParseNodeAttributes(
@@ -96,7 +76,17 @@ class NGraphExecutor {
   }
 
   const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
+
   int GetGraphId() { return m_graph_id; }
+
+  const string& GetOpBackend() { return m_op_backend_name; }
+
+  bool IsTensorPipelineSupported() { return m_executable_can_create_tensor; }
+
+  int TensorPipelineDepth() {
+    return m_executable_can_create_tensor ? m_depth : 1;
+  }
+
 
  private:
   // Allocates the necessary tensors from the Executable (or backend in future)
@@ -113,149 +103,15 @@ class NGraphExecutor {
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
 
-  // Allocate tensors for input arguments. Creates ngraph input tensors using
-  // tensorflow tensors required to execute ngraph function
-  Status AllocateNGInputTensors(
-      const std::vector<Tensor>& tf_input_tensors,
-      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      const PipelinedTensorVector& inp_group_from_pipeline,
-      ng::runtime::Backend* const op_backend,
-      vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
-
-  // Allocate tensors for output results.  Creates ngraph output tensors using
-  // tensorflow tensors required to execute ngraph function
-  Status AllocateNGOutputTensors(
-      const std::vector<Tensor*>& tf_output_tensors,
-      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      const PipelinedTensorVector& out_group_from_pipeline,
-      ng::runtime::Backend* const op_backend,
-      vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
-
-  // Get current ngraph tensor
-  std::shared_ptr<ng::runtime::Tensor> GetCurrentNgTensor(
-      void* current_tf_ptr, void* last_tf_ptr,
-      const std::shared_ptr<ng::runtime::Tensor>& last_ng_tensor,
-      const bool& output_tensor,
-      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      ng::runtime::Backend* const op_backend,
-      const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
-      std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline);
-
-  // Accessors(getters and setters) for the private data members of
-  // NGraphExecutor class
-  // needed by
-  // NgraphEncapsulateOp class
-  const int& GetNumberOfCopies() { return number_of_copies; }
-
-  void SetNumberOfCopies(const int& number) { number_of_copies = number; }
-
-  // void SetNgraphCluster(const int& cluster) { m_ngraph_cluster_id = cluster;
-  // }
-
-  // void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
-
-  const int& GetFunctionCache() { return my_function_cache_depth_in_items; }
-
-  const int& GetNumberOfOutputs() { return m_number_outputs; }
-
-  void SetNumberOfOutputs(const int& n) { m_number_outputs = n; }
-
-  const int& GetNumberOfInputs() { return m_number_inputs; }
-
-  void SetNumberOfInputs(const int& n) { m_number_inputs = n; }
-
-  const int& GetInstanceId() { return my_instance_id; }
-
-  bool GetLogCopies() { return log_copies; }
-
-  void SetLogCopies(bool value) { log_copies = value; }
-
-  const string GetCopyLog() { return copy_log_str.str(); }
-
-  void SetCopyLog(const string str) { copy_log_str.str() = str; }
-
-  const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
-
-  void ResizeStaticInputVector(const int& size) {
-    m_input_is_static.resize(size);
-  }
-  void SetStaticInputVector(const int& index, bool value) {
-    m_input_is_static[index] = value;
-  }
-
-  std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
-  GetNgExecMap() {
-    return m_ng_exec_map;
-  }
-
-  void SetNgExecMap(const std::string& ng_map_key,
-                    const std::shared_ptr<ngraph::runtime::Executable>& exec) {
-    m_ng_exec_map[ng_map_key] = exec;
-  }
-
-  void ClearNgExecMap() { m_ng_exec_map.clear(); }
-
-  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
-                     std::shared_ptr<ngraph::Function>>
-  GetNgFunctionMap() {
-    return m_ng_function_map;
-  }
-
-  void SetNgFunctionMap(
-      const std::shared_ptr<ngraph::runtime::Executable>& exec,
-      const std::shared_ptr<ngraph::Function>& function) {
-    m_ng_function_map[exec] = function;
-  }
-
-  void ClearNgFunctionMap() { m_ng_function_map.clear(); }
-  // TODO:sindhu have another get function for output_cache which is only
-  // readable
-  std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
-  GetNgExecOutputCacheMap(std::shared_ptr<ngraph::runtime::Executable> exec) {
-    return m_ng_exec_output_cache_map[exec];
-  }
-
-  void SetNgExecOutputCacheMap(
-      const std::shared_ptr<ngraph::runtime::Executable>& exec,
-      const std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
-          cache) {
-    m_ng_exec_output_cache_map[exec] = cache;
-  }
-
-  void ClearNgExecInputCache() { m_ng_exec_input_cache_map.clear(); }
-
-  void ClearNgExecOutputCache() { m_ng_exec_output_cache_map.clear(); }
-
-  NGraphFreshnessTracker* GetNgraphFreshnessTracker() {
-    return m_freshness_tracker;
-  }
-
-  void SetNgraphFreshnessTracker(NGraphFreshnessTracker* tracker) {
-    m_freshness_tracker = tracker;
-  }
-
-  void SetName(string name) { m_name = name; }
-
-  void ClearNgExecPipelinedTensorMap() {
-    m_executable_pipelined_tensors_map.clear();
-  }
-
  private:
-  // TF Graph for the cluster
-  const unique_ptr<Graph> m_graph;
-
- private:
-  int number_of_copies = 0;
+  const int my_instance_id;
   const int m_ngraph_cluster_id{-1};
   const int m_graph_id{-1};
+  const unique_ptr<Graph> m_graph;
+
   int my_function_cache_depth_in_items = 16;
-  int m_number_outputs = -1;
-  int m_number_inputs = -1;
-  const int my_instance_id;
   const string m_op_backend_name;
   string m_name;
-  std::stringstream copy_log_str;
-  bool log_copies = false;
   std::vector<bool> m_input_is_static;
   std::list<std::string> m_lru;
   bool m_do_aot = false;
@@ -272,21 +128,12 @@ class NGraphExecutor {
   NgFunctionIOCache m_ng_exec_input_cache_map;
   NgFunctionIOCache m_ng_exec_output_cache_map;
 
-  // Freshness tracker maintains a set of ng::functions using a particular base
-  // pointer(for Tensor)
-  // A single instance of freshness_tracker is used across all
-  // nGraphEncapsulateOp and nGraphVariable op
-  NGraphFreshnessTracker* m_freshness_tracker;
-
   bool m_executable_can_create_tensor;
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      shared_ptr<PipelinedTensorsStore>>
       m_executable_pipelined_tensors_map;
 
   int m_depth{2};  // TODO make this settable
-
-  // Synchronization objects
-  // 1. Protect the functioncache
 };
 
 }  // namespace ngraph_bridge

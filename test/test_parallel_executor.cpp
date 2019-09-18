@@ -159,9 +159,6 @@ TEST(ParallelExecutor, PipelinedTensorCreate) {
   }
 
   std::vector<Tensor> tf_input_tensors{x, y};
-  vector<TensorShape> input_shapes;
-  vector<const Tensor*> static_input_map;
-  ng::runtime::Backend* op_backend;
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
@@ -200,9 +197,6 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
   Tensor y(DT_FLOAT, TensorShape({2, 3}));
 
   std::vector<Tensor> tf_input_tensors{x, y};
-  vector<TensorShape> input_shapes;
-  vector<const Tensor*> static_input_map;
-  ng::runtime::Backend* op_backend;
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion
@@ -282,9 +276,6 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
   Tensor y(DT_FLOAT, TensorShape({2, 3}));
 
   std::vector<Tensor> tf_input_tensors{x, y};
-  vector<TensorShape> input_shapes;
-  vector<const Tensor*> static_input_map;
-  ng::runtime::Backend* op_backend;
   shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   // Call the Executor to compile the funcion

@@ -66,8 +66,7 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
       m_ngraph_cluster_id(cluster_id),
       m_graph_id(graph_id),
       m_graph(std::move(graph)),
-      m_op_backend_name(backend_name),
-      m_freshness_tracker(nullptr) {
+      m_op_backend_name(backend_name) {
   // Sanity checks
   if (m_graph == nullptr) {
     throw std::runtime_error("Graph is nullptr!");
@@ -113,10 +112,10 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
   }
 
   int size = max_arg_index + 1;
-  ResizeStaticInputVector(size);
+  m_input_is_static.resize(size);
 
   for (int i = 0; i < size; i++) {
-    SetStaticInputVector(i, false);
+    m_input_is_static[i] = false;
   }
 
   // Fill the vector.
@@ -143,7 +142,7 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
       }
     }
     NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
-    SetStaticInputVector(index, is_static);
+    m_input_is_static[index] = is_static;
   }
 }
 
@@ -322,10 +321,10 @@ Status NGraphExecutor::GetNgExecutable(
     BackendManager::UnlockBackend(m_op_backend_name);
     event_compile.Stop();
     ngraph::Event::write_trace(event_compile);
+    m_ng_exec_map[signature] = ng_exec;
 
-    SetNgExecMap(signature, ng_exec);
     // caching ng_function to serialize to ngraph if needed
-    SetNgFunctionMap(ng_exec, ng_function);
+    m_ng_function_map[ng_exec] = ng_function;
 
     m_lru.push_front(signature);
     // Memory after
@@ -354,6 +353,9 @@ Status NGraphExecutor::GetNgExecutable(
   return Status::OK();
 }
 
+//---------------------------------------------------------------------------
+//  GetNgFunction
+//---------------------------------------------------------------------------
 Status NGraphExecutor::GetNgFunction(
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::shared_ptr<ngraph::Function>& ng_function) {
@@ -367,220 +369,8 @@ Status NGraphExecutor::GetNgFunction(
 }
 
 //---------------------------------------------------------------------------
-//  NGraphExecutor::AllocateNGInputTensors
+//  ParseNodeAttributes
 //---------------------------------------------------------------------------
-Status NGraphExecutor::AllocateNGInputTensors(
-    const std::vector<Tensor>& tf_input_tensors,
-    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    const PipelinedTensorVector& inp_group_from_pipeline,
-    ng::runtime::Backend* const op_backend,
-    vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
-  // Allocate tensors for input arguments. Creates ngraph input tensors using
-  // tensorflow tensors required to execute ngraph function
-
-  std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
-  std::vector<TensorShape> input_shapes;
-  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-      input_caches = m_ng_exec_input_cache_map[ng_exec];
-  input_caches.resize(tf_input_tensors.size());
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  log_copies = false;
-  TF_RETURN_IF_ERROR(IsNgraphTFLogTensorCopiesEnabled(m_graph_id, log_copies));
-  std::stringstream copy_log_str;
-  copy_log_str << "["
-               << "NGraphEncapsulate:"
-               << "]: " << m_name << " ,GraphID " << m_graph_id << "\n";
-  number_of_copies = 0;
-#endif
-
-  for (int i = 0; i < tf_input_tensors.size(); i++) {
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-        m_graph_id, m_name, i);
-
-    // If the input is from a Variable node, we are dealing with later
-    // just add a nullptr to the ng_inputs vector.
-    if (ref_exists) {
-      NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from Variable Node";
-      ng_inputs.push_back(nullptr);
-      continue;
-    }
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp:: Input from non Variable Node";
-#endif
-    ng::Shape ng_shape(tf_input_tensors[i].shape().dims());
-    for (int j = 0; j < tf_input_tensors[i].shape().dims(); ++j) {
-      ng_shape[j] = tf_input_tensors[i].shape().dim_size(j);
-    }
-    ng::element::Type ng_element_type;
-    TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
-        tf_input_tensors[i].dtype(), &ng_element_type));
-
-    // At the first call of the ng_exec, both last_src_ptr and
-    // last_ng_tensor shall point to null. Otherwise, they are retrived
-    // from cache.
-    void* last_src_ptr = input_caches[i].first;
-    std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
-        input_caches[i].second;
-    void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[i]);
-    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = GetCurrentNgTensor(
-        current_src_ptr, last_src_ptr, last_ng_tensor, false, ng_exec,
-        op_backend, ng_element_type, ng_shape,
-        m_executable_can_create_tensor ? inp_group_from_pipeline[i] : nullptr);
-    bool is_cpu = m_op_backend_name == "CPU";
-
-    if (!is_cpu && current_ng_tensor->get_stale()) {
-      // Fresh or stale, in case of CPU this step is never needed
-      try {
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-        int copies = number_of_copies;
-        SetNumberOfCopies(copies++);
-        copy_log_str << " COPY_INP_VAL[" << i << "]";
-#endif
-        size_t copy_size =
-            current_ng_tensor->get_element_count() * ng_element_type.size();
-        string event_name =
-            "Input_" + to_string(i) + "_" + to_string(copy_size);
-        std::unique_ptr<ngraph::Event> event_copy_input_next(
-            new ngraph::Event(event_name, m_name, ""));
-        current_ng_tensor->write(
-            current_src_ptr, 0,
-            current_ng_tensor->get_element_count() * ng_element_type.size());
-
-        event_copy_input_next->Stop();
-        input_copy_events.push_back(std::move(event_copy_input_next));
-
-      } catch (const std::exception& exp) {
-        return errors::Internal(
-            "Caught exception while transferring tensor data to nGraph\n");
-      } catch (...) {
-        return errors::Internal(
-            "Error in transferring tensor data to nGraph\n");
-      }
-    }
-    input_caches[i] = std::make_pair(current_src_ptr, current_ng_tensor);
-    ng_inputs.push_back(current_ng_tensor);
-  }  // for (int i = 0; i < input_shapes.size(); i++)
-
-  // Now write the events back
-  for (auto& next : input_copy_events) {
-    ngraph::Event::write_trace(*next.get());
-  }
-  return Status::OK();
-}
-
-// Allocate tensors for output results.  Creates ngraph output tensors using
-// tensorflow tensors required to execute ngraph function
-Status NGraphExecutor::AllocateNGOutputTensors(
-    const std::vector<Tensor*>& output_tensors,
-    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    const PipelinedTensorVector& out_group_from_pipeline,
-    ng::runtime::Backend* const op_backend,
-    vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs) {
-  std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
-      output_caches = m_ng_exec_output_cache_map[ng_exec];
-  output_caches.resize(ng_exec->get_results().size());
-
-  // ngraph executable returns get_results, using that to get the tensor shape
-  // and element type.
-  for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-    auto ng_element = ng_exec->get_results()[i];
-    auto ng_shape = ng_element->get_shape();
-    auto ng_element_type = ng_element->get_element_type();
-
-    void* last_dst_ptr = output_caches[i].first;
-    std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
-        output_caches[i].second;
-
-    void* current_dst_ptr = DMAHelper::base(output_tensors[i]);
-    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
-
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    bool ref_exists =
-        NGraphCatalog::ExistsInEncapOutputInfoMap(m_graph_id, m_name, i);
-
-    // if the output tensor is going to be assigned to a variable
-    // we are dealing with later, just add a nullptr to ng_outputs vectorç
-    if (ref_exists) {
-      NGRAPH_VLOG(4) << "NGraphExecutor:: Output from Variable Node";
-      ng_outputs.push_back(nullptr);
-      continue;
-    }
-    NGRAPH_VLOG(4) << "NGraphExecutor:: Output from non Variable Node";
-#endif
-
-    current_ng_tensor = GetCurrentNgTensor(
-        current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
-        op_backend, ng_element_type, ng_shape,
-        m_executable_can_create_tensor ? out_group_from_pipeline[i] : nullptr);
-
-    current_ng_tensor->set_stale(true);
-    output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
-    ng_outputs.push_back(current_ng_tensor);
-  }
-
-  return Status::OK();
-}
-
-// Get current ngraph tensor
-std::shared_ptr<ng::runtime::Tensor> NGraphExecutor::GetCurrentNgTensor(
-    void* current_tf_ptr, void* last_tf_ptr,
-    const std::shared_ptr<ng::runtime::Tensor>& last_ng_tensor,
-    const bool& output_tensor,
-    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    ng::runtime::Backend* const op_backend,
-    const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
-    std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline) {
-  // NOTE: we assume that TF's pointers WILL change if it actually changes
-  // values. ie, it will not reuse the same space if its rewritten it
-  bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;
-  bool no_ng_tensor_found = last_ng_tensor == nullptr;
-  bool is_cpu = m_op_backend_name == "CPU";
-
-  // We need to check last_ng_tensor != nullptr, since there are cases where
-  // at the first call to the ng_exec, both current_dst_ptr (when the
-  // output is a 0-sized tensor) and last_dst_ptr (uninitialized at the
-  // first call) are nullptr
-  // A new tensor needs to be created for sure if no_ng_tensor_found
-  // Additionally for CPU, it needs to be created if tf_tensor_has_changed,
-  // for others, we do not create
-  bool need_new_tensor_creation;
-  if (is_cpu) {
-    need_new_tensor_creation = no_ng_tensor_found || tf_tensor_has_changed;
-  } else {
-    need_new_tensor_creation = no_ng_tensor_found;
-  }
-
-  // It is stale if a new tensor was created OR the tf tensor has changed OR
-  // (tf tensor has not changed, but freshness tracker says its stale)
-  bool is_stale;
-  if (output_tensor) {
-    is_stale = true;  // For output tensors, it is always set stale to true
-  } else {
-    is_stale = need_new_tensor_creation || tf_tensor_has_changed ||
-               (!tf_tensor_has_changed &&
-                !m_freshness_tracker->IsFresh(current_tf_ptr, ng_exec));
-  }
-  // create a new ng tensor or use the last one
-  std::shared_ptr<ng::runtime::Tensor> current_ng_tensor;
-  if (m_executable_can_create_tensor) {
-    current_ng_tensor = tensor_from_pipeline;
-  } else {
-    if (need_new_tensor_creation) {
-      if (is_cpu) {
-        current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
-                                                      current_tf_ptr);
-      } else {
-        current_ng_tensor =
-            op_backend->create_tensor(ng_element_type, ng_shape);
-      }
-    } else {
-      current_ng_tensor = last_ng_tensor;
-    }
-  }
-  current_ng_tensor->set_stale(is_stale);
-  return current_ng_tensor;
-}
-
 Status NGraphExecutor::ParseNodeAttributes(
     const google::protobuf::Map<string, AttrValue>& additional_attributes,
     std::unordered_map<std::string, std::string>* additional_attribute_map) {
@@ -640,6 +430,9 @@ Status NGraphExecutor::ParseNodeAttributes(
   return Status::OK();
 }
 
+//---------------------------------------------------------------------------
+//  InitializeIOTensorPipeline
+//---------------------------------------------------------------------------
 Status NGraphExecutor::InitializeIOTensorPipeline(
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
   if (!m_executable_can_create_tensor) {
@@ -676,6 +469,9 @@ Status NGraphExecutor::InitializeIOTensorPipeline(
   return Status::OK();
 }
 
+//---------------------------------------------------------------------------
+//  GetTensorsFromPipeline
+//---------------------------------------------------------------------------
 Status NGraphExecutor::GetTensorsFromPipeline(
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
     std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>& io_tensors) {
@@ -703,7 +499,5 @@ Status NGraphExecutor::GetTensorsFromPipeline(
 
   return Status::OK();
 }
-
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
