@@ -51,6 +51,7 @@ class TestUpdateConfig(NgraphTest):
         not ngraph_bridge.is_grappler_enabled(), reason='Only for Grappler')
     def test_update_config_adds_optimizer_only_once(self):
 
+        # Helper function to count the number of occurances in a config
         def count_ng_optimizers(config):
             custom_opts = config.graph_options.rewrite_options.custom_optimizers
             count = 0
