@@ -27,6 +27,7 @@ import os
 
 import tensorflow as tf
 import numpy as np
+import re
 
 from common import NgraphTest
 import ngraph_bridge
@@ -38,15 +39,24 @@ class TestNgraphSerialize(NgraphTest):
         initial_contents = set(os.listdir())
         xshape = (3, 4, 5)
         x = tf.placeholder(tf.float32, shape=xshape)
-        out = tf.nn.l2_loss(x)
+        out = tf.nn.l2_loss(tf.abs(x))
         values = np.random.rand(*xshape)
+
+        config = ngraph_bridge.update_config(tf.ConfigProto())
+        ngraph_enable_serialize = os.environ.pop('NGRAPH_ENABLE_SERIALIZE',
+                                                 None)
         os.environ['NGRAPH_ENABLE_SERIALIZE'] = '1'
-        sess_fn = lambda sess: sess.run((out), feed_dict={x: values})
+        ngraph_bridge.enable()
+        with tf.Session(config=config) as sess:
+            out = sess.run((out), feed_dict={x: values})
         os.environ.pop('NGRAPH_ENABLE_SERIALIZE', None)
+        if ngraph_enable_serialize is not None:
+            os.environ['NGRAPH_ENABLE_SERIALIZE'] = \
+                ngraph_enable_serialize
+
         final_contents = set(os.listdir())
         assert (len(final_contents) - len(initial_contents) == 1)
-        expected_file_name = 'tf_function_.--ngraph_cluster_0.json'
-        assert (final_contents.difference(initial_contents) == {
-            expected_file_name
-        })
-        os.remove(expected_file_name)
+        new_files = final_contents.difference(initial_contents)
+        flname = new_files.pop()
+        assert (flname.startswith('tf_function_') and flname.endswith('json'))
+        os.remove(flname)
