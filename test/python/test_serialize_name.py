@@ -42,7 +42,6 @@ class TestDumpingGraphs(NgraphTest):
          ("hello//",), ("hello//a",), (".",), ("./",), ("a/.",), ("a/./b/",)))
     def test(self, import_name_tag):
         os.environ['NGRAPH_ENABLE_SERIALIZE'] = '1'
-        os.environ['NGRAPH_TF_LOG_PLACEMENT'] = '1'
         # In this test we dump the serialized graph
         # This checks NgraphSerialize function
         # Specifically we want NgraphSerialize to work

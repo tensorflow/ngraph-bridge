@@ -322,6 +322,12 @@ Status NgraphSerialize(const std::string& file_name,
   } catch (...) {
     return errors::Internal("Failed to serialize ngraph function");
   }
+  string new_file_name = SanitizeFileName(file_name);
+  NGRAPH_VLOG(0) << "Serializing graph to: " << new_file_name << std::endl;
+  return StringToFile(new_file_name, serialized, false);
+}
+
+string SanitizeFileName(const string file_name) {
   // Sanitizing file name to take care of '/' that might be present in TF node
   // names
   string new_file_name;
@@ -331,11 +337,11 @@ Status NgraphSerialize(const std::string& file_name,
   for (const auto& itr : file_name) {
     new_file_name += ((itr == '/') ? string("--") : string({itr}));
   }
-  NGRAPH_VLOG(0) << "Serializing graph to: " << file_name << std::endl;
-  return StringToFile(new_file_name, serialized);
+  return new_file_name;
 }
 
-Status StringToFile(const std::string& file_name, const std::string& contents) {
+Status StringToFile(const std::string& file_name, const std::string& contents,
+                    bool sanitize_name) {
   std::ofstream f;
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   try {
