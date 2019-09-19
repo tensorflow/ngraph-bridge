@@ -311,7 +311,6 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank) {
 
 Status NgraphSerialize(const std::string& file_name,
                        const std::shared_ptr<ngraph::Function>& ng_function) {
-  NGRAPH_VLOG(0) << "Serializing graph to: " << file_name << std::endl;
   int json_indentation = 4;
   string serialized;
   if (ng_function == nullptr) {
@@ -323,7 +322,17 @@ Status NgraphSerialize(const std::string& file_name,
   } catch (...) {
     return errors::Internal("Failed to serialize ngraph function");
   }
-  return StringToFile(file_name, serialized);
+  // Sanitizing file name to take care of '/' that might be present in TF node
+  // names
+  string new_file_name;
+  // The valid TF node names seem to be: [A-Za-z0-9.][A-Za-z0-9_.\\-/]*
+  // . is another non-alphanumeric char, but once / are replaced by --, . is
+  // fine in a file name.
+  for (const auto& itr : file_name) {
+    new_file_name += ((itr == '/') ? string("--") : string({itr}));
+  }
+  NGRAPH_VLOG(0) << "Serializing graph to: " << file_name << std::endl;
+  return StringToFile(new_file_name, serialized);
 }
 
 Status StringToFile(const std::string& file_name, const std::string& contents) {
