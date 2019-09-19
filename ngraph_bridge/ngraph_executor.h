@@ -45,6 +45,8 @@ class NGraphExecutor {
                           unique_ptr<tensorflow::Graph>& graph,
                           const string& backend_name);
 
+  ~NGraphExecutor();
+
   // Calls Compute Signature and gets ngraph executable
   // Update the cache and if called again with the same input shapes,
   // return fromm the cache
@@ -99,7 +101,7 @@ class NGraphExecutor {
   Status ComputeSignature(const std::vector<Tensor>& tf_input_tensors,
                           std::vector<TensorShape>& input_shapes,
                           std::vector<const Tensor*>& static_input_map,
-                          std::stringstream& signature_ss);
+                          std::stringstream& signature_ss) const;
 
  private:
   const int my_instance_id;

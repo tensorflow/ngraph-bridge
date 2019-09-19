@@ -147,13 +147,25 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
 }
 
 //---------------------------------------------------------------------------
+//  NGraphExecutor::~NGraphExecutor
+//---------------------------------------------------------------------------
+NGraphExecutor::~NGraphExecutor() {
+  // TODO
+  // Clear m_executable_pipelined_tensors_map
+  // Clear m_ng_exec_map
+  // Clear m_ng_function_map
+  // Clear m_ng_exec_input_cache_map
+  // Clear m_ng_exec_output_cache_map
+}
+
+//---------------------------------------------------------------------------
 //  NGraphExecutor::ComputeSignature
 //---------------------------------------------------------------------------
 Status NGraphExecutor::ComputeSignature(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
-    std::stringstream& signature_ss) {
+    std::stringstream& signature_ss) const {
   // Use tensorflow input tensors to get input_shapes, static_input_map
   // and compute the signature
   for (int i = 0; i < tf_input_tensors.size(); i++) {
