@@ -309,14 +309,24 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank) {
   return Status::OK();
 }
 
-void NgraphSerialize(const std::string& file_name,
-                     const std::shared_ptr<ngraph::Function>& ng_function) {
+Status NgraphSerialize(const std::string& file_name,
+                       const std::shared_ptr<ngraph::Function>& ng_function) {
   NGRAPH_VLOG(0) << "Serializing graph to: " << file_name << std::endl;
   int json_indentation = 4;
-  StringToFile(file_name, ngraph::serialize(ng_function, json_indentation));
+  string serialized;
+  if (ng_function == nullptr) {
+    return errors::Internal(
+        "Passed a null pointer as ng function to serialize");
+  }
+  try {
+    ngraph::serialize(ng_function, json_indentation);
+  } catch (...) {
+    return errors::Internal("Failed to serialize ngraph function");
+  }
+  return StringToFile(file_name, serialized);
 }
 
-void StringToFile(const std::string& file_name, const std::string& contents) {
+Status StringToFile(const std::string& file_name, const std::string& contents) {
   std::ofstream f;
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   try {
@@ -327,7 +337,10 @@ void StringToFile(const std::string& file_name, const std::string& contents) {
     NGRAPH_VLOG(0) << "Exception opening/closing file " << file_name
                    << std::endl;
     NGRAPH_VLOG(0) << e.what() << std::endl;
+    return errors::Internal("Failed to dump string to file. Filename: ",
+                            file_name, ". Exception: ", e.what());
   }
+  return Status::OK();
 }
 
 void MemoryProfile(long& vm_usage, long& resident_set) {
