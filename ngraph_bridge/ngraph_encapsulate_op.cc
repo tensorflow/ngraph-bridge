@@ -529,7 +529,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       Status st = ng_encap_impl.DumpNgFunction(
           "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       string status_string =
-          "Caught exception while executing nGraph computation: " + exp.what() +
+          "Caught exception while executing nGraph computation: " +
+          string(exp.what()) +
           (st.ok() ? "" : (" Also error in dumping serialized function: " +
                            st.error_message()));
       OP_REQUIRES(ctx, false, errors::Internal(status_string));

@@ -227,7 +227,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       Status st = StringToFile("tf_function_error_" + m_name + ".json",
                                serialized_ng_func);
       string status_string =
-          "Caught exception while compiling op_backend: " + exp.what() +
+          "Caught exception while compiling op_backend: " + string(exp.what()) +
           (st.ok() ? "" : (" Also error in dumping serialized function: " +
                            st.error_message()));
       return errors::Internal(status_string);
