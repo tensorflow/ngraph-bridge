@@ -228,7 +228,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                                serialized_ng_func);
       string status_string =
           "Caught exception while compiling op_backend: " + exp.what() +
-          (st.OK() ? "" : (" Also error in dumping serialized function: " +
+          (st.ok() ? "" : (" Also error in dumping serialized function: " +
                            st.error_message()));
       return errors::Internal(status_string);
     } catch (...) {
@@ -237,7 +237,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                                serialized_ng_func);
       string status_string =
           "Error in compiling op_backend." +
-          (st.OK() ? "" : (" Also error in dumping serialized function: " +
+          (st.ok() ? "" : (" Also error in dumping serialized function: " +
                            st.error_message()));
       return errors::Internal(status_string);
     }

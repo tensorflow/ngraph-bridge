@@ -530,7 +530,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       string status_string =
           "Caught exception while executing nGraph computation: " + exp.what() +
-          (st.OK() ? "" : (" Also error in dumping serialized function: " +
+          (st.ok() ? "" : (" Also error in dumping serialized function: " +
                            st.error_message()));
       OP_REQUIRES(ctx, false, errors::Internal(status_string));
     } catch (...) {
@@ -539,7 +539,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       string status_string =
           "Error in executing the nGraph computation." +
-          (st.OK() ? "" : (" Also error in dumping serialized function: " +
+          (st.ok() ? "" : (" Also error in dumping serialized function: " +
                            st.error_message()));
       OP_REQUIRES(ctx, false, errors::Internal(status_string));
     }
