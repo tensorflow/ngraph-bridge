@@ -170,7 +170,7 @@ def run_test_suite(model_dir, configuration, disabled, print_parsed,
             ), "Did not expect " + repo_dl_loc + " to be present. Maybe a leftover from the last run that was not deleted?"
             download_repo(repo_dl_loc, repo_name, repo_version)
             assert os.path.isdir(
-                repo_dl_loc), "Did not manage to download the repo."
+                repo_dl_loc), "Did not manage to download the repo " + repo_name
             ready_repo(model_dir, repo_dl_loc)
 
         # Iterate through each sub-test
