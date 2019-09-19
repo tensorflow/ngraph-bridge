@@ -85,10 +85,10 @@ TEST(GraphExec, Axpy) {
 
   auto t_x = backend->create_tensor(ng::element::f32, ng_shape_x);
   float v_x[2][3] = {{1, 1, 1}, {1, 1, 1}};
-  t_x->write(&v_x, 0, sizeof(v_x));
+  t_x->write(&v_x, sizeof(v_x));
 
   auto t_y = backend->create_tensor(ng::element::f32, ng_shape_y);
-  t_y->write(&v_x, 0, sizeof(v_x));
+  t_y->write(&v_x, sizeof(v_x));
 
   // Allocate tensor for the result(s)
   vector<shared_ptr<ng::runtime::Tensor>> outputs;
