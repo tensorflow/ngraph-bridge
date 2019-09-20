@@ -342,18 +342,20 @@ string SanitizeFileName(const string file_name) {
 
 Status StringToFile(const std::string& file_name, const std::string& contents,
                     bool sanitize_name) {
+  string new_file_name =
+      sanitize_name ? SanitizeFileName(file_name) : file_name;
   std::ofstream f;
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   try {
-    f.open(file_name);
+    f.open(new_file_name);
     f << contents;
     f.close();
   } catch (std::ofstream::failure& e) {
-    NGRAPH_VLOG(0) << "Exception opening/closing file " << file_name
+    NGRAPH_VLOG(0) << "Exception opening/closing file " << new_file_name
                    << std::endl;
     NGRAPH_VLOG(0) << e.what() << std::endl;
     return errors::Internal("Failed to dump string to file. Filename: ",
-                            file_name, ". Exception: ", e.what());
+                            new_file_name, ". Exception: ", e.what());
   }
   return Status::OK();
 }
