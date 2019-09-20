@@ -46,6 +46,10 @@ string NGraphCatalog::CreateNodeKey(int graph_id, string node_name, int index) {
 void NGraphCatalog::AddToEncapOutputCopyIndexesMap(int graphid,
                                                    string node_name,
                                                    unordered_set<int> val) {
+  if (NGraphCatalog::EncapOutputNeedsCopy(graphid, node_name)) {
+    throw runtime_error(
+        "Trying to add an already existing key in EncapOutputIndexesCopy Map");
+  }
   string key = graphid + "_" + node_name;
   NGraphCatalog::encap_output_copy_indexes_map_[key] = val;
 }
@@ -54,6 +58,12 @@ unordered_set<int> NGraphCatalog::GetEncapOutputIndexesThatNeedCopy(
     int graphid, string node_name) {
   string key = graphid + "_" + node_name;
   return NGraphCatalog::encap_output_copy_indexes_map_[key];
+}
+
+bool NGraphCatalog::EncapOutputNeedsCopy(int graphid, string node_name) {
+  string key = graphid + "_" + node_name;
+  auto itr = NGraphCatalog::encap_output_copy_indexes_map_.find(key);
+  return itr != NGraphCatalog::encap_output_copy_indexes_map_.end();
 }
 
 bool NGraphCatalog::EncapOutputIndexNeedsCopy(int graphid, string node_name,
@@ -83,6 +93,10 @@ string NGraphCatalog::GetInputVariableSharedName(int graphid, string node_name,
 }
 
 void NGraphCatalog::AddToInputVariableSharedNameMap(string key, string val) {
+  if (NGraphCatalog::ExistsInInputVariableSharedNameMap(key)) {
+    throw runtime_error(
+        "Trying to add an already existing key in InputVariableSharedName Map");
+  }
   NGraphCatalog::input_variable_sharedname_map_[key] = val;
 }
 
@@ -105,12 +119,21 @@ void NGraphCatalog::DeleteFromInputVariableSharedNameMap(string key) {
 // Functions for EncapOutputInfo Map
 void NGraphCatalog::AddToEncapOutputInfoMap(string key,
                                             tuple<string, bool, bool> val) {
+  if (NGraphCatalog::ExistsInEncapOutputInfoMap(key)) {
+    throw runtime_error(
+        "Trying to add an already existing key in EncapOutputInfo Map");
+  }
   NGraphCatalog::encap_output_info_map_[key] = val;
 }
 
 void NGraphCatalog::AddToEncapOutputInfoMap(string key, string shared_name,
                                             bool copy_to_tf,
                                             bool is_tf_just_looking) {
+  if (NGraphCatalog::ExistsInEncapOutputInfoMap(key)) {
+    throw runtime_error(
+        "Trying to add an already existing key in EncapOutputInfo Map");
+  }
+
   // create a tuple
   tuple<string, bool, bool> val =
       make_tuple(shared_name, copy_to_tf, is_tf_just_looking);

@@ -85,6 +85,9 @@ class NGraphCatalog {
   // Functions for EncapsulateOutputCopyIndexes Map
   static void AddToEncapOutputCopyIndexesMap(int graphid, string node_name,
                                              unordered_set<int> val);
+
+  static bool EncapOutputNeedsCopy(int graphid, string node_name);
+
   static bool EncapOutputIndexNeedsCopy(int graphid, string node_name,
                                         int index);
   static unordered_set<int> GetEncapOutputIndexesThatNeedCopy(int graphid,
