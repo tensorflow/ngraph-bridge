@@ -5143,7 +5143,6 @@ Status Builder::TranslateGraph(
 
   for (auto n : ng_function->get_ordered_ops()) {
     if (!check_if_terminal_type(n)) {
-      string nn = n->get_name();
       if (n->get_provenance_tags().size() == 0) {
         return errors::Internal("Found ngraph node ", n->get_name(),
                                 " which does not have provenance tag set");
