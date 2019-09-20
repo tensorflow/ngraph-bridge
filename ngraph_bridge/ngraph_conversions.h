@@ -35,7 +35,6 @@ void Reshape(std::shared_ptr<ngraph::Node>& ng_node) {
   ngraph::Shape reshaped_shape{s[a], s[b], s[c], s[d]};
   NGRAPH_VLOG(3) << "reshaping " << ngraph::join(s) << " to "
                  << ngraph::join(reshaped_shape);
-  // TODO: mark provenance
   ng_node = std::make_shared<ngraph::op::Reshape>(
       ng_node, ngraph::AxisVector{a, b, c, d}, reshaped_shape);
 }
@@ -51,7 +50,6 @@ void Reshape3D(std::shared_ptr<ngraph::Node>& ng_node) {
   ngraph::Shape reshaped_shape{s[a], s[b], s[c], s[d], s[e]};
   NGRAPH_VLOG(3) << "reshaping " << ngraph::join(s) << " to "
                  << ngraph::join(reshaped_shape);
-  // TODO: mark add_provenance_tag
   ng_node = std::make_shared<ngraph::op::Reshape>(
       ng_node, ngraph::AxisVector{a, b, c, d, e}, reshaped_shape);
 }

@@ -5148,7 +5148,7 @@ Status Builder::TranslateGraph(
     }
   };
 
-  for (auto n : ng_function->get_ops()) {
+  for (auto n : ng_function->get_ordered_ops()) {
     if (!check_if_result_type(n)) {
       if (n->get_provenance_tags().size() == 0) {
         return errors::Internal("Found ngraph node ", n->get_name(),
