@@ -2886,13 +2886,14 @@ static Status TranslateMeanOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   string op_name = op->name();
-  return TranslateReduceOp(
-      op, static_input_map, ng_op_map,
-      [&op_name](std::shared_ptr<ng::Node> ng_input, ng::AxisSet ng_reduction_axes) {
-        auto mean_node = ng::builder::mean(ng_input, ng_reduction_axes);
-        mean_node->add_provenance_tag(op_name);
-        return mean_node;
-      });
+  return TranslateReduceOp(op, static_input_map, ng_op_map,
+                           [&op_name](std::shared_ptr<ng::Node> ng_input,
+                                      ng::AxisSet ng_reduction_axes) {
+                             auto mean_node =
+                                 ng::builder::mean(ng_input, ng_reduction_axes);
+                             mean_node->add_provenance_tag(op_name);
+                             return mean_node;
+                           });
 }
 
 template <typename T>
@@ -3507,7 +3508,7 @@ static Status TranslateQuantizeV2Op(const Node* op,
       ng::op::Quantize::RoundMode::ROUND_NEAREST_TOWARD_EVEN;
 
   auto ng_node = ng::builder::ScaledQuantize(ng_input, ng_min, ng_max, ng_et,
-                                       ng::AxisSet(), ng_round_mode);
+                                             ng::AxisSet(), ng_round_mode);
   ng_node->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_node);
   SaveNgOp(ng_op_map, op->name(), ng_min);
@@ -3524,7 +3525,7 @@ static Status TranslateDequantizeOp(const Node* op,
 
   // TF only dequantizes to fp32
   auto ng_node = ng::builder::ScaledDequantize(ng_input, ng_min, ng_max,
-                                         ng::element::f32, ng::AxisSet());
+                                               ng::element::f32, ng::AxisSet());
   ng_node->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
@@ -5097,6 +5098,26 @@ Status Builder::TranslateGraph(
   //
   for (auto result : ng_function->get_results()) {
     result->set_needs_default_layout(true);
+  }
+
+  auto check_if_result_type = [&ng_function](shared_ptr<ng::Node> n) {
+    auto all_results = ng_function->get_results();
+    if (all_results.size() == 0) {
+      // The function has no results, which means any node that this function
+      // receives is not a result. so return false
+      return false;
+    } else {
+      return n->has_same_type(all_results[0]);
+    }
+  };
+
+  for (auto n : ng_function->get_ops()) {
+    if (!check_if_result_type(n)) {
+      if (n->get_provenance_tags().size() == 0) {
+        return errors::Internal("Found ngraph node ", n->get_name(),
+                                " which does not have provenance tag set");
+      }
+    }
   }
 
   return Status::OK();
