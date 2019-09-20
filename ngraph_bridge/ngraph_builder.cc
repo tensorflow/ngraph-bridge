@@ -375,8 +375,9 @@ static Status TranslateUnaryOp(
         create_unary_op) {
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-  SaveNgOp(ng_op_map, op->name(), create_unary_op(ng_input));
-
+  auto ng_node = create_unary_op(ng_input);
+  ng_node->add_provenance_tag(op->name());
+  SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
 }
 
@@ -435,8 +436,13 @@ static Status TranslateBinaryOp(
 
   std::tie(ng_lhs, ng_rhs) =
       ng::builder::numpy_broadcast(std::make_pair(ng_lhs, ng_rhs));
+  ng_lhs->add_provenance_tag(op->name());
+  ng_rhs->add_provenance_tag(op->name());
 
-  SaveNgOp(ng_op_map, op->name(), create_binary_op(ng_lhs, ng_rhs));
+  auto ng_node = create_binary_op(ng_lhs, ng_rhs);
+  ng_node->add_provenance_tag(op->name());
+
+  SaveNgOp(ng_op_map, op->name(), ng_node);
 
   return Status::OK();
 }
@@ -526,6 +532,7 @@ static Status TranslateQuantizedPoolOp(const Node* op,
         ng_input, ng_kernel_shape, ng_strides, ng_padding_below,
         ng_padding_above, dummy_min, dummy_max);
   }
+  ng_quant_pool->add_provenance_tag(op->name());
 
   BatchToTensorflow(is_nhwc, ng_quant_pool);
   SaveNgOp(ng_op_map, op->name(), ng_quant_pool);
@@ -785,6 +792,7 @@ static Status TranslateBatchMatMulOp(
       ng_lhs_axes.push_back(n_dims - 1);
       ng_lhs_axes.push_back(n_dims - 2);
       ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng_lhs_axes);
+      ng_lhs->add_provenance_tag(op->name());
       ng_lhs_shape = ng_lhs->get_shape();
     } else {
       ng_lhs_axes.push_back(n_dims - 2);
@@ -795,6 +803,7 @@ static Status TranslateBatchMatMulOp(
       ng_rhs_axes.push_back(n_dims - 1);
       ng_rhs_axes.push_back(n_dims - 2);
       ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
+      ng_rhs->add_provenance_tag(op->name());
       ng_rhs_shape = ng_rhs->get_shape();
     } else {
       ng_rhs_axes.push_back(n_dims - 2);
@@ -838,15 +847,18 @@ static Status TranslateBatchMatMulOp(
       ng_lhs_axes.push_back(n_dims - 1);
       ng_lhs_axes.push_back(n_dims - 2);
       ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng_lhs_axes);
+      ng_lhs->add_provenance_tag(op->name());
     }
     if (tf_adj_y) {
       ng_rhs_axes.insert(ng_rhs_axes.begin(), n_dims - 2);
       ng_rhs_axes.insert(ng_rhs_axes.begin(), n_dims - 1);
       ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
+      ng_rhs->add_provenance_tag(op->name());
     } else {
       ng_rhs_axes.insert(ng_rhs_axes.begin(), n_dims - 1);
       ng_rhs_axes.insert(ng_rhs_axes.begin(), n_dims - 2);
       ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
+      ng_rhs->add_provenance_tag(op->name());
     }
 
     ng_lhs_shape = ng_lhs->get_shape();
@@ -1697,6 +1709,7 @@ static Status TranslateDepthToSpaceOp(const Node* op,
 
   auto transposed =
       ng::builder::numpy_transpose(reshaped, ng_transpose_permutation);
+  transposed->add_provenance_tag(op->name());
 
   ng::AxisVector ng_axis_order_second_reshape(transposed->get_shape().size());
   std::iota(ng_axis_order_second_reshape.begin(),
@@ -2149,10 +2162,12 @@ static Status TranslateFusedMatMulOp(const Node* op,
     if (GetNodeAttr(op->attrs(), "transpose_a", &transpose_a) == Status::OK() &&
         transpose_a) {
       ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng::AxisVector{1, 0});
+      ng_lhs->add_provenance_tag(op->name());
     }
     if (GetNodeAttr(op->attrs(), "transpose_b", &transpose_b) == Status::OK() &&
         transpose_b) {
       ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng::AxisVector{1, 0});
+      ng_rhs->add_provenance_tag(op->name());
     }
 
     // The default axis count for nGraph's Dot op is 1, which is just what
@@ -2543,10 +2558,12 @@ static Status TranslateMatMulOp(const Node* op,
   if (GetNodeAttr(op->attrs(), "transpose_a", &transpose_a) == Status::OK() &&
       transpose_a) {
     ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng::AxisVector{1, 0});
+    ng_lhs->add_provenance_tag(op->name());
   }
   if (GetNodeAttr(op->attrs(), "transpose_b", &transpose_b) == Status::OK() &&
       transpose_b) {
     ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng::AxisVector{1, 0});
+    ng_rhs->add_provenance_tag(op->name());
   }
 
   // The default axis count for nGraph's Dot op is 1, which is just what
@@ -2842,6 +2859,7 @@ static Status TranslateReduceOp(
 
   std::shared_ptr<ng::Node> ng_node =
       create_ng_node(ng_input, ng_reduction_axes);
+  ng_node->add_provenance_tag(op->name());
 
   // If keep_dims is specified we need to reshape to put back the reduced
   // axes, with length 1.
@@ -2867,10 +2885,13 @@ static Status TranslateReduceOp(
 static Status TranslateMeanOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
+  string op_name = op->name();
   return TranslateReduceOp(
       op, static_input_map, ng_op_map,
-      [](std::shared_ptr<ng::Node> ng_input, ng::AxisSet ng_reduction_axes) {
-        return ng::builder::mean(ng_input, ng_reduction_axes);
+      [&op_name](std::shared_ptr<ng::Node> ng_input, ng::AxisSet ng_reduction_axes) {
+        auto mean_node = ng::builder::mean(ng_input, ng_reduction_axes);
+        mean_node->add_provenance_tag(op_name);
+        return mean_node;
       });
 }
 
@@ -2935,8 +2956,12 @@ static Status TranslateOneHotOp(
   // broadcast to make all tensors same shape, as required by ngraph select op
   std::tie(ng_onehot_bool, ng_on) =
       ng::builder::numpy_broadcast(std::make_pair(ng_onehot_bool, ng_on));
+  ng_onehot_bool->add_provenance_tag(op->name());
+  ng_on->add_provenance_tag(op->name());
   std::tie(ng_onehot_bool, ng_off) =
       ng::builder::numpy_broadcast(std::make_pair(ng_onehot_bool, ng_off));
+  ng_onehot_bool->add_provenance_tag(op->name());
+  ng_off->add_provenance_tag(op->name());
 
   auto ng_onehot = ConstructNgNode<ng::op::Select>(op->name(), ng_onehot_bool,
                                                    ng_on, ng_off);
@@ -3311,6 +3336,7 @@ static Status TranslateQuantizedConcatOpHelper(
 
   auto ng_qconcat = ng::builder::ScaledQuantizedConcat(
       ng_args, size_t(concat_axis), ng_all_mins, ng_all_maxs);
+  ng_qconcat->add_provenance_tag(op->name());
 
   SaveNgOp(ng_op_map, op->name(), ng_qconcat);
   SaveNgOp(ng_op_map, op->name(), ng_min_of_mins);
@@ -3384,6 +3410,7 @@ static Status TranslateQuantizedConv(
   std::shared_ptr<ng::Node> ng_quant_conv_bias = create_quantized_conv_node(
       node_inps, ng_strides, ng_dilations, ng_padding_below, ng_padding_above,
       ng_data_dilations);
+  ng_quant_conv_bias->add_provenance_tag(op->name());
 
   BatchToTensorflow(is_nhwc, ng_quant_conv_bias);
   SaveNgOp(ng_op_map, op->name(), ng_quant_conv_bias);
@@ -3401,15 +3428,18 @@ template <bool IsRelu>
 static Status TranslateQuantizedConv2DWithBiasMaybeReluAndRequantizeOp(
     const Node* op, const std::vector<const Tensor*>&,
     Builder::OpMap& ng_op_map) {
-  auto create_quantized_conv_node = [](
+  string op_name = op->name();
+  auto create_quantized_conv_node = [&op_name](
       std::vector<std::shared_ptr<ng::Node>> node_inps, ng::Strides ng_strides,
       ng::Strides ng_dilations, ng::CoordinateDiff ng_padding_below,
       ng::CoordinateDiff ng_padding_above, ng::Strides ng_data_dilations) {
-    return ng::builder::ScaledQuantizedConvolutionBias(
+    auto ng_node = ng::builder::ScaledQuantizedConvolutionBias(
         node_inps[0], node_inps[1], node_inps[2], ng_strides, ng_dilations,
         ng_padding_below, ng_padding_above, ng_data_dilations, node_inps[3],
         node_inps[4], node_inps[5], node_inps[6], node_inps[7], node_inps[8],
         IsRelu);
+    ng_node->add_provenance_tag(op_name);
+    return ng_node;
   };
   return TranslateQuantizedConv(op, ng_op_map, create_quantized_conv_node);
 }
@@ -3417,15 +3447,18 @@ static Status TranslateQuantizedConv2DWithBiasMaybeReluAndRequantizeOp(
 static Status TranslateQuantizedConv2DWithBiasSumAndReluAndRequantizeOp(
     const Node* op, const std::vector<const Tensor*>&,
     Builder::OpMap& ng_op_map) {
-  auto create_quantized_conv_node = [](
+  string op_name = op->name();
+  auto create_quantized_conv_node = [&op_name](
       std::vector<std::shared_ptr<ng::Node>> node_inps, ng::Strides ng_strides,
       ng::Strides ng_dilations, ng::CoordinateDiff ng_padding_below,
       ng::CoordinateDiff ng_padding_above, ng::Strides ng_data_dilations) {
-    return ng::builder::ScaledQuantizedConvolutionBiasAdd(
+    auto ng_node = ng::builder::ScaledQuantizedConvolutionBiasAdd(
         node_inps[0], node_inps[1], node_inps[2], node_inps[9], ng_strides,
         ng_dilations, ng_padding_below, ng_padding_above, ng_data_dilations,
         node_inps[3], node_inps[4], node_inps[5], node_inps[6], node_inps[7],
         node_inps[8], node_inps[10], node_inps[11], true);
+    ng_node->add_provenance_tag(op_name);
+    return ng_node;
   };
   return TranslateQuantizedConv(op, ng_op_map, create_quantized_conv_node);
 }
@@ -3433,15 +3466,18 @@ static Status TranslateQuantizedConv2DWithBiasSumAndReluAndRequantizeOp(
 static Status TranslateQuantizedConv2DWithBiasSignedSumAndReluAndRequantizeOp(
     const Node* op, const std::vector<const Tensor*>&,
     Builder::OpMap& ng_op_map) {
-  auto create_quantized_conv_node = [](
+  string op_name = op->name();
+  auto create_quantized_conv_node = [&op_name](
       std::vector<std::shared_ptr<ng::Node>> node_inps, ng::Strides ng_strides,
       ng::Strides ng_dilations, ng::CoordinateDiff ng_padding_below,
       ng::CoordinateDiff ng_padding_above, ng::Strides ng_data_dilations) {
-    return ng::builder::ScaledQuantizedConvolutionBiasSignedAdd(
+    auto ng_node = ng::builder::ScaledQuantizedConvolutionBiasSignedAdd(
         node_inps[0], node_inps[1], node_inps[2], node_inps[9], ng_strides,
         ng_dilations, ng_padding_below, ng_padding_above, ng_data_dilations,
         node_inps[3], node_inps[4], node_inps[5], node_inps[6], node_inps[7],
         node_inps[8], node_inps[10], node_inps[11], true);
+    ng_node->add_provenance_tag(op_name);
+    return ng_node;
   };
   return TranslateQuantizedConv(op, ng_op_map, create_quantized_conv_node);
 }
@@ -3470,9 +3506,10 @@ static Status TranslateQuantizeV2Op(const Node* op,
   ng::op::Quantize::RoundMode ng_round_mode =
       ng::op::Quantize::RoundMode::ROUND_NEAREST_TOWARD_EVEN;
 
-  SaveNgOp(ng_op_map, op->name(),
-           ng::builder::ScaledQuantize(ng_input, ng_min, ng_max, ng_et,
-                                       ng::AxisSet(), ng_round_mode));
+  auto ng_node = ng::builder::ScaledQuantize(ng_input, ng_min, ng_max, ng_et,
+                                       ng::AxisSet(), ng_round_mode);
+  ng_node->add_provenance_tag(op->name());
+  SaveNgOp(ng_op_map, op->name(), ng_node);
   SaveNgOp(ng_op_map, op->name(), ng_min);
   SaveNgOp(ng_op_map, op->name(), ng_max);
 
@@ -3486,9 +3523,10 @@ static Status TranslateDequantizeOp(const Node* op,
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_min, &ng_max));
 
   // TF only dequantizes to fp32
-  SaveNgOp(ng_op_map, op->name(),
-           ng::builder::ScaledDequantize(ng_input, ng_min, ng_max,
-                                         ng::element::f32, ng::AxisSet()));
+  auto ng_node = ng::builder::ScaledDequantize(ng_input, ng_min, ng_max,
+                                         ng::element::f32, ng::AxisSet());
+  ng_node->add_provenance_tag(op->name());
+  SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
 }
 
@@ -4658,8 +4696,9 @@ static Status TranslateTransposeOp(
 
   NGRAPH_VLOG(3) << ng::join(ng_axis_order);
 
-  SaveNgOp(ng_op_map, op->name(),
-           ng::builder::numpy_transpose(ng_input, ng_axis_order));
+  auto ng_node = ng::builder::numpy_transpose(ng_input, ng_axis_order);
+  ng_node->add_provenance_tag(op->name());
+  SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
 }
 
@@ -4767,8 +4806,12 @@ static Status TranslateSelectOp(const Node* op,
 
   std::tie(ng_input1, ng_input2) = ng::builder::numpy_broadcast(
       std::make_pair(length != 0 ? ng_input_new : ng_input1, ng_input2));
+  ng_input1->add_provenance_tag(op->name());
+  ng_input2->add_provenance_tag(op->name());
   std::tie(ng_input2, ng_input3) =
       ng::builder::numpy_broadcast(std::make_pair(ng_input2, ng_input3));
+  ng_input2->add_provenance_tag(op->name());
+  ng_input3->add_provenance_tag(op->name());
 
   ng_select = ConstructNgNode<ng::op::Select>(op->name(), ng_input1, ng_input2,
                                               ng_input3);
