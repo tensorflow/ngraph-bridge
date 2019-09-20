@@ -48,7 +48,8 @@ class NgraphTest(object):
         return graph
 
     def with_ngraph(self, l, config=None):
-        # Passing config as None and then initializing it inside because mutable objects should not be used as defaults in python
+        # Passing config as None and then initializing it inside
+        # because mutable objects should not be used as defaults in python
         if config is None:
             config = tf.ConfigProto()
         # TODO: Stop grappler on failure (Add fail_on_optimizer_errors=True)
