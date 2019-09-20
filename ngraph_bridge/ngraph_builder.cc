@@ -5136,27 +5136,9 @@ Status Builder::TranslateGraph(
     result->set_needs_default_layout(true);
   }
 
-  // TODO: Use is_type<ng::op::Result>(n) when we upgrade to new ngraph
-  auto check_if_terminal_type = [&ng_function](shared_ptr<ng::Node> n) {
-    auto all_results = ng_function->get_results();
-    auto all_params = ng_function->get_parameters();
-    if (all_results.size() == 0) {
-      if (all_params.size() == 0) {
-        // The function has no results or params, 
-        // which means any node that this function has is a normal node.
-        // so return false
-        return false;
-      } else {
-        return n->has_same_type(all_params[0]);
-      }
-    } else {
-      if (all_params.size() == 0) {
-        return n->has_same_type(all_results[0]);
-      } else {
-        auto ng_node = dynamic_pointer_cast<ng::op::Result>(all_results[0]);
-        return n->is_parameter() || (ng_node != nullptr);
-      }
-    }
+  auto check_if_terminal_type = [](shared_ptr<ng::Node> n) {
+    auto ng_node = dynamic_pointer_cast<ng::op::Result>(n);
+    return n->is_parameter() || (ng_node != nullptr);
   };
 
   for (auto n : ng_function->get_ordered_ops()) {
