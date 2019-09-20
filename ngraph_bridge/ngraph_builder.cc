@@ -5137,20 +5137,36 @@ Status Builder::TranslateGraph(
   }
 
   // TODO: Use is_type<ng::op::Result>(n) when we upgrade to new ngraph
-  auto check_if_result_type = [&ng_function](shared_ptr<ng::Node> n) {
+  auto check_if_terminal_type = [&ng_function](shared_ptr<ng::Node> n) {
     auto all_results = ng_function->get_results();
+    auto all_params = ng_function->get_parameters();
+    cout << "HELLO1: " << n->get_name() << "\n";
     if (all_results.size() == 0) {
-      // The function has no results, which means any node that this function
-      // receives is not a result. so return false
-      return false;
+      if (all_params.size() == 0) {
+        // The function has no results or params, 
+        // which means any node that this function has is a normal node.
+        // so return false
+        return false;
+      } else {
+        return n->has_same_type(all_params[0]);
+      }
     } else {
-      return n->has_same_type(all_results[0]);
+      if (all_params.size() == 0) {
+        return n->has_same_type(all_results[0]);
+      } else {
+        cout << "HELLO: " << n->get_name() << "\n";
+        cout  <<n->has_same_type(all_results[0]) << "  " << n->has_same_type(all_params[0]) << "\n";
+        return n->has_same_type(all_results[0]) || n->has_same_type(all_params[0]);
+      }
     }
   };
 
+
+
   for (auto n : ng_function->get_ordered_ops()) {
-    if (!check_if_result_type(n)) {
+    if (!check_if_terminal_type(n)) {
       if (n->get_provenance_tags().size() == 0) {
+        cout << "...... " << (n->has_same_type(ng_function->get_parameters()[0])) << "\n";
         return errors::Internal("Found ngraph node ", n->get_name(),
                                 " which does not have provenance tag set");
       }
