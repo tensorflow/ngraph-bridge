@@ -536,6 +536,7 @@ static Status TranslateQuantizedPoolOp(const Node* op,
   ng_quant_pool->add_provenance_tag(op->name());
 
   BatchToTensorflow(is_nhwc, ng_quant_pool);
+  ng_quant_pool->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_quant_pool);
   // For QuantizedAvgPool and QuantizedMaxPool input min-max remains unchanged
   // and is just propagated along
@@ -661,6 +662,7 @@ static Status TranslateAvgPoolOp(const Node* op,
       ng_padding_above, false);
 
   BatchToTensorflow(is_nhwc, ng_avgpool);
+  ng_avgpool->add_provenance_tag(op->name());
   NGRAPH_VLOG(3) << "avgpool outshape: {" << ng::join(ng_avgpool->get_shape())
                  << "}";
 
@@ -737,6 +739,7 @@ static Status TranslateAvgPoolGradOp(
           ng_strides, ng_padding_below, ng_padding_above, false);
 
   BatchToTensorflow(is_nhwc, ng_avgpool_backprop);
+  ng_avgpool_backprop->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "avgpoolbackprop outshape: {"
                  << ng::join(ng_avgpool_backprop->get_shape()) << "}";
@@ -1272,6 +1275,7 @@ static Status TranslateConv2DOp(const Node* op,
       ng_padding_below, ng_padding_above);
 
   BatchToTensorflow(is_nhwc, ng_conv);
+  ng_conv->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_conv);
   return Status::OK();
 }
@@ -1487,6 +1491,7 @@ static Status TranslateConv2DBackpropInputOp(
           ng::Strides(ng_batch_shape.size() - 2, 1));
 
   BatchToTensorflow(is_nhwc, ng_data);
+  ng_data->add_provenance_tag(op->name());
 
   SaveNgOp(ng_op_map, op->name(), ng_data);
   return Status::OK();
@@ -1564,6 +1569,7 @@ static Status TranslateConv3DOp(const Node* op,
       ng_padding_below, ng_padding_above);
 
   BatchToTensorflow3D(is_ndhwc, ng_conv);
+  ng_conv->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_conv);
   return Status::OK();
 }
@@ -1820,6 +1826,7 @@ static Status TranslateDepthwiseConv2dNativeOp(
       op->name(), ng_args, ng_concatenation_axis);
 
   BatchToTensorflow(is_nhwc, ng_concat);
+  ng_concat->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_concat);
   return Status::OK();
 }
@@ -1978,6 +1985,7 @@ static Status TranslateFusedBatchNormOp(
                                                       Bessel_scale);
 
     BatchToTensorflow(is_nhwc, ng_y);
+    ng_y->add_provenance_tag(op->name());
 
     SaveNgOp(ng_op_map, op->name(), ng_y);
     SaveNgOp(ng_op_map, op->name(), ng_mean);
@@ -2002,6 +2010,7 @@ static Status TranslateFusedBatchNormOp(
         op->name(), tf_epsilon, ng_scale, ng_offset, ng_input, ng_mean,
         ng_variance);
     BatchToTensorflow(is_nhwc, ng_batch_norm);
+    ng_batch_norm->add_provenance_tag(op->name());
     SaveNgOp(ng_op_map, op->name(), ng_batch_norm);
     if (is_v3) {
       SaveNgOp(ng_op_map, op->name(), ng_mean);
@@ -2102,6 +2111,7 @@ static Status TranslateFusedBatchNormGradOp(const Node* op,
                                                 ng_batch_norm_backprop, 2);
 
   BatchToTensorflow(is_nhwc, ng_input_delta_op);
+  ng_input_delta_op->add_provenance_tag(op->name());
 
   SaveNgOp(ng_op_map, op->name(), ng_input_delta_op);
   SaveNgOp(ng_op_map, op->name(), ng_scale_delta_op);
@@ -2401,6 +2411,7 @@ static Status TranslateFusedConv2DOp(const Node* op,
     TF_RETURN_IF_ERROR(CreateNgConv(ng_input, ng_filter, ng_conv));
 
     BatchToTensorflow(is_nhwc, ng_conv);
+    ng_conv->add_provenance_tag(op->name());
 
     auto ng_conv_shape = ng_conv->get_shape();
     auto ng_bias_shape = ng_bias->get_shape();
@@ -2462,6 +2473,7 @@ static Status TranslateFusedConv2DOp(const Node* op,
             ng_offset, ng_conv, ng_mean, ng_variance);
 
     BatchToTensorflow(is_nhwc, ng_batch_norm);
+    ng_batch_norm->add_provenance_tag(op->name());
 
     if (VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu"})) {
       SaveNgOp(ng_op_map, op->name(),
@@ -2641,6 +2653,7 @@ static Status TranslateMaxPoolOp(const Node* op,
       ng_padding_above);
 
   BatchToTensorflow(is_nhwc, ng_maxpool);
+  ng_maxpool->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "maxpool outshape: {" << ng::join(ng_maxpool->get_shape())
                  << "}";
@@ -2704,6 +2717,7 @@ static Status TranslateMaxPool3DOp(const Node* op,
       ng_padding_above);
 
   BatchToTensorflow3D(is_ndhwc, ng_maxpool);
+  ng_maxpool->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "maxpool outshape: {" << ng::join(ng_maxpool->get_shape())
                  << "}";
@@ -2767,6 +2781,7 @@ static Status TranslateMaxPoolGradOp(const Node* op,
           op->name(), ng_input, ng_grad, ng_fwd, ng_kernel_shape, ng_strides,
           ng_padding_below, ng_padding_above);
   BatchToTensorflow(is_nhwc, ng_maxpool_backprop);
+  ng_maxpool_backprop->add_provenance_tag(op->name());
   NGRAPH_VLOG(3) << "maxpoolbackprop outshape: {"
                  << ng::join(ng_maxpool_backprop->get_shape()) << "}";
   SaveNgOp(ng_op_map, op->name(), ng_maxpool_backprop);
@@ -3434,6 +3449,7 @@ static Status TranslateQuantizedConv(
   ng_quant_conv_bias->add_provenance_tag(op->name());
 
   BatchToTensorflow(is_nhwc, ng_quant_conv_bias);
+  ng_quant_conv_bias->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_quant_conv_bias);
   // QconvBiasAdd variants have summand and its min/max as the last input
   // nodes
