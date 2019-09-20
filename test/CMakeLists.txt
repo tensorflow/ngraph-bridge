@@ -97,6 +97,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_int8_launchop.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
 )
 
 if (APPLE)
@@ -148,6 +151,7 @@ endif()
 install(TARGETS gtest_ngtf DESTINATION ${CMAKE_INSTALL_PREFIX}/test)  
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 
