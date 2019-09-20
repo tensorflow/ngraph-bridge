@@ -5140,7 +5140,6 @@ Status Builder::TranslateGraph(
   auto check_if_terminal_type = [&ng_function](shared_ptr<ng::Node> n) {
     auto all_results = ng_function->get_results();
     auto all_params = ng_function->get_parameters();
-    cout << "HELLO1: " << n->get_name() << "\n";
     if (all_results.size() == 0) {
       if (all_params.size() == 0) {
         // The function has no results or params, 
@@ -5154,19 +5153,16 @@ Status Builder::TranslateGraph(
       if (all_params.size() == 0) {
         return n->has_same_type(all_results[0]);
       } else {
-        cout << "HELLO: " << n->get_name() << "\n";
-        cout  <<n->has_same_type(all_results[0]) << "  " << n->has_same_type(all_params[0]) << "\n";
-        return n->has_same_type(all_results[0]) || n->has_same_type(all_params[0]);
+        auto ng_node = dynamic_pointer_cast<ng::op::Result>(all_results[0]);
+        return n->is_parameter() || (ng_node != nullptr);
       }
     }
   };
 
-
-
   for (auto n : ng_function->get_ordered_ops()) {
     if (!check_if_terminal_type(n)) {
+      string nn = n->get_name();
       if (n->get_provenance_tags().size() == 0) {
-        cout << "...... " << (n->has_same_type(ng_function->get_parameters()[0])) << "\n";
         return errors::Internal("Found ngraph node ", n->get_name(),
                                 " which does not have provenance tag set");
       }
