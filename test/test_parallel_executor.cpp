@@ -260,6 +260,85 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
   Compare(tf_output_tensor, expected_val, 0.0f);
 }
 
+TEST(ParallelExecutor, ExecuteOnSingleThread8Bit) {
+  // Read the graph
+  // We are using a graph with _Arg and _Retval
+  // addded i.e., a PB that is saved after the initial processing of the
+  // TF graph transformation.
+  unique_ptr<tf::Graph> input_graph;
+  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_int8_launchop.pbtxt", "INTERPRETER",
+                               input_graph));
+  tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
+  NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
+
+  // Create the inputs for this graph
+  Tensor x(DT_INT8, TensorShape({2, 2}));
+  Tensor y(DT_INT8, TensorShape({2, 2}));
+
+  std::vector<Tensor> tf_input_tensors{x, y};
+  shared_ptr<ngraph::runtime::Executable> ng_exec;
+
+  // Call the Executor to compile the funcion
+  bool cache_hit = false;
+  ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
+  ASSERT_FALSE(cache_hit);
+
+  ASSERT_EQ(2, executor.TensorPipelineDepth());
+
+  // Get the pipelned tensors
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
+  ASSERT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
+
+  // Now Fill in the tensor - X
+  auto x_flat = x.flat<int8>();
+  for (int i = 0; i < x_flat.size(); i++) {
+    x_flat.data()[i] = 1;
+  }
+
+  ng::element::Type ng_element_type;
+  ASSERT_OK(TFDataTypeToNGraphElementType(x.dtype(), &ng_element_type));
+
+  get<1>(io_tensors)[0]->write(
+      &x_flat.data()[0], 0,
+      get<1>(io_tensors)[0]->get_element_count() * ng_element_type.size());
+
+  // Now Fill in the tensor - Y
+  auto y_flat = y.flat<int8>();
+  for (int i = 0; i < y_flat.size(); i++) {
+    y_flat.data()[i] = 1;
+  }
+
+  ASSERT_OK(TFDataTypeToNGraphElementType(y.dtype(), &ng_element_type));
+
+  get<1>(io_tensors)[1]->write(
+      &y_flat.data()[0], 0,
+      get<1>(io_tensors)[1]->get_element_count() * ng_element_type.size());
+
+  // Output
+  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+  for (size_t i = 0; i < ng_exec->get_results().size(); i++) {
+    ng_outputs.push_back(get<2>(io_tensors)[i]);
+  }
+
+  // And execute
+  ng_exec->call(ng_outputs, {get<1>(io_tensors)[0], get<1>(io_tensors)[1]});
+
+  // Pick up the output
+  vector<tf::Tensor> ngraph_outputs;
+  // Convert to tf tensor
+  Tensor tf_output_tensor(DT_INT8, TensorShape({2, 2}));
+  void* dst_ptr = DMAHelper::base(&tf_output_tensor);
+  ng_outputs[0]->read(dst_ptr, 0, tf_output_tensor.TotalBytes());
+
+  // And validate
+  // z = a * x + y
+  //   a ==> 5
+  // TODO
+  Tensor expected_val(DT_INT8, TensorShape({2, 2}));
+  AssignInputValues(expected_val, (int8)6);
+  // Compare(tf_output_tensor, expected_val, 0);
+}
+
 TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
   // Read the graph
   // We are using a graph with _Arg and _Retval
@@ -347,6 +426,35 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
 
   thread0.join();
   thread1.join();
+}
+
+TEST(ParallelExecutor, E2E8Bit) {
+  string graph_name = "test_axpy_8bit.pbtxt";
+
+  string backend_name = "INTERPRETER";
+  if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
+    backend_name = std::getenv("NGRAPH_TF_BACKEND");
+  }
+
+  unique_ptr<Session> session;
+  ASSERT_OK(CreateSession(graph_name, backend_name, session));
+
+  string inp_tensor_name_0{"x"};
+  string inp_tensor_name_1{"y"};
+  string out_tensor_name{"add_ngraph/_1"};
+  std::vector<Tensor> out_tensor_vals;
+
+  Tensor inp_tensor_val(tensorflow::DT_INT8, tensorflow::TensorShape({2, 2}));
+  AssignInputValues<int8>(inp_tensor_val, 1);
+  Tensor out_tensor_expected_val(tensorflow::DT_INT8,
+                                 tensorflow::TensorShape({2, 2}));
+  AssignInputValues<int8>(out_tensor_expected_val, 6);
+
+  std::vector<std::pair<string, tensorflow::Tensor>> inputs = {
+      {inp_tensor_name_0, inp_tensor_val}, {inp_tensor_name_1, inp_tensor_val}};
+
+  ASSERT_OK(session->Run(inputs, {out_tensor_name}, {}, &out_tensor_vals));
+  Compare<int8>(out_tensor_vals[0], out_tensor_expected_val);
 }
 
 }  // namespace testing

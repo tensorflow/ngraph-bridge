@@ -265,6 +265,17 @@ Status LoadGraph(const string& graph_file_name,
   return Status::OK();
 }
 
+template <>
+void AssignInputValues(Tensor& A, int8 x) {
+  auto A_flat = A.flat<int8>();
+  auto A_flat_data = A_flat.data();
+  for (int i = 0; i < A_flat.size(); i++) {
+    cout << (int)x << " ";
+    A_flat_data[i] = x;
+  }
+  cout << endl;
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

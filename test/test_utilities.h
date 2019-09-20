@@ -86,6 +86,9 @@ void AssignInputValues(Tensor& A, T x) {
   }
 }
 
+template <>
+void AssignInputValues(Tensor& A, int8 x);
+
 // Assigns values from the vector x to the Tensor
 template <typename T>
 void AssignInputValues(Tensor& A, vector<T> x) {
