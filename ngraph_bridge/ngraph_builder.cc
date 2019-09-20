@@ -503,6 +503,7 @@ static Status TranslateQuantizedPoolOp(const Node* op,
                          ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_ksize, ng_kernel_shape);
   BatchToNGraph(is_nhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
@@ -640,6 +641,7 @@ static Status TranslateAvgPoolOp(const Node* op,
   BatchedOpParamToNGraph(is_nhwc, ng_input->get_shape(), ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_ksize, ng_kernel_shape);
   BatchToNGraph(is_nhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
   NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
@@ -709,6 +711,7 @@ static Status TranslateAvgPoolGradOp(
 
   BatchedOpParamReshape(is_nhwc, ng_orig_input_shape, ng_forward_arg_shape);
   BatchToNGraph(is_nhwc, ng_grad);
+  ng_grad->add_provenance_tag(op->name());
   BatchedOpParamToNGraph(is_nhwc, tf_strides, ng_strides);
   BatchedOpParamToNGraph(is_nhwc, ng_orig_input_shape, ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_ksize, ng_window_shape);
@@ -1244,6 +1247,7 @@ static Status TranslateConv2DOp(const Node* op,
   BatchedOpParamToNGraph(is_nhwc, ng_input->get_shape(), ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
   BatchToNGraph(is_nhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
@@ -1339,6 +1343,7 @@ static Status TranslateConv2DBackpropFilterOp(
   //    nGraph Padding Above    [f]
   //    nGraph Dilation Stride  [f]
   BatchToNGraph(is_nhwc, ng_data_batch);
+  ng_data_batch->add_provenance_tag(op->name());
   // tf_filter shape :
   // [filter_height, filter_width, in_channels, out_channels]
   // reshape for nGraph
@@ -1347,6 +1352,7 @@ static Status TranslateConv2DBackpropFilterOp(
                       static_cast<unsigned int>(tf_filter_sizes[0]),
                       static_cast<unsigned int>(tf_filter_sizes[1])};
   BatchToNGraph(is_nhwc, ng_output_delta);
+  ng_output_delta->add_provenance_tag(op->name());
   BatchedOpParamToNGraph(is_nhwc, tf_strides,
                          ng_window_movement_strides_forward);
   BatchedOpParamToNGraph(is_nhwc, tf_dilations,
@@ -1443,6 +1449,7 @@ static Status TranslateConv2DBackpropInputOp(
   BatchedOpParamToNGraph(is_nhwc, tf_input_sizes, ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
   BatchToNGraph(is_nhwc, ng_out_backprop);
+  ng_out_backprop->add_provenance_tag(op->name());
   if (is_nhwc) {
     ng_batch_shape = {static_cast<unsigned long>(tf_input_sizes[0]),
                       static_cast<unsigned long>(tf_input_sizes[3]),
@@ -1531,6 +1538,7 @@ static Status TranslateConv3DOp(const Node* op,
   BatchedOpParam3DToNGraph(is_ndhwc, ng_input->get_shape(), ng_image_shape);
   BatchedOpParam3DToNGraph(is_ndhwc, tf_dilations, ng_dilations);
   BatchToNGraph3D(is_ndhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
@@ -1757,6 +1765,7 @@ static Status TranslateDepthwiseConv2dNativeOp(
   BatchedOpParamToNGraph(is_nhwc, tf_strides, ng_strides);
   BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
   BatchToNGraph(is_nhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
@@ -1940,6 +1949,7 @@ static Status TranslateFusedBatchNormOp(
   NGRAPH_VLOG(3) << "epsilon: " << tf_epsilon;
 
   BatchToNGraph(is_nhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
 
   std::shared_ptr<ng::Node> ng_batch_norm;
 
@@ -2071,7 +2081,9 @@ static Status TranslateFusedBatchNormGradOp(const Node* op,
       std::vector<std::string>{ng::shape_size(ng_scale->get_shape()), "0"});
 
   BatchToNGraph(is_nhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
   BatchToNGraph(is_nhwc, ng_delta);
+  ng_delta->add_provenance_tag(op->name());
 
   std::shared_ptr<ng::Node> ng_batch_norm_backprop;
 
@@ -2335,6 +2347,7 @@ static Status TranslateFusedConv2DOp(const Node* op,
     BatchedOpParamToNGraph(is_nhwc, ng_input->get_shape(), ng_image_shape);
     BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
     BatchToNGraph(is_nhwc, ng_input);
+    ng_input->add_provenance_tag(op->name());
 
     NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
     NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
@@ -2608,6 +2621,7 @@ static Status TranslateMaxPoolOp(const Node* op,
   BatchedOpParamToNGraph(is_nhwc, ng_input->get_shape(), ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_ksize, ng_kernel_shape);
   BatchToNGraph(is_nhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
   NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
@@ -2670,6 +2684,7 @@ static Status TranslateMaxPool3DOp(const Node* op,
   BatchedOpParam3DToNGraph(is_ndhwc, ng_input->get_shape(), ng_image_shape);
   BatchedOpParam3DToNGraph(is_ndhwc, tf_ksize, ng_kernel_shape);
   BatchToNGraph3D(is_ndhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
   NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
@@ -2731,8 +2746,11 @@ static Status TranslateMaxPoolGradOp(const Node* op,
   BatchedOpParamToNGraph(is_nhwc, tf_strides, ng_strides);
   BatchedOpParamToNGraph(is_nhwc, tf_ksize, ng_kernel_shape);
   BatchToNGraph(is_nhwc, ng_input);
+  ng_input->add_provenance_tag(op->name());
   BatchToNGraph(is_nhwc, ng_grad);
+  ng_grad->add_provenance_tag(op->name());
   BatchToNGraph(is_nhwc, ng_fwd);
+  ng_fwd->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
@@ -3390,9 +3408,11 @@ static Status TranslateQuantizedConv(
   BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
   // Generally, the mapping is: 0->input, 1->filter, 2->bias, 3->sum input
   BatchToNGraph(is_nhwc, node_inps[0]);
+  node_inps[0]->add_provenance_tag(op->name());
   // QconvBiasAdd variants
   if (num_node_inputs == 12) {
     BatchToNGraph(is_nhwc, node_inps[9]);
+    node_inps[9]->add_provenance_tag(op->name());
   }
   auto& ng_filter_shape = node_inps[1]->get_shape();
   ng_kernel_shape[0] = ng_filter_shape[0];
@@ -5100,6 +5120,7 @@ Status Builder::TranslateGraph(
     result->set_needs_default_layout(true);
   }
 
+  // TODO: Use is_type<ng::op::Result>(n) when we upgrade to new ngraph
   auto check_if_result_type = [&ng_function](shared_ptr<ng::Node> n) {
     auto all_results = ng_function->get_results();
     if (all_results.size() == 0) {
