@@ -42,6 +42,12 @@ string NGraphCatalog::CreateNodeKey(int graph_id, string node_name, int index) {
   return to_string(graph_id) + "_" + node_name + ":" + to_string(index);
 }
 
+void NGraphCatalog::ClearCatalog() {
+  NGraphCatalog::ClearInputVariableSharedNameMap();
+  NGraphCatalog::ClearEncapOutputCopyIndexesMap();
+  NGraphCatalog::ClearEncapOutputInfoMap();
+}
+
 // Functions for Encapsulate Output Copy Indexes Map
 void NGraphCatalog::AddToEncapOutputCopyIndexesMap(int graphid,
                                                    string node_name,
@@ -52,6 +58,10 @@ void NGraphCatalog::AddToEncapOutputCopyIndexesMap(int graphid,
   }
   string key = graphid + "_" + node_name;
   NGraphCatalog::encap_output_copy_indexes_map_[key] = val;
+}
+
+void NGraphCatalog::ClearEncapOutputCopyIndexesMap() {
+  NGraphCatalog::encap_output_copy_indexes_map_.clear();
 }
 
 unordered_set<int> NGraphCatalog::GetEncapOutputIndexesThatNeedCopy(
@@ -85,19 +95,23 @@ void NGraphCatalog::DeleteFromEncapOutputCopyIndexesMap(int graphid,
 }
 
 // Functions relating Input Variable Shared Name Map
-string NGraphCatalog::GetInputVariableSharedName(int graphid, string node_name,
-                                                 int input_index) {
-  std::string node_key =
-      NGraphCatalog::CreateNodeKey(graphid, node_name, input_index);
-  return NGraphCatalog::input_variable_sharedname_map_[node_key];
-}
-
 void NGraphCatalog::AddToInputVariableSharedNameMap(string key, string val) {
   if (NGraphCatalog::ExistsInInputVariableSharedNameMap(key)) {
     throw runtime_error(
         "Trying to add an already existing key in InputVariableSharedName Map");
   }
   NGraphCatalog::input_variable_sharedname_map_[key] = val;
+}
+
+void NGraphCatalog::ClearInputVariableSharedNameMap() {
+  NGraphCatalog::input_variable_sharedname_map_.clear();
+}
+
+string NGraphCatalog::GetInputVariableSharedName(int graphid, string node_name,
+                                                 int input_index) {
+  std::string node_key =
+      NGraphCatalog::CreateNodeKey(graphid, node_name, input_index);
+  return NGraphCatalog::input_variable_sharedname_map_[node_key];
 }
 
 bool NGraphCatalog::ExistsInInputVariableSharedNameMap(string key) {

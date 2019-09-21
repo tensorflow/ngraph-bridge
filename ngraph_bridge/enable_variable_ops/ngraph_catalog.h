@@ -80,11 +80,15 @@ class NGraphCatalog {
  public:
   // Utility to create key to query the maps
   static string CreateNodeKey(int graph_id, string node_name, int index);
+  // Clear all the maps
+  static void ClearCatalog();
 
   // Utility Functions for the data structures
   // Functions for EncapsulateOutputCopyIndexes Map
   static void AddToEncapOutputCopyIndexesMap(int graphid, string node_name,
                                              unordered_set<int> val);
+
+  static void ClearEncapOutputCopyIndexesMap();
 
   static bool EncapOutputNeedsCopy(int graphid, string node_name);
 
@@ -96,11 +100,11 @@ class NGraphCatalog {
                                                   string node_name);
 
   // Functions for InputVariableSharedName Map
-  static string GetInputVariableSharedName(int graphid, string node_name,
-                                           int input_index);
-
   static void AddToInputVariableSharedNameMap(string key, string val);
 
+  static void ClearInputVariableSharedNameMap();
+  static string GetInputVariableSharedName(int graphid, string node_name,
+                                           int input_index);
   static bool ExistsInInputVariableSharedNameMap(string key);
   static bool ExistsInInputVariableSharedNameMap(int graphid, string node_name,
                                                  int input_index);
