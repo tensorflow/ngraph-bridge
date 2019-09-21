@@ -85,11 +85,11 @@ void RestoreEnv(const unordered_map<string, string>& map) {
 // NGRAPH_TF_BACKEND related
 bool IsNGraphTFBackendSet() { return IsEnvVariableSet("NGRAPH_TF_BACKEND"); }
 
-string GetNGraphTFBackend() { return GetEnvVariable("NGRAPH_TF_BACKEND"); }
+string GetBackendFromEnvVar() { return GetEnvVariable("NGRAPH_TF_BACKEND"); }
 
-void UnsetNGraphTFBackend() { UnsetEnvVariable("NGRAPH_TF_BACKEND"); }
+void UnsetBackendUsingEnvVar() { UnsetEnvVariable("NGRAPH_TF_BACKEND"); }
 
-void SetNGraphTFBackend(const string& backend_name) {
+void SetBackendUsingEnvVar(const string& backend_name) {
   SetEnvVariable("NGRAPH_TF_BACKEND", backend_name);
 }
 

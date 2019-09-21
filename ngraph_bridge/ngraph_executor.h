@@ -18,6 +18,7 @@
 #define NGRAPH_EXECUTOR_H_
 #pragma once
 
+#include <mutex>
 #include <ostream>
 #include <vector>
 
@@ -73,6 +74,7 @@ class NGraphExecutor {
 
   void ReturnPipelinedTensors(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
+    lock_guard<mutex> lock(m_mutext);
     m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
   }
 
@@ -133,6 +135,7 @@ class NGraphExecutor {
                      shared_ptr<PipelinedTensorsStore>>
       m_executable_pipelined_tensors_map;
 
+  mutex m_mutext;
   int m_depth{2};  // TODO make this settable
 };
 

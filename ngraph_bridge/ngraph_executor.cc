@@ -14,7 +14,6 @@
  * limitations under the License.
  *******************************************************************************/
 #include <cstdlib>
-#include <mutex>
 #include <utility>
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
@@ -183,7 +182,6 @@ NGraphExecutor::~NGraphExecutor() {
     }
 
     // Now remove the entry from the function cache
-    auto& ng_function = m_ng_function_map.at(ng_exec);
     backend->remove_compiled_function(ng_exec);
 
     // Finally reset the shared_ptr so that this is deleted by the
@@ -253,6 +251,8 @@ Status NGraphExecutor::GetNgExecutable(
   } catch (...) {
     return errors::Internal("Backend not available: ", m_op_backend_name);
   }
+
+  lock_guard<mutex> lock(m_mutext);
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
@@ -491,6 +491,7 @@ Status NGraphExecutor::InitializeIOTensorPipeline(
         "tensors");
   }
 
+  lock_guard<mutex> lock(m_mutext);
   auto itr = m_executable_pipelined_tensors_map.find(ng_exec);
   if (itr == m_executable_pipelined_tensors_map.end()) {
     // Create these pipelined ng tensors only if needed, else reuse from cache
@@ -532,6 +533,7 @@ Status NGraphExecutor::GetTensorsFromPipeline(
   }
 
   // Lookup the executable
+  lock_guard<mutex> lock(m_mutext);
   PipelinedTensorsStore* pts(nullptr);
   try {
     const auto& item = m_executable_pipelined_tensors_map.at(ng_exec);

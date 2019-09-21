@@ -61,9 +61,9 @@ void SetEnvVariable(const string& env_var_name, const string& env_var_val);
 
 // NGRAPH_TF_BACKEND related
 bool IsNGraphTFBackendSet();
-string GetNGraphTFBackend();
-void UnsetNGraphTFBackend();
-void SetNGraphTFBackend(const string& bname);
+string GetBackendFromEnvVar();
+void UnsetBackendUsingEnvVar();
+void SetBackendUsingEnvVar(const string& bname);
 
 // Print Functions
 void PrintTensor(const Tensor& T1);
