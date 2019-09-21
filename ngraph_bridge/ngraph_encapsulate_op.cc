@@ -297,6 +297,9 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   oss << "Destroy Encapsulate_" << ng_encap_impl.GetInstanceId() << ": "
       << name();
   if (m_does_backend_support_pipelining) {
+    NGRAPH_VLOG(2)
+        << "~NGraphEncapsulateOp():: ParallelExecutor: ReleaseBackend";
+    BackendManager::ReleaseBackend(ng_encap_impl.GetOpBackend());
     return;
   }
 

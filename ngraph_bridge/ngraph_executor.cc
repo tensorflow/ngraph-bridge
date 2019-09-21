@@ -152,10 +152,48 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
 NGraphExecutor::~NGraphExecutor() {
   // TODO
   // Clear m_executable_pipelined_tensors_map
-  // Clear m_ng_exec_map
-  // Clear m_ng_function_map
   // Clear m_ng_exec_input_cache_map
   // Clear m_ng_exec_output_cache_map
+
+  auto backend = BackendManager::GetBackend(m_op_backend_name);
+
+  for (auto& next : m_ng_exec_map) {
+    // First remove the pipelined tensors
+    auto ng_exec = next.second;
+    auto tensor_store = m_executable_pipelined_tensors_map.find(ng_exec);
+    if (tensor_store == m_executable_pipelined_tensors_map.end()) {
+      // There should have been an entry in this Map
+      NGRAPH_VLOG(0)
+          << "The Pipelied Tensor map is empty for the current executor";
+      continue;
+    }
+
+    auto io_tensor_tuple = tensor_store->second->get_tensors();
+    while (std::get<0>(io_tensor_tuple) > 0) {
+      // At this stage everyone must have returned the tensors back to store.
+      // So the id must be non negative
+      for (auto& input_tensor : std::get<1>(io_tensor_tuple)) {
+        input_tensor.reset();
+      }
+      for (auto& output_tensor : std::get<2>(io_tensor_tuple)) {
+        output_tensor.reset();
+      }
+
+      io_tensor_tuple = tensor_store->second->get_tensors();
+    }
+
+    // Now remove the entry from the function cache
+    auto& ng_function = m_ng_function_map.at(ng_exec);
+    backend->remove_compiled_function(ng_exec);
+
+    // Finally reset the shared_ptr so that this is deleted by the
+    // backend when needed
+    ng_exec.reset();
+  }
+
+  m_executable_pipelined_tensors_map.clear();
+  m_ng_function_map.clear();
+  m_ng_exec_map.clear();
 }
 
 //---------------------------------------------------------------------------
@@ -452,6 +490,7 @@ Status NGraphExecutor::InitializeIOTensorPipeline(
         "InitializeIOTensorPipeline called, but executable cannot create "
         "tensors");
   }
+
   auto itr = m_executable_pipelined_tensors_map.find(ng_exec);
   if (itr == m_executable_pipelined_tensors_map.end()) {
     // Create these pipelined ng tensors only if needed, else reuse from cache
