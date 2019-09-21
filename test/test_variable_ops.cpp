@@ -504,6 +504,42 @@ TEST(VariableTest, SmallGraph6) {
   ActivateNGraph();
 }
 
+// Graph with 2 Variables
+TEST(VariableTest, SmallGraph7) {
+  Scope root = Scope::NewRootScope();
+
+  PartialTensorShape varShape({2, 2});
+  auto var1 = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
+  auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto var1_assign =
+      ops::Assign(root.WithOpName("Var1_Assign"), var1, init_value);
+
+  auto var2 = ops::Variable(root.WithOpName("Var2"), varShape, DT_FLOAT);
+  auto init_value2 = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto var2_assign =
+      ops::Assign(root.WithOpName("Var2_Assign"), var2, init_value2);
+
+  // Turn off optimizations so that all the nodes are processed
+  tensorflow::SessionOptions options;
+  options.config.mutable_graph_options()
+      ->mutable_optimizer_options()
+      ->set_opt_level(tensorflow::OptimizerOptions_Level_L0);
+  options.config.mutable_graph_options()
+      ->mutable_rewrite_options()
+      ->set_constant_folding(tensorflow::RewriterConfig::OFF);
+
+  // Run on nGraph
+  ActivateNGraph();
+  ClientSession ng_session(root, options);
+  std::vector<tensorflow::Tensor> ng_outputs1;
+  std::vector<tensorflow::Tensor> ng_outputs2;
+  std::vector<tensorflow::Tensor> ng_outputs3;
+  std::vector<tensorflow::Tensor> ng_outputs4;
+  std::vector<tensorflow::Tensor> ng_outputs5;
+
+  ASSERT_NOT_OK(ng_session.Run({var1_assign, var2_assign}, &ng_outputs1));
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
