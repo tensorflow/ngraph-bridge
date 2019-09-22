@@ -1260,6 +1260,7 @@ static Status TranslateConv2DOp(const Node* op,
   ng_kernel_shape[0] = ng_filter_shape[0];
   ng_kernel_shape[1] = ng_filter_shape[1];
   Reshape<3, 2, 0, 1>(ng_filter);
+  ng_filter->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
@@ -1398,6 +1399,7 @@ static Status TranslateConv2DBackpropFilterOp(
   // Reshape the output to tf format : [filter_height, filter_width,
   // in_channels, out_channels]
   Reshape<2, 3, 1, 0>(ng_back_prop_filter);
+  ng_back_prop_filter->add_provenance_tag(op->name());
 
   SaveNgOp(ng_op_map, op->name(), ng_back_prop_filter);
   return Status::OK();
@@ -1474,6 +1476,7 @@ static Status TranslateConv2DBackpropInputOp(
   ng_kernel_shape[0] = ng_filter_shape[0];
   ng_kernel_shape[1] = ng_filter_shape[1];
   Reshape<3, 2, 0, 1>(ng_filter);
+  ng_filter->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
@@ -1781,6 +1784,7 @@ static Status TranslateDepthwiseConv2dNativeOp(
   ng_kernel_shape[0] = ng_filter_shape[0];
   ng_kernel_shape[1] = ng_filter_shape[1];
   Reshape<3, 2, 0, 1>(ng_filter);
+  ng_filter->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
@@ -2367,6 +2371,7 @@ static Status TranslateFusedConv2DOp(const Node* op,
     ng_kernel_shape[0] = ng_filter_shape[0];
     ng_kernel_shape[1] = ng_filter_shape[1];
     Reshape<3, 2, 0, 1>(ng_filter);
+    ng_filter->add_provenance_tag(op->name());
 
     NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
@@ -3433,6 +3438,7 @@ static Status TranslateQuantizedConv(
   ng_kernel_shape[0] = ng_filter_shape[0];
   ng_kernel_shape[1] = ng_filter_shape[1];
   Reshape<3, 2, 0, 1>(node_inps[1]);
+  node_inps[1]->add_provenance_tag(op->name());
   ng::CoordinateDiff ng_padding_below{0, 0};
   ng::CoordinateDiff ng_padding_above{0, 0};
   Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
