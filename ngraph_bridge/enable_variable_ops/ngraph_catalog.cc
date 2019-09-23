@@ -59,7 +59,7 @@ void NGraphCatalog::AddToEncapOutputCopyIndexesMap(
         "Trying to add an already existing key in EncapOutputIndexesCopy Map");
   }
   string key = graphid + "_" + node_name;
-  NGraphCatalog::encap_output_copy_indexes_map_[key] = val;
+  NGraphCatalog::encap_output_copy_indexes_map_.insert({key, val});
 }
 
 void NGraphCatalog::ClearEncapOutputCopyIndexesMap() {
@@ -69,7 +69,7 @@ void NGraphCatalog::ClearEncapOutputCopyIndexesMap() {
 const unordered_set<int>& NGraphCatalog::GetEncapOutputIndexesThatNeedCopy(
     const int& graphid, const string& node_name) {
   string key = graphid + "_" + node_name;
-  return NGraphCatalog::encap_output_copy_indexes_map_[key];
+  return NGraphCatalog::encap_output_copy_indexes_map_.at(key);
 }
 
 bool NGraphCatalog::EncapOutputNeedsCopy(const int& graphid,
@@ -105,7 +105,7 @@ void NGraphCatalog::AddToInputVariableSharedNameMap(const string& key,
     throw runtime_error(
         "Trying to add an already existing key in InputVariableSharedName Map");
   }
-  NGraphCatalog::input_variable_sharedname_map_[key] = val;
+  NGraphCatalog::input_variable_sharedname_map_.insert({key, val});
 }
 
 void NGraphCatalog::ClearInputVariableSharedNameMap() {
@@ -116,7 +116,7 @@ const string& NGraphCatalog::GetInputVariableSharedName(
     const int& graphid, const string& node_name, const int& input_index) {
   string node_key =
       NGraphCatalog::CreateNodeKey(graphid, node_name, input_index);
-  return NGraphCatalog::input_variable_sharedname_map_[node_key];
+  return NGraphCatalog::input_variable_sharedname_map_.at(node_key);
 }
 
 bool NGraphCatalog::ExistsInInputVariableSharedNameMap(const string& key) {
@@ -142,7 +142,7 @@ void NGraphCatalog::AddToEncapOutputInfoMap(
     throw runtime_error(
         "Trying to add an already existing key in EncapOutputInfo Map");
   }
-  NGraphCatalog::encap_output_info_map_[key] = val;
+  NGraphCatalog::encap_output_info_map_.insert({key, val});
 }
 
 void NGraphCatalog::AddToEncapOutputInfoMap(const string& key,
@@ -157,7 +157,7 @@ void NGraphCatalog::AddToEncapOutputInfoMap(const string& key,
   // create a tuple
   tuple<string, bool, bool> val =
       make_tuple(shared_name, copy_to_tf, is_tf_just_looking);
-  NGraphCatalog::encap_output_info_map_[key] = val;
+  NGraphCatalog::encap_output_info_map_.insert({key, val});
 }
 
 bool NGraphCatalog::ExistsInEncapOutputInfoMap(const string& key) {
@@ -175,24 +175,27 @@ bool NGraphCatalog::ExistsInEncapOutputInfoMap(const int& graphid,
 
 const tuple<string, bool, bool>& NGraphCatalog::GetInfoFromEncapOutputInfoMap(
     const string& key) {
-  return NGraphCatalog::encap_output_info_map_[key];
+  return NGraphCatalog::encap_output_info_map_.at(key);
 }
 
 const string& NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(
     const string& key) {
-  tuple<string, bool, bool>& val = NGraphCatalog::encap_output_info_map_[key];
+  tuple<string, bool, bool>& val =
+      NGraphCatalog::encap_output_info_map_.at(key);
   return get<0>(val);
 }
 
 const bool& NGraphCatalog::GetCopyToTFFromEncapOutputInfoMap(
     const string& key) {
-  tuple<string, bool, bool>& val = NGraphCatalog::encap_output_info_map_[key];
+  tuple<string, bool, bool>& val =
+      NGraphCatalog::encap_output_info_map_.at(key);
   return get<1>(val);
 }
 
 const bool& NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
     const string& key) {
-  tuple<string, bool, bool>& val = NGraphCatalog::encap_output_info_map_[key];
+  tuple<string, bool, bool>& val =
+      NGraphCatalog::encap_output_info_map_.at(key);
   return get<2>(val);
 }
 
