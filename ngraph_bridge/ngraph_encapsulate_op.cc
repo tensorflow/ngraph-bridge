@@ -363,6 +363,8 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
+  ngraph::Event event_compute("Compute", "", "");
+
   if (m_does_backend_support_pipelining) {
     NGRAPH_VLOG(0) << "NGraphEncapsulateOp::Compute: Using Pipelined Executor";
     ComputeUsingParallelExecutor(ctx);
@@ -370,6 +372,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     NGRAPH_VLOG(0) << "NGraphEncapsulateOp::Compute: Using Legacy Executor";
     ComputeUsingLegacyExecutor(ctx);
   }
+
+  event_compute.Stop();
+  ngraph::Event::write_trace(event_compute);
 }
 
 //---------------------------------------------------------------------------
@@ -386,6 +391,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   }
 
   int step_id = ctx->step_id();
+  ngraph::Event event_compile("Compile", "", "");
 
   // Get ngraph executable and inputs information
   bool cache_hit;
@@ -398,12 +404,22 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
       << m_parallel_executor->GetNgraphClusterId();
 
+  event_compile.Stop();
+  ngraph::Event::write_trace(event_compile);
+
   // Get the pipelned tensors
+  ngraph::Event event_get_tensor("Get Tensor", "", "");
+
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
   OP_REQUIRES_OK(
       ctx, m_parallel_executor->GetTensorsFromPipeline(ng_exec, io_tensors));
 
+  event_get_tensor.Stop();
+  ngraph::Event::write_trace(event_get_tensor);
+
   // Allocate the input/
+  ngraph::Event event_copy_input_tensor("Copy Input Tensor", "", "");
+
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     ng::element::Type ng_element_type;
     OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(
@@ -423,11 +439,18 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                   errors::Internal("Error copying TF tensor to device tensor"));
     }
   }
+  event_copy_input_tensor.Stop();
+  ngraph::Event::write_trace(event_copy_input_tensor);
 
   // And execute
+  ngraph::Event event_execute_graph("Execute Graph", "", "");
   ng_exec->call(get<2>(io_tensors), get<1>(io_tensors));
+  event_execute_graph.Stop();
+  ngraph::Event::write_trace(event_execute_graph);
 
   // Now prepare the output
+  ngraph::Event event_copy_output_tensor("Copy Output Tensor", "", "");
+
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
     auto ng_element = ng_exec->get_results()[i];
     auto ng_shape = ng_element->get_shape();
@@ -460,8 +483,14 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
         get<2>(io_tensors)[i]->get_element_count() * ng_element_type.size());
   }
 
+  event_copy_output_tensor.Stop();
+  ngraph::Event::write_trace(event_copy_output_tensor);
+
   // Now return them to the cache
+  ngraph::Event event_return_tensor("Return Tensor", "", "");
   m_parallel_executor->ReturnPipelinedTensors(ng_exec, get<0>(io_tensors));
+  event_return_tensor.Stop();
+  ngraph::Event::write_trace(event_return_tensor);
 }
 
 //---------------------------------------------------------------------------

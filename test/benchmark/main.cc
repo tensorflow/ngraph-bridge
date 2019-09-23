@@ -106,7 +106,7 @@ void PrintVersion() {
 int main(int argc, char** argv) {
   // parameters below need to modified as per model
   string image = "grace_hopper.jpg";
-  //int batch_size = 1;
+  // int batch_size = 1;
   // // Vector size is same as the batch size, populating with single image
   // vector<string> images(batch_size, image);
   string graph = "inception_v3_2016_08_28_frozen.pb";
@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
     backend_name = std::getenv("NGRAPH_TF_BACKEND");
   }
 
-  unique_ptr<Session> the_session; 
+  unique_ptr<Session> the_session;
   TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
                                                         the_session));
 
@@ -212,13 +212,13 @@ int main(int argc, char** argv) {
 
       // Run inference
       TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer},
-                                  {}, &outputs));
+                                   {}, &outputs));
 
       // End. MArk time
       iteration_timer.Stop();
       total_time_in_ms += iteration_timer.ElapsedInMS();
       cout << "Iteration: " << i << " Time: " << iteration_timer.ElapsedInMS()
-          << endl;
+           << endl;
       total_images_processed++;
     }
   };
@@ -231,10 +231,11 @@ int main(int argc, char** argv) {
   thread1.join();
   thread2.join();
 
-  cout << "Time for each image: " << ((float)total_time_in_ms / (float)total_images_processed)
-       << " ms" << endl;
-  cout << "Images/Sec: " << (float)total_images_processed / (total_time_in_ms / 1000.0)
+  cout << "Time for each image: "
+       << ((float)total_time_in_ms / (float)total_images_processed) << " ms"
        << endl;
+  cout << "Images/Sec: "
+       << (float)total_images_processed / (total_time_in_ms / 1000.0) << endl;
 
   std::cout << "Done" << std::endl;
   return 0;
