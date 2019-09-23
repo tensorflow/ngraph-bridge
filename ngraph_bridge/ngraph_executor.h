@@ -18,6 +18,7 @@
 #define NGRAPH_EXECUTOR_H_
 #pragma once
 
+#include <mutex>
 #include <ostream>
 #include <vector>
 
@@ -45,6 +46,8 @@ class NGraphExecutor {
                           unique_ptr<tensorflow::Graph>& graph,
                           const string& backend_name);
 
+  ~NGraphExecutor();
+
   // Calls Compute Signature and gets ngraph executable
   // Update the cache and if called again with the same input shapes,
   // return fromm the cache
@@ -71,6 +74,7 @@ class NGraphExecutor {
 
   void ReturnPipelinedTensors(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
+    lock_guard<mutex> lock(m_mutext);
     m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
   }
 
@@ -99,7 +103,7 @@ class NGraphExecutor {
   Status ComputeSignature(const std::vector<Tensor>& tf_input_tensors,
                           std::vector<TensorShape>& input_shapes,
                           std::vector<const Tensor*>& static_input_map,
-                          std::stringstream& signature_ss);
+                          std::stringstream& signature_ss) const;
 
  private:
   const int my_instance_id;
@@ -131,6 +135,7 @@ class NGraphExecutor {
                      shared_ptr<PipelinedTensorsStore>>
       m_executable_pipelined_tensors_map;
 
+  mutex m_mutext;
   int m_depth{2};  // TODO make this settable
 };
 

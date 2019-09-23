@@ -59,6 +59,7 @@ set(SRC
     test_array_ops.cpp
     test_variable_ops.cpp
     test_parallel_executor.cpp
+    test_momentum_op.cpp
     opexecuter.cpp
 )
 
@@ -66,6 +67,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/capture_variables.cc)
     list(APPEND SRC graph_rewrites/enter_in_catalog_test.cc)
     list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
+    list(APPEND SRC graph_rewrites/test_replace_optimizer.cpp)
 endif()
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
@@ -92,6 +94,12 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_launchop.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_int8_launchop.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
 )
 
 if (APPLE)
@@ -129,6 +137,7 @@ if (NGRAPH_PLAIDML_ENABLE)
     target_link_libraries(gtest_ngtf ${PLAIDML_LIBRARIES})
 endif()
 
+add_subdirectory(benchmark)
 add_subdirectory(python)
 add_subdirectory(python/bfloat16)
 add_subdirectory(model_level_tests)
@@ -143,6 +152,8 @@ endif()
 install(TARGETS gtest_ngtf DESTINATION ${CMAKE_INSTALL_PREFIX}/test)  
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test

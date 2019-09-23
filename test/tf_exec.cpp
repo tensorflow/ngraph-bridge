@@ -41,7 +41,7 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-TEST(tf_exec, SingleGraphOn2Threads) {
+TEST(TFExec, SingleGraphOn2Threads) {
   string graph_name = "test_axpy.pbtxt";
   vector<string> backends{"CPU", "INTERPRETER"};
   for (auto be : backends) {
@@ -84,7 +84,7 @@ TEST(tf_exec, SingleGraphOn2Threads) {
   }
 }
 
-TEST(tf_exec, hello_world) {
+TEST(TFExec, hello_world) {
   Scope root = Scope::NewRootScope();
 
   // root = root.WithDevice("/device:NGRAPH:0");
@@ -103,7 +103,7 @@ TEST(tf_exec, hello_world) {
   LOG(INFO) << outputs[0].matrix<float>();
 }
 
-TEST(tf_exec, axpy) {
+TEST(TFExec, axpy) {
   GraphDef gdef;
   // auto status = ReadTextProto(Env::Default(), "test_py.pbtxt",
   // &gdef);

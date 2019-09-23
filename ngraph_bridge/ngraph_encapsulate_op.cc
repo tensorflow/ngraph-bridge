@@ -114,7 +114,7 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
 
   if (graph_def == nullptr) {
     string flib_key =
-        "ngraph_cluster_" + to_string(ng_encap_impl.GetNgraphCluster());
+        "ngraph_cluster_" + to_string(cluster);
     // Read graphdef from function library
     const FunctionLibraryDefinition flib =
         *ctx->function_library()->GetFunctionLibraryDefinition();
@@ -297,6 +297,9 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   oss << "Destroy Encapsulate_" << ng_encap_impl.GetInstanceId() << ": "
       << name();
   if (m_does_backend_support_pipelining) {
+    NGRAPH_VLOG(2)
+        << "~NGraphEncapsulateOp():: ParallelExecutor: ReleaseBackend";
+    BackendManager::ReleaseBackend(ng_encap_impl.GetOpBackend());
     return;
   }
 
@@ -346,8 +349,8 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   ng_encap_impl.ClearNgExecInputCache();
   ng_encap_impl.ClearNgExecOutputCache();
   ng_encap_impl.ClearNgExecMap();
-  ng_encap_impl.ClearNgFunctionMap();
   ng_encap_impl.ClearNgExecPipelinedTensorMap();
+  ng_encap_impl.ClearNgExecSerializedFunctionCache();
 
   // Release the backend
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
@@ -360,6 +363,8 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
+  ngraph::Event event_compute("Compute", "", "");
+
   if (m_does_backend_support_pipelining) {
     NGRAPH_VLOG(0) << "NGraphEncapsulateOp::Compute: Using Pipelined Executor";
     ComputeUsingParallelExecutor(ctx);
@@ -367,6 +372,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     NGRAPH_VLOG(0) << "NGraphEncapsulateOp::Compute: Using Legacy Executor";
     ComputeUsingLegacyExecutor(ctx);
   }
+
+  event_compute.Stop();
+  ngraph::Event::write_trace(event_compute);
 }
 
 //---------------------------------------------------------------------------
@@ -383,6 +391,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   }
 
   int step_id = ctx->step_id();
+  ngraph::Event event_compile("Compile", "", "");
 
   // Get ngraph executable and inputs information
   bool cache_hit;
@@ -395,12 +404,22 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
       << m_parallel_executor->GetNgraphClusterId();
 
+  event_compile.Stop();
+  ngraph::Event::write_trace(event_compile);
+
   // Get the pipelned tensors
+  ngraph::Event event_get_tensor("Get Tensor", "", "");
+
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
   OP_REQUIRES_OK(
       ctx, m_parallel_executor->GetTensorsFromPipeline(ng_exec, io_tensors));
 
+  event_get_tensor.Stop();
+  ngraph::Event::write_trace(event_get_tensor);
+
   // Allocate the input/
+  ngraph::Event event_copy_input_tensor("Copy Input Tensor", "", "");
+
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     ng::element::Type ng_element_type;
     OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(
@@ -420,11 +439,18 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                   errors::Internal("Error copying TF tensor to device tensor"));
     }
   }
+  event_copy_input_tensor.Stop();
+  ngraph::Event::write_trace(event_copy_input_tensor);
 
   // And execute
+  ngraph::Event event_execute_graph("Execute Graph", "", "");
   ng_exec->call(get<2>(io_tensors), get<1>(io_tensors));
+  event_execute_graph.Stop();
+  ngraph::Event::write_trace(event_execute_graph);
 
   // Now prepare the output
+  ngraph::Event event_copy_output_tensor("Copy Output Tensor", "", "");
+
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
     auto ng_element = ng_exec->get_results()[i];
     auto ng_shape = ng_element->get_shape();
@@ -457,8 +483,14 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
         get<2>(io_tensors)[i]->get_element_count() * ng_element_type.size());
   }
 
+  event_copy_output_tensor.Stop();
+  ngraph::Event::write_trace(event_copy_output_tensor);
+
   // Now return them to the cache
+  ngraph::Event event_return_tensor("Return Tensor", "", "");
   m_parallel_executor->ReturnPipelinedTensors(ng_exec, get<0>(io_tensors));
+  event_return_tensor.Stop();
+  ngraph::Event::write_trace(event_return_tensor);
 }
 
 //---------------------------------------------------------------------------
@@ -480,7 +512,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
-  std::shared_ptr<ngraph::Function> ng_function;
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   ng::runtime::Backend* op_backend;
 
@@ -715,19 +746,17 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
     try {
       ng_exec->call(ng_outputs, ng_inputs);
     } catch (const std::exception& exp) {
-      ng_function = ng_encap_impl.GetNgFunctionMap()[ng_exec];
       BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
-      NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
-                      ng_function);
+      ng_encap_impl.DumpNgFunction(
+          "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       OP_REQUIRES(ctx, false,
                   errors::Internal(
                       "Caught exception while executing nGraph computation: ",
                       exp.what(), "\n"));
     } catch (...) {
-      ng_function = ng_encap_impl.GetNgFunctionMap()[ng_exec];
       BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
-      NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
-                      ng_function);
+      ng_encap_impl.DumpNgFunction(
+          "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       OP_REQUIRES(
           ctx, false,
           errors::Internal("Error in executing the nGraph computation\n"));

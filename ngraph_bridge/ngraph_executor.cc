@@ -14,7 +14,6 @@
  * limitations under the License.
  *******************************************************************************/
 #include <cstdlib>
-#include <mutex>
 #include <utility>
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
@@ -147,13 +146,62 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
 }
 
 //---------------------------------------------------------------------------
+//  NGraphExecutor::~NGraphExecutor
+//---------------------------------------------------------------------------
+NGraphExecutor::~NGraphExecutor() {
+  // TODO
+  // Clear m_executable_pipelined_tensors_map
+  // Clear m_ng_exec_input_cache_map
+  // Clear m_ng_exec_output_cache_map
+
+  auto backend = BackendManager::GetBackend(m_op_backend_name);
+
+  for (auto& next : m_ng_exec_map) {
+    // First remove the pipelined tensors
+    auto ng_exec = next.second;
+    auto tensor_store = m_executable_pipelined_tensors_map.find(ng_exec);
+    if (tensor_store == m_executable_pipelined_tensors_map.end()) {
+      // There should have been an entry in this Map
+      NGRAPH_VLOG(0)
+          << "The Pipelied Tensor map is empty for the current executor";
+      continue;
+    }
+
+    auto io_tensor_tuple = tensor_store->second->get_tensors();
+    while (std::get<0>(io_tensor_tuple) > 0) {
+      // At this stage everyone must have returned the tensors back to store.
+      // So the id must be non negative
+      for (auto& input_tensor : std::get<1>(io_tensor_tuple)) {
+        input_tensor.reset();
+      }
+      for (auto& output_tensor : std::get<2>(io_tensor_tuple)) {
+        output_tensor.reset();
+      }
+
+      io_tensor_tuple = tensor_store->second->get_tensors();
+    }
+
+    // Now remove the entry from the function cache
+    backend->remove_compiled_function(ng_exec);
+
+    // Finally reset the shared_ptr so that this is deleted by the
+    // backend when needed
+    ng_exec.reset();
+  }
+
+  m_executable_pipelined_tensors_map.clear();
+  m_ng_function_map.clear();
+  m_ng_exec_map.clear();
+}
+
+//---------------------------------------------------------------------------
 //  NGraphExecutor::ComputeSignature
 //---------------------------------------------------------------------------
 Status NGraphExecutor::ComputeSignature(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
-    std::stringstream& signature_ss) {
+    std::stringstream& signature_ss) const {
   // Use tensorflow input tensors to get input_shapes, static_input_map
   // and compute the signature
   for (int i = 0; i < tf_input_tensors.size(); i++) {
@@ -203,6 +251,8 @@ Status NGraphExecutor::GetNgExecutable(
   } catch (...) {
     return errors::Internal("Backend not available: ", m_op_backend_name);
   }
+
+  lock_guard<mutex> lock(m_mutext);
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
@@ -440,6 +490,8 @@ Status NGraphExecutor::InitializeIOTensorPipeline(
         "InitializeIOTensorPipeline called, but executable cannot create "
         "tensors");
   }
+
+  lock_guard<mutex> lock(m_mutext);
   auto itr = m_executable_pipelined_tensors_map.find(ng_exec);
   if (itr == m_executable_pipelined_tensors_map.end()) {
     // Create these pipelined ng tensors only if needed, else reuse from cache
@@ -481,6 +533,7 @@ Status NGraphExecutor::GetTensorsFromPipeline(
   }
 
   // Lookup the executable
+  lock_guard<mutex> lock(m_mutext);
   PipelinedTensorsStore* pts(nullptr);
   try {
     const auto& item = m_executable_pipelined_tensors_map.at(ng_exec);

@@ -61,9 +61,9 @@ void SetEnvVariable(const string& env_var_name, const string& env_var_val);
 
 // NGRAPH_TF_BACKEND related
 bool IsNGraphTFBackendSet();
-string GetNGraphTFBackend();
-void UnsetNGraphTFBackend();
-void SetNGraphTFBackend(const string& bname);
+string GetBackendFromEnvVar();
+void UnsetBackendUsingEnvVar();
+void SetBackendUsingEnvVar(const string& bname);
 
 // Print Functions
 void PrintTensor(const Tensor& T1);
@@ -85,6 +85,9 @@ void AssignInputValues(Tensor& A, T x) {
     A_flat_data[i] = x;
   }
 }
+
+template <>
+void AssignInputValues(Tensor& A, int8 x);
 
 // Assigns values from the vector x to the Tensor
 template <typename T>
