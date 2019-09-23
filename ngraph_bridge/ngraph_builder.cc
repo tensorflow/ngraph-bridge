@@ -1557,6 +1557,7 @@ static Status TranslateConv3DOp(const Node* op,
   ng_kernel_shape[1] = ng_filter_shape[1];
   ng_kernel_shape[2] = ng_filter_shape[2];
   Reshape3D<4, 3, 0, 1, 2>(ng_filter);
+  ng_filter->add_provenance_tag(op->name());
 
   NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
