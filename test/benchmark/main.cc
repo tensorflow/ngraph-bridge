@@ -106,9 +106,9 @@ void PrintVersion() {
 int main(int argc, char** argv) {
   // parameters below need to modified as per model
   string image = "grace_hopper.jpg";
-  int batch_size = 1;
-  // Vector size is same as the batch size, populating with single image
-  vector<string> images(batch_size, image);
+  //int batch_size = 1;
+  // // Vector size is same as the batch size, populating with single image
+  // vector<string> images(batch_size, image);
   string graph = "inception_v3_2016_08_28_frozen.pb";
   string labels = "";
   int input_width = 299;
@@ -168,11 +168,16 @@ int main(int argc, char** argv) {
   // Instantiate the Engine
   benchmark::InferenceEngine inference_engine("Foo");
   TF_CHECK_OK(inference_engine.LoadImage(
-      graph, images, input_width, input_height, input_mean, input_std,
+      graph, {image}, input_width, input_height, input_mean, input_std,
       input_layer, output_layer, use_NCHW, preload_images, input_channels));
 
-  unique_ptr<Session> the_session;
-  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, "INTERPRETER",
+  string backend_name = "CPU";
+  if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
+    backend_name = std::getenv("NGRAPH_TF_BACKEND");
+  }
+
+  unique_ptr<Session> the_session; 
+  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
                                                         the_session));
 
   std::vector<Tensor> outputs;
@@ -190,32 +195,45 @@ int main(int argc, char** argv) {
   cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
        << endl;
 
-  int total_time_in_ms = 0;
+  atomic<int> total_time_in_ms{0};
+  atomic<int> total_images_processed{0};
   const int NUM_ITERATIONS = 20;
-  for (int i = 0; i < NUM_ITERATIONS; i++) {
-    tf::ngraph_bridge::Timer iteration_timer;
-    // Get the image
-    Tensor next_image;
-    TF_CHECK_OK(inference_engine.GetNextImage(next_image));
 
-    // Create the device tensor
-    // TODO
-    // tf::tensor::DeepCopy(next_image, &device_tensor);
+  auto worker = [&]() {
+    for (int i = 0; i < NUM_ITERATIONS; i++) {
+      tf::ngraph_bridge::Timer iteration_timer;
+      // Get the image
+      Tensor next_image;
+      TF_CHECK_OK(inference_engine.GetNextImage(next_image));
 
-    // Run inference
-    TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer},
-                                 {}, &outputs));
+      // Create the device tensor
+      // TODO
+      // tf::tensor::DeepCopy(next_image, &device_tensor);
 
-    // End. MArk time
-    iteration_timer.Stop();
-    total_time_in_ms += iteration_timer.ElapsedInMS();
-    cout << "Iteration: " << i << " Time: " << iteration_timer.ElapsedInMS()
-         << endl;
-  }
+      // Run inference
+      TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer},
+                                  {}, &outputs));
 
-  cout << "Time for each image: " << ((float)total_time_in_ms / NUM_ITERATIONS)
+      // End. MArk time
+      iteration_timer.Stop();
+      total_time_in_ms += iteration_timer.ElapsedInMS();
+      cout << "Iteration: " << i << " Time: " << iteration_timer.ElapsedInMS()
+          << endl;
+      total_images_processed++;
+    }
+  };
+
+  std::thread thread0(worker);
+  std::thread thread1(worker);
+  std::thread thread2(worker);
+
+  thread0.join();
+  thread1.join();
+  thread2.join();
+
+  cout << "Time for each image: " << ((float)total_time_in_ms / (float)total_images_processed)
        << " ms" << endl;
-  cout << "Images/Sec: " << (float)NUM_ITERATIONS / (total_time_in_ms / 1000.0)
+  cout << "Images/Sec: " << (float)total_images_processed / (total_time_in_ms / 1000.0)
        << endl;
 
   std::cout << "Done" << std::endl;
