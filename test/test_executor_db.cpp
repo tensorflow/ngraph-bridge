@@ -102,7 +102,7 @@ TEST(ExecutorDB, CompilerTest) {
   std::stringstream signature;
   std::shared_ptr<ngraph::Function> ng_function;
   ng::runtime::Backend* op_backend;
-  bool cache_hit;
+  // bool cache_hit;
   op_backend = BackendManager::GetBackend("INTERPRETER");
   ASSERT_OK(ComputeSignature( tf_input_tensors,
          input_shapes, signature));
@@ -114,7 +114,7 @@ TEST(ExecutorDB, CompilerTest) {
    Builder::TranslateGraph(input_shapes, static_input_map,
                                                  input_graph.get(), ng_function);
    
-    //auto function_size = ng_function->get_graph_size() / 1024;
+    
     const char* cache_depth_specified =
         std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
         int my_function_cache_depth_in_items = 16;
@@ -122,24 +122,19 @@ TEST(ExecutorDB, CompilerTest) {
       my_function_cache_depth_in_items = atoi(cache_depth_specified);
     }
     if (edb.SizeOfNgExecMap() >= my_function_cache_depth_in_items) {
-      //int input_tensors_bytes_free = 0;
       edb.RemoveExecAndFunc(evicted_ng_exec);
       op_backend->remove_compiled_function(evicted_ng_exec);
       edb.PopBackLRU();
-      ngraph::Event event_compile("Compile nGraph", "", "");
-      BackendManager::LockBackend("INTERPRETER");
-      try {
-        ng_exec = op_backend->compile(ng_function);
-     }
+    }
+    ngraph::Event event_compile("Compile nGraph", "", "");
+    BackendManager::LockBackend("INTERPRETER");
+       try {
+         ng_exec = op_backend->compile(ng_function);
+      }
       catch (const std::exception& exp) {
       BackendManager::UnlockBackend("INTERPRETER");
-      //NgraphSerialize("tf_function_error_" + "" + ".json", ng_function);
-      //return errors::Internal("Caught exception while compiling op_backend: ",
-                              //exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend("INTERPRETER");
-      //NgraphSerialize("tf_function_error_" + "" + ".json", ng_function);
-      //return errors::Internal("Error in compiling op_backend\n");
     }
     BackendManager::UnlockBackend("INTERPRETER");
     event_compile.Stop();
@@ -154,18 +149,17 @@ TEST(ExecutorDB, CompilerTest) {
       edb.RemoveFromLRU(sig_str);
       edb.PushFrontInLRU(sig_str);
     }
-    cache_hit = true;
-    NGRAPH_VLOG(1) << "Compilation cache hit: " << "";
   }
 
-  if(!edb.IsNgFuncAvail(ng_exec, ng_function))
+  if(!(edb.IsNgFuncAvail(ng_exec, ng_function)))
   {
-    //errors::Internal("Function not found for this executable");
+    
+    ASSERT_EQ(0,1);
   }
-  // Validate the nGraph Function
+  //Validate the nGraph Function
   const auto& parameters = ng_function->get_parameters();
   ASSERT_EQ(2, parameters.size());
-}
+
 }
 
 }  // namespace testing
