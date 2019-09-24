@@ -91,7 +91,13 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   OP_REQUIRES(
       ctx, backend != nullptr,
       errors::Internal("Cannot get the backend object for BE: ", be_name));
+  
+  // Override the switch for debugging/testing
   m_does_backend_support_pipelining = backend->executable_can_create_tensors();
+  if (std::getenv("NGRAPH_TF_USE_LEGACY_EXECUTOR") != nullptr) {
+      NGRAPH_VLOG(3) << "Forcing the use of LEGACY Executor";
+      m_does_backend_support_pipelining = false;
+  }
 
   if (m_does_backend_support_pipelining) {
     CreateParallelExecutor(ctx, be_name);
@@ -451,7 +457,10 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   // Now prepare the output
   ngraph::Event event_copy_output_tensor("Copy Output Tensor", "", "");
 
+  std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
+    std::unique_ptr<ngraph::Event> event_copy_prep(
+            new ngraph::Event("Copy Prep", "", ""));
     auto ng_element = ng_exec->get_results()[i];
     auto ng_shape = ng_element->get_shape();
     auto ng_element_type = ng_element->get_element_type();
@@ -475,12 +484,23 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
         ctx, ng_element_type == expected_elem_type,
         errors::Internal("Element type inferred by nGraph does not match "
                          "the element type expected by TensorFlow"));
+    event_copy_prep->Stop();
+    output_copy_events.push_back(std::move(event_copy_prep));
+
     // Now copy the nGraph Tensor to Host Tensor
+    std::unique_ptr<ngraph::Event> event_copy_d2h(
+                new ngraph::Event("Device to Host Copy", "", ""));
     void* dst_ptr = DMAHelper::base(tf_output_tensor);
 
     get<2>(io_tensors)[i]->read(
         dst_ptr, 0,
         get<2>(io_tensors)[i]->get_element_count() * ng_element_type.size());
+    event_copy_d2h->Stop();
+    output_copy_events.push_back(std::move(event_copy_d2h));
+  }
+
+  for (auto& next : output_copy_events) {
+    ngraph::Event::write_trace(*next.get());
   }
 
   event_copy_output_tensor.Stop();
