@@ -85,6 +85,9 @@ class NGraphEncapsulateImpl {
       const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
       std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline);
 
+  // Clear all maps with ng_exec as keys
+  void ClearExecMaps();
+
   void DumpNgFunction(const string&,
                       std::shared_ptr<ngraph::runtime::Executable>);
 
