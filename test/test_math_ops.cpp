@@ -1089,6 +1089,32 @@ TEST(MathOps, FloorModNegFloat) {
   opexecuter.RunTest();
 }  // end of test op FloorModNegFloat
 
+// Test op: isFinite
+TEST(MathOps, IsFinite) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+  int dim3 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2, dim3}));
+  std::vector<float> values = {0.f, 1.f, 2.f, -2.f,
+                        std::numeric_limits<float>::infinity(),
+                        -std::numeric_limits<float>::infinity(),
+                        std::numeric_limits<float>::quiet_NaN(),
+                        std::numeric_limits<float>::signaling_NaN()};
+  AssignInputValues(A, values);
+  vector<int> static_input_indexes = {};
+  auto R = ops::IsFinite(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "isFinite", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
 // Test op: Log
 TEST(MathOps, Log1D) {
   Scope root = Scope::NewRootScope();
