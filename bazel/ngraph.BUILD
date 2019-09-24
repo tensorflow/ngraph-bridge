@@ -255,7 +255,6 @@ cc_library(
     deps = [
         ":ngraph_headers",
         ":ngraph_core",
-        # "@tbb",
         "@eigen",
         "@mkl_dnn",
     ],
@@ -271,7 +270,6 @@ cc_library(
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
         '-D NGRAPH_VERSION=\\"0.25.1-rc.2\\"',
         "-D NGRAPH_DEX_ONLY",
-        # "-D NGRAPH_TBB_ENABLE",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
     ] + CXX_ABI,

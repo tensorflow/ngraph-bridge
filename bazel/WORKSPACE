@@ -76,17 +76,6 @@ http_archive(
 )
 
 http_archive(
-        name = "tbb",
-        build_file = "//:bazel/tbb.BUILD",
-        sha256 = "c3245012296f09f1418b78a8c2f17df5188b3bd0db620f7fd5fabe363320805a",
-        strip_prefix = "tbb-2019_U1",
-        urls = [
-            "http://mirror.tensorflow.org/github.com/01org/tbb/archive/2019_U1.zip",
-            "https://github.com/01org/tbb/archive/2019_U1.zip",
-        ],
-    )
-
-http_archive(
         name = "eigen",
         build_file = "//:bazel/eigen.BUILD",
         sha256 = "74845ea27e19a1bcf63f3f271de62e06798f23e0467bb9d45b83a94918941b23",
