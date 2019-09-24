@@ -82,7 +82,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"v0.26.0-rc.0\\"',
+        '-D NGRAPH_VERSION=\\"v0.26.0-rc.2\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_STATIC_LIB_ENABLE'
@@ -115,11 +115,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-<<<<<<< HEAD
-        '-D NGRAPH_VERSION=\\"v0.25.1-rc.8\\"',
-=======
-        '-D NGRAPH_VERSION=\\"v0.26.0-rc.0\\"',
->>>>>>> 878d285... nGraph v0.26.0.rc.0 (#249)
+        '-D NGRAPH_VERSION=\\"v0.26.0-rc.2\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
     ] + CXX_ABI,
@@ -270,11 +266,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-<<<<<<< HEAD
-        '-D NGRAPH_VERSION=\\"0.25.1-rc.7\\"',
-=======
-        '-D NGRAPH_VERSION=\\"v0.26.0-rc.0\\"',
->>>>>>> 878d285... nGraph v0.26.0.rc.0 (#249)
+        '-D NGRAPH_VERSION=\\"v0.26.0-rc.2\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
