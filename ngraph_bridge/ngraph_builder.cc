@@ -3761,7 +3761,8 @@ static Status TranslateSigmoidGradOp(const Node* op,
                          op->name(), ng_input->get_element_type(),
                          ng_input->get_shape(), std::vector<int>({1})) -
                      ng_input;
-  auto ng_result = ng_mul * ng_subtract;
+  auto ng_result =
+      ConstructNgNode<ng::op::Multiply>(op->name(), ng_mul, ng_subtract);
 
   SaveNgOp(ng_op_map, op->name(), ng_result);
   return Status::OK();
