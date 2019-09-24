@@ -535,11 +535,11 @@ Status NGraphEncapsulateImpl::ParseNodeAttributes(
   return Status::OK();
 }
 
-Status NGraphEncapsulateImpl::CachePipelinedTensorIfNeeded(
+Status NGraphEncapsulateImpl::UpdatePipelinedTensorCache(
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
   if (!m_executable_can_create_tensor) {
     return errors::Internal(
-        "CachePipelinedTensorIfNeeded called, but executable cannot create "
+        "UpdatePipelinedTensorCache called, but executable cannot create "
         "tensors");
   }
   auto itr = m_executable_pipelined_tensors_map.find(ng_exec);

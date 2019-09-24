@@ -194,7 +194,7 @@ class NGraphEncapsulateImpl {
     m_executable_pipelined_tensors_map.clear();
   }
 
-  Status CachePipelinedTensorIfNeeded(
+  Status UpdatePipelinedTensorCache(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
 
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>

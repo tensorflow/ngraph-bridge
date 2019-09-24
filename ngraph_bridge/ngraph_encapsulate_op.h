@@ -40,8 +40,8 @@ class NGraphEncapsulateOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override;
 
  private:
-  NGraphEncapsulateImpl ng_encap_impl;
-  std::mutex m_compute_lock;
+  NGraphEncapsulateImpl ng_encap_impl_;
+  std::mutex m_compute_lock_;
 };
 
 }  // namespace ngraph_bridge
