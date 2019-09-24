@@ -133,15 +133,6 @@ size_t BackendManager::GetNumOfSupportedBackends() {
   return ng::runtime::BackendManager::get_registered_backends().size();
 }
 
-bool BackendManager::IsSupportedBackend(const string& backend_name) {
-  vector<string> registered_backends =
-      ng::runtime::BackendManager::get_registered_backends();
-  vector<string>::iterator itr = find(registered_backends.begin(),
-                                      registered_backends.end(), backend_name);
-
-  return itr != registered_backends.end();
-};
-
 Status BackendManager::CanCreateBackend(const string& backend_string) {
   auto status = BackendManager::CreateBackend(backend_string);
   if (status.ok()) {
