@@ -117,6 +117,7 @@ Status InferenceEngine::CreateSession(const string& graph_filename,
   options.config.mutable_graph_options()
       ->mutable_rewrite_options()
       ->set_constant_folding(RewriterConfig::OFF);
+  options.config.set_inter_op_parallelism_threads(1);
 
   // The following is related to Grappler - which we are turning off
   // Until we get a library fully running

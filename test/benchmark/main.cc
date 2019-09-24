@@ -180,12 +180,12 @@ int main(int argc, char** argv) {
   TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
                                                         the_session));
 
-  std::vector<Tensor> outputs;
+  ngraph::Event evt_compilation("Compilation", "Compilation", "");
 
   // Call it onces to get the nGraph compilation done
   Tensor next_image;
   TF_CHECK_OK(inference_engine.GetNextImage(next_image));
-
+  std::vector<Tensor> outputs;
   // Run inference once. This will trigger a compilation
   tf::ngraph_bridge::Timer compilation_time;
   TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer}, {},
@@ -194,13 +194,18 @@ int main(int argc, char** argv) {
 
   cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
        << endl;
+  evt_compilation.Stop();
+  ngraph::Event::write_trace(evt_compilation);
 
   atomic<int> total_time_in_ms{0};
   atomic<int> total_images_processed{0};
   const int NUM_ITERATIONS = 20;
 
-  auto worker = [&]() {
+  auto worker = [&](int worker_id) {
+    ostringstream oss;
+    oss << "Worker_" << worker_id;
     for (int i = 0; i < NUM_ITERATIONS; i++) {
+      ngraph::Event evt_run(oss.str(), to_string(i), "");
       tf::ngraph_bridge::Timer iteration_timer;
       // Get the image
       Tensor next_image;
@@ -220,12 +225,14 @@ int main(int argc, char** argv) {
       cout << "Iteration: " << i << " Time: " << iteration_timer.ElapsedInMS()
            << endl;
       total_images_processed++;
+      evt_run.Stop();
+      ngraph::Event::write_trace(evt_run);
     }
   };
 
-  std::thread thread0(worker);
-  std::thread thread1(worker);
-  std::thread thread2(worker);
+  std::thread thread0(worker, 0);
+  std::thread thread1(worker, 1);
+  std::thread thread2(worker, 2);
 
   thread0.join();
   thread1.join();

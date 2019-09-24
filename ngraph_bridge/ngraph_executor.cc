@@ -531,7 +531,7 @@ Status NGraphExecutor::GetTensorsFromPipeline(
   if (status != Status::OK()) {
     return status;
   }
-  
+
   // Lookup the executable
   lock_guard<mutex> lock(m_mutext);
   PipelinedTensorsStore* pts(nullptr);
