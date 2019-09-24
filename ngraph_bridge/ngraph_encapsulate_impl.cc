@@ -596,6 +596,47 @@ void NGraphEncapsulateImpl::NGraphEncapsulateImpl::ClearExecMaps() {
   m_executable_pipelined_tensors_map.clear();
 }
 
+Status NGraphEncapsulateImpl::GetPipelineIdxAndTensors(
+    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>& tpl) {
+  if (GetExecCanCreateTensor()) {
+    // Check if the pipelined tensors for this executable is created
+    // If not create and add them to the cache
+    TF_RETURN_IF_ERROR(UpdatePipelinedTensorCache(ng_exec));
+    // Cache must contain the ng_exec at this point
+
+    try {
+      tpl = GetTensorsFromPipeline(ng_exec);
+    } catch (const std::exception& exp) {
+      return errors::Internal(
+          "Caught exception while getting pipelined tensors: ", exp.what(),
+          "\n");
+    }
+
+    auto pipeline_idx = get<0>(tpl);
+    if (pipeline_idx < 0) {
+      return errors::Internal(
+          "Expected GetTensorsFromPipeline to return an index >= 0, but got ",
+          pipeline_idx);
+    }
+  }
+  return Status::OK();
+}
+
+Status NGraphEncapsulateImpl::ReturnPipelinedTensors(
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
+  if (GetExecCanCreateTensor()) {
+    try {
+      m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
+    } catch (const std::exception& exp) {
+      return errors::Internal(
+          "Caught exception while returning pipelined tensors: ", exp.what(),
+          "\n");
+    }
+  }
+  return Status::OK();
+}
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow
