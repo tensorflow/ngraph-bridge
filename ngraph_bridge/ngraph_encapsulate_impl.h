@@ -131,7 +131,7 @@ class NGraphEncapsulateImpl {
 
   const string GetCopyLog() { return copy_log_str.str(); }
 
-  void SetCopyLog(const string str) { copy_log_str.str() = str; }
+  void AppendCopyLog(const string str) { copy_log_str << str; }
 
   const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
 
