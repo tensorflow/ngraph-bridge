@@ -36,16 +36,18 @@ set(SRC
    ngraph_assign_clusters.cc
    ngraph_builder.cc
    ngraph_backend_manager.cc
-   ngraph_bridge_registry.cc
    ngraph_capture_variables.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
+   ngraph_pipelined_tensors.cc
+   ngraph_encapsulate_impl.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
    ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
+   ngraph_partial_shapes.cc
    ngraph_rewrite_for_tracking.cc
    ngraph_rewrite_pass.cc
    ngraph_tracked_variable.cc
@@ -145,7 +147,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     target_link_libraries(
         ${LIB_NAME_STATIC}
         ngraph_logger
-        ngraph_logger 
         ${TensorFlow_FRAMEWORK_LIBRARY} 
         ngraph_lib
         lib_cpu_backend_static

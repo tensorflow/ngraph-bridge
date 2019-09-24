@@ -14,23 +14,37 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/ngraph_bridge_registry.h"
+#ifndef NGRAPH_TF_ENCAPSULATE_OP_H_
+#define NGRAPH_TF_ENCAPSULATE_OP_H_
+#pragma once
+
+#include <ostream>
+#include <vector>
+
+#include "tensorflow/core/framework/tensor_shape.h"
+#include "tensorflow/core/graph/graph.h"
+
+#include "logging/ngraph_log.h"
+#include "ngraph/ngraph.hpp"
+#include "ngraph_bridge/ngraph_encapsulate_impl.h"
+#include "ngraph_bridge/ngraph_freshness_tracker.h"
 
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
-// Dummy function for bridge specific ops
-// so when built static, the linker will include
-// all the object files which it would not do normally.
-#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
-void register_ngraph_bridge() {
-#ifdef NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS
-  register_ngraph_enable_variable_ops();
-#else
-  register_ngraph_ops();
-#endif
-}
-#endif
-}
-}
+class NGraphEncapsulateOp : public OpKernel {
+ public:
+  explicit NGraphEncapsulateOp(OpKernelConstruction* ctx);
+  ~NGraphEncapsulateOp() override;
+  void Compute(OpKernelContext* ctx) override;
+
+ private:
+  NGraphEncapsulateImpl ng_encap_impl;
+  std::mutex m_compute_lock;
+};
+
+}  // namespace ngraph_bridge
+
+}  // namespace tensorflow
+#endif  // NGRAPH_TF_ENCAPSULATE_OP_H_
