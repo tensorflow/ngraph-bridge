@@ -52,15 +52,15 @@ http_archive(
 load("@org_tensorflow//tensorflow:workspace.bzl", "tf_workspace")
 tf_workspace(path_prefix = "", tf_repo_name = "org_tensorflow")
 
-# TODO: update this once the ngraph PR is merged
+# TODO: update this once there is a new release
 http_archive(
     name = "ngraph",
     build_file = "//:bazel/ngraph.BUILD",
     sha256 = "",
-    strip_prefix = "ngraph-silee2-allow_tbb_off_r0.25.1",
+    strip_prefix = "ngraph-r0.25.1",
     urls = [
-        "https://mirror.bazel.build/github.com/NervanaSystems/ngraph/archive/silee2/allow_tbb_off_r0.25.1.zip",
-        "https://github.com/NervanaSystems/ngraph/archive/silee2/allow_tbb_off_r0.25.1.zip"
+        "https://mirror.bazel.build/github.com/NervanaSystems/ngraph/archive/r0.25.1.zip",
+        "https://github.com/NervanaSystems/ngraph/archive/r0.25.1.zip"
     ],
 )
 
