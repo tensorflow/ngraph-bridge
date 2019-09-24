@@ -102,21 +102,25 @@ class NGraphEncapsulateImpl {
   void DumpNgFunction(const string&,
                       std::shared_ptr<ngraph::runtime::Executable>);
 
-  // Accessors(getters and setters) for the private data members of
-  // NgraphEncapsulateImpl class
-  // needed by
-  // NgraphEncapsulateOp class
+// Accessors(getters and setters) for the private data members of
+// NgraphEncapsulateImpl class
+// needed by NgraphEncapsulateOp class
+
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   const int& GetNumberOfCopies() { return number_of_copies; }
 
   void SetNumberOfCopies(const int& number) { number_of_copies = number; }
 
-  const int& GetNgraphCluster() { return m_ngraph_cluster; }
-
-  void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
-
   int GetGraphId() { return m_graph_id; }
 
   void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
+
+  void AppendCopyLog(const string str) { copy_log_str << str; }
+#endif
+
+  const int& GetNgraphCluster() { return m_ngraph_cluster; }
+
+  void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
 
   const int& GetFunctionCache() { return my_function_cache_depth_in_items; }
 
@@ -141,8 +145,6 @@ class NGraphEncapsulateImpl {
   void SetLogCopies(bool value) { log_copies = value; }
 
   const string GetCopyLog() { return copy_log_str.str(); }
-
-  void AppendCopyLog(const string str) { copy_log_str << str; }
 
   const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
 
