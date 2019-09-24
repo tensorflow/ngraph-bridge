@@ -58,7 +58,7 @@ class BackendManager {
   static size_t GetNumOfSupportedBackends();
 
   // Returns True if the backend is supported
-  // Searches the registered backends with nGraph to determine this
+  // Searches the list of backends registered with nGraph to determine this
   // Meant to be used without device_id
   // For eg. IsSupportedBackend("GPU") --> returns True
   //         IsSupportedBackend("GPU:0") --> returns False
