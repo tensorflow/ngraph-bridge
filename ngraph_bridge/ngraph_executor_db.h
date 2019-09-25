@@ -42,7 +42,9 @@ class NGraphExecutorDB {
   {
     lock_guard<mutex> lock(m_mutex1);
     auto it = m_ng_exec_map.find(signature);
-    if (it == m_ng_exec_map.end()) return false;
+    if (it == m_ng_exec_map.end()) {
+      return false;
+    }
     ng_exec = it->second;
     return true;
   }
