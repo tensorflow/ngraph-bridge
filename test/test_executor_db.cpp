@@ -24,6 +24,7 @@
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_executor_db.h"
 #include "ngraph_bridge/version.h"
+#include "test/test_generic_class.h"
 #include "test/test_utilities.h"
 
 using namespace std;
@@ -33,25 +34,6 @@ namespace tf = tensorflow;
 namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
-
-Status ExLoadGraphFromPbTxt(const string& pb_file, const string& backend_name,
-                            unique_ptr<tf::Graph>& new_graph) {
-  // Read the graph
-  tensorflow::GraphDef graph_def;
-  auto load_graph_status = ReadTextProto(Env::Default(), pb_file, &graph_def);
-  if (!load_graph_status.ok()) {
-    return load_graph_status;
-  }
-
-  GraphConstructorOptions opts;
-  opts.allow_internal_ops = true;
-  unique_ptr<tf::Graph> input_graph =
-      unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
-
-  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph.get());
-  new_graph = move(input_graph);
-  return status;
-}
 
 Status ComputeSignature(const std::vector<Tensor>& tf_input_tensors,
                         std::vector<TensorShape>& input_shapes,
@@ -74,7 +56,7 @@ Status CompileExecutable(NGraphExecutorDB& edb,
                          tf::Graph* graph,
                          std::shared_ptr<ngraph::Function>& ng_function,
                          shared_ptr<ngraph::runtime::Executable>& ng_exec,
-                         std::string signature) {
+                         std::string signature, bool& cache_hit) {
   std::vector<const Tensor*> static_input_map;
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
   Builder::TranslateGraph(input_shapes, static_input_map, graph, ng_function);
@@ -122,8 +104,8 @@ TEST(ExecutorDB, CompilerTest) {
   // We are using a graph with _Arg and _Retval
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
-  ASSERT_OK(ExLoadGraphFromPbTxt("test_axpy_launchop.pbtxt", "INTERPRETER",
-                                 input_graph));
+  ASSERT_OK(tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
+      "test_axpy_launchop.pbtxt", input_graph));
 
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutorDB edb;
@@ -145,22 +127,24 @@ TEST(ExecutorDB, CompilerTest) {
   std::vector<TensorShape> input_shapes;
   std::stringstream signature;
   std::shared_ptr<ngraph::Function> ng_function;
-
+  bool cache_hit = false;
+  ;
   ASSERT_OK(ComputeSignature(tf_input_tensors, input_shapes, signature));
 
   std::string sig_str = signature.str();
   if (!(edb.IsNgExecAvail(sig_str, ng_exec))) {
     ASSERT_OK(CompileExecutable(edb, input_shapes, input_graph.get(),
-                                ng_function, ng_exec, sig_str));
+                                ng_function, ng_exec, sig_str, cache_hit));
   } else {
     if (sig_str != edb.LRUFront()) {
       edb.RemoveFromLRU(sig_str);
       edb.PushFrontInLRU(sig_str);
     }
+    cache_hit = true;
   }
 
   ASSERT_EQ(edb.IsNgFunctionAvail(ng_exec, ng_function), true);
-
+  ASSERT_EQ(cache_hit, false);
   // Validate the nGraph Function
   const auto& parameters = ng_function->get_parameters();
   ASSERT_EQ(2, parameters.size());

@@ -24,6 +24,7 @@
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_executor.h"
 #include "ngraph_bridge/version.h"
+#include "test/test_generic_class.h"
 #include "test/test_utilities.h"
 
 using namespace std;
@@ -33,25 +34,6 @@ namespace tf = tensorflow;
 namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
-
-Status LoadGraphFromPbTxt(const string& pb_file,
-                          unique_ptr<tf::Graph>& new_graph) {
-  // Read the graph
-  tensorflow::GraphDef graph_def;
-  auto load_graph_status = ReadTextProto(Env::Default(), pb_file, &graph_def);
-  if (!load_graph_status.ok()) {
-    return load_graph_status;
-  }
-
-  GraphConstructorOptions opts;
-  opts.allow_internal_ops = true;
-  unique_ptr<tf::Graph> input_graph =
-      unique_ptr<tf::Graph>(new tf::Graph(OpRegistry::Global()));
-
-  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph.get());
-  new_graph = move(input_graph);
-  return status;
-}
 
 TEST(ParallelExecutor, Construction) {
   GraphConstructorOptions opts;
@@ -70,7 +52,8 @@ TEST(ParallelExecutor, Construction) {
                std::runtime_error);
 
   // Now read the graph
-  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", input_graph));
+  ASSERT_OK(tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
+      "test_axpy_launchop.pbtxt", input_graph));
 
   // Next test with a backend after creating
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
@@ -90,7 +73,8 @@ TEST(ParallelExecutor, CompilerTest) {
   // We are using a graph with _Arg and _Retval
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
-  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", input_graph));
+  ASSERT_OK(tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
+      "test_axpy_launchop.pbtxt", input_graph));
 
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
@@ -138,7 +122,8 @@ TEST(ParallelExecutor, PipelinedTensorCreate) {
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
-  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", input_graph));
+  ASSERT_OK(tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
+      "test_axpy_launchop.pbtxt", input_graph));
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
 
@@ -184,7 +169,8 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
-  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", input_graph));
+  ASSERT_OK(tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
+      "test_axpy_launchop.pbtxt", input_graph));
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
 
@@ -262,7 +248,8 @@ TEST(ParallelExecutor, ExecuteOnSingleThread8Bit) {
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
-  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_int8_launchop.pbtxt", input_graph));
+  ASSERT_OK(tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
+      "test_axpy_int8_launchop.pbtxt", input_graph));
 
   string backend_name = "INTERPRETER";
   if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
@@ -346,7 +333,8 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads8Bit) {
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
-  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_int8_launchop.pbtxt", input_graph));
+  ASSERT_OK(tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
+      "test_axpy_int8_launchop.pbtxt", input_graph));
 
   string backend_name = "INTERPRETER";
   if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
@@ -442,7 +430,8 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
   // addded i.e., a PB that is saved after the initial processing of the
   // TF graph transformation.
   unique_ptr<tf::Graph> input_graph;
-  ASSERT_OK(LoadGraphFromPbTxt("test_axpy_launchop.pbtxt", input_graph));
+  ASSERT_OK(tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
+      "test_axpy_launchop.pbtxt", input_graph));
   tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
   NGraphExecutor executor(100, 500, 600, input_graph, "INTERPRETER");
 
