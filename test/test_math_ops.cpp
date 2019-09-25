@@ -1111,7 +1111,7 @@ TEST(MathOps, IsFinite) {
                         output_datatypes, sess_run_fetchoutputs);
 
   opexecuter.RunTest();
-}
+} // end of test op IsFinite
 
 // Test op: Log
 TEST(MathOps, Log1D) {

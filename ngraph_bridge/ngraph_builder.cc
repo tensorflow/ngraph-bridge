@@ -2460,7 +2460,6 @@ static Status TranslateIdentityOp(const Node* op,
   return Status::OK();
 }
 
-
 static Status TranslateIsFiniteOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -2496,7 +2495,6 @@ static Status TranslateIsFiniteOp(
   SaveNgOp(ng_op_map, op->name(), is_finite);
   return Status::OK();
 }
-
 
 static Status TranslateL2LossOp(const Node* op,
                                 const std::vector<const Tensor*>&,
