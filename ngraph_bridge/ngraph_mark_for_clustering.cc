@@ -59,7 +59,7 @@ using SetAttributesFunction = std::function<Status(Node*)>;
 //
 // FIXME(amprocte): stubbed out for now because NGRAPH device is gone.
 //
-static Status NGraphPlacementRequested(Node* node, bool& placement_ok) {
+static Status NGraphPlacementRequested(Node*, bool& placement_ok) {
   placement_ok = true;
   return Status::OK();
 }
@@ -129,7 +129,7 @@ static SetAttributesFunction SetStaticInputs(
 
 // Generates a "simple" confirmation function which always returns true,
 static ConfirmationFunction SimpleConfirmationFunction() {
-  auto cf = [](Node* n, bool* result) {
+  auto cf = [](Node*, bool* result) {
     *result = true;
     return Status::OK();
   };
@@ -376,6 +376,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Slice"] = SimpleConfirmationFunction();
       confirmation_function_map["Snapshot"] = SimpleConfirmationFunction();
       confirmation_function_map["Softmax"] = SimpleConfirmationFunction();
+      confirmation_function_map["Softplus"] = SimpleConfirmationFunction();
       confirmation_function_map["SpaceToDepth"] =
           confirmation_function_map["DepthToSpace"];
       confirmation_function_map["SparseSoftmaxCrossEntropyWithLogits"] =
@@ -571,6 +572,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Slice"]["Index"] = NGraphIndexDTypes();
       type_constraint_map["Snapshot"]["T"] = NGraphDTypes();
       type_constraint_map["Softmax"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["Softplus"]["T"] = NGraphRealDTypes();
       type_constraint_map["SpaceToDepth"]["T"] = NGraphDTypes();
       type_constraint_map["SparseSoftmaxCrossEntropyWithLogits"]["T"] =
           NGraphNumericDTypes();
@@ -655,23 +657,29 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   // Right now it cannot be inside the if(!initialized) block, because it is
   // backend dependent, which might change with different sess.run()s
-  confirmation_function_map["GatherV2"] = [&current_backend](Node* n,
+  confirmation_function_map["GatherV2"] = [&current_backend](Node*,
                                                              bool* result) {
     // TODO: replace current_backend ->
     // BackendManager::GetCurrentlySetBackendName()
-    *result = (current_backend == "NNPI");
+    auto config_map =
+        BackendManager::GetBackendAttributeValues(current_backend);
+    *result = (config_map.at("ngraph_backend") == "NNPI");
     return Status::OK();
   };
 
   confirmation_function_map["NonMaxSuppressionV4"] = [&current_backend](
-      Node* n, bool* result) {
-    *result = (current_backend == "NNPI");
+      Node*, bool* result) {
+    auto config_map =
+        BackendManager::GetBackendAttributeValues(current_backend);
+    *result = (config_map.at("ngraph_backend") == "NNPI");
     return Status::OK();
   };
 
   confirmation_function_map["CombinedNonMaxSuppression"] = [&current_backend](
-      Node* n, bool* result) {
-    *result = (current_backend == "NNPI");
+      Node*, bool* result) {
+    auto config_map =
+        BackendManager::GetBackendAttributeValues(current_backend);
+    *result = (config_map.at("ngraph_backend") == "NNPI");
     return Status::OK();
   };
 

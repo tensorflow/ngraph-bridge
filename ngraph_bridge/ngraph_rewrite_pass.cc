@@ -221,18 +221,18 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // to be attached to the nodes
     // Precedence Order: Env Variable > BackendManager
     std::unordered_map<std::string, std::string> config_map;
-    string backend_name;
+    string backend_creation_string;
+    // GetCurrentlySetBackendName could return GPU:0 (not just GPU)
     TF_RETURN_IF_ERROR(
-        BackendManager::GetCurrentlySetBackendName(&backend_name));
+        BackendManager::GetCurrentlySetBackendName(&backend_creation_string));
 
-    // splits into {"ngraph_backend", "_ngraph_device_config"}
+    // splits into {"ngraph_backend", "ngraph_device_id"}
     config_map = BackendManager::GetBackendAttributeValues(
-        backend_name);  // SplitBackendConfig
-    backend_name = config_map.at("ngraph_backend");
+        backend_creation_string);  // SplitBackendConfig
     config_map.erase("ngraph_backend");
 
     if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
-      NGRAPH_VLOG(0) << "NGraph using backend: " << backend_name;
+      NGRAPH_VLOG(0) << "NGraph using backend: " << backend_creation_string;
     }
 
     // Now Process the Graph
@@ -240,7 +240,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
     TF_RETURN_IF_ERROR(MarkForClustering(options.graph->get(), skip_these_nodes,
-                                         backend_name));
+                                         backend_creation_string));
     if (DumpMarkedGraphs()) {
       DumpGraphs(options, idx, "marked", "Graph Marked for Clustering");
     }
@@ -261,7 +261,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
     TF_RETURN_IF_ERROR(EncapsulateClusters(options.graph->get(), idx,
-                                           fdeflib_new, config_map));
+                                           fdeflib_new, config_map, {0, {}}));
     // TODO: not using fdeflib_new in this path. Only grappler path uses it
     free(fdeflib_new);
     if (DumpEncapsulatedGraphs()) {

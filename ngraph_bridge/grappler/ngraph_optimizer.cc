@@ -43,23 +43,52 @@ namespace ngraph_bridge {
 Status NgraphOptimizer::Init(
     const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
   const auto params = config->parameter_map();
-  if (params.count("ngraph_backend")) {
-    config_backend_name = params.at("ngraph_backend").s();
-    NGRAPH_VLOG(3) << config_backend_name;
-    std::vector<std::string> additional_attributes =
-        BackendManager::GetBackendAdditionalAttributes(config_backend_name);
-    for (size_t i = 0; i < additional_attributes.size(); i++) {
-      if (params.count(additional_attributes[i])) {
-        config_map["_ngraph_" + additional_attributes[i]] =
-            params.at(additional_attributes[i]).s();
-        NGRAPH_VLOG(3) << additional_attributes[i] << " "
-                       << config_map["_ngraph_" + additional_attributes[i]];
+  for (size_t i = 0; i < compulsory_attrs.size(); i++) {
+    if (params.count(compulsory_attrs[i]) == 0) {
+      NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Compulsory attribute "
+                     << compulsory_attrs[i] << " not found.";
+      return errors::Internal("NGTF_OPTIMIZER: Missing compulsory attributes.");
+    }
+  }
+  config_backend_name = params.at("ngraph_backend").s();
+  config_device_id = params.at("device_id").s();
+  NGRAPH_VLOG(3) << "Backend name from config: " << config_backend_name;
+  std::set<ShapeHintMap> shape_hints;
+  // typedef std::map<std::string, std::vector<int>> ShapeHintMap;
+  for (auto i : params) {
+    if (i.first != "ngraph_backend") {
+      // TODO: slightly hacky. The bridge reserves the right to use optional
+      // attributes whose names start with shape_hint
+      if (i.first.rfind("shape_hint", 0) != 0) {
+        config_map[(i.first == "device_id" ? "" : "_") +
+                   std::string("ngraph_") + i.first] = i.second.s();
+        NGRAPH_VLOG(3) << "Attribute: " << i.first
+                       << " Value: " << config_map["_ngraph_" + i.first];
+      } else {
+        ShapeHintMap hint;
+        for (auto k : i.second.func().attr().at("hint_body").func().attr()) {
+          vector<int> full_or_partial_shape;
+          for (auto dim : k.second.tensor().int_val()) {
+            full_or_partial_shape.push_back(dim);
+          }
+          hint[k.first] = full_or_partial_shape;
+        }
+        shape_hints.insert(hint);
       }
     }
-  } else {
-    NGRAPH_VLOG(5)
-        << "NGTF_OPTIMIZER: parameter_map does not have ngraph_backend";
   }
+  auto itr = params.find("aot_requested");
+  bool do_aot = false;
+  if (itr != params.end()) {
+    do_aot = itr->second.s() == "1";
+  }
+  if (!do_aot && shape_hints.size() > 0) {
+    return errors::Internal(
+        "Did not requested AOT, but passed shape hints. Please request to use "
+        "shape hints (by using --precompile in tf2ngraph.py), or if AOT is not "
+        "desired then do not pass shape hints");
+  }
+  aot_info = make_pair(do_aot, shape_hints);
   return Status::OK();
 }
 
@@ -194,30 +223,22 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // Get backend + its configurations, to be attached to the nodes
-  // Precedence Order: RewriteConfig > Env Variable > BackendManager
-  string backend_name;
+  // using RewriteConfig
+  string backend_creation_string = BackendManager::GetBackendCreationString(
+      config_backend_name, config_device_id);
   if (!config_backend_name.empty()) {
-    if (!BackendManager::IsSupportedBackend(config_backend_name)) {
-      return errors::Internal("NGRAPH_TF_BACKEND: ", config_backend_name,
+    if (!BackendManager::IsSupportedBackend(backend_creation_string)) {
+      return errors::Internal("NGRAPH_TF_BACKEND: ", backend_creation_string,
                               " is not supported");
     }
-    backend_name = config_backend_name;
-    NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig " << backend_name;
-  } else {
-    TF_RETURN_IF_ERROR(
-        BackendManager::GetCurrentlySetBackendName(&backend_name));
-    // splits into {"ngraph_backend", "_ngraph_device_config"}
-    config_map = BackendManager::GetBackendAttributeValues(
-        backend_name);  // SplitBackendConfig
-    backend_name = config_map.at("ngraph_backend");
-    // config_map in EncapsulateClusters is not expected to contain
-    // ngraph_backend
-    config_map.erase("ngraph_backend");
+    NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig "
+                   << backend_creation_string;
   }
-  NGRAPH_VLOG(0) << "NGraph using backend: " << backend_name;
+  NGRAPH_VLOG(0) << "NGraph using backend: " << backend_creation_string;
 
   // 1. Mark for clustering then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes, backend_name));
+  TF_RETURN_IF_ERROR(
+      MarkForClustering(&graph, skip_these_nodes, backend_creation_string));
   if (DumpMarkedGraphs()) {
     DumpGraphs(graph, idx, "marked", "Graph Marked for Clustering");
   }
@@ -237,7 +258,9 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  TF_RETURN_IF_ERROR(EncapsulateClusters(&graph, idx, fdeflib_new, config_map));
+  TF_RETURN_IF_ERROR(
+      // TODO: right now _ngraph_aot_requested is passed along in config_map.
+      EncapsulateClusters(&graph, idx, fdeflib_new, config_map, aot_info));
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
   }

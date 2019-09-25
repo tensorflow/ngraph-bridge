@@ -30,12 +30,9 @@ BackendManager::~BackendManager() {
 // initialize backend manager
 string BackendManager::ng_backend_name_ = "CPU";
 mutex BackendManager::ng_backend_name_mutex_;
-map<string, Backend*> BackendManager::ng_backend_map_;
+map<string, std::unique_ptr<Backend>> BackendManager::ng_backend_map_;
 mutex BackendManager::ng_backend_map_mutex_;
 map<std::string, int> BackendManager::ref_count_each_backend_;
-
-unordered_map<string, std::unique_ptr<BackendConfig>>
-    BackendManager::ng_backendconfig_map_;
 
 Status BackendManager::SetBackendName(const string& backend_name) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_name_mutex_);
@@ -52,7 +49,6 @@ Status BackendManager::CreateBackend(const string& backend_name) {
   auto itr = BackendManager::ng_backend_map_.find(backend_name);
   // if backend does not exist create it
   if (itr == BackendManager::ng_backend_map_.end()) {
-    Backend* bend = new Backend;
     std::shared_ptr<ng::runtime::Backend> bend_ptr;
     try {
       bend_ptr = ng::runtime::Backend::create(backend_name);
@@ -65,8 +61,9 @@ Status BackendManager::CreateBackend(const string& backend_name) {
       return errors::Internal("Could not create backend of type ",
                               backend_name);
     }
+    std::unique_ptr<Backend> bend = std::unique_ptr<Backend>(new Backend);
     bend->backend_ptr = std::move(bend_ptr);
-    BackendManager::ng_backend_map_[backend_name] = bend;
+    BackendManager::ng_backend_map_[backend_name] = std::move(bend);
     BackendManager::ref_count_each_backend_[backend_name] = 0;
   }
   BackendManager::ref_count_each_backend_[backend_name]++;
@@ -171,53 +168,37 @@ Status BackendManager::GetCurrentlySetBackendName(string* backend_name) {
   return Status::OK();
 };
 
-// Backend Config functions
-// BackendConfig is expected to be a readonly class
-// hence only locked at creation and not during later access
-std::unique_ptr<BackendConfig>& BackendManager::GetBackendConfig(
-    const string& backend_name) {
-  std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
-  auto itr = BackendManager::ng_backendconfig_map_.find(backend_name);
-  if (itr == BackendManager::ng_backendconfig_map_.end()) {
-    if (backend_name == "NNPI") {
-      BackendManager::ng_backendconfig_map_.insert(std::make_pair(
-          backend_name,
-          std::unique_ptr<BackendNNPIConfig>(new BackendNNPIConfig())));
-    }
-    if (backend_name == "INTERPRETER") {
-      BackendManager::ng_backendconfig_map_.insert(std::make_pair(
-          backend_name, std::unique_ptr<BackendInterpreterConfig>(
-                            new BackendInterpreterConfig())));
-    } else {
-      BackendManager::ng_backendconfig_map_.insert(std::make_pair(
-          backend_name,
-          std::unique_ptr<BackendConfig>(new BackendConfig(backend_name))));
-    }
-  }
-  return BackendManager::ng_backendconfig_map_.at(backend_name);
-}
-
-vector<string> BackendManager::GetBackendAdditionalAttributes(
-    const string& backend_name) {
-  return BackendManager::GetBackendConfig(backend_name)
-      ->GetAdditionalAttributes();
-}
-
+// Split
 unordered_map<string, string> BackendManager::GetBackendAttributeValues(
     const string& backend_config) {
   unordered_map<string, string> backend_parameters;
 
-  string backend_name = backend_config.substr(0, backend_config.find(':'));
-  NGRAPH_VLOG(3) << "Got Backend Name " << backend_name;
+  int delimiter_index = backend_config.find(':');
+  if (delimiter_index < 0) {
+    // ":" not found
+    backend_parameters["ngraph_backend"] = backend_config;
+    backend_parameters["ngraph_device_id"] = "";
+  } else {
+    backend_parameters["ngraph_backend"] =
+        backend_config.substr(0, delimiter_index);
+    backend_parameters["ngraph_device_id"] =
+        backend_config.substr(delimiter_index + 1);
+  }
 
-  return BackendManager::GetBackendConfig(backend_name)->Split(backend_config);
+  NGRAPH_VLOG(3) << "Got Backend Name " << backend_parameters["ngraph_backend"];
+  NGRAPH_VLOG(3) << "Got Device Id  " << backend_parameters["ngraph_device_id"];
+
+  return backend_parameters;
 }
 
-string BackendManager::GetBackendCreationString(
-    const string& backend_name,
-    const unordered_map<string, string>& additional_attribute_map) {
-  return BackendManager::GetBackendConfig(backend_name)
-      ->Join(additional_attribute_map);
+// Join
+string BackendManager::GetBackendCreationString(const string& backend_name,
+                                                const string& device_id) {
+  if (device_id != "") {
+    return backend_name + ":" + device_id;
+  } else {
+    return backend_name;
+  }
 }
 
 }  // namespace ngraph_bridge

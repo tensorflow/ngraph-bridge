@@ -58,7 +58,13 @@ class NGraphAssignOp : public OpKernel {
   // use_exclusive_lock_, validate_shape_, relax_constraints_;
 
  public:
-  ~NGraphAssignOp() { NGRAPH_VLOG(4) << "~NGraphAssignOp::" << name() << endl; }
+  ~NGraphAssignOp() {
+    NGRAPH_VLOG(4) << "~NGraphAssignOp::" << name() << endl;
+    // Delete from Input Variable Shared Name Map
+    string key = NGraphCatalog::CreateNodeKey(ng_graph_id_, name(), 0);
+    NGraphCatalog::DeleteFromInputVariableSharedNameMap(key);
+  }
+
   explicit NGraphAssignOp(OpKernelConstruction* context)
       : OpKernel(context), is_tf_just_looking_(false), copy_to_tf_(false) {
     OP_REQUIRES_OK(
@@ -95,7 +101,7 @@ class NGraphAssignOp : public OpKernel {
                    IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
     std::stringstream copy_log_str;
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-                 << " ,Copy_TF " << PrintBool(copy_to_tf_)
+                 << " ,copy-to-tf " << PrintBool(copy_to_tf_)
                  << ", is_tf_just_looking " << PrintBool(is_tf_just_looking_)
                  << ", just_looking " << PrintBool(just_looking_) << "\n";
     int number_of_copies = 0;
@@ -124,19 +130,21 @@ class NGraphAssignOp : public OpKernel {
     // DO NOT CARE ABOUT SYNCING AS WE ARE ALWAYS SETTING THE NGTENSOR
 
     // Get input[1]
-    string valkey = to_string(ng_graph_id_) + "_" + def().input(1);
-    bool valref_exists = NGraphCatalog::ExistsInEncapOutputTensorMap(valkey);
-    if (valref_exists) {
-      // Value is from encap
-      NGRAPH_VLOG(4) << "NGraphAssign::Getting from catalog: " << valkey;
-      auto ng_val = NGraphCatalog::GetTensorFromEncapOutputTensorMap(valkey);
-      var->update_ng_tensor(ng_val);
-    } else {
-      NGRAPH_VLOG(4) << "NGraphAssign::Getting from TF : " << valkey;
-      if (var->update_ng_tensor(rhs_tensor)) {
-        number_of_copies++;
-        copy_log_str << " COPY_INP_VAL[0]";
-      }
+
+    // The NGraphAssign Ops with input[1] from NGraphEncap Op are removed
+    // in the RemoveNGraphAssigns phase in rewrite pass
+    // Assert input[1] is not from NGraphEncap Op
+    // No way to get input node and check its type
+    string input_1_name = def().input(1);
+    OP_REQUIRES(
+        context, input_1_name.find("ngraph_cluster") == -1,
+        errors::Internal(
+            "Caught exception: Input to NGAssign from Encapsulate Op.\n"));
+
+    NGRAPH_VLOG(4) << "NGraphAssign:: Updating";
+    if (var->update_ng_tensor(rhs_tensor)) {
+      number_of_copies++;
+      copy_log_str << " COPY_INP_VAL[0]";
     }
 
     mutex_lock l(*context->input_ref_mutex(0));
@@ -145,7 +153,7 @@ class NGraphAssignOp : public OpKernel {
     if (copy_to_tf_) {
       if (var->copy_ng_to_tf()) {
         number_of_copies++;
-        copy_log_str << " COPY_TF ";
+        copy_log_str << " COPY_TO_TF ";
       }
 
       if (!is_tf_just_looking_) {

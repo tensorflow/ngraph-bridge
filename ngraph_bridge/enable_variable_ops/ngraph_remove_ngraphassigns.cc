@@ -45,8 +45,14 @@ Status RemoveNGraphAssigns(Graph* graph) {
             input_1->type_string());
       }
 
+      // Add control edge between the Op providing the variable and the Op
+      // updating it
+      graph->AddEdge(input_0, Graph::kControlSlot, input_1,
+                     Graph::kControlSlot);
+
       // Handle input edges
       NGRAPH_VLOG(3) << "Handling input edges ";
+      vector<const Edge*> remove_edges;
       for (auto edge : node->in_edges()) {
         // attach incoming control edge to input_1, as that's where update
         // will happen
@@ -55,8 +61,8 @@ Status RemoveNGraphAssigns(Graph* graph) {
           if (edge->src() == input_1) continue;
           graph->AddEdge(edge->src(), edge->src_output(), input_1,
                          edge->dst_input());
-          graph->RemoveEdge(edge);
         }
+        remove_edges.push_back(edge);
       }
 
       // Handle output edges
@@ -80,6 +86,10 @@ Status RemoveNGraphAssigns(Graph* graph) {
           graph->AddEdge(input_1, Graph::kControlSlot, edge->dst(),
                          Graph::kControlSlot);
         }
+        remove_edges.push_back(edge);
+      }
+
+      for (auto edge : remove_edges) {
         graph->RemoveEdge(edge);
       }
 

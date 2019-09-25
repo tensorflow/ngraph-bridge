@@ -13,6 +13,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
+"""nGraph TensorFlow bridge test for tf2ngraph script for precompilation
+
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -25,12 +28,12 @@ import tensorflow as tf
 import ngraph_bridge
 
 from tools.build_utils import command_executor
-from tools.tf2ngraph import convert, get_gdef
+from tools.tf2ngraph import convert, get_gdef, Tf2ngraphJson
 
 from common import NgraphTest
 
 
-class TestConversionScript(NgraphTest):
+class Testtf2ngraph(NgraphTest):
 
     # utility function to make sure input format and location match
     @staticmethod
@@ -55,13 +58,16 @@ class TestConversionScript(NgraphTest):
         ('pb',),
         ('savedmodel',),
     ))
-    @pytest.mark.parametrize(('ng_device',), (('CPU',), ('INTERPRETER',)))
+    @pytest.mark.parametrize(('ng_device', 'shape_hints', 'precompile'),
+                             (('CPU', [], False), ('INTERPRETER', [{}], True),
+                              ('INTERPRETER', [], False)))
+    # In sample_graph.pbtxt, the input shape is fully specified, so we don't need to pass shape hints for precompile
     def test_command_line_api(self, inp_format, inp_loc, out_format,
-                              commandline, ng_device):
+                              commandline, ng_device, shape_hints, precompile):
         # Only run this test when grappler is enabled
         if not ngraph_bridge.is_grappler_enabled():
             return
-        assert TestConversionScript.format_and_loc_match(inp_format, inp_loc)
+        assert Testtf2ngraph.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
         try:
@@ -70,26 +76,42 @@ class TestConversionScript(NgraphTest):
             pass
         conversion_successful = False
         try:
+            optional_backend_params = {
+                'CPU': {
+                    'device_config': '0'
+                },
+                'INTERPRETER': {
+                    'test_echo': '1'
+                }
+            }[ng_device]
+            config_file_name = 'temp_config_file.json'
+            Tf2ngraphJson.dump_json(config_file_name, optional_backend_params,
+                                    shape_hints)
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
                 command_executor(
                     'python ../../tools/tf2ngraph.py --input_' + inp_format +
                     ' ' + inp_loc + ' --output_nodes out_node --output_' +
-                    out_format + ' ' + out_loc + ' --ngbackend ' + ng_device)
+                    out_format + ' ' + out_loc + ' --ng_backend ' + ng_device +
+                    ' --config_file ' + config_file_name +
+                    ("", " --precompile ")[precompile])
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
-                        ng_device)
+                        ng_device, optional_backend_params, shape_hints,
+                        precompile)
             conversion_successful = True
         finally:
             if not conversion_successful:
                 try:
                     (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
+                    os.remove(config_file_name)
                 except:
                     pass
         assert conversion_successful
 
         gdef = get_gdef(out_format, out_loc)
         (shutil.rmtree, os.remove)[os.path.isfile(out_loc)](out_loc)
+        os.remove(config_file_name)
 
         with tf.Graph().as_default() as g:
             tf.import_graph_def(gdef, name='')
@@ -97,6 +119,7 @@ class TestConversionScript(NgraphTest):
             assert len([
                 0 for i in g.get_operations() if i.type == 'NGraphEncapsulate'
             ]) == 1
+            # TODO: check that the encapsulate op has correct backend and extra params attached to it
             x = self.get_tensor(g, "x:0", False)
             y = self.get_tensor(g, "y:0", False)
             out = self.get_tensor(g, "out_node:0", False)
