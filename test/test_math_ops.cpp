@@ -1094,7 +1094,7 @@ TEST(MathOps, IsFinite) {
   Scope root = Scope::NewRootScope();
   int dim1 = 8;
 
-  Tensor A(DT_FLOAT, TensorShape({dim1/*, dim2, dim3*/}));
+  Tensor A(DT_FLOAT, TensorShape({dim1}));
   std::vector<float> values{0.f, 1.f, 2.f, -2.f,
                         std::numeric_limits<float>::infinity(),
                         -std::numeric_limits<float>::infinity(),

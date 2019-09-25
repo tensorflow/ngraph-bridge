@@ -2464,7 +2464,7 @@ static Status TranslateIdentityOp(const Node* op,
 static Status TranslateIsFiniteOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  // WORKAROUND(gopoka): implement tf.is_finite by checking:
+  // Implemented tf.is_finite by checking:
   // (in != inf) && (in != -inf) && (in == in)
   //                                 ^^^^^^^^ checks for NaN's
   shared_ptr<ng::Node> ng_input;
