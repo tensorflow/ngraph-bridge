@@ -1094,7 +1094,6 @@ TEST(MathOps, IsFinite) {
   Scope root = Scope::NewRootScope();
   int dim1 = 8;
 
-
   Tensor A(DT_FLOAT, TensorShape({dim1/*, dim2, dim3*/}));
   std::vector<float> values{0.f, 1.f, 2.f, -2.f,
                         std::numeric_limits<float>::infinity(),
@@ -1108,8 +1107,8 @@ TEST(MathOps, IsFinite) {
   vector<DataType> output_datatypes = {DT_BOOL};
 
   std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "IsFinite", static_input_indexes, output_datatypes,
-                        sess_run_fetchoutputs);
+  OpExecuter opexecuter(root, "IsFinite", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
 
   opexecuter.RunTest();
 }

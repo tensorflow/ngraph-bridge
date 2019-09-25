@@ -2479,12 +2479,12 @@ static Status TranslateIsFiniteOp(
       std::vector<float>{ -std::numeric_limits<float>::infinity() });
 
   auto neq_inf = ConstructNgNode<ng::op::NotEqual>(op->name(),
-                                      ng_input, const_inf, 
+                                      ng_input, const_inf,
                                       ng::op::AutoBroadcastSpec(
                                         ng::op::AutoBroadcastType::NUMPY
                                       ));
   auto neq_neg_inf = ConstructNgNode<ng::op::NotEqual>(op->name(),
-                                      ng_input, const_neg_inf, 
+                                      ng_input, const_neg_inf,
                                       ng::op::AutoBroadcastSpec(
                                         ng::op::AutoBroadcastType::NUMPY
                                       ));
