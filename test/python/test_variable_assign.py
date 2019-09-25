@@ -53,12 +53,6 @@ class TestVarAssignOperations(NgraphTest):
 # assign, but fail in the second shape shifting assign. So functionally
 # incorrect.
 
-    @pytest.mark.skipif(
-        ngraph_bridge.is_grappler_enabled() and
-        ngraph_bridge.are_variables_enabled(),
-        reason=
-        'If both grappler and variable/optimizers are enabled, this test will fail'
-    )
     def test_shape_change_assign(self):
         v = tf.Variable(0)
         new_v_0 = tf.assign(v, 10)
@@ -70,8 +64,16 @@ class TestVarAssignOperations(NgraphTest):
             sess.run(new_v_1)
             return v.eval(session=sess)
 
-        assert (
-            self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
+        if (ngraph_bridge.is_grappler_enabled() and
+                ngraph_bridge.are_variables_enabled()):
+            # If both grappler and variable/optimizers are enabled,
+            # ngraph does not produce right results
+            # We do error out from grappler pass when `sess.run(new_v_1)` is called,
+            # but TF continues running since grappler errors are ignored.
+            assert (self.with_ngraph(run_test).size != self.without_ngraph(run_test).size)
+        else:
+            assert (self.with_ngraph(run_test) == self.without_ngraph(run_test)
+                   ).all()
 
     @pytest.mark.parametrize(("reset",), (
         (True,),

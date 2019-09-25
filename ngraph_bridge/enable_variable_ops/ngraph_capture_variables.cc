@@ -19,6 +19,7 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/node_builder.h"
 
+#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
@@ -81,7 +82,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
 
         // go over all the nodes leading from VariableV2 and store them
         // in a list if they are ref type
-        StoreRefTypeOutputs(node, &ref_list);
+        TF_RETURN_IF_ERROR(StoreRefTypeOutputs(node, &ref_list));
 
         if (ref_list.size()) {
           for (auto n : ref_list) {
@@ -91,6 +92,19 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
             }
           }
           ref_list.clear();
+        } else {
+// validate_shape is false
+// In case of grappler check if we have already captured a variable of this name
+#if (NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
+          auto tmp_pair =
+              NGraphCatalog::HasTFVarBeenReplacedBefore(node->name());
+          if (get<0>(tmp_pair)) {
+            // return errors::Internal(node->name(),
+            //                       "(VariableV2) was captured in an earlier "
+            //                     "graph, but in the current graph ngraph "
+            //                   "was unable to capture it");
+          }
+#endif
         }
       }
     }
