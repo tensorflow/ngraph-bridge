@@ -5143,13 +5143,16 @@ Status Builder::TranslateGraph(
     result->set_needs_default_layout(true);
   }
 
-  auto check_if_terminal_type = [](shared_ptr<ng::Node> n) {
+  auto check_if_result_or_parameter = [](shared_ptr<ng::Node> n) {
+    // Pointer will cast to nullptr if this node is not a Result
     auto ng_node = dynamic_pointer_cast<ng::op::Result>(n);
-    return n->is_parameter() || (ng_node != nullptr);
+    bool is_result = (ng_node != nullptr);
+    return n->is_parameter() || is_result;
   };
 
   for (auto n : ng_function->get_ordered_ops()) {
-    if (!check_if_terminal_type(n)) {
+    // Results and Parameters are not expected to have provenance tags
+    if (!check_if_result_or_parameter(n)) {
       if (n->get_provenance_tags().size() == 0) {
         return errors::Internal("Found ngraph node ", n->get_name(),
                                 " which does not have provenance tag set");
