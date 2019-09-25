@@ -197,12 +197,12 @@ Status ReplaceInputControlEdges(Graph* graph, Node* node, Node* replacement) {
     NGRAPH_VLOG(4) << "Replacing: " << edge->DebugString();
     if (!edge->IsControlEdge()) continue;
     edges_to_add.push_back(std::tuple<Node*, int, Node*, int>(
-              edge->src(), edge->src_output(), replacement, edge->dst_input()));
+        edge->src(), edge->src_output(), replacement, edge->dst_input()));
     edges_to_remove.push_back(edge);
   }
   for (const auto& i : edges_to_add) {
     NGRAPH_VLOG(4) << "Adding: " << get<0>(i) << "  " << get<1>(i) << "  "
-                    << get<2>(i) << " " << get<3>(i);
+                   << get<2>(i) << " " << get<3>(i);
     graph->AddEdge(get<0>(i), get<1>(i), get<2>(i), get<3>(i));
   }
   for (auto edge : edges_to_remove) {
@@ -224,12 +224,12 @@ Status ReplaceOutputEdges(Graph* graph, Node* node, Node* replacement) {
   for (auto edge : edges) {
     NGRAPH_VLOG(4) << "Replacing: " << edge->DebugString();
     edges_to_add.push_back(std::tuple<Node*, int, Node*, int>(
-              replacement, edge->src_output(), edge->dst(), edge->dst_input()));
+        replacement, edge->src_output(), edge->dst(), edge->dst_input()));
     edges_to_remove.push_back(edge);
   }
   for (const auto& i : edges_to_add) {
     NGRAPH_VLOG(4) << "Adding: " << get<0>(i) << "  " << get<1>(i) << "  "
-                    << get<2>(i) << " " << get<3>(i);
+                   << get<2>(i) << " " << get<3>(i);
     graph->AddEdge(get<0>(i), get<1>(i), get<2>(i), get<3>(i));
   }
   for (auto edge : edges_to_remove) {

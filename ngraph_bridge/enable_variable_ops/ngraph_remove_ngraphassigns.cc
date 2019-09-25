@@ -91,7 +91,7 @@ Status RemoveNGraphAssigns(Graph* graph) {
       }
       for (const auto& i : edges_to_add) {
         NGRAPH_VLOG(4) << "Adding: " << get<0>(i) << "  " << get<1>(i) << "  "
-                        << get<2>(i) << " " << get<3>(i);
+                       << get<2>(i) << " " << get<3>(i);
         graph->AddEdge(get<0>(i), get<1>(i), get<2>(i), get<3>(i));
       }
 
