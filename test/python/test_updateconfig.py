@@ -60,6 +60,8 @@ class TestUpdateConfig(NgraphTest):
                     count += 1
             return count
 
+        # allow_soft_placement is set just to simulate
+        # a real world non-empty initial ConfigProto
         config = tf.ConfigProto(allow_soft_placement=True)
         assert count_ng_optimizers(config) == 0
         config_new_1 = ngraph_bridge.update_config(config)
