@@ -34,7 +34,7 @@ Status AddIdentityN(Graph* input_graph, std::set<string> skip_these_nodes) {
         std::vector<NodeBuilder::NodeOut> inputs;
         std::vector<DataType> input_types;
         for (int i = 0; i < node->num_outputs(); i++) {
-           // If the input-type is ref type, making it non ref type
+          // If the input-type is ref type, making it non ref type
           // DT_X_REF = DT_X + 100. kDataTypeRefOffset = 100 here
           // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.proto
           input_types.push_back(static_cast<DataType>(

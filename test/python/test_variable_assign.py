@@ -70,7 +70,8 @@ class TestVarAssignOperations(NgraphTest):
             # ngraph does not produce right results
             # We do error out from grappler pass when `sess.run(new_v_1)` is called,
             # but TF continues running since grappler errors are ignored.
-            assert (self.with_ngraph(run_test).size != self.without_ngraph(run_test).size)
+            assert (self.with_ngraph(run_test).size !=
+                    self.without_ngraph(run_test).size)
         else:
             assert (self.with_ngraph(run_test) == self.without_ngraph(run_test)
                    ).all()
