@@ -226,10 +226,14 @@ int main(int argc, char** argv) {
            << endl;
       total_images_processed++;
       evt_run.Stop();
+      tf::ngraph_bridge::Timer tm;
       ngraph::Event::write_trace(evt_run);
+      tm.Stop();
+      cout << "Time to write: " << tm.ElapsedInMicroSec() << " usec\n";
     }
   };
 
+  tf::ngraph_bridge::Timer benchmark_timer;
   std::thread thread0(worker, 0);
   std::thread thread1(worker, 1);
   std::thread thread2(worker, 2);
@@ -237,13 +241,17 @@ int main(int argc, char** argv) {
   thread0.join();
   thread1.join();
   thread2.join();
+  benchmark_timer.Stop();
 
   cout << "Time for each image: "
        << ((float)total_time_in_ms / (float)total_images_processed) << " ms"
        << endl;
   cout << "Images/Sec: "
-       << (float)total_images_processed / (total_time_in_ms / 1000.0) << endl;
-
+       << (float)total_images_processed /
+              (benchmark_timer.ElapsedInMS() / 1000.0)
+       << endl;
+  cout << "Total frames: " << total_images_processed << "\n";
+  cout << "Total time: " << benchmark_timer.ElapsedInMS() << " ms\n";
   std::cout << "Done" << std::endl;
   return 0;
 }

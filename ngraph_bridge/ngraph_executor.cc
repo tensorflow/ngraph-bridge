@@ -149,13 +149,7 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
 //  NGraphExecutor::~NGraphExecutor
 //---------------------------------------------------------------------------
 NGraphExecutor::~NGraphExecutor() {
-  // TODO
-  // Clear m_executable_pipelined_tensors_map
-  // Clear m_ng_exec_input_cache_map
-  // Clear m_ng_exec_output_cache_map
-
   auto backend = BackendManager::GetBackend(m_op_backend_name);
-
   for (auto& next : m_ng_exec_map) {
     // First remove the pipelined tensors
     auto ng_exec = next.second;

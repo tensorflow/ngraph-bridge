@@ -304,7 +304,21 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   if (m_does_backend_support_pipelining) {
     NGRAPH_VLOG(2)
         << "~NGraphEncapsulateOp():: ParallelExecutor: ReleaseBackend";
-    BackendManager::ReleaseBackend(ng_encap_impl.GetOpBackend());
+    // The sequence of termination is important as some backends do not
+    // do it right.
+    // If we rely on the C++ destructor sequence then for these backends
+    // the problem is the following:
+    // The backend is release here at this time but the executor sill remains
+    // alive. When the executor is destroyed (during the destruction of the
+    // TF Op NGraphEncapsulate - which may be much later) the backend
+    // impmenetation chokes.
+
+    // So - we reset the executor (which holds backend tensors and
+    // other items) - that reduces the ref count and possibly delete if
+    // 0. Then we release the backend
+    string backend = m_parallel_executor->GetOpBackend();
+    m_parallel_executor.reset();
+    BackendManager::ReleaseBackend(backend);
     return;
   }
 

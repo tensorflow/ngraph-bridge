@@ -37,6 +37,11 @@ class Timer {
                std::chrono::high_resolution_clock::now() - m_start)
         .count();
   }
+  int ElapsedInMicroSec() {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+               std::chrono::high_resolution_clock::now() - m_start)
+        .count();
+  }
   void Stop() {
     if (m_stopped) return;
     m_stopped = true;
