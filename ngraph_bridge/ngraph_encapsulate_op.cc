@@ -99,7 +99,11 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     const auto get_func_sig = [&flib](const string& op, const OpDef** sig) {
       return flib.LookUpOpDef(op, sig);
     };
-    FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody);
+    Status status =
+        FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody);
+    if (!status.ok()) {
+      NGRAPH_VLOG(2) << "FunctionDefToBodyHelper returned a not ok status.";
+    }
     CopyGraph(*fnbody->graph, &ng_encap_impl.m_graph);
   } else {
     GraphConstructorOptions opts;
@@ -186,7 +190,10 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     OP_REQUIRES_OK(ctx, status);
   }
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name();
-  BackendManager::CreateBackend(ng_encap_impl.GetOpBackend());
+  Status status = BackendManager::CreateBackend(ng_encap_impl.GetOpBackend());
+  if (!status.ok()) {
+    NGRAPH_VLOG(2) << "Cannot create backend " << ng_encap_impl.GetOpBackend();
+  }
   // SetConfig will be called for each EncapsulateOp
   BackendManager::SetConfig(ng_encap_impl.GetOpBackend(),
                             additional_attribute_map);
@@ -255,8 +262,8 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   ng_encap_impl.ClearNgExecInputCache();
   ng_encap_impl.ClearNgExecOutputCache();
   ng_encap_impl.ClearNgExecMap();
-  ng_encap_impl.ClearNgFunctionMap();
   ng_encap_impl.ClearNgExecPipelinedTensorMap();
+  ng_encap_impl.ClearNgExecSerializedFunctionCache();
 
   // Release the backend
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
@@ -284,7 +291,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
-  std::shared_ptr<ngraph::Function> ng_function;
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   ng::runtime::Backend* op_backend;
 
@@ -519,19 +525,17 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     try {
       ng_exec->call(ng_outputs, ng_inputs);
     } catch (const std::exception& exp) {
-      ng_function = ng_encap_impl.GetNgFunctionMap()[ng_exec];
       BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
-      NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
-                      ng_function);
+      ng_encap_impl.DumpNgFunction(
+          "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       OP_REQUIRES(ctx, false,
                   errors::Internal(
                       "Caught exception while executing nGraph computation: ",
                       exp.what(), "\n"));
     } catch (...) {
-      ng_function = ng_encap_impl.GetNgFunctionMap()[ng_exec];
       BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
-      NgraphSerialize("tf_function_error_" + ctx->op_kernel().name() + ".json",
-                      ng_function);
+      ng_encap_impl.DumpNgFunction(
+          "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
       OP_REQUIRES(
           ctx, false,
           errors::Internal("Error in executing the nGraph computation\n"));

@@ -61,15 +61,18 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
               const bool is_tf_just_looking, const bool outputs_ng_supported,
               const int graph_id, const bool is_backend_set)>>>
       CAPTURE_REPLACE_OP_MAP{
-          {"ApplyGradientDescent", std::make_pair("NGraphApplyGradientDescent",
-                                                  ReplaceApplyGradientDescent)},
+          {"ApplyGradientDescent",
+           std::make_pair("NGraphApplyGradientDescent", ReplaceOptimizer)},
+          {"ApplyMomentum",
+           std::make_pair("NGraphApplyMomentum", ReplaceOptimizer)},
+
           {"Assign", std::make_pair("NGraphAssign", ReplaceAssign)},
           {"AssignAdd", std::make_pair("NGraphAssignAdd", ReplaceAssign)},
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
           {"VariableV2",
            std::make_pair("NGraphVariable", ReplaceVariableWithIdentityInfo)}};
 
-  std::vector<Node*> nodes_to_capture;
+  std::set<Node*> nodes_to_capture;
 
   for (auto node : graph->op_nodes()) {
     std::set<Node*> ref_list;
@@ -88,7 +91,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           for (auto n : ref_list) {
             auto itr = CAPTURE_REPLACE_OP_MAP.find(n->type_string());
             if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
-              nodes_to_capture.push_back(n);
+              nodes_to_capture.insert(n);
             }
           }
           ref_list.clear();
@@ -119,7 +122,6 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
                                             true, false, false, 0, false));
     NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
                    << replacement->DebugString();
-
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
   }  // end of looping through nodes in the capture list
@@ -128,7 +130,6 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     NGRAPH_VLOG(4) << "Removing: " << node->name();
     graph->RemoveNode(node);
   }
-
   return Status::OK();
 }
 

@@ -39,7 +39,6 @@
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
-#include "ngraph_bridge/ngraph_bridge_registry.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
@@ -99,11 +98,6 @@ Status EncapsulateClusters(
 
   // A map from cluster indices to corresponding NGraphEncapsulate nodes.
   std::map<int, Node*> cluster_node_map;
-
-// reference all the bridge ops for static library
-#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
-  register_ngraph_bridge();
-#endif
 
   // Pass 1: Populate the cluster-index-to-device name map for each existing
   // cluster. PIGGYBACKING BACKEND TEST HERE, THEY WILL GET COMBINED INTO ONE
@@ -769,10 +763,6 @@ Status EncapsulateClusters(
           TF_RETURN_IF_ERROR(
               ConvertGraphDefToGraph(opts, *gdef_for_current_encapsulate,
                                      &graph_for_current_encapsulate));
-          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-              input_shapes, static_input_map, &graph_for_current_encapsulate,
-              ng_function));
-          string serialized_ngfunc(ngraph::serialize(ng_function, 4));
 
           // get backend.
           // TODO: Note that this is code duplication of some stuff present
@@ -797,8 +787,16 @@ Status EncapsulateClusters(
                 "Caught exception while creating backend string ", exp.what(),
                 "\n");
           }
-          BackendManager::CreateBackend(
-              op_backend_name);  // Created a backend here. must free it
+          TF_RETURN_IF_ERROR(BackendManager::CreateBackend(
+              op_backend_name));  // Created a backend here. must free it
+          // TranslateGraph must be called AFTER CreateBackend because some TF
+          // ops like CNMS and gather use backend specific nodes
+          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+              input_shapes, static_input_map, &graph_for_current_encapsulate,
+              ng_function));
+          int json_indentation = 4;
+          string serialized_ngfunc(
+              ngraph::serialize(ng_function, json_indentation));
           std::unordered_map<std::string, std::string> additional_attribute_map;
           for (auto itr : node->attrs()) {
             // Find the optional attributes to be sent to the backend.
@@ -810,7 +808,7 @@ Status EncapsulateClusters(
             // For e.g. _ngraph_ice_cores --> ice_cores
             if (itr.first.find("_ngraph_") != std::string::npos) {
               // leave out _ngraph_aot_requested
-              if (itr.first.find("_ngraph_aot_requested") !=
+              if (itr.first.find("_ngraph_aot_requested") ==
                   std::string::npos) {
                 additional_attribute_map.insert(
                     {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
@@ -822,6 +820,7 @@ Status EncapsulateClusters(
           try {
             op_backend = BackendManager::GetBackend(op_backend_name);
           } catch (const std::out_of_range& e) {
+            NGRAPH_VLOG(5) << "Exception: " << e.what();
             BackendManager::ReleaseBackend(op_backend_name);
             throw;
           }

@@ -58,6 +58,7 @@ set(SRC
     test_nn_ops.cpp
     test_array_ops.cpp
     test_variable_ops.cpp
+    test_momentum_op.cpp
     opexecuter.cpp
 )
 
@@ -65,6 +66,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/capture_variables.cc)
     list(APPEND SRC graph_rewrites/enter_in_catalog_test.cc)
     list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
+    list(APPEND SRC graph_rewrites/test_replace_optimizer.cpp)
 endif()
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
@@ -98,9 +100,10 @@ if (APPLE)
 endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-    target_link_libraries(
-        gtest_ngtf
-        ngraph_bridge_static
+    target_link_libraries(gtest_ngtf
+        -Wl,--whole-archive
+            ngraph_bridge_static
+        -Wl,--no-whole-archive
         ngraph_lib
         lib_cpu_backend_static
         lib_interpreter_backend_static 
