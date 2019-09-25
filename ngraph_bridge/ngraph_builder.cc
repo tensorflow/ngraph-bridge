@@ -3756,7 +3756,8 @@ static Status TranslateSigmoidGradOp(const Node* op,
   shared_ptr<ng::Node> ng_delta;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_delta));
 
-  auto ng_mul = ng_input * ng_delta;
+  auto ng_mul =
+      ConstructNgNode<ng::op::Multiply>(op->name(), ng_input, ng_delta);
   auto ng_subtract = ConstructNgNode<ng::op::Constant>(
                          op->name(), ng_input->get_element_type(),
                          ng_input->get_shape(), std::vector<int>({1})) -
