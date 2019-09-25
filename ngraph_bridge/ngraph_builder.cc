@@ -1812,8 +1812,8 @@ static Status TranslateDepthwiseConv2dNativeOp(
     const std::vector<size_t> f_lower_bound{0, i, 0, 0};
     const std::vector<size_t> f_upper_bound{filter_shape[0], i + 1,
                                             filter_shape[2], filter_shape[3]};
-    auto ng_sliced_filter =
-        make_shared<ng::op::Slice>(ng_filter, f_lower_bound, f_upper_bound);
+    auto ng_sliced_filter = ConstructNgNode<ng::op::Slice>(
+        op->name(), ng_filter, f_lower_bound, f_upper_bound);
 
     NGRAPH_VLOG(3) << "depthwise conv 2d.";
     NGRAPH_VLOG(3) << "sliced shape " << ng::join(ng_sliced_input->get_shape());
@@ -3348,15 +3348,15 @@ static Status TranslateQuantizedConcatOpHelper(
     all_mins[idx] = min_tmp[0];
     all_maxs[idx] = max_tmp[0];
 
-    auto min_node =
-        make_shared<ng::op::Constant>(ng::element::f32, ng::Shape{}, min_tmp);
-    auto max_node =
-        make_shared<ng::op::Constant>(ng::element::f32, ng::Shape{}, max_tmp);
+    auto min_node = ConstructNgNode<ng::op::Constant>(
+        op->name(), ng::element::f32, ng::Shape{}, min_tmp);
+    auto max_node = ConstructNgNode<ng::op::Constant>(
+        op->name(), ng::element::f32, ng::Shape{}, max_tmp);
 
-    ng_all_mins.push_back(std::make_shared<ngraph::op::Reshape>(
-        min_node, ngraph::AxisVector{}, ngraph::Shape{1}));
-    ng_all_maxs.push_back(std::make_shared<ngraph::op::Reshape>(
-        max_node, ngraph::AxisVector{}, ngraph::Shape{1}));
+    ng_all_mins.push_back(ConstructNgNode<ngraph::op::Reshape>(
+        op->name(), min_node, ngraph::AxisVector{}, ngraph::Shape{1}));
+    ng_all_maxs.push_back(ConstructNgNode<ngraph::op::Reshape>(
+        op->name(), max_node, ngraph::AxisVector{}, ngraph::Shape{1}));
   }
 
   // return the min among the input_mins, and the max among the input_maxs
@@ -3369,10 +3369,10 @@ static Status TranslateQuantizedConcatOpHelper(
       1, *std::max_element(all_maxs.begin(), all_maxs.end()));
 
   // construct output_min and output_max
-  shared_ptr<ng::Node> ng_min_of_mins =
-      make_shared<ng::op::Constant>(ng::element::f32, ng::Shape{}, min_of_mins);
-  shared_ptr<ng::Node> ng_max_of_maxs =
-      make_shared<ng::op::Constant>(ng::element::f32, ng::Shape{}, max_of_maxs);
+  shared_ptr<ng::Node> ng_min_of_mins = ConstructNgNode<ng::op::Constant>(
+      op->name(), ng::element::f32, ng::Shape{}, min_of_mins);
+  shared_ptr<ng::Node> ng_max_of_maxs = ConstructNgNode<ng::op::Constant>(
+      op->name(), ng::element::f32, ng::Shape{}, max_of_maxs);
 
   auto ng_qconcat = ng::builder::ScaledQuantizedConcat(
       ng_args, size_t(concat_axis), ng_all_mins, ng_all_maxs);
@@ -3756,12 +3756,15 @@ static Status TranslateSigmoidGradOp(const Node* op,
   shared_ptr<ng::Node> ng_delta;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_delta));
 
-  auto ng_mul = ng_input * ng_delta;
-  auto ng_subtract = ConstructNgNode<ng::op::Constant>(
-                         op->name(), ng_input->get_element_type(),
-                         ng_input->get_shape(), std::vector<int>({1})) -
-                     ng_input;
-  auto ng_result = ng_mul * ng_subtract;
+  auto ng_mul =
+      ConstructNgNode<ng::op::Multiply>(op->name(), ng_input, ng_delta);
+  auto ng_subtract = ConstructNgNode<ng::op::Subtract>(
+      op->name(), ConstructNgNode<ng::op::Constant>(
+                      op->name(), ng_input->get_element_type(),
+                      ng_input->get_shape(), std::vector<int>({1})),
+      ng_input);
+  auto ng_result =
+      ConstructNgNode<ng::op::Multiply>(op->name(), ng_mul, ng_subtract);
 
   SaveNgOp(ng_op_map, op->name(), ng_result);
   return Status::OK();
