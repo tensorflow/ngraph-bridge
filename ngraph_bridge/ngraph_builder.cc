@@ -2481,13 +2481,11 @@ static Status TranslateIsFiniteOp(
   auto neq_inf = ConstructNgNode<ng::op::NotEqual>(op->name(),
                                       ng_input, const_inf,
                                       ng::op::AutoBroadcastSpec(
-                                        ng::op::AutoBroadcastType::NUMPY
-                                      ));
+                                        ng::op::AutoBroadcastType::NUMPY));
   auto neq_neg_inf = ConstructNgNode<ng::op::NotEqual>(op->name(),
                                       ng_input, const_neg_inf,
                                       ng::op::AutoBroadcastSpec(
-                                        ng::op::AutoBroadcastType::NUMPY
-                                      ));
+                                        ng::op::AutoBroadcastType::NUMPY));
   auto eq_nan = ConstructNgNode<ng::op::Equal>(op->name(), ng_input, ng_input);
 
   auto neq_inf_and_neq_neg_inf = ConstructNgNode<ng::op::And>(op->name(),
