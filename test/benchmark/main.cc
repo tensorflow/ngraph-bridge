@@ -105,10 +105,8 @@ void PrintVersion() {
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
   // parameters below need to modified as per model
-  string image = "grace_hopper.jpg";
-  // int batch_size = 1;
-  // // Vector size is same as the batch size, populating with single image
-  // vector<string> images(batch_size, image);
+  string image_file = "grace_hopper.jpg";
+  int batch_size = 1;
   string graph = "inception_v3_2016_08_28_frozen.pb";
   string labels = "";
   int input_width = 299;
@@ -123,7 +121,7 @@ int main(int argc, char** argv) {
   int iteration_count = 10;
 
   std::vector<tf::Flag> flag_list = {
-      tf::Flag("image", &image, "image to be processed"),
+      tf::Flag("image", &image_file, "image to be processed"),
       tf::Flag("graph", &graph, "graph to be executed"),
       tf::Flag("labels", &labels, "name of file containing labels"),
       tf::Flag("input_width", &input_width,
@@ -140,6 +138,8 @@ int main(int argc, char** argv) {
                "How many times to repeat the inference"),
       tf::Flag("preload_images", &preload_images,
                "Repeat the same image for inference"),
+      tf::Flag("batch_size", &batch_size,
+               "Input bach size. The same images is copied to create the batch"),
   };
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -165,10 +165,15 @@ int main(int argc, char** argv) {
   std::cout << "Component versions\n";
   PrintVersion();
 
+  // If batch size is more than one then expand the input
+  vector<string> image_files;
+  for (int i=0; i < batch_size; i++ ){
+    image_files.push_back(image_file);
+  }
   // Instantiate the Engine
   benchmark::InferenceEngine inference_engine("Foo");
   TF_CHECK_OK(inference_engine.LoadImage(
-      graph, {image}, input_width, input_height, input_mean, input_std,
+      graph, image_files, input_width, input_height, input_mean, input_std,
       input_layer, output_layer, use_NCHW, preload_images, input_channels));
 
   string backend_name = "CPU";
