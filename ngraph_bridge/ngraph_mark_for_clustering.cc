@@ -474,7 +474,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["HorovodBroadcast"]["T"] = NGraphNumericDTypes();
 #endif
       type_constraint_map["Identity"]["T"] = NGraphDTypes();
-      type_constraint_map["IsFinite"]["T"] = NGraphDTypes();
+      type_constraint_map["IsFinite"]["T"] = NGraphRealDTypes();
       type_constraint_map["L2Loss"]["T"] = NGraphNumericDTypes();
       type_constraint_map["LogSoftmax"]["T"] = NGraphRealDTypes();
       type_constraint_map["Less"]["T"] = NGraphDTypes();
