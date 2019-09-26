@@ -1095,11 +1095,14 @@ TEST(MathOps, IsFinite) {
   int dim1 = 8;
 
   Tensor A(DT_FLOAT, TensorShape({dim1}));
-  std::vector<float> values{0.f, 1.f, 2.f, -2.f,
-                        std::numeric_limits<float>::infinity(),
-                        -std::numeric_limits<float>::infinity(),
-                        std::numeric_limits<float>::quiet_NaN(),
-                        std::numeric_limits<float>::signaling_NaN()};
+  std::vector<float> values{0.f,
+                            1.f,
+                            2.f,
+                            -2.f,
+                            std::numeric_limits<float>::infinity(),
+                            -std::numeric_limits<float>::infinity(),
+                            std::numeric_limits<float>::quiet_NaN(),
+                            std::numeric_limits<float>::signaling_NaN()};
   AssignInputValues(A, values);
   vector<int> static_input_indexes = {};
   auto R = ops::IsFinite(root, A);
@@ -1111,7 +1114,7 @@ TEST(MathOps, IsFinite) {
                         output_datatypes, sess_run_fetchoutputs);
 
   opexecuter.RunTest();
-} // end of test op IsFinite
+}  // end of test op IsFinite
 
 // Test op: Log
 TEST(MathOps, Log1D) {
