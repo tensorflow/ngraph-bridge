@@ -73,7 +73,7 @@ Status CompileExecutable(NGraphExecutorDB& edb,
   if (edb.SizeOfNgExecMap() >= my_function_cache_depth_in_items) {
     edb.RemoveExecAndFunc(evicted_ng_exec);
     op_backend->remove_compiled_function(evicted_ng_exec);
-    edb.PopBackLRU();
+    // edb.PopBackLRU();
   }
 
   ngraph::Event event_compile("Compile nGraph", "", "");
@@ -91,9 +91,7 @@ Status CompileExecutable(NGraphExecutorDB& edb,
   event_compile.Stop();
 
   ngraph::Event::write_trace(event_compile);
-  edb.InsertNgExecMap(signature, ng_exec);
-  edb.InsertNgFunctionMap(ng_exec, ng_function);
-  edb.PushFrontInLRU(signature);
+  edb.AddNgExecAndFunc(signature, ng_exec, ng_function);
   return Status::OK();
 }
 
@@ -133,12 +131,11 @@ class NGraphExecutorDBTest : public ::testing::Test {
 };
 
 TEST_F(NGraphExecutorDBTest, CompileExe) {
-  ASSERT_EQ(edb.IsNgExecAvail(signature, ng_exec), false);
+  ASSERT_EQ(edb.MaybeGetNgExecutable(signature, ng_exec), false);
   ASSERT_OK(CompileExecutable(edb, input_shapes, input_graph.get(), ng_function,
                               ng_exec, signature));
-
-  ASSERT_EQ(edb.IsNgFunctionAvail(ng_exec, ng_function), true);
-
+  ASSERT_EQ(edb.MaybeGetNgExecutable(signature, ng_exec), true);
+  ASSERT_EQ(edb.MaybeGetNgFunction(ng_exec, ng_function), true);
   // Validate the nGraph Function
   const auto& parameters = ng_function->get_parameters();
   ASSERT_EQ(2, parameters.size());

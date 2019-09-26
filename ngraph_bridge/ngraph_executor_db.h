@@ -36,9 +36,9 @@ namespace ngraph_bridge {
 
 class NGraphExecutorDB {
  public:
-  bool IsNgExecAvail(std::string signature,
-                     std::shared_ptr<ngraph::runtime::Executable>&
-                         ng_exec)  // line no. 216, 220
+  bool MaybeGetNgExecutable(std::string signature,
+                            std::shared_ptr<ngraph::runtime::Executable>&
+                                ng_exec)  // line no. 216, 220
   {
     lock_guard<mutex> lock(m_mutex1);
     auto it = m_ng_exec_map.find(signature);
@@ -49,7 +49,7 @@ class NGraphExecutorDB {
     return true;
   }
 
-  bool IsNgFunctionAvail(
+  bool MaybeGetNgFunction(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec,
       std::shared_ptr<ngraph::Function>& ng_function)  // line no. 363, 364
   {
@@ -84,19 +84,31 @@ class NGraphExecutorDB {
     evicted_ng_exec = m_ng_exec_map[m_lru.back()];
     m_ng_exec_map.erase(m_lru.back());
     m_ng_function_map.erase(evicted_ng_exec);
+    m_lru.pop_back();
   }
 
-  void InsertNgExecMap(std::string signature,
-                       std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
+  void AddNgExecAndFunc(std::string signature,
+                        std::shared_ptr<ngraph::runtime::Executable> ng_exec,
+                        std::shared_ptr<ngraph::Function> ng_function) {
     lock_guard<mutex> lock(m_mutex1);
-    m_ng_exec_map.emplace(signature, ng_exec);  // line no. 324
-  }
-
-  void InsertNgFunctionMap(std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-                           std::shared_ptr<ngraph::Function> ng_function) {
-    lock_guard<mutex> lock(m_mutex1);
+    m_ng_exec_map.emplace(signature, ng_exec);        // line no. 324
     m_ng_function_map.emplace(ng_exec, ng_function);  // line no. 327
+    m_lru.push_front(signature);
   }
+
+  // void InsertNgExecMap(std::string signature,
+  //                      std::shared_ptr<ngraph::runtime::Executable> ng_exec)
+  //                      {
+  //   lock_guard<mutex> lock(m_mutex1);
+  //   m_ng_exec_map.emplace(signature, ng_exec);  // line no. 324
+  // }
+
+  // void InsertNgFunctionMap(std::shared_ptr<ngraph::runtime::Executable>
+  // ng_exec,
+  //                          std::shared_ptr<ngraph::Function> ng_function) {
+  //   lock_guard<mutex> lock(m_mutex1);
+  //   m_ng_function_map.emplace(ng_exec, ng_function);  // line no. 327
+  // }
 
   void InsertExecPipelineTesornMap(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec,
@@ -110,30 +122,33 @@ class NGraphExecutorDB {
     return m_ng_exec_map.size();
   }
 
-  std::string LRUBack() {
+  // std::string LRUBack() {
+  //   lock_guard<mutex> lock(m_mutex3);
+  //   return m_lru.back();
+  // }
+
+  // std::string LRUFront() {
+  //   lock_guard<mutex> lock(m_mutex3);
+  //   return m_lru.front();
+  // }
+
+  void UpdateLRU(std::string signature) {
     lock_guard<mutex> lock(m_mutex3);
-    return m_lru.back();
+    if (signature != m_lru.front()) {
+      m_lru.remove(signature);
+      m_lru.push_front(signature);
+    }
   }
 
-  std::string LRUFront() {
-    lock_guard<mutex> lock(m_mutex3);
-    return m_lru.front();
-  }
+  // void PushFrontInLRU(std::string signature) {
+  //   lock_guard<mutex> lock(m_mutex3);
+  //   m_lru.push_front(signature);
+  // }
 
-  void RemoveFromLRU(std::string signature) {
-    lock_guard<mutex> lock(m_mutex3);
-    m_lru.remove(signature);
-  }
-
-  void PushFrontInLRU(std::string signature) {
-    lock_guard<mutex> lock(m_mutex3);
-    m_lru.push_front(signature);
-  }
-
-  void PopBackLRU() {
-    lock_guard<mutex> lock(m_mutex3);
-    m_lru.pop_back();
-  }
+  // void PopBackLRU() {
+  //   lock_guard<mutex> lock(m_mutex3);
+  //   m_lru.pop_back();
+  // }
 
  private:
   mutex m_mutex1;
