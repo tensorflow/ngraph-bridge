@@ -46,6 +46,8 @@ namespace tf = tensorflow;
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
                                  const string& labels_file_name);
+extern tf::Status CheckTopLabel(const std::vector<tf::Tensor>& outputs,
+                                int expected, bool* is_expected);
 
 // Prints the available backends
 void PrintAvailableBackends() {
@@ -109,6 +111,7 @@ int main(int argc, char** argv) {
   int batch_size = 1;
   string graph = "inception_v3_2016_08_28_frozen.pb";
   string labels = "";
+  int label_index = -1;
   int input_width = 299;
   int input_height = 299;
   float input_mean = 0.0;
@@ -118,12 +121,13 @@ int main(int argc, char** argv) {
   bool use_NCHW = false;
   bool preload_images = true;
   int input_channels = 3;
-  int iteration_count = 10;
+  int iteration_count = 20;
 
   std::vector<tf::Flag> flag_list = {
       tf::Flag("image", &image_file, "image to be processed"),
       tf::Flag("graph", &graph, "graph to be executed"),
       tf::Flag("labels", &labels, "name of file containing labels"),
+      tf::Flag("label_index", &label_index, "Index of the expected label"),
       tf::Flag("input_width", &input_width,
                "resize image to this width in pixels"),
       tf::Flag("input_height", &input_height,
@@ -138,8 +142,9 @@ int main(int argc, char** argv) {
                "How many times to repeat the inference"),
       tf::Flag("preload_images", &preload_images,
                "Repeat the same image for inference"),
-      tf::Flag("batch_size", &batch_size,
-               "Input bach size. The same images is copied to create the batch"),
+      tf::Flag(
+          "batch_size", &batch_size,
+          "Input bach size. The same images is copied to create the batch"),
   };
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -167,7 +172,7 @@ int main(int argc, char** argv) {
 
   // If batch size is more than one then expand the input
   vector<string> image_files;
-  for (int i=0; i < batch_size; i++ ){
+  for (int i = 0; i < batch_size; i++) {
     image_files.push_back(image_file);
   }
   // Instantiate the Engine
@@ -204,21 +209,16 @@ int main(int argc, char** argv) {
 
   atomic<int> total_time_in_ms{0};
   atomic<int> total_images_processed{0};
-  const int NUM_ITERATIONS = 20;
 
   auto worker = [&](int worker_id) {
     ostringstream oss;
     oss << "Worker_" << worker_id;
-    for (int i = 0; i < NUM_ITERATIONS; i++) {
+    for (int i = 0; i < iteration_count; i++) {
       ngraph::Event evt_run(oss.str(), to_string(i), "");
       tf::ngraph_bridge::Timer iteration_timer;
       // Get the image
       Tensor next_image;
       TF_CHECK_OK(inference_engine.GetNextImage(next_image));
-
-      // Create the device tensor
-      // TODO
-      // tf::tensor::DeepCopy(next_image, &device_tensor);
 
       // Run inference
       TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer},
@@ -248,6 +248,9 @@ int main(int argc, char** argv) {
   thread2.join();
   benchmark_timer.Stop();
 
+  // Adjust the total images with the batch size
+  total_images_processed = total_images_processed * batch_size;
+
   cout << "Time for each image: "
        << ((float)total_time_in_ms / (float)total_images_processed) << " ms"
        << endl;
@@ -257,6 +260,19 @@ int main(int argc, char** argv) {
        << endl;
   cout << "Total frames: " << total_images_processed << "\n";
   cout << "Total time: " << benchmark_timer.ElapsedInMS() << " ms\n";
-  std::cout << "Done" << std::endl;
+  // Validate the label if provided
+  if (!labels.empty()) {
+    cout << "Classification results\n";
+    // Validate the label
+    PrintTopLabels(outputs, labels);
+    if (label_index != -1) {
+      bool found = false;
+      CheckTopLabel(outputs, label_index, &found);
+      if (!found) {
+        cout << "Error - label doesn't match expected\n";
+        return -1;
+      }
+    }
+  }
   return 0;
 }
