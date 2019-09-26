@@ -1,0 +1,60 @@
+# ==============================================================================
+#  Copyright 2019 Intel Corporation
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+# ==============================================================================
+
+ARG http_proxy
+ARG https_proxy
+ARG base_image
+ARG ngtf_build_options
+
+FROM $base_image as base
+ARG http_proxy
+ARG https_proxy
+ARG ngtf_build_options
+
+RUN git clone https://github.com/tensorflow/ngraph-bridge.git /src/ngraph-bridge
+
+WORKDIR /src/ngraph-bridge
+
+ENV http_proxy=$http_proxy
+ENV https_proxy=$https_proxy
+
+RUN echo "Using build options: $ngtf_build_options" && ./build_ngtf.py $ngtf_build_options
+
+FROM ubuntu:18.04
+
+ARG http_proxy
+ARG https_proxy
+
+ENV http_proxy=$http_proxy
+ENV https_proxy=$https_proxy
+
+ENV PATH="/src/ngraph-bridge/build_cmake/venv-tf-py3/bin:$PATH"
+
+RUN apt-get update &&  apt-get install -y \
+    vim \
+    python3-distutils \
+    python3-pip \
+    git \
+    unzip zip wget \
+    sudo
+
+# Copy virtual environment from the previous layer
+COPY --from=base /src/ngraph-bridge/build_cmake/venv-tf-py3 /src/ngraph-bridge/build_cmake/venv-tf-py3
+
+# Copy ngraph-bridge examples
+COPY --from=base /src/ngraph-bridge/examples /examples
+
+RUN python -c "import tensorflow as tf; print('TensorFlow version: ',tf.__version__);import ngraph_bridge; print(ngraph_bridge.__version__)"
