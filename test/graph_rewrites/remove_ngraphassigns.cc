@@ -467,7 +467,9 @@ TEST(RemoveNGraphAssigns, Graph5) {
 // This graph will throw an error
 //
 // Two NGraphVariables are being assigned the same value.
-// The ConstOp gets encapsulated. As the update is happening in-place
+// The ConstOp gets encapsulated and both the variables are being
+// assigned from the same output index of EncapsulateOp
+// As the update is happening in-place
 // inside the encapsulate op, only one of the variable gets updated, leading
 // to functional incorrectness.
 // Such cases needs to be dealt with.
