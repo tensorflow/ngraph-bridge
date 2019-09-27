@@ -39,9 +39,9 @@ const string NGraphCatalog::CreateNodeKey(const int& graph_id,
                                           const string& node_name,
                                           const int& index) {
   if (index == 0) {
-    return graph_id + "_" + node_name;
+    return to_string(graph_id) + "_" + node_name;
   }
-  return graph_id + "_" + node_name + ":" + to_string(index);
+  return to_string(graph_id) + "_" + node_name + ":" + to_string(index);
 }
 
 void NGraphCatalog::ClearCatalog() {
