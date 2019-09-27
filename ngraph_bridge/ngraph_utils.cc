@@ -55,7 +55,8 @@ Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
     test_graph_id = stoi(string(copy_env_var));
   } catch (const std::invalid_argument& ia) {
     return errors::InvalidArgument(
-        "Invalid argument for NGRAPH_TF_LOG_TENSOR_COPIES");
+        "Invalid argument for NGRAPH_TF_LOG_TENSOR_COPIES. Exception: ",
+        ia.what());
   }
   // if -1 copies are logged for all graphs
   is_copy_log_enabled = (test_graph_id == -1 || test_graph_id == graph_id);
@@ -311,12 +312,16 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank) {
 void NgraphSerialize(const std::string& file_name,
                      const std::shared_ptr<ngraph::Function>& ng_function) {
   NGRAPH_VLOG(0) << "Serializing graph to: " << file_name << std::endl;
-  std::string js = ngraph::serialize(ng_function, 4);
+  int json_indentation = 4;
+  StringToFile(file_name, ngraph::serialize(ng_function, json_indentation));
+}
+
+void StringToFile(const std::string& file_name, const std::string& contents) {
   std::ofstream f;
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   try {
     f.open(file_name);
-    f << js;
+    f << contents;
     f.close();
   } catch (std::ofstream::failure& e) {
     NGRAPH_VLOG(0) << "Exception opening/closing file " << file_name
