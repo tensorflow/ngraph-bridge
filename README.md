@@ -167,7 +167,7 @@ Choose one of two ways to create your container:
   
 - When the multi-stage docker build is complete, you will be able to run a container with Tensorflow and nGraph using the `ngraph-bridge:ngtf` image:
 
-        docker run -it ngraph-bridge:ngtf
+        docker run -it --name ngtf ngraph-bridge:ngtf
 
 - After running the container, you can perform an inference test by running: 
 
@@ -187,11 +187,11 @@ Choose one of two ways to create your container:
 - Navigate up one level and run the image with the ngraph-bridge project mounted to `/workspace`:  
 
         cd ..
-        docker run -it -v ${PWD}:/workspace -w /workspace ngraph-bridge:devel
+        docker run -it -v ${PWD}:/workspace -w /workspace --name ngtf ngraph-bridge:devel
 
-- Follow the steps in the [Build an nGraph bridge](#build-an-ngraph-bridge) section starting from `python3 build_ngtf.py ...`.
+- Follow the instructions in [Build an nGraph bridge](#build-an-ngraph-bridge) to execute `python3 build_ngtf.py`.
   You do not need to clone the repo inside the container because it is already mounted to `/workspace`.
-  This allows you to access the build artifacts (`whl` files) outside the container if you wish to do so.
+  The mounted volume allows you to access the build artifacts (`whl` files) outside the container if you wish to do so.
   
 - After the build completes, you will be able to use the virtualenv located at `/workspace/build_cmake/venv-tf-py3` and run a test.
 

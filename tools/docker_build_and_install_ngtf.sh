@@ -28,7 +28,7 @@
 # Set vars for the base image
 BASE_DOCKERFILE='Dockerfile.ubuntu18.04'
 BASE_IMAGE_NAME='ngraph-bridge'
-BASE_IMAGE_TAG='base-ubuntu1804-gcc48-py35'
+BASE_IMAGE_TAG='devel'
 
 # Set vars for the ngtf image
 NGTF_DOCKERFILE='Dockerfile.ubuntu18.04.install'
