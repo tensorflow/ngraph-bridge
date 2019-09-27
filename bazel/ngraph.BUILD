@@ -117,11 +117,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-<<<<<<< HEAD
-        '-D NGRAPH_VERSION=\\"v0.25.1-rc.2\\"',
-=======
         '-D NGRAPH_VERSION=\\"v0.25.1-rc.7\\"',
->>>>>>> d78f036f... Kanvi/bazel build with clang libc++ (#260)
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
     ] + CXX_ABI,
