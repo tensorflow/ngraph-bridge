@@ -42,8 +42,9 @@ __all__ = [
     'enable', 'disable', 'is_enabled', 'backends_len', 'list_backends',
     'set_backend', 'is_supported_backend', 'get_currently_set_backend_name',
     'start_logging_placement', 'stop_logging_placement',
-    'is_logging_placement', '__version__', 'cxx11_abi_flag'
-    'is_grappler_enabled', 'update_config', 'are_variables_enabled', 'set_disabled_ops', 'get_disabled_ops'
+    'is_logging_placement', '__version__', 'cxx11_abi_flag',
+    'is_grappler_enabled', 'update_config', 'are_variables_enabled',
+    'set_disabled_ops', 'get_disabled_ops', 'is_distributed_enabled',
 ]
 
 ext = 'dylib' if system() == 'Darwin' else 'so'
