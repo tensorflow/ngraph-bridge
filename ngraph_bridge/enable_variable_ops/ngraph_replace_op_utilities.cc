@@ -92,7 +92,6 @@ Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
                      const bool outputs_ng_supported, const int graph_id,
                      const bool is_backend_set) {
   NGRAPH_VLOG(1) << "Replacing  " << node->name();
-
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "T", &dtype));
 
@@ -105,11 +104,12 @@ Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
                      << ", found null edge: ";
       continue;
     }
-    if (edge->dst()->IsOp() && !edge->IsControlEdge() &&
-        IsRefType(edge->dst()->input_type(edge->dst_input()))) {
-      input_ref = NodeBuilder::NodeOut(edge->src(), edge->src_output());
-    } else {
-      input_val = NodeBuilder::NodeOut(edge->src(), edge->src_output());
+    if (!edge->IsControlEdge() && edge->dst()->IsOp()) {
+      if (IsRefType(edge->dst()->input_type(edge->dst_input()))) {
+        input_ref = NodeBuilder::NodeOut(edge->src(), edge->src_output());
+      } else {
+        input_val = NodeBuilder::NodeOut(edge->src(), edge->src_output());
+      }
     }
   }
 
@@ -137,6 +137,7 @@ Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
 
   NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
                  << (*replacement)->DebugString();
+
   return Status::OK();
 }
 

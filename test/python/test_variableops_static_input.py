@@ -67,58 +67,83 @@ from common import NgraphTest
 
 
 class TestVariableStaticInputs(NgraphTest):
-    # Define the Graph
-    # def create_graph(self):
-    #     # Var is initialized by var_init
-    #     var = tf.get_variable('var', [1], dtype=tf.int32)
-    #     var_init = tf.constant([-2])
-    #     var_initialize = var.assign(var_init)
-
-    #     # Computation of mean
-    #     input1 = tf.constant([[1.0, 2.0], [3.0, 4.0]], name='input1')
-    #     mean = tf.reduce_mean(input1, var)
-    #     const_var = tf.constant([1])
-    #     var_add = tf.add(var, const_var)
-    #     var_update = var.assign(var_add)
-
-    #     with tf.control_dependencies([var_update]):
-    #         update_op = tf.no_op('train_op')
-    #     return var, var_initialize, mean, update_op
 
     def test_variable_static_input(self):
 
         def run_test(sess):
             # Var is initialized by var_init
             var = tf.get_variable('var', [1], dtype=tf.int32)
-            var_init = tf.constant([-2])
+            var_init = tf.constant([0])
             var_initialize = var.assign(var_init)
 
             # Computation of mean
-            input1 = tf.constant([[1.0, 2.0], [3.0, 4.0]], name='input1')
+            input1 = tf.constant(
+                [[[1.0, 2.0], [3.0, 4.0]], [[1.0, 2.0], [3.0, 4.0]]],
+                name='input1')
             mean = tf.reduce_mean(input1, var)
+
+            # For updating the Var
             const_var = tf.constant([1])
             var_add = tf.add(var, const_var)
+            var_update = var.assign(var_add)
 
+            # update to happen after mean computation
             with tf.control_dependencies([mean]):
                 var_update = var.assign(var_add)
 
             with tf.control_dependencies([var_update]):
                 update_op = tf.no_op('train_op')
 
+            # Initialize Var
             var_init_value = sess.run((var_initialize))
-            print("Var Init Value ", var_init_value)
+
+            # Compute mean and var updates
+            mean_values = []
             for i in range(3):
                 (result_mean, result_up) = sess.run((mean, update_op))
-                print(i)
-                print("mean ", result_mean)
-            var_final_val = var.eval(sess)
-            print("Final value: ", var_final_val)
-            return var_init_value, result_mean, var_final_val
+                mean_values.append(result_mean)
 
-        #var, var_init, mean, update_ctrl = self.create_graph()
-        ng_var_init_val, ng_mean, ng_final = self.with_ngraph(run_test)
+            # Compute Final Values
+            var_final_val = var.eval(sess)
+            return var_init_value, mean_values, var_final_val
+
+        # set env variable to disable NGraphVariable's buffer sharing
+        buffer_sharing_env = "NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"
+        is_buffer_sharing_env_set = self.is_env_variable_set(buffer_sharing_env)
+        if is_buffer_sharing_env_set:
+            print("env var is set")
+            buffer_sharing_env_val = self.get_env_variable(buffer_sharing_env)
+            self.unset_env_variable(buffer_sharing_env)
+
+        self.set_env_variable(buffer_sharing_env, "0")
+
+        # Run on nGraph
+        ng_var_init_val, ng_mean_values, ng_var_final = self.with_ngraph(
+            run_test)
+
         # Reset Graph
-        # tf.reset_default_graph()
-        # var, var_init, mean, update_ctrl = self.create_graph()
         # It is necessary to reset the graph because of the variables
-        #tf_var_init_val, tf_mean, tf_final = self.without_ngraph(run_test)
+        # TF thinks you want to reuse the variables
+        tf.reset_default_graph()
+
+        # Run on TF
+        tf_var_init_val, tf_mean_values, tf_var_final = self.without_ngraph(
+            run_test)
+
+        # Compare Values
+        # initial Var value will match
+        assert np.allclose(ng_var_init_val, tf_var_init_val)
+
+        # 1st iteration mean value will match, 2nd and 3rd wont
+        assert np.allclose(ng_mean_values[0], tf_mean_values[0])
+        assert (np.allclose(ng_mean_values[1], tf_mean_values[1]) == False)
+        assert (np.allclose(ng_mean_values[2], tf_mean_values[2]) == False)
+
+        # Final Var value will match
+        assert np.allclose(ng_var_final, tf_var_final)
+
+        # clean up
+        self.unset_env_variable(buffer_sharing_env)
+        if is_buffer_sharing_env_set:
+            print("trying to set")
+            self.set_env_variable(buffer_sharing_env, buffer_sharing_env_val)
