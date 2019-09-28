@@ -95,23 +95,18 @@ Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "T", &dtype));
 
+  std::vector<const Edge*> input_edges;
+  TF_RETURN_IF_ERROR(node->input_edges(&input_edges));
+
+  NGRAPH_VLOG(1) << "No of input edges to Assign " << input_edges.size();
+
   NodeBuilder::NodeOut input_ref;
   NodeBuilder::NodeOut input_val;
+  input_ref =
+      NodeBuilder::NodeOut(input_edges[0]->src(), input_edges[0]->src_output());
 
-  for (auto edge : node->in_edges()) {
-    if (edge == NULL) {
-      NGRAPH_VLOG(1) << "Replacing " << replacement_node_type
-                     << ", found null edge: ";
-      continue;
-    }
-    if (!edge->IsControlEdge() && edge->dst()->IsOp()) {
-      if (IsRefType(edge->dst()->input_type(edge->dst_input()))) {
-        input_ref = NodeBuilder::NodeOut(edge->src(), edge->src_output());
-      } else {
-        input_val = NodeBuilder::NodeOut(edge->src(), edge->src_output());
-      }
-    }
-  }
+  input_val =
+      NodeBuilder::NodeOut(input_edges[1]->src(), input_edges[1]->src_output());
 
   TF_RETURN_IF_ERROR(NodeBuilder(replacement_node_name, replacement_node_type)
                          .Attr("validate_shape", true)
