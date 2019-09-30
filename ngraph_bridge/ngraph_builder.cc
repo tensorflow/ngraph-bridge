@@ -5153,12 +5153,17 @@ Status Builder::TranslateGraph(
     return n->is_parameter() || is_result;
   };
 
+  size_t num_tags = 0;
   for (auto n : ng_function->get_ordered_ops()) {
     // Results and Parameters are not expected to have provenance tags
     if (!check_if_result_or_parameter(n)) {
-      if (n->get_provenance_tags().size() == 0) {
-        return errors::Internal("Found ngraph node ", n->get_name(),
-                                " which does not have provenance tag set");
+      num_tags = n->get_provenance_tags().size();
+      if (num_tags != 1) {
+        return errors::Internal(
+            "Found ngraph node ", n->get_name(),
+            " which has provenance tag set of size ", num_tags,
+            ". Expected all ngraph nodes created in TranslateGraph to have "
+            "exactly one provenance tag");
       }
     }
   }
