@@ -61,7 +61,7 @@ set(SRC
     test_parallel_executor.cpp
     test_momentum_op.cpp
     opexecuter.cpp
-    thread_safe_queue_test.cc
+    test_thread_safe_queue.cc
 )
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)

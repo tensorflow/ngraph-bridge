@@ -33,11 +33,9 @@ include_directories(${TensorFlow_SRC_DIR})
 include_directories(${TensorFlow_SRC_DIR}/bazel-genfiles)
 
 set(SRC
-    main.cc
     inference_engine.h
     inference_engine.cc
     tf_label_image_utils.cc
-    #session_queue.cc
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -46,8 +44,10 @@ message(STATUS "Compile Flags: ${CMAKE_CXX_FLAGS}")
 message(STATUS "Shared Link Flags: ${CMAKE_SHARED_LINKER_FLAGS}")
 message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
 
-set(APP_NAME ngtf_infer_benchmark)
-add_executable(${APP_NAME} ${SRC})
+set(APP_NAME infer_single_network)
+add_executable(
+    ${APP_NAME} ${SRC} infer_single_network.cc
+)
 
 if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
@@ -72,6 +72,38 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 else()
     target_link_libraries(
         ${APP_NAME}
+        ngraph_bridge
+        ngraph_lib
+        pthread
+        ${TensorFlow_FRAMEWORK_LIBRARY}
+        tensorflow_cc_lib
+        absl_synchronization
+    )
+endif()
+
+set(APP_NAME_MULTI infer_multiple_networks)
+add_executable(
+    ${APP_NAME_MULTI} ${SRC} infer_multiple_networks.cc
+)
+
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    target_link_libraries(${APP_NAME_MULTI} 
+        -Wl,--whole-archive
+            ngraph_bridge_static
+        -Wl,--no-whole-archive
+        ngraph_lib
+        lib_cpu_backend_static
+        lib_interpreter_backend_static 
+        ngraph_lib
+        dl
+        pthread
+        ${TensorFlow_FRAMEWORK_LIBRARY}
+        tensorflow_cc_lib
+        absl_synchronization
+    )
+else()
+    target_link_libraries(
+        ${APP_NAME_MULTI}
         ngraph_bridge
         ngraph_lib
         pthread
