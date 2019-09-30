@@ -346,6 +346,17 @@ Builder::TF_NGRAPH_CONST_MAP() {
   return the_map;
 }
 
+static std::pair<std::shared_ptr<ng::Node>, std::shared_ptr<ng::Node>>
+PerformNgBroadcast(const string& prov_tag, std::shared_ptr<ng::Node> ng_lhs,
+                   std::shared_ptr<ng::Node> ng_rhs) {
+  std::shared_ptr<ng::Node> ng_lhs_new, ng_rhs_new;
+  std::tie(ng_lhs_new, ng_rhs_new) =
+      ng::builder::numpy_broadcast(std::make_pair(ng_lhs, ng_rhs));
+  if (ng_lhs_new != ng_lhs) ng_lhs->add_provenance_tag(prov_tag);
+  if (ng_rhs_new != ng_rhs) ng_rhs->add_provenance_tag(prov_tag);
+  return make_pair(ng_lhs_new, ng_rhs_new);
+}
+
 // Helper function to translate a unary op.
 //
 // Parameters:
@@ -434,10 +445,10 @@ static Status TranslateBinaryOp(
   std::shared_ptr<ng::Node> ng_lhs, ng_rhs;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
 
+  std::tie(ng_lhs, ng_rhs) = PerformNgBroadcast(op->name(), ng_lhs, ng_rhs);
+
   std::tie(ng_lhs, ng_rhs) =
       ng::builder::numpy_broadcast(std::make_pair(ng_lhs, ng_rhs));
-  ng_lhs->add_provenance_tag(op->name());
-  ng_rhs->add_provenance_tag(op->name());
 
   auto ng_node = create_binary_op(ng_lhs, ng_rhs);
   ng_node->add_provenance_tag(op->name());
@@ -2996,6 +3007,7 @@ static Status TranslateOneHotOp(
   // broadcast to make all tensors same shape, as required by ngraph select op
   std::tie(ng_onehot_bool, ng_on) =
       ng::builder::numpy_broadcast(std::make_pair(ng_onehot_bool, ng_on));
+
   ng_onehot_bool->add_provenance_tag(op->name());
   ng_on->add_provenance_tag(op->name());
   std::tie(ng_onehot_bool, ng_off) =

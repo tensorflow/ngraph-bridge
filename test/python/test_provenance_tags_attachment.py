@@ -44,7 +44,7 @@ class TestProductOperations(NgraphTest):
         # If we do not take care, we could be adding a tag to the ng abs node
         # when tagging the return of the broadcast builder
 
-        # This test makes sure that TranslateGraph checks that the 
+        # This test makes sure that TranslateGraph checks that the
         # builder returned nodes are different from its inputs,
         # and only in that case it adds provenance tags
 
