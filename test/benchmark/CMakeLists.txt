@@ -37,6 +37,7 @@ set(SRC
     inference_engine.h
     inference_engine.cc
     tf_label_image_utils.cc
+    #session_queue.cc
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -66,6 +67,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
+        absl_synchronization
     )
 else()
     target_link_libraries(
@@ -75,6 +77,7 @@ else()
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
+        absl_synchronization
     )
 endif()
 

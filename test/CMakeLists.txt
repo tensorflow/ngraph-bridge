@@ -61,6 +61,7 @@ set(SRC
     test_parallel_executor.cpp
     test_momentum_op.cpp
     opexecuter.cpp
+    thread_safe_queue_test.cc
 )
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
@@ -120,6 +121,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
+        absl_synchronization
     )
 else()
     target_link_libraries(
@@ -130,6 +132,7 @@ else()
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
+        absl_synchronization
     )
 endif()
 

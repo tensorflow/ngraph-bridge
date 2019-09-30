@@ -42,7 +42,6 @@
 
 using namespace std;
 namespace tf = tensorflow;
-// namespace ng = ngraph_bridge;
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
                                  const string& labels_file_name);
