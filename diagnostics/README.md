@@ -60,7 +60,7 @@ For example usage, take a look at the ```model_test/verify_model.py``` in the di
 
 The [tf2ngraph] script can be used to convert tensorflow graph to an ngraph enabled graph
 and dump it as a protobuf (`pb`).
-Tensorflows' `import_pb_tensorboard.py` script can then be used to view the
+Tensorflow's `import_pb_tensorboard.py` script can then be used to view the
 dumped graph on `tensorboard`.
 
 ### Example usage
