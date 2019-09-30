@@ -67,7 +67,7 @@ dumped graph on `tensorboard`.
 
 * python tf2ngraph --input_pbtxt test_axpy.pbtxt --output_nodes add --output_pb axpy_ngraph.pb --ng_backend CPU
 * Add `import ngraph_bridge` to [import_pb_to_tensorboard.py] script
-* python import_pb_to_tensorboard.py --model_dir axpy_ngraph.pb --log_dir test/
+* `python import_pb_to_tensorboard.py --model_dir axpy_ngraph.pb --log_dir test/`
 * Launch Tensorboard by pointing it to the log directory : tensorboard --logdir=test/
 * Goto to the link to view `.pb` as a graph.
 
