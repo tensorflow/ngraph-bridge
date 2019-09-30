@@ -64,18 +64,6 @@ Status CompileExecutable(NGraphExecutorDB& edb,
   ng::runtime::Backend* op_backend;
 
   op_backend = BackendManager::GetBackend("INTERPRETER");
-  const char* cache_depth_specified =
-      std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
-  int my_function_cache_depth_in_items = 16;
-  if (cache_depth_specified != nullptr) {
-    my_function_cache_depth_in_items = atoi(cache_depth_specified);
-  }
-  if (edb.SizeOfNgExecMap() >= my_function_cache_depth_in_items) {
-    edb.RemoveExecAndFunc(evicted_ng_exec);
-    op_backend->remove_compiled_function(evicted_ng_exec);
-    // edb.PopBackLRU();
-  }
-
   ngraph::Event event_compile("Compile nGraph", "", "");
   BackendManager::LockBackend("INTERPRETER");
   try {
@@ -91,7 +79,10 @@ Status CompileExecutable(NGraphExecutorDB& edb,
   event_compile.Stop();
 
   ngraph::Event::write_trace(event_compile);
-  edb.AddNgExecAndFunc(signature, ng_exec, ng_function);
+  edb.AddItem(signature, ng_exec, ng_function, evicted_ng_exec, 2);
+  if (evicted_ng_exec) {
+    op_backend->remove_compiled_function(evicted_ng_exec);
+  }
   return Status::OK();
 }
 

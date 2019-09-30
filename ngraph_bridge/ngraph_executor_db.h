@@ -36,124 +36,99 @@ namespace ngraph_bridge {
 
 class NGraphExecutorDB {
  public:
+  ~NGraphExecutorDB() {
+    m_executable_pipelined_tensors_map.clear();
+    m_ng_function_map.clear();
+    m_ng_exec_map.clear();
+  }
   bool MaybeGetNgExecutable(std::string signature,
                             std::shared_ptr<ngraph::runtime::Executable>&
                                 ng_exec)  // line no. 216, 220
   {
-    lock_guard<mutex> lock(m_mutex1);
+    lock_guard<mutex> lock(m_mutex);
     auto it = m_ng_exec_map.find(signature);
     if (it == m_ng_exec_map.end()) {
       return false;
     }
     ng_exec = it->second;
+    UpdateLRU(signature);
     return true;
+  }
+  // make pair func and exece
+  void AddItem(std::string signature,
+               std::shared_ptr<ngraph::runtime::Executable> ng_exec,
+               std::shared_ptr<ngraph::Function> ng_function,
+               std::shared_ptr<ngraph::runtime::Executable>& evicted_ng_exec,
+               int depth) {
+    lock_guard<mutex> lock(m_mutex);
+    const char* cache_depth_specified =
+        std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
+    if (cache_depth_specified != nullptr) {
+      if (m_ng_exec_map.size() >= atoi(cache_depth_specified)) {
+        RemoveItem(m_lru.back(), evicted_ng_exec);
+      }
+    }
+    m_ng_exec_map.emplace(signature, ng_exec);        // line no. 324
+    m_ng_function_map.emplace(ng_exec, ng_function);  // line no. 327
+    m_lru.push_front(signature);
+    auto it =
+        m_executable_pipelined_tensors_map.find(ng_exec);  // line no. 443-444
+
+    // IsPipelinedTensorsStoreAvailable
+    if (it == m_executable_pipelined_tensors_map.end()) {
+      size_t num_inputs = ng_exec->get_parameters().size();
+      size_t num_outputs = ng_exec->get_results().size();
+      PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
+      PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
+      for (size_t i = 0; i < num_inputs; i++) {
+        pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, depth);
+      }
+      for (size_t i = 0; i < num_outputs; i++) {
+        pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, depth);
+      }
+      // InsertExecPipelineTesornMap
+      shared_ptr<PipelinedTensorsStore> pts(new PipelinedTensorsStore(
+          pipelined_input_tensors, pipelined_output_tensors));
+      m_executable_pipelined_tensors_map.emplace(ng_exec, pts);
+    }
   }
 
   bool MaybeGetNgFunction(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec,
       std::shared_ptr<ngraph::Function>& ng_function)  // line no. 363, 364
   {
-    lock_guard<mutex> lock(m_mutex1);
+    lock_guard<mutex> lock(m_mutex);
     auto it = m_ng_function_map.find(ng_exec);
     if (it == m_ng_function_map.end()) return false;
     ng_function = it->second;
     return true;
   }
 
-  bool IsPipelinedTensorsStoreAvailable(
-      std::shared_ptr<ngraph::runtime::Executable>
-          ng_exec)  // line no. 216, 220
-  {
-    lock_guard<mutex> lock(m_mutex2);
-    auto it =
-        m_executable_pipelined_tensors_map.find(ng_exec);  // line no. 443-444
-    if (it == m_executable_pipelined_tensors_map.end()) return false;
+  bool GetDeviceTensors(
+      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
+          io_tensors) {
+    PipelinedTensorsStore* pts(nullptr);
+    try {
+      lock_guard<mutex> lock(m_mutex);
+      const auto& item = m_executable_pipelined_tensors_map.at(ng_exec);
+      pts = item.get();
+    } catch (...) {
+      NGRAPH_VLOG(4) << "Error: "
+                     << "Executable not found in the cache";
+      return false;
+    }
+    io_tensors = pts->get_tensors();
+    if (std::get<0>(io_tensors) < 0) {
+      NGRAPH_VLOG(4) << "Error: "
+                     << " Internal (No free tensor available) ";
+      return false;
+    }
     return true;
   }
 
-  shared_ptr<PipelinedTensorsStore> GetPipelineTensorStore(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
-    lock_guard<mutex> lock(m_mutex2);
-    return m_executable_pipelined_tensors_map.at(ng_exec);  // 486
-  }
-
-  void RemoveExecAndFunc(std::shared_ptr<ngraph::runtime::Executable>&
-                             evicted_ng_exec)  // line no. 261, 262, 263
-  {
-    lock_guard<mutex> lock(m_mutex1);
-    evicted_ng_exec = m_ng_exec_map[m_lru.back()];
-    m_ng_exec_map.erase(m_lru.back());
-    m_ng_function_map.erase(evicted_ng_exec);
-    m_lru.pop_back();
-  }
-
-  void AddNgExecAndFunc(std::string signature,
-                        std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-                        std::shared_ptr<ngraph::Function> ng_function) {
-    lock_guard<mutex> lock(m_mutex1);
-    m_ng_exec_map.emplace(signature, ng_exec);        // line no. 324
-    m_ng_function_map.emplace(ng_exec, ng_function);  // line no. 327
-    m_lru.push_front(signature);
-  }
-
-  // void InsertNgExecMap(std::string signature,
-  //                      std::shared_ptr<ngraph::runtime::Executable> ng_exec)
-  //                      {
-  //   lock_guard<mutex> lock(m_mutex1);
-  //   m_ng_exec_map.emplace(signature, ng_exec);  // line no. 324
-  // }
-
-  // void InsertNgFunctionMap(std::shared_ptr<ngraph::runtime::Executable>
-  // ng_exec,
-  //                          std::shared_ptr<ngraph::Function> ng_function) {
-  //   lock_guard<mutex> lock(m_mutex1);
-  //   m_ng_function_map.emplace(ng_exec, ng_function);  // line no. 327
-  // }
-
-  void InsertExecPipelineTesornMap(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-      shared_ptr<PipelinedTensorsStore> pts) {
-    lock_guard<mutex> lock(m_mutex2);
-    m_executable_pipelined_tensors_map.emplace(ng_exec, pts);  // line no. 467
-  }
-
-  size_t SizeOfNgExecMap() {
-    lock_guard<mutex> lock(m_mutex1);
-    return m_ng_exec_map.size();
-  }
-
-  // std::string LRUBack() {
-  //   lock_guard<mutex> lock(m_mutex3);
-  //   return m_lru.back();
-  // }
-
-  // std::string LRUFront() {
-  //   lock_guard<mutex> lock(m_mutex3);
-  //   return m_lru.front();
-  // }
-
-  void UpdateLRU(std::string signature) {
-    lock_guard<mutex> lock(m_mutex3);
-    if (signature != m_lru.front()) {
-      m_lru.remove(signature);
-      m_lru.push_front(signature);
-    }
-  }
-
-  // void PushFrontInLRU(std::string signature) {
-  //   lock_guard<mutex> lock(m_mutex3);
-  //   m_lru.push_front(signature);
-  // }
-
-  // void PopBackLRU() {
-  //   lock_guard<mutex> lock(m_mutex3);
-  //   m_lru.pop_back();
-  // }
-
  private:
-  mutex m_mutex1;
-  mutex m_mutex2;
-  mutex m_mutex3;
+  mutex m_mutex;
   std::list<std::string> m_lru;
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
       m_ng_exec_map;
@@ -163,6 +138,25 @@ class NGraphExecutorDB {
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      shared_ptr<PipelinedTensorsStore>>
       m_executable_pipelined_tensors_map;
+
+  void RemoveItem(std::string signature,
+                  std::shared_ptr<ngraph::runtime::Executable>&
+                      evicted_ng_exec)  // line no. 261, 262, 263
+  {
+    // lock_guard<mutex> lock(m_mutex1);
+    evicted_ng_exec = m_ng_exec_map[signature];
+    m_ng_exec_map.erase(signature);
+    m_ng_function_map.erase(evicted_ng_exec);
+    m_lru.pop_back();
+  }
+
+  void UpdateLRU(std::string signature) {
+    // lock_guard<mutex> lock(m_mutex);
+    if (signature != m_lru.front()) {
+      m_lru.remove(signature);
+      m_lru.push_front(signature);
+    }
+  }
 };
 
 }  // namespace ngraph_bridge
