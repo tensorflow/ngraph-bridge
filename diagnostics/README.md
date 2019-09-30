@@ -42,7 +42,6 @@ To get a **full** dump use the following set of flags
 | `NGRAPH_TF_DUMP_GRAPHS=1`    | Dump TF graphs for different passes: precapture, capture, unmarked, marked, clustered, declustered, encapsulated |
 | `TF_CPP_MIN_VLOG_LEVEL=1`    | Enable TF CPP logs                    |
 | `NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS=1` | Dump graphs with final clusters assigned. Use this to view TF computation graph with colored nodes indicating clusters|
-|
 
 ### Selectively disable or enable ngraph
 
