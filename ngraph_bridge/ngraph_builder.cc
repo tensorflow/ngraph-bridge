@@ -5159,6 +5159,9 @@ Status Builder::TranslateGraph(
     if (!check_if_result_or_parameter(n)) {
       num_tags = n->get_provenance_tags().size();
       if (num_tags != 1) {
+        NgraphSerialize(
+            "tf_function_error_" + ng_function->get_name() + ".json",
+            ng_function);
         return errors::Internal(
             "Found ngraph node ", n->get_name(),
             " which has provenance tag set of size ", num_tags,
