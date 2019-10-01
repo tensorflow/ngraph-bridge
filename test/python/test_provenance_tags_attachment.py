@@ -54,11 +54,16 @@ class TestProductOperations(NgraphTest):
             out_node, feed_dict={inp: np.ones([1, 32, 32, 2])}))
 
     def test_provenance_for_broadcast_with_effect(self):
+        # In this test, the broadcast actually produces new ng nodes
+        # as opposed to test_provenance_for_no_effect_broadcast,
+        # which is a dummy broadcast
+        # so test that they are tagged appropriately
         inp0 = tf.placeholder(tf.float64, shape=[2, 2], name='input0')
         inp1 = tf.placeholder(tf.float64, shape=[2], name='input1')
-        out_node = inp0 / inp1
-        self.with_ngraph(lambda sess: sess.run(
-            out_node, feed_dict={
-                inp0: np.ones([2, 2]),
-                inp1: np.ones([2])
-            }))
+        out_node0 = inp0 / inp1
+        out_node1 = inp1 / inp0
+        self.with_ngraph(lambda sess: sess.run([out_node0, out_node1],
+                                               feed_dict={
+                                                   inp0: np.ones([2, 2]),
+                                                   inp1: np.ones([2])
+                                               }))
