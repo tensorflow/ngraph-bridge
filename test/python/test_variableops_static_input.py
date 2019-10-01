@@ -139,8 +139,10 @@ class TestVariableStaticInputs(NgraphTest):
 
         # 1st iteration mean value will match, 2nd and 3rd wont
         assert np.allclose(ng_mean_values[0], tf_mean_values[0])
-        assert (np.allclose(ng_mean_values[1], tf_mean_values[1]) == False)
-        assert (np.allclose(ng_mean_values[2], tf_mean_values[2]) == False)
+
+        if ngraph_bridge.are_variables_enabled():
+            assert (np.allclose(ng_mean_values[1], tf_mean_values[1]) == False)
+            assert (np.allclose(ng_mean_values[2], tf_mean_values[2]) == False)
 
         # Final Var value will match
         assert np.allclose(ng_var_final, tf_var_final)
