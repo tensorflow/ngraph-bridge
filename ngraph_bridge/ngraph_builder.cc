@@ -447,9 +447,6 @@ static Status TranslateBinaryOp(
 
   std::tie(ng_lhs, ng_rhs) = PerformNgBroadcast(op->name(), ng_lhs, ng_rhs);
 
-  std::tie(ng_lhs, ng_rhs) =
-      ng::builder::numpy_broadcast(std::make_pair(ng_lhs, ng_rhs));
-
   auto ng_node = create_binary_op(ng_lhs, ng_rhs);
   ng_node->add_provenance_tag(op->name());
 
@@ -3006,14 +3003,9 @@ static Status TranslateOneHotOp(
 
   // broadcast to make all tensors same shape, as required by ngraph select op
   std::tie(ng_onehot_bool, ng_on) =
-      ng::builder::numpy_broadcast(std::make_pair(ng_onehot_bool, ng_on));
-
-  ng_onehot_bool->add_provenance_tag(op->name());
-  ng_on->add_provenance_tag(op->name());
+      PerformNgBroadcast(op->name(), ng_onehot_bool, ng_on);
   std::tie(ng_onehot_bool, ng_off) =
-      ng::builder::numpy_broadcast(std::make_pair(ng_onehot_bool, ng_off));
-  ng_onehot_bool->add_provenance_tag(op->name());
-  ng_off->add_provenance_tag(op->name());
+      PerformNgBroadcast(op->name(), ng_onehot_bool, ng_off);
 
   auto ng_onehot = ConstructNgNode<ng::op::Select>(op->name(), ng_onehot_bool,
                                                    ng_on, ng_off);
@@ -4863,14 +4855,10 @@ static Status TranslateSelectOp(const Node* op,
         op->name(), ng_input1, ng::AxisVector{0}, tmp_vector);
   }
 
-  std::tie(ng_input1, ng_input2) = ng::builder::numpy_broadcast(
-      std::make_pair(length != 0 ? ng_input_new : ng_input1, ng_input2));
-  ng_input1->add_provenance_tag(op->name());
-  ng_input2->add_provenance_tag(op->name());
+  std::tie(ng_input1, ng_input2) = PerformNgBroadcast(
+      op->name(), (length != 0 ? ng_input_new : ng_input1), ng_input2);
   std::tie(ng_input2, ng_input3) =
-      ng::builder::numpy_broadcast(std::make_pair(ng_input2, ng_input3));
-  ng_input2->add_provenance_tag(op->name());
-  ng_input3->add_provenance_tag(op->name());
+      PerformNgBroadcast(op->name(), ng_input2, ng_input3);
 
   ng_select = ConstructNgNode<ng::op::Select>(op->name(), ng_input1, ng_input2,
                                               ng_input3);
