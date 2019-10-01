@@ -58,4 +58,7 @@ class TestProductOperations(NgraphTest):
         inp1 = tf.placeholder(tf.float64, shape=[2], name='input1')
         out_node = inp0 / inp1
         self.with_ngraph(lambda sess: sess.run(
-            out_node, feed_dict={inp0: np.ones([2, 2]), inp1: np.ones([2])}))
+            out_node, feed_dict={
+                inp0: np.ones([2, 2]),
+                inp1: np.ones([2])
+            }))
