@@ -352,8 +352,8 @@ PerformNgBroadcast(const string& prov_tag, std::shared_ptr<ng::Node> ng_lhs,
   std::shared_ptr<ng::Node> ng_lhs_new, ng_rhs_new;
   std::tie(ng_lhs_new, ng_rhs_new) =
       ng::builder::numpy_broadcast(std::make_pair(ng_lhs, ng_rhs));
-  if (ng_lhs_new != ng_lhs) ng_lhs->add_provenance_tag(prov_tag);
-  if (ng_rhs_new != ng_rhs) ng_rhs->add_provenance_tag(prov_tag);
+  if (ng_lhs_new != ng_lhs) ng_lhs_new->add_provenance_tag(prov_tag);
+  if (ng_rhs_new != ng_rhs) ng_rhs_new->add_provenance_tag(prov_tag);
   return make_pair(ng_lhs_new, ng_rhs_new);
 }
 

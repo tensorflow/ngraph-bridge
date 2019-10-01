@@ -29,7 +29,7 @@ from common import NgraphTest
 
 class TestProductOperations(NgraphTest):
 
-    def test_resnet_like_block(self):
+    def test_provenance_for_no_effect_broadcast(self):
         # Creates a network: y = x + |x|
         #            ---------
         #          /           \
@@ -52,3 +52,10 @@ class TestProductOperations(NgraphTest):
         out_node = tf.add(tf.math.abs(inp, name="abs"), inp, name="add")
         self.with_ngraph(lambda sess: sess.run(
             out_node, feed_dict={inp: np.ones([1, 32, 32, 2])}))
+
+    def test_provenance_for_broadcast_with_effect(self):
+        inp0 = tf.placeholder(tf.float64, shape=[2, 2], name='input0')
+        inp1 = tf.placeholder(tf.float64, shape=[2], name='input1')
+        out_node = inp0 / inp1
+        self.with_ngraph(lambda sess: sess.run(
+            out_node, feed_dict={inp0: np.ones([2, 2]), inp1: np.ones([2])}))
