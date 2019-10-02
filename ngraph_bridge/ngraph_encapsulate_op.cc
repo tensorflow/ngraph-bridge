@@ -74,14 +74,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_device_id", &device_id));
 
   // Concatenate the backend_name:device_id
-  string be_name;
-  try {
-    be_name = BackendManager::GetBackendCreationString(backend_name, device_id);
-  } catch (const std::exception& exp) {
-    Status status = errors::Internal(
-        "Caught exception while creating backend string ", exp.what(), "\n");
-    OP_REQUIRES_OK(ctx, status);
-  }
+  string be_name = BackendManager::GetBackendCreationString(backend_name, device_id);
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name()
                  << "BE: " << be_name;
@@ -92,14 +85,21 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       ctx, backend != nullptr,
       errors::Internal("Cannot get the backend object for BE: ", be_name));
 
+  // If we have the VARIABLE capture on then we can't use the 
+  // parallel executor until that support is added. 
+  #if !defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    m_use_parallel_executor = backend->executable_can_create_tensors();
+  #else
+    m_use_parallel_executor = false;
+  #endif
+
   // Override the switch for debugging/testing
-  m_does_backend_support_pipelining = backend->executable_can_create_tensors();
   if (std::getenv("NGRAPH_TF_USE_LEGACY_EXECUTOR") != nullptr) {
     NGRAPH_VLOG(3) << "Forcing the use of LEGACY Executor";
-    m_does_backend_support_pipelining = false;
+    m_use_parallel_executor = false;
   }
 
-  if (m_does_backend_support_pipelining) {
+  if (m_use_parallel_executor) {
     CreateParallelExecutor(ctx, be_name);
   } else {
     CreateLegacyExecutor(ctx, be_name);
@@ -133,11 +133,7 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
     const auto get_func_sig = [&flib](const string& op, const OpDef** sig) {
       return flib.LookUpOpDef(op, sig);
     };
-    Status status =
-        FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody);
-    if (!status.ok()) {
-      NGRAPH_VLOG(2) << "FunctionDefToBodyHelper returned a not ok status.";
-    }
+    OP_REQUIRES_OK(ctx, FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody));
     CopyGraph(*fnbody->graph, encap_subgraph.get());
   } else {
     GraphConstructorOptions opts;
@@ -277,9 +273,9 @@ void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx,
   OP_REQUIRES_OK(ctx, ng_encap_impl.ParseNodeAttributes(
                           node_def.attr(), &additional_attribute_map));
 
-  // SetConfig will be called for each EncapsulateOp
   ng_encap_impl.SetOpBackend(backend_name);
 
+  // SetConfig will be called for each EncapsulateOp
   BackendManager::SetConfig(ng_encap_impl.GetOpBackend(),
                             additional_attribute_map);
 
@@ -301,14 +297,17 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   std::ostringstream oss;
   oss << "Destroy Encapsulate_" << ng_encap_impl.GetInstanceId() << ": "
       << name();
-  if (m_does_backend_support_pipelining) {
+  ngraph::Event event(oss.str(), name(), "");
+  NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
+
+  if (m_use_parallel_executor) {
     NGRAPH_VLOG(2)
         << "~NGraphEncapsulateOp():: ParallelExecutor: ReleaseBackend";
     // The sequence of termination is important as some backends do not
     // do it right.
     // If we rely on the C++ destructor sequence then for these backends
     // the problem is the following:
-    // The backend is release here at this time but the executor sill remains
+    // The backend is released here at this time but the executor sill remains
     // alive. When the executor is destroyed (during the destruction of the
     // TF Op NGraphEncapsulate - which may be much later) the backend
     // impmenetation chokes.
@@ -322,8 +321,6 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
     return;
   }
 
-  ngraph::Event event(oss.str(), name(), "");
-  NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
   // If the kernel goes away, we must de-register all of its cached
   // functions
   // from the freshness tracker.
@@ -384,7 +381,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event event_compute("Compute", "", "");
 
-  if (m_does_backend_support_pipelining) {
+  if (m_use_parallel_executor) {
     NGRAPH_VLOG(1) << "NGraphEncapsulateOp::Compute: Using Pipelined Executor";
     ComputeUsingParallelExecutor(ctx);
   } else {
@@ -417,10 +414,10 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   OP_REQUIRES_OK(ctx, m_parallel_executor->GetNgExecutable(tf_input_tensors,
                                                            ng_exec, cache_hit));
 
-  NGRAPH_VLOG(2) << "CACHE HIT: " << (cache_hit ? "YES" : "NO") << endl;
+  NGRAPH_VLOG(2) << "CACHE HIT: " << PrintBool(cache_hit) << endl;
   NGRAPH_VLOG(2) << " Step_ID: " << step_id;
   NGRAPH_VLOG(2)
-      << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
+      << "NGraphEncapsulateOp::Compute got ngraph executable for cluster id: "
       << m_parallel_executor->GetNgraphClusterId();
 
   event_compile.Stop();
@@ -439,7 +436,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   // Allocate the input/
   ngraph::Event event_copy_input_tensor("Copy Input Tensor", "", "");
 
-  for (int i = 0; i < tf_input_tensors.size(); i++) {
+  for (auto i = 0; i < tf_input_tensors.size(); i++) {
     ng::element::Type ng_element_type;
     OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(
                             tf_input_tensors[i].dtype(), &ng_element_type));
