@@ -218,8 +218,6 @@ Status EncapsulateClusters(
       std::stringstream ss;
       ss << "ngraph_output_" << cluster_output_dt_map[src_cluster_idx].size();
       string output_name = ss.str();
-      cout << "Kanvi output_name : " << output_name << "\n";
-      cout << "Kanvi node name : " << dst->name() << "\n";
       auto new_output_node_def =
           NGraphClusterManager::GetClusterGraph(src_cluster_idx)->add_node();
       new_output_node_def->set_name(output_name);
