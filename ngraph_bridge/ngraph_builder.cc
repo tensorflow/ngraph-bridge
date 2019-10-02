@@ -5159,9 +5159,24 @@ Status Builder::TranslateGraph(
     if (!check_if_result_or_parameter(n)) {
       num_tags = n->get_provenance_tags().size();
       if (num_tags != 1) {
+        char* original_provenance_flag_value = getenv("NGRAPH_PROVENANCE_ENABLE");
+        // No need to free original_provenance_flag_value
+
+        char enable_provenance[] = "NGRAPH_PROVENANCE_ENABLE=1";
+        putenv(enable_provenance);
         NgraphSerialize(
             "tf_function_error_" + ng_function->get_name() + ".json",
             ng_function);
+        if (original_provenance_flag_value == NULL) {
+          unsetenv("NGRAPH_PROVENANCE_ENABLE");
+        } else {
+          string provenance_flag_original_val{original_provenance_flag_value};
+          char* reset = new char[26 + provenance_flag_original_val.size()];
+          strcpy(reset, ("NGRAPH_PROVENANCE_ENABLE="+provenance_flag_original_val).c_str());
+          putenv(reset);
+          delete[] reset;
+        }
+
         return errors::Internal(
             "Found ngraph node ", n->get_name(),
             " which has provenance tag set of size ", num_tags,
