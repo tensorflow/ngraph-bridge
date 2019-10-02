@@ -31,31 +31,35 @@ void NdhwcToNGraph(std::shared_ptr<ngraph::Node>& ng_node) {
 }
 }  // namespace detail
 
-void BatchToNGraph(bool is_nhwc, std::shared_ptr<ngraph::Node>& ng_input) {
+void BatchToNGraph(const string& provenance_tag, bool is_nhwc, std::shared_ptr<ngraph::Node>& ng_input) {
   if (is_nhwc) {
     detail::NhwcToNGraph(ng_input);
+    ng_input->add_provenance_tag(provenance_tag);
   }
 }
 
-void BatchToNGraph3D(bool is_ndhwc, std::shared_ptr<ngraph::Node>& ng_input) {
+void BatchToNGraph3D(const string& provenance_tag, bool is_ndhwc, std::shared_ptr<ngraph::Node>& ng_input) {
   if (is_ndhwc) {
     detail::NdhwcToNGraph(ng_input);
+    ng_input->add_provenance_tag(provenance_tag);
   }
 }
 
-void BatchToTensorflow(bool is_nhwc, std::shared_ptr<ngraph::Node>& ng_node) {
+void BatchToTensorflow(const string& provenance_tag, bool is_nhwc, std::shared_ptr<ngraph::Node>& ng_node) {
   if (!is_nhwc) {
     return;
   }
   Reshape<0, 2, 3, 1>(ng_node);
+  ng_node->add_provenance_tag(provenance_tag);
 }
 
-void BatchToTensorflow3D(bool is_ndhwc,
+void BatchToTensorflow3D(const string& provenance_tag, bool is_ndhwc,
                          std::shared_ptr<ngraph::Node>& ng_node) {
   if (!is_ndhwc) {
     return;
   }
   Reshape3D<0, 2, 3, 4, 1>(ng_node);
+  ng_node->add_provenance_tag(provenance_tag);
 }
 }  // namespace ngraph_bridge
 
