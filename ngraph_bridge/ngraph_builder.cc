@@ -4977,7 +4977,10 @@ Status Builder::TranslateGraph(
     ng::Shape ng_shape;
     TF_RETURN_IF_ERROR(TFTensorShapeToNGraphShape(inputs[index], &ng_shape));
 
-    auto ng_param = make_shared<ng::op::Parameter>(ng_et, ng_shape);
+    string prov_tag;
+    GetNodeAttr(parm->attrs(), "_prov_tag", &prov_tag);
+    auto ng_param =
+        ConstructNgNode<ng::op::Parameter>(prov_tag, ng_et, ng_shape);
     SaveNgOp(ng_op_map, parm->name(), ng_param);
     ng_parameter_list[index] = ng_param;
   }

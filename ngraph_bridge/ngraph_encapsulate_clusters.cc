@@ -218,7 +218,8 @@ Status EncapsulateClusters(
       std::stringstream ss;
       ss << "ngraph_output_" << cluster_output_dt_map[src_cluster_idx].size();
       string output_name = ss.str();
-
+      cout << "Kanvi output_name : " << output_name << "\n";
+      cout << "Kanvi node name : " << dst->name() << "\n";
       auto new_output_node_def =
           NGraphClusterManager::GetClusterGraph(src_cluster_idx)->add_node();
       new_output_node_def->set_name(output_name);
@@ -256,6 +257,7 @@ Status EncapsulateClusters(
 
       input_rename_map[std::make_tuple(dst_cluster_idx, src->name(),
                                        edge->src_output())] = new_input_name;
+      string input_prov_tag = src->name();
 
       auto new_input_node_def =
           NGraphClusterManager::GetClusterGraph(dst_cluster_idx)->add_node();
@@ -266,6 +268,8 @@ Status EncapsulateClusters(
       SetAttrValue(dt, &((*(new_input_node_def->mutable_attr()))["T"]));
       SetAttrValue(arg_index_count[dst_cluster_idx],
                    &((*(new_input_node_def->mutable_attr()))["index"]));
+      SetAttrValue(prov_tag,
+                   &((*(new_input_node_def->mutable_attr()))["_prov_tag"]));
 
       arg_index_count[dst_cluster_idx]++;
 
