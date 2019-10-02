@@ -31,21 +31,24 @@ void NdhwcToNGraph(std::shared_ptr<ngraph::Node>& ng_node) {
 }
 }  // namespace detail
 
-void BatchToNGraph(const string& provenance_tag, bool is_nhwc, std::shared_ptr<ngraph::Node>& ng_input) {
+void BatchToNGraph(const string& provenance_tag, bool is_nhwc,
+                   std::shared_ptr<ngraph::Node>& ng_input) {
   if (is_nhwc) {
     detail::NhwcToNGraph(ng_input);
     ng_input->add_provenance_tag(provenance_tag);
   }
 }
 
-void BatchToNGraph3D(const string& provenance_tag, bool is_ndhwc, std::shared_ptr<ngraph::Node>& ng_input) {
+void BatchToNGraph3D(const string& provenance_tag, bool is_ndhwc,
+                     std::shared_ptr<ngraph::Node>& ng_input) {
   if (is_ndhwc) {
     detail::NdhwcToNGraph(ng_input);
     ng_input->add_provenance_tag(provenance_tag);
   }
 }
 
-void BatchToTensorflow(const string& provenance_tag, bool is_nhwc, std::shared_ptr<ngraph::Node>& ng_node) {
+void BatchToTensorflow(const string& provenance_tag, bool is_nhwc,
+                       std::shared_ptr<ngraph::Node>& ng_node) {
   if (!is_nhwc) {
     return;
   }

@@ -387,8 +387,7 @@ static Status TranslateUnaryOp(
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
   auto ng_node = create_unary_op(ng_input);
-  if (ng_node != ng_input)
-    ng_node->add_provenance_tag(op->name());
+  if (ng_node != ng_input) ng_node->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
 }
@@ -5125,8 +5124,10 @@ Status Builder::TranslateGraph(
     if (!check_if_result_or_parameter(n)) {
       num_tags = n->get_provenance_tags().size();
       if (num_tags != 1) {
-        char* original_provenance_flag_value = getenv("NGRAPH_PROVENANCE_ENABLE");
-        // No need to free original_provenance_flag_value sccording to the standard
+        char* original_provenance_flag_value =
+            getenv("NGRAPH_PROVENANCE_ENABLE");
+        // No need to free original_provenance_flag_value sccording to the
+        // standard
 
         char enable_provenance[] = "NGRAPH_PROVENANCE_ENABLE=1";
         putenv(enable_provenance);
@@ -5138,7 +5139,9 @@ Status Builder::TranslateGraph(
         } else {
           string provenance_flag_original_val{original_provenance_flag_value};
           char* reset = new char[26 + provenance_flag_original_val.size()];
-          strcpy(reset, ("NGRAPH_PROVENANCE_ENABLE="+provenance_flag_original_val).c_str());
+          strcpy(reset,
+                 ("NGRAPH_PROVENANCE_ENABLE=" + provenance_flag_original_val)
+                     .c_str());
           putenv(reset);
           delete[] reset;
         }
