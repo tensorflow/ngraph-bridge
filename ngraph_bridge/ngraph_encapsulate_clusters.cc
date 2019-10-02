@@ -266,7 +266,7 @@ Status EncapsulateClusters(
       SetAttrValue(dt, &((*(new_input_node_def->mutable_attr()))["T"]));
       SetAttrValue(arg_index_count[dst_cluster_idx],
                    &((*(new_input_node_def->mutable_attr()))["index"]));
-      SetAttrValue(prov_tag,
+      SetAttrValue(input_prov_tag,
                    &((*(new_input_node_def->mutable_attr()))["_prov_tag"]));
 
       arg_index_count[dst_cluster_idx]++;
