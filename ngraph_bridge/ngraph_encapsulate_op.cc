@@ -385,10 +385,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event event_compute("Compute", "", "");
 
   if (m_does_backend_support_pipelining) {
-    NGRAPH_VLOG(0) << "NGraphEncapsulateOp::Compute: Using Pipelined Executor";
+    NGRAPH_VLOG(1) << "NGraphEncapsulateOp::Compute: Using Pipelined Executor";
     ComputeUsingParallelExecutor(ctx);
   } else {
-    NGRAPH_VLOG(0) << "NGraphEncapsulateOp::Compute: Using Legacy Executor";
+    NGRAPH_VLOG(1) << "NGraphEncapsulateOp::Compute: Using Legacy Executor";
     ComputeUsingLegacyExecutor(ctx);
   }
 

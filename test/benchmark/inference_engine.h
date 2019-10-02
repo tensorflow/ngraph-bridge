@@ -56,6 +56,7 @@ class InferenceEngine {
   }
 
   static Status CreateSession(const string& network, const string& backend,
+                              const string& dev_id,
                               unique_ptr<Session>& session);
 
  private:

@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
 
   unique_ptr<Session> the_session;
   TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
-                                                        the_session));
+                                                        "0", the_session));
 
   ngraph::Event evt_compilation("Compilation", "Compilation", "");
 

@@ -136,7 +136,7 @@ class NGraphExecutor {
       m_executable_pipelined_tensors_map;
 
   mutex m_mutext;
-  int m_depth{2};  // TODO make this settable
+  int m_depth{5};  // TODO make this settable
 };
 
 }  // namespace ngraph_bridge

@@ -109,6 +109,7 @@ InferenceEngine::~InferenceEngine() {
 
 Status InferenceEngine::CreateSession(const string& graph_filename,
                                       const string& backend,
+                                      const string& dev_id,
                                       unique_ptr<Session>& session) {
   SessionOptions options;
   options.config.mutable_graph_options()
@@ -128,7 +129,7 @@ Status InferenceEngine::CreateSession(const string& graph_filename,
 
     custom_config->set_name("ngraph-optimizer");
     (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s(backend);
-    (*custom_config->mutable_parameter_map())["device_id"].set_s("1");
+    (*custom_config->mutable_parameter_map())["device_id"].set_s(dev_id);
 
     options.config.mutable_graph_options()
         ->mutable_rewrite_options()
