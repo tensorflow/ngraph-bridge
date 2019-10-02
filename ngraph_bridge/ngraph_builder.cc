@@ -1132,6 +1132,7 @@ static Status TranslateCombinedNonMaxSuppressionOp(
                             op->name(),
                             " backend could not return valid ngraph node");
   }
+  ng_cnms->add_provenance_tag(op->name());
   shared_ptr<ngraph::Node> ng_nmsed_boxes =
       ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_cnms, 0);
   shared_ptr<ngraph::Node> ng_nmsed_scores =
@@ -2294,6 +2295,7 @@ static Status TranslateGatherV2Op(
     return errors::Internal("In translating GatherV2 op ", op->name(),
                             " backend could not return valid ngraph node");
   }
+  ng_gather->add_provenance_tag(op->name());
   SaveNgOp(ng_op_map, op->name(), ng_gather);
 
   return Status::OK();
@@ -2834,6 +2836,7 @@ static Status TranslateNonMaxSuppressionV4Op(
                             op->name(),
                             " backend could not return valid ngraph node");
   }
+  ng_nmsv4->add_provenance_tag(op->name());
   shared_ptr<ngraph::Node> ng_selected_indices =
       ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_nmsv4, 0);
   shared_ptr<ngraph::Node> ng_valid_output =
