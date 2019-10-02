@@ -15,15 +15,15 @@
  *******************************************************************************/
 #include "gtest/gtest.h"
 
+#include <atomic>
 #include <memory>
-#include "tensorflow/core/common_runtime/optimization_registry.h"
-#include "tensorflow/core/graph/graph_constructor.h"
-#include "tensorflow/core/public/session.h"
-
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_executor_db.h"
 #include "ngraph_bridge/version.h"
+#include "tensorflow/core/common_runtime/optimization_registry.h"
+#include "tensorflow/core/graph/graph_constructor.h"
+#include "tensorflow/core/public/session.h"
 #include "test/test_generic_class.h"
 #include "test/test_utilities.h"
 
@@ -35,31 +35,31 @@ namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
 
-Status ComputeSignature(const std::vector<Tensor>& tf_input_tensors,
-                        std::vector<TensorShape>& input_shapes,
-                        std::stringstream& signature_ss) {
-  // Use tensorflow input tensors to get input_shapes, static_input_map
-  // and compute the signature
-  for (int i = 0; i < tf_input_tensors.size(); i++) {
-    const Tensor& input_tensor = tf_input_tensors[i];
-    input_shapes.push_back(input_tensor.shape());
+Status ComputeSignature(const std::vector<Tensor>& m_tf_input_tensors,
+                        std::vector<TensorShape>& m_input_shapes,
+                        std::stringstream& m_signature_ss) {
+  // Use tensorflow input tensors to get m_input_shapes, static_input_map
+  // and compute the m_signature
+  for (int i = 0; i < m_tf_input_tensors.size(); i++) {
+    const Tensor& input_tensor = m_tf_input_tensors[i];
+    m_input_shapes.push_back(input_tensor.shape());
     for (const auto& x : input_tensor.shape()) {
-      signature_ss << x.size << ",";
+      m_signature_ss << x.size << ",";
     }
-    signature_ss << ";";
+    m_signature_ss << ";";
   }
   return Status::OK();
 }
 
-Status CompileExecutable(NGraphExecutorDB& edb,
-                         std::vector<TensorShape> input_shapes,
+Status CompileExecutable(NGraphExecutorDB& m_edb,
+                         std::vector<TensorShape> m_input_shapes,
                          tf::Graph* graph,
-                         std::shared_ptr<ngraph::Function>& ng_function,
-                         shared_ptr<ngraph::runtime::Executable>& ng_exec,
-                         std::string signature) {
+                         std::shared_ptr<ngraph::Function>& m_ng_function,
+                         shared_ptr<ngraph::runtime::Executable>& m_ng_exec,
+                         std::string m_signature) {
   std::vector<const Tensor*> static_input_map;
-  std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
-  Builder::TranslateGraph(input_shapes, static_input_map, graph, ng_function);
+  Builder::TranslateGraph(m_input_shapes, static_input_map, graph,
+                          m_ng_function);
 
   ng::runtime::Backend* op_backend;
 
@@ -67,7 +67,7 @@ Status CompileExecutable(NGraphExecutorDB& edb,
   ngraph::Event event_compile("Compile nGraph", "", "");
   BackendManager::LockBackend("INTERPRETER");
   try {
-    ng_exec = op_backend->compile(ng_function);
+    m_ng_exec = op_backend->compile(m_ng_function);
   } catch (const std::exception& exp) {
     BackendManager::UnlockBackend("INTERPRETER");
     return errors::Internal(" cccc");
@@ -79,18 +79,14 @@ Status CompileExecutable(NGraphExecutorDB& edb,
   event_compile.Stop();
 
   ngraph::Event::write_trace(event_compile);
-  edb.AddItem(signature, ng_exec, ng_function, evicted_ng_exec, 2);
-  if (evicted_ng_exec) {
-    op_backend->remove_compiled_function(evicted_ng_exec);
-  }
   return Status::OK();
 }
 
 class NGraphExecutorDBTest : public ::testing::Test {
- protected:
+ private:
   void SetUp() override {
     tf::ngraph_bridge::testing::GenericUtil::LoadGraphFromPbTxt(
-        "test_axpy_launchop.pbtxt", input_graph);
+        "test_axpy_launchop.pbtxt", m_input_graph);
     tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
     // Create the inputs for this graph
     Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -104,32 +100,102 @@ class NGraphExecutorDBTest : public ::testing::Test {
     for (int i = 0; i < y_flat.size(); i++) {
       y_flat.data()[i] = 1.0;
     }
-    tf_input_tensors.push_back(x);
-    tf_input_tensors.push_back(y);
-    ComputeSignature(tf_input_tensors, input_shapes, signature_ss);
-    signature = signature_ss.str();
+    m_tf_input_tensors.push_back(x);
+    m_tf_input_tensors.push_back(y);
+    ComputeSignature(m_tf_input_tensors, m_input_shapes, m_signature_ss);
+    m_signature = m_signature_ss.str();
   }
 
   // void TearDown() override { }
-  unique_ptr<tf::Graph> input_graph;
-  NGraphExecutorDB edb;
-  std::vector<Tensor> tf_input_tensors;
-  std::vector<TensorShape> input_shapes;
-  shared_ptr<ngraph::runtime::Executable> ng_exec;
-  std::stringstream signature_ss;
-  std::string signature;
-  std::shared_ptr<ngraph::Function> ng_function;
+ protected:
+  unique_ptr<tf::Graph> m_input_graph;
+  NGraphExecutorDB m_edb;
+  std::vector<Tensor> m_tf_input_tensors;
+  std::vector<TensorShape> m_input_shapes;
+  shared_ptr<ngraph::runtime::Executable> m_ng_exec;
+
+  std::stringstream m_signature_ss;
+  std::string m_signature;
+  std::shared_ptr<ngraph::Function> m_ng_function;
 };
 
 TEST_F(NGraphExecutorDBTest, CompileExe) {
-  ASSERT_EQ(edb.MaybeGetNgExecutable(signature, ng_exec), false);
-  ASSERT_OK(CompileExecutable(edb, input_shapes, input_graph.get(), ng_function,
-                              ng_exec, signature));
-  ASSERT_EQ(edb.MaybeGetNgExecutable(signature, ng_exec), true);
-  ASSERT_EQ(edb.MaybeGetNgFunction(ng_exec, ng_function), true);
-  // Validate the nGraph Function
-  const auto& parameters = ng_function->get_parameters();
-  ASSERT_EQ(2, parameters.size());
+  ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), false);
+  ASSERT_OK(CompileExecutable(m_edb, m_input_shapes, m_input_graph.get(),
+                              m_ng_function, m_ng_exec, m_signature));
+  std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
+  std::shared_ptr<ngraph::Function> ng_function;
+  m_edb.AddItem(m_signature, evicted_ng_exec, ng_function, evicted_ng_exec, 2);
+  ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, evicted_ng_exec), false);
+  ASSERT_EQ(evicted_ng_exec.get(), nullptr);
+
+  ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), false);
+  ASSERT_EQ(m_edb.MaybeGetNgFunction(m_ng_exec, m_ng_function), false);
+
+  m_edb.AddItem(m_signature, m_ng_exec, m_ng_function, evicted_ng_exec, 2);
+  ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), true);
+  ASSERT_EQ(m_edb.MaybeGetNgFunction(m_ng_exec, m_ng_function), true);
+
+  m_edb.AddItem(m_signature, m_ng_exec, m_ng_function, evicted_ng_exec, 2);
+  int a = m_edb.m_ng_exec_map.size();
+  ASSERT_EQ(a, 1);
+}
+
+TEST_F(NGraphExecutorDBTest, CompileAndGetTensors) {
+  ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), false);
+  ASSERT_OK(CompileExecutable(m_edb, m_input_shapes, m_input_graph.get(),
+                              m_ng_function, m_ng_exec, m_signature));
+  std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
+  m_edb.AddItem(m_signature, m_ng_exec, m_ng_function, evicted_ng_exec, 2);
+  ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), true);
+  ASSERT_EQ(m_edb.MaybeGetNgFunction(m_ng_exec, m_ng_function), true);
+
+  ASSERT_EQ(evicted_ng_exec.get(), nullptr);
+  ng::runtime::Backend* op_backend = BackendManager::GetBackend("INTERPRETER");
+  op_backend->remove_compiled_function(evicted_ng_exec);
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
+
+  for (int i = 0; i < 2; i++) {
+    ASSERT_OK(m_edb.GetDeviceTensors(m_ng_exec, io_tensors));
+    int pipeline_idx = get<0>(io_tensors);
+    ASSERT_EQ(i, pipeline_idx) << "GetTensorsFromPipeline() Returned: "
+                               << pipeline_idx;
+  }
+}
+
+TEST_F(NGraphExecutorDBTest, CompileAndGetTensorsMultiThreaded) {
+  std::atomic_flag lock_stream = ATOMIC_FLAG_INIT;
+
+  auto worker = [&](size_t thread_id) {
+    ASSERT_OK(CompileExecutable(m_edb, m_input_shapes, m_input_graph.get(),
+                                m_ng_function, m_ng_exec, m_signature));
+
+    std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
+    m_edb.AddItem(m_signature, m_ng_exec, m_ng_function, evicted_ng_exec, 4);
+    int a = m_edb.m_ng_exec_map.size();
+    ASSERT_EQ(a, 1);
+
+    ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), true);
+    ASSERT_EQ(m_edb.MaybeGetNgFunction(m_ng_exec, m_ng_function), true);
+
+    ASSERT_EQ(evicted_ng_exec.get(), nullptr);
+    ng::runtime::Backend* op_backend =
+        BackendManager::GetBackend("INTERPRETER");
+    op_backend->remove_compiled_function(evicted_ng_exec);
+    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
+    for (int i = 0; i < 4; i++) {
+      if (!lock_stream.test_and_set()) {
+        ASSERT_OK(m_edb.GetDeviceTensors(m_ng_exec, io_tensors));
+      }
+    }
+  };
+  std::thread thread0(worker, 0);
+  std::thread thread1(worker, 1);
+  std::thread thread2(worker, 2);
+
+  thread0.join();
+  thread1.join();
+  thread2.join();
 }
 }
 }
