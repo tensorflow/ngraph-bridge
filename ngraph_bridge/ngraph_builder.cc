@@ -351,9 +351,10 @@ Builder::TF_NGRAPH_CONST_MAP() {
   return the_map;
 }
 
-static std::pair<std::shared_ptr<ng::Node>, std::shared_ptr<ng::Node>>
-PerformNgBroadcast(const string& prov_tag, std::shared_ptr<ng::Node> ng_lhs,
-                   std::shared_ptr<ng::Node> ng_rhs) {
+std::pair<std::shared_ptr<ng::Node>, std::shared_ptr<ng::Node>>
+Builder::PerformNgBroadcast(const string& prov_tag,
+                            std::shared_ptr<ng::Node> ng_lhs,
+                            std::shared_ptr<ng::Node> ng_rhs) {
   // builder::numpy_broadcast is the only known builder that has the possibility
   // that the output node is same as the input node
   // So we take special care to check, before calling SetTracingInfo
@@ -459,7 +460,8 @@ static Status TranslateBinaryOp(
   std::shared_ptr<ng::Node> ng_lhs, ng_rhs;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
 
-  std::tie(ng_lhs, ng_rhs) = PerformNgBroadcast(op->name(), ng_lhs, ng_rhs);
+  std::tie(ng_lhs, ng_rhs) =
+      Builder::PerformNgBroadcast(op->name(), ng_lhs, ng_rhs);
 
   auto ng_node = create_binary_op(ng_lhs, ng_rhs);
   if (ng_node != ng_lhs && ng_node != ng_rhs) {
@@ -2989,9 +2991,9 @@ static Status TranslateOneHotOp(
 
   // broadcast to make all tensors same shape, as required by ngraph select op
   std::tie(ng_onehot_bool, ng_on) =
-      PerformNgBroadcast(op->name(), ng_onehot_bool, ng_on);
+      Builder::PerformNgBroadcast(op->name(), ng_onehot_bool, ng_on);
   std::tie(ng_onehot_bool, ng_off) =
-      PerformNgBroadcast(op->name(), ng_onehot_bool, ng_off);
+      Builder::PerformNgBroadcast(op->name(), ng_onehot_bool, ng_off);
 
   auto ng_onehot = ConstructNgNode<ng::op::Select>(op->name(), ng_onehot_bool,
                                                    ng_on, ng_off);
@@ -4838,10 +4840,10 @@ static Status TranslateSelectOp(const Node* op,
         op->name(), ng_input1, ng::AxisVector{0}, tmp_vector);
   }
 
-  std::tie(ng_input1, ng_input2) = PerformNgBroadcast(
+  std::tie(ng_input1, ng_input2) = Builder::PerformNgBroadcast(
       op->name(), (length != 0 ? ng_input_new : ng_input1), ng_input2);
   std::tie(ng_input2, ng_input3) =
-      PerformNgBroadcast(op->name(), ng_input2, ng_input3);
+      Builder::PerformNgBroadcast(op->name(), ng_input2, ng_input3);
 
   ng_select = ConstructNgNode<ng::op::Select>(op->name(), ng_input1, ng_input2,
                                               ng_input3);
