@@ -5144,9 +5144,13 @@ Status Builder::TranslateGraph(
     if (!check_if_result_or_parameter(n)) {
       num_tags = n->get_provenance_tags().size();
       if (num_tags != 1) {
+        // In case of an error (num_tags != 1), we dump the ngraph json
+        // However by default the json will not contain the provenance
+        // information. So enable NGRAPH_PROVENANCE_ENABLE, and then reset it
+        // back in the end after NgraphSerialize is done
         char* original_provenance_flag_value =
             getenv("NGRAPH_PROVENANCE_ENABLE");
-        // No need to free original_provenance_flag_value sccording to the
+        // No need to free original_provenance_flag_value according to the
         // standard
 
         char enable_provenance[] = "NGRAPH_PROVENANCE_ENABLE=1";
