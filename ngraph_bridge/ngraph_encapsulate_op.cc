@@ -74,7 +74,8 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_device_id", &device_id));
 
   // Concatenate the backend_name:device_id
-  string be_name = BackendManager::GetBackendCreationString(backend_name, device_id);
+  string be_name =
+      BackendManager::GetBackendCreationString(backend_name, device_id);
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name()
                  << "BE: " << be_name;
@@ -85,13 +86,13 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       ctx, backend != nullptr,
       errors::Internal("Cannot get the backend object for BE: ", be_name));
 
-  // If we have the VARIABLE capture on then we can't use the 
-  // parallel executor until that support is added. 
-  #if !defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    m_use_parallel_executor = backend->executable_can_create_tensors();
-  #else
-    m_use_parallel_executor = false;
-  #endif
+// If we have the VARIABLE capture on then we can't use the
+// parallel executor until that support is added.
+#if !defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+  m_use_parallel_executor = backend->executable_can_create_tensors();
+#else
+  m_use_parallel_executor = false;
+#endif
 
   // Override the switch for debugging/testing
   if (std::getenv("NGRAPH_TF_USE_LEGACY_EXECUTOR") != nullptr) {
@@ -114,12 +115,12 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
   GraphDef* graph_def;
   unique_ptr<Graph> encap_subgraph(new Graph(OpRegistry::Global()));
 
-  int cluster{-1};
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster", &cluster));
-  graph_def = NGraphClusterManager::GetClusterGraph(cluster);
+  int cluster_id{-1};
+  OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster", &cluster_id));
+  graph_def = NGraphClusterManager::GetClusterGraph(cluster_id);
 
   if (graph_def == nullptr) {
-    string flib_key = "ngraph_cluster_" + to_string(cluster);
+    string flib_key = "ngraph_cluster_" + to_string(cluster_id);
     // Read graphdef from function library
     const FunctionLibraryDefinition flib =
         *ctx->function_library()->GetFunctionLibraryDefinition();
@@ -133,7 +134,8 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
     const auto get_func_sig = [&flib](const string& op, const OpDef** sig) {
       return flib.LookUpOpDef(op, sig);
     };
-    OP_REQUIRES_OK(ctx, FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody));
+    OP_REQUIRES_OK(
+        ctx, FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody));
     CopyGraph(*fnbody->graph, encap_subgraph.get());
   } else {
     GraphConstructorOptions opts;
@@ -147,7 +149,7 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
 
   // Create the Executor object
   m_parallel_executor = move(unique_ptr<NGraphExecutor>(new NGraphExecutor(
-      s_instance_id, cluster, graph_id, encap_subgraph, backend_name)));
+      s_instance_id, cluster_id, graph_id, encap_subgraph, backend_name)));
   s_instance_id++;
 
   // Get the optional attributes

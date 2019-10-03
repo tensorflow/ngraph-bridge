@@ -275,7 +275,7 @@ TEST(GrapplerConfig, RConfig3) {
 
   // Even though the backend is set via config-writer, the one specified
   // by the env. var takes effect. So though we set this to CPU
-  // the packend should point to NOP as set vis env. var
+  // the backend should point to NOP as set via env. var
   ASSERT_EQ(ng_backend, "NOP");
   ASSERT_EQ(ng_device_id, "1");
 

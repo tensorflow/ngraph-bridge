@@ -124,14 +124,14 @@ class NGraphExecutor {
       m_ng_function_map;
 
   std::unordered_map<
-    std::shared_ptr<ngraph::runtime::Executable>,
-    std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>> 
-  m_ng_exec_input_cache_map;
+      std::shared_ptr<ngraph::runtime::Executable>,
+      std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>
+      m_ng_exec_input_cache_map;
 
   std::unordered_map<
-    std::shared_ptr<ngraph::runtime::Executable>,
-    std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>
-  m_ng_exec_output_cache_map;
+      std::shared_ptr<ngraph::runtime::Executable>,
+      std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>
+      m_ng_exec_output_cache_map;
 
   bool m_executable_can_create_tensor;
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,

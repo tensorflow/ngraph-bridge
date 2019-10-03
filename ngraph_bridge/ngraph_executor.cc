@@ -227,7 +227,6 @@ Status NGraphExecutor::ComputeSignature(
 Status NGraphExecutor::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec, bool& cache_hit) {
-
   NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: "
                  << m_op_backend_name;
 
@@ -354,12 +353,14 @@ Status NGraphExecutor::GetNgExecutable(
       }
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      NgraphSerialize("tf_function_error_" + m_node_name + ".json", ng_function);
+      NgraphSerialize("tf_function_error_" + m_node_name + ".json",
+                      ng_function);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      NgraphSerialize("tf_function_error_" + m_node_name + ".json", ng_function);
+      NgraphSerialize("tf_function_error_" + m_node_name + ".json",
+                      ng_function);
       return errors::Internal("Error in compiling op_backend\n");
     }
     BackendManager::UnlockBackend(m_op_backend_name);
@@ -377,7 +378,8 @@ Status NGraphExecutor::GetNgExecutable(
     auto delta_res_mem = rss - rss0;
     NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << m_instance_id
                    << " Cache length: " << m_ng_exec_map.size()
-                   << "  Cluster: " << m_node_name << " Delta VM: " << delta_vm_mem
+                   << "  Cluster: " << m_node_name
+                   << " Delta VM: " << delta_vm_mem
                    << "  Delta RSS: " << delta_res_mem
                    << "  Function size: " << function_size
                    << " KB Total RSS: " << rss / (1024 * 1024) << " GB "

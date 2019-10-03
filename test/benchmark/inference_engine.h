@@ -62,7 +62,6 @@ class InferenceEngine {
  private:
   const string m_name;
   unique_ptr<Session> m_session;
-  // void ThreadMain();
   thread m_worker;
   atomic<bool> m_terminate_worker{false};
   std::function<void(int)> m_step_callback{nullptr};
