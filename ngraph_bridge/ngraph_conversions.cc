@@ -14,7 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_conversions.h"
+#include "ngraph_bridge/ngraph_conversions.h"
+#include "ngraph_bridge/ngraph_api.h"
 
 namespace tensorflow {
 
@@ -31,38 +32,56 @@ void NdhwcToNGraph(std::shared_ptr<ngraph::Node>& ng_node) {
 }
 }  // namespace detail
 
-void BatchToNGraph(const string& provenance_tag, bool is_nhwc,
+void BatchToNGraph(const string& op_name, bool is_nhwc,
                    std::shared_ptr<ngraph::Node>& ng_input) {
   if (is_nhwc) {
     detail::NhwcToNGraph(ng_input);
-    ng_input->add_provenance_tag(provenance_tag);
+    ng_input->set_friendly_name(op_name);
+    ng_input->add_provenance_tag(op_name);
+    if (config::IsLoggingPlacement()) {
+      cout << "TF_to_NG: " << op_name << " --> " << ng_input->get_name()
+           << "\n";
+    }
   }
 }
 
-void BatchToNGraph3D(const string& provenance_tag, bool is_ndhwc,
+void BatchToNGraph3D(const string& op_name, bool is_ndhwc,
                      std::shared_ptr<ngraph::Node>& ng_input) {
   if (is_ndhwc) {
     detail::NdhwcToNGraph(ng_input);
-    ng_input->add_provenance_tag(provenance_tag);
+    ng_input->set_friendly_name(op_name);
+    ng_input->add_provenance_tag(op_name);
+    if (config::IsLoggingPlacement()) {
+      cout << "TF_to_NG: " << op_name << " --> " << ng_input->get_name()
+           << "\n";
+    }
   }
 }
 
-void BatchToTensorflow(const string& provenance_tag, bool is_nhwc,
+void BatchToTensorflow(const string& op_name, bool is_nhwc,
                        std::shared_ptr<ngraph::Node>& ng_node) {
   if (!is_nhwc) {
     return;
   }
   Reshape<0, 2, 3, 1>(ng_node);
-  ng_node->add_provenance_tag(provenance_tag);
+  ng_node->set_friendly_name(op_name);
+  ng_node->add_provenance_tag(op_name);
+  if (config::IsLoggingPlacement()) {
+    cout << "TF_to_NG: " << op_name << " --> " << ng_node->get_name() << "\n";
+  }
 }
 
-void BatchToTensorflow3D(const string& provenance_tag, bool is_ndhwc,
+void BatchToTensorflow3D(const string& op_name, bool is_ndhwc,
                          std::shared_ptr<ngraph::Node>& ng_node) {
   if (!is_ndhwc) {
     return;
   }
   Reshape3D<0, 2, 3, 4, 1>(ng_node);
-  ng_node->add_provenance_tag(provenance_tag);
+  ng_node->set_friendly_name(op_name);
+  ng_node->add_provenance_tag(op_name);
+  if (config::IsLoggingPlacement()) {
+    cout << "TF_to_NG: " << op_name << " --> " << ng_node->get_name() << "\n";
+  }
 }
 }  // namespace ngraph_bridge
 

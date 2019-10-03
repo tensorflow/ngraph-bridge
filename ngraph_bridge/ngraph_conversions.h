@@ -103,10 +103,10 @@ void NdhwcToNcdhw(const std::vector<T>& src, std::vector<size_t>& dst) {
 }
 }
 
-void BatchToNGraph(const string& provenance_tag, bool is_nhwc,
+void BatchToNGraph(const string& op_name, bool is_nhwc,
                    std::shared_ptr<ngraph::Node>& ng_input);
 
-void BatchToNGraph3D(const string& provenance_tag, bool is_ndhwc,
+void BatchToNGraph3D(const string& op_name, bool is_ndhwc,
                      std::shared_ptr<ngraph::Node>& ng_input);
 
 template <typename T>
@@ -149,10 +149,10 @@ void BatchedOpParamReshape3D(bool is_ndhwc, const std::vector<T>& src,
   }
 }
 
-void BatchToTensorflow(const string& provenance_tag, bool is_nhwc,
+void BatchToTensorflow(const string& op_name, bool is_nhwc,
                        std::shared_ptr<ngraph::Node>& ng_node);
 
-void BatchToTensorflow3D(const string& provenance_tag, bool is_ndhwc,
+void BatchToTensorflow3D(const string& op_name, bool is_ndhwc,
                          std::shared_ptr<ngraph::Node>& ng_node);
 
 }  // namespace ngraph_bridge

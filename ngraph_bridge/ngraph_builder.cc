@@ -94,6 +94,14 @@ static void SaveNgOp(Builder::OpMap& ng_op_map, const std::string& op_name,
 
 void SetTracingInfo(const std::string& op_name,
                     const shared_ptr<ng::Node> ng_node) {
+  // This function is used to trace whng node came from which tf node
+  // It does 3 things:
+  // 1. Attaches provenance tags. This is guaranteed to propagate the tag info
+  // to all nodes.
+  // The next 2 are not guaranteed to be present for all nodes.
+  // But when present they are correct and agree with provenance tags
+  // 2. Attaches friendly names.
+  // 3. Prints a log if NGRAPH_TF_LOG_PLACEMENT=1
   ng_node->set_friendly_name(op_name);
   ng_node->add_provenance_tag(op_name);
   if (config::IsLoggingPlacement()) {
