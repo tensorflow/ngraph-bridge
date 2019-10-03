@@ -661,9 +661,9 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
                                                              bool* result) {
     // TODO: replace current_backend ->
     // BackendManager::GetCurrentlySetBackendName()
-    auto config_map =
-        BackendManager::GetBackendAttributeValues(current_backend);
-    *result = (config_map.at("ngraph_backend") == "NNPI");
+    // FIXME(gopoka): GatherV2 is supported only when axis == 0.
+    //                If possible, check should be added here.
+    *result = true;
     return Status::OK();
   };
 
