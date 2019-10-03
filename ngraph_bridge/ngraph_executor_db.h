@@ -43,10 +43,11 @@ class NGraphExecutorDB {
   bool MaybeGetNgExecutable(
       std::string signature,
       std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
-  // make pair func and exece
+
   void AddItem(std::string signature,
-               std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-               std::shared_ptr<ngraph::Function> ng_function,
+               std::pair<std::shared_ptr<ngraph::runtime::Executable>,
+                         std::shared_ptr<ngraph::Function>>
+                   ng_exec_func,
                std::shared_ptr<ngraph::runtime::Executable>& evicted_ng_exec,
                int depth);
 

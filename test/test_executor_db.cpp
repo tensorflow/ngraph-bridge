@@ -125,18 +125,21 @@ TEST_F(NGraphExecutorDBTest, CompileExe) {
                               m_ng_function, m_ng_exec, m_signature));
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
   std::shared_ptr<ngraph::Function> ng_function;
-  m_edb.AddItem(m_signature, evicted_ng_exec, ng_function, evicted_ng_exec, 2);
+  m_edb.AddItem(m_signature, std::make_pair(evicted_ng_exec, ng_function),
+                evicted_ng_exec, 2);
   ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, evicted_ng_exec), false);
   ASSERT_EQ(evicted_ng_exec.get(), nullptr);
 
   ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), false);
   ASSERT_EQ(m_edb.MaybeGetNgFunction(m_ng_exec, m_ng_function), false);
 
-  m_edb.AddItem(m_signature, m_ng_exec, m_ng_function, evicted_ng_exec, 2);
+  m_edb.AddItem(m_signature, std::make_pair(m_ng_exec, m_ng_function),
+                evicted_ng_exec, 2);
   ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), true);
   ASSERT_EQ(m_edb.MaybeGetNgFunction(m_ng_exec, m_ng_function), true);
 
-  m_edb.AddItem(m_signature, m_ng_exec, m_ng_function, evicted_ng_exec, 2);
+  m_edb.AddItem(m_signature, std::make_pair(m_ng_exec, m_ng_function),
+                evicted_ng_exec, 2);
   int a = m_edb.m_ng_exec_map.size();
   ASSERT_EQ(a, 1);
 }
@@ -146,7 +149,8 @@ TEST_F(NGraphExecutorDBTest, CompileAndGetTensors) {
   ASSERT_OK(CompileExecutable(m_edb, m_input_shapes, m_input_graph.get(),
                               m_ng_function, m_ng_exec, m_signature));
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
-  m_edb.AddItem(m_signature, m_ng_exec, m_ng_function, evicted_ng_exec, 2);
+  m_edb.AddItem(m_signature, std::make_pair(m_ng_exec, m_ng_function),
+                evicted_ng_exec, 2);
   ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), true);
   ASSERT_EQ(m_edb.MaybeGetNgFunction(m_ng_exec, m_ng_function), true);
 
@@ -171,7 +175,8 @@ TEST_F(NGraphExecutorDBTest, CompileAndGetTensorsMultiThreaded) {
                                 m_ng_function, m_ng_exec, m_signature));
 
     std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
-    m_edb.AddItem(m_signature, m_ng_exec, m_ng_function, evicted_ng_exec, 4);
+    m_edb.AddItem(m_signature, std::make_pair(m_ng_exec, m_ng_function),
+                  evicted_ng_exec, 4);
     int a = m_edb.m_ng_exec_map.size();
     ASSERT_EQ(a, 1);
 
