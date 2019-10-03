@@ -488,7 +488,6 @@ TEST(MathOps, ArgMinPos) {
   opexecuter.RunTest();
 }  // end of test op ArgMin
 
-
 // Test op: BatchMatMul
 // BatchMatMul2D
 // AdjX = false

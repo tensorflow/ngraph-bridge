@@ -913,31 +913,30 @@ static Status TranslateBatchMatMulOp(
 static Status TranslateBatchMatMulV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_lhs, ng_rhs;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
 
-    shared_ptr<ng::Node> ng_lhs, ng_rhs;
-    TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
+  auto ng_lhs_shape = ng_lhs->get_shape();
+  auto ng_rhs_shape = ng_rhs->get_shape();
+  size_t n_dims = ng_lhs_shape.size();
 
-    auto ng_lhs_shape = ng_lhs->get_shape();
-    auto ng_rhs_shape = ng_rhs->get_shape();
-    size_t n_dims = ng_lhs_shape.size();
-
-    for (size_t i = 0; i < n_dims - 2; ++i) {
-      if (!((ng_lhs_shape[i] == ng_rhs_shape[i]) || 
-        (ng_lhs_shape[i] == 1) || (ng_rhs_shape[i] == 1))){
-        return errors::InvalidArgument(
-            "ng_lhs_shape and ng_rhs_shape must be broadcastable for BatchMatMulV2 "
-            "for each dimension",
-            i);
-      } else if (ng_lhs_shape[i] != ng_rhs_shape[i]) {
-        return errors::Unimplemented(
-              "ng_lhs_shape and ng_rhs_shape must be the same for BatchMatMulV2 "
-              "for each dimension",
-              i);
-      }
+  for (size_t i = 0; i < n_dims - 2; ++i) {
+    if (!((ng_lhs_shape[i] == ng_rhs_shape[i]) || (ng_lhs_shape[i] == 1) ||
+          (ng_rhs_shape[i] == 1))) {
+      return errors::InvalidArgument(
+          "ng_lhs_shape and ng_rhs_shape must be broadcastable for "
+          "BatchMatMulV2 "
+          "for each dimension",
+          i);
+    } else if (ng_lhs_shape[i] != ng_rhs_shape[i]) {
+      return errors::Unimplemented(
+          "ng_lhs_shape and ng_rhs_shape must be the same for BatchMatMulV2 "
+          "for each dimension",
+          i);
     }
-    return TranslateBatchMatMulOp(op, static_input_map, ng_op_map);
+  }
+  return TranslateBatchMatMulOp(op, static_input_map, ng_op_map);
 }
-
 
 static Status TranslateBiasAddOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
@@ -4836,8 +4835,8 @@ const static std::map<
       {"AvgPool", TranslateAvgPoolOp}, {"AvgPoolGrad", TranslateAvgPoolGradOp},
       {"BatchMatMul", TranslateBatchMatMulOp},
       {"BatchMatMulV2", TranslateBatchMatMulV2Op},
-      {"BiasAdd", TranslateBiasAddOp},
-      {"BiasAddGrad", TranslateBiasAddGradOp}, {"Cast", TranslateCastOp},
+      {"BiasAdd", TranslateBiasAddOp}, {"BiasAddGrad", TranslateBiasAddGradOp},
+      {"Cast", TranslateCastOp},
       {"CombinedNonMaxSuppression", TranslateCombinedNonMaxSuppressionOp},
       {"ConcatV2", TranslateConcatV2Op}, {"Const", TranslateConstOp},
       {"Conv2D", TranslateConv2DOp},
