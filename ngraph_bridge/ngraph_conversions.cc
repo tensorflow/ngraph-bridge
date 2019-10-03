@@ -62,6 +62,7 @@ void BatchToTensorflow3D(const string& op_name, bool is_ndhwc,
   if (!is_ndhwc) {
     return;
   }
+  Reshape3D<0, 2, 3, 4, 1>(ng_node);
   Builder::SetTracingInfo(op_name, ng_node);
 }
 }  // namespace ngraph_bridge
