@@ -35,10 +35,6 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-using NgFunctionIOCache = std::unordered_map<
-    std::shared_ptr<ngraph::runtime::Executable>,
-    std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>;
-
 class NGraphExecutor {
  public:
   // Transforms, compiles and executes TesnorFlow computation graph using nGraph
@@ -74,7 +70,7 @@ class NGraphExecutor {
 
   void ReturnPipelinedTensors(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
-    lock_guard<mutex> lock(m_mutext);
+    lock_guard<mutex> lock(m_mutex);
     m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
   }
 
@@ -82,18 +78,18 @@ class NGraphExecutor {
 
   int GetGraphId() { return m_graph_id; }
 
-  const string& GetOpBackend() { return m_op_backend_name; }
+  const string& GetOpBackendName() { return m_op_backend_name; }
 
-  bool IsTensorPipelineSupported() { return m_executable_can_create_tensor; }
+  bool IsTensorPipeliningSupported() { return m_executable_can_create_tensor; }
 
-  int TensorPipelineDepth() {
+  int GetTensorPipelineDepth() {
     return m_executable_can_create_tensor ? m_depth : 1;
   }
 
  private:
   // Allocates the necessary tensors from the Executable (or backend in future)
   // Since the pipeline cannot be created at the construction time, we need to
-  // provide the this as a separate function. It's ok to call this multiple
+  // provide this as a separate function. It's ok to call this multiple
   // times - the Pipeline will be initialized only once
   Status InitializeIOTensorPipeline(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
@@ -106,14 +102,14 @@ class NGraphExecutor {
                           std::stringstream& signature_ss) const;
 
  private:
-  const int my_instance_id;
+  const int m_instance_id;
   const int m_ngraph_cluster_id{-1};
   const int m_graph_id{-1};
   const unique_ptr<Graph> m_graph;
 
   int my_function_cache_depth_in_items = 16;
   const string m_op_backend_name;
-  string m_name;
+  string m_node_name;
   std::vector<bool> m_input_is_static;
   std::list<std::string> m_lru;
   bool m_do_aot = false;
@@ -127,15 +123,22 @@ class NGraphExecutor {
                      std::shared_ptr<ngraph::Function>>
       m_ng_function_map;
 
-  NgFunctionIOCache m_ng_exec_input_cache_map;
-  NgFunctionIOCache m_ng_exec_output_cache_map;
+  std::unordered_map<
+    std::shared_ptr<ngraph::runtime::Executable>,
+    std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>> 
+  m_ng_exec_input_cache_map;
+
+  std::unordered_map<
+    std::shared_ptr<ngraph::runtime::Executable>,
+    std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>
+  m_ng_exec_output_cache_map;
 
   bool m_executable_can_create_tensor;
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      shared_ptr<PipelinedTensorsStore>>
       m_executable_pipelined_tensors_map;
 
-  mutex m_mutext;
+  mutex m_mutex;
   int m_depth{2};  // TODO make this settable
 };
 

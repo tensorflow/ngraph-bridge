@@ -61,7 +61,7 @@ namespace ngraph_bridge {
 NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                                unique_ptr<tensorflow::Graph>& graph,
                                const string& backend_name)
-    : my_instance_id(instance_id),
+    : m_instance_id(instance_id),
       m_ngraph_cluster_id(cluster_id),
       m_graph_id(graph_id),
       m_graph(std::move(graph)),
@@ -73,7 +73,7 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
   NGRAPH_VLOG(3) << "NGraphExecutor(): " << instance_id
                  << " Backend: " << backend_name;
 
-  // Getthe backend. Note that the backend may not be available
+  // Get the backend. Note that the backend may not be available
   // so that's a programmng error.
   try {
     auto backend = BackendManager::GetBackend(m_op_backend_name);
@@ -227,12 +227,6 @@ Status NGraphExecutor::ComputeSignature(
 Status NGraphExecutor::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec, bool& cache_hit) {
-  // FIRST Compute the signature
-  std::stringstream signature_ss;
-  string signature;
-
-  std::shared_ptr<ngraph::Function> ng_function;
-  std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
 
   NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: "
                  << m_op_backend_name;
@@ -246,12 +240,14 @@ Status NGraphExecutor::GetNgExecutable(
     return errors::Internal("Backend not available: ", m_op_backend_name);
   }
 
-  lock_guard<mutex> lock(m_mutext);
+  lock_guard<mutex> lock(m_mutex);
 
+  std::stringstream signature_ss;
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,
                                       static_input_map, signature_ss));
+  string signature;
   signature = signature_ss.str();
 
   NGRAPH_VLOG(5) << "Computed signature: " << signature;
@@ -265,11 +261,15 @@ Status NGraphExecutor::GetNgExecutable(
     long vm, rss, vm0, rss0;
     MemoryProfile(vm0, rss0);
 
-    NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
+    NGRAPH_VLOG(1) << "Compilation cache miss: " << m_node_name;
+
+    std::shared_ptr<ngraph::Function> ng_function;
+    std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
+
     if (!m_do_aot) {
       TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                  m_graph.get(), ng_function));
-      ng_function->set_friendly_name(m_name);
+      ng_function->set_friendly_name(m_node_name);
     } else {
       auto itr = m_aot_functions.find(signature);
       if (itr == m_aot_functions.end()) {
@@ -284,13 +284,13 @@ Status NGraphExecutor::GetNgExecutable(
 
     // Serialize to nGraph if needed
     if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-      std::string file_name = "tf_function_" + m_name + ".json";
-      NgraphSerialize("tf_function_" + m_name + ".json", ng_function);
+      std::string file_name = "tf_function_" + m_node_name + ".json";
+      NgraphSerialize("tf_function_" + m_node_name + ".json", ng_function);
 #if defined NGRAPH_DISTRIBUTED
       int rank_id;
       rank_id = ng::get_distributed_interface()->get_rank();
       NgraphSerialize(
-          "tf_function_" + m_name + "_" + to_string(rank_id) + ".json",
+          "tf_function_" + m_node_name + "_" + to_string(rank_id) + ".json",
           ng_function);
 #endif
     }
@@ -327,14 +327,14 @@ Status NGraphExecutor::GetNgExecutable(
       }
       m_ng_exec_output_cache_map.erase(evicted_ng_exec);
       m_lru.pop_back();
-      NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << my_instance_id
-                     << " Cluster: " << m_name << " Input Tensors freed: "
+      NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << m_instance_id
+                     << " Cluster: " << m_node_name << " Input Tensors freed: "
                      << input_tensors_bytes_free / (1024 * 1024) << " MB"
                      << " Output Tensors freed: "
                      << output_tensors_bytes_free / (1024 * 1024) << " MB";
     }  // cache eviction if cache size greater than cache depth
 
-    ngraph::Event event_compile("Compile nGraph", m_name, "");
+    ngraph::Event event_compile("Compile nGraph", m_node_name, "");
     BackendManager::LockBackend(m_op_backend_name);
     try {
       if (m_do_aot) {
@@ -354,12 +354,12 @@ Status NGraphExecutor::GetNgExecutable(
       }
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
+      NgraphSerialize("tf_function_error_" + m_node_name + ".json", ng_function);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
-      NgraphSerialize("tf_function_error_" + m_name + ".json", ng_function);
+      NgraphSerialize("tf_function_error_" + m_node_name + ".json", ng_function);
       return errors::Internal("Error in compiling op_backend\n");
     }
     BackendManager::UnlockBackend(m_op_backend_name);
@@ -375,9 +375,9 @@ Status NGraphExecutor::GetNgExecutable(
     MemoryProfile(vm, rss);
     auto delta_vm_mem = vm - vm0;
     auto delta_res_mem = rss - rss0;
-    NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
+    NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << m_instance_id
                    << " Cache length: " << m_ng_exec_map.size()
-                   << "  Cluster: " << m_name << " Delta VM: " << delta_vm_mem
+                   << "  Cluster: " << m_node_name << " Delta VM: " << delta_vm_mem
                    << "  Delta RSS: " << delta_res_mem
                    << "  Function size: " << function_size
                    << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
@@ -392,7 +392,7 @@ Status NGraphExecutor::GetNgExecutable(
     }
     ng_exec = it->second;
     cache_hit = true;
-    NGRAPH_VLOG(1) << "Compilation cache hit: " << m_name;
+    NGRAPH_VLOG(1) << "Compilation cache hit: " << m_node_name;
   }
   return Status::OK();
 }
@@ -467,7 +467,7 @@ Status NGraphExecutor::ParseNodeAttributes(
     }
   }
   if (((m_aot_functions.size() > 0) || (m_aot_execs.size() > 0)) && !m_do_aot) {
-    return errors::Internal("The encapsulate ", m_name,
+    return errors::Internal("The encapsulate ", m_node_name,
                             " has ngraph functions or executables embedded "
                             "in it, even though AOT was not requested.");
   }
@@ -485,7 +485,7 @@ Status NGraphExecutor::InitializeIOTensorPipeline(
         "tensors");
   }
 
-  lock_guard<mutex> lock(m_mutext);
+  lock_guard<mutex> lock(m_mutex);
   auto itr = m_executable_pipelined_tensors_map.find(ng_exec);
   if (itr == m_executable_pipelined_tensors_map.end()) {
     // Create these pipelined ng tensors only if needed, else reuse from cache
@@ -527,7 +527,7 @@ Status NGraphExecutor::GetTensorsFromPipeline(
   }
 
   // Lookup the executable
-  lock_guard<mutex> lock(m_mutext);
+  lock_guard<mutex> lock(m_mutex);
   PipelinedTensorsStore* pts(nullptr);
   try {
     const auto& item = m_executable_pipelined_tensors_map.at(ng_exec);

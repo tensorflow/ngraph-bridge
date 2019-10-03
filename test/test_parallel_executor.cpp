@@ -79,8 +79,8 @@ TEST(ParallelExecutor, Construction) {
 
   // Now that the object has been cobstructed, test various internal parts
   // TODO: Create a Test Class and mark that as a friend of the Executor class
-  ASSERT_EQ(executor->GetOpBackend(), "INTERPRETER");
-  ASSERT_TRUE(executor->IsTensorPipelineSupported());
+  ASSERT_EQ(executor->GetOpBackendName(), "INTERPRETER");
+  ASSERT_TRUE(executor->IsTensorPipeliningSupported());
 }
 
 TEST(ParallelExecutor, CompilerTest) {
@@ -162,12 +162,12 @@ TEST(ParallelExecutor, PipelinedTensorCreate) {
   bool cache_hit = false;
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
-  ASSERT_EQ(2, executor.TensorPipelineDepth());
+  ASSERT_EQ(2, executor.GetTensorPipelineDepth());
 
   // Get the pipelned tensors
   int pipeline_idx = -1;
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
-  for (int i = 0; i < executor.TensorPipelineDepth(); i++) {
+  for (int i = 0; i < executor.GetTensorPipelineDepth(); i++) {
     ASSERT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
     pipeline_idx = get<0>(io_tensors);
     ASSERT_EQ(i, pipeline_idx) << "GetTensorsFromPipeline() Returned: "
@@ -200,7 +200,7 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
 
-  ASSERT_EQ(2, executor.TensorPipelineDepth());
+  ASSERT_EQ(2, executor.GetTensorPipelineDepth());
 
   // Get the pipelned tensors
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
@@ -284,7 +284,7 @@ TEST(ParallelExecutor, ExecuteOnSingleThread8Bit) {
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
 
-  ASSERT_EQ(2, executor.TensorPipelineDepth());
+  ASSERT_EQ(2, executor.GetTensorPipelineDepth());
 
   // Get the pipelned tensors
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
@@ -376,7 +376,7 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads8Bit) {
 
   auto worker = [&](int8 thread_id) {
 
-    ASSERT_EQ(2, executor.TensorPipelineDepth());
+    ASSERT_EQ(2, executor.GetTensorPipelineDepth());
 
     // Get the pipelned tensors
     std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
@@ -457,7 +457,7 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
   bool cache_hit = false;
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   ASSERT_FALSE(cache_hit);
-  ASSERT_EQ(2, executor.TensorPipelineDepth());
+  ASSERT_EQ(2, executor.GetTensorPipelineDepth());
 
   // Now Fill in the tensor - X
   auto x_flat = x.flat<float>();

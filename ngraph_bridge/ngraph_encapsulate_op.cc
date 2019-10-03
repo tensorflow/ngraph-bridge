@@ -315,7 +315,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
     // So - we reset the executor (which holds backend tensors and
     // other items) - that reduces the ref count and possibly delete if
     // 0. Then we release the backend
-    string backend = m_parallel_executor->GetOpBackend();
+    string backend = m_parallel_executor->GetOpBackendName();
     m_parallel_executor.reset();
     BackendManager::ReleaseBackend(backend);
     return;
