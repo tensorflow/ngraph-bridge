@@ -79,8 +79,8 @@ class NGraphCatalog {
 
  public:
   // Utility to create key to query the maps
-  static const string CreateNodeKey(const int& graph_id,
-                                    const string& node_name, const int& index);
+  static string CreateNodeKey(const int& graph_id, const string& node_name,
+                              const int& index);
   // Clear all the maps
   static void ClearCatalog();
 
@@ -92,12 +92,11 @@ class NGraphCatalog {
 
   static void ClearEncapOutputCopyIndexesMap();
 
-  static const bool EncapOutputNeedsCopy(const int& graphid,
-                                         const string& node_name);
+  static bool EncapOutputNeedsCopy(const int& graphid, const string& node_name);
 
-  static const bool EncapOutputIndexNeedsCopy(const int& graphid,
-                                              const string& node_name,
-                                              const int& index);
+  static bool EncapOutputIndexNeedsCopy(const int& graphid,
+                                        const string& node_name,
+                                        const int& index);
   static const unordered_set<int>& GetEncapOutputIndexesThatNeedCopy(
       const int& graphid, const string& node_name);
   static void DeleteFromEncapOutputCopyIndexesMap(const int& graphid,
@@ -111,10 +110,10 @@ class NGraphCatalog {
   static const string& GetInputVariableSharedName(const int& graphid,
                                                   const string& node_name,
                                                   const int& input_index);
-  static const bool ExistsInInputVariableSharedNameMap(const string& key);
-  static const bool ExistsInInputVariableSharedNameMap(const int& graphid,
-                                                       const string& node_name,
-                                                       const int& input_index);
+  static bool ExistsInInputVariableSharedNameMap(const string& key);
+  static bool ExistsInInputVariableSharedNameMap(const int& graphid,
+                                                 const string& node_name,
+                                                 const int& input_index);
   static void DeleteFromInputVariableSharedNameMap(const string& key);
 
   // Functions for EncapOutputInfo Map
@@ -124,10 +123,10 @@ class NGraphCatalog {
                                       const string& shared_name,
                                       const bool& copy_to_tf,
                                       const bool& is_tf_just_looking);
-  static const bool ExistsInEncapOutputInfoMap(const string& key);
-  static const bool ExistsInEncapOutputInfoMap(const int& graphid,
-                                               const string& node_name,
-                                               const int& input_index);
+  static bool ExistsInEncapOutputInfoMap(const string& key);
+  static bool ExistsInEncapOutputInfoMap(const int& graphid,
+                                         const string& node_name,
+                                         const int& input_index);
   static const tuple<string, bool, bool>& GetInfoFromEncapOutputInfoMap(
       const string& key);
   static const string& GetVariableSharedNameFromEncapOutputInfoMap(

@@ -35,9 +35,8 @@ unordered_map<string, tuple<string, bool, bool>>
     NGraphCatalog::encap_output_info_map_;
 
 // Function to create the Node Key
-const string NGraphCatalog::CreateNodeKey(const int& graph_id,
-                                          const string& node_name,
-                                          const int& index) {
+string NGraphCatalog::CreateNodeKey(const int& graph_id,
+                                    const string& node_name, const int& index) {
   if (index == 0) {
     return to_string(graph_id) + "_" + node_name;
   }
@@ -72,16 +71,16 @@ const unordered_set<int>& NGraphCatalog::GetEncapOutputIndexesThatNeedCopy(
   return NGraphCatalog::encap_output_copy_indexes_map_.at(key);
 }
 
-const bool NGraphCatalog::EncapOutputNeedsCopy(const int& graphid,
-                                               const string& node_name) {
+bool NGraphCatalog::EncapOutputNeedsCopy(const int& graphid,
+                                         const string& node_name) {
   string key = graphid + "_" + node_name;
   auto itr = NGraphCatalog::encap_output_copy_indexes_map_.find(key);
   return itr != NGraphCatalog::encap_output_copy_indexes_map_.end();
 }
 
-const bool NGraphCatalog::EncapOutputIndexNeedsCopy(const int& graphid,
-                                                    const string& node_name,
-                                                    const int& index) {
+bool NGraphCatalog::EncapOutputIndexNeedsCopy(const int& graphid,
+                                              const string& node_name,
+                                              const int& index) {
   string key = graphid + "_" + node_name;
   auto itr = NGraphCatalog::encap_output_copy_indexes_map_.find(key);
   if (itr != NGraphCatalog::encap_output_copy_indexes_map_.end()) {
@@ -119,14 +118,14 @@ const string& NGraphCatalog::GetInputVariableSharedName(
   return NGraphCatalog::input_variable_sharedname_map_.at(node_key);
 }
 
-const bool NGraphCatalog::ExistsInInputVariableSharedNameMap(
-    const string& key) {
+bool NGraphCatalog::ExistsInInputVariableSharedNameMap(const string& key) {
   auto itr = NGraphCatalog::input_variable_sharedname_map_.find(key);
   return itr != NGraphCatalog::input_variable_sharedname_map_.end();
 }
 
-const bool NGraphCatalog::ExistsInInputVariableSharedNameMap(
-    const int& graphid, const string& node_name, const int& input_index) {
+bool NGraphCatalog::ExistsInInputVariableSharedNameMap(const int& graphid,
+                                                       const string& node_name,
+                                                       const int& input_index) {
   return NGraphCatalog::ExistsInInputVariableSharedNameMap(
       NGraphCatalog::CreateNodeKey(graphid, node_name, input_index));
 }
@@ -160,14 +159,14 @@ void NGraphCatalog::AddToEncapOutputInfoMap(const string& key,
   NGraphCatalog::encap_output_info_map_.insert({key, val});
 }
 
-const bool NGraphCatalog::ExistsInEncapOutputInfoMap(const string& key) {
+bool NGraphCatalog::ExistsInEncapOutputInfoMap(const string& key) {
   auto itr = NGraphCatalog::encap_output_info_map_.find(key);
   return itr != NGraphCatalog::encap_output_info_map_.end();
 }
 
-const bool NGraphCatalog::ExistsInEncapOutputInfoMap(const int& graphid,
-                                                     const string& node_name,
-                                                     const int& input_index) {
+bool NGraphCatalog::ExistsInEncapOutputInfoMap(const int& graphid,
+                                               const string& node_name,
+                                               const int& input_index) {
   string key = NGraphCatalog::CreateNodeKey(graphid, node_name, input_index);
   auto itr = NGraphCatalog::encap_output_info_map_.find(key);
   return itr != NGraphCatalog::encap_output_info_map_.end();
