@@ -113,15 +113,15 @@ class NgraphTest(object):
         return env_var_val
 
     # store env variables
-    def store_env_variables(self):
+    def store_env_variables(self, list_of_env_names):
         # store the env variables in map
         env_var_map = {}
-        backend_env_var = "NGRAPH_TF_BACKEND"
-        if self.is_env_variable_set(backend_env_var):
-            env_backend_val = self.get_env_variable(backend_env_var)
-            env_var_map[backend_env_var] = env_backend_val
-            print("Got env backend", env_backend_val)
-            os.environ.pop(backend_env_var)
+        for env_var in list_of_env_names:
+            if self.is_env_variable_set(env_var):
+                env_backend_val = self.get_env_variable(env_var)
+                env_var_map[env_var] = env_backend_val
+                print("Got env backend", env_backend_val)
+                os.environ.pop(env_var)
         return env_var_map
 
     # restore env variables
