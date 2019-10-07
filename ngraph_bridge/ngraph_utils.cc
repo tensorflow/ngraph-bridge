@@ -322,9 +322,7 @@ Status NgraphSerialize(const std::string& file_name,
   } catch (...) {
     return errors::Internal("Failed to serialize ngraph function");
   }
-  string new_file_name = SanitizeFileName(file_name);
-  NGRAPH_VLOG(0) << "Serializing graph to: " << new_file_name << std::endl;
-  return StringToFile(new_file_name, serialized, false);
+  return StringToFile(file_name, serialized, true);
 }
 
 string SanitizeFileName(const string file_name) {
@@ -344,6 +342,7 @@ Status StringToFile(const std::string& file_name, const std::string& contents,
                     bool sanitize_name) {
   string new_file_name =
       sanitize_name ? SanitizeFileName(file_name) : file_name;
+  NGRAPH_VLOG(0) << "Serializing graph to: " << new_file_name << std::endl;
   std::ofstream f;
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   try {
