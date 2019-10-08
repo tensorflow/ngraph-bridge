@@ -79,8 +79,8 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
     auto backend = BackendManager::GetBackend(m_op_backend_name);
     m_executable_can_create_tensor = backend->executable_can_create_tensors();
   } catch (...) {
-    throw std::runtime_error("Requested backend: '", m_op_backend_name,
-                             "' not available.");
+    throw std::runtime_error(string("Requested backend: '") +
+                             m_op_backend_name + string("' not available."));
   }
 
   //
