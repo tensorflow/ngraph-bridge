@@ -99,7 +99,7 @@ class NGraphEncapsulateImpl {
   Status ReturnPipelinedTensors(std::shared_ptr<ngraph::runtime::Executable>,
                                 size_t);
 
-  void DumpNgFunction(const string&,
+  Status DumpNgFunction(const string&,
                       std::shared_ptr<ngraph::runtime::Executable>);
 
   // Accessors(getters and setters) for the private data members of
