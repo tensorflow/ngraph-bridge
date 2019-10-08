@@ -19,7 +19,7 @@
 #include <sstream>
 #include <vector>
 
-#include "test/benchmark/inference_engine.h"
+#include "inference_engine.h"
 
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/protobuf/rewriter_config.pb.h"

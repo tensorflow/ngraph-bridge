@@ -32,6 +32,13 @@ include_directories(${TensorFlow_SRC_DIR})
 # Files that are generated during TF build are here
 include_directories(${TensorFlow_SRC_DIR}/bazel-genfiles)
 
+add_library(tensorflow_cc_lib SHARED IMPORTED)
+set_target_properties(
+    tensorflow_cc_lib
+    PROPERTIES IMPORTED_LOCATION
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.1
+)
+
 set(SRC
     inference_engine.h
     inference_engine.cc

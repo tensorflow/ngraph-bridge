@@ -283,11 +283,7 @@ Status LoadGraph(const string& graph_file_name,
                                         graph_file_name, "'");
   }
   session->reset(tensorflow::NewSession(options));
-  Status session_create_status = (*session)->Create(graph_def);
-  if (!session_create_status.ok()) {
-    return session_create_status;
-  }
-  return Status::OK();
+  return (*session)->Create(graph_def);
 }
 
 template <>
@@ -295,7 +291,6 @@ void AssignInputValues(Tensor& A, int8 x) {
   auto A_flat = A.flat<int8>();
   auto A_flat_data = A_flat.data();
   for (int i = 0; i < A_flat.size(); i++) {
-    cout << (int)x << " ";
     A_flat_data[i] = x;
   }
   cout << endl;

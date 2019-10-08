@@ -140,7 +140,6 @@ if (NGRAPH_PLAIDML_ENABLE)
     target_link_libraries(gtest_ngtf ${PLAIDML_LIBRARIES})
 endif()
 
-add_subdirectory(benchmark)
 add_subdirectory(python)
 add_subdirectory(python/bfloat16)
 add_subdirectory(model_level_tests)

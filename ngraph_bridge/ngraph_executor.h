@@ -60,7 +60,8 @@ class NGraphExecutor {
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
       std::unordered_map<std::string, std::string>* additional_attribute_map);
 
-  // Returns true when a set of i/o tensor is available. Returns false otherwse.
+  // Returns OK when a set of i/o tensor is available. Returns error message
+  // otherwse.
   // The caller can wait or come back later - based on what the application
   // demands
   Status GetTensorsFromPipeline(

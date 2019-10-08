@@ -42,9 +42,9 @@ class ThreadSafeQueue {
     return next;
   }
 
-  void Add(T* session) {
+  void Add(T* item) {
     m_mutex.Lock();
-    m_queue.push(session);
+    m_queue.push(item);
     m_cv.SignalAll();
     m_mutex.Unlock();
   }
