@@ -74,12 +74,13 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                  << " Backend: " << backend_name;
 
   // Get the backend. Note that the backend may not be available
-  // so that's a programmng error.
+  // so that's a programming error.
   try {
     auto backend = BackendManager::GetBackend(m_op_backend_name);
     m_executable_can_create_tensor = backend->executable_can_create_tensors();
   } catch (...) {
-    throw std::runtime_error("No backend available. Cannot execute graph");
+    throw std::runtime_error("Requested backend: '", m_op_backend_name,
+                             "' not available.");
   }
 
   //
