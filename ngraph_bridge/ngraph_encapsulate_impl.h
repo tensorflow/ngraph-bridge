@@ -100,7 +100,7 @@ class NGraphEncapsulateImpl {
                                 size_t);
 
   Status DumpNgFunction(const string&,
-                      std::shared_ptr<ngraph::runtime::Executable>);
+                        std::shared_ptr<ngraph::runtime::Executable>);
 
   // Accessors(getters and setters) for the private data members of
   // NgraphEncapsulateImpl class
@@ -204,6 +204,8 @@ class NGraphEncapsulateImpl {
       std::unordered_map<std::string, std::string>* additional_attribute_map);
   void SetExecCanCreateTensor(bool b) { m_executable_can_create_tensor = b; }
 
+  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
+
   void ClearNgExecPipelinedTensorMap() {
     m_executable_pipelined_tensors_map.clear();
   }
@@ -250,7 +252,6 @@ class NGraphEncapsulateImpl {
                      PipelinedTensorsStore>
       m_executable_pipelined_tensors_map;
 
-  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
   Status UpdatePipelinedTensorCache(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>

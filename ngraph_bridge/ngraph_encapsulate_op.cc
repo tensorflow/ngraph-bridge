@@ -320,11 +320,13 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   int pipeline_idx = -1;
   PipelinedTensorVector inp_group_from_pipeline;
   PipelinedTensorVector out_group_from_pipeline;
-  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> tmp_tpl;
-  OP_REQUIRES_OK(ctx,
-                 ng_encap_impl_.GetPipelineIdxAndTensors(ng_exec, tmp_tpl));
-  std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
-      tmp_tpl;
+  if (ng_encap_impl_.GetExecCanCreateTensor()) {
+    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> tmp_tpl;
+    OP_REQUIRES_OK(ctx,
+                   ng_encap_impl_.GetPipelineIdxAndTensors(ng_exec, tmp_tpl));
+    std::tie(pipeline_idx, inp_group_from_pipeline, out_group_from_pipeline) =
+        tmp_tpl;
+  }
 
   if (ng_encap_impl_.GetNgraphFreshnessTracker() == nullptr) {
     auto creator = [](NGraphFreshnessTracker** tracker) {
@@ -670,8 +672,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   int time_copy_output_tensors_to_host =
       copy_output_tensors_to_host.ElapsedInMS();
 
-  OP_REQUIRES_OK(ctx,
-                 ng_encap_impl_.ReturnPipelinedTensors(ng_exec, pipeline_idx));
+  if (ng_encap_impl_.GetExecCanCreateTensor()) {
+    OP_REQUIRES_OK(
+        ctx, ng_encap_impl_.ReturnPipelinedTensors(ng_exec, pipeline_idx));
+  }
 
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
