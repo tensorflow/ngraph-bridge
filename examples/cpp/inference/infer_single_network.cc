@@ -95,7 +95,7 @@ void PrintVersion() {
 //-----------------------------------------------------------------------------
 //  The benchmark test for inference does the following
 //    1. Preloads the input image buffer (currently single image)
-//    2. Creates the TensorFlow Session by loading a frozem inference graph
+//    2. Creates the TensorFlow Session by loading a frozen inference graph
 //    3. Starts the worker threads and runs the test for a specifed iterations
 //
 //  Each worker thread does the following:
@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
       TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer},
                                    {}, &outputs));
 
-      // End. MArk time
+      // End. Mark time
       iteration_timer.Stop();
       total_time_in_ms += iteration_timer.ElapsedInMS();
       cout << "Iteration: " << i << " Time: " << iteration_timer.ElapsedInMS()
