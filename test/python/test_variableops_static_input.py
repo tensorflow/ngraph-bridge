@@ -43,6 +43,7 @@ import os
 # However StaticInputs are derived from the input TF Tensor (which is stale)
 # giving functionally incorrect results
 # TF MeanOp expects a static input
+# * The input to Encap is a static input from Variable
 #
 #    Const     NGraphVar     Const
 #      \       /   |   \     /
