@@ -44,31 +44,33 @@ TEST(ThreadSafeQueue, Simple) {
   atomic<bool> consumer_do_wait{true};
   atomic<int> item_count{0};
 
-  bool run_test{true};
   ngraph::Event::enable_event_tracing();
 
   // Create two threads
   auto consumer = [&]() {
-    while (run_test) {
+    while (item_count < 3) {
       ngraph::Event evt_consumer_do_wait("Consumer", "Do Wait", "");
       while (consumer_do_wait) {
+        // cout << "\033[1;32mConsumer waiting\033[0m\n";
         absl::SleepFor(absl::Milliseconds(1));
       }
       evt_consumer_do_wait.Stop();
       ngraph::Event evt_consumer_waiting_for_item("Consumer", "Waiting", "");
       consumer_state = WAITING_FOR_ITEM;
-      // cout << "Waiting" << endl;
+      // cout << "\033[1;32mWaiting\033[0m" << endl;
       queue.GetNextAvailable();
       evt_consumer_waiting_for_item.Stop();
-      // cout << "Got Item: " << item_count << endl;
+      // cout << "\033[1;32mGot Item: " << item_count << "\033[0m\n";
       item_count++;
       consumer_state = GOT_ITEM;
       consumer_do_wait = true;
-      // cout << "Starting waiting" << endl;
+      // //cout << "Starting waiting" << endl;
       consumer_state = READY_TO_WAIT;
       ngraph::Event::write_trace(evt_consumer_do_wait);
       ngraph::Event::write_trace(evt_consumer_waiting_for_item);
+      // cout << "\033[1;32mWaiting for command\033[0m" << endl;
     }
+    // cout << "\033[1;34mConsumer completed tasks\033[0m" << endl;
   };
 
   std::thread thread0(consumer);
@@ -90,6 +92,8 @@ TEST(ThreadSafeQueue, Simple) {
   ngraph::Event::write_trace(evt_producer_add);
 
   // Wait until the consumer has a chance to move forward
+  // cout << "Producer: Waiting for consumer to get ready" << endl;
+
   while (consumer_state != READY_TO_WAIT) {
     absl::SleepFor(absl::Milliseconds(1));
   }
@@ -97,7 +101,7 @@ TEST(ThreadSafeQueue, Simple) {
 
   // The consumer is now waiting again until consumer_do_wait is signaled
   // Add two more items
-  // cout << "Now adding two items\n";
+  // //cout << "Now adding two items\n";
 
   ngraph::Event evt_producer_add_again("Producer", "Add-2", "");
 
@@ -106,21 +110,21 @@ TEST(ThreadSafeQueue, Simple) {
   evt_producer_add_again.Stop();
   ngraph::Event::write_trace(evt_producer_add_again);
 
-  ASSERT_EQ(consumer_state, READY_TO_WAIT);
+  // cout << "Producer: Waiting for consumer to get ready" << endl;
 
-  consumer_do_wait = false;
-  while (item_count != 2) {
+  // Wait until the consumer pulls one item from the queue
+  // and ready to receive the next command
+  while (consumer_state != READY_TO_WAIT) {
     absl::SleepFor(absl::Milliseconds(1));
   }
 
-  // cout << "Consumer got item 2\n";
+  consumer_do_wait = false;
+  // cout << "Producer: Done Waiting for consumer to get ready" << endl;
 
-  // We set this flag to false so that as soon as the last
-  // item is pulled out of the queue, the consumer thread terminates
-  run_test = false;
   while (item_count != 3) {
     absl::SleepFor(absl::Milliseconds(1));
     consumer_do_wait = false;
+    // cout << "Producer waiting\n";
   }
 
   thread0.join();
