@@ -25,9 +25,7 @@
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
 
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
-#include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
@@ -70,19 +68,15 @@ class NGraphVariableUpdateNGTensorOp : public OpKernel {
     std::ostringstream oss;
     // Start event tracing
     ngraph::Event event_compute(oss.str(), name(), "");
-
+    bool log_copies = false;
+    OP_REQUIRES_OK(context,
+                   IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
+    std::stringstream copy_log_str;
+    copy_log_str << "KERNEL[" << type_string() << "]: " << name()
+                 << "\n";
+    int number_of_copies = 0;
     NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Compute called for: " << def().name()
                    << " ,Graph ID "<< ng_graph_id_;
-
-    bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-        ng_graph_id_, def().name(), 0);
-    if (!ref_exists) {
-      OP_REQUIRES(context, ref_exists,
-                  errors::Internal(
-                      "Caught exception : RefInput to NGraphVariableUpdateNGTensor not found \n"));
-    }
-    // string get_ref_var_name = NGraphCatalog::GetInputVariableSharedName(
-    //     ng_graph_id_, def().name(), 0);
 
     // Since we have ngraph_variable_shared_name as an attribute, 
     // we can use that to get the variable from the context
@@ -92,19 +86,23 @@ class NGraphVariableUpdateNGTensorOp : public OpKernel {
                        context->resource_manager()->default_container(),
                        ng_variable_shared_name_, &var));
 
-    // We always return the input ref.
-    // As per TF
+
     // Set the output Ref Tensor at output_index to be an alias of the
     // input Ref Tensor at input_index.
     // REQUIRES: IsRefType(input_dtype(input_index)).
     // REQUIRES: IsRefType(output_dtype(output_index)).
-    context->forward_ref_input_to_ref_output(0, 0); // do we need this ? I think we do but unsure
-    // need to fully understand the purpose
+    context->forward_ref_input_to_ref_output(0, 0);
 
     NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Updating ng tensor";
     if (var->copy_tf_to_ng()) {
         NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Updated ng tensor";
-        // Is there need to keep track of the number of copies ?
+        number_of_copies++;
+        copy_log_str << " COPY_TF_TO_NG ";
+    }
+
+    copy_log_str << " Number of copies " << number_of_copies << "\n";
+    if (log_copies) {
+      cout << copy_log_str.str();
     }
 
     // Unref Var
