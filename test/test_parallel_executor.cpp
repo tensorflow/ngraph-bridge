@@ -374,7 +374,7 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads8Bit) {
   ASSERT_OK(executor.GetNgExecutable(tf_input_tensors, ng_exec, cache_hit));
   // ASSERT_FALSE(cache_hit);
 
-  auto worker = [&](int8 thread_id) {
+  auto worker = [&](int8 worker_id) {
 
     ASSERT_EQ(2, executor.GetTensorPipelineDepth());
 
@@ -394,7 +394,7 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads8Bit) {
     Tensor y_thread(DT_INT8, TensorShape({2, 2}));
     auto y_flat = y_thread.flat<int8>();
     for (int i = 0; i < y_flat.size(); i++) {
-      y_flat.data()[i] = thread_id;
+      y_flat.data()[i] = worker_id;
     }
 
     ASSERT_OK(
@@ -423,7 +423,7 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads8Bit) {
     // TODO
     // Tensor expected_val(DT_INT8, TensorShape({2, 2}));
     // AssignInputValues(expected_val, (int8)6);
-    // Compare<int8>(tf_output_tensor, 5+thread_id);
+    // Compare<int8>(tf_output_tensor, 5+worker_id);
     cout << tf_output_tensor.DebugString() << endl;
   };
 
@@ -468,7 +468,7 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
   ng::element::Type ng_element_type;
   ASSERT_OK(TFDataTypeToNGraphElementType(x.dtype(), &ng_element_type));
 
-  auto worker = [&](size_t thread_id) {
+  auto worker = [&](size_t worker_id) {
     // Get the pipelned tensors
     std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
     ASSERT_OK(executor.GetTensorsFromPipeline(ng_exec, io_tensors));
@@ -482,7 +482,7 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
     // Fill in the tensor - Y
     auto y_flat = y.flat<float>();
     for (int i = 0; i < y_flat.size(); i++) {
-      y_flat.data()[i] = thread_id;
+      y_flat.data()[i] = worker_id;
     }
     ASSERT_OK(TFDataTypeToNGraphElementType(y.dtype(), &ng_element_type));
 
@@ -513,7 +513,7 @@ TEST(ParallelExecutor, ExecuteOnMultipleThreads) {
     //   a ==> 5.0
     // TODO
     Tensor expected_val(DT_FLOAT, TensorShape({2, 3}));
-    AssignInputValues(expected_val, 5.0f + thread_id);
+    AssignInputValues(expected_val, 5.0f + worker_id);
     Compare(tf_output_tensor, expected_val, 0.0f);
   };
 
@@ -538,25 +538,36 @@ TEST(ParallelExecutor, E2E8Bit) {
   string inp_tensor_name_0{"x"};
   string inp_tensor_name_1{"y"};
   string out_tensor_name{"add_ngraph/_1"};
-  std::vector<Tensor> out_tensor_vals;
 
   Tensor inp_tensor_x_val(tensorflow::DT_INT8, tensorflow::TensorShape({2, 2}));
   AssignInputValues<int8>(inp_tensor_x_val, 1);
-  auto worker = [&](int8 thread_id) {
+
+  auto worker = [&](int8 worker_id) {
     Tensor inp_tensor_y_val(tensorflow::DT_INT8,
                             tensorflow::TensorShape({2, 2}));
-    AssignInputValues<int8>(inp_tensor_y_val, thread_id);
+    AssignInputValues<int8>(inp_tensor_y_val, worker_id);
 
     Tensor out_tensor_expected_val(tensorflow::DT_INT8,
                                    tensorflow::TensorShape({2, 2}));
-    AssignInputValues<int8>(out_tensor_expected_val, 5 + thread_id);
+    AssignInputValues<int8>(out_tensor_expected_val, 5 + worker_id);
 
     std::vector<std::pair<string, tensorflow::Tensor>> inputs = {
         {inp_tensor_name_0, inp_tensor_x_val},
         {inp_tensor_name_1, inp_tensor_y_val}};
 
+    std::vector<Tensor> out_tensor_vals;
     ASSERT_OK(session->Run(inputs, {out_tensor_name}, {}, &out_tensor_vals));
-    cout << out_tensor_vals[0].DebugString() << endl;
+    cout << "Worker: " << (int)worker_id << " Expected: " << 5 + worker_id
+         << endl;
+
+    cout << "Worker: " << (int)worker_id
+         << " Input: " << inputs[0].second.DebugString() << endl;
+
+    cout << "Worker: " << (int)worker_id
+         << " Input: " << inputs[1].second.DebugString() << endl;
+
+    cout << "Worker: " << (int)worker_id
+         << " Output: " << out_tensor_vals[0].DebugString() << endl;
     Compare<int8>(out_tensor_vals[0], out_tensor_expected_val);
   };
 
