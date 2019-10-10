@@ -69,6 +69,7 @@ cc_library(
         "ngraph_bridge/ngraph_deassign_clusters.cc",
         "ngraph_bridge/ngraph_encapsulate_clusters.cc",
         "ngraph_bridge/ngraph_encapsulate_impl.cc",
+        "ngraph_bridge/ngraph_executor_db.cc",
         "ngraph_bridge/ngraph_encapsulate_op.cc",
         "ngraph_bridge/ngraph_freshness_tracker.cc",
         "ngraph_bridge/ngraph_mark_for_clustering.cc",
