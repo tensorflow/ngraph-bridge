@@ -19,7 +19,7 @@
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/public/session.h"
-#include "test/test_utilities.h
+#include "test/test_utilities.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_executor_db.h"
