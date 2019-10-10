@@ -25,7 +25,6 @@
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/public/session.h"
 #include "test/test_utilities.h"
-
 using namespace std;
 namespace ng = ngraph;
 namespace tf = tensorflow;
@@ -81,7 +80,7 @@ class NGraphExecutorDBTest : public ::testing::Test {
     m_signature = m_signature_ss.str();
   }
   // The line commented below is to indicate that at this point
-  // we
+  // we do not need this method at this point, but it may be used later
   // void TearDown() override { }
  protected:
   unique_ptr<tf::Graph> m_input_graph;
