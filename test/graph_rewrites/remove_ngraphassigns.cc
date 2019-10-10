@@ -463,6 +463,73 @@ TEST(RemoveNGraphAssigns, Graph5) {
   ASSERT_NOT_OK(RemoveNGraphAssigns(&graph));
 }
 
+// Graph with 2 Variables
+// This graph will throw an error
+//
+// Two NGraphVariables are being assigned the same value.
+// The ConstOp gets encapsulated and both the variables are being
+// assigned from the same output index of EncapsulateOp
+// As the update is happening in-place
+// inside the encapsulate op, only one of the variable gets updated, leading
+// to functional incorrectness.
+// Such cases needs to be dealt with.
+// Right now we are throwing an error when we encounter a
+// scenario like this
+//
+// NGraphVariable1   Const      NGraphVariable2
+//   \               /  \            /
+//    \             /    \          /
+//    _\/         |/_     _\|     |/_
+//     NGraphAssign1       NGraphAssign2
+//         |                   |
+//        \|/                 \|/
+//        Retval1            Retval2
+//
+// Below is the graph after Assigns are removed
+//
+// NGraphVariabl1               NGraphVariable2
+//  \         \                    /
+//   \      ctrledge           ctrledge
+//    \        _\|               |/_
+//     \        NGraphEncapsulate
+//      \         /         \ 
+//       \     ctrledge     ctrledge
+//       _\|   \/_           _\|
+//        Retval1              Retval2
+//
+// Since NGraphEncapsulate can only update one tensor in place
+// we run into errors
+TEST(RemoveNGraphAssigns, Graph6) {
+  Scope root = Scope::NewRootScope();
+
+  PartialTensorShape varShape({2, 2});
+  auto var1 = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
+  auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto var1_assign =
+      ops::Assign(root.WithOpName("Var1_Assign"), var1, init_value);
+
+  auto var2 = ops::Variable(root.WithOpName("Var2"), varShape, DT_FLOAT);
+  auto init_value2 = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto var2_assign =
+      ops::Assign(root.WithOpName("Var2_Assign"), var2, init_value2);
+
+  // Turn off optimizations so that all the nodes are processed
+  tensorflow::SessionOptions options;
+  options.config.mutable_graph_options()
+      ->mutable_optimizer_options()
+      ->set_opt_level(tensorflow::OptimizerOptions_Level_L0);
+  options.config.mutable_graph_options()
+      ->mutable_rewrite_options()
+      ->set_constant_folding(tensorflow::RewriterConfig::OFF);
+
+  // Run on nGraph
+  ActivateNGraph();
+  ClientSession ng_session(root, options);
+  std::vector<tensorflow::Tensor> ng_outputs1;
+
+  ASSERT_NOT_OK(ng_session.Run({var1_assign, var2_assign}, &ng_outputs1));
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
