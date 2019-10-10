@@ -93,6 +93,9 @@ TEST(CatalogTest, SmallGraph1) {
       ASSERT_TRUE(remove);
     }
   }
+
+  // Clean up
+  NGraphCatalog::ClearCatalog();
 }
 
 // Graph with Assign ops, one of which should not
@@ -137,6 +140,9 @@ TEST(CatalogTest, SmallGraph2) {
       ASSERT_TRUE(remove);
     }
   }
+
+  // Clean up
+  NGraphCatalog::ClearCatalog();
 }
 
 //  Const   Var_A      Const     Var_B
@@ -228,6 +234,9 @@ TEST(CatalogTest, SmallGraph3) {
       }
     }
   }
+
+  // Clean up
+  NGraphCatalog::ClearCatalog();
 }
 
 // Test to check if correct information is being added to the
@@ -283,6 +292,8 @@ TEST(CatalogTest, SmallGraph4) {
       }
     }
   }
+  // Clean up
+  NGraphCatalog::ClearCatalog();
 }
 
 }  // namespace testing
