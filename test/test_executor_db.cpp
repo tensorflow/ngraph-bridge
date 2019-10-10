@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#include "gtest/gtest.h"
 #include <atomic>
 #include <memory>
+#include "gtest/gtest.h"
 
-#include "tensorflow/core/common_runtime/optimization_registry.h"
-#include "tensorflow/core/graph/graph_constructor.h"
-#include "tensorflow/core/public/session.h"
-#include "test/test_utilities.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_executor_db.h"
 #include "ngraph_bridge/version.h"
-
+#include "tensorflow/core/common_runtime/optimization_registry.h"
+#include "tensorflow/core/graph/graph_constructor.h"
+#include "tensorflow/core/public/session.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -60,8 +59,8 @@ Status LoadGraphFromPbTxt(const string& pb_file,
 class NGraphExecutorDBTest : public ::testing::Test {
  private:
   void SetUp() override {
-    tf::ngraph_bridge::testing::LoadGraphFromPbTxt(
-        "test_axpy_launchop.pbtxt", m_input_graph);
+    tf::ngraph_bridge::testing::LoadGraphFromPbTxt("test_axpy_launchop.pbtxt",
+                                                   m_input_graph);
     tf::ngraph_bridge::BackendManager::CreateBackend("INTERPRETER");
     // Create the inputs for this graph
     Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -77,11 +76,12 @@ class NGraphExecutorDBTest : public ::testing::Test {
     }
     m_tf_input_tensors.push_back(x);
     m_tf_input_tensors.push_back(y);
-    NGraphExecutorDBTest::ComputeSignature(m_tf_input_tensors, m_input_shapes, m_signature_ss);
+    NGraphExecutorDBTest::ComputeSignature(m_tf_input_tensors, m_input_shapes,
+                                           m_signature_ss);
     m_signature = m_signature_ss.str();
   }
- //The line commented below is to indicate that at this point
- //we
+  // The line commented below is to indicate that at this point
+  // we
   // void TearDown() override { }
  protected:
   unique_ptr<tf::Graph> m_input_graph;
@@ -95,21 +95,20 @@ class NGraphExecutorDBTest : public ::testing::Test {
   std::shared_ptr<ngraph::Function> m_ng_function;
 
   static Status ComputeSignature(const std::vector<Tensor>& m_tf_input_tensors,
-                        std::vector<TensorShape>& m_input_shapes,
-                        std::stringstream& m_signature_ss);
+                                 std::vector<TensorShape>& m_input_shapes,
+                                 std::stringstream& m_signature_ss);
 
-  static Status CompileExecutable(NGraphExecutorDB& m_edb,
-                         std::vector<TensorShape> m_input_shapes,
-                         tf::Graph* graph,
-                         std::shared_ptr<ngraph::Function>& m_ng_function,
-                         shared_ptr<ngraph::runtime::Executable>& m_ng_exec,
-                         std::string m_signature);                      
+  static Status CompileExecutable(
+      NGraphExecutorDB& m_edb, std::vector<TensorShape> m_input_shapes,
+      tf::Graph* graph, std::shared_ptr<ngraph::Function>& m_ng_function,
+      shared_ptr<ngraph::runtime::Executable>& m_ng_exec,
+      std::string m_signature);
 };
 
-
-Status NGraphExecutorDBTest::ComputeSignature(const std::vector<Tensor>& m_tf_input_tensors,
-                        std::vector<TensorShape>& m_input_shapes,
-                        std::stringstream& m_signature_ss) {
+Status NGraphExecutorDBTest::ComputeSignature(
+    const std::vector<Tensor>& m_tf_input_tensors,
+    std::vector<TensorShape>& m_input_shapes,
+    std::stringstream& m_signature_ss) {
   // Use tensorflow input tensors to get m_input_shapes, static_input_map
   // and compute the m_signature
   for (int i = 0; i < m_tf_input_tensors.size(); i++) {
@@ -123,12 +122,11 @@ Status NGraphExecutorDBTest::ComputeSignature(const std::vector<Tensor>& m_tf_in
   return Status::OK();
 }
 
-Status NGraphExecutorDBTest::CompileExecutable(NGraphExecutorDB& m_edb,
-                         std::vector<TensorShape> m_input_shapes,
-                         tf::Graph* graph,
-                         std::shared_ptr<ngraph::Function>& m_ng_function,
-                         shared_ptr<ngraph::runtime::Executable>& m_ng_exec,
-                         std::string m_signature) {
+Status NGraphExecutorDBTest::CompileExecutable(
+    NGraphExecutorDB& m_edb, std::vector<TensorShape> m_input_shapes,
+    tf::Graph* graph, std::shared_ptr<ngraph::Function>& m_ng_function,
+    shared_ptr<ngraph::runtime::Executable>& m_ng_exec,
+    std::string m_signature) {
   std::vector<const Tensor*> static_input_map;
   Builder::TranslateGraph(m_input_shapes, static_input_map, graph,
                           m_ng_function);
@@ -156,8 +154,9 @@ Status NGraphExecutorDBTest::CompileExecutable(NGraphExecutorDB& m_edb,
 
 TEST_F(NGraphExecutorDBTest, CompileExe) {
   ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), false);
-  ASSERT_OK(NGraphExecutorDBTest::CompileExecutable(m_edb, m_input_shapes, m_input_graph.get(),
-                              m_ng_function, m_ng_exec, m_signature));
+  ASSERT_OK(NGraphExecutorDBTest::CompileExecutable(
+      m_edb, m_input_shapes, m_input_graph.get(), m_ng_function, m_ng_exec,
+      m_signature));
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
   std::shared_ptr<ngraph::Function> ng_function;
   m_edb.AddItem(m_signature, std::make_pair(evicted_ng_exec, ng_function),
@@ -181,8 +180,9 @@ TEST_F(NGraphExecutorDBTest, CompileExe) {
 
 TEST_F(NGraphExecutorDBTest, CompileAndGetTensors) {
   ASSERT_EQ(m_edb.MaybeGetNgExecutable(m_signature, m_ng_exec), false);
-  ASSERT_OK(NGraphExecutorDBTest::CompileExecutable(m_edb, m_input_shapes, m_input_graph.get(),
-                              m_ng_function, m_ng_exec, m_signature));
+  ASSERT_OK(NGraphExecutorDBTest::CompileExecutable(
+      m_edb, m_input_shapes, m_input_graph.get(), m_ng_function, m_ng_exec,
+      m_signature));
   std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
   m_edb.AddItem(m_signature, std::make_pair(m_ng_exec, m_ng_function),
                 evicted_ng_exec, 2);
@@ -206,8 +206,9 @@ TEST_F(NGraphExecutorDBTest, CompileAndGetTensorsMultiThreaded) {
   std::atomic_flag lock_stream = ATOMIC_FLAG_INIT;
 
   auto worker = [&](size_t thread_id) {
-    ASSERT_OK(NGraphExecutorDBTest::CompileExecutable(m_edb, m_input_shapes, m_input_graph.get(),
-                                m_ng_function, m_ng_exec, m_signature));
+    ASSERT_OK(NGraphExecutorDBTest::CompileExecutable(
+        m_edb, m_input_shapes, m_input_graph.get(), m_ng_function, m_ng_exec,
+        m_signature));
 
     std::shared_ptr<ngraph::runtime::Executable> evicted_ng_exec;
     m_edb.AddItem(m_signature, std::make_pair(m_ng_exec, m_ng_function),

@@ -60,10 +60,10 @@ class NGraphExecutorDB {
           io_tensors);
 
  private:
-  //For a gtest fixture TEST_F(NGraphExecutorDBTest, CompileExe), 
-  //the class name becomes:
-  //tensorflow::ngraph_bridge::testing::NGraphExecutorDBTest_CompileExe_Test,
-  //so this is the class that needs to be friended.
+  // For a gtest fixture TEST_F(NGraphExecutorDBTest, CompileExe),
+  // the class name becomes:
+  // tensorflow::ngraph_bridge::testing::NGraphExecutorDBTest_CompileExe_Test,
+  // so this is the class that needs to be friended.
   friend class tensorflow::ngraph_bridge::testing::
       NGraphExecutorDBTest_CompileExe_Test;
   friend class tensorflow::ngraph_bridge::testing::

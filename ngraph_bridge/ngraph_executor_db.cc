@@ -13,8 +13,7 @@ NGraphExecutorDB::~NGraphExecutorDB() {
 
 bool NGraphExecutorDB::MaybeGetNgExecutable(
     std::string signature,
-    std::shared_ptr<ngraph::runtime::Executable>& ng_exec)  
-{
+    std::shared_ptr<ngraph::runtime::Executable>& ng_exec) {
   lock_guard<mutex> lock(m_mutex);
   auto it = m_ng_exec_map.find(signature);
   if (it == m_ng_exec_map.end()) {
