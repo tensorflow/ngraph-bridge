@@ -61,7 +61,6 @@ Status InferenceEngine::LoadImage(const string& network,
                                   const string& input_layer,
                                   const string& output_layer, bool use_NCHW,
                                   bool preload_images, int input_channels) {
-
   // Save the input related information
   m_image_files = image_files;
   m_input_width = input_width;
