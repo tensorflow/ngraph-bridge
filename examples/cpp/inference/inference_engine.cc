@@ -61,8 +61,6 @@ Status InferenceEngine::LoadImage(const string& network,
                                   const string& input_layer,
                                   const string& output_layer, bool use_NCHW,
                                   bool preload_images, int input_channels) {
-  // Load the network
-  // TF_CHECK_OK(CreateSession(network, m_session));
 
   // Save the input related information
   m_image_files = image_files;
@@ -93,7 +91,7 @@ Status InferenceEngine::LoadImage(const string& network,
   }
   // Now compile the graph if needed
   // This would be useful to detect errors early. For a graph
-  // that had already undergone TensorFlow to nGraph (may be via tf2ngraph.py)
+  // that has already undergone TensorFlow to nGraph (may be via tf2ngraph.py)
   // won't need any compilation though as that graph will most likely have
   // the executable available as well
   // TODO
