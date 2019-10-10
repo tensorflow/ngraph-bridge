@@ -75,8 +75,7 @@ void NGraphExecutorDB::AddItem(
 
 bool NGraphExecutorDB::MaybeGetNgFunction(
     std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-    std::shared_ptr<ngraph::Function>& ng_function)  
-{
+    std::shared_ptr<ngraph::Function>& ng_function) {
   lock_guard<mutex> lock(m_mutex);
   auto it = m_ng_function_map.find(ng_exec);
   if (it == m_ng_function_map.end()) return false;
@@ -104,9 +103,7 @@ Status NGraphExecutorDB::GetDeviceTensors(
 
 void NGraphExecutorDB::RemoveItem(
     std::string signature,
-    std::shared_ptr<ngraph::runtime::Executable>&
-        evicted_ng_exec)  
-{
+    std::shared_ptr<ngraph::runtime::Executable>& evicted_ng_exec) {
   evicted_ng_exec = m_ng_exec_map[signature];
   m_ng_exec_map.erase(signature);
   m_ng_function_map.erase(evicted_ng_exec);
