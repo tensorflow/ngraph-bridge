@@ -114,7 +114,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             absl_algorithm
             absl_container
             absl_strings
-            lib_tbb
             lib_mkldnn
             lib_iomp5
         )
@@ -157,7 +156,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
-        lib_tbb
         lib_mkldnn
         lib_mklml_intel
         lib_iomp5
