@@ -48,9 +48,11 @@ class NgraphTest(object):
         return graph
 
     def with_ngraph(self, l, config=None):
-        # TODO: Stop grappler on failure (Add fail_on_optimizer_errors=True)
+        # Passing config as None and then initializing it inside
+        # because mutable objects should not be used as defaults in python
         if config is None:
             config = tf.ConfigProto()
+        # TODO: Stop grappler on failure (Add fail_on_optimizer_errors=True)
         config = ngraph_bridge.update_config(config)
 
         ngraph_tf_disable_deassign_clusters = os.environ.pop(
