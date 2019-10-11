@@ -23,9 +23,9 @@
 #include "tensorflow/core/platform/default/logging.h"
 
 #include "ngraph/event_tracing.hpp"
-#include "ngraph/runtime/backend.hpp"
 
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_variable_update_ng_tensor_op.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
@@ -36,55 +36,52 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-/* -------------------------------------------------
-//
-// NGraphVariableUpdateNGTensor
-//
----------------------------------------------------*/
-
-class NGraphVariableUpdateNGTensorOp : public OpKernel {
- private:
-  int ng_graph_id_;
-  string ng_variable_shared_name_;
-
- public:
-  ~NGraphVariableUpdateNGTensorOp() {
-    NGRAPH_VLOG(4) << "~NGraphVariableUpdateNGTensorOp::" << name() << endl;
-  }
-
-  explicit NGraphVariableUpdateNGTensorOp(OpKernelConstruction* context)
-      : OpKernel(context) {
+//---------------------------------------------------------------------------
+//  NGraphVariableUpdateNGTensorOp::ctor
+//---------------------------------------------------------------------------
+NGraphVariableUpdateNGTensorOp::NGraphVariableUpdateNGTensorOp(OpKernelConstruction* context)
+    : OpKernel(context) {
     OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
     OP_REQUIRES_OK(context, context->GetAttr("ngraph_variable_shared_name", &ng_variable_shared_name_));
 
     NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Constructor called for: " << def().name()
-                   << " ,Graph ID "<< ng_graph_id_;
+                    << " ,Graph ID "<< ng_graph_id_;
 
     OP_REQUIRES(context, IsRefType(context->input_type(0)),
                 errors::InvalidArgument("lhs input needs to be a ref type"));
-  }
+}
 
-  void Compute(OpKernelContext* context) override {
+//---------------------------------------------------------------------------
+//  ~NGraphVariableUpdateNGTensorOp
+//---------------------------------------------------------------------------
+NGraphVariableUpdateNGTensorOp::~NGraphVariableUpdateNGTensorOp() {
+    NGRAPH_VLOG(4) << "~NGraphVariableUpdateNGTensorOp::" << name() << endl;
+}
+
+//---------------------------------------------------------------------------
+// OpKernel::Compute
+//---------------------------------------------------------------------------
+void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
     std::ostringstream oss;
     // Start event tracing
     ngraph::Event event_compute(oss.str(), name(), "");
     bool log_copies = false;
     OP_REQUIRES_OK(context,
-                   IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
+                    IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
     std::stringstream copy_log_str;
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-                 << "\n";
+                    << "\n";
     int number_of_copies = 0;
     NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Compute called for: " << def().name()
-                   << " ,Graph ID "<< ng_graph_id_;
+                    << " ,Graph ID "<< ng_graph_id_;
 
     // Since we have ngraph_variable_shared_name as an attribute, 
     // we can use that to get the variable from the context
     NGraphVar* var;
     OP_REQUIRES_OK(context,
-                   context->resource_manager()->Lookup<NGraphVar>(
-                       context->resource_manager()->default_container(),
-                       ng_variable_shared_name_, &var));
+                    context->resource_manager()->Lookup<NGraphVar>(
+                        context->resource_manager()->default_container(),
+                        ng_variable_shared_name_, &var));
 
 
     // Set the output Ref Tensor at output_index to be an alias of the
@@ -102,7 +99,7 @@ class NGraphVariableUpdateNGTensorOp : public OpKernel {
 
     copy_log_str << " Number of copies " << number_of_copies << "\n";
     if (log_copies) {
-      cout << copy_log_str.str();
+        cout << copy_log_str.str();
     }
 
     // Unref Var
@@ -111,12 +108,10 @@ class NGraphVariableUpdateNGTensorOp : public OpKernel {
     // Stop event tracing
     event_compute.Stop();
     ngraph::Event::write_trace(event_compute);
-  }
-};
 
-REGISTER_KERNEL_BUILDER(Name("NGraphVariableUpdateNGTensor").Device(DEVICE_CPU),
-                        NGraphVariableUpdateNGTensorOp);
+} // end compute
 
 }  // namespace ngraph_bridge
-
+REGISTER_KERNEL_BUILDER(Name("NGraphVariableUpdateNGTensor").Device(DEVICE_CPU),
+                        ngraph_bridge::NGraphVariableUpdateNGTensorOp);
 }  // namespace tensorflow
