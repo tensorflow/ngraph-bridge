@@ -194,8 +194,8 @@ def is_grappler_enabled():
 
 def update_config(config, backend_name = "CPU", device_id = ""):
     #updating session config if grappler is enabled
-    opt_name = 'ngraph-optimizer'
     if(ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()):
+        opt_name = 'ngraph-optimizer'
         # If the config already has ngraph-optimizer, then do not update it
         if config.HasField('graph_options'):
             if config.graph_options.HasField('rewrite_options'):
