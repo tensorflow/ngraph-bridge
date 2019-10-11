@@ -46,12 +46,12 @@ class NGraphExecutorDB {
   // whether executable exists in map or not
   // And reference to ng_executable if it exists
   bool MaybeGetNgExecutable(
-      std::string signature,
+      const std::string signature,
       std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
 
   // Add items in m_ng_exec_map, m_ng_function_map,
   // and m_executable_pipelined_tensors_map
-  void AddItem(std::string signature,
+  void AddItem(const std::string signature,
                std::pair<std::shared_ptr<ngraph::runtime::Executable>,
                          std::shared_ptr<ngraph::Function>>
                    ng_exec_func,
@@ -60,8 +60,9 @@ class NGraphExecutorDB {
   // Function returns true or false,
   // whether executable exists in map or not
   // And reference to ng_function if it exists
-  bool MaybeGetNgFunction(std::shared_ptr<ngraph::runtime::Executable> ng_exec,
-                          std::shared_ptr<ngraph::Function>& ng_function);
+  bool MaybeGetNgFunction(
+      const std::shared_ptr<ngraph::runtime::Executable> ng_exec,
+      std::shared_ptr<ngraph::Function>& ng_function);
 
   // Returns Status and reference to io tensors
   Status GetDeviceTensors(
@@ -102,11 +103,11 @@ class NGraphExecutorDB {
   // m_ng_function_map,
   // m_executable_pipelined_tensors_map
   void RemoveItem(
-      std::string signature,
+      const std::string signature,
       std::shared_ptr<ngraph::runtime::Executable>& evicted_ng_exec);
 
   // Pushes most recently used signature in m_lru list
-  void UpdateLRU(std::string signature);
+  void UpdateLRU(const std::string signature);
 };
 
 }  // namespace ngraph_bridge

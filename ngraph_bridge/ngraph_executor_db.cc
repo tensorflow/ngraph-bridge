@@ -29,7 +29,7 @@ NGraphExecutorDB::~NGraphExecutorDB() {
 }
 
 bool NGraphExecutorDB::MaybeGetNgExecutable(
-    std::string signature,
+    const std::string signature,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec) {
   lock_guard<mutex> lock(m_mutex);
   auto it = m_ng_exec_map.find(signature);
@@ -43,7 +43,7 @@ bool NGraphExecutorDB::MaybeGetNgExecutable(
 }
 
 void NGraphExecutorDB::AddItem(
-    std::string signature,
+    const std::string signature,
     std::pair<std::shared_ptr<ngraph::runtime::Executable>,
               std::shared_ptr<ngraph::Function>>
         ng_exec_func,
@@ -93,7 +93,7 @@ void NGraphExecutorDB::AddItem(
 }
 
 bool NGraphExecutorDB::MaybeGetNgFunction(
-    std::shared_ptr<ngraph::runtime::Executable> ng_exec,
+    const std::shared_ptr<ngraph::runtime::Executable> ng_exec,
     std::shared_ptr<ngraph::Function>& ng_function) {
   lock_guard<mutex> lock(m_mutex);
   auto it = m_ng_function_map.find(ng_exec);
@@ -121,7 +121,7 @@ Status NGraphExecutorDB::GetDeviceTensors(
 }
 
 void NGraphExecutorDB::RemoveItem(
-    std::string signature,
+    const std::string signature,
     std::shared_ptr<ngraph::runtime::Executable>& evicted_ng_exec) {
   evicted_ng_exec = m_ng_exec_map.at(signature);
   m_ng_exec_map.erase(signature);
@@ -129,7 +129,7 @@ void NGraphExecutorDB::RemoveItem(
   m_lru.pop_back();
 }
 
-void NGraphExecutorDB::UpdateLRU(std::string signature) {
+void NGraphExecutorDB::UpdateLRU(const std::string signature) {
   if (signature != m_lru.front()) {
     m_lru.remove(signature);
     m_lru.push_front(signature);
