@@ -62,14 +62,14 @@ TEST(CaptureVariables, TempVar) {
 
   for (auto node : graph.op_nodes()) {
     auto node_name = node->name();
-    if (node_name == "VarX")
-      ASSERT_EQ("NGraphVariable", node->type_string());
-    else if (node_name == "VarY")
-      ASSERT_NE("NGraphVariable", node->type_string());
-    else if (node_name == "AssignX")
-      ASSERT_EQ("NGraphAssign", node->type_string());
-    else if (node_name == "AssignY")
-      ASSERT_NE("NGraphAssign", node->type_string());
+    if (node_name == "VarX"){
+      ASSERT_EQ("NGraphVariable", node->type_string());}
+    else if (node_name == "VarY"){
+      ASSERT_NE("NGraphVariable", node->type_string());}
+    else if (node_name == "AssignX"){
+      ASSERT_EQ("NGraphAssign", node->type_string());}
+    else if (node_name == "AssignY"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
   }
 }
 
@@ -105,12 +105,12 @@ TEST(CaptureVariables, TempVar2) {
 
   for (auto node : graph.op_nodes()) {
     auto node_name = node->name();
-    if (node_name == "VarX")
-      ASSERT_EQ("NGraphVariable", node->type_string());
-    else if (node_name == "VarY")
-      ASSERT_NE("NGraphVariable", node->type_string());
-    else if (node_name == "AssignY")
-      ASSERT_NE("NGraphAssign", node->type_string());
+    if (node_name == "VarX"){
+      ASSERT_EQ("NGraphVariable", node->type_string());}
+    else if (node_name == "VarY"){
+      ASSERT_NE("NGraphVariable", node->type_string());}
+    else if (node_name == "AssignY"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
   }
 }
 
@@ -140,14 +140,14 @@ TEST(CaptureVariables, VariableScope) {
 
   for (auto node : graph.op_nodes()) {
     auto node_name = node->name();
-    if (node_name == "VarX")
-      ASSERT_EQ("NGraphVariable", node->type_string());
-    else if (node_name == "VarY")
-      ASSERT_NE("NGraphVariable", node->type_string());
-    else if (node_name == "AssignX")
-      ASSERT_EQ("NGraphAssign", node->type_string());
-    else if (node_name == "AssignY")
-      ASSERT_NE("NGraphAssign", node->type_string());
+    if (node_name == "VarX"){
+      ASSERT_EQ("NGraphVariable", node->type_string());}
+    else if (node_name == "VarY"){
+      ASSERT_NE("NGraphVariable", node->type_string());}
+    else if (node_name == "AssignX"){
+      ASSERT_EQ("NGraphAssign", node->type_string());}
+    else if (node_name == "AssignY"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
   }
 }
 
@@ -155,9 +155,9 @@ TEST(CaptureVariables, VariableScope) {
 // validate_shape = false and also the Variable is shared with
 // another Assign so none of them is captured
 //                           Var
-//                           / \
-//                          /   \
-//                         /     \
+//                           / \ 
+//                          /   \ 
+//                         /     \ 
 //                     Assign1  Assign2
 // validate_shape:     (False)  (True)
 // Var, Assign1, Assign2 should not be captured
@@ -183,12 +183,12 @@ TEST(CaptureVariables, SingleVariable1) {
 
   for (auto node : graph.op_nodes()) {
     auto node_name = node->name();
-    if (node_name == "Var")
-      ASSERT_NE("NGraphVariable", node->type_string());
-    else if (node_name == "Assign1")
-      ASSERT_NE("NGraphAssign", node->type_string());
-    else if (node_name == "Assign2")
-      ASSERT_NE("NGraphAssign", node->type_string());
+    if (node_name == "Var"){
+      ASSERT_NE("NGraphVariable", node->type_string());}
+    else if (node_name == "Assign1"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
+    else if (node_name == "Assign2"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
   }
 }
 
@@ -196,9 +196,9 @@ TEST(CaptureVariables, SingleVariable1) {
 // validate_shape = false and also the Variable is shared with
 // another Assign so none of them is captured
 //                           Var
-//                           / \
-//                          /   \
-//                         /     \
+//                           / \ 
+//                          /   \ 
+//                         /     \ 
 //                     Assign1  Assign2
 // validate_shape:     (True)   (False)
 // Var, Assign1, Assign2 should not be captured
@@ -224,19 +224,19 @@ TEST(CaptureVariables, SingleVariable2) {
 
   for (auto node : graph.op_nodes()) {
     auto node_name = node->name();
-    if (node_name == "Var")
-      ASSERT_NE("NGraphVariable", node->type_string());
-    else if (node_name == "Assign1")
-      ASSERT_NE("NGraphAssign", node->type_string());
-    else if (node_name == "Assign2")
-      ASSERT_NE("NGraphAssign", node->type_string());
+    if (node_name == "Var"){
+      ASSERT_NE("NGraphVariable", node->type_string());}
+    else if (node_name == "Assign1"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
+    else if (node_name == "Assign2"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
   }
 }
 
 //                           Var
-//                           / \
-//                          /   \
-//                         /     \
+//                           / \ 
+//                          /   \ 
+//                         /     \ 
 //               (True)Assign1  Assign3(True)
 //                        |
 //                        |
@@ -267,14 +267,14 @@ TEST(CaptureVariables, SingleVariable3) {
 
   for (auto node : graph.op_nodes()) {
     auto node_name = node->name();
-    if (node_name == "Var")
-      ASSERT_NE("NGraphVariable", node->type_string());
-    else if (node_name == "Assign1")
-      ASSERT_NE("NGraphAssign", node->type_string());
-    else if (node_name == "Assign2")
-      ASSERT_NE("NGraphAssign", node->type_string());
-    else if (node_name == "Assign3")
-      ASSERT_NE("NGraphAssign", node->type_string());
+    if (node_name == "Var"){
+      ASSERT_NE("NGraphVariable", node->type_string());}
+    else if (node_name == "Assign1"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
+    else if (node_name == "Assign2"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
+    else if (node_name == "Assign3"){
+      ASSERT_NE("NGraphAssign", node->type_string());}
   }
 }
 
