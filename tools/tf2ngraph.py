@@ -334,12 +334,21 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
         backend_optional_params, shape_hints, do_aot)
     save_model(output_gdef, out_format, out_loc)
 
-def get_output_nodes(output_nodes):
+def get_output_nodes(output_nodes, inp_format, inp_loc):
     if type(output_nodes) == type(""):
-        output_nodes.split(',')
+        return output_nodes.split(',')
     elif output_nodes is None:
-        pass
-        # TODO
+        if inp_format == 'pb':
+            raise NotImplemented("pb auto output node finding is not implemented")
+        elif inp_format == 'pbtxt':
+            raise NotImplemented("pbtxt auto output node finding is not implemented")
+        elif inp_format == 'savedmodel':
+            with tf.Session(graph=tf.Graph()) as sess:
+                imported = tf.saved_model.load(sess,tags=[tag_constants.SERVING], export_dir = inp_loc)
+                print(imported.signature_def)
+            raise NotImplemented("saved model auto output node finding is not implemented")
+        else:
+            raise ValueError("inp_format expected to be pb, pbtxt or savedmodel, but found ", inp_format)
     else:
         raise ValueError('get_output_nodes called with argument of type ', type(output_nodes), " but it can only accept string or None")
 
@@ -352,7 +361,7 @@ def main():
     args = prepare_argparser(allowed_formats)
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
-    output_nodes = get_output_nodes(args.output_nodes)
+    output_nodes = get_output_nodes(args.output_nodes, inp_format, inp_loc)
     backend_optional_params, shape_hints = Tf2ngraphJson.parse_json(
         args.config_file)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
