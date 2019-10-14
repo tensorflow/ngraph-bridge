@@ -338,11 +338,17 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
 def sanitize_node_name(node_name):
     # TODO test this function
 
-    # get rid of caret indicating control edge
+    # get rid of caret indicating control edge (^name -> name)
     if node_name.startswith('^'):
         node_name = node_name[1:]
-    raise NotImplemented("TODO implement me") # TODO: Remove :0
-    return node_name
+
+    # get rid of output slot (name:0 -> name)
+    split_colon = node_name.split(':')
+    if len(split_colon) == 1 or len(split_colon) == 2:
+        return split_colon[0]
+    else:
+        raise NotImplemented(
+            "Expected name to have <= 1 colons. Handle case with > 1 colons")
 
 
 def guess_output_nodes(graph_def):
@@ -351,16 +357,26 @@ def guess_output_nodes(graph_def):
     for n in graph_def.node:
         # the list comprehension converts a
         # google.protobuf.pyext._message.RepeatedScalarContainer to a list of strings
-        # TODO: maye have :0 in input name. strip that
         nodes_which_appear_at_inputs.update(
             [sanitize_node_name(i) for i in n.input])
 
     all_node_names = {n.name for n in graph_def.node}
     possible_outputs = all_node_names.difference(nodes_which_appear_at_inputs)
+    print(
+        'No output name was supplied. Below is a list of possible output nodes')
     for out_node in possible_outputs:
         print(out_node, "of type", node_name_type_dict[out_node])
-    #import pdb; pdb.set_trace()
-    raise NotImplemented("TODO implement me")
+    while (True):
+        out_node_names = input(
+            "Please enter a comma separated string of output names: ")
+        if not set(out_node_names.split(',')).issubset(possible_outputs):
+            print(
+                'Entered ', out_node_names,
+                ', but it contains names not present in the suggested output node name list. Please try again'
+            )
+        else:
+            break
+    return out_node_names.split(',')
 
 
 def get_output_nodes(output_nodes, inp_format, inp_loc):
