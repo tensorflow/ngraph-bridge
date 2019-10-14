@@ -213,7 +213,14 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
     NGRAPH_VLOG(0) << "NGraph using backend: " << ng_backend_type;
   }
-  auto backend = BackendManager::GetBackend(ng_backend_type);
+
+  ng::runtime::Backend* backend;
+  try {
+    backend = BackendManager::GetBackend(ng_backend_type);
+  } catch (...) {
+    throw std::runtime_error("No backend available :" + ng_backend_type +
+                             ". Cannot execute graph");
+  }
 
   // Add the _ngraph_backend attr to the node
   test_op->AddAttr("_ngraph_backend", ng_backend_type);
@@ -343,7 +350,9 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   // For debug
   // Serialize to nGraph if needed
   if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-    NgraphSerialize("unit_test_" + test_op_type_ + ".json", ng_function);
+    ASSERT_EQ(
+        Status::OK(),
+        NgraphSerialize("unit_test_" + test_op_type_ + ".json", ng_function));
   }
 
   // Allocate tensors for inputs
@@ -411,11 +420,15 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     exec->call(ng_op_tensors, ng_ip_tensors);
   } catch (const std::exception& exp) {
     BackendManager::UnlockBackend(ng_backend_type);
-    NgraphSerialize("unit_test_error_" + test_op_type_ + ".json", ng_function);
+    ASSERT_EQ(Status::OK(),
+              NgraphSerialize("unit_test_error_" + test_op_type_ + ".json",
+                              ng_function));
     FAIL() << "Exception while executing on nGraph " << exp.what();
   } catch (...) {
     BackendManager::UnlockBackend(ng_backend_type);
-    NgraphSerialize("unit_test_error_" + test_op_type_ + ".json", ng_function);
+    ASSERT_EQ(Status::OK(),
+              NgraphSerialize("unit_test_error_" + test_op_type_ + ".json",
+                              ng_function));
     FAIL() << "Exception while executing on nGraph";
   }
   BackendManager::UnlockBackend(ng_backend_type);
