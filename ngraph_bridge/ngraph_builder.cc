@@ -5168,17 +5168,17 @@ Status Builder::TranslateGraph(
     result->set_needs_default_layout(true);
   }
 
-  auto check_if_result_or_parameter = [](shared_ptr<ng::Node> n) {
+  auto check_if_result = [](shared_ptr<ng::Node> n) {
     // Pointer will cast to nullptr if this node is not a Result
     auto ng_node = dynamic_pointer_cast<ng::op::Result>(n);
     bool is_result = (ng_node != nullptr);
-    return n->is_parameter() || is_result;
+    return is_result;
   };
 
   size_t num_tags = 0;
   for (auto n : ng_function->get_ordered_ops()) {
-    // Results and Parameters are not expected to have provenance tags
-    if (!check_if_result_or_parameter(n)) {
+    // Results are not expected to have provenance tags
+    if (!check_if_result(n)) {
       num_tags = n->get_provenance_tags().size();
       if (num_tags != 1) {
         // In case of an error (num_tags != 1), we dump the ngraph json
