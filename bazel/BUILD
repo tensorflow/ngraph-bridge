@@ -137,7 +137,7 @@ tf_cc_binary(
         "@org_tensorflow//tensorflow/cc:ops",
         "@org_tensorflow//tensorflow/core:tensorflow",
         ":ngraph_bridge_lib",
-        "@ngraph//:cpu_backend",
+        "@ngraph//:interpreter_backend",
     ],
     copts = [
         "-pthread",

@@ -285,3 +285,45 @@ cc_library(
     alwayslink = 1,
 )
 
+cc_library(
+    name = 'interpreter_backend',
+    hdrs = glob([
+        "src/ngraph/runtime/runtime/*.hpp",
+        "src/ngraph/state/rng_state.hpp",
+    ]),
+    srcs = glob([
+        "src/ngraph/runtime/interpreter/int_backend.cpp",
+        "src/ngraph/runtime/interpreter/node_wrapper.cpp",
+        "src/ngraph/runtime/interpreter/int_executable.cpp",
+        "src/ngraph/state/rng_state.cpp", 
+    ]),
+    deps = [
+        ":ngraph_headers",
+        ":ngraph_core"
+    ],
+    copts = [
+        "-I external/ngraph/src",
+        "-I external/ngraph/src/ngraph",
+        "-I external/nlohmann_json_lib/include/",
+        "-D_FORTIFY_SOURCE=2",
+        "-Wformat",
+        "-Wformat-security",
+        "-fstack-protector-all",
+        '-D SHARED_LIB_PREFIX=\\"lib\\"',
+        '-D SHARED_LIB_SUFFIX=\\".so\\"',
+        '-D NGRAPH_VERSION=\\"0.25.1-rc.7\\"',
+        "-D NGRAPH_DEX_ONLY",
+        '-D PROJECT_ROOT_DIR=\\"\\"',
+        '-D NGRAPH_INTERPRETER_STATIC_LIB_ENABLE'
+    ] + CXX_ABI,
+    linkopts = [
+        "-Wl,-z,noexecstack",
+        "-Wl,-z,relro",
+        "-Wl,-z,now",
+        "-Wl,-Bsymbolic-functions",
+        "-Wl,--exclude-libs=ALL",
+    ],
+    linkstatic = True,
+    visibility = ["//visibility:public"],
+    alwayslink = 1,
+)
