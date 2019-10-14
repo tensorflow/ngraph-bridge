@@ -389,11 +389,10 @@ def get_output_nodes(output_nodes, inp_format, inp_loc):
                     sess,
                     tags=[tf.saved_model.tag_constants.SERVING],
                     export_dir=inp_loc)
-                import pdb
-                pdb.set_trace()
                 print(imported.signature_def)
+                raise NotImplemented("TODO:")
                 # TODO:
-                if False:  # could be empty. in that case go back to guessing
+                if False:  # TODO: could be empty. in that case go back to guessing
                     pass
                 else:
                     return guess_output_nodes(sess.graph_def)

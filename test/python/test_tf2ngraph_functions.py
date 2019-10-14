@@ -26,9 +26,10 @@ import numpy as np
 import shutil
 import tensorflow as tf
 import ngraph_bridge
+import mock
 
 from tools.build_utils import command_executor
-from tools.tf2ngraph import update_config_to_include_custom_config
+from tools.tf2ngraph import update_config_to_include_custom_config, guess_output_nodes, get_gdef_from_protobuf
 
 from common import NgraphTest
 
@@ -65,3 +66,9 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
             'device_id': '0',
             'aot_requested': '1'
         }
+
+    @pytest.mark.parametrize(('filename'),
+                             ('sample_graph.pbtxt','sample_graph.pb'))
+    def test_guess_output_nodes(self, filename):
+        with mock.patch('builtins.input', return_value="out_node"):
+            assert guess_output_nodes(get_gdef_from_protobuf(filename)) == ['out_node']
