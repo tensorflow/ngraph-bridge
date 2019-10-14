@@ -229,7 +229,8 @@ def prepare_argparser(formats):
         "Comma separated list of output nodes. Output nodes can be found " \
         "by manual inspection of the graph, prior knowledge or running the " \
         "summarize_graph tool provided by Tensorflow",
-        required=True)
+        required=False,
+        default=None)
     parser.add_argument(
         "--ng_backend", default='CPU', help="Ngraph backend. Eg, NNPI")
     parser.add_argument("--device_id", default='', help="Device id. Eg, 0")
@@ -333,6 +334,14 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
         backend_optional_params, shape_hints, do_aot)
     save_model(output_gdef, out_format, out_loc)
 
+def get_output_nodes(output_nodes):
+    if type(output_nodes) == type(""):
+        output_nodes.split(',')
+    elif output_nodes is None:
+        pass
+        # TODO
+    else:
+        raise ValueError('get_output_nodes called with argument of type ', type(output_nodes), " but it can only accept string or None")
 
 def main():
     """ Entry point of command line api for converting TF models by inserting ngraph nodes.
@@ -343,7 +352,7 @@ def main():
     args = prepare_argparser(allowed_formats)
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
-    output_nodes = args.output_nodes.split(',')
+    output_nodes = get_output_nodes(args.output_nodes)
     backend_optional_params, shape_hints = Tf2ngraphJson.parse_json(
         args.config_file)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
@@ -354,9 +363,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    # TODO remove these lines
-    # python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend INTERPRETER --config_file sample_optional_params_and_shape_hints.json --precompile
-    # python run_tf2ngraph_model.py
 
     # TODO what happens if same shape is passed twice
