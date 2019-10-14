@@ -336,9 +336,13 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
 
 
 def sanitize_node_name(node_name):
-    # Remove :0 or ctrl edge ^ etc
     # TODO test this function
-    raise NotImplemented("TODO implement me")
+
+    # get rid of caret indicating control edge
+    if node_name.startswith('^'):
+        node_name = node_name[1:]
+    raise NotImplemented("TODO implement me") # TODO: Remove :0
+    return node_name
 
 
 def guess_output_nodes(graph_def):
