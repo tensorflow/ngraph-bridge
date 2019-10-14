@@ -336,8 +336,6 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
 
 
 def sanitize_node_name(node_name):
-    # TODO test this function
-
     # get rid of caret indicating control edge (^name -> name)
     if node_name.startswith('^'):
         node_name = node_name[1:]
