@@ -334,23 +334,60 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
         backend_optional_params, shape_hints, do_aot)
     save_model(output_gdef, out_format, out_loc)
 
+
+def sanitize_node_name(node_name):
+    # Remove :0 or ctrl edge ^ etc
+    # TODO test this function
+    raise NotImplemented("TODO implement me")
+
+
+def guess_output_nodes(graph_def):
+    node_name_type_dict = {n.name: n.op for n in graph_def.node}
+    nodes_which_appear_at_inputs = set()
+    for n in graph_def.node:
+        # the list comprehension converts a
+        # google.protobuf.pyext._message.RepeatedScalarContainer to a list of strings
+        # TODO: maye have :0 in input name. strip that
+        nodes_which_appear_at_inputs.update(
+            [sanitize_node_name(i) for i in n.input])
+
+    all_node_names = {n.name for n in graph_def.node}
+    possible_outputs = all_node_names.difference(nodes_which_appear_at_inputs)
+    for out_node in possible_outputs:
+        print(out_node, "of type", node_name_type_dict[out_node])
+    #import pdb; pdb.set_trace()
+    raise NotImplemented("TODO implement me")
+
+
 def get_output_nodes(output_nodes, inp_format, inp_loc):
     if type(output_nodes) == type(""):
         return output_nodes.split(',')
     elif output_nodes is None:
-        if inp_format == 'pb':
-            raise NotImplemented("pb auto output node finding is not implemented")
-        elif inp_format == 'pbtxt':
-            raise NotImplemented("pbtxt auto output node finding is not implemented")
-        elif inp_format == 'savedmodel':
+        if inp_format == 'savedmodel':
             with tf.Session(graph=tf.Graph()) as sess:
-                imported = tf.saved_model.load(sess,tags=[tag_constants.SERVING], export_dir = inp_loc)
+                imported = tf.saved_model.load(
+                    sess,
+                    tags=[tf.saved_model.tag_constants.SERVING],
+                    export_dir=inp_loc)
+                import pdb
+                pdb.set_trace()
                 print(imported.signature_def)
-            raise NotImplemented("saved model auto output node finding is not implemented")
+                # TODO:
+                if False:  # could be empty. in that case go back to guessing
+                    pass
+                else:
+                    return guess_output_nodes(sess.graph_def)
+        elif inp_format == 'pbtxt' or inp_format == 'pb':
+            return guess_output_nodes(get_gdef_from_protobuf(inp_loc))
         else:
-            raise ValueError("inp_format expected to be pb, pbtxt or savedmodel, but found ", inp_format)
+            raise ValueError(
+                "inp_format expected to be pb, pbtxt or savedmodel, but found ",
+                inp_format)
     else:
-        raise ValueError('get_output_nodes called with argument of type ', type(output_nodes), " but it can only accept string or None")
+        raise ValueError('get_output_nodes called with argument of type ',
+                         type(output_nodes),
+                         " but it can only accept string or None")
+
 
 def main():
     """ Entry point of command line api for converting TF models by inserting ngraph nodes.
