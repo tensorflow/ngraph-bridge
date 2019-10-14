@@ -47,11 +47,12 @@ class Testtf2ngraph(NgraphTest):
 
     @pytest.mark.parametrize(('commandline'),
                              (True,))  #TODO: add False for functional api test
-    @pytest.mark.parametrize(('inp_format', 'inp_loc'), (
-        ('pbtxt', 'sample_graph.pbtxt'),
-        ('savedmodel', 'sample_graph'),
-        ('pb', 'sample_graph.pb'),
-        ('pbtxt', 'sample_graph_nodevice.pbtxt'),
+    @pytest.mark.parametrize(('inp_format', 'inp_loc', 'out_node_name'), (
+        ('pbtxt', 'sample_graph.pbtxt', 'out_node'),
+        ('savedmodel', 'sample_graph', 'out_node'),
+        ('pb', 'sample_graph.pb', 'out_node'),
+        ('pbtxt', 'sample_graph_nodevice.pbtxt', 'out_node'),
+        ('pbtxt', 'sample_graph_nodevice.pbtxt', None),
     ))
     @pytest.mark.parametrize(('out_format',), (
         ('pbtxt',),
@@ -62,8 +63,9 @@ class Testtf2ngraph(NgraphTest):
                              (('CPU', [], False), ('INTERPRETER', [{}], True),
                               ('INTERPRETER', [], False)))
     # In sample_graph.pbtxt, the input shape is fully specified, so we don't need to pass shape hints for precompile
-    def test_command_line_api(self, inp_format, inp_loc, out_format,
-                              commandline, ng_device, shape_hints, precompile):
+    def test_command_line_api(self, inp_format, inp_loc, out_node_name,
+                              out_format, commandline, ng_device, shape_hints,
+                              precompile):
         # Only run this test when grappler is enabled
         if not ngraph_bridge.is_grappler_enabled():
             return
@@ -89,12 +91,17 @@ class Testtf2ngraph(NgraphTest):
                                     shape_hints)
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
-                command_executor(
-                    'python ../../tools/tf2ngraph.py --input_' + inp_format +
-                    ' ' + inp_loc + ' --output_nodes out_node --output_' +
-                    out_format + ' ' + out_loc + ' --ng_backend ' + ng_device +
-                    ' --config_file ' + config_file_name +
-                    ("", " --precompile ")[precompile])
+                # out_node_str is empty if out_node_name is None.
+                # Automatic output node inference is supposed to kick in that case.
+                # we monkeypatch the builtin function input to simulate an user input
+                out_node_str = ' ' if out_node_name is None else ' --output_nodes ' + out_node_name + ' '
+                with mock.patch('builtins.input', return_value="out_node"):
+                    command_executor(
+                        'python ../../tools/tf2ngraph.py --input_' +
+                        inp_format + ' ' + inp_loc + out_node_str +
+                        ' --output_' + out_format + ' ' + out_loc +
+                        ' --ng_backend ' + ng_device + ' --config_file ' +
+                        config_file_name + ("", " --precompile ")[precompile])
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
                         ng_device, optional_backend_params, shape_hints,
@@ -135,3 +142,7 @@ class Testtf2ngraph(NgraphTest):
             assert np.isclose(res1, res2).all()
             # Comparing with expected value
             assert np.isclose(res1, exp).all()
+
+    def test_output_node_inference_for_saved_model(self):
+        #TODO: test for saved_model with signature_def
+        pass
