@@ -336,6 +336,9 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
 
 
 def sanitize_node_name(node_name):
+    '''
+    Given an input to a node in the graph def clean it to find the node name
+    '''
     # get rid of caret indicating control edge (^name -> name)
     if node_name.startswith('^'):
         node_name = node_name[1:]
@@ -350,6 +353,9 @@ def sanitize_node_name(node_name):
 
 
 def guess_output_nodes(graph_def):
+    '''
+    Given a graph def guess the outputs and ask user to select one from the candidates
+    '''
     node_name_type_dict = {n.name: n.op for n in graph_def.node}
     nodes_which_appear_at_inputs = set()
     for n in graph_def.node:
@@ -369,8 +375,8 @@ def guess_output_nodes(graph_def):
             "Please enter a comma separated string of output names: ")
         if not set(out_node_names.split(',')).issubset(possible_outputs):
             print(
-                'Entered ', out_node_names,
-                ', but it contains names not present in the suggested output node name list. Please try again'
+                'Please try again. Entered ', out_node_names,
+                ', but it contains names not present in the suggested output node name list.'
             )
         else:
             break
@@ -378,6 +384,11 @@ def guess_output_nodes(graph_def):
 
 
 def get_output_nodes(output_nodes, inp_format, inp_loc):
+    '''
+    Either process the given string from the user,
+    or try to read output names from savedmodel's signature_def
+    or try to guess the outputs (with user's inputs)
+    '''
     if type(output_nodes) == type(""):
         return output_nodes.split(',')
     elif output_nodes is None:
