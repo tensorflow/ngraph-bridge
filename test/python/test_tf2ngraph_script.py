@@ -198,9 +198,8 @@ class Testtf2ngraph(NgraphTest):
         assert rc != 0
 
         shutil.rmtree(export_dir_saved_model)
-        os.remove(tf2ngraph_out_loc)
 
-        # In case or normal pb or pbtxt or saved mdoels without signature_def
+        # In case or normal pb or pbtxt or saved models without signature_def
         # we rely on our code (guess_output_nodes) to guess output nodes
         # The following test tests the guess_output_nodes code path
 
@@ -220,4 +219,3 @@ class Testtf2ngraph(NgraphTest):
         assert rc != 0
 
         os.remove(export_pbtxt)
-        os.remove(tf2ngraph_out_loc)
