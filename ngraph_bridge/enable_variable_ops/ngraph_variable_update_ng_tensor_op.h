@@ -37,10 +37,10 @@ class NGraphVariableUpdateNGTensorOp : public OpKernel {
   explicit NGraphVariableUpdateNGTensorOp(OpKernelConstruction* ctx);
   ~NGraphVariableUpdateNGTensorOp() override;
   void Compute(OpKernelContext* ctx) override;
+
  private:
   int ng_graph_id_;
   string ng_variable_shared_name_;
-
 };
 
 }  // namespace ngraph_bridge

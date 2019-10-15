@@ -39,77 +39,76 @@ namespace ngraph_bridge {
 //---------------------------------------------------------------------------
 //  NGraphVariableUpdateNGTensorOp::ctor
 //---------------------------------------------------------------------------
-NGraphVariableUpdateNGTensorOp::NGraphVariableUpdateNGTensorOp(OpKernelConstruction* context)
+NGraphVariableUpdateNGTensorOp::NGraphVariableUpdateNGTensorOp(
+    OpKernelConstruction* context)
     : OpKernel(context) {
-    OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
-    OP_REQUIRES_OK(context, context->GetAttr("ngraph_variable_shared_name", &ng_variable_shared_name_));
+  OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
+  OP_REQUIRES_OK(context, context->GetAttr("ngraph_variable_shared_name",
+                                           &ng_variable_shared_name_));
 
-    NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Constructor called for: " << def().name()
-                    << " ,Graph ID "<< ng_graph_id_;
+  NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Constructor called for: "
+                 << def().name() << " ,Graph ID " << ng_graph_id_;
 
-    OP_REQUIRES(context, IsRefType(context->input_type(0)),
-                errors::InvalidArgument("lhs input needs to be a ref type"));
+  OP_REQUIRES(context, IsRefType(context->input_type(0)),
+              errors::InvalidArgument("lhs input needs to be a ref type"));
 }
 
 //---------------------------------------------------------------------------
 //  ~NGraphVariableUpdateNGTensorOp
 //---------------------------------------------------------------------------
 NGraphVariableUpdateNGTensorOp::~NGraphVariableUpdateNGTensorOp() {
-    NGRAPH_VLOG(4) << "~NGraphVariableUpdateNGTensorOp::" << name() << endl;
+  NGRAPH_VLOG(4) << "~NGraphVariableUpdateNGTensorOp::" << name() << endl;
 }
 
 //---------------------------------------------------------------------------
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
-    std::ostringstream oss;
-    // Start event tracing
-    ngraph::Event event_compute(oss.str(), name(), "");
-    bool log_copies = false;
-    OP_REQUIRES_OK(context,
-                    IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
-    std::stringstream copy_log_str;
-    copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-                    << "\n";
-    int number_of_copies = 0;
-    NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Compute called for: " << def().name()
-                    << " ,Graph ID "<< ng_graph_id_;
+  std::ostringstream oss;
+  // Start event tracing
+  ngraph::Event event_compute(oss.str(), name(), "");
+  bool log_copies = false;
+  OP_REQUIRES_OK(context,
+                 IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
+  std::stringstream copy_log_str;
+  copy_log_str << "KERNEL[" << type_string() << "]: " << name() << "\n";
+  int number_of_copies = 0;
+  NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Compute called for: "
+                 << def().name() << " ,Graph ID " << ng_graph_id_;
 
-    // Since we have ngraph_variable_shared_name as an attribute, 
-    // we can use that to get the variable from the context
-    NGraphVar* var;
-    OP_REQUIRES_OK(context,
-                    context->resource_manager()->Lookup<NGraphVar>(
-                        context->resource_manager()->default_container(),
-                        ng_variable_shared_name_, &var));
+  // Since we have ngraph_variable_shared_name as an attribute,
+  // we can use that to get the variable from the context
+  NGraphVar* var;
+  OP_REQUIRES_OK(context, context->resource_manager()->Lookup<NGraphVar>(
+                              context->resource_manager()->default_container(),
+                              ng_variable_shared_name_, &var));
 
+  // Set the output Ref Tensor at output_index to be an alias of the
+  // input Ref Tensor at input_index.
+  // REQUIRES: IsRefType(input_dtype(input_index)).
+  // REQUIRES: IsRefType(output_dtype(output_index)).
+  context->forward_ref_input_to_ref_output(0, 0);
 
-    // Set the output Ref Tensor at output_index to be an alias of the
-    // input Ref Tensor at input_index.
-    // REQUIRES: IsRefType(input_dtype(input_index)).
-    // REQUIRES: IsRefType(output_dtype(output_index)).
-    context->forward_ref_input_to_ref_output(0, 0);
+  NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Updating ng tensor";
+  if (var->copy_tf_to_ng()) {
+    NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Updated ng tensor";
+    number_of_copies++;
+    copy_log_str << " COPY_TF_TO_NG ";
+  }
 
-    NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Updating ng tensor";
-    if (var->copy_tf_to_ng()) {
-        NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Updated ng tensor";
-        number_of_copies++;
-        copy_log_str << " COPY_TF_TO_NG ";
-    }
+  copy_log_str << " Number of copies " << number_of_copies << "\n";
+  if (log_copies) {
+    cout << copy_log_str.str();
+  }
 
-    copy_log_str << " Number of copies " << number_of_copies << "\n";
-    if (log_copies) {
-        cout << copy_log_str.str();
-    }
+  // Unref Var
+  var->Unref();
 
-    // Unref Var
-    var->Unref();
+  // Stop event tracing
+  event_compute.Stop();
+  ngraph::Event::write_trace(event_compute);
 
-    // Stop event tracing
-    event_compute.Stop();
-    ngraph::Event::write_trace(event_compute);
-
-} // end compute
+}  // end compute
 
 }  // namespace ngraph_bridge
 REGISTER_KERNEL_BUILDER(Name("NGraphVariableUpdateNGTensor").Device(DEVICE_CPU),

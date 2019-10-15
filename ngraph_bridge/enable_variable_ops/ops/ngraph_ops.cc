@@ -119,9 +119,12 @@ REGISTER_OP("NGraphVariable")
 REGISTER_OP("NGraphVariableUpdateNGTensor")
     .Input("var: Ref(T)")
     .Output("out: Ref(T)")
+    .Attr("T: type")
     .Attr("ngraph_graph_id: int")
     .Attr("ngraph_variable_shared_name: string = ''")
-    .Doc("nGraph variable update NG tensor op. For updating the NG Tensor when TF tensor is modified by a TF variable modifier op");
+    .Doc(
+        "nGraph variable update NG tensor op. For updating the NG Tensor when "
+        "TF tensor is modified by a TF variable modifier op");
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
