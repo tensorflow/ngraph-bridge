@@ -26,6 +26,7 @@ import numpy as np
 import shutil
 import tensorflow as tf
 import ngraph_bridge
+from subprocess import Popen, PIPE
 
 from tools.build_utils import command_executor
 from tools.tf2ngraph import convert, get_gdef, Tf2ngraphJson, get_gdef_from_protobuf
@@ -56,8 +57,7 @@ class Testtf2ngraph(NgraphTest):
             ('pbtxt', 'sample_graph_nodevice.pbtxt', 'out_node'),
             ('pbtxt', 'sample_graph_nodevice.pbtxt', None),
             # this test does not pass an output node
-            # and tf2ngraph is supposed to infer the output nodes
-            # and ask user to select one
+            # and tf2ngraph is supposed to fail
         ))
     @pytest.mark.parametrize(('out_format',), (
         ('pbtxt',),
@@ -100,13 +100,15 @@ class Testtf2ngraph(NgraphTest):
                 # Automatic output node inference is supposed to kick in that case.
                 # we monkeypatch the builtin function input to simulate an user input
                 out_node_str = ' ' if out_node_name is None else ' --output_nodes ' + out_node_name + ' '
-                with mock.patch('builtins.input', return_value="out_node"):
+                try:
                     command_executor(
                         'python ../../tools/tf2ngraph.py --input_' +
                         inp_format + ' ' + inp_loc + out_node_str +
                         ' --output_' + out_format + ' ' + out_loc +
                         ' --ng_backend ' + ng_device + ' --config_file ' +
                         config_file_name + ("", " --precompile ")[precompile])
+                except:
+                    assert out_node_name is None, "Call to tf2ngraph should fail when no output name is provided"
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
                         ng_device, optional_backend_params, shape_hints,
@@ -175,23 +177,22 @@ class Testtf2ngraph(NgraphTest):
                     "out2": linear
                 })
 
-        command_executor('python ../../tools/tf2ngraph.py --input_savedmodel ' +
-                         export_dir + ' --output_pbtxt ' + out_loc)
+        p = Popen([
+            'python', '../../tools/tf2ngraph.py', '--input_savedmodel',
+            export_dir, '--output_pbtxt', out_loc
+        ],
+                  stdin=PIPE,
+                  stdout=PIPE,
+                  stderr=PIPE)
+        output, err = p.communicate()
+        rc = p.returncode
 
-        # Load the tf2ngraph dumped graphdef and find if it has nodes of type IdentityN that are the provided output names in the simple_save line above
-        # Note that for grappler output node names are IdentityN, so that is what we are looking for
-        gdef = get_gdef_from_protobuf(out_loc)
-        found_out1 = False
-        found_out2 = False
-        for n in gdef.node:
-            if n.op == 'IdentityN':
-                if n.name == 'output':
-                    found_out1 = True
-                elif n.name == 'add':
-                    found_out2 = True
-                else:
-                    assert False, "Found node " + n.name + " of type IdentityN. But did not expect this output node name to be inferred by tf2ngraph"
-        assert found_out1, "Did not find output name 'output' of type IdentityN which was supposed to be autoinferred"
-        assert found_out2, "Did not find output name 'add' of type IdentityN which was supposed to be autoinferred"
-        os.remove(out_loc)
-        shutil.rmtree(export_dir)
+        # Since no output nodes were provided, we expect tf2ngraph to print out possible output nodes
+        assert "Analysed graph for possible list of output nodes. Please supply one or more output node in --output_nodes\noutput of type Softmax\nadd of type Add\n" in output.decode(
+        )
+
+        # Since no output nodes were provided, we expect the test to fail with this error
+        assert 'No output node name provided in --output_nodes' in err.decode()
+
+        # we expect the test to fail, so rc should be non zero
+        assert rc != 0

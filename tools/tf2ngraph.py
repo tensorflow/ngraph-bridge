@@ -356,7 +356,6 @@ def guess_output_nodes(graph_def):
     '''
     Given a graph def guess the outputs and ask user to select one from the candidates
     '''
-    node_name_type_dict = {n.name: n.op for n in graph_def.node}
     nodes_which_appear_at_inputs = set()
     for n in graph_def.node:
         # the list comprehension converts a
@@ -366,59 +365,47 @@ def guess_output_nodes(graph_def):
 
     all_node_names = {n.name for n in graph_def.node}
     possible_outputs = all_node_names.difference(nodes_which_appear_at_inputs)
-    print(
-        'No output name was supplied. Below is a list of possible output nodes')
-    for out_node in possible_outputs:
-        print(out_node, "of type", node_name_type_dict[out_node])
-    while (True):
-        out_node_names = input(
-            "Please enter a comma separated string of output names: ")
-        if not set(out_node_names.split(',')).issubset(possible_outputs):
-            print(
-                'Please try again. Entered ', out_node_names,
-                ', but it contains names not present in the suggested output node name list.'
-            )
-        else:
-            break
-    return out_node_names.split(',')
+    name_type_map = get_name_type_map(graph_def)
+    return {k: name_type_map[k] for k in possible_outputs}
 
 
-def get_output_nodes(output_nodes, inp_format, inp_loc):
+def get_name_type_map(graph_def):
+    return {n.name: n.op for n in graph_def.node}
+
+
+def infer_output_nodes(inp_format, inp_loc):
     '''
-    Either process the given string from the user,
-    or try to read output names from savedmodel's signature_def
-    or try to guess the outputs (with user's inputs)
+    Try to read output names from savedmodel's signature_def
+    or try to guess the outputs from the graphdef
     '''
-    if type(output_nodes) == type(""):
-        return output_nodes.split(',')
-    elif output_nodes is None:
-        if inp_format == 'savedmodel':
-            with tf.Session(graph=tf.Graph()) as sess:
-                imported = tf.saved_model.load(
-                    sess,
-                    tags=[tf.saved_model.tag_constants.SERVING],
-                    export_dir=inp_loc)
-                try:
-                    output_info = imported.signature_def[
-                        'serving_default'].outputs.values()
-                    saved_model_has_out_name = True
-                except:
-                    saved_model_has_out_name = False
-                if saved_model_has_out_name:
-                    # the list comprehension gets the naes from the output_info of type collections.abc.ValuesView
-                    return [sanitize_node_name(i.name) for i in output_info]
-                else:
-                    return guess_output_nodes(sess.graph_def)
-        elif inp_format == 'pbtxt' or inp_format == 'pb':
-            return guess_output_nodes(get_gdef_from_protobuf(inp_loc))
-        else:
-            raise ValueError(
-                "inp_format expected to be pb, pbtxt or savedmodel, but found ",
-                inp_format)
+    if inp_format == 'savedmodel':
+        with tf.Session(graph=tf.Graph()) as sess:
+            imported = tf.saved_model.load(
+                sess,
+                tags=[tf.saved_model.tag_constants.SERVING],
+                export_dir=inp_loc)
+            try:
+                output_info = imported.signature_def[
+                    'serving_default'].outputs.values()
+                saved_model_has_out_name = True
+            except:
+                saved_model_has_out_name = False
+            if saved_model_has_out_name:
+                # the list comprehension gets the names
+                # from the output_info of type collections.abc.ValuesView
+                possible_outputs = [
+                    sanitize_node_name(i.name) for i in output_info
+                ]
+                node_name_type_dict = get_name_type_map(imported.graph_def)
+                return {k: node_name_type_dict[k] for k in possible_outputs}
+            else:
+                return guess_output_nodes(sess.graph_def)
+    elif inp_format == 'pbtxt' or inp_format == 'pb':
+        return guess_output_nodes(get_gdef_from_protobuf(inp_loc))
     else:
-        raise ValueError('get_output_nodes called with argument of type ',
-                         type(output_nodes),
-                         " but it can only accept string or None")
+        raise ValueError(
+            "inp_format expected to be pb, pbtxt or savedmodel, but found ",
+            inp_format)
 
 
 def main():
@@ -430,7 +417,16 @@ def main():
     args = prepare_argparser(allowed_formats)
     inp_format, inp_loc = filter_dict("input", args.__dict__)
     out_format, out_loc = filter_dict("output", args.__dict__)
-    output_nodes = get_output_nodes(args.output_nodes, inp_format, inp_loc)
+    if args.output_nodes is None:
+        possible_out_nodes = infer_output_nodes(inp_format, inp_loc)
+        print(
+            "Analysed graph for possible list of output nodes. Please supply one or more output node in --output_nodes"
+        )
+        for out_node in possible_out_nodes:
+            print(out_node, "of type", possible_out_nodes[out_node])
+        raise ValueError("No output node name provided in --output_nodes")
+    else:
+        output_nodes = args.output_nodes.split(',')
     backend_optional_params, shape_hints = Tf2ngraphJson.parse_json(
         args.config_file)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
