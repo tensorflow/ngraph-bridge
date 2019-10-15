@@ -154,13 +154,9 @@ class Testtf2ngraph(NgraphTest):
         # The saved model we create in this pytest
         # has input and output specified,
         # and hence tf2ngraph should be able to infer it without user input
-        export_dir = 'temp_pytest_savedmodel'
-        out_loc = 'temp_pytest_pbtxt.pbtxt'
-        try:
-            shutil.rmtree(export_dir)
-            os.remove(out_loc)
-        except:
-            pass
+        export_dir_saved_model = 'temp_pytest_savedmodel_orig'
+        export_pbtxt = 'temp_pytest_pbtxt_orig.pbtxt'
+        tf2ngraph_out_loc = 'temp_pytest_pbtxt_tf2ngraph.pbtxt'
 
         with tf.Session() as sess:
             x = tf.placeholder(tf.float32, [None, 784], name="input")
@@ -170,16 +166,20 @@ class Testtf2ngraph(NgraphTest):
             y = tf.nn.softmax(linear, name="output")
             tf.saved_model.simple_save(
                 sess,
-                export_dir,
+                export_dir_saved_model,
                 inputs={"inp1": x},
                 outputs={
                     "out1": y,
                     "out2": linear
                 })
+            tf.io.write_graph(sess.graph_def, '.', export_pbtxt)
+
+        # When the input type is saved_model, we can use signature_def to infer outputs.
+        # The following test tests the signature_def code path
 
         p = Popen([
             'python', '../../tools/tf2ngraph.py', '--input_savedmodel',
-            export_dir, '--output_pbtxt', out_loc
+            export_dir_saved_model, '--output_pbtxt', tf2ngraph_out_loc
         ],
                   stdin=PIPE,
                   stdout=PIPE,
@@ -196,3 +196,28 @@ class Testtf2ngraph(NgraphTest):
 
         # we expect the test to fail, so rc should be non zero
         assert rc != 0
+
+        shutil.rmtree(export_dir_saved_model)
+        os.remove(tf2ngraph_out_loc)
+
+        # In case or normal pb or pbtxt or saved mdoels without signature_def
+        # we rely on our code (guess_output_nodes) to guess output nodes
+        # The following test tests the guess_output_nodes code path
+
+        p = Popen([
+            'python', '../../tools/tf2ngraph.py', '--input_pbtxt', export_pbtxt,
+            '--output_pbtxt', tf2ngraph_out_loc
+        ],
+                  stdin=PIPE,
+                  stdout=PIPE,
+                  stderr=PIPE)
+        output, err = p.communicate()
+        rc = p.returncode
+
+        assert "Analysed graph for possible list of output nodes. Please supply one or more output node in --output_nodes\noutput of type Softmax\nadd of type Add\n" in output.decode(
+        )
+        assert 'No output node name provided in --output_nodes' in err.decode()
+        assert rc != 0
+
+        os.remove(export_pbtxt)
+        os.remove(tf2ngraph_out_loc)
