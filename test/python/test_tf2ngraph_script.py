@@ -28,7 +28,7 @@ import tensorflow as tf
 import ngraph_bridge
 
 from tools.build_utils import command_executor
-from tools.tf2ngraph import convert, get_gdef, Tf2ngraphJson
+from tools.tf2ngraph import convert, get_gdef, Tf2ngraphJson, get_gdef_from_protobuf
 
 from common import NgraphTest
 
@@ -144,5 +144,48 @@ class Testtf2ngraph(NgraphTest):
             assert np.isclose(res1, exp).all()
 
     def test_output_node_inference_for_saved_model(self):
-        #TODO: test for saved_model with signature_def
-        pass
+        # This saved model has input and output specified, and tf2ngraph should be able to infer it without user input
+        export_dir = 'temp_pytest_savedmodel'
+        out_loc = 'temp_pytest_pbtxt.pbtxt'
+        # TODO take care of file deletion
+        try:
+            shutil.rmtree(export_dir)
+            os.remove(out_loc)
+        except:
+            pass
+
+        with tf.Session() as sess:
+            x = tf.placeholder(tf.float32, [None, 784], name="input")
+            W = tf.constant(np.zeros([784, 10]), tf.float32)
+            b = tf.constant(np.zeros([10]), tf.float32)
+            linear = tf.matmul(x, W) + b
+            y = tf.nn.softmax(linear, name="output")
+            tf.saved_model.simple_save(
+                sess,
+                export_dir,
+                inputs={"inp1": x},
+                outputs={
+                    "out1": y,
+                    "out2": linear
+                })
+
+        command_executor('python ../../tools/tf2ngraph.py --input_savedmodel ' +
+                         export_dir + ' --output_pbtxt ' + out_loc)
+
+        # Load the tf2ngraph dumped graphdef and find if it has nodes of type IdentityN that are the provided output names in the simple_save line above
+        # Note that for grappler output node names are IdentityN, so that is what we are looking for
+        gdef = get_gdef_from_protobuf(out_loc)
+        found_out1 = False
+        found_out2 = False
+        for n in gdef.node:
+            if n.op == 'IdentityN':
+                if n.name == 'output':
+                    found_out1 = True
+                elif n.name == 'add':
+                    found_out2 = True
+                else:
+                    assert False, "Found node " + n.name + " of type IdentityN. But did not expect this output node name to be inferred by tf2ngraph"
+        assert found_out1, "Did not find output name 'output' of type IdentityN which was supposed to be autoinferred"
+        assert found_out2, "Did not find output name 'add' of type IdentityN which was supposed to be autoinferred"
+        os.remove(out_loc)
+        shutil.rmtree(export_dir)

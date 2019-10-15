@@ -387,11 +387,15 @@ def get_output_nodes(output_nodes, inp_format, inp_loc):
                     sess,
                     tags=[tf.saved_model.tag_constants.SERVING],
                     export_dir=inp_loc)
-                print(imported.signature_def)
-                raise NotImplemented("TODO:")
-                # TODO:
-                if False:  # TODO: could be empty. in that case go back to guessing
-                    pass
+                try:
+                    output_info = imported.signature_def[
+                        'serving_default'].outputs.values()
+                    saved_model_has_out_name = True
+                except:
+                    saved_model_has_out_name = False
+                if saved_model_has_out_name:
+                    # the list comprehension gets the naes from the output_info of type collections.abc.ValuesView
+                    return [sanitize_node_name(i.name) for i in output_info]
                 else:
                     return guess_output_nodes(sess.graph_def)
         elif inp_format == 'pbtxt' or inp_format == 'pb':
