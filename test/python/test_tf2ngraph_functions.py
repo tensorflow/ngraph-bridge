@@ -70,6 +70,9 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
     @pytest.mark.parametrize(('filename'),
                              ('sample_graph.pbtxt', 'sample_graph.pb'))
     def test_guess_output_nodes(self, filename):
+        # We expect guess_output_nodes to infer "out_node" as an output
+        # by monkey patching the "input" function to accept "out_node", we simulate a user entering a value
+        # Since "out_node" is a valid choice we expect guess_output_nodes to return with "out_node"
         with mock.patch('builtins.input', return_value="out_node"):
             assert guess_output_nodes(
                 get_gdef_from_protobuf(filename)) == ['out_node']
@@ -78,4 +81,5 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
                              (('a', 'a'), ('b:3', 'b'), ('c:35', 'c'),
                               ('^d', 'd'), ('^e:4', 'e')))
     def test_sanitize_node_name(self, node_name, sanitized_name):
+        # test to find node names by stripping away the control edge markers (^) and output slot numbers (:0)
         assert sanitize_node_name(node_name) == sanitized_name

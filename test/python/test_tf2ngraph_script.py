@@ -47,13 +47,18 @@ class Testtf2ngraph(NgraphTest):
 
     @pytest.mark.parametrize(('commandline'),
                              (True,))  #TODO: add False for functional api test
-    @pytest.mark.parametrize(('inp_format', 'inp_loc', 'out_node_name'), (
-        ('pbtxt', 'sample_graph.pbtxt', 'out_node'),
-        ('savedmodel', 'sample_graph', 'out_node'),
-        ('pb', 'sample_graph.pb', 'out_node'),
-        ('pbtxt', 'sample_graph_nodevice.pbtxt', 'out_node'),
-        ('pbtxt', 'sample_graph_nodevice.pbtxt', None),
-    ))
+    @pytest.mark.parametrize(
+        ('inp_format', 'inp_loc', 'out_node_name'),
+        (
+            ('pbtxt', 'sample_graph.pbtxt', 'out_node'),
+            ('savedmodel', 'sample_graph', 'out_node'),
+            ('pb', 'sample_graph.pb', 'out_node'),
+            ('pbtxt', 'sample_graph_nodevice.pbtxt', 'out_node'),
+            ('pbtxt', 'sample_graph_nodevice.pbtxt', None),
+            # this test does not pass an output node
+            # and tf2ngraph is supposed to infer the output nodes
+            # and ask user to select one
+        ))
     @pytest.mark.parametrize(('out_format',), (
         ('pbtxt',),
         ('pb',),
@@ -144,10 +149,11 @@ class Testtf2ngraph(NgraphTest):
             assert np.isclose(res1, exp).all()
 
     def test_output_node_inference_for_saved_model(self):
-        # This saved model has input and output specified, and tf2ngraph should be able to infer it without user input
+        # The saved model we create in this pytest
+        # has input and output specified,
+        # and hence tf2ngraph should be able to infer it without user input
         export_dir = 'temp_pytest_savedmodel'
         out_loc = 'temp_pytest_pbtxt.pbtxt'
-        # TODO take care of file deletion
         try:
             shutil.rmtree(export_dir)
             os.remove(out_loc)
