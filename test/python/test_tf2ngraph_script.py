@@ -67,7 +67,8 @@ class Testtf2ngraph(NgraphTest):
     @pytest.mark.parametrize(('ng_device', 'shape_hints', 'precompile'),
                              (('CPU', [], False), ('INTERPRETER', [{}], True),
                               ('INTERPRETER', [], False)))
-    # In sample_graph.pbtxt, the input shape is fully specified, so we don't need to pass shape hints for precompile
+    # In sample_graph.pbtxt, the input shape is fully specified,
+    # so we don't need to pass shape hints for precompile
     def test_command_line_api(self, inp_format, inp_loc, out_node_name,
                               out_format, commandline, ng_device, shape_hints,
                               precompile):
@@ -99,7 +100,10 @@ class Testtf2ngraph(NgraphTest):
                 # out_node_str is empty if out_node_name is None.
                 # Automatic output node inference display diagnostic logs
                 # But the tf2ngraph call will still fail
-                out_node_str = ' ' if out_node_name is None else ' --output_nodes ' + out_node_name + ' '
+                if out_node_name is None:
+                    out_node_str = ' '
+                else:
+                    out_node_str = ' --output_nodes ' + out_node_name + ' '
                 try:
                     command_executor(
                         'python ../../tools/tf2ngraph.py --input_' +
@@ -108,7 +112,8 @@ class Testtf2ngraph(NgraphTest):
                         ' --ng_backend ' + ng_device + ' --config_file ' +
                         config_file_name + ("", " --precompile ")[precompile])
                 except:
-                    assert out_node_name is None, "Call to tf2ngraph should fail when no output name is provided"
+                    assert out_node_name is None, "Call to tf2ngraph should fail" + \
+                    " when no output name is provided"
                     return
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
