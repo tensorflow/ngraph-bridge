@@ -109,6 +109,7 @@ class Testtf2ngraph(NgraphTest):
                         config_file_name + ("", " --precompile ")[precompile])
                 except:
                     assert out_node_name is None, "Call to tf2ngraph should fail when no output name is provided"
+                    return
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
                         ng_device, optional_backend_params, shape_hints,
