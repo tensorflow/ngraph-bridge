@@ -208,8 +208,8 @@ class Testtf2ngraph(NgraphTest):
         shutil.rmtree(export_dir_saved_model)
 
         # In case or normal pb or pbtxt or saved models without signature_def
-        # we rely on our code (guess_output_nodes) to guess output nodes
-        # The following test tests the guess_output_nodes code path
+        # we rely on our code (get_possible_output_node_names) to guess output nodes
+        # The following test tests the get_possible_output_node_names code path
 
         p = Popen([
             'python', '../../tools/tf2ngraph.py', '--input_pbtxt', export_pbtxt,

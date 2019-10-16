@@ -352,9 +352,10 @@ def sanitize_node_name(node_name):
             "Expected name to have <= 1 colons. Handle case with > 1 colons")
 
 
-def guess_output_nodes(graph_def):
+def get_possible_output_node_names(graph_def):
     '''
-    Given a graph def guess the outputs and ask user to select one from the candidates
+    Nodes which do not appear in the inputs of other nodes
+    are returned as possible output nodes.
     '''
     nodes_which_appear_at_inputs = set()
     for n in graph_def.node:
@@ -402,10 +403,10 @@ def infer_output_nodes(inp_format, inp_loc):
                 return {k: node_name_type_dict[k] for k in possible_outputs}
             else:
                 # Outputs not specified in the saved model
-                # Hence using guess_output_nodes
-                return guess_output_nodes(sess.graph_def)
+                # Hence using get_possible_output_node_names
+                return get_possible_output_node_names(sess.graph_def)
     elif inp_format == 'pbtxt' or inp_format == 'pb':
-        return guess_output_nodes(get_gdef_from_protobuf(inp_loc))
+        return get_possible_output_node_names(get_gdef_from_protobuf(inp_loc))
     else:
         raise ValueError(
             "inp_format expected to be pb, pbtxt or savedmodel, but found ",
@@ -424,10 +425,13 @@ def main():
     if args.output_nodes is None:
         possible_out_nodes = infer_output_nodes(inp_format, inp_loc)
         print(
-            "Analysed graph for possible list of output nodes. Please supply one or more output node in --output_nodes"
+            "\nAnalyzed graph for possible list of output nodes." + \
+            "Please supply one or more output node in --output_nodes"
         )
         for out_node in possible_out_nodes:
-            print(out_node, "of type", possible_out_nodes[out_node])
+            print("Name: `" + out_node + "` Type: `" +
+                  possible_out_nodes[out_node] + "`")
+        print()
         raise ValueError("No output node name provided in --output_nodes")
     else:
         output_nodes = args.output_nodes.split(',')

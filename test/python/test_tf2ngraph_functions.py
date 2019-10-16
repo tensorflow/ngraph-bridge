@@ -29,7 +29,7 @@ import ngraph_bridge
 
 from tools.build_utils import command_executor
 from tools.tf2ngraph import update_config_to_include_custom_config,\
-guess_output_nodes, get_gdef_from_protobuf, sanitize_node_name
+get_possible_output_node_names, get_gdef_from_protobuf, sanitize_node_name
 
 from common import NgraphTest
 
@@ -69,10 +69,11 @@ class Testtf2ngraphHelperFunctions(NgraphTest):
 
     @pytest.mark.parametrize(('filename'),
                              ('sample_graph.pbtxt', 'sample_graph.pb'))
-    def test_guess_output_nodes(self, filename):
-        assert guess_output_nodes(get_gdef_from_protobuf(filename)) == {
-            'out_node': 'Sigmoid'
-        }
+    def test_get_possible_output_node_names(self, filename):
+        assert get_possible_output_node_names(
+            get_gdef_from_protobuf(filename)) == {
+                'out_node': 'Sigmoid'
+            }
 
     @pytest.mark.parametrize(('node_name,sanitized_name'),
                              (('a', 'a'), ('b:3', 'b'), ('c:35', 'c'),
