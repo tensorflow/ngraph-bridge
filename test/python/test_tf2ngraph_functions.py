@@ -28,7 +28,8 @@ import tensorflow as tf
 import ngraph_bridge
 
 from tools.build_utils import command_executor
-from tools.tf2ngraph import update_config_to_include_custom_config, guess_output_nodes, get_gdef_from_protobuf, sanitize_node_name
+from tools.tf2ngraph import update_config_to_include_custom_config,
+guess_output_nodes, get_gdef_from_protobuf, sanitize_node_name
 
 from common import NgraphTest
 

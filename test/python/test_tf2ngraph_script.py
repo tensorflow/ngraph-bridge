@@ -97,8 +97,8 @@ class Testtf2ngraph(NgraphTest):
             if commandline:
                 # In CI this test is expected to be run out of artifacts/test/python
                 # out_node_str is empty if out_node_name is None.
-                # Automatic output node inference is supposed to kick in that case.
-                # we monkeypatch the builtin function input to simulate an user input
+                # Automatic output node inference display diagnostic logs
+                # But the tf2ngraph call will still fail
                 out_node_str = ' ' if out_node_name is None else ' --output_nodes ' + out_node_name + ' '
                 try:
                     command_executor(
@@ -188,8 +188,8 @@ class Testtf2ngraph(NgraphTest):
         rc = p.returncode
 
         # Since no output nodes were provided, we expect tf2ngraph to print out possible output nodes
-        assert "Analysed graph for possible list of output nodes. Please supply one or more output node in --output_nodes\noutput of type Softmax\nadd of type Add\n" in output.decode(
-        )
+        diagnostic_log = "Analysed graph for possible list of output nodes. Please supply one or more output node in --output_nodes\noutput of type Softmax\nadd of type Add\n"
+        assert diagnostic_log in output.decode()
 
         # Since no output nodes were provided, we expect the test to fail with this error
         assert 'No output node name provided in --output_nodes' in err.decode()
@@ -213,8 +213,7 @@ class Testtf2ngraph(NgraphTest):
         output, err = p.communicate()
         rc = p.returncode
 
-        assert "Analysed graph for possible list of output nodes. Please supply one or more output node in --output_nodes\noutput of type Softmax\nadd of type Add\n" in output.decode(
-        )
+        assert diagnostic_log in output.decode()
         assert 'No output node name provided in --output_nodes' in err.decode()
         assert rc != 0
 
