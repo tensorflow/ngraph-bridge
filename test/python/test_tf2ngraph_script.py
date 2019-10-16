@@ -154,6 +154,9 @@ class Testtf2ngraph(NgraphTest):
         # The saved model we create in this pytest
         # has input and output specified,
         # and hence tf2ngraph should be able to infer it without user input
+        # In this test we do not pass --output_nodes and parse the logs to
+        # ensure that diagnostic logs have been printed
+        # from tf2ngraph indicating the output nodes
         export_dir_saved_model = 'temp_pytest_savedmodel_orig'
         export_pbtxt = 'temp_pytest_pbtxt_orig.pbtxt'
         tf2ngraph_out_loc = 'temp_pytest_pbtxt_tf2ngraph.pbtxt'
