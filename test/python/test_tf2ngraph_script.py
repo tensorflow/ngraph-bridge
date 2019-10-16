@@ -201,8 +201,8 @@ class Testtf2ngraph(NgraphTest):
         )
         assert "Please supply one or more output node in --output_nodes\n" in output.decode(
         )
-        assert "output of type Softmax" in output.decode()
-        assert "add of type Add" in output.decode()
+        assert "Name: `output` Type: `Softmax`" in output.decode()
+        assert "Name: `add` Type: `Add`" in output.decode()
 
         # Since no output nodes were provided, we expect the test to fail with this error
         assert 'No output node name provided in --output_nodes' in err.decode()
@@ -228,7 +228,7 @@ class Testtf2ngraph(NgraphTest):
 
         diagnostic_log = "Analyzed graph for possible list of output nodes. " + \
         "Please supply one or more output node in --output_nodes\n" + \
-        "output of type Softmax\n"
+        "Name: `output` Type: `Softmax`\n"
         assert diagnostic_log in output.decode()
         assert 'No output node name provided in --output_nodes' in err.decode()
         assert rc != 0
