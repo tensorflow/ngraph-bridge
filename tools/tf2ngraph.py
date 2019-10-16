@@ -380,11 +380,13 @@ def infer_output_nodes(inp_format, inp_loc):
     '''
     if inp_format == 'savedmodel':
         with tf.Session(graph=tf.Graph()) as sess:
+            # load the saved model
             imported = tf.saved_model.load(
                 sess,
                 tags=[tf.saved_model.tag_constants.SERVING],
                 export_dir=inp_loc)
             try:
+                # Check if the saved model has outputs specified
                 output_info = imported.signature_def[
                     'serving_default'].outputs.values()
                 saved_model_has_out_name = True
@@ -399,6 +401,8 @@ def infer_output_nodes(inp_format, inp_loc):
                 node_name_type_dict = get_name_type_map(imported.graph_def)
                 return {k: node_name_type_dict[k] for k in possible_outputs}
             else:
+                # Outputs not specified in the saved model
+                # Hence using guess_output_nodes
                 return guess_output_nodes(sess.graph_def)
     elif inp_format == 'pbtxt' or inp_format == 'pb':
         return guess_output_nodes(get_gdef_from_protobuf(inp_loc))
