@@ -29,7 +29,7 @@ import ngraph_bridge
 from subprocess import Popen, PIPE
 
 from tools.build_utils import command_executor
-from tools.tf2ngraph import convert, get_gdef, Tf2ngraphJson, get_gdef_from_protobuf
+from tools.tf2ngraph import convert, get_gdef, Tf2ngraphJson
 
 from common import NgraphTest
 
