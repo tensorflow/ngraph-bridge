@@ -425,7 +425,7 @@ def main():
     if args.output_nodes is None:
         possible_out_nodes = infer_output_nodes(inp_format, inp_loc)
         print(
-            "\nAnalyzed graph for possible list of output nodes." + \
+            "\nAnalyzed graph for possible list of output nodes. " + \
             "Please supply one or more output node in --output_nodes"
         )
         for out_node in possible_out_nodes:
