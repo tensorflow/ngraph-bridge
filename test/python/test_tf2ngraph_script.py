@@ -191,10 +191,12 @@ class Testtf2ngraph(NgraphTest):
         rc = p.returncode
 
         # Since no output nodes were provided, we expect tf2ngraph to print out possible output nodes
-        diagnostic_log = "Analysed graph for possible list of output nodes. " + \
-        "Please supply one or more output node in --output_nodes\n" + \
-        "output of type Softmax\nadd of type Add\n"
-        assert diagnostic_log in output.decode()
+        assert "Analysed graph for possible list of output nodes. " in output.decode(
+        )
+        assert "Please supply one or more output node in --output_nodes\n" in output.decode(
+        )
+        assert "output of type Softmax" in output.decode()
+        assert "add of type Add" in output.decode()
 
         # Since no output nodes were provided, we expect the test to fail with this error
         assert 'No output node name provided in --output_nodes' in err.decode()
