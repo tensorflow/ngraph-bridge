@@ -97,7 +97,6 @@ cc_library(
         "-DMKLDNN_DLL",
         "-DMKLDNN_DLL_EXPORTS",
         "-O3",
-        "-DNDEBUG",
     #] + select({
     #   "@org_tensorflow//tensorflow:linux_x86_64": [
             "-fopenmp",  # only works with gcc
