@@ -259,7 +259,10 @@ def filter_dict(prefix, dictionary):
             lambda x: x.startswith(prefix + '_') and dictionary[x] is not None
             and 'nodes' not in x, dictionary))
     assert len(current_format) == 1, "Got " + str(
-        len(current_format)) + " " + prefix + " formats, expected only 1"
+        len(current_format)
+    ) + " " + prefix + " formats, expected only 1. Please add --" + prefix + \
+    "_pb or --" + prefix + "_pbtxt or --" + prefix + "_savedmodel and pass the " + \
+    prefix + " model location"
     # [len(prefix):] deletes the initial "input" in the string
     stripped = current_format[0][len(prefix):].lstrip('_')
     assert stripped in allowed_formats[
