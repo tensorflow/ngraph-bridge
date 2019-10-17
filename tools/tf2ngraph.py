@@ -246,9 +246,9 @@ def prepare_argparser(formats):
         "Perform precompilation to embed the ngraph executable in the dumped TF graph"
     )
     parser.add_argument(
-        "--dump_ng_clusters",
+        "--save_ng_clusters",
         action='store_true',
-        help="Dumps the TF subgraphs that each ngraph encapsulate replaces")
+        help="Saves the TF subgraphs that each ngraph encapsulate replaces")
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -312,7 +312,7 @@ allowed_formats = {
 
 def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
             device_id, backend_optional_params, shape_hints, do_aot,
-            dump_ng_clusters):
+            save_ng_clusters):
     """Functional api for converting TF models by inserting ngraph nodes.
     Sample usage:
     from tf2ngraph import convert
@@ -333,7 +333,7 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     assert ngraph_bridge.is_grappler_enabled()
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
-    if dump_ng_clusters:
+    if save_ng_clusters:
         # save old value of flag, and set it to 1
         cluster_dump_flag = 'NGRAPH_TF_DUMP_CLUSTERS'
         old_val = os.environ.get(cluster_dump_flag, None)
@@ -341,7 +341,7 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     output_gdef = run_ngraph_grappler_optimizer(
         input_gdef, output_nodes, ng_backend, device_id,
         backend_optional_params, shape_hints, do_aot)
-    if dump_ng_clusters and (old_val is not None):
+    if save_ng_clusters and (old_val is not None):
         # reset flag value to old value (if any)
         if old_val is None:
             os.environ.pop(cluster_dump_flag)
