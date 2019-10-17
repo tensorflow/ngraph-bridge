@@ -283,11 +283,10 @@ def filter_dict(prefix, dictionary):
         filter(
             lambda x: x.startswith(prefix + '_') and dictionary[x] is not None
             and 'nodes' not in x, dictionary))
-    exit_on_error(len(current_format) == 1, "Got " + str(
-        len(current_format)
-    ) + " " + prefix + " formats, expected only 1. Please add --" + prefix + \
-    "_pb or --" + prefix + "_pbtxt or --" + prefix + "_savedmodel and pass the " + \
-    prefix + " model location")
+    exit_on_error(len(current_format) == 1, "Got " + str(len(current_format)) + \
+    " " + prefix + " formats, expected exactly 1 " + prefix + \
+    " format. Please add one of --" + prefix + "_pb or --" + prefix + \
+    "_pbtxt or --" + prefix + "_savedmodel and pass the " + prefix + " model location")
     # [len(prefix):] deletes the initial "input" in the string
     stripped = current_format[0][len(prefix):].lstrip('_')
     exit_on_error(
