@@ -27,6 +27,7 @@ import os
 import sys
 import json
 from functools import partial
+from tensorflow.python.framework.function_def_to_graph import function_def_to_graph
 
 
 class Tf2ngraphJson(object):
@@ -333,20 +334,16 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
     assert ngraph_bridge.is_grappler_enabled()
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
-    if save_ng_clusters:
-        # save old value of flag, and set it to 1
-        cluster_dump_flag = 'NGRAPH_TF_DUMP_CLUSTERS'
-        old_val = os.environ.get(cluster_dump_flag, None)
-        os.environ[cluster_dump_flag] = "1"
     output_gdef = run_ngraph_grappler_optimizer(
         input_gdef, output_nodes, ng_backend, device_id,
         backend_optional_params, shape_hints, do_aot)
-    if save_ng_clusters and (old_val is not None):
-        # reset flag value to old value (if any)
-        if old_val is None:
-            os.environ.pop(cluster_dump_flag)
-        else:
-            os.environ[cluster_dump_flag] = old_val
+    if save_ng_clusters:
+        for fn in output_gdef.library.function:
+            tf.io.write_graph(
+                function_def_to_graph(fn).as_graph_def(),
+                '.',
+                fn.signature.name + '.pbtxt',
+                as_text=True)
     save_model(output_gdef, out_format, out_loc)
 
 
@@ -364,7 +361,7 @@ def main():
         args.config_file)
     convert(inp_format, inp_loc, out_format, out_loc, output_nodes,
             args.ng_backend, args.device_id, backend_optional_params,
-            shape_hints, args.precompile, args.dump_ng_clusters)
+            shape_hints, args.precompile, args.save_ng_clusters)
     print('Converted the model. Exiting now')
 
 
