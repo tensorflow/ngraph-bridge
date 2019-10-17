@@ -97,7 +97,7 @@ class Tf2ngraphJson(object):
             json.dump(dict_to_dump, fp)
 
 
-# This fucntion controls how errors are handled.
+# This function controls how errors are handled.
 # For developers/debugging set raise_exception to True
 def exit_on_error(success, error_message, raise_exception=False):
     if not success:
