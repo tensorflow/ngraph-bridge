@@ -37,8 +37,9 @@ class Tf2ngraphJson(object):
 
     @staticmethod
     def assert_type(obj, expected_type, tag):
-        assert type(obj) == expected_type, "Expected " + tag + " to be " + str(
-            expected_type) + " but got " + str(type(obj))
+        exit_on_error(
+            type(obj) == expected_type, "Expected " + tag + " to be " +
+            str(expected_type) + " but got " + str(type(obj)))
 
     @staticmethod
     def check_shape_hints(shape_hints):
@@ -77,8 +78,10 @@ class Tf2ngraphJson(object):
                     Tf2ngraphJson.check_optional_params(dct[k])
                     optional_backend_params = dct[k]
                 else:
-                    assert False, "Expected keys to be only in " + str(
-                        allowed_fields())
+                    exit_on_error(
+                        False,
+                        "Expected keys of config json file to be: " + \
+                        str(allowed_fields())) + ", but got " + str(k)
         return optional_backend_params, shape_hints
 
     @staticmethod
@@ -92,6 +95,17 @@ class Tf2ngraphJson(object):
             dict_to_dump["shape_hints"] = shape_hints
         with open(json_name, 'w') as fp:
             json.dump(dict_to_dump, fp)
+
+
+# This fucntion controls how errors are handled.
+# For developers/debugging set raise_exception to True
+def exit_on_error(success, error_message, raise_exception=False):
+    if not success:
+        if raise_exception:
+            sys.stderr.write("\n" + error_message + "\n")
+            sys.exit(1)
+        else:
+            assert success, error_message
 
 
 def update_config_to_include_custom_config(config, backend, device_id,
@@ -182,11 +196,10 @@ def get_gdef_from_protobuf(pb_filename):
 def check_graph_validity(gdef):
     # Assuming that the input graph has not already been processed by ngraph
     # TODO: add other checks for other types on NG ops
-    not_already_processed = all(
-        [i.op is not 'NGraphEncapsulate' for i in gdef.node])
+    already_processed = any([i.op is 'NGraphEncapsulate' for i in gdef.node])
     # Assume it is an inference ready graph
-    no_variables = all(['Variable' not in i.op for i in gdef.node])
-    return not_already_processed and no_variables
+    has_variables = any(['Variable' in i.op for i in gdef.node])
+    return already_processed, has_variables
 
 
 def get_gdef(format, location):
@@ -195,7 +208,18 @@ def get_gdef(format, location):
         'pbtxt': get_gdef_from_protobuf,
         'pb': get_gdef_from_protobuf
     }[format](location)
-    assert check_graph_validity(gdef)
+    already_processed, has_variables = check_graph_validity(gdef)
+    if already_processed or has_variables:
+        err_string = ["Graph at " + location + " is not acceptable because:"]
+        if already_processed:
+            err_string.append(
+                "It already contains encapsulate ops (and migth not need running through tf2ngraph again)"
+            )
+        if no_variables:
+            err_string.apend(
+                "It contains Variables (please freeze the graph to convert variables to constant)"
+            )
+        exit_on_error(False, '\n'.join(err_string))
     return gdef
 
 
@@ -253,21 +277,22 @@ def prepare_argparser(formats):
 
 
 def filter_dict(prefix, dictionary):
-    assert prefix in ['input', 'output']
+    exit_on_error(prefix in ['input', 'output'],
+                  "Expected prefix to be 'input' or 'output' but got " + prefix)
     current_format = list(
         filter(
             lambda x: x.startswith(prefix + '_') and dictionary[x] is not None
             and 'nodes' not in x, dictionary))
-    assert len(current_format) == 1, "Got " + str(
+    exit_on_error(len(current_format) == 1, "Got " + str(
         len(current_format)
     ) + " " + prefix + " formats, expected only 1. Please add --" + prefix + \
     "_pb or --" + prefix + "_pbtxt or --" + prefix + "_savedmodel and pass the " + \
-    prefix + " model location"
+    prefix + " model location")
     # [len(prefix):] deletes the initial "input" in the string
     stripped = current_format[0][len(prefix):].lstrip('_')
-    assert stripped in allowed_formats[
-        prefix], "Got " + prefix + " format = " + stripped + " but only support " + str(
-            allowed_formats[prefix])
+    exit_on_error(
+        stripped in allowed_formats[prefix], "Got " + prefix + " format = " +
+        stripped + " but only support " + str(allowed_formats[prefix]))
     return (stripped, dictionary[prefix + '_' + stripped])
 
 
@@ -327,9 +352,16 @@ def convert(inp_format, inp_loc, out_format, out_loc, output_nodes, ng_backend,
 
     Returns: void
    """
-    assert inp_format in allowed_formats['input']
-    assert out_format in allowed_formats['output']
-    assert ngraph_bridge.is_grappler_enabled()
+    exit_on_error(
+        inp_format in allowed_formats['input'], 'Unsupported input format ' +
+        inp_format + ". Supported formats: " + str(allowed_formats['input']))
+    exit_on_error(
+        out_format in allowed_formats['output'], 'Unsupported output format ' +
+        out_format + ". Supported formats: " + str(allowed_formats['output']))
+    exit_on_error(
+        ngraph_bridge.is_grappler_enabled(),
+        "ngraph-bridge is not built with grappler enabled, hence tf2ngraph is not supported."
+    )
     input_gdef = get_gdef(inp_format, inp_loc)
     attach_device(input_gdef)
     output_gdef = run_ngraph_grappler_optimizer(
@@ -351,8 +383,8 @@ def sanitize_node_name(node_name):
     if len(split_colon) == 1 or len(split_colon) == 2:
         return split_colon[0]
     else:
-        raise NotImplemented(
-            "Expected name to have <= 1 colons. Handle case with > 1 colons")
+        exit_on_error(False, "Expected node name to have <= 1 colons. " + \
+        "TODO: Handle case with > 1 colons")
 
 
 def get_possible_output_node_names(graph_def):
@@ -411,7 +443,8 @@ def infer_output_nodes(inp_format, inp_loc):
     elif inp_format == 'pbtxt' or inp_format == 'pb':
         return get_possible_output_node_names(get_gdef_from_protobuf(inp_loc))
     else:
-        raise ValueError(
+        exit_on_error(
+            False,
             "inp_format expected to be pb, pbtxt or savedmodel, but found ",
             inp_format)
 
@@ -435,7 +468,7 @@ def main():
             print("Name: `" + out_node + "` Type: `" +
                   possible_out_nodes[out_node] + "`")
         print()
-        raise ValueError("No output node name provided in --output_nodes")
+        exit_on_error(False, "No output node name provided in --output_nodes")
     else:
         output_nodes = args.output_nodes.split(',')
     backend_optional_params, shape_hints = Tf2ngraphJson.parse_json(
