@@ -47,11 +47,11 @@ class Testtf2ngraph(NgraphTest):
 
     @pytest.mark.parametrize(('commandline'),
                              (True,))  #TODO: add False for functional api test
-    @pytest.mark.parametrize(('inp_format', 'inp_loc'), (
-        ('pbtxt', 'sample_graph.pbtxt'),
-        ('savedmodel', 'sample_graph'),
-        ('pb', 'sample_graph.pb'),
-        ('pbtxt', 'sample_graph_nodevice.pbtxt'),
+    @pytest.mark.parametrize(('inp_format', 'inp_loc', 'save_ng_clusters'), (
+        ('pbtxt', 'sample_graph.pbtxt', True),
+        ('savedmodel', 'sample_graph', True),
+        ('pb', 'sample_graph.pb', False),
+        ('pbtxt', 'sample_graph_nodevice.pbtxt', False),
     ))
     @pytest.mark.parametrize(('out_format',), (
         ('pbtxt',),
@@ -62,8 +62,9 @@ class Testtf2ngraph(NgraphTest):
                              (('CPU', [], False), ('INTERPRETER', [{}], True),
                               ('INTERPRETER', [], False)))
     # In sample_graph.pbtxt, the input shape is fully specified, so we don't need to pass shape hints for precompile
-    def test_command_line_api(self, inp_format, inp_loc, out_format,
-                              commandline, ng_device, shape_hints, precompile):
+    def test_command_line_api(self, inp_format, inp_loc, save_ng_clusters,
+                              out_format, commandline, ng_device, shape_hints,
+                              precompile):
         # Only run this test when grappler is enabled
         if not ngraph_bridge.is_grappler_enabled():
             return
@@ -98,7 +99,9 @@ class Testtf2ngraph(NgraphTest):
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
                         ng_device, optional_backend_params, shape_hints,
-                        precompile)
+                        precompile, save_ng_clusters)
+            if save_ng_clusters:
+                assert 'ngraph_cluster_0.pbtxt' in os.listdir()
             conversion_successful = True
         finally:
             if not conversion_successful:
@@ -107,6 +110,8 @@ class Testtf2ngraph(NgraphTest):
                     os.remove(config_file_name)
                 except:
                     pass
+            if save_ng_clusters and 'ngraph_cluster_0.pbtxt' in os.listdir():
+                os.remove('ngraph_cluster_0.pbtxt')
         assert conversion_successful
 
         gdef = get_gdef(out_format, out_loc)
