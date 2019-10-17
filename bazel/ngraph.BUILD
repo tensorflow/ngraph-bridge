@@ -87,7 +87,18 @@ cc_library(
         '-D NGRAPH_VERSION=\\"v0.25.1-rc.8\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
-        '-D NGRAPH_STATIC_LIB_ENABLE'
+        '-D NGRAPH_STATIC_LIB_ENABLE',
+        '-D NGRAPH_DYNAMIC_COMPONENTS_ENABLE',
+        '-D NGRAPH_ENABLE_CPU_CONV_AUTO',
+        "-march=native",
+        "-mtune=native",
+        "-Wall",
+        "-Wno-unknown-pragmas",
+        "-fvisibility=internal",
+        "-fstack-protector-strong",
+        "-Wmissing-field-initializers",
+        "-Wno-strict-overflow",
+        "-O3",
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
@@ -271,7 +282,16 @@ cc_library(
         '-D NGRAPH_VERSION=\\"0.25.1-rc.7\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
-        '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
+        '-D NGRAPH_CPU_STATIC_LIB_ENABLE',
+        "-march=native",
+        "-mtune=native",
+        "-Wall",
+        "-Wno-unknown-pragmas",
+        "-fvisibility=internal",
+        "-fstack-protector-strong",
+        "-Wmissing-field-initializers",
+        "-Wno-strict-overflow",
+        "-O3",
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
@@ -288,6 +308,7 @@ cc_library(
 cc_library(
     name = 'interpreter_backend',
     hdrs = glob([
+        "src/ngraph/except.hpp",
         "src/ngraph/runtime/runtime/*.hpp",
         "src/ngraph/state/rng_state.hpp",
     ]),
