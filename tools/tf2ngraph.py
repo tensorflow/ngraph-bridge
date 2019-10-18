@@ -98,10 +98,10 @@ class Tf2ngraphJson(object):
 
 
 # This function controls how errors are handled.
-# For developers/debugging set raise_exception to True
-def exit_on_error(success, error_message, raise_exception=False):
+# For developers/debugging set assert_on_failure to True
+def exit_on_error(success, error_message, assert_on_failure=False):
     if not success:
-        if raise_exception:
+        if assert_on_failure:
             sys.stderr.write("\n" + error_message + "\n")
             sys.exit(1)
         else:
