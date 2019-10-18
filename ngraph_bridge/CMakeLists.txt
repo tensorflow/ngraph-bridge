@@ -39,6 +39,7 @@ set(SRC
    ngraph_capture_variables.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
+   ngraph_data_cache.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
    ngraph_pipelined_tensors.cc
