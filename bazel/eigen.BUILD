@@ -52,6 +52,10 @@ cc_library(
     includes = ["."],
     visibility = ["//visibility:public"],
     copts = [ 
+    "-D_FORTIFY_SOURCE=2",
+    "-Wformat",
+    "-Wformat-security",
+    "-fstack-protector-all",
     "-march=native",
     "-mtune=native",
     "-Wall",
