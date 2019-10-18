@@ -110,7 +110,8 @@ class Testtf2ngraph(NgraphTest):
                         inp_format + ' ' + inp_loc + out_node_str +
                         ' --output_' + out_format + ' ' + out_loc +
                         ' --ng_backend ' + ng_device + ' --config_file ' +
-                        config_file_name + ("", " --precompile ")[precompile])
+                        config_file_name + ("", " --precompile ")[precompile] +
+                        ("", " --save_ng_clusters ")[save_ng_clusters])
                 except:
                     assert out_node_name is None, "Call to tf2ngraph should fail" + \
                     " when no output name is provided"
