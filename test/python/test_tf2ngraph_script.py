@@ -241,3 +241,13 @@ class Testtf2ngraph(NgraphTest):
         assert rc != 0
 
         os.remove(export_pbtxt)
+
+    def test_grappler_failure(self):
+        bad_command = "python tf2ngraph.py --input_pbtxt ../test/test_axpy.pbtxt" + \
+        " --output_nodes add --output_pbtxt axpy_ngraph.pbtxt --ng_backend BADBACKEND"
+        p = Popen(bad_command.split(' '))
+
+        output, err = p.communicate()
+        rc = p.returncode
+        assert rc != 0, "Ran tf2ngraph with non-existent backend," + \
+        " hence expecting non-zero status"
