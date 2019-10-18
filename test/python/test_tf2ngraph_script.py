@@ -100,22 +100,23 @@ class Testtf2ngraph(NgraphTest):
                 # out_node_str is empty if out_node_name is None.
                 # Automatic output node inference display diagnostic logs
                 # But the tf2ngraph call will still fail
+                command = [
+                    'python', '../../tools/tf2ngraph.py',
+                    '--input_' + inp_format, inp_loc, '--output_' + out_format,
+                    out_loc, '--ng_backend', ng_device, '--config_file',
+                    config_file_name
+                ]
+                if out_node_name is not None:
+                    command.extend(['--output_nodes', out_node_name])
+                if precompile:
+                    command.append('--precompile')
+                if save_ng_clusters:
+                    command.append('--save_ng_clusters')
+                p = Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+                output, err = p.communicate()
+                rc = p.returncode
                 if out_node_name is None:
-                    out_node_str = ' '
-                else:
-                    out_node_str = ' --output_nodes ' + out_node_name + ' '
-                try:
-                    command_executor(
-                        'python ../../tools/tf2ngraph.py --input_' +
-                        inp_format + ' ' + inp_loc + out_node_str +
-                        ' --output_' + out_format + ' ' + out_loc +
-                        ' --ng_backend ' + ng_device + ' --config_file ' +
-                        config_file_name + ("", " --precompile ")[precompile] +
-                        ("", " --save_ng_clusters ")[save_ng_clusters])
-                except:
-                    assert out_node_name is None, "Call to tf2ngraph should fail" + \
-                    " when no output name is provided"
-                    return
+                    assert rc != 0, "Call to tf2ngraph should fail when no output name is provided"
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
                         ng_device, optional_backend_params, shape_hints,
