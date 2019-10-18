@@ -61,7 +61,6 @@ cc_library(
     "-Wall",
     "-Wno-unknown-pragmas",
     "-fvisibility=internal",
-    "-fstack-protector-strong",
     "-Wmissing-field-initializers",
     "-Wno-strict-overflow",
     "-O3",

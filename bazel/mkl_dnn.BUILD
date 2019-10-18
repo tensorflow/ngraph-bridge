@@ -82,7 +82,6 @@ cc_library(
         "-fvisibility=internal",
         "-Wformat", 
         "-Wformat-security",
-        "-fstack-protector-strong",
         "-Wmissing-field-initializers",
         "-Wno-strict-overflow", 
         "-std=c++11",
