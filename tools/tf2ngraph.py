@@ -103,10 +103,10 @@ class Tf2ngraphJson(object):
 def exit_on_error(success, error_message, assert_on_failure=False):
     if not success:
         if assert_on_failure:
+            assert success, error_message
+        else:
             sys.stderr.write("\n" + error_message + "\n")
             sys.exit(1)
-        else:
-            assert success, error_message
 
 
 def update_config_to_include_custom_config(config, backend, device_id,
@@ -116,6 +116,7 @@ def update_config_to_include_custom_config(config, backend, device_id,
     rewriter_options.meta_optimizer_iterations = (
         rewriter_config_pb2.RewriterConfig.ONE)
     rewriter_options.min_graph_nodes = -1
+    rewriter_options.fail_on_optimizer_errors = True
     ngraph_optimizer = rewriter_options.custom_optimizers.add()
     ngraph_optimizer.name = "ngraph-optimizer"
     ngraph_optimizer.parameter_map["ngraph_backend"].s = backend.encode()
@@ -171,8 +172,11 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     session_config = update_config_to_include_custom_config(
         session_config, ng_backend, device_id, backend_optional_params,
         shape_hints, do_aot)
-    output_gdef = tf_optimizer.OptimizeGraph(
-        session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
+    try:
+        output_gdef = tf_optimizer.OptimizeGraph(
+            session_config, grappler_meta_graph_def, graph_id=b"tf_graph")
+    except Exception as e:
+        exit_on_error(False, e.message)
     return output_gdef
 
 
