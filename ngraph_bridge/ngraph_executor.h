@@ -51,9 +51,9 @@ class NGraphExecutor {
                          std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
                          bool& cache_hit);
 
-  Status GetNgFunction(
+  Status GetNgSerializedFunction(
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      std::shared_ptr<ngraph::Function>& ng_function);
+      std::string& serialized_ng_function);
 
   // TODO Rename this to DecodeAttributes
   Status ParseNodeAttributes(
@@ -117,12 +117,11 @@ class NGraphExecutor {
   map<string, string> m_aot_functions;
   map<string, string> m_aot_execs;
 
-  // ng_function, ng_executable, Output and Input Cache maps
+  // serialized_ng_function, ng_executable, Output and Input Cache maps
   std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
       m_ng_exec_map;
-  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
-                     std::shared_ptr<ngraph::Function>>
-      m_ng_function_map;
+  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>, std::string>
+      m_serialized_ng_function_map;
 
   std::unordered_map<
       std::shared_ptr<ngraph::runtime::Executable>,
