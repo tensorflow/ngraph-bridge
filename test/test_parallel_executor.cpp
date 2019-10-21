@@ -127,7 +127,7 @@ TEST(ParallelExecutor, CompilerTest) {
   ASSERT_EQ(executor.GetNgFunction(ng_exec, ng_function),
             tensorflow::Status::OK());
 
-  // Deserialize and validate the nGraph Function
+  // Validate the nGraph Function
   const auto& parameters = ng_function->get_parameters();
   ASSERT_EQ(2, parameters.size());
 }
