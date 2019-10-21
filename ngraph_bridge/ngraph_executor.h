@@ -51,9 +51,9 @@ class NGraphExecutor {
                          std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
                          bool& cache_hit);
 
-  Status GetNgSerializedFunction(
+  Status GetNgFunction(
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      std::string& serialized_ng_function);
+      std::shared_ptr<ngraph::Function>& ng_function);
 
   // TODO Rename this to DecodeAttributes
   Status ParseNodeAttributes(

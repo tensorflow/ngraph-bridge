@@ -123,13 +123,12 @@ TEST(ParallelExecutor, CompilerTest) {
   ASSERT_TRUE(cache_hit);
 
   // Now validate that the nGraph function is available
-  std::string ng_serialized_function;
-  ASSERT_EQ(executor.GetNgSerializedFunction(ng_exec, ng_serialized_function),
+  std::shared_ptr<ngraph::Function> ng_function;
+  ASSERT_EQ(executor.GetNgFunction(ng_exec, ng_function),
             tensorflow::Status::OK());
 
   // Deserialize and validate the nGraph Function
-  const auto& parameters =
-      ngraph::deserialize(ng_serialized_function)->get_parameters();
+  const auto& parameters = ng_function->get_parameters();
   ASSERT_EQ(2, parameters.size());
 }
 

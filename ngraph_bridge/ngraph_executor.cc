@@ -408,17 +408,21 @@ Status NGraphExecutor::GetNgExecutable(
 }
 
 //---------------------------------------------------------------------------
-//  GetNgSerializedFunction
+//  GetNgFunction
 //---------------------------------------------------------------------------
-Status NGraphExecutor::GetNgSerializedFunction(
+Status NGraphExecutor::GetNgFunction(
     const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    std::string& serialized_ng_function) {
+    std::shared_ptr<ngraph::Function>& ng_function) {
   // Lookup the function from the Map
   auto it = m_serialized_ng_function_map.find(ng_exec);
   if (it == m_serialized_ng_function_map.end()) {
-    errors::Internal("Function not found for this executable");
+    return errors::Internal("Function not found for this executable");
   }
-  serialized_ng_function = it->second;
+  try {
+    ng_function = ngraph::deserialize(it->second);
+  } catch (const std::exception& exp) {
+    return errors::Internal("Failed to deserialize ngraph function");
+  }
   return Status::OK();
 }
 
