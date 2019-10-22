@@ -52,7 +52,6 @@ set(SRC
     graph_rewrites/encapsulate_clusters_test.cc
     graph_rewrites/disable_ops_test.cc
     graph_rewrites/mark_for_clustering_test.cc
-    test_executor_db.cpp
     test_index_library.cpp
     test_ngraph_data_cache.cpp
     test_utilities.cpp

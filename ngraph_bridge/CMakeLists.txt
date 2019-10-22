@@ -46,7 +46,6 @@ set(SRC
    ngraph_encapsulate_impl.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
-   ngraph_executor_db.cc
    ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc

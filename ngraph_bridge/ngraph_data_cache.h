@@ -55,6 +55,8 @@ class NgraphDataCache {
   std::pair<Status, T> LookUpOrCreate(
       std::string key, std::function<std::pair<Status, T>()> create_item,
       std::function<void(T)> callback_destroy_item);
+  std::pair<Status, T> LookUpOrCreate(
+      std::string key, std::function<std::pair<Status, T>()> create_item);
 
  private:
   std::unordered_map<std::string, T> m_ng_items_map;
@@ -92,27 +94,46 @@ std::pair<Status, T> NgraphDataCache<T>::LookUpOrCreate(
     }
   }
   // Item not found in cache, create item
-  T items;
+  T item;
   auto status_item_pair = callback_create_item();
+
   // If item is successfully created we will place in the cache.
   if (status_item_pair.first == Status::OK()) {
-    items = status_item_pair.second;
-    absl::MutexLock lock(&m_mutex);
-    // Remove item if cache is full
-    if (m_ng_items_map.size() == m_depth) {
-      auto key_to_evict = m_lru.back();
-      auto item_to_evict = m_ng_items_map.at(key_to_evict);
+    item = status_item_pair.second;
+    T item_to_evict;
+    bool need_to_evict = false;
+    // lock begins
+    {
+      absl::MutexLock lock(&m_mutex);
+      // Remove item if cache is full
+      if (m_ng_items_map.size() == m_depth) {
+        auto key_to_evict = m_lru.back();
+        item_to_evict = m_ng_items_map.at(key_to_evict);
+        need_to_evict = true;
+        m_ng_items_map.erase(key_to_evict);
+        m_lru.pop_back();
+      }
+      // Add item to cache
+      auto it = m_ng_items_map.emplace(key, item);
+      if (it.second == true) {
+        m_lru.push_front(key);
+      }
+    }  // lock ends here.
+    if (need_to_evict) {
       callback_destroy_item(item_to_evict);
-      m_ng_items_map.erase(key_to_evict);
-      m_lru.pop_back();
     }
-    // Add item to cache
-    m_ng_items_map.emplace(key, items);
-    m_lru.push_front(key);
-    return std::make_pair(Status::OK(), items);
+
+    return std::make_pair(Status::OK(), item);
   }
-  return std::make_pair(
-      errors::Internal("Failed to create value for requested key"), items);
+
+  return status_item_pair;
+}
+
+template <typename T>
+std::pair<Status, T> NgraphDataCache<T>::LookUpOrCreate(
+    std::string key,
+    std::function<std::pair<Status, T>()> callback_create_item) {
+  return LookUpOrCreate(key, callback_create_item, [](T) {});
 }
 }
 }
