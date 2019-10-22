@@ -418,6 +418,30 @@ TEST(ArrayOps, GatherV2Tensor) {
 
 }  // end of test op GatherV2
 
+TEST(ArrayOps, GatherV2TensorAxis2) {
+  Tensor A(DT_FLOAT, TensorShape({5, 5, 5, 5}));
+  AssignInputValuesRandom(A);
+
+  Tensor B(DT_INT32, TensorShape({10}));
+  AssignInputValues<int>(B, {0, 4, 2, 2, 3, 1, 3, 0, 3, 3});
+
+  Tensor C(DT_INT32, TensorShape({}));
+  AssignInputValues<int>(C,2);
+
+  vector<int> static_input_indexes = {1, 2};
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::GatherV2(root, A, B, C);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "GatherV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+
+}  // end of test op GatherV2
+
 // Test op: OneHot
 TEST(ArrayOps, OneHot1dNegAxis) {
   Scope root = Scope::NewRootScope();

@@ -2237,50 +2237,10 @@ static Status TranslateGatherV2Op(
   // the full backend creation string
   auto config_map = BackendManager::GetBackendAttributeValues(backend_name);
   if (config_map.at("ngraph_backend") != "NNPI") {
-    // This workaround works only if axis == 0
-    if (tf_axis[0] != 0) {
-      return errors::Internal("In translating GatherV2 op ", op->name(),
-                              " found requested backend ", backend_name,
-                              " which is unsupported when (axis != 0)");
-    }
+    auto gather_op = ConstructNgNode<ng::op::Gather>(op->name(), ng_input,
+                            ng_input_coords, tf_axis[0]);
 
-    shared_ptr<ng::Node> ng_params = ng_input;
-    shared_ptr<ng::Node> ng_indices = ng_input_coords;
-
-    ng::AxisVector ng_axis_order(ng_input_coords->get_shape().size());
-    std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
-
-    ng::Shape extended_shape = ng_input_coords->get_shape();
-    extended_shape.push_back(1);
-
-    ng_indices = ConstructNgNode<ng::op::Reshape>(
-        op->name(), ng_indices, ng_axis_order, extended_shape);
-
-    auto ng_params_shape = ng_params->get_shape();
-    size_t ng_params_rank = ng_params_shape.size();
-    size_t ng_indices_rank = ng_indices->get_shape().size();
-
-    for (size_t i = 0; i < ng_params_rank; i++) {
-      if (ng_params_shape[i] == 0) {
-        return errors::InvalidArgument(
-            "Requested more than 0 entries, but params is empty.  Params "
-            "shape: "
-            "[",
-            ng::join(ng_params_shape, ","), "]");
-      }
-    }
-
-    if ((ng_indices_rank - 1) > ng_params_rank) {
-      return errors::InvalidArgument(
-          "The last dimension of indices can be at most the rank of params");
-    }
-
-    SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::GatherND>(
-                                        op->name(), ng_params, ng_indices));
-
-    // return errors::Internal("In translating GatherV2 op ", op->name(),
-    //                         " found requested backend ", backend_name,
-    //                         " which is unsupported");
+    SaveNgOp(ng_op_map, op->name(), gather_op);
   } else {
     ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
 
