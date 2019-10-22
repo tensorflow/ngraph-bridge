@@ -41,7 +41,7 @@ namespace testing {
 
 class NGraphDataCacheTest : public ::testing::Test {
  protected:
-  NgraphDataCache<int> m_ng_data_cache{3};
+  NgraphDataCache<std::string, int> m_ng_data_cache{3};
   int num_threads = 2;
   absl::Barrier* barrier_ = new absl::Barrier(num_threads);
   std::atomic<int> create_count{0};

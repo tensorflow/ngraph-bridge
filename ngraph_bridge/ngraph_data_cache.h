@@ -44,7 +44,7 @@ class NGraphDataCacheTest_SameKeyMultiThread_Test;
 class NGraphDataCacheTest_DiffKeyMultiThread_Test;
 }
 
-template <typename T>
+template <typename T1, typename T2>
 class NgraphDataCache {
  public:
   NgraphDataCache(int depth);
@@ -52,15 +52,15 @@ class NgraphDataCache {
 
   // This method performs lookup in the cache for requested key, if not found
   // it will create item, put it in the cache and returns item and stattus
-  std::pair<Status, T> LookUpOrCreate(
-      std::string key, std::function<std::pair<Status, T>()> create_item,
-      std::function<void(T)> callback_destroy_item);
-  std::pair<Status, T> LookUpOrCreate(
-      std::string key, std::function<std::pair<Status, T>()> create_item);
+  std::pair<Status, T2> LookUpOrCreate(
+      T1 key, std::function<std::pair<Status, T2>()> create_item,
+      std::function<void(T2)> callback_destroy_item);
+  std::pair<Status, T2> LookUpOrCreate(
+      T1 key, std::function<std::pair<Status, T2>()> create_item);
 
  private:
-  std::unordered_map<std::string, T> m_ng_items_map;
-  std::list<std::string> m_lru;
+  std::unordered_map<T1, T2> m_ng_items_map;
+  std::list<T1> m_lru;
   int m_depth;
   absl::Mutex m_mutex;
   ;
@@ -71,18 +71,18 @@ class NgraphDataCache {
       NGraphDataCacheTest_DiffKeyMultiThread_Test;
 };
 
-template <typename T>
-NgraphDataCache<T>::NgraphDataCache(int depth) : m_depth(depth) {}
+template <typename T1, typename T2>
+NgraphDataCache<T1, T2>::NgraphDataCache(int depth) : m_depth(depth) {}
 
-template <typename T>
-NgraphDataCache<T>::~NgraphDataCache() {
+template <typename T1, typename T2>
+NgraphDataCache<T1, T2>::~NgraphDataCache() {
   m_ng_items_map.clear();
 }
 
-template <typename T>
-std::pair<Status, T> NgraphDataCache<T>::LookUpOrCreate(
-    std::string key, std::function<std::pair<Status, T>()> callback_create_item,
-    std::function<void(T)> callback_destroy_item) {
+template <typename T1, typename T2>
+std::pair<Status, T2> NgraphDataCache<T1, T2>::LookUpOrCreate(
+    T1 key, std::function<std::pair<Status, T2>()> callback_create_item,
+    std::function<void(T2)> callback_destroy_item) {
   bool found_in_cache;
   // look up in the cache
   {
@@ -94,13 +94,13 @@ std::pair<Status, T> NgraphDataCache<T>::LookUpOrCreate(
     }
   }
   // Item not found in cache, create item
-  T item;
+  T2 item;
   auto status_item_pair = callback_create_item();
 
   // If item is successfully created we will place in the cache.
   if (status_item_pair.first == Status::OK()) {
     item = status_item_pair.second;
-    T item_to_evict;
+    T2 item_to_evict;
     bool need_to_evict = false;
     // lock begins
     {
@@ -129,11 +129,10 @@ std::pair<Status, T> NgraphDataCache<T>::LookUpOrCreate(
   return status_item_pair;
 }
 
-template <typename T>
-std::pair<Status, T> NgraphDataCache<T>::LookUpOrCreate(
-    std::string key,
-    std::function<std::pair<Status, T>()> callback_create_item) {
-  return LookUpOrCreate(key, callback_create_item, [](T) {});
+template <typename T1, typename T2>
+std::pair<Status, T2> NgraphDataCache<T1, T2>::LookUpOrCreate(
+    T1 key, std::function<std::pair<Status, T2>()> callback_create_item) {
+  return LookUpOrCreate(key, callback_create_item, nullptr);
 }
 }
 }
