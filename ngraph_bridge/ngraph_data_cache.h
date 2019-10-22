@@ -132,7 +132,7 @@ std::pair<Status, T2> NgraphDataCache<T1, T2>::LookUpOrCreate(
 template <typename T1, typename T2>
 std::pair<Status, T2> NgraphDataCache<T1, T2>::LookUpOrCreate(
     T1 key, std::function<std::pair<Status, T2>()> callback_create_item) {
-  return LookUpOrCreate(key, callback_create_item, nullptr);
+  return LookUpOrCreate(key, callback_create_item, [](T2){});
 }
 }
 }
