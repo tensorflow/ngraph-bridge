@@ -1321,6 +1321,26 @@ TEST(MathOps, DISABLED_FloorDivNegInt) {
   opexecuter.RunTest();
 }  // end of test op FloorDivNegInt
 
+
+TEST(MathOps, RandomUniform) {
+  Scope root = Scope::NewRootScope();
+
+  vector<int> static_input_indexes = {0};
+
+  Tensor shape(DT_INT32, TensorShape({1}));
+  AssignInputValues(shape, 10);
+
+  auto R = ops::RandomUniform(root, shape, DT_FLOAT);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "RandomUniform", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+} 
+
 // For FloorDiv op, the input and output data type should match
 TEST(MathOps, FloorDivNegFloat) {
   Scope root = Scope::NewRootScope();
