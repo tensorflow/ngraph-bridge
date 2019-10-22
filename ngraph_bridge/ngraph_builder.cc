@@ -2237,8 +2237,8 @@ static Status TranslateGatherV2Op(
   // the full backend creation string
   auto config_map = BackendManager::GetBackendAttributeValues(backend_name);
   if (config_map.at("ngraph_backend") != "NNPI") {
-    auto gather_op = ConstructNgNode<ng::op::Gather>(op->name(), ng_input,
-                            ng_input_coords, tf_axis[0]);
+    auto gather_op = ConstructNgNode<ng::op::Gather>(
+        op->name(), ng_input, ng_input_coords, tf_axis[0]);
 
     SaveNgOp(ng_op_map, op->name(), gather_op);
   } else {

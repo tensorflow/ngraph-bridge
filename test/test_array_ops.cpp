@@ -426,7 +426,7 @@ TEST(ArrayOps, GatherV2TensorAxis2) {
   AssignInputValues<int>(B, {0, 4, 2, 2, 3, 1, 3, 0, 3, 3});
 
   Tensor C(DT_INT32, TensorShape({}));
-  AssignInputValues<int>(C,2);
+  AssignInputValues<int>(C, 2);
 
   vector<int> static_input_indexes = {1, 2};
   vector<DataType> output_datatypes = {DT_FLOAT};
