@@ -3575,8 +3575,8 @@ static Status TranslateQuantizeV2Op(const Node* op,
       ng::op::Quantize::RoundMode::ROUND_NEAREST_TOWARD_EVEN;
 
   auto ng_node = ng::builder::QuantizeBuilder(ng_input, ng_min, ng_max, ng_et,
-                                        ng::AxisSet(), ng_round_mode);
-  Builder::SetTracingInfo(op->name(), ng_node);               
+                                              ng::AxisSet(), ng_round_mode);
+  Builder::SetTracingInfo(op->name(), ng_node);
   SaveNgOp(ng_op_map, op->name(), ng_node);
   SaveNgOp(ng_op_map, op->name(), ng_min);
   SaveNgOp(ng_op_map, op->name(), ng_max);
@@ -3591,8 +3591,8 @@ static Status TranslateDequantizeOp(const Node* op,
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_min, &ng_max));
 
   // TF only dequantizes to fp32
-  auto ng_node = ng::builder::DequantizeBuilder(ng_input, ng_min, ng_max,
-                                          ng::element::f32, ng::AxisSet());
+  auto ng_node = ng::builder::DequantizeBuilder(
+      ng_input, ng_min, ng_max, ng::element::f32, ng::AxisSet());
   Builder::SetTracingInfo(op->name(), ng_node);
   SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
