@@ -923,19 +923,27 @@ static Status TranslateBatchMatMulV2Op(
   auto ng_rhs_shape = ng_rhs->get_shape();
   size_t n_dims = ng_lhs_shape.size();
 
+  if (ng_lhs_shape.size() != ng_rhs_shape.size()) {
+    return errors::InvalidArgument(
+        "Dimensions of two input args are not the same for BatchMatMul");
+  }
+
   for (size_t i = 0; i < n_dims - 2; ++i) {
     if (!((ng_lhs_shape[i] == ng_rhs_shape[i]) || (ng_lhs_shape[i] == 1) ||
           (ng_rhs_shape[i] == 1))) {
       return errors::InvalidArgument(
           "ng_lhs_shape and ng_rhs_shape must be broadcastable for "
           "BatchMatMulV2 "
-          "for each dimension",
-          i);
-    } else if (ng_lhs_shape[i] != ng_rhs_shape[i]) {
+          "for each dimension. Failed to match dimension ",
+          i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
+          ng_rhs_shape[i]);
+    } else if ((ng_lhs_shape[i] == 1) || (ng_rhs_shape[i] == 1)) {
       return errors::Unimplemented(
-          "ng_lhs_shape and ng_rhs_shape must be the same for BatchMatMulV2 "
-          "for each dimension",
-          i);
+          "ng_lhs_shape and ng_rhs_shape must be the same for each dimension, "
+          "for current implementation of BatchMatMulV2."
+          "Failed to match dimension ",
+          i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
+          ng_rhs_shape[i]);
     }
   }
   return TranslateBatchMatMulOp(op, static_input_map, ng_op_map);
