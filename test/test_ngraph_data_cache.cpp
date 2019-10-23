@@ -42,6 +42,7 @@ class NGraphDataCacheTest : public ::testing::Test {
   int num_threads = 2;
   absl::Barrier* barrier_ = new absl::Barrier(num_threads);
   std::atomic<int> create_count{0};
+  int destroy_count = 0;
   bool item_evicted = false;
 
   std::pair<Status, int> CreateItem() {
@@ -56,7 +57,10 @@ class NGraphDataCacheTest : public ::testing::Test {
     return std::make_pair(Status::OK(), 3);
   }
 
-  void DestroyItem(int i) { item_evicted = true; }
+  void DestroyItem(int i) {
+    item_evicted = true;
+    destroy_count++;
+  }
 };
 
 TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
@@ -90,6 +94,34 @@ TEST_F(NGraphDataCacheTest, TestItemEviction) {
   m_ng_data_cache.LookUpOrCreate("hij", create_item, destroy_item);
   ASSERT_EQ(item_evicted, true);
   m_ng_data_cache.LookUpOrCreate("klm", create_item);
+}
+
+TEST_F(NGraphDataCacheTest, RemoveItemTest) {
+  auto create_item = std::bind(
+      &NGraphDataCacheTest_RemoveItemTest_Test::CreateItemNoBarrier, this);
+  auto destroy_item =
+      std::bind(&NGraphDataCacheTest_RemoveItemTest_Test::DestroyItem, this,
+                std::placeholders::_1);
+
+  m_ng_data_cache.LookUpOrCreate("abc", create_item);
+  m_ng_data_cache.LookUpOrCreate("def", create_item);
+  m_ng_data_cache.LookUpOrCreate("efg", create_item);
+  ASSERT_EQ(item_evicted, false);
+  m_ng_data_cache.RemoveAll(destroy_item);
+  ASSERT_EQ(item_evicted, true);
+  ASSERT_EQ(destroy_count, 3);
+  destroy_count = 0;
+  m_ng_data_cache.RemoveAll(destroy_item);
+  ASSERT_EQ(destroy_count, 0);
+  m_ng_data_cache.LookUpOrCreate("abc", create_item);
+  m_ng_data_cache.LookUpOrCreate("def", create_item);
+  ASSERT_EQ(m_ng_data_cache.m_ng_items_map.size(), 2);
+  m_ng_data_cache.RemoveItem("def");
+  m_ng_data_cache.RemoveItem("def", destroy_item);
+  ASSERT_EQ(destroy_count, 0);
+  m_ng_data_cache.RemoveItem("abc", destroy_item);
+  ASSERT_EQ(destroy_count, 1);
+  ASSERT_EQ(m_ng_data_cache.m_ng_items_map.size(), 0);
 }
 }
 }
