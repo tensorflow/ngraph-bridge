@@ -63,6 +63,7 @@ class NGraphDataCacheTest : public ::testing::Test {
   }
 };
 
+// Tests LooUpOrCreate(), in multithreading environment
 TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
   auto worker = [&](size_t thread_id) {
     auto create_item = std::bind(
@@ -76,6 +77,7 @@ TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
 
   thread0.join();
   thread1.join();
+  // This is ensured by using Barrier inside CreateItem()
   ASSERT_EQ(create_count, 2);
   ASSERT_EQ(m_ng_data_cache.m_ng_items_map.size(), 1);
 }
@@ -93,7 +95,6 @@ TEST_F(NGraphDataCacheTest, TestItemEviction) {
   ASSERT_EQ(item_evicted, false);
   m_ng_data_cache.LookUpOrCreate("hij", create_item, destroy_item);
   ASSERT_EQ(item_evicted, true);
-  m_ng_data_cache.LookUpOrCreate("klm", create_item);
 }
 
 TEST_F(NGraphDataCacheTest, RemoveItemTest) {
