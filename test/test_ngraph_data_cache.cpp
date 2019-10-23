@@ -82,6 +82,7 @@ TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
   ASSERT_EQ(m_ng_data_cache.m_ng_items_map.size(), 1);
 }
 
+// Testing to ensure destoy called back is called, when cache is full.
 TEST_F(NGraphDataCacheTest, TestItemEviction) {
   auto create_item = std::bind(
       &NGraphDataCacheTest_TestItemEviction_Test::CreateItemNoBarrier, this);
@@ -97,6 +98,7 @@ TEST_F(NGraphDataCacheTest, TestItemEviction) {
   ASSERT_EQ(item_evicted, true);
 }
 
+// Testing all variations of RemoveItem/All functionality
 TEST_F(NGraphDataCacheTest, RemoveItemTest) {
   auto create_item = std::bind(
       &NGraphDataCacheTest_RemoveItemTest_Test::CreateItemNoBarrier, this);
