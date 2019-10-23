@@ -90,19 +90,17 @@ NgraphDataCache<KeyType, ValueType>::~NgraphDataCache() {
 template <typename KeyType, typename ValueType>
 void NgraphDataCache<KeyType, ValueType>::RemoveItem(
     KeyType key, std::function<void(ValueType)> callback_destroy_item) {
+  absl::MutexLock lock(&m_mutex);
   if (m_ng_items_map.find(key) != m_ng_items_map.end()) {
     callback_destroy_item(m_ng_items_map.at(key));
-    RemoveItem(key);
+    m_ng_items_map.erase(key);
+    m_lru.pop_back();
   }
 }
 
 template <typename KeyType, typename ValueType>
 void NgraphDataCache<KeyType, ValueType>::RemoveItem(KeyType key) {
-  if (m_ng_items_map.find(key) != m_ng_items_map.end()) {
-    absl::MutexLock lock(&m_mutex);
-    m_ng_items_map.erase(key);
-    m_lru.pop_back();
-  }
+  RemoveItem(key, [](ValueType) {});
 }
 
 template <typename KeyType, typename ValueType>
@@ -154,6 +152,10 @@ NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
       // Add item to cache
       auto it = m_ng_items_map.emplace(key, item);
       if (it.second == true) {
+        m_lru.push_front(key);
+      } else {
+        auto key_itr = find(m_lru.begin(), m_lru.end(), key);
+        m_lru.erase(key_itr);
         m_lru.push_front(key);
       }
     }  // lock ends here.
