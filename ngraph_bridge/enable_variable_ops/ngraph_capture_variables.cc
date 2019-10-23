@@ -83,8 +83,9 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
         // Add the Variable node to the ref list
         ref_list.insert(node);
 
-        // go over all the nodes leading from VariableV2 and store them
-        // in a list if they are ref type
+        // StoreRefTypeOutputs goes over all the nodes leading from VariableV2
+        // and stores them in a list if they are ref type.
+        // It returns empty ref_list if validate_shape is False
         TF_RETURN_IF_ERROR(StoreRefTypeOutputs(node, &ref_list));
 
         if (ref_list.size()) {
@@ -102,10 +103,10 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           auto tmp_pair =
               NGraphCatalog::HasTFVarBeenReplacedBefore(node->name());
           if (get<0>(tmp_pair)) {
-            // return errors::Internal(node->name(),
-            //                       "(VariableV2) was captured in an earlier "
-            //                     "graph, but in the current graph ngraph "
-            //                   "was unable to capture it");
+            return errors::Internal(node->name(),
+                                    "(VariableV2) was captured in an earlier "
+                                    "graph, but in the current graph ngraph "
+                                    "was unable to capture it");
           }
 #endif
         }
