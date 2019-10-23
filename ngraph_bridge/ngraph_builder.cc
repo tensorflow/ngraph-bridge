@@ -2282,6 +2282,22 @@ static Status TranslateGatherV2Op(
 
   // split and check the first part only, since the node attribute contains
   // the full backend creation string
+
+  // Negative axis is supported. Accounting for that
+  auto ng_input_shape = ng_input->get_shape();
+  size_t ng_input_rank = ng_input_shape.size();
+  int axis;
+  if (tf_axis[0] >= 0) {
+    axis = tf_axis[0];
+  } else {
+    axis = tf_axis[0] + ng_input_rank;
+  }
+  if (axis < 0 || axis >= ng_input_rank) {
+    return errors::InvalidArgument("Expected axis in the range [-",
+                                    ng_input_rank, ", ", ng_input_rank,
+                                    "), but got ", tf_axis[0]);
+  }
+
   auto config_map = BackendManager::GetBackendAttributeValues(backend_name);
   if (config_map.at("ngraph_backend") != "NNPI") {
     auto gather_op = ConstructNgNode<ng::op::Gather>(
@@ -2290,21 +2306,6 @@ static Status TranslateGatherV2Op(
     SaveNgOp(ng_op_map, op->name(), gather_op);
   } else {
     ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
-
-    // Negative axis is supported. Accounting for that
-    auto ng_input_shape = ng_input->get_shape();
-    size_t ng_input_rank = ng_input_shape.size();
-    int axis;
-    if (tf_axis[0] >= 0) {
-      axis = tf_axis[0];
-    } else {
-      axis = tf_axis[0] + ng_input_rank;
-    }
-    if (axis < 0 || axis >= ng_input_rank) {
-      return errors::InvalidArgument("Expected axis in the range [-",
-                                     ng_input_rank, ", ", ng_input_rank,
-                                     "), but got ", tf_axis[0]);
-    }
 
     shared_ptr<ng::Node> ng_gather =
         backend->get_backend_op("Gather", &ng_input, &ng_input_coords, &axis);
