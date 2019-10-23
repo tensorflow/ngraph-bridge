@@ -2294,8 +2294,8 @@ static Status TranslateGatherV2Op(
   }
   if (axis < 0 || axis >= ng_input_rank) {
     return errors::InvalidArgument("Expected axis in the range [-",
-                                    ng_input_rank, ", ", ng_input_rank,
-                                    "), but got ", tf_axis[0]);
+                                   ng_input_rank, ", ", ng_input_rank,
+                                   "), but got ", tf_axis[0]);
   }
 
   auto config_map = BackendManager::GetBackendAttributeValues(backend_name);
