@@ -60,10 +60,10 @@ class NgraphDataCache {
   std::pair<Status, ValueType> LookUpOrCreate(
       KeyType key,
       std::function<std::pair<Status, ValueType>()> callback_create_item);
-  void RemoveItem(KeyType key);
-  void RemoveItem(KeyType key,
-                  std::function<void(ValueType)> callback_destroy_item);
-  void RemoveAll(std::function<void(ValueType)> callback_destroy_item);
+  Status RemoveItem(KeyType key);
+  Status RemoveItem(KeyType key,
+                    std::function<void(ValueType)> callback_destroy_item);
+  Status RemoveAll(std::function<void(ValueType)> callback_destroy_item);
 
  private:
   std::unordered_map<KeyType, ValueType> m_ng_items_map;
@@ -85,10 +85,11 @@ NgraphDataCache<KeyType, ValueType>::NgraphDataCache(int depth)
 template <typename KeyType, typename ValueType>
 NgraphDataCache<KeyType, ValueType>::~NgraphDataCache() {
   m_ng_items_map.clear();
+  m_lru.clear();
 }
 
 template <typename KeyType, typename ValueType>
-void NgraphDataCache<KeyType, ValueType>::RemoveItem(
+Status NgraphDataCache<KeyType, ValueType>::RemoveItem(
     KeyType key, std::function<void(ValueType)> callback_destroy_item) {
   absl::MutexLock lock(&m_mutex);
   if (m_ng_items_map.find(key) != m_ng_items_map.end()) {
@@ -96,15 +97,20 @@ void NgraphDataCache<KeyType, ValueType>::RemoveItem(
     m_ng_items_map.erase(key);
     m_lru.pop_back();
   }
+  if (m_ng_items_map.size() != m_lru.size()) {
+    return errors::Internal(
+        "Error occured: size of m_ng_items_map is not same as that of m_lru");
+  }
+  return Status::OK();
 }
 
 template <typename KeyType, typename ValueType>
-void NgraphDataCache<KeyType, ValueType>::RemoveItem(KeyType key) {
-  RemoveItem(key, [](ValueType) {});
+Status NgraphDataCache<KeyType, ValueType>::RemoveItem(KeyType key) {
+  return RemoveItem(key, [](ValueType) {});
 }
 
 template <typename KeyType, typename ValueType>
-void NgraphDataCache<KeyType, ValueType>::RemoveAll(
+Status NgraphDataCache<KeyType, ValueType>::RemoveAll(
     std::function<void(ValueType)> callback_destroy_item) {
   absl::MutexLock lock(&m_mutex);
   for (auto it = m_ng_items_map.begin(); it != m_ng_items_map.end(); it++) {
@@ -112,6 +118,7 @@ void NgraphDataCache<KeyType, ValueType>::RemoveAll(
   }
   m_ng_items_map.erase(m_ng_items_map.begin(), m_ng_items_map.end());
   m_lru.clear();
+  return Status::OK();
 }
 
 template <typename KeyType, typename ValueType>
@@ -132,8 +139,15 @@ NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
   }
   // Item not found in cache, create item
   ValueType item;
-  auto status_item_pair = callback_create_item();
-
+  pair<Status, ValueType> status_item_pair;
+  try {
+    status_item_pair = callback_create_item();
+  } catch (std::bad_function_call& exception) {
+    return std::make_pair(
+        errors::Internal(
+            "Failed to create an item. Invalid Callback to Create"),
+        item);
+  }
   // If item is successfully created we will place in the cache.
   if (status_item_pair.first == Status::OK()) {
     item = status_item_pair.second;
@@ -162,6 +176,12 @@ NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
     }  // lock ends here.
     if (need_to_evict) {
       callback_destroy_item(item_to_evict);
+    }
+    if (m_ng_items_map.size() != m_lru.size()) {
+      return std::make_pair(
+          errors::Internal("Error occured: size of m_ng_items_map is not same "
+                           "as that of m_lru"),
+          item);
     }
     return std::make_pair(Status::OK(), item);
   }

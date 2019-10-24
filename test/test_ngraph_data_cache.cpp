@@ -81,6 +81,7 @@ TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
     ASSERT_EQ(m_ng_data_cache.LookUpOrCreate("def", create_item_ret_err)
                   .first.error_message(),
               "Failed to create item");
+
   };
 
   std::thread thread0(worker, 0);
@@ -91,6 +92,8 @@ TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
   // This is ensured by using Barrier inside CreateItem()
   ASSERT_EQ(create_count, 2);
   ASSERT_EQ(m_ng_data_cache.m_ng_items_map.size(), 1);
+  ASSERT_EQ(m_ng_data_cache.m_ng_items_map.find("def"),
+            m_ng_data_cache.m_ng_items_map.end());
 }
 
 // Testing to ensure destoy called back is called, when cache is full.
