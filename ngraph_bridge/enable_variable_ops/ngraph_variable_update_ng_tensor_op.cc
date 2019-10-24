@@ -47,8 +47,8 @@ NGraphVariableUpdateNGTensorOp::NGraphVariableUpdateNGTensorOp(
                                            &ng_variable_shared_name_));
 
   NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Constructor called for: "
-                 << def().name() << " ,Graph ID " << ng_graph_id_ <<
-                 " ngraph_variable_shared_name " << ng_variable_shared_name_;
+                 << def().name() << " ,Graph ID " << ng_graph_id_
+                 << " ngraph_variable_shared_name " << ng_variable_shared_name_;
 
   OP_REQUIRES(context, IsRefType(context->input_type(0)),
               errors::InvalidArgument("lhs input needs to be a ref type"));
@@ -75,7 +75,7 @@ void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
   NGRAPH_VLOG(4) << "KERNEL[" << type_string() << "]: " << name() << "\n";
   int number_of_copies = 0;
   NGRAPH_VLOG(4) << "NGraphVariableUpdateNGTensorOp:: Compute called for: "
-                 << def().name() << " ,Graph ID " << ng_graph_id_<< "\n";
+                 << def().name() << " ,Graph ID " << ng_graph_id_ << "\n";
 
   // Since we have ngraph_variable_shared_name as an attribute,
   // we can use that to get the variable from the context
@@ -89,7 +89,7 @@ void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
   // input Ref Tensor at input_index.
   // REQUIRES: IsRefType(input_dtype(input_index)).
   // REQUIRES: IsRefType(output_dtype(output_index)).
-  
+
   context->forward_ref_input_to_ref_output(0, 0);
 
   if (var->copy_tf_to_ng()) {

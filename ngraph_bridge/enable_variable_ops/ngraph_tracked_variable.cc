@@ -182,8 +182,9 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
 
   // Here uses the Resource Manager's default container
   NGraphVar* var;
-  cout << "KANVI default "<<cinfo_.resource_manager()->default_container()<<"\n";
-  cout << "KANVI other "<<cinfo_.container()<<"\n";
+  cout << "KANVI default " << cinfo_.resource_manager()->default_container()
+       << "\n";
+  cout << "KANVI other " << cinfo_.container() << "\n";
   OP_REQUIRES_OK(ctx, cinfo_.resource_manager()->LookupOrCreate<NGraphVar>(
                           cinfo_.container(), cinfo_.name(), &var, creator));
 
