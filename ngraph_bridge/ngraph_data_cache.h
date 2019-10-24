@@ -118,6 +118,10 @@ Status NgraphDataCache<KeyType, ValueType>::RemoveAll(
   }
   m_ng_items_map.erase(m_ng_items_map.begin(), m_ng_items_map.end());
   m_lru.clear();
+  if (m_ng_items_map.size() != m_lru.size()) {
+    return errors::Internal(
+        "Error occured: size of m_ng_items_map is not same as that of m_lru");
+  }
   return Status::OK();
 }
 
