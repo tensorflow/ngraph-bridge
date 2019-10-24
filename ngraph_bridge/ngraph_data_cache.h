@@ -111,6 +111,7 @@ void NgraphDataCache<KeyType, ValueType>::RemoveAll(
     callback_destroy_item(it->second);
   }
   m_ng_items_map.erase(m_ng_items_map.begin(), m_ng_items_map.end());
+  m_lru.clear();
 }
 
 template <typename KeyType, typename ValueType>
