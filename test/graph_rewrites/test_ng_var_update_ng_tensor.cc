@@ -15,6 +15,8 @@
  *******************************************************************************/
 
 #include <vector>
+
+#include "gtest/gtest.h"
 #include "tensorflow/core/framework/allocator.h"
 #include "tensorflow/core/framework/node_def_builder.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -28,7 +30,6 @@
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/test.h"
 
-#include "gtest/gtest.h"
 #include "ngraph_bridge/enable_variable_ops/fake_input.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_variable_update_ng_tensor_op.h"
@@ -41,6 +42,8 @@ namespace testing {
 
 class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {};
 
+// This test requires the env variable NGRAPH_TF_NGVARIABLE_BUFFER_SHARING=0
+// when running on CPU
 TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   // Create a normal TF tensor: input_tf_tensor and assign values
   // This will be used to assign initial value to the TF tensor
