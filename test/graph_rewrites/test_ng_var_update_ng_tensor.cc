@@ -30,7 +30,7 @@
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/test.h"
 
-#include "ngraph_bridge/enable_variable_ops/fake_input.h"
+#include "ngraph_bridge/enable_variable_ops/tf_fake_input.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_variable_update_ng_tensor_op.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -107,7 +107,7 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   void* dst_ptr = DMAHelper::base(&output_tensor);
   ng_t->read(dst_ptr, 0, output_tensor.TotalBytes());
 
-  ASSERT_EQ(output_tensor.DebugString(), input_tf_tensor.DebugString());
+  Compare(output_tensor, input_tf_tensor, 0.0);
 
   var->Unref();
 }

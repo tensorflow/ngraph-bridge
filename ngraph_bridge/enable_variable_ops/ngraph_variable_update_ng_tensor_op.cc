@@ -51,7 +51,7 @@ NGraphVariableUpdateNGTensorOp::NGraphVariableUpdateNGTensorOp(
                  << " ngraph_variable_shared_name " << ng_variable_shared_name_;
 
   OP_REQUIRES(context, IsRefType(context->input_type(0)),
-              errors::InvalidArgument("lhs input needs to be a ref type"));
+              errors::InvalidArgument("input[0] needs to be a ref type"));
 }
 
 //---------------------------------------------------------------------------

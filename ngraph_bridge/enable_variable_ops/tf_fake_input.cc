@@ -34,7 +34,7 @@ File: tensorflow/tensorflow/core/framework/fake_input.cc
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/enable_variable_ops/fake_input.h"
+#include "ngraph_bridge/enable_variable_ops/tf_fake_input.h"
 
 #include <vector>
 #include "tensorflow/core/framework/attr_value.pb.h"
