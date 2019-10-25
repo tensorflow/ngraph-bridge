@@ -93,7 +93,12 @@ Status NgraphDataCache<KeyType, ValueType>::RemoveItem(
     KeyType key, std::function<void(ValueType)> callback_destroy_item) {
   absl::MutexLock lock(&m_mutex);
   if (m_ng_items_map.find(key) != m_ng_items_map.end()) {
-    callback_destroy_item(m_ng_items_map.at(key));
+    try {
+      callback_destroy_item(m_ng_items_map.at(key));
+    } catch (std::bad_function_call& exception) {
+      return errors::Internal(
+          "Failed to destroy item. Invalid Callback to Destroy");
+    }
     m_ng_items_map.erase(key);
     m_lru.pop_back();
   }
@@ -114,7 +119,12 @@ Status NgraphDataCache<KeyType, ValueType>::RemoveAll(
     std::function<void(ValueType)> callback_destroy_item) {
   absl::MutexLock lock(&m_mutex);
   for (auto it = m_ng_items_map.begin(); it != m_ng_items_map.end(); it++) {
-    callback_destroy_item(it->second);
+    try {
+      callback_destroy_item(it->second);
+    } catch (std::bad_function_call& exception) {
+      return errors::Internal(
+          "Failed to destroy item. Invalid Callback to Destroy");
+    }
   }
   if (m_ng_items_map.size() != m_lru.size()) {
     return errors::Internal(
@@ -155,18 +165,22 @@ NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
   // If item is successfully created we will place in the cache.
   if (status_item_pair.first == Status::OK()) {
     item = status_item_pair.second;
-    ValueType item_to_evict;
-    bool need_to_evict = false;
     // lock begins
     {
       absl::MutexLock lock(&m_mutex);
       // Remove item if cache is full
       if (m_ng_items_map.size() == m_depth) {
         auto key_to_evict = m_lru.back();
-        item_to_evict = m_ng_items_map.at(key_to_evict);
+        try {
+          callback_destroy_item(m_ng_items_map.at(key_to_evict));
+        } catch (std::bad_function_call& exception) {
+          return std::make_pair(
+              errors::Internal(
+                  "Failed to destroy item. Invalid Callback to Destroy"),
+              item);
+        }
         m_ng_items_map.erase(key_to_evict);
         m_lru.pop_back();
-        need_to_evict = true;
       }
       // Add item to cache
       auto it = m_ng_items_map.emplace(key, item);
@@ -178,9 +192,7 @@ NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
         m_lru.push_front(key);
       }
     }  // lock ends here.
-    if (need_to_evict) {
-      callback_destroy_item(item_to_evict);
-    }
+
     if (m_ng_items_map.size() != m_lru.size()) {
       return std::make_pair(
           errors::Internal("Error occured: size of m_ng_items_map is not same "
