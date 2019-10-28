@@ -416,7 +416,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       };
       confirmation_function_map["Transpose"] = SimpleConfirmationFunction();
       confirmation_function_map["Unpack"] = SimpleConfirmationFunction();
-      confirmation_function_map["UnsortedSegmentSum"] = SimpleConfirmationFunction();
+      confirmation_function_map["UnsortedSegmentSum"] =
+          SimpleConfirmationFunction();
       confirmation_function_map["ZerosLike"] = SimpleConfirmationFunction();
 
       //
@@ -600,8 +601,10 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Transpose"]["Tperm"] = NGraphIndexDTypes();
       type_constraint_map["Unpack"]["T"] = NGraphDTypes();
       type_constraint_map["UnsortedSegmentSum"]["T"] = NGraphNumericDTypes();
-      type_constraint_map["UnsortedSegmentSum"]["Tindices"] = NGraphIndexDTypes();
-      type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] = NGraphIndexDTypes();
+      type_constraint_map["UnsortedSegmentSum"]["Tindices"] =
+          NGraphIndexDTypes();
+      type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
+          NGraphIndexDTypes();
 
       // Set Additional Attributes (if any)
       set_attributes_map["Any"] = SetStaticInputs({1});

@@ -1641,9 +1641,8 @@ TEST(MathOps, UnsortedSegmentSum) {
   Tensor B(DT_INT32, TensorShape({3}));
   Tensor C(DT_INT32, TensorShape({}));
 
-  AssignInputValues(A, std::vector<float>{1.f, 2.f, 3.f, 4.f,
-                                          5.f, 6.f, 7.f, 8.f,
-                                          4.f, 3.f, 2.f, 1.f});
+  AssignInputValues(A, std::vector<float>{1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f,
+                                          8.f, 4.f, 3.f, 2.f, 1.f});
   AssignInputValues(B, std::vector<int>{0, 1, 0});
   AssignInputValues(C, 2);
 

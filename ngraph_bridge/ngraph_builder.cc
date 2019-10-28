@@ -4752,8 +4752,7 @@ static Status TranslateUnpackOp(const Node* op,
 
 static Status TranslateUnsortedSegmentSumOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map)
-{
+    Builder::OpMap& ng_op_map) {
   /*
   # Code from python that reflects how unsorted_segment_sum
   # works in tensorflow using scatter_add
@@ -4770,28 +4769,31 @@ static Status TranslateUnsortedSegmentSumOp(
     return tf.scatter_add(result, segment_ids, inputs)
   */
 
-  shared_ptr<ng::Node> ng_input, ng_segment_ids;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_segment_ids));
+  shared_ptr<ng::Node> ng_input, ng_segment_ids, ng_num_segments;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_segment_ids,
+                                   &ng_num_segments));
 
   int num_segments;
   std::vector<int64> tmp_num_segments;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &tmp_num_segments));
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 2, static_input_map, &tmp_num_segments));
   num_segments = tmp_num_segments[0];
 
-  auto &input_shape = ng_input->get_shape();
-  auto &segment_shape = ng_segment_ids->get_shape();
+  auto& input_shape = ng_input->get_shape();
+  auto& segment_shape = ng_segment_ids->get_shape();
 
   ng::Shape output_shape;
   output_shape.push_back(num_segments);
   output_shape.insert(output_shape.end(),
-                      input_shape.begin() + segment_shape.size(), input_shape.end());
+                      input_shape.begin() + segment_shape.size(),
+                      input_shape.end());
 
   auto result = ConstructNgNode<ng::op::Constant>(
-          op->name(), ng_input->get_element_type(), output_shape,
-          std::vector<std::string>(ng::shape_size(output_shape), "0"));
+      op->name(), ng_input->get_element_type(), output_shape,
+      std::vector<std::string>(ng::shape_size(output_shape), "0"));
 
-  auto unsorted_segment_sum = ConstructNgNode<ng::op::ScatterAdd>(op->name(), result,
-                                                                  ng_segment_ids, ng_input);
+  auto unsorted_segment_sum = ConstructNgNode<ng::op::ScatterAdd>(
+      op->name(), result, ng_segment_ids, ng_input);
 
   SaveNgOp(ng_op_map, op->name(), unsorted_segment_sum);
   return Status::OK();
