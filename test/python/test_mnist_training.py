@@ -41,11 +41,11 @@ class TestMnistTraining(NgraphTest):
 
         class mnist_training_flags:
 
-            def __init__(self, data_dir, model_dir, training_iterations,
+            def __init__(self, data_dir, output_model_dir, training_iterations,
                          training_batch_size, validation_batch_size,
                          make_deterministic, training_optimizer):
                 self.data_dir = data_dir
-                self.model_dir = model_dir
+                self.output_model_dir = output_model_dir
                 self.train_loop_count = training_iterations
                 self.batch_size = training_batch_size
                 self.test_image_count = validation_batch_size
@@ -57,11 +57,11 @@ class TestMnistTraining(NgraphTest):
         batch_size = 50
         test_image_count = None
         make_deterministic = True
-        model_dir = './mnist_trained/'
+        output_model_dir = './save_loc/train'
 
-        FLAGS = mnist_training_flags(data_dir, model_dir, train_loop_count,
-                                     batch_size, test_image_count,
-                                     make_deterministic, optimizer)
+        FLAGS = mnist_training_flags(
+            data_dir, output_model_dir, train_loop_count, batch_size,
+            test_image_count, make_deterministic, optimizer)
 
         # Run on nGraph
         ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
@@ -78,3 +78,5 @@ class TestMnistTraining(NgraphTest):
         assert np.allclose(
             ng_values, tf_values,
             atol=1e-3), "Loss or Accuracy values don't match"
+
+        # TODO remove save_loc

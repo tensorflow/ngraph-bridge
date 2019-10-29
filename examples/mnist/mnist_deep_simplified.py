@@ -96,8 +96,8 @@ def deepnn(x):
         b_fc2 = bias_variable([10])
 
         # y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
-        y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
-    return y_conv, tf.placeholder(tf.float32)
+        y_conv = tf.add(tf.matmul(h_fc1, W_fc2), b_fc2, name='y_conv')
+    return y_conv, tf.placeholder(tf.float32, name='keep_prob')
 
 
 def conv2d(x, W):
@@ -121,6 +121,39 @@ def bias_variable(shape):
     """bias_variable generates a bias variable of a given shape."""
     initial = tf.constant(0.1, shape=shape)
     return tf.Variable(initial)
+
+
+def build_graph(optimizer_scope):
+    # Create the model
+    x = tf.placeholder(tf.float32, [None, 784], name='x')
+
+    # Define loss and optimizer
+    y_ = tf.placeholder(tf.float32, [None, 10], name='y_')
+
+    # Build the graph for the deep net
+    y_conv, keep_prob = deepnn(x)
+
+    with tf.name_scope('loss'):
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
+            labels=y_, logits=y_conv)
+    cross_entropy = tf.reduce_mean(cross_entropy, name='cross_entropy')
+
+    with tf.name_scope(optimizer_scope):
+        if FLAGS.optimizer == "adam":
+            train_step = tf.train.AdamOptimizer(1e-4).minimize(
+                cross_entropy, name='train_step')
+        elif FLAGS.optimizer == "sgd":
+            train_step = tf.train.GradientDescentOptimizer(5e-2).minimize(
+                cross_entropy, name='train_step')
+        elif FLAGS.optimizer == "momentum":
+            train_step = tf.train.MomentumOptimizer(1e-4, 0.9).minimize(
+                cross_entropy, name='train_step')
+
+    with tf.name_scope('accuracy_ops'):
+        correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
+        correct_prediction = tf.cast(correct_prediction, tf.float32)
+    accuracy = tf.reduce_mean(correct_prediction, name='accuracy')
+    return accuracy, cross_entropy, x, y_, keep_prob, train_step
 
 
 def train_mnist_cnn(FLAGS):
@@ -153,50 +186,38 @@ def train_mnist_cnn(FLAGS):
     # Import data
     mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
 
-    # Create the model
-    x = tf.placeholder(tf.float32, [None, 784])
-
-    # Define loss and optimizer
-    y_ = tf.placeholder(tf.float32, [None, 10])
-
-    # Build the graph for the deep net
-    y_conv, keep_prob = deepnn(x)
-
-    with tf.name_scope('loss'):
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
-            labels=y_, logits=y_conv)
-    cross_entropy = tf.reduce_mean(cross_entropy)
-
-    optimizer_scope = FLAGS.optimizer + "_optimizer"
-    with tf.name_scope(optimizer_scope):
-        if FLAGS.optimizer == "adam":
-            train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-        elif FLAGS.optimizer == "sgd":
-            train_step = tf.train.GradientDescentOptimizer(5e-2).minimize(
-                cross_entropy)
-        elif FLAGS.optimizer == "momentum":
-            train_step = tf.train.MomentumOptimizer(1e-4,
-                                                    0.9).minimize(cross_entropy)
-
-    with tf.name_scope('accuracy'):
-        correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
-        correct_prediction = tf.cast(correct_prediction, tf.float32)
-    accuracy = tf.reduce_mean(correct_prediction)
-    tf.summary.scalar('Training accuracy', accuracy)
-    tf.summary.scalar('Loss function', cross_entropy)
-
     graph_location = "/tmp/" + getpass.getuser(
     ) + "/tensorboard-logs/mnist-convnet"
     print('Saving graph to: %s' % graph_location)
 
-    merged = tf.summary.merge_all()
-    train_writer = tf.summary.FileWriter(graph_location)
-    train_writer.add_graph(tf.get_default_graph())
-
-    saver = tf.train.Saver()
-
     with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
+        if FLAGS.input_model_dir is None:
+            accuracy, cross_entropy, x, y_, keep_prob, train_step = build_graph(
+                FLAGS.optimizer + "_optimizer")
+            sess.run(tf.global_variables_initializer())
+        else:
+            latest_checkpoint = tf.train.latest_checkpoint(
+                FLAGS.input_model_dir)
+            restore_old_model = tf.train.import_meta_graph(latest_checkpoint +
+                                                           '.meta')
+            restore_old_model.restore(sess, latest_checkpoint)
+            accuracy = sess.graph.get_tensor_by_name("accuracy:0")
+            cross_entropy = sess.graph.get_tensor_by_name("cross_entropy:0")
+            x = sess.graph.get_tensor_by_name("x:0")
+            y_ = sess.graph.get_tensor_by_name("y_:0")
+            keep_prob = sess.graph.get_tensor_by_name("keep_prob:0")
+            train_step = sess.graph.get_operation_by_name(
+                "adam_optimizer/train_step")
+
+        tf.summary.scalar('Training accuracy', accuracy)
+        tf.summary.scalar('Loss function', cross_entropy)
+
+        merged = tf.summary.merge_all()
+        train_writer = tf.summary.FileWriter(graph_location)
+        train_writer.add_graph(tf.get_default_graph())
+
+        saver = tf.train.Saver(max_to_keep=3)
+
         train_loops = FLAGS.train_loop_count
         loss_values = []
         for i in range(train_loops):
@@ -212,6 +233,10 @@ def train_mnist_cnn(FLAGS):
                 #tf.summary.scalar('Training accuracy', train_accuracy)
                 print('step %d, training accuracy %g, %g sec to evaluate' %
                       (i, train_accuracy, time.time() - t))
+                # Checkpointing
+                save_location = saver.save(
+                    sess, FLAGS.output_model_dir, global_step=i)
+                print('Saving in ', save_location)
             t = time.time()
             _, summary, loss = sess.run([train_step, merged, cross_entropy],
                                         feed_dict={
@@ -236,7 +261,10 @@ def train_mnist_cnn(FLAGS):
             keep_prob: 1.0
         })
         print('test accuracy %g' % test_accuracy)
-        saver.save(sess, FLAGS.model_dir)
+        # Save final checkpoint
+        save_location = saver.save(
+            sess, FLAGS.output_model_dir, global_step=train_loops)
+        print('Saving in ', save_location)
         return loss_values, test_accuracy
 
 
@@ -272,10 +300,16 @@ if __name__ == '__main__':
         action="store_true")
 
     parser.add_argument(
-        '--model_dir',
+        '--output_model_dir',
         type=str,
         default='./mnist_trained/',
-        help='enter model dir')
+        help='enter output model dir')
+
+    parser.add_argument(
+        '--input_model_dir',
+        type=str,
+        default=None,
+        help='enter input model dir')
 
     parser.add_argument(
         '--optimizer',
@@ -285,3 +319,7 @@ if __name__ == '__main__':
 
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+
+    # Sample code for resuming training:
+    # python mnist_deep_simplified.py --output_model_dir ./save_loc/train --train_loop_count 50
+    # python mnist_deep_simplified.py --output_model_dir ./save_loc1/train --train_loop_count 50 --input_model_dir ./save_loc
