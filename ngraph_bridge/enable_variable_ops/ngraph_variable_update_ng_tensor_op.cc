@@ -89,7 +89,6 @@ void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
   // input Ref Tensor at input_index.
   // REQUIRES: IsRefType(input_dtype(input_index)).
   // REQUIRES: IsRefType(output_dtype(output_index)).
-
   context->forward_ref_input_to_ref_output(0, 0);
 
   if (var->copy_tf_to_ng()) {

@@ -40,11 +40,27 @@ namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
 
-class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {};
+class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {
+  protected:
+    void MakeOp() {
+      ASSERT_OK(NodeDefBuilder("sync_node", "NGraphVariableUpdateNGTensor")
+                    .Input(FakeInput(DT_FLOAT_REF))
+                    .Attr("T", DT_FLOAT)
+                    .Attr("ngraph_variable_shared_name", "kanvi1")
+                    .Attr("ngraph_graph_id", 1)
+                    .Finalize(node_def()));
+      ASSERT_OK(InitOp());
+    }
+};
 
 // This test requires the env variable NGRAPH_TF_NGVARIABLE_BUFFER_SHARING=0
 // when running on CPU
 TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
+
+  list<string> env_vars{"NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING","0");
+
   // Create a normal TF tensor: input_tf_tensor and assign values
   // This will be used to assign initial value to the TF tensor
   // that is a part of the NGraph Var resource
@@ -80,25 +96,18 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   // which is the desired configuration for the test
 
   // Create NGraphVariableUpdateNGTensor node
-  ASSERT_OK(NodeDefBuilder("sync_node", "NGraphVariableUpdateNGTensor")
-                .Input(FakeInput(DT_FLOAT_REF))
-                .Attr("T", DT_FLOAT)
-                .Attr("ngraph_variable_shared_name", "var1")
-                .Attr("ngraph_graph_id", 1)
-                .Finalize(node_def()));
-  ASSERT_OK(InitOp());
+  MakeOp();
 
   // Add NGraph resource to the same container as the test op
   ContainerInfo cinfo_;
   NodeDef ndef;
   ndef.set_name("node1");
   AddNodeAttr("container", "", &ndef);
-  AddNodeAttr("shared_name", "var1", &ndef);
+  AddNodeAttr("shared_name", "kanvi1", &ndef);
   ASSERT_OK(cinfo_.Init(device_->resource_manager(), ndef, true));
 
   ASSERT_OK(device_->resource_manager()->Create<NGraphVar>(cinfo_.container(),
                                                            cinfo_.name(), var));
-
   inputs_.push_back({&lock_for_refs_, var->tensor()});
 
   ASSERT_OK(RunOpKernel());
@@ -110,7 +119,8 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
 
   Compare(output_tensor, input_tf_tensor, 0);
 
-
+  UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
+  RestoreEnv(env_map);
 }
 }  // testing
 }  // ngraph_bridge
