@@ -123,7 +123,7 @@ def bias_variable(shape):
     return tf.Variable(initial)
 
 
-def build_graph(optimizer_scope):
+def build_graph(optimizer_scope, optimizer_name):
     # Create the model
     x = tf.placeholder(tf.float32, [None, 784], name='x')
 
@@ -139,13 +139,13 @@ def build_graph(optimizer_scope):
     cross_entropy = tf.reduce_mean(cross_entropy, name='cross_entropy')
 
     with tf.name_scope(optimizer_scope):
-        if FLAGS.optimizer == "adam":
+        if optimizer_name == "adam":
             train_step = tf.train.AdamOptimizer(1e-4).minimize(
                 cross_entropy, name='train_step')
-        elif FLAGS.optimizer == "sgd":
+        elif optimizer_name == "sgd":
             train_step = tf.train.GradientDescentOptimizer(5e-2).minimize(
                 cross_entropy, name='train_step')
-        elif FLAGS.optimizer == "momentum":
+        elif optimizer_name == "momentum":
             train_step = tf.train.MomentumOptimizer(1e-4, 0.9).minimize(
                 cross_entropy, name='train_step')
 
@@ -193,7 +193,7 @@ def train_mnist_cnn(FLAGS):
     with tf.Session(config=config) as sess:
         if FLAGS.input_model_dir is None:
             accuracy, cross_entropy, x, y_, keep_prob, train_step = build_graph(
-                FLAGS.optimizer + "_optimizer")
+                FLAGS.optimizer + "_optimizer", FLAGS.optimizer)
             sess.run(tf.global_variables_initializer())
         else:
             latest_checkpoint = tf.train.latest_checkpoint(
