@@ -82,7 +82,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"d92ef6b6f8a7324f68ad3849a7a2c0ff62461d49\\"',
+        '-D NGRAPH_VERSION=\\"27ce7250837daf97676642d65525639366b61469\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_STATIC_LIB_ENABLE'
@@ -115,7 +115,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"d92ef6b6f8a7324f68ad3849a7a2c0ff62461d49\\"',
+        '-D NGRAPH_VERSION=\\"27ce7250837daf97676642d65525639366b61469\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
     ] + CXX_ABI,
@@ -266,7 +266,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"d92ef6b6f8a7324f68ad3849a7a2c0ff62461d49\\"',
+        '-D NGRAPH_VERSION=\\"27ce7250837daf97676642d65525639366b61469\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
