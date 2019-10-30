@@ -45,7 +45,7 @@ class NGraphDataCacheTest : public ::testing::Test {
   int destroy_count = 0;
   bool item_evicted = false;
 
-  std::pair<Status, int> CreateItem() {
+  std::pair<Status, int> CreateItem(std::string abc) {
     create_count++;
     if (barrier_->Block()) {
       delete barrier_;
@@ -53,11 +53,11 @@ class NGraphDataCacheTest : public ::testing::Test {
     return std::make_pair(Status::OK(), 3);
   }
 
-  std::pair<Status, int> CreateItemNoBarrier() {
+  std::pair<Status, int> CreateItemNoBarrier(std::string abc) {
     return std::make_pair(Status::OK(), 3);
   }
 
-  std::pair<Status, int> CreateItemReturnError() {
+  std::pair<Status, int> CreateItemReturnError(std::string abc) {
     return std::make_pair(errors::Internal("Failed to create item"), 0);
   }
   void DestroyItem(int i) {
@@ -70,10 +70,10 @@ class NGraphDataCacheTest : public ::testing::Test {
 TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
   auto worker = [&](size_t thread_id) {
     auto create_item = std::bind(
-        &NGraphDataCacheTest_SameKeyMultiThread_Test::CreateItem, this);
+        &NGraphDataCacheTest_SameKeyMultiThread_Test::CreateItem, this, std::placeholders::_1);
     auto create_item_ret_err = std::bind(
         &NGraphDataCacheTest_SameKeyMultiThread_Test::CreateItemReturnError,
-        this);
+        this, std::placeholders::_1);
     ASSERT_OK((m_ng_data_cache.LookUpOrCreate("abc", create_item)).first);
     ASSERT_OK(m_ng_data_cache.LookUpOrCreate("abc", create_item).first);
     ASSERT_NOT_OK(
@@ -99,7 +99,7 @@ TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
 // Testing to ensure destoy called back is called, when cache is full.
 TEST_F(NGraphDataCacheTest, TestItemEviction) {
   auto create_item = std::bind(
-      &NGraphDataCacheTest_TestItemEviction_Test::CreateItemNoBarrier, this);
+      &NGraphDataCacheTest_TestItemEviction_Test::CreateItemNoBarrier, this, std::placeholders::_1);
   auto destroy_item =
       std::bind(&NGraphDataCacheTest_TestItemEviction_Test::DestroyItem, this,
                 std::placeholders::_1);
@@ -118,7 +118,7 @@ TEST_F(NGraphDataCacheTest, TestItemEviction) {
 // Testing all variations of RemoveItem/All functionality
 TEST_F(NGraphDataCacheTest, RemoveItemTest) {
   auto create_item = std::bind(
-      &NGraphDataCacheTest_RemoveItemTest_Test::CreateItemNoBarrier, this);
+      &NGraphDataCacheTest_RemoveItemTest_Test::CreateItemNoBarrier, this, std::placeholders::_1);
   auto destroy_item =
       std::bind(&NGraphDataCacheTest_RemoveItemTest_Test::DestroyItem, this,
                 std::placeholders::_1);

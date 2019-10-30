@@ -74,8 +74,15 @@ class NGraphExecutor {
     lock_guard<mutex> lock(m_mutex);
     m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
   }
+  
+  std::pair<Status, std::pair<std::shared_ptr<ngraph::runtime::Executable>, std::shared_ptr<ngraph::Function> > > CreateNgItem(std::string signature);
+
+  std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>> CompileNgraph(std::string signature, std::shared_ptr<ngraph::Function>& ng_function);
 
   const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
+
+  void DestroyNgItem( std::pair< std::shared_ptr<ngraph::runtime::Executable>,
+        std::shared_ptr<ngraph::Function> > evicted_ng_exec_func);
 
   int GetGraphId() { return m_graph_id; }
 
