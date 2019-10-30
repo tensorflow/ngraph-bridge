@@ -41,25 +41,24 @@ namespace ngraph_bridge {
 namespace testing {
 
 class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {
-  protected:
-    void MakeOp() {
-      ASSERT_OK(NodeDefBuilder("sync_node", "NGraphVariableUpdateNGTensor")
-                    .Input(FakeInput(DT_FLOAT_REF))
-                    .Attr("T", DT_FLOAT)
-                    .Attr("ngraph_variable_shared_name", "kanvi1")
-                    .Attr("ngraph_graph_id", 1)
-                    .Finalize(node_def()));
-      ASSERT_OK(InitOp());
-    }
+ protected:
+  void MakeOp() {
+    ASSERT_OK(NodeDefBuilder("sync_node", "NGraphVariableUpdateNGTensor")
+                  .Input(FakeInput(DT_FLOAT_REF))
+                  .Attr("T", DT_FLOAT)
+                  .Attr("ngraph_variable_shared_name", "kanvi1")
+                  .Attr("ngraph_graph_id", 1)
+                  .Finalize(node_def()));
+    ASSERT_OK(InitOp());
+  }
 };
 
 // This test requires the env variable NGRAPH_TF_NGVARIABLE_BUFFER_SHARING=0
 // when running on CPU
 TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
-
   list<string> env_vars{"NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"};
   const unordered_map<string, string>& env_map = StoreEnv(env_vars);
-  SetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING","0");
+  SetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING", "0");
 
   // Create a normal TF tensor: input_tf_tensor and assign values
   // This will be used to assign initial value to the TF tensor

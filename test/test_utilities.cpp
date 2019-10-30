@@ -68,8 +68,7 @@ void SetEnvVariable(const string& env_var_name, const string& env_var_val) {
 // Store Env Variables
 unordered_map<string, string> StoreEnv(list<string> env_vars) {
   unordered_map<string, string> env_map;
-  for(auto it = env_vars.begin(); it != env_vars.end(); ++it)
-  {
+  for (auto it = env_vars.begin(); it != env_vars.end(); ++it) {
     string env_name = *it;
     if (IsEnvVariableSet(env_name)) {
       env_map[env_name] = GetEnvVariable(env_name);

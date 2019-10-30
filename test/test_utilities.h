@@ -57,7 +57,7 @@ unordered_map<string, string> StoreEnv(list<string> env_vars);
 
 // Restore Env Variables
 // This function takes the map of <env var, val> created using
-// StoreEnv and restores the env variables to their 
+// StoreEnv and restores the env variables to their
 // previous state
 void RestoreEnv(const unordered_map<string, string>& map);
 
