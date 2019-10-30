@@ -241,7 +241,8 @@ Status NGraphExecutor::GetNgExecutable(
 
   NGRAPH_VLOG(5) << "Computed signature: " << signature;
   auto create_ng_items_callback =
-      std::bind(&NGraphExecutor::CreateNgItem, this, std::placeholders::_1, input_shapes, static_input_map);
+      std::bind(&NGraphExecutor::CreateNgItem, this, std::placeholders::_1,
+                input_shapes, static_input_map);
   auto destroy_ng_items_callback =
       std::bind(&NGraphExecutor::DestroyNgItem, this, std::placeholders::_1);
   std::pair<std::shared_ptr<ngraph::runtime::Executable>,
@@ -251,11 +252,10 @@ Status NGraphExecutor::GetNgExecutable(
                   std::pair<std::shared_ptr<ngraph::runtime::Executable>,
                             std::shared_ptr<ngraph::Function>>>
       m_ng_data_cache{3};
-  auto status_ng_item_pair = m_ng_data_cache.LookUpOrCreate(signature, create_ng_items_callback,
-                                 destroy_ng_items_callback);
-  if(status_ng_item_pair.first == Status::OK())
-  {
-   ng_exec = (status_ng_item_pair.second).first;
+  auto status_ng_item_pair = m_ng_data_cache.LookUpOrCreate(
+      signature, create_ng_items_callback, destroy_ng_items_callback);
+  if (status_ng_item_pair.first == Status::OK()) {
+    ng_exec = (status_ng_item_pair.second).first;
   }
   return status_ng_item_pair.first;
 }
@@ -263,7 +263,7 @@ Status NGraphExecutor::GetNgExecutable(
 std::pair<Status, std::pair<std::shared_ptr<ngraph::runtime::Executable>,
                             std::shared_ptr<ngraph::Function>>>
 NGraphExecutor::CreateNgItem(std::string signature,
-                             std::vector<TensorShape> input_shapes, 
+                             std::vector<TensorShape> input_shapes,
                              std::vector<const Tensor*> static_input_map) {
   string serialized_ng_func;
 
@@ -281,43 +281,44 @@ NGraphExecutor::CreateNgItem(std::string signature,
     auto itr = m_aot_functions.find(signature);
     if (itr == m_aot_functions.end()) {
       return std::make_pair(
-           errors::Internal(
+          errors::Internal(
               "Expected to find AOT precompiled ng function of signature: ",
               signature),
           std::make_pair(ng_exec, ng_function));
     }
   }
 
-   // Serialize to nGraph if needed
-    if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-      std::string file_name = "tf_function_" + m_node_name + ".json";
-      auto status_ser =StringToFile("tf_function_" + m_node_name + ".json",
-                                      serialized_ng_func);
-      if(status_ser != Status::OK()) {
+  // Serialize to nGraph if needed
+  if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
+    std::string file_name = "tf_function_" + m_node_name + ".json";
+    auto status_ser = StringToFile("tf_function_" + m_node_name + ".json",
+                                   serialized_ng_func);
+    if (status_ser != Status::OK()) {
       return std::make_pair(status_ser, std::make_pair(ng_exec, ng_function));
-      }
+    }
 #if defined NGRAPH_DISTRIBUTED
-      int rank_id;
-      rank_id = ng::get_distributed_interface()->get_rank();
-      auto status = StringToFile(
-          "tf_function_" + m_node_name + "_" + to_string(rank_id) + ".json",
-          serialized_ng_func);
-      if (status != Status::OK()) {
+    int rank_id;
+    rank_id = ng::get_distributed_interface()->get_rank();
+    auto status = StringToFile(
+        "tf_function_" + m_node_name + "_" + to_string(rank_id) + ".json",
+        serialized_ng_func);
+    if (status != Status::OK()) {
       return std::make_pair(status, std::make_pair(ng_exec, ng_function));
     }
 #endif
-    }
+  }
 
   auto status_ng_exec_pair = CompileOrLoadExecutable(signature, ng_function);
-    return std::make_pair(
-        status_ng_exec_pair.first,
-        std::make_pair(status_ng_exec_pair.second, ng_function));
+  return std::make_pair(
+      status_ng_exec_pair.first,
+      std::make_pair(status_ng_exec_pair.second, ng_function));
 }
 
 std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
-NGraphExecutor::CompileOrLoadExecutable(std::string signature,
+NGraphExecutor::CompileOrLoadExecutable(
+    std::string signature,
 
-                              std::shared_ptr<ngraph::Function>& ng_function) {
+    std::shared_ptr<ngraph::Function>& ng_function) {
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   ng::runtime::Backend* op_backend;
   try {
