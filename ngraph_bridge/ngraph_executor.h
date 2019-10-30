@@ -77,9 +77,8 @@ class NGraphExecutor {
 
   std::pair<Status, std::pair<std::shared_ptr<ngraph::runtime::Executable>,
                               std::shared_ptr<ngraph::Function>>>
-  CreateNgItem(std::string signature);
-
-  std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>> CompileNgraph(
+  CreateNgItem(std::string signature, std::vector<TensorShape> input_shapes, std::vector<const Tensor*> static_input_map);
+  std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>> CompileOrLoadExecutable(
       std::string signature, std::shared_ptr<ngraph::Function>& ng_function);
 
   const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
