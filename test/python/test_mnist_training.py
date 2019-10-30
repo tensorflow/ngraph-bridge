@@ -43,7 +43,8 @@ class TestMnistTraining(NgraphTest):
 
             def __init__(self, data_dir, output_model_dir, training_iterations,
                          training_batch_size, validation_batch_size,
-                         make_deterministic, training_optimizer):
+                         make_deterministic, training_optimizer,
+                         input_model_dir):
                 self.data_dir = data_dir
                 self.output_model_dir = output_model_dir
                 self.train_loop_count = training_iterations
@@ -51,6 +52,7 @@ class TestMnistTraining(NgraphTest):
                 self.test_image_count = validation_batch_size
                 self.make_deterministic = make_deterministic
                 self.optimizer = optimizer
+                self.input_model_dir = input_model_dir
 
         data_dir = '/tmp/' + getpass.getuser() + 'tensorflow/mnist/input_data'
         train_loop_count = 20
@@ -61,7 +63,7 @@ class TestMnistTraining(NgraphTest):
 
         FLAGS = mnist_training_flags(
             data_dir, output_model_dir, train_loop_count, batch_size,
-            test_image_count, make_deterministic, optimizer)
+            test_image_count, make_deterministic, optimizer, None)
 
         # Run on nGraph
         ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
@@ -79,4 +81,27 @@ class TestMnistTraining(NgraphTest):
             ng_values, tf_values,
             atol=1e-3), "Loss or Accuracy values don't match"
 
-        # TODO remove save_loc
+        # Now resume training from output_model_dir
+        # and dump new model in output_model_dir_2
+        output_model_dir_2 = './save_loc/train2'
+        FLAGS = mnist_training_flags(
+            data_dir, output_model_dir_2, train_loop_count, batch_size,
+            test_image_count, make_deterministic, optimizer, output_model_dir)
+        # Run on nGraph
+        ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
+        ng_values = ng_loss_values + [ng_test_accuracy]
+        # Reset the Graph
+        tf.reset_default_graph()
+
+        # disable ngraph-tf
+        ngraph_bridge.disable()
+        tf_loss_values, tf_test_accuracy = train_mnist_cnn(FLAGS)
+        tf_values = tf_loss_values + [tf_test_accuracy]
+
+        # compare values
+        assert np.allclose(
+            ng_values, tf_values,
+            atol=1e-3), "Loss or Accuracy values don't match"
+
+        shutil.rmtree(output_model_dir)
+        shutil.rmtree(output_model_dir_2)
