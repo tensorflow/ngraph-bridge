@@ -38,12 +38,11 @@
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_data_cache.h"
 #include "ngraph_bridge/ngraph_executor.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/ngraph_data_cache.h"
-
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 #include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
@@ -241,118 +240,135 @@ Status NGraphExecutor::GetNgExecutable(
   signature = signature_ss.str();
 
   NGRAPH_VLOG(5) << "Computed signature: " << signature;
-  auto create_ng_items_callback = std::bind(
-      &NGraphExecutor::CreateNgItem, this, std::placeholders::_1);
+  auto create_ng_items_callback =
+      std::bind(&NGraphExecutor::CreateNgItem, this, std::placeholders::_1);
   auto destroy_ng_items_callback =
-      std::bind(&NGraphExecutor::DestroyNgItem, this,
-                std::placeholders::_1);
-  std::pair< std::shared_ptr<ngraph::runtime::Executable>,
-        std::shared_ptr<ngraph::Function> > ng_exec_func_pair;
-  NgraphDataCache<std::string, std::pair< std::shared_ptr<ngraph::runtime::Executable>,
-        std::shared_ptr<ngraph::Function> > > m_ng_data_cache{3};
-  m_ng_data_cache.LookUpOrCreate(signature, create_ng_items_callback, destroy_ng_items_callback);
+      std::bind(&NGraphExecutor::DestroyNgItem, this, std::placeholders::_1);
+  std::pair<std::shared_ptr<ngraph::runtime::Executable>,
+            std::shared_ptr<ngraph::Function>>
+      ng_exec_func_pair;
+  NgraphDataCache<std::string,
+                  std::pair<std::shared_ptr<ngraph::runtime::Executable>,
+                            std::shared_ptr<ngraph::Function>>>
+      m_ng_data_cache{3};
+  m_ng_data_cache.LookUpOrCreate(signature, create_ng_items_callback,
+                                 destroy_ng_items_callback);
   return Status::OK();
 }
 
-std::pair<Status, std::pair<std::shared_ptr<ngraph::runtime::Executable>, 
-	std::shared_ptr<ngraph::Function> > > NGraphExecutor::CreateNgItem(std::string signature) {
-
-    std::vector<TensorShape> input_shapes;
-    std::vector<const Tensor*> static_input_map;
-    NGRAPH_VLOG(1) << "Compilation cache miss: " << m_node_name;
-    std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-    std::shared_ptr<ngraph::Function> ng_function;
-    if (!m_do_aot) {
-      auto status = Builder::TranslateGraph(input_shapes, static_input_map,
-                                                 m_graph.get(), ng_function);
-      if(status != Status::OK())
-      {
-       return std::make_pair(status, std::make_pair(ng_exec,ng_function));
-      }
-      ng_function->set_friendly_name(m_node_name);
-    } else {
-        auto itr = m_aot_functions.find(signature);
-        if (itr == m_aot_functions.end()) {
-           return std::make_pair(errors::Internal(
-            "Expected to find AOT precompiled ng function of signature: ",
-            signature), std::make_pair(ng_exec,ng_function));
-      }
+std::pair<Status, std::pair<std::shared_ptr<ngraph::runtime::Executable>,
+                            std::shared_ptr<ngraph::Function>>>
+NGraphExecutor::CreateNgItem(std::string signature) {
+  std::vector<TensorShape> input_shapes;
+  std::vector<const Tensor*> static_input_map;
+  NGRAPH_VLOG(1) << "Compilation cache miss: " << m_node_name;
+  std::shared_ptr<ngraph::runtime::Executable> ng_exec;
+  std::shared_ptr<ngraph::Function> ng_function;
+  if (!m_do_aot) {
+    auto status = Builder::TranslateGraph(input_shapes, static_input_map,
+                                          m_graph.get(), ng_function);
+    if (status != Status::OK()) {
+      return std::make_pair(status, std::make_pair(ng_exec, ng_function));
     }
-    auto status_ng_exec_pair = CompileNgraph(signature, ng_function);
-    if(status_ng_exec_pair.first == Status::OK())
-    {
-    return std::make_pair(Status::OK(), std::make_pair(status_ng_exec_pair.second, ng_function) );
+    ng_function->set_friendly_name(m_node_name);
+  } else {
+    auto itr = m_aot_functions.find(signature);
+    if (itr == m_aot_functions.end()) {
+      return std::make_pair(
+          errors::Internal(
+              "Expected to find AOT precompiled ng function of signature: ",
+              signature),
+          std::make_pair(ng_exec, ng_function));
     }
-    else
-    {
-    return std::make_pair(status_ng_exec_pair.first, std::make_pair(status_ng_exec_pair.second, ng_function));
-    }
+  }
+  auto status_ng_exec_pair = CompileNgraph(signature, ng_function);
+  if (status_ng_exec_pair.first == Status::OK()) {
+    return std::make_pair(
+        Status::OK(), std::make_pair(status_ng_exec_pair.second, ng_function));
+  } else {
+    return std::make_pair(
+        status_ng_exec_pair.first,
+        std::make_pair(status_ng_exec_pair.second, ng_function));
+  }
 }
 
-std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>> 
-         NGraphExecutor::CompileNgraph(std::string signature, std::shared_ptr<ngraph::Function>& ng_function) {
-    std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-    ng::runtime::Backend* op_backend;
+std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
+NGraphExecutor::CompileNgraph(std::string signature,
+                              std::shared_ptr<ngraph::Function>& ng_function) {
+  std::shared_ptr<ngraph::runtime::Executable> ng_exec;
+  ng::runtime::Backend* op_backend;
   try {
     op_backend = BackendManager::GetBackend(m_op_backend_name);
   } catch (...) {
-    return std::make_pair(errors::Internal("Backend not available: ", m_op_backend_name), nullptr);
+    return std::make_pair(
+        errors::Internal("Backend not available: ", m_op_backend_name),
+        nullptr);
   }
-    ngraph::Event event_compile("Compile nGraph", m_node_name, "");
-    BackendManager::LockBackend(m_op_backend_name);
-    try {
-      if (m_do_aot) {
-        auto itr = m_aot_execs.find(signature);
-        if (itr == m_aot_execs.end()) {
-          BackendManager::UnlockBackend(m_op_backend_name);
-          return std::make_pair(errors::Internal(
-              "Requested AOT, but could not find string with the "
-              "signature: ",
-              signature), nullptr);
-        }
-        stringstream serialized_exec_read;
-        serialized_exec_read << (itr->second);
-        ng_exec = op_backend->load(serialized_exec_read);
-      } else {
-        ng_exec = op_backend->compile(ng_function);
+  ngraph::Event event_compile("Compile nGraph", m_node_name, "");
+  BackendManager::LockBackend(m_op_backend_name);
+  try {
+    if (m_do_aot) {
+      auto itr = m_aot_execs.find(signature);
+      if (itr == m_aot_execs.end()) {
+        BackendManager::UnlockBackend(m_op_backend_name);
+        return std::make_pair(
+            errors::Internal(
+                "Requested AOT, but could not find string with the "
+                "signature: ",
+                signature),
+            nullptr);
       }
-    } catch (const std::exception& exp) {
-      BackendManager::UnlockBackend(m_op_backend_name);
-      //Status st = StringToFile("tf_function_error_" + m_node_name + ".json",
-                               //serialized_ng_func);
-      /*string status_string =
-          "Caught exception while compiling op_backend: " + string(exp.what()) +
-          (st.ok() ? "" : (" Also error in dumping serialized function: " +
-                           st.error_message()));*/
-      return std::make_pair(errors::Internal("Exception occured change this statement to status_string"), nullptr);
-    } catch (...) {
-      BackendManager::UnlockBackend(m_op_backend_name);
-      /*Status st = StringToFile("tf_function_error_" + m_node_name + ".json",
-                               serialized_ng_func);
-      string status_string =
-          "Error in compiling op_backend." +
-          (st.ok() ? "" : (" Also error in dumping serialized function: " +
-                           st.error_message()));*/
-     return std::make_pair(errors::Internal("Exception occured change this statement to status_string"), nullptr);
+      stringstream serialized_exec_read;
+      serialized_exec_read << (itr->second);
+      ng_exec = op_backend->load(serialized_exec_read);
+    } else {
+      ng_exec = op_backend->compile(ng_function);
     }
+  } catch (const std::exception& exp) {
     BackendManager::UnlockBackend(m_op_backend_name);
-    event_compile.Stop();
-    ngraph::Event::write_trace(event_compile);
-
-    return std::make_pair(Status::OK(), ng_exec);
+    // Status st = StringToFile("tf_function_error_" + m_node_name + ".json",
+    // serialized_ng_func);
+    /*string status_string =
+        "Caught exception while compiling op_backend: " + string(exp.what()) +
+        (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                         st.error_message()));*/
+    return std::make_pair(
+        errors::Internal(
+            "Exception occured change this statement to status_string"),
+        nullptr);
+  } catch (...) {
+    BackendManager::UnlockBackend(m_op_backend_name);
+    /*Status st = StringToFile("tf_function_error_" + m_node_name + ".json",
+                             serialized_ng_func);
+    string status_string =
+        "Error in compiling op_backend." +
+        (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                         st.error_message()));*/
+    return std::make_pair(
+        errors::Internal(
+            "Exception occured change this statement to status_string"),
+        nullptr);
   }
+  BackendManager::UnlockBackend(m_op_backend_name);
+  event_compile.Stop();
+  ngraph::Event::write_trace(event_compile);
 
-void NGraphExecutor::DestroyNgItem( std::pair< std::shared_ptr<ngraph::runtime::Executable>,
-        std::shared_ptr<ngraph::Function> > evicted_ng_exec_func_pair) {
-// Call delete function here for the erased func
-      ng::runtime::Backend* op_backend;
+  return std::make_pair(Status::OK(), ng_exec);
+}
+
+void NGraphExecutor::DestroyNgItem(
+    std::pair<std::shared_ptr<ngraph::runtime::Executable>,
+              std::shared_ptr<ngraph::Function>>
+        evicted_ng_exec_func_pair) {
+  // Call delete function here for the erased func
+  ng::runtime::Backend* op_backend;
   try {
     op_backend = BackendManager::GetBackend(m_op_backend_name);
   } catch (...) {
-    //return errors::Internal("Backend not available: ", m_op_backend_name);
-     return;
+    // return errors::Internal("Backend not available: ", m_op_backend_name);
+    return;
   }
-      op_backend->remove_compiled_function(evicted_ng_exec_func_pair.first);
+  op_backend->remove_compiled_function(evicted_ng_exec_func_pair.first);
 }
 
 //---------------------------------------------------------------------------

@@ -58,8 +58,8 @@ class NgraphDataCache {
 
   // Overload for above function, which doesn't take callback for destroy item
   std::pair<Status, ValueType> LookUpOrCreate(
-      KeyType key,
-      std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item);
+      KeyType key, std::function<std::pair<Status, ValueType>(KeyType)>
+                       callback_create_item);
   Status RemoveItem(KeyType key);
   Status RemoveItem(KeyType key,
                     std::function<void(ValueType)> callback_destroy_item);

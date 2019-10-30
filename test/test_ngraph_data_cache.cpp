@@ -69,8 +69,9 @@ class NGraphDataCacheTest : public ::testing::Test {
 // Tests LooUpOrCreate(), in multithreading environment
 TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
   auto worker = [&](size_t thread_id) {
-    auto create_item = std::bind(
-        &NGraphDataCacheTest_SameKeyMultiThread_Test::CreateItem, this, std::placeholders::_1);
+    auto create_item =
+        std::bind(&NGraphDataCacheTest_SameKeyMultiThread_Test::CreateItem,
+                  this, std::placeholders::_1);
     auto create_item_ret_err = std::bind(
         &NGraphDataCacheTest_SameKeyMultiThread_Test::CreateItemReturnError,
         this, std::placeholders::_1);
@@ -98,8 +99,9 @@ TEST_F(NGraphDataCacheTest, SameKeyMultiThread) {
 
 // Testing to ensure destoy called back is called, when cache is full.
 TEST_F(NGraphDataCacheTest, TestItemEviction) {
-  auto create_item = std::bind(
-      &NGraphDataCacheTest_TestItemEviction_Test::CreateItemNoBarrier, this, std::placeholders::_1);
+  auto create_item =
+      std::bind(&NGraphDataCacheTest_TestItemEviction_Test::CreateItemNoBarrier,
+                this, std::placeholders::_1);
   auto destroy_item =
       std::bind(&NGraphDataCacheTest_TestItemEviction_Test::DestroyItem, this,
                 std::placeholders::_1);
@@ -117,8 +119,9 @@ TEST_F(NGraphDataCacheTest, TestItemEviction) {
 
 // Testing all variations of RemoveItem/All functionality
 TEST_F(NGraphDataCacheTest, RemoveItemTest) {
-  auto create_item = std::bind(
-      &NGraphDataCacheTest_RemoveItemTest_Test::CreateItemNoBarrier, this, std::placeholders::_1);
+  auto create_item =
+      std::bind(&NGraphDataCacheTest_RemoveItemTest_Test::CreateItemNoBarrier,
+                this, std::placeholders::_1);
   auto destroy_item =
       std::bind(&NGraphDataCacheTest_RemoveItemTest_Test::DestroyItem, this,
                 std::placeholders::_1);
