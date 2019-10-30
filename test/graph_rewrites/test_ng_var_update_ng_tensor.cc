@@ -56,6 +56,7 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
 
   // Create an NGraphVar resource object
   NGraphVar* var = new NGraphVar(DT_FLOAT, TensorShape{2}, "CPU");
+
   // Assign the ng_tensor with initial value and use it to copy an
   // initial value to the tf_tensor
   // After this, both ng_tensor and tf_tensor will hold the same value
@@ -107,9 +108,9 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   void* dst_ptr = DMAHelper::base(&output_tensor);
   ng_t->read(dst_ptr, 0, output_tensor.TotalBytes());
 
-  Compare(output_tensor, input_tf_tensor, 0.0);
+  Compare(output_tensor, input_tf_tensor, 0);
 
-  var->Unref();
+
 }
 }  // testing
 }  // ngraph_bridge
