@@ -28,6 +28,7 @@
 #include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_data_cache.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
 
@@ -47,9 +48,10 @@ class NGraphExecutor {
   // Calls Compute Signature and gets ngraph executable
   // Update the cache and if called again with the same input shapes,
   // return fromm the cache
-  Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
-                         std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-                         bool& cache_hit);
+  Status GetNgItem(const std::vector<Tensor>& tf_input_tensors,
+                   std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+                   std::tuple<int, PipelinedTensorVector,
+                              PipelinedTensorVector>& io_tensors);
 
   Status GetNgFunction(
       const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
@@ -59,35 +61,30 @@ class NGraphExecutor {
   Status ParseNodeAttributes(
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
       std::unordered_map<std::string, std::string>* additional_attribute_map);
-
-  // Returns OK when a set of i/o tensor is available. Returns error message
-  // otherwse.
-  // The caller can wait or come back later - based on what the application
-  // demands
-  Status GetTensorsFromPipeline(
-      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
-          io_tensors);
-
+  // TODO update this function
   void ReturnPipelinedTensors(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
-    lock_guard<mutex> lock(m_mutex);
-    m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
+    // lock_guard<mutex> lock(m_mutex);
+    // m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
   }
 
-  std::pair<Status, std::pair<std::shared_ptr<ngraph::runtime::Executable>,
-                              std::shared_ptr<ngraph::Function>>>
+  std::pair<Status, std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
+                               std::string, shared_ptr<PipelinedTensorsStore>>>
   CreateNgItem(std::string signature, std::vector<TensorShape> input_shapes,
-               std::vector<const Tensor*> static_input_map);
+               std::vector<const Tensor*> static_input_map,
+               ng::runtime::Backend*& op_backend);
   std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
   CompileOrLoadExecutable(std::string signature,
-                          std::shared_ptr<ngraph::Function>& ng_function);
+                          std::shared_ptr<ngraph::Function>& ng_function,
+                          string serialized_ng_func,
+                          ng::runtime::Backend*& op_backend);
 
   const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
 
-  void DestroyNgItem(std::pair<std::shared_ptr<ngraph::runtime::Executable>,
-                               std::shared_ptr<ngraph::Function>>
-                         evicted_ng_exec_func);
+  void DestroyNgItem(std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
+                                std::string, shared_ptr<PipelinedTensorsStore>>
+                         evicted_ng_item,
+                     ng::runtime::Backend*& op_backend);
 
   int GetGraphId() { return m_graph_id; }
 
@@ -104,7 +101,8 @@ class NGraphExecutor {
   // Since the pipeline cannot be created at the construction time, we need to
   // provide this as a separate function. It's ok to call this multiple
   // times - the Pipeline will be initialized only once
-  Status InitializeIOTensorPipeline(
+  std::pair<Status, shared_ptr<PipelinedTensorsStore>>
+  InitializeIOTensorPipeline(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
 
   // Get tensorflow input tensors, input shapes, static_inputs to Compute
@@ -130,25 +128,12 @@ class NGraphExecutor {
   map<string, string> m_aot_execs;
 
   // serialized_ng_function, ng_executable, Output and Input Cache maps
-  std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
-      m_ng_exec_map;
-  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>, std::string>
-      m_serialized_ng_function_map;
-
-  std::unordered_map<
-      std::shared_ptr<ngraph::runtime::Executable>,
-      std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>
-      m_ng_exec_input_cache_map;
-
-  std::unordered_map<
-      std::shared_ptr<ngraph::runtime::Executable>,
-      std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>
-      m_ng_exec_output_cache_map;
+  NgraphDataCache<std::string,
+                  std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
+                             std::string, shared_ptr<PipelinedTensorsStore>>>
+      m_ng_data_cache{16};
 
   bool m_executable_can_create_tensor;
-  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
-                     shared_ptr<PipelinedTensorsStore>>
-      m_executable_pipelined_tensors_map;
 
   mutex m_mutex;
   int m_depth{2};  // TODO make this settable

@@ -405,31 +405,19 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   }
 
   int step_id = ctx->step_id();
-  ngraph::Event event_compile("Compile", "", "");
+  ngraph::Event event_get_ng_item("GetNgItem", "", "");
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
+  // Get ngraph executable and inputs information and Pipelined tensors
+  OP_REQUIRES_OK(ctx, m_parallel_executor->GetNgItem(tf_input_tensors, ng_exec,
+                                                     io_tensors));
 
-  // Get ngraph executable and inputs information
-  bool cache_hit;
-  OP_REQUIRES_OK(ctx, m_parallel_executor->GetNgExecutable(tf_input_tensors,
-                                                           ng_exec, cache_hit));
-
-  NGRAPH_VLOG(2) << "CACHE HIT: " << PrintBool(cache_hit) << endl;
   NGRAPH_VLOG(2) << " Step_ID: " << step_id;
   NGRAPH_VLOG(2)
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster id: "
       << m_parallel_executor->GetNgraphClusterId();
 
-  event_compile.Stop();
-  ngraph::Event::write_trace(event_compile);
-
-  // Get the pipelned tensors
-  ngraph::Event event_get_tensor("Get Tensor", "", "");
-
-  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
-  OP_REQUIRES_OK(
-      ctx, m_parallel_executor->GetTensorsFromPipeline(ng_exec, io_tensors));
-
-  event_get_tensor.Stop();
-  ngraph::Event::write_trace(event_get_tensor);
+  event_get_ng_item.Stop();
+  ngraph::Event::write_trace(event_get_ng_item);
 
   // Allocate the input/
   ngraph::Event event_copy_input_tensor("Copy Input Tensor", "", "");
