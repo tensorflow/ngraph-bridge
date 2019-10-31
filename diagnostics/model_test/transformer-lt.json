@@ -2,7 +2,7 @@
     "model_name": "Transformer-LT",
     "reference_backend": "CPU",
     "testing_backend": "NGRAPH_CPU",
-    "pb_graph_location": "/localdisk/skantama/ngraph-bridge/diagnostics/model_test/transformer_lt_fp32_pretrained_model.pb",
+    "pb_graph_location": "/nfs/site/home/skantama/tf_frozen_models/transformer_lt_fp32_pretrained_model.pb",
     "input_tensor_name": ["import/input_tensor:0"],
     "output_tensor_name":["import/model/Transformer/strided_slice_19:0"],
     "random_val_range": [255],
