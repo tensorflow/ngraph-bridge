@@ -22,7 +22,8 @@ cc_library(
     name = "ngraph_headers",
     hdrs = glob([
         "src/ngraph/**/*.hpp",
-        "src/ngraph/*.hpp"
+        "src/ngraph/*.hpp",
+        "src/ngraph/**/*.h"
     ]),
     visibility = ["//visibility:public"],
 )
