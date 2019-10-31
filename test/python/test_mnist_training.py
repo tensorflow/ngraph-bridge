@@ -40,7 +40,7 @@ class TestMnistTraining(NgraphTest):
 
     @pytest.mark.parametrize(("optimizer"), ("adam", "sgd", "momentum"))
     def test_mnist_training(self, optimizer):
-        # In this test, we first run 20 iterations on ngraph and dump the semi trained model
+        # In this test, we first run 10 iterations on ngraph and dump the semi trained model
         # Then we run TF for 20 iterations and compare the values with ngraph
         # Then we load back teh semitrained nodels in both cases and train them for 20 iterations
         # and again make sure TF and NG agree.
