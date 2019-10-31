@@ -153,8 +153,9 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
 NGraphExecutor::~NGraphExecutor() {
   auto backend = BackendManager::GetBackend(m_op_backend_name);
 
-  auto destroy_ng_item_callback = std::bind(
-      &NGraphExecutor::DestroyNgItem, this, std::placeholders::_1, backend);
+  auto destroy_ng_item_callback =
+      std::bind(&NGraphExecutor::CallbackDestroyNgItem, this,
+                std::placeholders::_1, backend);
   m_ng_data_cache.RemoveAll(destroy_ng_item_callback);
 }
 
@@ -217,11 +218,12 @@ Status NGraphExecutor::GetNgItem(
   }
 
   // Get NgItems from Data Cache
-  auto create_ng_items_callback =
-      std::bind(&NGraphExecutor::CreateNgItem, this, std::placeholders::_1,
-                input_shapes, static_input_map, op_backend);
-  auto destroy_ng_items_callback = std::bind(
-      &NGraphExecutor::DestroyNgItem, this, std::placeholders::_1, op_backend);
+  auto create_ng_items_callback = std::bind(
+      &NGraphExecutor::CallbackCreateNgItem, this, std::placeholders::_1,
+      input_shapes, static_input_map, op_backend);
+  auto destroy_ng_items_callback =
+      std::bind(&NGraphExecutor::CallbackDestroyNgItem, this,
+                std::placeholders::_1, op_backend);
   auto status_ng_item_pair = m_ng_data_cache.LookUpOrCreate(
       signature, create_ng_items_callback, destroy_ng_items_callback);
 
@@ -233,17 +235,22 @@ Status NGraphExecutor::GetNgItem(
   return status_ng_item_pair.first;
 }
 
+//---------------------------------------------------------------------------
+//  NGraphExecutor::CallbackCreateItem
+//---------------------------------------------------------------------------
 std::pair<Status, std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
                              std::string, shared_ptr<PipelinedTensorsStore>>>
-NGraphExecutor::CreateNgItem(std::string signature,
-                             std::vector<TensorShape> input_shapes,
-                             std::vector<const Tensor*> static_input_map,
-                             ng::runtime::Backend*& op_backend) {
+NGraphExecutor::CallbackCreateNgItem(
+    std::string signature, std::vector<TensorShape> input_shapes,
+    std::vector<const Tensor*> static_input_map,
+    ng::runtime::Backend*& op_backend) {
   string serialized_ng_func;
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   std::shared_ptr<ngraph::Function> ng_function;
   shared_ptr<PipelinedTensorsStore> pts;
+
   NGRAPH_VLOG(1) << "Compilation cache miss: " << m_node_name;
+
   if (!m_do_aot) {
     auto status = Builder::TranslateGraph(input_shapes, static_input_map,
                                           m_graph.get(), ng_function);
@@ -300,6 +307,9 @@ NGraphExecutor::CreateNgItem(std::string signature,
                         std::make_tuple(ng_exec, serialized_ng_func, pts));
 }
 
+//---------------------------------------------------------------------------
+//  NGraphExecutor::GetNgExecutable
+//---------------------------------------------------------------------------
 std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
 NGraphExecutor::GetNgExecutable(std::string signature,
                                 std::shared_ptr<ngraph::Function>& ng_function,
@@ -353,7 +363,10 @@ NGraphExecutor::GetNgExecutable(std::string signature,
   return std::make_pair(Status::OK(), ng_exec);
 }
 
-void NGraphExecutor::DestroyNgItem(
+//---------------------------------------------------------------------------
+//  NGraphExecutor::CallbackDestroyNgItem
+//---------------------------------------------------------------------------
+void NGraphExecutor::CallbackDestroyNgItem(
     std::tuple<std::shared_ptr<ngraph::runtime::Executable>, std::string,
                shared_ptr<PipelinedTensorsStore>>
         evicted_ng_item,
