@@ -260,7 +260,9 @@ cc_library(
         "src/ngraph/runtime/cpu/pass/cpu_rnn_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_workspace_insertion.cpp",
         "src/ngraph/runtime/cpu/ngraph_version.cpp",
-        "src/ngraph/state/rng_state.cpp", 
+        "src/ngraph/state/rng_state.cpp",
+        "src/ngraph/state/bernoulli_rng_state.cpp",
+        "src/ngraph/state/uniform_rng_state.cpp",
     ]),
     deps = [
         ":ngraph_headers",
