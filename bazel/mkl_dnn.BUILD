@@ -46,8 +46,8 @@ template_rule(
     out = "include/mkldnn_version.h",
     substitutions = {
         "@MKLDNN_VERSION_MAJOR@": "0",
-        "@MKLDNN_VERSION_MINOR@": "18",
-        "@MKLDNN_VERSION_PATCH@": "0",
+        "@MKLDNN_VERSION_MINOR@": "20",
+        "@MKLDNN_VERSION_PATCH@": "2",
         "@MKLDNN_VERSION_HASH@": "N/A",
     },
 )
@@ -61,6 +61,8 @@ cc_library(
         "src/cpu/*.hpp",
         "src/cpu/gemm/*.cpp",
         "src/cpu/gemm/*.hpp",
+        "src/cpu/gemm/bf16/*.hpp",
+        "src/cpu/gemm/bf16/*.cpp",
         "src/cpu/gemm/f32/*.cpp",
         "src/cpu/gemm/f32/*.hpp",
         "src/cpu/gemm/s8x8s32/*.cpp",
@@ -72,10 +74,28 @@ cc_library(
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",
+        "-fstack-protector-all",
+        "-march=native",
+        "-mtune=native",
+        "-Wall",
+        "-Wno-unknown-pragmas",
+        "-fvisibility=internal",
+        "-Wformat", 
+        "-Wformat-security",
+        "-Wmissing-field-initializers",
+        "-Wno-strict-overflow", 
+        "-std=c++11",
+        "-D_FORTIFY_SOURCE=2",
+        "-fopenmp",
         "-DUSE_MKL",
         "-DUSE_CBLAS",
         "-UUSE_MKL",
         "-UUSE_CBLAS",
+        "-DMKLDNN_ENABLE_CONCURRENT_EXEC",
+        "-DMKLDNN_THR=MKLDNN_THR_OMP",
+        "-DMKLDNN_DLL",
+        "-DMKLDNN_DLL_EXPORTS",
+        "-O3",
     #] + select({
     #   "@org_tensorflow//tensorflow:linux_x86_64": [
             "-fopenmp",  # only works with gcc
@@ -111,6 +131,8 @@ cc_library(
         "src/cpu/*.hpp",
         "src/cpu/gemm/*.cpp",
         "src/cpu/gemm/*.hpp",
+        "src/cpu/gemm/bf16/*.hpp",
+        "src/cpu/gemm/bf16/*.cpp",
         "src/cpu/gemm/f32/*.cpp",
         "src/cpu/gemm/f32/*.hpp",
         "src/cpu/gemm/s8x8s32/*.cpp",
@@ -132,7 +154,6 @@ cc_library(
         "src/cpu/gemm",
         "src/cpu/xbyak",
     ],
-    nocopts = "-fno-exceptions",
     visibility = ["//visibility:public"],
 )
 

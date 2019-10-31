@@ -17,10 +17,10 @@
 #include "gtest/gtest.h"
 
 #include "tensorflow/core/graph/node_builder.h"
-#include "version.h"
 
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+#include "ngraph_bridge/version.h"
 #include "test/test_utilities.h"
 
 using namespace std;
@@ -31,9 +31,6 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 namespace testing {
-
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
-#define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 TEST(EncapsulateClusters, PopulateLibrary) {
   NGraphClusterManager::EvictAllClusters();

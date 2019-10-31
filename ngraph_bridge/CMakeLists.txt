@@ -36,7 +36,6 @@ set(SRC
    ngraph_assign_clusters.cc
    ngraph_builder.cc
    ngraph_backend_manager.cc
-   ngraph_bridge_registry.cc
    ngraph_capture_variables.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
@@ -44,6 +43,7 @@ set(SRC
    ngraph_encapsulate_clusters.cc
    ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
+   ngraph_executor.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
    ngraph_freshness_tracker.cc
@@ -114,7 +114,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             absl_algorithm
             absl_container
             absl_strings
-            lib_tbb
             lib_mkldnn
             lib_iomp5
         )
@@ -148,7 +147,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     target_link_libraries(
         ${LIB_NAME_STATIC}
         ngraph_logger
-        ngraph_logger 
         ${TensorFlow_FRAMEWORK_LIBRARY} 
         ngraph_lib
         lib_cpu_backend_static
@@ -158,7 +156,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
-        lib_tbb
         lib_mkldnn
         lib_mklml_intel
         lib_iomp5

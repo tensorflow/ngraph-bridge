@@ -23,7 +23,11 @@ include(ExternalProject)
 include(CMakeDependentOption)
 include(cmake/sdl.cmake)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-comment -Wno-sign-compare")
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(Apple)?Clang$")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-comment -Wno-sign-compare -Wno-backslash-newline-escape")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-comment -Wno-sign-compare")
+endif()
 
 # In order to compile ngraph-tf with memory leak detection, run `cmake` with `-DCMAKE_BUILD_TYPE=Sanitize`.
 # N.B.: This *will* crash python unit tests because ngraph-tf will be loaded "too late" via `dlopen`,
@@ -244,7 +248,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.25.1-rc.0
+        GIT_TAG v0.25.1-rc.8
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
@@ -321,10 +325,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         PROPERTIES IMPORTED_LOCATION
         ${LIB_MKLML_INTEL_IMPORTED_LOCATION}
     )
-
-    add_library(lib_tbb INTERFACE)
-    target_link_libraries(lib_tbb INTERFACE
-        ${NGRAPH_INSTALL_DIR}/${LIB}/libtbb.so)
 
     add_library(lib_iomp5 SHARED IMPORTED)
     set_target_properties(

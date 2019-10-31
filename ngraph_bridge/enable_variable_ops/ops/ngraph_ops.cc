@@ -16,8 +16,6 @@
 
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 
-#include "ngraph_bridge/ngraph_bridge_registry.h"
-
 namespace tensorflow {
 
 namespace ngraph_bridge {
@@ -35,6 +33,22 @@ REGISTER_OP("NGraphApplyGradientDescent")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 
+// ------------------------------------------------------------------
+
+REGISTER_OP("NGraphApplyMomentum")
+    .Input("var: Ref(T)")
+    .Input("accum: Ref(T)")
+    .Input("lr: T")
+    .Input("grad: T")
+    .Input("momentum: T")
+    .Output("out: Ref(T)")
+    .Attr("T: numbertype")
+    .Attr("use_locking: bool = false")
+    .Attr("use_nesterov: bool = false")
+    .Attr("just_looking: bool = false")
+    .Attr("is_tf_just_looking: bool = false")
+    .Attr("copy_to_tf: bool = false")
+    .Attr("ngraph_graph_id: int");
 // ------------------------------------------------------------------
 REGISTER_OP("NGraphAssign")
     .Input("ref: Ref(T)")
@@ -100,10 +114,6 @@ REGISTER_OP("NGraphVariable")
     .Attr("ngraph_graph_id: int")
     .SetIsStateful()
     .SetShapeFn(shape_inference::ExplicitShape);
-
-#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
-void register_ngraph_enable_variable_ops() {}
-#endif
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

@@ -14,23 +14,48 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/ngraph_bridge_registry.h"
+#ifndef THREAD_SAFE_QUEUE_H_
+#define THREAD_SAFE_QUEUE_H_
+#pragma once
 
+#include <queue>
+
+#include "absl/synchronization/mutex.h"
+
+using namespace std;
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
-// Dummy function for bridge specific ops
-// so when built static, the linker will include
-// all the object files which it would not do normally.
-#ifdef NGRAPH_BRIDGE_STATIC_LIB_ENABLE
-void register_ngraph_bridge() {
-#ifdef NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS
-  register_ngraph_enable_variable_ops();
-#else
-  register_ngraph_ops();
-#endif
-}
-#endif
-}
-}
+template <typename T>
+class ThreadSafeQueue {
+ public:
+  T* GetNextAvailable() {
+    T* next = nullptr;
+    m_mutex.Lock();
+    while (m_queue.empty()) {
+      m_cv.Wait(&m_mutex);
+    }
+
+    next = m_queue.front();
+    m_queue.pop();
+    m_mutex.Unlock();
+    return next;
+  }
+
+  void Add(T* item) {
+    m_mutex.Lock();
+    m_queue.push(item);
+    m_cv.SignalAll();
+    m_mutex.Unlock();
+  }
+
+ private:
+  queue<T*> m_queue;
+  absl::CondVar m_cv;
+  absl::Mutex m_mutex;
+};
+
+}  // namespace ngraph_bridge
+}  // namespace tensorflow
+
+#endif  // THREAD_SAFE_QUEUE_H_

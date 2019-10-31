@@ -59,7 +59,7 @@ using SetAttributesFunction = std::function<Status(Node*)>;
 //
 // FIXME(amprocte): stubbed out for now because NGRAPH device is gone.
 //
-static Status NGraphPlacementRequested(Node* node, bool& placement_ok) {
+static Status NGraphPlacementRequested(Node*, bool& placement_ok) {
   placement_ok = true;
   return Status::OK();
 }
@@ -129,7 +129,7 @@ static SetAttributesFunction SetStaticInputs(
 
 // Generates a "simple" confirmation function which always returns true,
 static ConfirmationFunction SimpleConfirmationFunction() {
-  auto cf = [](Node* n, bool* result) {
+  auto cf = [](Node*, bool* result) {
     *result = true;
     return Status::OK();
   };
@@ -296,6 +296,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
           SimpleConfirmationFunction();
 #endif
       confirmation_function_map["Identity"] = SimpleConfirmationFunction();
+      confirmation_function_map["IsFinite"] = SimpleConfirmationFunction();
       confirmation_function_map["L2Loss"] = SimpleConfirmationFunction();
       confirmation_function_map["LogSoftmax"] = SimpleConfirmationFunction();
       confirmation_function_map["Less"] = SimpleConfirmationFunction();
@@ -473,6 +474,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["HorovodBroadcast"]["T"] = NGraphNumericDTypes();
 #endif
       type_constraint_map["Identity"]["T"] = NGraphDTypes();
+      type_constraint_map["IsFinite"]["T"] = NGraphRealDTypes();
       type_constraint_map["L2Loss"]["T"] = NGraphNumericDTypes();
       type_constraint_map["LogSoftmax"]["T"] = NGraphRealDTypes();
       type_constraint_map["Less"]["T"] = NGraphDTypes();
@@ -655,7 +657,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   // Right now it cannot be inside the if(!initialized) block, because it is
   // backend dependent, which might change with different sess.run()s
-  confirmation_function_map["GatherV2"] = [&current_backend](Node* n,
+  confirmation_function_map["GatherV2"] = [&current_backend](Node*,
                                                              bool* result) {
     // TODO: replace current_backend ->
     // BackendManager::GetCurrentlySetBackendName()
@@ -666,7 +668,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   };
 
   confirmation_function_map["NonMaxSuppressionV4"] = [&current_backend](
-      Node* n, bool* result) {
+      Node*, bool* result) {
     auto config_map =
         BackendManager::GetBackendAttributeValues(current_backend);
     *result = (config_map.at("ngraph_backend") == "NNPI");
@@ -674,7 +676,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   };
 
   confirmation_function_map["CombinedNonMaxSuppression"] = [&current_backend](
-      Node* n, bool* result) {
+      Node*, bool* result) {
     auto config_map =
         BackendManager::GetBackendAttributeValues(current_backend);
     *result = (config_map.at("ngraph_backend") == "NNPI");

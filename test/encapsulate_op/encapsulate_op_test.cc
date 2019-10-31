@@ -31,7 +31,6 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 namespace testing {
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 // Test: Create tensorflow input tensors and Compute Signature
@@ -103,7 +102,7 @@ TEST(EncapsulateOp, GetNgExecutable) {
   }
 
   ng_encap_impl.SetOpBackend("CPU");
-  BackendManager::CreateBackend(ng_encap_impl.GetOpBackend());
+  ASSERT_OK(BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
   ng::runtime::Backend* op_backend;
   op_backend = BackendManager::GetBackend(ng_encap_impl.GetOpBackend());
 
@@ -125,7 +124,7 @@ TEST(EncapsulateOp, AllocateNGInputTensors) {
                                      ng::ParameterVector{A, B});
 
   ng_encap_impl.SetOpBackend("CPU");
-  BackendManager::CreateBackend(ng_encap_impl.GetOpBackend());
+  ASSERT_OK(BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
   ng::runtime::Backend* op_backend;
   op_backend = BackendManager::GetBackend(ng_encap_impl.GetOpBackend());
   auto ng_exec = op_backend->compile(f);
@@ -161,7 +160,7 @@ TEST(EncapsulateOp, AllocateNGOutputTensors) {
                                      ng::ParameterVector{A, B});
 
   ng_encap_impl.SetOpBackend("CPU");
-  BackendManager::CreateBackend(ng_encap_impl.GetOpBackend());
+  ASSERT_OK(BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
   ng::runtime::Backend* op_backend;
   op_backend = BackendManager::GetBackend(ng_encap_impl.GetOpBackend());
   auto ng_exec = op_backend->compile(f);
