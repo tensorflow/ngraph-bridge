@@ -23,6 +23,8 @@ import ngraph_bridge
 import numpy as np
 from common import NgraphTest
 
+import shutil
+
 # This test needs access to mnist_deep_simplified.py script
 # present in ngraph-bridge/examples/mnist
 # so this path needs to be added to python path when running this
@@ -35,11 +37,14 @@ from mnist_deep_simplified import *
 
 
 class TestMnistTraining(NgraphTest):
-
     # TODO bring back parameterization
-    #@pytest.mark.parametrize(("optimizer"), ("adam", "sgd", "momentum"))
-    @pytest.mark.parametrize(("optimizer"), ("adam",))
+    @pytest.mark.parametrize(("optimizer"), ("adam", "sgd", "momentum"))
+    #@pytest.mark.parametrize(("optimizer"), ("adam",))
     def test_mnist_training(self, optimizer):
+        # In this test, we first run 20 iterations on ngraph and dump the semi trained model
+        # Then we run TF for 20 iterations and compare the values with ngraph
+        # Then we load back teh semitrained nodels in both cases and train them for 20 iterations
+        # and again make sure TF and NG agree.
 
         class mnist_training_flags:
 
@@ -57,14 +62,14 @@ class TestMnistTraining(NgraphTest):
                 self.input_model_dir = input_model_dir
 
         data_dir = '/tmp/' + getpass.getuser() + 'tensorflow/mnist/input_data'
-        train_loop_count = 20
-        batch_size = 50
+        train_loop_count = 10
+        batch_size = 128
         test_image_count = None
         make_deterministic = True
-        output_model_dir_ng = './save_loc_ng/'
+        output_model_dir_ng_1 = './save_loc_ng_' + optimizer + '/'
 
         FLAGS = mnist_training_flags(
-            data_dir, output_model_dir_ng, train_loop_count, batch_size,
+            data_dir, output_model_dir_ng_1, train_loop_count, batch_size,
             test_image_count, make_deterministic, optimizer, None)
 
         # Run on nGraph
@@ -75,8 +80,8 @@ class TestMnistTraining(NgraphTest):
 
         # disable ngraph-tf
         ngraph_bridge.disable()
-        output_model_dir_tf = './save_loc_tf/'
-        FLAGS.output_model_dir = output_model_dir_tf
+        output_model_dir_tf_1 = './save_loc_tf_' + optimizer + '/'
+        FLAGS.output_model_dir = output_model_dir_tf_1
         tf_loss_values, tf_test_accuracy = train_mnist_cnn(FLAGS)
         tf_values = tf_loss_values + [tf_test_accuracy]
 
@@ -89,10 +94,10 @@ class TestMnistTraining(NgraphTest):
 
         # Now resume training from output_model_dir
         # and dump new model in output_model_dir_ng_2
-        output_model_dir_ng_2 = './save_loc_ng_2/'
+        output_model_dir_ng_2 = './save_loc_ng_2_' + optimizer + '/'
         FLAGS = mnist_training_flags(
             data_dir, output_model_dir_ng_2, train_loop_count, batch_size,
-            test_image_count, make_deterministic, optimizer, output_model_dir_ng)
+            test_image_count, make_deterministic, optimizer, output_model_dir_ng_1)
         # Run on nGraph
         ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
         ng_values = ng_loss_values + [ng_test_accuracy]
@@ -101,8 +106,9 @@ class TestMnistTraining(NgraphTest):
 
         # disable ngraph-tf
         ngraph_bridge.disable()
-        output_model_dir_tf = './save_loc_tf_2/'
-        FLAGS.output_model_dir = output_model_dir_tf
+        output_model_dir_tf_2 = './save_loc_tf_2_' + optimizer + '/'
+        FLAGS.output_model_dir = output_model_dir_tf_2
+        FLAGS.input_model_dir = output_model_dir_tf_1
         tf_loss_values, tf_test_accuracy = train_mnist_cnn(FLAGS)
         tf_values = tf_loss_values + [tf_test_accuracy]
 
@@ -111,7 +117,9 @@ class TestMnistTraining(NgraphTest):
             ng_values, tf_values,
             atol=1e-3), "Loss or Accuracy values don't match"
 
-        #shutil.rmtree(save_loc_tf_2)
-        #shutil.rmtree(save_loc_ng_2)
-        #shutil.rmtree(save_loc_tf)
-        #shutil.rmtree(save_loc_ng)
+        tf.reset_default_graph()
+
+        shutil.rmtree(output_model_dir_ng_1)
+        shutil.rmtree(output_model_dir_tf_1)
+        shutil.rmtree(output_model_dir_ng_2)
+        shutil.rmtree(output_model_dir_tf_2)
