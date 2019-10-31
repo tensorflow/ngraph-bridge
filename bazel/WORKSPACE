@@ -58,8 +58,8 @@ http_archive(
     sha256 = "d0c5d3e486a40cfff2c877ca83c00cc03617d231166f1651029ac69b82d7d97d",
     strip_prefix = "ngraph-27ce7250837daf97676642d65525639366b61469",
     urls = [
-        "https://mirror.bazel.build/github.com/NervanaSystems/ngraph/archive/27ce7250837daf97676642d65525639366b61469.tar.gz",
-        "https://github.com/NervanaSystems/ngraph/archive/27ce7250837daf97676642d65525639366b61469.tar.gz"
+        "https://mirror.bazel.build/github.com/NervanaSystems/ngraph/archive/sarkars/move_fn_body_to_cpp.tar.gz",
+        "https://github.com/NervanaSystems/ngraph/archive/sarkars/move_fn_body_to_cpp.tar.gz"
     ],
 )
 
