@@ -220,6 +220,7 @@ cc_library(
         "src/ngraph/runtime/cpu/builder/topk.cpp",
         "src/ngraph/runtime/cpu/builder/tile.cpp",
         "src/ngraph/runtime/cpu/builder/update_slice.cpp",
+        "src/ngraph/runtime/cpu/builder/random_uniform.cpp",
         "src/ngraph/runtime/cpu/kernel/pad.cpp",
         "src/ngraph/runtime/cpu/kernel/reduce_max.cpp",
         "src/ngraph/runtime/cpu/kernel/reduce_sum.cpp",
