@@ -85,6 +85,8 @@ class TestMnistTraining(NgraphTest):
             ng_values, tf_values,
             atol=1e-3), "Loss or Accuracy values don't match"
 
+        tf.reset_default_graph()
+
         # Now resume training from output_model_dir
         # and dump new model in output_model_dir_ng_2
         output_model_dir_ng_2 = './save_loc_ng_2/'
