@@ -209,7 +209,10 @@ Status NGraphExecutor::GetNgItem(
 
   NGRAPH_VLOG(5) << "Computed signature: " << signature;
 
-  // Get backend
+  NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: "
+	         << m_op_backend_name;
+  // Get the backend. Note that the backend may not be available
+  // so that's a programmng error.
   ng::runtime::Backend* op_backend;
   try {
     op_backend = BackendManager::GetBackend(m_op_backend_name);
