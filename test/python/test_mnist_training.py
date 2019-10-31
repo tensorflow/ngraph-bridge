@@ -61,7 +61,7 @@ class TestMnistTraining(NgraphTest):
         batch_size = 50
         test_image_count = None
         make_deterministic = True
-        output_model_dir_ng = './save_loc_ng/train'
+        output_model_dir_ng = './save_loc_ng/'
 
         FLAGS = mnist_training_flags(
             data_dir, output_model_dir_ng, train_loop_count, batch_size,
@@ -75,7 +75,7 @@ class TestMnistTraining(NgraphTest):
 
         # disable ngraph-tf
         ngraph_bridge.disable()
-        output_model_dir_tf = './save_loc_tf/train'
+        output_model_dir_tf = './save_loc_tf/'
         FLAGS.output_model_dir = output_model_dir_tf
         tf_loss_values, tf_test_accuracy = train_mnist_cnn(FLAGS)
         tf_values = tf_loss_values + [tf_test_accuracy]
@@ -87,10 +87,10 @@ class TestMnistTraining(NgraphTest):
 
         # Now resume training from output_model_dir
         # and dump new model in output_model_dir_ng_2
-        output_model_dir_ng_2 = './save_loc_ng_2/train'
+        output_model_dir_ng_2 = './save_loc_ng_2/'
         FLAGS = mnist_training_flags(
             data_dir, output_model_dir_ng_2, train_loop_count, batch_size,
-            test_image_count, make_deterministic, optimizer, output_model_dir)
+            test_image_count, make_deterministic, optimizer, output_model_dir_ng)
         # Run on nGraph
         ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
         ng_values = ng_loss_values + [ng_test_accuracy]
@@ -99,7 +99,7 @@ class TestMnistTraining(NgraphTest):
 
         # disable ngraph-tf
         ngraph_bridge.disable()
-        output_model_dir_tf = './save_loc_tf_2/train'
+        output_model_dir_tf = './save_loc_tf_2/'
         FLAGS.output_model_dir = output_model_dir_tf
         tf_loss_values, tf_test_accuracy = train_mnist_cnn(FLAGS)
         tf_values = tf_loss_values + [tf_test_accuracy]
