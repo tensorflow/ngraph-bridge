@@ -46,7 +46,7 @@ class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {
     ASSERT_OK(NodeDefBuilder("sync_node", "NGraphVariableUpdateNGTensor")
                   .Input(FakeInput(DT_FLOAT_REF))
                   .Attr("T", DT_FLOAT)
-                  .Attr("ngraph_variable_shared_name", "kanvi1")
+                  .Attr("ngraph_variable_shared_name", "var1")
                   .Attr("ngraph_graph_id", 1)
                   .Finalize(node_def()));
     ASSERT_OK(InitOp());
@@ -102,7 +102,7 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   NodeDef ndef;
   ndef.set_name("node1");
   AddNodeAttr("container", "", &ndef);
-  AddNodeAttr("shared_name", "kanvi1", &ndef);
+  AddNodeAttr("shared_name", "var1", &ndef);
   ASSERT_OK(cinfo_.Init(device_->resource_manager(), ndef, true));
 
   ASSERT_OK(device_->resource_manager()->Create<NGraphVar>(cinfo_.container(),
