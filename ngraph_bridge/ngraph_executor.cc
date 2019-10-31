@@ -210,7 +210,7 @@ Status NGraphExecutor::GetNgItem(
   NGRAPH_VLOG(5) << "Computed signature: " << signature;
 
   NGRAPH_VLOG(4) << "GetNgExecutable: Got backend of type: "
-	         << m_op_backend_name;
+                 << m_op_backend_name;
   // Get the backend. Note that the backend may not be available
   // so that's a programmng error.
   ng::runtime::Backend* op_backend;
@@ -220,13 +220,15 @@ Status NGraphExecutor::GetNgItem(
     return errors::Internal("Backend not available: ", m_op_backend_name);
   }
 
-  // Get NgItems from Data Cache
+  // Generate forwarding call to Callback functions
+  // CallbackCreateNgItem and CallbackDestroyNgItem
   auto create_ng_items_callback = std::bind(
       &NGraphExecutor::CallbackCreateNgItem, this, std::placeholders::_1,
       input_shapes, static_input_map, op_backend);
   auto destroy_ng_items_callback =
       std::bind(&NGraphExecutor::CallbackDestroyNgItem, this,
                 std::placeholders::_1, op_backend);
+  // Get NgItems i.e. ng_executable, serialized ng_functions from Data Cache
   auto status_ng_item_pair = m_ng_data_cache.LookUpOrCreate(
       signature, create_ng_items_callback, destroy_ng_items_callback);
 
@@ -247,7 +249,7 @@ NGraphExecutor::CallbackCreateNgItem(
     std::string signature, std::vector<TensorShape> input_shapes,
     std::vector<const Tensor*> static_input_map,
     ng::runtime::Backend*& op_backend) {
-  string serialized_ng_func;
+  std::string serialized_ng_func;
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   std::shared_ptr<ngraph::Function> ng_function;
   shared_ptr<PipelinedTensorsStore> pts;
@@ -296,9 +298,10 @@ NGraphExecutor::CallbackCreateNgItem(
     }
 #endif
   }
-
+  // Get NgExecutable
   auto status_ng_exec_pair =
       GetNgExecutable(signature, ng_function, serialized_ng_func, op_backend);
+  // Create PipelinedTensorStore
   if (status_ng_exec_pair.first == Status::OK()) {
     ng_exec = status_ng_exec_pair.second;
     auto status_ng_pts_pair = InitializeIOTensorPipeline(ng_exec);
