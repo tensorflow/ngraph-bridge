@@ -41,7 +41,7 @@ def get_model():
     return model
 
 
-def run_training():
+def run_training(FLAGS):
     x_train, y_train, x_test, y_test = prepare_data()
     model = get_model()
 
@@ -74,6 +74,11 @@ if __name__ == '__main__':
         '--tf_keras',
         action='store_true',
         help="If set, uses tensorflow's internal version of keras")
+    parser.add_argument(
+        '--epochs',
+        type=int,
+        default=2,
+        help="The number of training epochs")
 
     FLAGS, unparsed = parser.parse_known_args()
     if FLAGS.tf_keras:
@@ -85,5 +90,5 @@ if __name__ == '__main__':
     from keras.layers import Dense, Dropout
     from keras.optimizers import SGD
 
-    run_training()
+    run_training(FLAGS)
 
