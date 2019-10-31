@@ -207,7 +207,7 @@ def train_mnist_cnn(FLAGS):
             y_ = sess.graph.get_tensor_by_name("y_:0")
             keep_prob = sess.graph.get_tensor_by_name("keep_prob:0")
             train_step = sess.graph.get_operation_by_name(
-                "adam_optimizer/train_step")
+                FLAGS.optimizer + "_optimizer/train_step")
 
         tf.summary.scalar('Training accuracy', accuracy)
         tf.summary.scalar('Loss function', cross_entropy)

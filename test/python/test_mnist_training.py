@@ -37,9 +37,8 @@ from mnist_deep_simplified import *
 
 
 class TestMnistTraining(NgraphTest):
-    # TODO bring back parameterization
+
     @pytest.mark.parametrize(("optimizer"), ("adam", "sgd", "momentum"))
-    #@pytest.mark.parametrize(("optimizer"), ("adam",))
     def test_mnist_training(self, optimizer):
         # In this test, we first run 20 iterations on ngraph and dump the semi trained model
         # Then we run TF for 20 iterations and compare the values with ngraph
@@ -95,9 +94,10 @@ class TestMnistTraining(NgraphTest):
         # Now resume training from output_model_dir
         # and dump new model in output_model_dir_ng_2
         output_model_dir_ng_2 = './save_loc_ng_2_' + optimizer + '/'
-        FLAGS = mnist_training_flags(
-            data_dir, output_model_dir_ng_2, train_loop_count, batch_size,
-            test_image_count, make_deterministic, optimizer, output_model_dir_ng_1)
+        FLAGS = mnist_training_flags(data_dir, output_model_dir_ng_2,
+                                     train_loop_count, batch_size,
+                                     test_image_count, make_deterministic,
+                                     optimizer, output_model_dir_ng_1)
         # Run on nGraph
         ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
         ng_values = ng_loss_values + [ng_test_accuracy]
