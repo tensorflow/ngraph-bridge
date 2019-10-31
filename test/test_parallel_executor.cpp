@@ -110,12 +110,13 @@ TEST(ParallelExecutor, CompilerTest) {
 
   std::vector<Tensor> tf_input_tensors{x, y};
   shared_ptr<ngraph::runtime::Executable> ng_exec;
+  shared_ptr<PipelinedTensorsStore> pts;
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
   // Call the Executor to compile the funcion
-  ASSERT_OK(executor.GetNgItem(tf_input_tensors, ng_exec, io_tensors));
+  ASSERT_OK(executor.GetNgItem(tf_input_tensors, ng_exec, pts));
 
   // Now call again to test that the cache works
-  ASSERT_OK(executor.GetNgItem(tf_input_tensors, ng_exec, io_tensors));
+  ASSERT_OK(executor.GetNgItem(tf_input_tensors, ng_exec, pts));
 
   // Now validate that the nGraph function is available
   /* std::shared_ptr<ngraph::Function> ng_function;

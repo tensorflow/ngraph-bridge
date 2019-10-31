@@ -50,23 +50,12 @@ class NGraphExecutor {
   // return fromm the cache
   Status GetNgItem(const std::vector<Tensor>& tf_input_tensors,
                    std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-                   std::tuple<int, PipelinedTensorVector,
-                              PipelinedTensorVector>& io_tensors);
-
-  Status GetNgFunction(
-      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      std::shared_ptr<ngraph::Function>& ng_function);
+                   shared_ptr<PipelinedTensorsStore>& pts);
 
   // TODO Rename this to DecodeAttributes
   Status ParseNodeAttributes(
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
       std::unordered_map<std::string, std::string>* additional_attribute_map);
-  // TODO update this function
-  void ReturnPipelinedTensors(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
-    // lock_guard<mutex> lock(m_mutex);
-    // m_executable_pipelined_tensors_map.at(ng_exec)->return_tensors(idx);
-  }
 
   std::pair<Status, std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
                                std::string, shared_ptr<PipelinedTensorsStore>>>
@@ -74,10 +63,9 @@ class NGraphExecutor {
                std::vector<const Tensor*> static_input_map,
                ng::runtime::Backend*& op_backend);
   std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
-  CompileOrLoadExecutable(std::string signature,
-                          std::shared_ptr<ngraph::Function>& ng_function,
-                          string serialized_ng_func,
-                          ng::runtime::Backend*& op_backend);
+  GetNgExecutable(std::string signature,
+                  std::shared_ptr<ngraph::Function>& ng_function,
+                  string serialized_ng_func, ng::runtime::Backend*& op_backend);
 
   const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
 

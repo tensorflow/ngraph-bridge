@@ -197,7 +197,7 @@ Status NGraphExecutor::ComputeSignature(
 Status NGraphExecutor::GetNgItem(
     const std::vector<Tensor>& tf_input_tensors,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>& io_tensors) {
+    shared_ptr<PipelinedTensorsStore>& pts) {
   std::stringstream signature_ss;
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
@@ -224,13 +224,12 @@ Status NGraphExecutor::GetNgItem(
       &NGraphExecutor::DestroyNgItem, this, std::placeholders::_1, op_backend);
   auto status_ng_item_pair = m_ng_data_cache.LookUpOrCreate(
       signature, create_ng_items_callback, destroy_ng_items_callback);
+
   if (status_ng_item_pair.first == Status::OK()) {
     ng_exec = std::get<0>(status_ng_item_pair.second);
-    io_tensors = std::get<2>(status_ng_item_pair.second)->get_tensors();
-    if (std::get<0>(io_tensors) < 0) {
-      return errors::Internal("No free tensor available");
-    }
+    pts = std::get<2>(status_ng_item_pair.second);
   }
+
   return status_ng_item_pair.first;
 }
 
@@ -288,8 +287,8 @@ NGraphExecutor::CreateNgItem(std::string signature,
 #endif
   }
 
-  auto status_ng_exec_pair = CompileOrLoadExecutable(
-      signature, ng_function, serialized_ng_func, op_backend);
+  auto status_ng_exec_pair =
+      GetNgExecutable(signature, ng_function, serialized_ng_func, op_backend);
   if (status_ng_exec_pair.first == Status::OK()) {
     ng_exec = status_ng_exec_pair.second;
     auto status_ng_pts_pair = InitializeIOTensorPipeline(ng_exec);
@@ -302,9 +301,10 @@ NGraphExecutor::CreateNgItem(std::string signature,
 }
 
 std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
-NGraphExecutor::CompileOrLoadExecutable(
-    std::string signature, std::shared_ptr<ngraph::Function>& ng_function,
-    string serialized_ng_func, ng::runtime::Backend*& op_backend) {
+NGraphExecutor::GetNgExecutable(std::string signature,
+                                std::shared_ptr<ngraph::Function>& ng_function,
+                                string serialized_ng_func,
+                                ng::runtime::Backend*& op_backend) {
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
 
   ngraph::Event event_compile("Compile nGraph", m_node_name, "");
@@ -360,16 +360,6 @@ void NGraphExecutor::DestroyNgItem(
     ng::runtime::Backend*& op_backend) {
   // Call delete function here for the erased func
   op_backend->remove_compiled_function(std::get<0>(evicted_ng_item));
-}
-
-//---------------------------------------------------------------------------
-//  GetNgFunction
-//---------------------------------------------------------------------------
-Status NGraphExecutor::GetNgFunction(
-    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    std::shared_ptr<ngraph::Function>& ng_function) {
-  // Lookup the function from the Map
-  return Status::OK();
 }
 
 //---------------------------------------------------------------------------
