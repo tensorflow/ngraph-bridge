@@ -28,7 +28,7 @@ def prepare_data():
     y_train = keras.utils.to_categorical(y_train, 10)
     y_test = keras.utils.to_categorical(y_test, 10)
 
-    return x_train/255.0, y_train, x_test/255.0, y_test
+    return x_train / 255.0, y_train, x_test / 255.0, y_test
 
 
 def get_model():
@@ -45,27 +45,25 @@ def run_training(FLAGS):
     x_train, y_train, x_test, y_test = prepare_data()
     model = get_model()
 
-
     model.summary()
 
     config = tf.ConfigProto()
     sess = tf.Session(config=ngraph_bridge.update_config(config))
     keras.backend.set_session(sess)
 
-    model.compile(loss='categorical_crossentropy',
-                optimizer=SGD(),
-                metrics=['accuracy'])
+    model.compile(
+        loss='categorical_crossentropy', optimizer=SGD(), metrics=['accuracy'])
 
-    model.fit(x_train, y_train,
-                    batch_size=128,
-                    epochs=2,
-                    verbose=1,
-                    validation_data=(x_test, y_test))
+    model.fit(
+        x_train,
+        y_train,
+        batch_size=128,
+        epochs=2,
+        verbose=1,
+        validation_data=(x_test, y_test))
     score = model.evaluate(x_test, y_test, verbose=0)
     print('Test loss:', score[0])
     print('Test accuracy:', score[1])
-
-
 
 
 if __name__ == '__main__':
@@ -75,10 +73,7 @@ if __name__ == '__main__':
         action='store_true',
         help="If set, uses tensorflow's internal version of keras")
     parser.add_argument(
-        '--epochs',
-        type=int,
-        default=2,
-        help="The number of training epochs")
+        '--epochs', type=int, default=2, help="The number of training epochs")
 
     FLAGS, unparsed = parser.parse_known_args()
     if FLAGS.tf_keras:
@@ -91,4 +86,3 @@ if __name__ == '__main__':
     from keras.optimizers import SGD
 
     run_training(FLAGS)
-
