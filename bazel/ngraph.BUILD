@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
-licenses(["notice"])  
+licenses(["notice"])
 exports_files(["LICENSE"])
 
 load("@ngraph_bridge//:cxx_abi_option.bzl", "CXX_ABI")
@@ -204,6 +204,7 @@ cc_library(
         "src/ngraph/runtime/cpu/builder/tile.cpp",
         "src/ngraph/runtime/cpu/builder/update_slice.cpp",
         "src/ngraph/runtime/cpu/builder/random_uniform.cpp",
+        "src/ngraph/runtime/cpu/builder/gelu.cpp",
         "src/ngraph/runtime/cpu/kernel/pad.cpp",
         "src/ngraph/runtime/cpu/kernel/reduce_max.cpp",
         "src/ngraph/runtime/cpu/kernel/reduce_sum.cpp",
