@@ -835,12 +835,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
             ng_encap_impl_.SetNumberOfCopies(copies++);
             ng_encap_impl_.AppendCopyLog(" COPY_TO_TF ");
           }
-          if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
-                  output_key)) {
-            // Some tf op might update the ng-tensor value so mark it stale
-            ng_encap_impl_.AppendCopyLog(" SET_SYNC ");
-            var->set_sync_ng_tensor(true);
-          }
         }
         var->Unref();
       }

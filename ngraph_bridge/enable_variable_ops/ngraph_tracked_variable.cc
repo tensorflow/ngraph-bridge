@@ -68,9 +68,6 @@ class NGraphVariableOp : public OpKernel {
   // enable_variable_and_optimizers flag is not set and to add the
   // freshness tracking required for the CPU backend.
   bool just_looking_;
-  // If TF is not going to modify the variable
-  // then is_tf_just_looking = true
-  bool is_tf_just_looking_;
   bool copy_to_tf_;
   DataType dtype_;
   string ng_backend_name_;
@@ -89,7 +86,6 @@ NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
     : OpKernel(context),
       tracker_(nullptr),
       just_looking_(false),
-      is_tf_just_looking_(false),
       copy_to_tf_(false),
       dtype_(RemoveRefType(context->output_type(0))) {
   my_instance_id = s_instance_count;
@@ -97,15 +93,13 @@ NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
 
   OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
   OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
-  OP_REQUIRES_OK(context,
-                 context->GetAttr("is_tf_just_looking", &is_tf_just_looking_));
   OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
   OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
   OP_REQUIRES_OK(context,
                  context->GetAttr("_ngraph_backend", &ng_backend_name_));
   NGRAPH_VLOG(4) << "NGraphVariable:: Constructor called for: " << def().name()
-                 << " ,just looking " << just_looking_ << "is_tf_just_looking "
-                 << is_tf_just_looking_ << " ,copy-to-tf " << copy_to_tf_
+                 << " ,just looking " << just_looking_
+                 << " ,copy-to-tf " << copy_to_tf_
                  << " ,Graph ID " << ng_graph_id_ << " ,backend_name "
                  << ng_backend_name_;
 }
@@ -121,8 +115,8 @@ NGraphVariableOp::~NGraphVariableOp() {
 // constructor.)
 void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4) << "NGraphVariable:: Compute called for: " << def().name()
-                 << " ,just looking " << just_looking_ << "is_tf_just_looking "
-                 << is_tf_just_looking_ << " ,copy-to-tf " << copy_to_tf_
+                 << " ,just looking " << just_looking_
+                 << " ,copy-to-tf " << copy_to_tf_
                  << " ,Graph ID " << ng_graph_id_ << " ,backend_name "
                  << ng_backend_name_;
 
@@ -135,9 +129,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
                  IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
   std::stringstream copy_log_str;
   copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-               << " ,copy-to-tf " << PrintBool(copy_to_tf_)
-               << " ,is_tf_just_looking " << PrintBool(is_tf_just_looking_)
-               << "\n";
+               << " ,copy-to-tf " << PrintBool(copy_to_tf_) << "\n";
   int number_of_copies = 0;
 
   mutex_lock l(init_mu_);
@@ -206,13 +198,6 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
         copy_log_str << " COPY_TO_TF ";
       }
       NGRAPH_VLOG(4) << "Copying to TF Tensor";
-    }
-
-    if (!is_tf_just_looking_) {
-      // Some tf op might update the tf-tensor
-      // So we need to sync_it_later
-      var->set_sync_ng_tensor(true);
-      copy_log_str << " SET_SYNC ";
     }
   }
 
