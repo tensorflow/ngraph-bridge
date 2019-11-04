@@ -405,19 +405,22 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   }
 
   int step_id = ctx->step_id();
-  ngraph::Event event_get_ng_item("GetNgItem", "", "");
-  shared_ptr<PipelinedTensorsStore> pts_ptr;
+  ngraph::Event event_get_ng_item("GetExecutableAndTensors", "", "");
+  shared_ptr<PipelinedTensorsStore> pipelined_tensor_store;
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
 
   // Get ngraph executable and inputs information and Pipelined tensors
+  bool cache_hit;
   OP_REQUIRES_OK(
-      ctx, m_parallel_executor->GetNgItem(tf_input_tensors, ng_exec, pts_ptr));
-  io_tensors = pts_ptr.get()->get_tensors();
+      ctx, m_parallel_executor->GetExecutableAndTensors(
+               tf_input_tensors, ng_exec, pipelined_tensor_store, cache_hit));
+  io_tensors = pipelined_tensor_store.get()->get_tensors();
   auto status = Status::OK();
   if (std::get<0>(io_tensors) < 0) {
     status = errors::Internal("No free tensor available");
   }
   OP_REQUIRES_OK(ctx, status);
+  NGRAPH_VLOG(2) << "CACHE HIT: " << PrintBool(cache_hit) << endl;
   NGRAPH_VLOG(2) << " Step_ID: " << step_id;
   NGRAPH_VLOG(2)
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster id: "
@@ -511,7 +514,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // Now return them to the cache
   ngraph::Event event_return_tensor("Return Tensor", "", "");
-  pts_ptr->return_tensors(get<0>(io_tensors));
+  pipelined_tensor_store->return_tensors(get<0>(io_tensors));
   event_return_tensor.Stop();
   ngraph::Event::write_trace(event_return_tensor);
 }

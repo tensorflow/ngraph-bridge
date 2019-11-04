@@ -48,9 +48,10 @@ class NGraphExecutor {
   // Calls Compute Signature and gets ngraph executable
   // Update the cache and if called again with the same input shapes,
   // return fromm the cache
-  Status GetNgItem(const std::vector<Tensor>& tf_input_tensors,
-                   std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-                   shared_ptr<PipelinedTensorsStore>& pts);
+  Status GetExecutableAndTensors(
+      const std::vector<Tensor>& tf_input_tensors,
+      std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      shared_ptr<PipelinedTensorsStore>& pts, bool& cache_hit);
 
   // TODO Rename this to DecodeAttributes
   Status ParseNodeAttributes(
@@ -62,14 +63,13 @@ class NGraphExecutor {
   // TensorPipeline
   std::pair<Status, std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
                                std::string, shared_ptr<PipelinedTensorsStore>>>
-  CallbackCreateNgItem(std::string signature,
-                       std::vector<TensorShape> input_shapes,
-                       std::vector<const Tensor*> static_input_map,
-                       ng::runtime::Backend*& op_backend);
+  CreateCallback(std::string signature, std::vector<TensorShape> input_shapes,
+                 std::vector<const Tensor*> static_input_map,
+                 ng::runtime::Backend*& op_backend, bool* cache_hit);
 
   const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
 
-  void CallbackDestroyNgItem(
+  void DestroyCallback(
       std::tuple<std::shared_ptr<ngraph::runtime::Executable>, std::string,
                  shared_ptr<PipelinedTensorsStore>>
           evicted_ng_item,
@@ -86,14 +86,14 @@ class NGraphExecutor {
   }
 
  private:
-  // This method is called from CallbackCreateNgItem(), It compiles ngraph
+  // This method is called from CreateCallback(), It compiles ngraph
   // Or load ng_executable from backend in case of AOT
   std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
   GetNgExecutable(std::string signature,
                   std::shared_ptr<ngraph::Function>& ng_function,
                   string serialized_ng_func, ng::runtime::Backend*& op_backend);
   // Allocates the necessary tensors from the Executable (or backend in future)
-  // Called from CallbackCreateNgItem
+  // Called from CreateCallback
   std::pair<Status, shared_ptr<PipelinedTensorsStore>>
   InitializeIOTensorPipeline(
       std::shared_ptr<ngraph::runtime::Executable> ng_exec);
