@@ -312,8 +312,9 @@ if __name__ == '__main__':
     assert (len(tf_skipped_tensors) == len(ngraph_skipped_tensors)) and all(
         [i == j for i, j in zip(tf_skipped_tensors, ngraph_skipped_tensors)])
 
-    for tensor in tf_skipped_tensors:
+    if len(tf_skipped_tensors) > 0:
         print("Skipping comparison of the output tensor:")
+    for tensor in tf_skipped_tensors:
         print("\n[" + tensor + "]")
 
     assert all(
