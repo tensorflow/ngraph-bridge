@@ -105,6 +105,9 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   AddNodeAttr("shared_name", "var1", &ndef);
   ASSERT_OK(cinfo_.Init(device_->resource_manager(), ndef, true));
 
+  // The Create function used here does not use Ref, thus does not
+  // increase the reference count for the resource. Therefore, we do not
+  // need to Unref before exiting.
   ASSERT_OK(device_->resource_manager()->Create<NGraphVar>(cinfo_.container(),
                                                            cinfo_.name(), var));
   inputs_.push_back({&lock_for_refs_, var->tensor()});

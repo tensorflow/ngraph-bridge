@@ -77,6 +77,11 @@ if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
     list(APPEND SRC graph_rewrites/partial_shapes_test.cc)
 endif()
 
+# The compile flag -DNDEBUG is required since
+# tensorflow::Core::RefCounted is error prone as explained here:
+# https://github.com/tensorflow/tensorflow/issues/17316
+# Also, the ngraph_bridge code when compiled has this flag enabled(https://github.com/tensorflow/ngraph-bridge/blob/018c010df44a51a988c6a2d009e6210506b4d96f/ngraph_bridge/CMakeLists.txt#L26)
+# hence the error seen while testing the custom op does not show up there.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DNDEBUG")
 
 message(STATUS "Compile Flags for test dir: ${CMAKE_CXX_FLAGS}")

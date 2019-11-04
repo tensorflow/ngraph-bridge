@@ -101,7 +101,10 @@ void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
     cout << copy_log_str.str();
   }
 
-  // Unref Var
+  // The Lookup function used in #84 calls DoLookup which ultimately calls Ref
+  // as seen here:
+  // https://github.com/tensorflow/tensorflow/blob/5448f25041ed5d32b8aee08250e8ec66e7353593/tensorflow/core/framework/resource_mgr.cc#L187
+  // Hence, Unref var here:
   var->Unref();
 
   // Stop event tracing
