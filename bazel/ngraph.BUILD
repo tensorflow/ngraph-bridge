@@ -230,6 +230,7 @@ cc_library(
         "src/ngraph/runtime/cpu/op/quantized_matmul.cpp",
         "src/ngraph/runtime/cpu/op/rnn.cpp",
         "src/ngraph/runtime/cpu/op/sigmoid_mul.cpp",
+        "src/ngraph/runtime/cpu/op/gelu_backprop.cpp",
         "src/ngraph/runtime/cpu/op/update_slice.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_assignment.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_collapse_dims.cpp",
