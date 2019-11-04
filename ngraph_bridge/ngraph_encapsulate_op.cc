@@ -727,14 +727,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                             ctx->resource_manager()->default_container(),
                             ref_var_name, &var));
 
-    if (var->sync_ng_tensor()) {
-      int copies = ng_encap_impl_.GetNumberOfCopies();
-      ng_encap_impl_.SetNumberOfCopies(copies++);
-      stringstream str;
-      str << "Var_Sync[" << input_index << "] ";
-      ng_encap_impl_.AppendCopyLog(str.str());
-    }
-
     void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
     bool is_stale = !ng_encap_impl_.GetNgraphFreshnessTracker()->IsFresh(
         current_tf_ptr, ng_exec);
