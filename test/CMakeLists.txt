@@ -69,6 +69,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/enter_in_catalog_test.cc)
     list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
     list(APPEND SRC graph_rewrites/test_replace_optimizer.cpp)
+    list(APPEND SRC graph_rewrites/test_ng_var_update_ng_tensor_kernel.cc)
     list(APPEND SRC graph_rewrites/test_ng_var_update_ng_tensor.cc)
 endif()
 
