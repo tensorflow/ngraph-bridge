@@ -32,9 +32,9 @@
 
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_variable_update_ng_tensor_op.h"
-#include "ngraph_bridge/enable_variable_ops/tf_fake_input.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
+#include "test/tf_fake_input.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -53,8 +53,6 @@ class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {
   }
 };
 
-// This test requires the env variable NGRAPH_TF_NGVARIABLE_BUFFER_SHARING=0
-// when running on CPU
 TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   list<string> env_vars{"NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"};
   const unordered_map<string, string>& env_map = StoreEnv(env_vars);
@@ -110,6 +108,8 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   // need to Unref before exiting.
   ASSERT_OK(device_->resource_manager()->Create<NGraphVar>(cinfo_.container(),
                                                            cinfo_.name(), var));
+
+  // lock_for_refs_ : Used as the Mutex for inputs added as refs
   inputs_.push_back({&lock_for_refs_, var->tensor()});
 
   ASSERT_OK(RunOpKernel());

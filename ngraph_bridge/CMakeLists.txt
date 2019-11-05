@@ -86,7 +86,6 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_replace_variable_modifiers.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
-    list(APPEND SRC enable_variable_ops/tf_fake_input.cc)
     
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 endif()
