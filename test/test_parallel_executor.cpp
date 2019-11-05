@@ -111,15 +111,16 @@ TEST(ParallelExecutor, CompilerTest) {
   std::vector<Tensor> tf_input_tensors{x, y};
   shared_ptr<ngraph::runtime::Executable> ng_exec;
   shared_ptr<PipelinedTensorsStore> pts;
+  std::string ser_ng_function;
   // Call the Executor to compile the funcion
   bool cache_hit = false;
-  ASSERT_OK(executor.GetExecutableAndTensors(tf_input_tensors, ng_exec, pts,
-                                             cache_hit));
+  ASSERT_OK(executor.GetExecutableFunctionAndTensors(
+      tf_input_tensors, ng_exec, ser_ng_function, pts, cache_hit));
   ASSERT_FALSE(cache_hit);
 
   // Now call again to test that the cache works
-  ASSERT_OK(executor.GetExecutableAndTensors(tf_input_tensors, ng_exec, pts,
-                                             cache_hit));
+  ASSERT_OK(executor.GetExecutableFunctionAndTensors(
+      tf_input_tensors, ng_exec, ser_ng_function, pts, cache_hit));
   ASSERT_TRUE(cache_hit);
 }
 
@@ -143,8 +144,9 @@ TEST(ParallelExecutor, ExecuteOnSingleThread) {
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
   // Call the Executor to compile the funcion
   bool cache_hit = false;
-  ASSERT_OK(executor.GetExecutableAndTensors(tf_input_tensors, ng_exec, pts,
-                                             cache_hit));
+  std::string ser_ng_func;
+  ASSERT_OK(executor.GetExecutableFunctionAndTensors(
+      tf_input_tensors, ng_exec, ser_ng_func, pts, cache_hit));
   io_tensors = pts.get()->get_tensors();
   ASSERT_FALSE(cache_hit);
 
@@ -224,8 +226,9 @@ TEST(ParallelExecutor, ExecuteOnSingleThread8Bit) {
   std::tuple<int, PipelinedTensorVector, PipelinedTensorVector> io_tensors;
   // Call the Executor to compile the funcion
   bool cache_hit = false;
-  ASSERT_OK(executor.GetExecutableAndTensors(tf_input_tensors, ng_exec, pts,
-                                             cache_hit));
+  std::string ser_ng_func;
+  ASSERT_OK(executor.GetExecutableFunctionAndTensors(
+      tf_input_tensors, ng_exec, ser_ng_func, pts, cache_hit));
   io_tensors = pts.get()->get_tensors();
   ASSERT_FALSE(cache_hit);
 

@@ -48,9 +48,10 @@ class NGraphExecutor {
   // Calls Compute Signature and gets ngraph executable
   // Update the cache and if called again with the same input shapes,
   // return fromm the cache
-  Status GetExecutableAndTensors(
+  Status GetExecutableFunctionAndTensors(
       const std::vector<Tensor>& tf_input_tensors,
       std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      std::string& serialized_ng_function,
       shared_ptr<PipelinedTensorsStore>& pts, bool& cache_hit);
 
   // TODO Rename this to DecodeAttributes
@@ -65,7 +66,7 @@ class NGraphExecutor {
                                std::string, shared_ptr<PipelinedTensorsStore>>>
   CreateCallback(std::string signature, std::vector<TensorShape> input_shapes,
                  std::vector<const Tensor*> static_input_map,
-                 ng::runtime::Backend*& op_backend, bool* cache_hit);
+                 ng::runtime::Backend*& op_backend);
 
   const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
 

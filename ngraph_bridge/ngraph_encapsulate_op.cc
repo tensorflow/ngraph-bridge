@@ -411,10 +411,11 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // Get ngraph executable and inputs information and Pipelined tensors
   bool cache_hit;
-  OP_REQUIRES_OK(
-      ctx, m_parallel_executor->GetExecutableAndTensors(
-               tf_input_tensors, ng_exec, pipelined_tensor_store, cache_hit));
-  io_tensors = pipelined_tensor_store.get()->get_tensors();
+  std::string serialized_ng_function;
+  OP_REQUIRES_OK(ctx, m_parallel_executor->GetExecutableFunctionAndTensors(
+                          tf_input_tensors, ng_exec, serialized_ng_function,
+                          pipelined_tensor_store, cache_hit));
+  io_tensors = pipelined_tensor_store->get_tensors();
   auto status = Status::OK();
   if (std::get<0>(io_tensors) < 0) {
     status = errors::Internal("No free tensor available");
@@ -456,7 +457,34 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // And execute
   ngraph::Event event_execute_graph("Execute Graph", "", "");
-  ng_exec->call(get<2>(io_tensors), get<1>(io_tensors));
+  BackendManager::LockBackend(m_parallel_executor->GetOpBackendName());
+  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "
+                 << m_parallel_executor->GetNgraphClusterId();
+  try {
+    ng_exec->call(get<2>(io_tensors), get<1>(io_tensors));
+  } catch (const std::exception& exp) {
+    BackendManager::UnlockBackend(m_parallel_executor->GetOpBackendName());
+    Status st =
+        StringToFile("tf_function_error" + ctx->op_kernel().name() + ".json",
+                     serialized_ng_function);
+    string status_string =
+        "Caught exception while executing nGraph computation: " +
+        string(exp.what()) +
+        (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                         st.error_message()));
+    OP_REQUIRES(ctx, false, errors::Internal(status_string));
+  } catch (...) {
+    BackendManager::UnlockBackend(m_parallel_executor->GetOpBackendName());
+    Status st =
+        StringToFile("tf_function_error" + ctx->op_kernel().name() + ".json",
+                     serialized_ng_function);
+    string status_string =
+        "Error in executing the nGraph computation." +
+        (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                         st.error_message()));
+    OP_REQUIRES(ctx, false, errors::Internal(status_string));
+  }
+
   event_execute_graph.Stop();
   ngraph::Event::write_trace(event_execute_graph);
 

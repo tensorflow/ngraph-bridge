@@ -194,10 +194,11 @@ Status NGraphExecutor::ComputeSignature(
 //---------------------------------------------------------------------------
 //  NGraphExecutor::GetExecutableAndTensors
 //---------------------------------------------------------------------------
-Status NGraphExecutor::GetExecutableAndTensors(
+Status NGraphExecutor::GetExecutableFunctionAndTensors(
     const std::vector<Tensor>& tf_input_tensors,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-    shared_ptr<PipelinedTensorsStore>& pts, bool& cache_hit) {
+    std::string& serialized_ng_func, shared_ptr<PipelinedTensorsStore>& pts,
+    bool& cache_hit) {
   std::stringstream signature_ss;
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
@@ -219,24 +220,24 @@ Status NGraphExecutor::GetExecutableAndTensors(
     return errors::Internal("Backend not available: ", m_op_backend_name);
   }
 
-  cache_hit = true;
   // Generate forwarding call to Callback functions
   // CreateCallback and DestroyCallback
   auto create_ng_items_callback =
       std::bind(&NGraphExecutor::CreateCallback, this, std::placeholders::_1,
-                input_shapes, static_input_map, op_backend, &cache_hit);
+                input_shapes, static_input_map, op_backend);
   auto destroy_ng_items_callback =
       std::bind(&NGraphExecutor::DestroyCallback, this, std::placeholders::_1,
                 op_backend);
   // Get NgItems i.e. ng_executable, serialized ng_functions from Data Cache
-  auto status_ng_item_pair = m_ng_data_cache.LookUpOrCreate(
-      signature, create_ng_items_callback, destroy_ng_items_callback);
+  auto status_ng_item_pair =
+      m_ng_data_cache.LookUpOrCreate(signature, create_ng_items_callback,
+                                     destroy_ng_items_callback, &cache_hit);
 
   if (status_ng_item_pair.first == Status::OK()) {
     ng_exec = std::get<0>(status_ng_item_pair.second);
+    serialized_ng_func = std::get<1>(status_ng_item_pair.second);
     pts = std::get<2>(status_ng_item_pair.second);
   }
-  std::cout << "Value of cache hit is :" << cache_hit << std::endl;
   return status_ng_item_pair.first;
 }
 
@@ -248,13 +249,11 @@ std::pair<Status, std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
 NGraphExecutor::CreateCallback(std::string signature,
                                std::vector<TensorShape> input_shapes,
                                std::vector<const Tensor*> static_input_map,
-                               ng::runtime::Backend*& op_backend,
-                               bool* cache_hit) {
+                               ng::runtime::Backend*& op_backend) {
   std::string serialized_ng_func;
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   std::shared_ptr<ngraph::Function> ng_function;
   shared_ptr<PipelinedTensorsStore> pts;
-  *cache_hit = false;
   NGRAPH_VLOG(1) << "Compilation cache miss: " << m_node_name;
   if (!m_do_aot) {
     auto status = Builder::TranslateGraph(input_shapes, static_input_map,
