@@ -248,7 +248,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG 0bd90a783665413ce208e14534be7903e17feaaf
+        GIT_TAG f543849e703977657e4ad014f6e806e011baadfe
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
