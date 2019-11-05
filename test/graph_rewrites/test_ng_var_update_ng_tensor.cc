@@ -17,33 +17,33 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/allocator.h"
+#include "tensorflow/core/framework/node_def_builder.h"
 #include "tensorflow/core/framework/node_def_builder.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/resource_mgr.h"
 #include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_testutil.h"
 #include "tensorflow/core/framework/types.h"
 #include "tensorflow/core/framework/types.pb.h"
+#include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/kernels/ops_testutil.h"
 #include "tensorflow/core/kernels/ops_util.h"
 #include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/test.h"
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/node_def_builder.h"
-#include "tensorflow/core/framework/tensor.h"
-#include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/public/session.h"
 
+#include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_variable_update_ng_tensor_op.h"
 #include "ngraph_bridge/enable_variable_ops/tf_fake_input.h"
-#include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/ngraph_encapsulate_op.h"
 #include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
+#include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
-#include "logging/tf_graph_writer.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -129,10 +129,9 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
 
   UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
   RestoreEnv(env_map);
-}
+}  // end KernelTest
 
 TEST_F(NGVarUpdateNGTensorOpTest, SimpleGraph1) {
-
   Graph g(OpRegistry::Global());
   PartialTensorShape varShape({2, 2});
 
@@ -145,7 +144,7 @@ TEST_F(NGVarUpdateNGTensorOpTest, SimpleGraph1) {
                 .Attr("container", "")
                 .Attr("shared_name", "node1")
                 .Attr("ngraph_graph_id", 1)
-                .Attr("_ngraph_backend","CPU")
+                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &var_node));
 
   std::vector<DataType> input_types;
@@ -187,8 +186,8 @@ TEST_F(NGVarUpdateNGTensorOpTest, SimpleGraph1) {
   ASSERT_EQ(node_map.find("sync_node")->second->type_string(),
             "NGraphVariableUpdateNGTensor");
   node_map.clear();
+}  // end SimpleGraph1
 
-}
 }  // testing
 }  // ngraph_bridge
 }  // tensorflow
