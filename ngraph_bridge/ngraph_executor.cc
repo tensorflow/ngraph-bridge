@@ -231,7 +231,7 @@ Status NGraphExecutor::GetExecutableFunctionAndTensors(
   // Get NgItems i.e. ng_executable, serialized ng_functions from Data Cache
   auto status_ng_item_pair =
       m_ng_data_cache.LookUpOrCreate(signature, create_ng_items_callback,
-                                     destroy_ng_items_callback, &cache_hit);
+                                     destroy_ng_items_callback, cache_hit);
 
   if (status_ng_item_pair.first == Status::OK()) {
     ng_exec = std::get<0>(status_ng_item_pair.second);

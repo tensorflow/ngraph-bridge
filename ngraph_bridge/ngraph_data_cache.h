@@ -54,13 +54,13 @@ class NgraphDataCache {
   std::pair<Status, ValueType> LookUpOrCreate(
       KeyType key,
       std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item,
-      std::function<void(ValueType)> callback_destroy_item, bool* cache_hit);
+      std::function<void(ValueType)> callback_destroy_item, bool& cache_hit);
 
   // Overload for above function, which doesn't take callback for destroy item
   std::pair<Status, ValueType> LookUpOrCreate(
       KeyType key,
       std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item,
-      bool* cache_hit);
+      bool& cache_hit);
   Status RemoveItem(KeyType key);
   Status RemoveItem(KeyType key,
                     std::function<void(ValueType)> callback_destroy_item);
@@ -142,13 +142,13 @@ NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
     KeyType key,
     std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item,
     std::function<void(ValueType)> callback_destroy_item,
-    bool* found_in_cache) {
+    bool& found_in_cache) {
   // look up in the cache
   {
     absl::MutexLock lock(&m_mutex);
     auto it = m_ng_items_map.find(key);
-    *found_in_cache = (it != m_ng_items_map.end());
-    if (*found_in_cache) {
+    found_in_cache = (it != m_ng_items_map.end());
+    if (found_in_cache) {
       return std::make_pair(Status::OK(), m_ng_items_map.at(key));
     }
   }
@@ -211,7 +211,7 @@ std::pair<Status, ValueType>
 NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
     KeyType key,
     std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item,
-    bool* found_in_cache) {
+    bool& found_in_cache) {
   return LookUpOrCreate(key, callback_create_item, [](ValueType) {},
                         found_in_cache);
 }

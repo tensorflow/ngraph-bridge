@@ -416,11 +416,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                           tf_input_tensors, ng_exec, serialized_ng_function,
                           pipelined_tensor_store, cache_hit));
   io_tensors = pipelined_tensor_store->get_tensors();
-  auto status = Status::OK();
-  if (std::get<0>(io_tensors) < 0) {
-    status = errors::Internal("No free tensor available");
-  }
-  OP_REQUIRES_OK(ctx, status);
+  OP_REQUIRES(ctx,!(std::get<0>(io_tensors) < 0), errors::Internal("No free tensor available") );
   NGRAPH_VLOG(2) << "CACHE HIT: " << PrintBool(cache_hit) << endl;
   NGRAPH_VLOG(2) << " Step_ID: " << step_id;
   NGRAPH_VLOG(2)
