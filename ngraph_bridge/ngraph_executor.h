@@ -92,7 +92,8 @@ class NGraphExecutor {
   std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
   GetNgExecutable(std::string signature,
                   std::shared_ptr<ngraph::Function>& ng_function,
-                  string serialized_ng_func, ng::runtime::Backend*& op_backend);
+                  const string serialized_ng_func,
+                  ng::runtime::Backend*& op_backend);
   // Allocates the necessary tensors from the Executable (or backend in future)
   // Called from CreateCallback
   std::pair<Status, shared_ptr<PipelinedTensorsStore>>
@@ -121,7 +122,8 @@ class NGraphExecutor {
   map<string, string> m_aot_functions;
   map<string, string> m_aot_execs;
 
-  // serialized_ng_function, ng_executable, Output and Input Cache maps
+  // NgraphDataCache<Key, Value> where key is signature, and value is a tuple
+  // of ng_executable, serialized_ng_function and PipelinedTensorsStore
   NgraphDataCache<std::string,
                   std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
                              std::string, shared_ptr<PipelinedTensorsStore>>>

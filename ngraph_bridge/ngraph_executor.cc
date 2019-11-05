@@ -246,7 +246,7 @@ Status NGraphExecutor::GetExecutableFunctionAndTensors(
 //---------------------------------------------------------------------------
 std::pair<Status, std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
                              std::string, shared_ptr<PipelinedTensorsStore>>>
-NGraphExecutor::CreateCallback(std::string signature,
+NGraphExecutor::CreateCallback(const std::string signature,
                                std::vector<TensorShape> input_shapes,
                                std::vector<const Tensor*> static_input_map,
                                ng::runtime::Backend*& op_backend) {
@@ -318,7 +318,7 @@ NGraphExecutor::CreateCallback(std::string signature,
 std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
 NGraphExecutor::GetNgExecutable(std::string signature,
                                 std::shared_ptr<ngraph::Function>& ng_function,
-                                string serialized_ng_func,
+                                const string serialized_ng_func,
                                 ng::runtime::Backend*& op_backend) {
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
 
