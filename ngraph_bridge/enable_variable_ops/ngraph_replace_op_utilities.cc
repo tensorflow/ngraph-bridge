@@ -84,9 +84,8 @@ Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
 Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
                      const string replacement_node_name,
                      const string replacement_node_type,
-                     const bool just_looking,
-                     const bool outputs_ng_supported, const int graph_id,
-                     const bool is_backend_set) {
+                     const bool just_looking, const bool outputs_ng_supported,
+                     const int graph_id, const bool is_backend_set) {
   NGRAPH_VLOG(1) << "Replacing  " << node->name();
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "T", &dtype));
@@ -134,9 +133,8 @@ Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
 Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
                        const string replacement_node_name,
                        const string replacement_node_type,
-                       const bool just_looking,
-                       const bool outputs_ng_supported, const int graph_id,
-                       const bool is_backend_set) {
+                       const bool just_looking, const bool outputs_ng_supported,
+                       const int graph_id, const bool is_backend_set) {
   NGRAPH_VLOG(1) << "Replacing NGraphVariable " << node->name();
 
   TensorShape shape;

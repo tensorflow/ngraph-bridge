@@ -41,8 +41,7 @@ namespace ngraph_bridge {
 class NGraphVar : public ResourceBase {
  public:
   explicit NGraphVar(DataType dtype, TensorShape shape, string BackendName)
-      : tf_tensor_(dtype, shape),
-        ng_backend_name_(BackendName) {
+      : tf_tensor_(dtype, shape), ng_backend_name_(BackendName) {
     // TF datatype to nGraph element type
     ng::element::Type ng_element_type;
     TFDataTypeToNGraphElementType(dtype, &ng_element_type);

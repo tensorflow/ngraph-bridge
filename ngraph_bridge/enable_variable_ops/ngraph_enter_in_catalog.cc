@@ -88,8 +88,7 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
         string key = NGraphCatalog::CreateNodeKey(graph_id, input_1->name(),
                                                   output_index);
 
-        tuple<string, bool> value =
-            make_tuple(shared_name, copy_to_tf);
+        tuple<string, bool> value = make_tuple(shared_name, copy_to_tf);
         NGRAPH_VLOG(4) << "Adding to EncapOutputInfoMap ";
         NGRAPH_VLOG(4) << "Key: " << key;
         NGRAPH_VLOG(4) << "Value: " << get<0>(value) << " " << get<1>(value);

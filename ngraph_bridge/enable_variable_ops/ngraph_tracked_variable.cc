@@ -98,10 +98,9 @@ NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
   OP_REQUIRES_OK(context,
                  context->GetAttr("_ngraph_backend", &ng_backend_name_));
   NGRAPH_VLOG(4) << "NGraphVariable:: Constructor called for: " << def().name()
-                 << " ,just looking " << just_looking_
-                 << " ,copy-to-tf " << copy_to_tf_
-                 << " ,Graph ID " << ng_graph_id_ << " ,backend_name "
-                 << ng_backend_name_;
+                 << " ,just looking " << just_looking_ << " ,copy-to-tf "
+                 << copy_to_tf_ << " ,Graph ID " << ng_graph_id_
+                 << " ,backend_name " << ng_backend_name_;
 }
 
 NGraphVariableOp::~NGraphVariableOp() {
@@ -115,10 +114,9 @@ NGraphVariableOp::~NGraphVariableOp() {
 // constructor.)
 void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4) << "NGraphVariable:: Compute called for: " << def().name()
-                 << " ,just looking " << just_looking_
-                 << " ,copy-to-tf " << copy_to_tf_
-                 << " ,Graph ID " << ng_graph_id_ << " ,backend_name "
-                 << ng_backend_name_;
+                 << " ,just looking " << just_looking_ << " ,copy-to-tf "
+                 << copy_to_tf_ << " ,Graph ID " << ng_graph_id_
+                 << " ,backend_name " << ng_backend_name_;
 
   std::ostringstream oss;
   oss << "NGraphVariable: " << my_instance_id << ": " << name();
@@ -177,7 +175,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   OP_REQUIRES_OK(ctx, cinfo_.resource_manager()->LookupOrCreate<NGraphVar>(
                           cinfo_.container(), cinfo_.name(), &var, creator));
 
-  bool just_synced = false; // Kanvi: figure out if this is required
+  bool just_synced = false;  // Kanvi: figure out if this is required
 
   // If TF needs the tensor
   if (copy_to_tf_) {

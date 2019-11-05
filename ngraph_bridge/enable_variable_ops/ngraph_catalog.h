@@ -73,8 +73,7 @@ class NGraphCatalog {
   // Value : 3 element tuple
   //  string : NGraphAssign‘s variable shared_name
   //  bool : NGraphAssign‘s copy_to_tf attribute ‘s value
-  static unordered_map<string, tuple<string, bool>>
-      encap_output_info_map_;
+  static unordered_map<string, tuple<string, bool>> encap_output_info_map_;
 
  public:
   // Utility to create key to query the maps

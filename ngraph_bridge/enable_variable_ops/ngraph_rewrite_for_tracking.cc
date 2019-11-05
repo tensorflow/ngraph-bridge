@@ -36,9 +36,8 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
       const function<Status(
           Graph * graph, Node * node, Node * *replacement,
           const string replacement_node_name, const string replacement_op_type,
-          const bool just_looking,
-          const bool outputs_ng_supported, const int graph_id,
-          const bool is_backend_set)>>
+          const bool just_looking, const bool outputs_ng_supported,
+          const int graph_id, const bool is_backend_set)>>
       REWRITE_REPLACE_OP_MAP{{"NGraphAssign", ReplaceAssign},
                              {"NGraphVariable", ReplaceVariable}};
 
@@ -72,38 +71,41 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           // if the output reference is read by NGraph supported ops, do not
           // add the sync node
           if (!IsNGVariableType(edge->dst()->type_string())) {
-            NGRAPH_VLOG(1)
-                << DebugNode(edge->dst())
-                << "needs reference, adding a NGraphVariableUpdateNGTensor node here";
+            NGRAPH_VLOG(1) << DebugNode(edge->dst())
+                           << "needs reference, adding a "
+                              "NGraphVariableUpdateNGTensor node here";
 
-            // Since the dst node takes in this variable as a reference 
-            // and is not supported by NGraph, it might update the 
+            // Since the dst node takes in this variable as a reference
+            // and is not supported by NGraph, it might update the
             // variable hence the sync node is required here.
             NodeBuilder::NodeOut input_ref;
             input_ref = NodeBuilder::NodeOut(edge->src(), edge->src_output());
             DataType dtype;
             TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "dtype", &dtype));
             string shared_name;
-            TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "shared_name", &shared_name));
+            TF_RETURN_IF_ERROR(
+                GetNodeAttr(node->attrs(), "shared_name", &shared_name));
             Node* sync_node;
-            NodeBuilder nb = NodeBuilder("sync_node","NGraphVariableUpdateNGTensor")
-                                .Input(input_ref)
-                                .Attr("ngraph_graph_id", graph_id)
-                                .Attr("ngraph_variable_shared_name", shared_name)
-                                .Attr("T", dtype)
-                                .Device(node->assigned_device_name());
+            NodeBuilder nb =
+                NodeBuilder("sync_node", "NGraphVariableUpdateNGTensor")
+                    .Input(input_ref)
+                    .Attr("ngraph_graph_id", graph_id)
+                    .Attr("ngraph_variable_shared_name", shared_name)
+                    .Attr("T", dtype)
+                    .Device(node->assigned_device_name());
             Status status = nb.Finalize(graph, &sync_node);
             TF_RETURN_IF_ERROR(status);
 
             // Connect ouput edges from the TF optimizer to the sync node
             // This should replace the control edges too ???
-            TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, edge->dst(), sync_node));
+            TF_RETURN_IF_ERROR(
+                ReplaceOutputEdges(graph, edge->dst(), sync_node));
 
-            // Add a control edge from the TF optimizer node 
-            // to the sync node making sure that the sync node 
+            // Add a control edge from the TF optimizer node
+            // to the sync node making sure that the sync node
             // is executed after the TF optimizer
             graph->AddEdge(edge->dst(), Graph::kControlSlot, sync_node,
-                     Graph::kControlSlot);
+                           Graph::kControlSlot);
             break;
           }
         }
@@ -133,8 +135,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
       // Create and add the replacement node
       TF_RETURN_IF_ERROR((itr->second)(graph, node, &replacement, node_new_name,
                                        node->type_string(), just_looking,
-                                       outputs_ng_supported,
-                                       graph_id, true));
+                                       outputs_ng_supported, graph_id, true));
 
       TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
       TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));

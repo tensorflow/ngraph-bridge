@@ -41,9 +41,8 @@ Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
 Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
                        const string replacement_node_name,
                        const string replacement_op_type,
-                       const bool just_looking,
-                       const bool outputs_ng_supported, const int graph_id,
-                       const bool is_backend_set);
+                       const bool just_looking, const bool outputs_ng_supported,
+                       const int graph_id, const bool is_backend_set);
 
 // Adds the edges that are incoming control edges to the original node
 // as incoming control edges to the replacement node
