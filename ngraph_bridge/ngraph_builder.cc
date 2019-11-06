@@ -3697,14 +3697,14 @@ static Status TranslateResizeBilinearOp(
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &images, &size));
 
   bool align_corners_;
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "align_corners_", &align_corners_));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "align_corners", &align_corners_));
 
   ngraph::op::InterpolateAttrs attrs;
   attrs.align_corners = align_corners_;
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Interpolate>(op->name(), images, size, attrs));
+  auto size_int64 = ConstructNgNode<ng::op::Convert>(op->name(), size, ngraph::element::i64);
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Interpolate>(op->name(), images, size_int64, attrs));
 
   return Status::OK();
-    
 }
 
 static Status TranslateRsqrtOp(

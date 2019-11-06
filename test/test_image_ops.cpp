@@ -33,6 +33,8 @@ TEST(ImageOps, ResizeBilinear) {
   Tensor images(DT_FLOAT, TensorShape({4,64,64,3}));
   AssignInputValuesRandom(images);
 
+  // Todo: test by changing align_corners
+
   // new_height, new_width
   Tensor size(DT_INT32, TensorShape({2}));
   vector<int> new_dims = {93, 27}; // TODO loop and do multiple sizes, larger and smaller than original
