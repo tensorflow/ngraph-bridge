@@ -3695,12 +3695,14 @@ static Status TranslateResizeBilinearOp(
   shared_ptr<ng::Node> images, size;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &images, &size));
 
-  bool align_corners_;
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(op->attrs(), "align_corners", &align_corners_));
+  bool align_corners;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "align_corners", &align_corners));
 
   ngraph::op::InterpolateAttrs attrs;
-  attrs.align_corners = align_corners_;
+  attrs.align_corners = align_corners;
+  // TODO figure out appropriate values for axes, mode, antialias, pads_begin,
+  // pads_end.
+  // align_corners is being populated by TF's value for align_corners
   auto size_int64 =
       ConstructNgNode<ng::op::Convert>(op->name(), size, ngraph::element::i64);
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Interpolate>(

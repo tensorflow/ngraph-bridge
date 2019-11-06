@@ -27,29 +27,33 @@ namespace testing {
 
 // Test op: ResizeBilinear
 TEST(ImageOps, ResizeBilinear) {
-  Scope root = Scope::NewRootScope();
-  // [batch, height, width, channels]
-  Tensor images(DT_FLOAT, TensorShape({4, 64, 64, 3}));
-  AssignInputValuesRandom(images);
+  for (auto align : {true, false}) {
+    Scope root = Scope::NewRootScope();
+    // [batch, height, width, channels]
+    Tensor images(DT_FLOAT, TensorShape({4, 64, 64, 3}));
+    AssignInputValuesRandom(images);
 
-  // Todo: test by changing align_corners
+    // Todo: test by changing align_corners
 
-  // new_height, new_width
-  Tensor size(DT_INT32, TensorShape({2}));
-  vector<int> new_dims = {
-      93,
-      27};  // TODO loop and do multiple sizes, larger and smaller than original
-  AssignInputValues(size, new_dims);
+    // new_height, new_width
+    Tensor size(DT_INT32, TensorShape({2}));
+    vector<int> new_dims = {93, 27};
+    // TODO loop and do multiple sizes, larger
+    // and smaller than original
+    AssignInputValues(size, new_dims);
 
-  vector<int> static_input_indexes = {};
-  auto R = ops::ResizeBilinear(root, images, size);
-  vector<DataType> output_datatypes = {DT_FLOAT};
+    auto attr = ops::ResizeBilinear::Attrs().AlignCorners(align);
 
-  std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "ResizeBilinear", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
+    vector<int> static_input_indexes = {};
+    auto R = ops::ResizeBilinear(root, images, size, attr);
+    vector<DataType> output_datatypes = {DT_FLOAT};
 
-  opexecuter.RunTest();
+    std::vector<Output> sess_run_fetchoutputs = {R};
+    OpExecuter opexecuter(root, "ResizeBilinear", static_input_indexes,
+                          output_datatypes, sess_run_fetchoutputs);
+
+    opexecuter.RunTest();
+  }
 }
 }
 }
