@@ -3700,9 +3700,14 @@ static Status TranslateResizeBilinearOp(
 
   ngraph::op::InterpolateAttrs attrs;
   attrs.align_corners = align_corners;
-  // TODO figure out appropriate values for axes, mode, antialias, pads_begin,
-  // pads_end.
-  // align_corners is being populated by TF's value for align_corners
+  attrs.mode = "linear";
+  attrs.antialias = false;
+  // The TF "images" is has dimensions [batch, height, width, channels].
+  // So 1 and 2 are the spatial axes
+  // TODO check this parameter
+  attrs.axes = {1,2};
+  // TODO: pads_begin and pads_end are not populated. Check correctness
+
   auto size_int64 =
       ConstructNgNode<ng::op::Convert>(op->name(), size, ngraph::element::i64);
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Interpolate>(
