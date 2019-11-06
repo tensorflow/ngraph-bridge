@@ -1070,6 +1070,7 @@ static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
   }
   return Status::OK();
 }
+
 static Status TranslateCombinedNonMaxSuppressionOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -1588,6 +1589,18 @@ static Status TranslateConv3DOp(const Node* op,
 
   BatchToTensorflow3D(op->name(), is_ndhwc, ng_conv);
   SaveNgOp(ng_op_map, op->name(), ng_conv);
+  return Status::OK();
+}
+
+// TranslateCosOp
+static Status TranslateCosOp(const Node* op, const std::vector<const Tensor*>&,
+                             Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+
+  auto ng_result = ConstructNgNode<ng::op::Cos>(op->name(), ng_input);
+
+  SaveNgOp(ng_op_map, op->name(), ng_result);
   return Status::OK();
 }
 
@@ -3813,6 +3826,18 @@ static Status TranslateSigmoidOp(const Node* op,
   return Status::OK();
 }
 
+// Translate SinOp
+static Status TranslateSinOp(const Node* op, const std::vector<const Tensor*>&,
+                             Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+
+  auto ng_result = ConstructNgNode<ng::op::Sin>(op->name(), ng_input);
+
+  SaveNgOp(ng_op_map, op->name(), ng_result);
+  return Status::OK();
+}
+
 static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
                               Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input;
@@ -4920,7 +4945,8 @@ const static std::map<
       {"Conv2D", TranslateConv2DOp},
       {"Conv2DBackpropFilter", TranslateConv2DBackpropFilterOp},
       {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
-      {"Conv3D", TranslateConv3DOp}, {"DepthToSpace", TranslateDepthToSpaceOp},
+      {"Conv3D", TranslateConv3DOp}, {"Cos", TranslateCosOp},
+      {"DepthToSpace", TranslateDepthToSpaceOp},
       {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
       {"Dequantize", TranslateDequantizeOp},
       {"Equal", TranslateBinaryOp<ngraph::op::Equal>},
@@ -4991,9 +5017,10 @@ const static std::map<
       {"Rsqrt", TranslateRsqrtOp}, {"RsqrtGrad", TranslateRsqrtGradOp},
       {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
       {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
-      {"Size", TranslateSizeOp}, {"Sign", TranslateUnaryOp<ngraph::op::Sign>},
-      {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
-      {"Softmax", TranslateSoftmaxOp}, {"Softplus", TranslateSoftplusOp},
+      {"Sin", TranslateSinOp}, {"Size", TranslateSizeOp},
+      {"Sign", TranslateUnaryOp<ngraph::op::Sign>}, {"Slice", TranslateSliceOp},
+      {"Snapshot", TranslateIdentityOp}, {"Softmax", TranslateSoftmaxOp},
+      {"Softplus", TranslateSoftplusOp},
       {"SpaceToDepth", TranslateSpaceToDepthOp},
       {"SparseSoftmaxCrossEntropyWithLogits",
        TranslateSparseSoftmaxCrossEntropyWithLogitsOp},

@@ -855,6 +855,27 @@ TEST(MathOps, Cast2D) {
   opexecuter.RunTest();
 }  // end of test op Cast
 
+// Test op: Cos
+TEST(MathOps, Cos) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 4;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 3.8f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Cos(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Cos", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Cos
+
 // Test op: Exp
 TEST(MathOps, Exp1D) {
   Scope root = Scope::NewRootScope();
@@ -1480,6 +1501,27 @@ TEST(MathOps, Rsqrt) {
                         sess_run_fetchoutputs);
   opexecuter.RunTest();
 }  // end of test op Rsqrt
+
+// Test op: Sin
+TEST(MathOps, Sin) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 4;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 4.2f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Sin(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Sin", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Sin
 
 // Test op: Square
 TEST(MathOps, Square) {
