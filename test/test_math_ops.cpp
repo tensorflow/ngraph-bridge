@@ -30,6 +30,7 @@
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/public/session.h"
 
+#include <cmath>
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/opexecuter.h"
@@ -859,11 +860,12 @@ TEST(MathOps, Cast2D) {
 TEST(MathOps, Cos) {
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
-  int dim2 = 4;
+  int dim2 = 5;
 
   Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
 
-  AssignInputValues(A, 3.8f);
+  AssignInputValues<float>(
+      A, {0, -0, M_PI / 2, M_PI, 1.0, 3.8, 4.2, -3.9, -4.2, -1.0});
 
   vector<int> static_input_indexes = {};
   auto R = ops::Cos(root, A);
@@ -1506,11 +1508,12 @@ TEST(MathOps, Rsqrt) {
 TEST(MathOps, Sin) {
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
-  int dim2 = 4;
+  int dim2 = 5;
 
   Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
 
-  AssignInputValues(A, 4.2f);
+  AssignInputValues<float>(
+      A, {0, -0, M_PI / 2, M_PI, 1.0, 3.8, 4.2, -3.9, -4.2, -1.0});
 
   vector<int> static_input_indexes = {};
   auto R = ops::Sin(root, A);
