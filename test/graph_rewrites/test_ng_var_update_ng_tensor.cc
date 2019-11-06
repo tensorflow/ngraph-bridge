@@ -39,6 +39,7 @@
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_variable_update_ng_tensor_op.h"
+#include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
 #include "test/tf_fake_input.h"

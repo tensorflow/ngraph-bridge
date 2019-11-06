@@ -175,19 +175,13 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   OP_REQUIRES_OK(ctx, cinfo_.resource_manager()->LookupOrCreate<NGraphVar>(
                           cinfo_.container(), cinfo_.name(), &var, creator));
 
-  bool just_synced = false;  // Kanvi: figure out if this is required
-
   // If TF needs the tensor
   if (copy_to_tf_) {
-    // If it was just synced from TF
-    // We dont need to sync again
-    if (!just_synced) {
-      if (var->copy_ng_to_tf()) {
-        number_of_copies++;
-        copy_log_str << " COPY_TO_TF ";
-      }
-      NGRAPH_VLOG(4) << "Copying to TF Tensor";
+    if (var->copy_ng_to_tf()) {
+      number_of_copies++;
+      copy_log_str << " COPY_TO_TF ";
     }
+    NGRAPH_VLOG(4) << "Copying to TF Tensor";
   }
 
   copy_log_str << " Number of copies " << number_of_copies << "\n";
