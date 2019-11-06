@@ -96,8 +96,8 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
             Status status = nb.Finalize(graph, &sync_node);
             TF_RETURN_IF_ERROR(status);
 
-            // Connect ouput edges from the TF optimizer to the sync node
-            // This should replace the control edges too ???
+            // Connect output edges from the TF optimizer to the sync node
+            // This should replace the control edges too.
             TF_RETURN_IF_ERROR(
                 ReplaceOutputEdges(graph, edge->dst(), sync_node));
 
