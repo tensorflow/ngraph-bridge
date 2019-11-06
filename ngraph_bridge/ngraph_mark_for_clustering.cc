@@ -365,7 +365,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Relu6"] = SimpleConfirmationFunction();
       confirmation_function_map["ReluGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["Reshape"] = SimpleConfirmationFunction();
-      confirmation_function_map["ResizeBilinear"] = SimpleConfirmationFunction();
+      confirmation_function_map["ResizeBilinear"] =
+          SimpleConfirmationFunction();
       confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
       confirmation_function_map["RsqrtGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["Select"] = SimpleConfirmationFunction();
