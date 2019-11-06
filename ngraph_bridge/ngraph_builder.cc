@@ -26,6 +26,7 @@
 #include "ngraph/builder/quantization.hpp"
 #include "ngraph/op/argmax.hpp"
 #include "ngraph/op/argmin.hpp"
+#include "ngraph/op/experimental/layers/interpolate.hpp"
 #include "ngraph/op/util/logical_reduction.hpp"
 
 #include "logging/ngraph_log.h"
@@ -3693,6 +3694,24 @@ static Status TranslateReshapeOp(
   return Status::OK();
 }
 
+static Status TranslateResizeBilinearOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+
+  shared_ptr<ng::Node> images, size;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &images, &size));
+
+  bool align_corners_;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "align_corners_", &align_corners_));
+
+  ngraph::op::InterpolateAttrs attrs;
+  attrs.align_corners = align_corners_;
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Interpolate>(op->name(), images, size, attrs));
+
+  return Status::OK();
+    
+}
+
 static Status TranslateRsqrtOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -4988,6 +5007,7 @@ const static std::map<
       {"Reciprocal", TranslateReciprocalOp},
       {"Relu", TranslateUnaryOp<ngraph::op::Relu>}, {"Relu6", TranslateRelu6Op},
       {"ReluGrad", TranslateReluGradOp}, {"Reshape", TranslateReshapeOp},
+      {"ResizeBilinear", TranslateResizeBilinearOp},
       {"Rsqrt", TranslateRsqrtOp}, {"RsqrtGrad", TranslateRsqrtGradOp},
       {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
       {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
