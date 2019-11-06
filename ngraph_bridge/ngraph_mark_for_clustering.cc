@@ -569,7 +569,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
       type_constraint_map["SigmoidGrad"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
-      type_constraint_map["Sin"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["Sin"]["T"] = NGraphRealDTypes();
       type_constraint_map["Size"]["T"] = NGraphDTypes();
       type_constraint_map["Size"]["out_type"] = NGraphIndexDTypes();
       type_constraint_map["Slice"]["T"] = NGraphDTypes();
