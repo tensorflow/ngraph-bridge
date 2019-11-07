@@ -93,6 +93,7 @@ class TestMnistTraining(NgraphTest):
 
         # Now resume training from output_model_dir
         # and dump new model in output_model_dir_ng_2
+        ngraph_bridge.enable()
         output_model_dir_ng_2 = './save_loc_ng_2_' + optimizer + '/'
         FLAGS = mnist_training_flags(data_dir, output_model_dir_ng_2,
                                      train_loop_count, batch_size,
