@@ -106,10 +106,6 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
             TF_RETURN_IF_ERROR(status);
             sync_node->set_assigned_device_name(node->assigned_device_name());
 
-            add_sync_node = true;
-            new_node = sync_node;
-            current_edge = edge;
-
             // Connect output edges from the TF optimizer to the sync node
             // which will be for the input index 0 since that is the 
             // output we want.
