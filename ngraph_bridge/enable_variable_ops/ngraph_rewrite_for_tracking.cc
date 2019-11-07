@@ -72,8 +72,16 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           // add the sync node
           if (!IsNGVariableType(edge->dst()->type_string())) {
             NGRAPH_VLOG(1) << DebugNode(edge->dst())
-                           << "needs reference, adding a "
+                           << "needs reference from ( " << DebugNode(edge->src())
+                           << " ), adding a "
                               "NGraphVariableUpdateNGTensor node here";
+
+            // If the number of outputs for the TF optimizer > 1
+            // we do not handle it and error out
+            if (node->num_outputs() > 1) {
+              return errors::InvalidArgument(
+                    "The TF optimizer has more than 1 output ",DebugNode(edge->dst()) );
+            }
 
             // Since the dst node takes in this variable as a reference
             // and is not supported by NGraph, it might update the
@@ -85,9 +93,10 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
             string shared_name;
             TF_RETURN_IF_ERROR(
                 GetNodeAttr(node->attrs(), "shared_name", &shared_name));
+            string sync_node_name = node->name() + "_sync_node";
             Node* sync_node;
             NodeBuilder nb =
-                NodeBuilder("sync_node", "NGraphVariableUpdateNGTensor")
+                NodeBuilder(sync_node_name, "NGraphVariableUpdateNGTensor")
                     .Input(input_ref)
                     .Attr("ngraph_graph_id", graph_id)
                     .Attr("ngraph_variable_shared_name", shared_name)
@@ -95,11 +104,20 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
                     .Device(node->assigned_device_name());
             Status status = nb.Finalize(graph, &sync_node);
             TF_RETURN_IF_ERROR(status);
+            sync_node->set_assigned_device_name(node->assigned_device_name());
+
+            add_sync_node = true;
+            new_node = sync_node;
+            current_edge = edge;
 
             // Connect output edges from the TF optimizer to the sync node
-            // This should replace the control edges too.
-            TF_RETURN_IF_ERROR(
-                ReplaceOutputEdges(graph, edge->dst(), sync_node));
+            // which will be for the input index 0 since that is the 
+            // output we want.
+            // This should not replace the control edges.
+            if (edge->dst_input() == 0) {
+              TF_RETURN_IF_ERROR(
+                  ReplaceOnlyDataOutputEdges(graph, edge->dst(), sync_node));
+            }
 
             // Add a control edge from the TF optimizer node
             // to the sync node making sure that the sync node
