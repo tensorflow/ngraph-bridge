@@ -230,6 +230,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["All"] = SimpleConfirmationFunction();
       confirmation_function_map["ArgMax"] = SimpleConfirmationFunction();
       confirmation_function_map["ArgMin"] = SimpleConfirmationFunction();
+      confirmation_function_map["Atan2"] = SimpleConfirmationFunction();
       confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
       confirmation_function_map["AvgPoolGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
@@ -429,6 +430,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["ArgMax"]["Tidx"] = NGraphIndexDTypes();
       type_constraint_map["ArgMin"]["T"] = NGraphNumericDTypes();
       type_constraint_map["ArgMin"]["Tidx"] = NGraphIndexDTypes();
+      type_constraint_map["Atan2"]["T"] = NGraphRealDTypes();
       type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
       type_constraint_map["AvgPoolGrad"]["T"] = NGraphNumericDTypes();
       type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
