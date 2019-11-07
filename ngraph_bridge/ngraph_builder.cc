@@ -3705,7 +3705,7 @@ static Status TranslateResizeBilinearOp(
   // The TF "images" is has dimensions [batch, height, width, channels].
   // So 1 and 2 are the spatial axes
   // TODO check this parameter
-  attrs.axes = {1,2};
+  attrs.axes = {1, 2};
   // TODO: pads_begin and pads_end are not populated. Check correctness
 
   auto size_int64 =
