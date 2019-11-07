@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+
 #include "tensorflow/cc/client/client_session.h"
 #include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/allocator.h"
@@ -48,18 +49,7 @@ namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
 
-class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {
- protected:
-  void MakeOp() {
-    ASSERT_OK(NodeDefBuilder("sync_node", "NGraphVariableUpdateNGTensor")
-                  .Input(FakeInput(DT_FLOAT_REF))
-                  .Attr("T", DT_FLOAT)
-                  .Attr("ngraph_variable_shared_name", "var1")
-                  .Attr("ngraph_graph_id", 1)
-                  .Finalize(node_def()));
-    ASSERT_OK(InitOp());
-  }
-};
+class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {};
 
 TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   list<string> env_vars{"NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"};
@@ -101,7 +91,13 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   // which is the desired configuration for the test
 
   // Create NGraphVariableUpdateNGTensor node
-  MakeOp();
+  ASSERT_OK(NodeDefBuilder("sync_node", "NGraphVariableUpdateNGTensor")
+                .Input(FakeInput(DT_FLOAT_REF))
+                .Attr("T", DT_FLOAT)
+                .Attr("ngraph_variable_shared_name", "var1")
+                .Attr("ngraph_graph_id", 1)
+                .Finalize(node_def()));
+  ASSERT_OK(InitOp());
 
   // Add NGraph resource to the same container as the test op
   ContainerInfo cinfo_;
@@ -246,8 +242,7 @@ TEST_F(NGVarUpdateNGTensorOpTest, SimpleGraph2) {
   Compare(tf_outputs2, ng_outputs2);
 
   ActivateNGraph();
-
-}
+} // SimpleGraph2
 
 }  // testing
 }  // ngraph_bridge
