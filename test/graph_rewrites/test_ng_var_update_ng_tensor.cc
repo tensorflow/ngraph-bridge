@@ -122,7 +122,7 @@ TEST(NGVarUpdateNGTensorOpTest, SimpleGraph2) {
   ops::ApplyAdagrad::Attrs use_locking;
   use_locking = use_locking.UseLocking(true);
   auto applyadagrad_t = ops::ApplyAdagrad(root.WithOpName("Adagrad"), var,
-                                            accum, lr, grad, use_locking);
+                                          accum, lr, grad, use_locking);
 
   // Turn off optimizations so that all the nodes are processed
   tensorflow::SessionOptions options;
@@ -142,7 +142,6 @@ TEST(NGVarUpdateNGTensorOpTest, SimpleGraph2) {
 
   ASSERT_OK(ng_session.Run({applyadagrad_t}, &ng_outputs2));
 
-
   DeactivateNGraph();
 
   // Run on TF
@@ -153,14 +152,13 @@ TEST(NGVarUpdateNGTensorOpTest, SimpleGraph2) {
 
   ASSERT_OK(tf_session.Run({applyadagrad_t}, &tf_outputs2));
 
-
   Compare(tf_outputs1, ng_outputs1);
   Compare(tf_outputs2, ng_outputs2);
 
   ActivateNGraph();
   UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
   RestoreEnv(env_map);
-} // SimpleGraph2
+}  // SimpleGraph2
 
 }  // testing
 }  // ngraph_bridge

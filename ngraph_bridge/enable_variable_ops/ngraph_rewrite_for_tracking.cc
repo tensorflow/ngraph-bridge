@@ -72,7 +72,8 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           // add the sync node
           if (!IsNGVariableType(edge->dst()->type_string())) {
             NGRAPH_VLOG(1) << DebugNode(edge->dst())
-                           << "needs reference from ( " << DebugNode(edge->src())
+                           << "needs reference from ( "
+                           << DebugNode(edge->src())
                            << " ), adding a "
                               "NGraphVariableUpdateNGTensor node here";
 
@@ -80,7 +81,8 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
             // we do not handle it and error out
             if (node->num_outputs() > 1) {
               return errors::InvalidArgument(
-                    "The TF optimizer has more than 1 output ",DebugNode(edge->dst()) );
+                  "The TF optimizer has more than 1 output ",
+                  DebugNode(edge->dst()));
             }
 
             // Since the dst node takes in this variable as a reference
@@ -107,7 +109,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
             sync_node->set_assigned_device_name(node->assigned_device_name());
 
             // Connect output edges from the TF optimizer to the sync node
-            // which will be for the input index 0 since that is the 
+            // which will be for the input index 0 since that is the
             // output we want.
             // This should not replace the control edges.
             if (edge->dst_input() == 0) {
