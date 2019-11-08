@@ -152,6 +152,7 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
   int m_prefetch_buffer_depth{-1};
   int m_skip_count{0};
 
+  // Mutex and cond var to control m_prefetch_buffer_depth
   absl::CondVar m_cv;
   absl::Mutex m_mutex;
 };
