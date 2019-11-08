@@ -498,7 +498,7 @@ TEST(MathOps, Atan2) {
   Tensor B(DT_FLOAT, TensorShape({dim1, dim2}));
 
   AssignInputValues<float>(A, {0, -0, 3, -3.5, 1.2, 3, 5, -4.5, 1.0, -7.0});
-  AssignInputValues<float>(B, {0, -0, 3, 2.5, -0.7, 2, 3.4, -5.6, 30, 0.05});
+  AssignInputValues<float>(B, {0, -0, 3, 2.5, -0.7, 2, 3.4, -5.6, 30, 0.06});
 
   vector<int> static_input_indexes = {};
   auto R = ops::Atan2(root, A, B);
