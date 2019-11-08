@@ -920,8 +920,8 @@ TEST(ArrayOps, ScatterNd1D) {
 
   OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
                         output_datatypes, sess_run_fetchoutputs);
-  vector<Tensor> tf_outputs;
-  opexecuter.ExecuteOnNGraph(tf_outputs);
+
+  opexecuter.RunTest();
 }
 
 TEST(ArrayOps, ScatterNdRepeatIndices) {
@@ -942,8 +942,8 @@ TEST(ArrayOps, ScatterNdRepeatIndices) {
 
   OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
                         output_datatypes, sess_run_fetchoutputs);
-  vector<Tensor> tf_outputs;
-  opexecuter.ExecuteOnNGraph(tf_outputs);
+
+  opexecuter.RunTest();
 }
 
 TEST(ArrayOps, ScatterNd3D) {
@@ -963,8 +963,8 @@ TEST(ArrayOps, ScatterNd3D) {
 
   OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
                         output_datatypes, sess_run_fetchoutputs);
-  vector<Tensor> tf_outputs;
-  opexecuter.ExecuteOnNGraph(tf_outputs);
+
+  opexecuter.RunTest();
 }  // end of test op ScatterNd
 
 // TODO: add unit test for duplicate indices here and 3D,4D
