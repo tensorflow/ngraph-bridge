@@ -559,7 +559,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
       type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
       type_constraint_map["RsqrtGrad"]["T"] = NGraphRealDTypes();
-      type_constraint_map["ScatterNd"]["T"] = NGraphRealDTypes();
+      type_constraint_map["ScatterNd"]["T"] = NGraphDTypes();
+      type_constraint_map["ScatterNd"]["Tindices"] = NGraphIndexDTypes();
       type_constraint_map["Select"]["T"] = NGraphDTypes();
       type_constraint_map["Shape"]["T"] = NGraphDTypes();
       type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();
