@@ -944,7 +944,28 @@ TEST(ArrayOps, ScatterNdRepeatIndices) {
                         output_datatypes, sess_run_fetchoutputs);
   vector<Tensor> tf_outputs;
   opexecuter.ExecuteOnNGraph(tf_outputs);
-}  // end of test op ScatterNd
+}  
+
+TEST(ArrayOps, ScatterNd3D) {
+ Tensor indices(DT_INT32, TensorShape({2, 1}));
+ Tensor updates(DT_FLOAT, TensorShape({2, 4, 4}));
+
+ AssignInputValues<int>(indices, {{0}, {2}});
+ AssignInputValuesRandom<float>(updates, -10.0, 20.0f);
+
+ vector<int> static_input_indexes = {2};
+
+ vector<DataType> output_datatypes = {DT_FLOAT};
+
+ Scope root = Scope::NewRootScope();
+ auto R = ops::ScatterNd(root, indices, updates, {4,4,4});
+ std::vector<Output> sess_run_fetchoutputs = {R};
+
+ OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
+                       output_datatypes, sess_run_fetchoutputs);
+ vector<Tensor> tf_outputs;
+ opexecuter.ExecuteOnNGraph(tf_outputs);
+} // end of test op ScatterNd
 
 
 // TODO: add unit test for duplicate indices here and 3D,4D
