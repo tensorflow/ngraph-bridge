@@ -661,7 +661,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       set_attributes_map["TopKV2"] = SetStaticInputs({1});
       set_attributes_map["Tile"] = SetStaticInputs({1});
       set_attributes_map["Transpose"] = SetStaticInputs({1});
-      set_attributes_map["UnsortedSegmentSum"] = SetStaticInputs({1, 2});
+      set_attributes_map["UnsortedSegmentSum"] = SetStaticInputs({2});
       initialized = true;
     }
   }

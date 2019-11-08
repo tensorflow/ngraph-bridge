@@ -4849,25 +4849,6 @@ static Status TranslateUnsortedSegmentSumOp(
   auto& input_shape = ng_input->get_shape();
   auto& segment_shape = ng_segment_ids->get_shape();
 
-  std::vector<int64> segment_ids;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 1, static_input_map, &segment_ids));
-
-  for (size_t dim = 0; dim < segment_shape.size(); ++dim) {
-    if (segment_shape[dim] != input_shape[dim]) {
-      return errors::InvalidArgument("input shape: ", input_shape,
-                                     " doesn't start with segment shape: ",
-                                     segment_shape);
-    }
-  }
-
-  for (auto& v : segment_ids) {
-    if (v >= num_segments) {
-      return errors::InvalidArgument("segment id not in range [0, ",
-                                     num_segments, ")");
-    }
-  }
-
   ng::Shape output_shape;
   output_shape.push_back(num_segments);
   output_shape.insert(output_shape.end(),
