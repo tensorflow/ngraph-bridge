@@ -18,16 +18,9 @@
 
 #include "gtest/gtest.h"
 
-#include "tensorflow/cc/client/client_session.h"
 #include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/allocator.h"
-#include "tensorflow/core/framework/node_def_builder.h"
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/graph/node_builder.h"
-#include "tensorflow/core/kernels/ops_util.h"
-#include "tensorflow/core/lib/core/status_test_util.h"
 #include "tensorflow/core/platform/test.h"
-#include "tensorflow/core/public/session.h"
 
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
@@ -35,7 +28,6 @@
 #include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
-#include "test/tf_fake_input.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -93,10 +85,12 @@ TEST(NGVarUpdateNGTensorOpTest, SimpleGraph1) {
   for (auto node : g.op_nodes()) {
     node_map[node->name()] = node;
   }
-  ASSERT_EQ(node_map.find("var_node_sync_node")->second->type_string(),
+  ASSERT_EQ(node_map.find("var_node/non_ng_outputs/gid_0/sync_node")
+                ->second->type_string(),
             "NGraphVariableUpdateNGTensor");
 
-  Node *in_0, *in_ctrl, *sync_node = node_map.at("var_node_sync_node");
+  Node *in_0, *in_ctrl,
+      *sync_node = node_map.at("var_node/non_ng_outputs/gid_0/sync_node");
   // NOTE:node->input_edge(...), node->input_node(...) cannot be used for
   // control edges
   int edge_count = 0;
@@ -118,74 +112,12 @@ TEST(NGVarUpdateNGTensorOpTest, SimpleGraph1) {
 
   for (auto edge : sync_node->out_edges()) {
     if ((edge != nullptr)) {
-      ASSERT_EQ(edge->dst()->IsRetval(), true);
+      ASSERT_EQ(edge->dst()->IsSink(), true);
     }
   }
 
   node_map.clear();
 }  // end SimpleGraph1
-
-TEST(NGVarUpdateNGTensorOpTest, SimpleGraph2) {
-  list<string> env_vars{"NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"};
-  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
-  SetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING", "0");
-
-  Scope root = Scope::NewRootScope();
-
-  PartialTensorShape varShape({2, 2});
-  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
-  auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
-  auto var_assign = ops::Assign(root.WithOpName("Assign1"), var, init_value);
-
-  auto accum = ops::Variable(root.WithOpName("accum"), varShape, DT_FLOAT);
-  auto init_value2 = ops::Const(root, {{3.f, 3.f}, {3.f, 3.f}});
-  auto accum_assign =
-      ops::Assign(root.WithOpName("Assign2"), accum, init_value2);
-
-  auto grad = ops::Const(root, {{2.f, 2.f}, {2.f, 2.f}});
-
-  auto lr = ops::Const(root, 1.f);
-
-  ops::ApplyAdagrad::Attrs use_locking;
-  use_locking = use_locking.UseLocking(true);
-  auto applyadagrad_t = ops::ApplyAdagrad(root.WithOpName("Adagrad"), var,
-                                          accum, lr, grad, use_locking);
-
-  // Turn off optimizations so that all the nodes are processed
-  tensorflow::SessionOptions options;
-  options.config.mutable_graph_options()
-      ->mutable_optimizer_options()
-      ->set_opt_level(tensorflow::OptimizerOptions_Level_L0);
-  options.config.mutable_graph_options()
-      ->mutable_rewrite_options()
-      ->set_constant_folding(tensorflow::RewriterConfig::OFF);
-
-  // Run on nGraph
-  ActivateNGraph();
-  ClientSession ng_session(root, options);
-  std::vector<tensorflow::Tensor> ng_outputs1;
-  std::vector<tensorflow::Tensor> ng_outputs2;
-  ASSERT_OK(ng_session.Run({{var_assign, accum_assign}}, &ng_outputs1));
-
-  ASSERT_OK(ng_session.Run({applyadagrad_t}, &ng_outputs2));
-
-  DeactivateNGraph();
-
-  // Run on TF
-  ClientSession tf_session(root, options);
-  std::vector<tensorflow::Tensor> tf_outputs1;
-  std::vector<tensorflow::Tensor> tf_outputs2;
-  ASSERT_OK(tf_session.Run({{var_assign, accum_assign}}, &tf_outputs1));
-
-  ASSERT_OK(tf_session.Run({applyadagrad_t}, &tf_outputs2));
-
-  Compare(tf_outputs1, ng_outputs1);
-  Compare(tf_outputs2, ng_outputs2);
-
-  ActivateNGraph();
-  UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
-  RestoreEnv(env_map);
-}  // SimpleGraph2
 
 }  // testing
 }  // ngraph_bridge

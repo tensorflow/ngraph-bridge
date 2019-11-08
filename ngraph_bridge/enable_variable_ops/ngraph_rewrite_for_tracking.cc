@@ -42,6 +42,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
                              {"NGraphVariable", ReplaceVariable}};
 
   std::vector<Node*> replaced_nodes;
+  std::set<Node*> add_sync_nodes_to;
   for (auto node : graph->op_nodes()) {
     auto itr = REWRITE_REPLACE_OP_MAP.find(node->type_string());
     if (itr != REWRITE_REPLACE_OP_MAP.end()) {
@@ -83,45 +84,9 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
               return errors::InvalidArgument(
                   "The TF optimizer has more than 1 output ",
                   DebugNode(edge->dst()));
+            } else {
+              add_sync_nodes_to.insert(edge->dst());
             }
-
-            // Since the dst node takes in this variable as a reference
-            // and is not supported by NGraph, it might update the
-            // variable hence the sync node is required here.
-            NodeBuilder::NodeOut input_ref;
-            input_ref = NodeBuilder::NodeOut(edge->src(), edge->src_output());
-            DataType dtype;
-            TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "dtype", &dtype));
-            string shared_name;
-            TF_RETURN_IF_ERROR(
-                GetNodeAttr(node->attrs(), "shared_name", &shared_name));
-            string sync_node_name = node->name() + "_sync_node";
-            Node* sync_node;
-            NodeBuilder nb =
-                NodeBuilder(sync_node_name, "NGraphVariableUpdateNGTensor")
-                    .Input(input_ref)
-                    .Attr("ngraph_graph_id", graph_id)
-                    .Attr("ngraph_variable_shared_name", shared_name)
-                    .Attr("T", dtype)
-                    .Device(node->assigned_device_name());
-            Status status = nb.Finalize(graph, &sync_node);
-            TF_RETURN_IF_ERROR(status);
-            sync_node->set_assigned_device_name(node->assigned_device_name());
-
-            // Connect output edges from the TF optimizer to the sync node
-            // which will be for the input index 0 since that is the
-            // output we want.
-            // This should not replace the control edges.
-            if (edge->dst_input() == 0) {
-              TF_RETURN_IF_ERROR(
-                  ReplaceOnlyDataOutputEdges(graph, edge->dst(), sync_node));
-            }
-
-            // Add a control edge from the TF optimizer node
-            // to the sync node making sure that the sync node
-            // is executed after the TF optimizer
-            graph->AddEdge(edge->dst(), Graph::kControlSlot, sync_node,
-                           Graph::kControlSlot);
             break;
           }
         }
@@ -160,8 +125,52 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
 
     }  // end of checking if it is NGVariableType
   }    // end of looping through the nodes in the graph
+
   for (auto node : replaced_nodes) {
     graph->RemoveNode(node);
+  }
+
+  for (auto node : add_sync_nodes_to) {
+    // Since the dst node takes in this variable as a reference
+    // and is not supported by NGraph, it might update the
+    // variable hence the sync node is required here.
+    for (auto edge : node->in_edges()) {
+      if (IsRefType(node->input_type(edge->dst_input()))) {
+        NodeBuilder::NodeOut input_ref;
+        input_ref = NodeBuilder::NodeOut(edge->src(), edge->src_output());
+        DataType dtype;
+        TF_RETURN_IF_ERROR(GetNodeAttr(edge->src()->attrs(), "dtype", &dtype));
+        string shared_name;
+        TF_RETURN_IF_ERROR(
+            GetNodeAttr(edge->src()->attrs(), "shared_name", &shared_name));
+        string sync_node_name = edge->src()->name() + "/sync_node";
+        Node* sync_node;
+        NodeBuilder nb =
+            NodeBuilder(sync_node_name, "NGraphVariableUpdateNGTensor")
+                .Input(input_ref)
+                .Attr("ngraph_graph_id", graph_id)
+                .Attr("ngraph_variable_shared_name", shared_name)
+                .Attr("T", dtype)
+                .Device(edge->src()->assigned_device_name());
+        Status status = nb.Finalize(graph, &sync_node);
+        TF_RETURN_IF_ERROR(status);
+        sync_node->set_assigned_device_name(
+            edge->src()->assigned_device_name());
+        // Connect output edges from the TF optimizer to the sync node
+        // which will be for the input index 0 since that is the
+        // output we want.
+        // This should not replace the control edges.
+        if (edge->dst_input() == 0) {
+          TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, sync_node));
+        }
+
+        // Add a control edge from the TF optimizer node
+        // to the sync node making sure that the sync node
+        // is executed after the TF optimizer
+        graph->AddEdge(node, Graph::kControlSlot, sync_node,
+                       Graph::kControlSlot);
+      }
+    }
   }
 
   return Status::OK();

@@ -502,6 +502,79 @@ TEST(VariableTest, SmallGraph6) {
   ActivateNGraph();
 }
 
+// Simple Graph for testing the NGVarUpdateNGTensorOp
+// end to end
+TEST(VariableTest, SmallGraph7) {
+  list<string> env_vars{"NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING", "0");
+
+  Scope root = Scope::NewRootScope();
+
+  PartialTensorShape varShape({2, 2});
+  auto var = ops::Variable(root.WithOpName("Var"), varShape, DT_FLOAT);
+  auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto var_assign = ops::Assign(root.WithOpName("Assign1"), var, init_value);
+
+  auto accum = ops::Variable(root.WithOpName("accum"), varShape, DT_FLOAT);
+  auto init_value2 = ops::Const(root, {{3.f, 3.f}, {3.f, 3.f}});
+  auto accum_assign =
+      ops::Assign(root.WithOpName("Assign2"), accum, init_value2);
+
+  auto grad = ops::Const(root, {{2.f, 2.f}, {2.f, 2.f}});
+
+  auto lr = ops::Const(root, 1.f);
+
+  ops::ApplyAdagrad::Attrs use_locking;
+  use_locking = use_locking.UseLocking(true);
+  auto applyadagrad_t = ops::ApplyAdagrad(root.WithOpName("Adagrad"), var,
+                                          accum, lr, grad, use_locking);
+
+  // Turn off optimizations so that all the nodes are processed
+  tensorflow::SessionOptions options;
+  options.config.mutable_graph_options()
+      ->mutable_optimizer_options()
+      ->set_opt_level(tensorflow::OptimizerOptions_Level_L0);
+  options.config.mutable_graph_options()
+      ->mutable_rewrite_options()
+      ->set_constant_folding(tensorflow::RewriterConfig::OFF);
+
+  // Run on nGraph
+  ActivateNGraph();
+  ClientSession ng_session(root, options);
+  std::vector<tensorflow::Tensor> ng_outputs1;
+  std::vector<tensorflow::Tensor> ng_outputs2;
+
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(ng_session.Run({{var_assign, accum_assign}}, &ng_outputs1));
+  }
+
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(ng_session.Run({applyadagrad_t}, &ng_outputs2));
+  }
+  DeactivateNGraph();
+
+  // Run on TF
+  ClientSession tf_session(root, options);
+  std::vector<tensorflow::Tensor> tf_outputs1;
+  std::vector<tensorflow::Tensor> tf_outputs2;
+
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(tf_session.Run({{var_assign, accum_assign}}, &tf_outputs1));
+  }
+
+  for (int i = 0; i < 10; i++) {
+    ASSERT_OK(tf_session.Run({applyadagrad_t}, &tf_outputs2));
+  }
+
+  Compare(tf_outputs1, ng_outputs1);
+  Compare(tf_outputs2, ng_outputs2);
+
+  ActivateNGraph();
+  UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
+  RestoreEnv(env_map);
+}  // SmallGraph7
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

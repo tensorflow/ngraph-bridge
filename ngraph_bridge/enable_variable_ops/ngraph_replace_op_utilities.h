@@ -54,12 +54,6 @@ Status ReplaceInputControlEdges(Graph* graph, Node* node, Node* replacement);
 // Removes the original edges
 Status ReplaceOutputEdges(Graph* graph, Node* node, Node* replacement);
 
-// Adds the edges that are outgoing from the original node
-// as outgoing edges from the replacement node
-// Removes the original edges
-// Leaving out the control edges
-Status ReplaceOnlyDataOutputEdges(Graph* graph, Node* node, Node* replacement);
-
 // Capture Pass checks
 bool IsValidateShape(Node* node);
 Status StoreRefTypeOutputs(Node* node, std::set<Node*>* ref_list);
