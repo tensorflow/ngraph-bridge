@@ -314,7 +314,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Min"] = SimpleConfirmationFunction();
       confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
       confirmation_function_map["Mul"] = SimpleConfirmationFunction();
-      confirmation_function_map["Neg"] = SimpleConfirmationFunction();
+      confirmation_function_map["Negate"] = SimpleConfirmationFunction();
       confirmation_function_map["NoOp"] = SimpleConfirmationFunction();
       confirmation_function_map["OneHot"] = SimpleConfirmationFunction();
       confirmation_function_map["Pad"] = SimpleConfirmationFunction();
@@ -493,7 +493,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Min"]["Tidx"] = NGraphIndexDTypes();
       type_constraint_map["Minimum"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Mul"]["T"] = NGraphNumericDTypes();
-      type_constraint_map["Neg"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["Negate"]["T"] = NGraphNumericDTypes();
       type_constraint_map["NonMaxSuppressionV4"]["T"] = {
           DT_FLOAT};  // TF allows half too
       type_constraint_map["OneHot"]["T"] = NGraphDTypes();

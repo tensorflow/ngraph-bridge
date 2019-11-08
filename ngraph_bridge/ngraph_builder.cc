@@ -4926,7 +4926,7 @@ const static std::map<
       {"Mean", TranslateMeanOp}, {"Min", TranslateDirectReduceOp<ng::op::Min>},
       {"Minimum", TranslateBinaryOp<ngraph::op::Minimum>},
       {"Mul", TranslateBinaryOp<ngraph::op::Multiply>},
-      {"Neg", TranslateUnaryOp<ngraph::op::Negative>},
+      {"Negate", TranslateUnaryOp<ngraph::op::Negative>},
       // Do nothing! NoOps sometimes get placed on nGraph for bureaucratic
       // reasons, but they have no data flow inputs or outputs.
       {"NoOp", [](const Node*, const std::vector<const Tensor*>&,
