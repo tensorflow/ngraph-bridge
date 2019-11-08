@@ -4829,22 +4829,6 @@ static Status TranslateUnpackOp(const Node* op,
 static Status TranslateUnsortedSegmentSumOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  /*
-  # Code from python that reflects how unsorted_segment_sum
-  # works in tensorflow using scatter_add
-
-  def unsorted_segment_sum(inputs, segment_ids, num_segments):
-    inputs = tf.convert_to_tensor(inputs)
-    segment_ids = tf.convert_to_tensor(segment_ids)
-
-    shape = inputs.get_shape().as_list()
-    seg_ids = segment_ids.get_shape().as_list()
-    result = tf.Variable(tf.zeros([num_segments] + shape[len(seg_ids):],
-                                  dtype=inputs.dtype))
-
-    return tf.scatter_add(result, segment_ids, inputs)
-  */
-
   shared_ptr<ng::Node> ng_input, ng_segment_ids;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_segment_ids, nullptr));
 
