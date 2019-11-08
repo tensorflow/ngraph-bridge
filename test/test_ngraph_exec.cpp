@@ -36,7 +36,7 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-TEST(GraphExec, Axpy) {
+TEST(NGraphExec, Axpy) {
   GraphDef gdef;
   // auto status = ReadTextProto(Env::Default(), "test_py.pbtxt",
   // &gdef);
@@ -115,7 +115,7 @@ TEST(GraphExec, Axpy) {
   // TODO
 }
 
-TEST(GraphExec, Axpy8bit) {
+TEST(NGraphExec, Axpy8bit) {
   GraphDef gdef;
   auto status =
       ReadTextProto(Env::Default(), "test_axpy_int8_launchop.pbtxt", &gdef);
@@ -191,7 +191,7 @@ TEST(GraphExec, Axpy8bit) {
   // TODO
 }
 
-TEST(GraphExec, MixedTensors) {
+TEST(NGraphExec, MixedTensors) {
   GraphDef gdef;
   ASSERT_OK(ReadTextProto(Env::Default(), "test_axpy_launchop.pbtxt", &gdef))
       << "Can't read protobuf graph";
@@ -309,6 +309,143 @@ TEST(GraphExec, MixedTensors) {
   // Comparing
   Compare(expected_outputs, actual_outputs);
 }
+
+
+
+
+
+TEST(NGraphExec, MixedTensorsPipelined) {
+  GraphDef gdef;
+  ASSERT_OK(ReadTextProto(Env::Default(), "test_axpy_launchop.pbtxt", &gdef))
+      << "Can't read protobuf graph";
+
+  Graph input_graph(OpRegistry::Global());
+
+  GraphConstructorOptions opts;
+  // Set the allow_internal_ops to true so that graphs with node names such as
+  // _arg_Placeholder_1_0_1_0_arg are allowed. These op names are generated
+  // during the graph rewrite passes and considered internal
+  opts.allow_internal_ops = true;
+
+  ASSERT_OK(ConvertGraphDefToGraph(opts, gdef, &input_graph))
+      << "Could not convert graphdef to graph";
+
+  // Create the inputs for this graph
+  DataType tf_dt = DT_FLOAT;
+  TensorShape tf_shape = TensorShape({2, 3});
+  Tensor x(tf_dt, tf_shape);
+  Tensor y(tf_dt, tf_shape);
+  AssignInputValues(x, 1.0f);
+  AssignInputValues(y, 1.0f);
+  std::vector<Tensor> tf_inputs = {x, y};
+
+  std::vector<TensorShape> tf_input_shapes;
+  tf_input_shapes.push_back(x.shape());
+  tf_input_shapes.push_back(y.shape());
+
+  // Translate the Graph: Create ng_function
+  std::vector<const Tensor*> static_input_map(2, nullptr);
+  shared_ptr<ng::Function> ng_function;
+  ASSERT_EQ(Status::OK(),
+            ngraph_bridge::Builder::TranslateGraph(
+                tf_input_shapes, static_input_map, &input_graph, ng_function))
+      << "Could not complete TranslateGraph successfully";
+
+  // Create the nGraph backend
+  string backend_name = "INTERPRETER";
+
+  // Check if the backend is available via environment flag
+  string env_name = "NGRAPH_TF_BACKEND";
+  if (IsEnvVariableSet(env_name)) {
+    backend_name = GetEnvVariable(env_name);
+  }
+
+  auto backend = ng::runtime::Backend::create(backend_name);
+  NGRAPH_VLOG(0) << "NGraph using backend " << backend_name << endl;
+
+  // check if the backend executable can create tensors
+  ASSERT_TRUE(backend->executable_can_create_tensors())
+      << "Backend Executable cannot create tensors";
+
+  // Compile the nGraph function.
+  auto exec = backend->compile(ng_function);
+
+  // Allocate ng tensors for inputs
+  vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
+
+  for (int i = 0; i < 2; ++i) {
+    shared_ptr<ng::runtime::Tensor> ng_input;
+    if (i % 2 == 0) {
+      ng_input = exec->create_input_tensor(i);
+    } else {
+      ng::element::Type ng_element_type;
+      ASSERT_OK(TFDataTypeToNGraphElementType(tf_inputs[i].dtype(),
+                                              &ng_element_type));
+      ng::Shape ng_shape(tf_inputs[i].shape().dims());
+      for (int j = 0; j < tf_inputs[i].shape().dims(); ++j) {
+        ng_shape[j] = tf_inputs[i].shape().dim_size(j);
+      }
+      ng_input = backend->create_tensor(ng_element_type, ng_shape);
+    }
+    void* src_ptr = DMAHelper::base(&tf_inputs[i]);
+    ng_input->write(src_ptr, 0, tf_inputs[i].TotalBytes());
+    ng_inputs.push_back(ng_input);
+  }
+
+  // Allocate tensor for the result(s)
+  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+
+  for (size_t i = 0; i < ng_function->get_output_size(); i++) {
+    shared_ptr<ng::runtime::Tensor> ng_output;
+    if (i % 2 == 0) {
+      ng_output = exec->create_output_tensor(i);
+    } else {
+      auto shape = ng_function->get_output_shape(i);
+      auto elem_type = ng_function->get_output_element_type(i);
+      ng_output = backend->create_tensor(elem_type, shape);
+    }
+    ng_outputs.push_back(ng_output);
+  }
+
+  // Execute the nGraph function.
+  exec->call(ng_outputs, ng_inputs);
+
+  // Actual Outputs
+  // Allocating TF Tensors and reading into them to compare the outputs
+  vector<Tensor> actual_outputs;
+
+  for (size_t i = 0; i < ng_function->get_output_size(); i++) {
+    // Convert to tf tensor
+    Tensor output_tensor(tf_dt, tf_shape);
+    void* dst_ptr = DMAHelper::base(&output_tensor);
+    ng_outputs[i]->read(dst_ptr, 0, output_tensor.TotalBytes());
+    actual_outputs.push_back(output_tensor);
+  }
+
+  // Expected output
+  Tensor output1(DT_FLOAT, TensorShape({2, 3}));
+  Tensor output2(DT_FLOAT, TensorShape({2, 3}));
+  AssignInputValues(output1, 6.0f);
+  AssignInputValues(output2, 5.0f);
+  vector<Tensor> expected_outputs = {output1, output2};
+
+  // Comparing
+  Compare(expected_outputs, actual_outputs);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }  // namespace testing
 }  // namespace ngraph_bridge
