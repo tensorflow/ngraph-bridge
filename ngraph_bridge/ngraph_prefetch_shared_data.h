@@ -29,7 +29,6 @@
 
 #include "ngraph_bridge/thread_safe_queue.h"
 
-
 namespace ng = ngraph;
 namespace tf = tensorflow;
 
