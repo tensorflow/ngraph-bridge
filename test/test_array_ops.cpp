@@ -946,6 +946,30 @@ TEST(ArrayOps, ScatterNdRepeatIndices) {
   opexecuter.RunTest();
 }
 
+// This test runs on TF but not on Ng for now
+TEST(ArrayOps, ScatterNdComplex) {
+  // indices.shape[-1] <= shape.rank
+  // updates.shape = indices.shape[:-1] + shape[indices.shape[-1]:]
+  // shape must be rank 1
+  Tensor indices(DT_INT32, TensorShape({2, 2, 2}));
+  Tensor updates(DT_FLOAT, TensorShape({2, 2, 2}));
+
+  AssignInputValuesRandom<int>(indices, 0, 1);
+  AssignInputValuesRandom<float>(updates, -10.0, 20.0f);
+
+  vector<int> static_input_indexes = {2};
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::ScatterNd(root, indices, updates, {2, 2, 2});
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}
+
 TEST(ArrayOps, ScatterNd3D) {
   Tensor indices(DT_INT32, TensorShape({2, 1}));
   Tensor updates(DT_FLOAT, TensorShape({2, 4, 4}));
