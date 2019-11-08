@@ -4844,18 +4844,41 @@ static Status TranslateUnsortedSegmentSumOp(
     return tf.scatter_add(result, segment_ids, inputs)
   */
 
-  shared_ptr<ng::Node> ng_input, ng_segment_ids, ng_num_segments;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_segment_ids,
-                                   &ng_num_segments));
+  shared_ptr<ng::Node> ng_input, ng_segment_ids;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_segment_ids, nullptr));
 
   int num_segments;
   std::vector<int64> tmp_num_segments;
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 2, static_input_map, &tmp_num_segments));
+
+  if (tmp_num_segments.size() != 1) {
+    return errors::InvalidArgument("num_segments should be scalar, not tensor with ",
+      tmp_num_segments.size(), " dimensions");
+  }
+
   num_segments = tmp_num_segments[0];
 
   auto& input_shape = ng_input->get_shape();
   auto& segment_shape = ng_segment_ids->get_shape();
+
+  std::vector<int64> segment_ids;
+  TF_RETURN_IF_ERROR(
+    GetStaticInputVector(op, 1, static_input_map, &segment_ids));
+
+  for (size_t dim = 0; dim < segment_shape.size(); ++dim) {
+    if (segment_shape[dim] != input_shape[dim]) {
+      return errors::InvalidArgument("input shape: ", input_shape,
+        " doesn't start with segment shape: ", segment_shape);
+    }
+  }
+
+  for (auto &v : segment_ids) {
+    if (v >= num_segments) {
+      return errors::InvalidArgument("segment id not in range [0, ",
+        num_segments, ")");
+    }
+  }
 
   ng::Shape output_shape;
   output_shape.push_back(num_segments);
