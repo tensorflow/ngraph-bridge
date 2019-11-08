@@ -29,6 +29,9 @@
 
 #include "ngraph_bridge/thread_safe_queue.h"
 
+#include <chrono>
+#include <thread>
+
 namespace ng = ngraph;
 namespace tf = tensorflow;
 
@@ -92,8 +95,23 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
     return std::move(m_ng_2_tf.GetNextAvailable());
   }
 
-  void SetBufferDepth(int depth) { m_prefetch_buffer_depth = depth; }
-  int GetBufferDepth() { return m_prefetch_buffer_depth; }
+  void SetBufferDepth(int depth) {
+    m_mutex.Lock();
+    m_prefetch_buffer_depth = depth;
+    m_cv.SignalAll();
+    m_mutex.Unlock();
+  }
+  int GetBufferDepth() {
+    // Locking GetBufferDepth till SetBufferDepth is called
+    // In case of races where Get is called before Set,
+    // We want to ensure Set finishes before Get returns
+    m_mutex.ReaderLock();
+    while (m_prefetch_buffer_depth == -1) {
+      m_cv.Wait(&m_mutex);
+    }
+    m_mutex.ReaderUnlock();
+    return m_prefetch_buffer_depth;
+  }
 
   void IncrSkipCount() { m_skip_count++; }
   int GetSkipCount() { return m_skip_count; }
@@ -128,8 +146,11 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
   ThreadSafeQueue<IoTensorBundle> m_tf_2_ng;
   ThreadSafeQueue<IoTensorBundle> m_ng_2_tf;
 
-  int m_prefetch_buffer_depth{0};
+  int m_prefetch_buffer_depth{-1};
   int m_skip_count{0};
+
+  absl::CondVar m_cv;
+  absl::Mutex m_mutex;
 };
 
 }  // namespace ngraph_bridge
