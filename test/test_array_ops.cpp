@@ -903,47 +903,28 @@ TEST(ArrayOps, Rank) {
 }  // end of RankOp
 
 // Test op: ScatterNd Op
-TEST(ArrayOps, ScatterNd1D) {
+TEST(ArrayOps, ScatterNd2D) {
   Tensor indices(DT_INT32, TensorShape({4, 1}));
   Tensor updates(DT_FLOAT, TensorShape({4}));
+  Tensor shape(DT_INT32, TensorShape({1}));
 
   AssignInputValues<int>(indices, {{2}, {3}, {1}, {7}});
   AssignInputValues<float>(updates, {9.1, 10.2, -11.3, 12.4});
+  AssignInputValues<int>(shape, {8});
 
-  vector<int> static_input_indexes = {2};
+  vector<int> static_input_indexes = {};
 
   vector<DataType> output_datatypes = {DT_FLOAT};
 
   Scope root = Scope::NewRootScope();
-  auto R = ops::ScatterNd(root, indices, updates, {8});
+  auto R = ops::ScatterNd(root, indices, updates, shape);
   std::vector<Output> sess_run_fetchoutputs = {R};
 
   OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
                         output_datatypes, sess_run_fetchoutputs);
   vector<Tensor> tf_outputs;
   opexecuter.ExecuteOnNGraph(tf_outputs);
-}  // end of test op ScatterNd
 
-TEST(ArrayOps, ScatterNdRepeatIndices) {
-  Tensor indices(DT_INT32, TensorShape({4, 1}));
-  Tensor updates(DT_FLOAT, TensorShape({4}));
-
-  // the index "2" appears twice
-  AssignInputValues<int>(indices, {{2}, {3}, {2}, {7}});
-  AssignInputValues<float>(updates, {9.1, 10.2, -11.3, 12.4});
-
-  vector<int> static_input_indexes = {2};
-
-  vector<DataType> output_datatypes = {DT_FLOAT};
-
-  Scope root = Scope::NewRootScope();
-  auto R = ops::ScatterNd(root, indices, updates, {10});
-  std::vector<Output> sess_run_fetchoutputs = {R};
-
-  OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  vector<Tensor> tf_outputs;
-  opexecuter.ExecuteOnNGraph(tf_outputs);
 }  // end of test op ScatterNd
 
 // TODO: add unit test for duplicate indices here and 3D,4D
