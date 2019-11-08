@@ -95,6 +95,33 @@ TEST(NGVarUpdateNGTensorOpTest, SimpleGraph1) {
   }
   ASSERT_EQ(node_map.find("var_node_sync_node")->second->type_string(),
             "NGraphVariableUpdateNGTensor");
+
+  Node *in_0, *in_ctrl, *sync_node = node_map.at("var_node_sync_node");
+  // NOTE:node->input_edge(...), node->input_node(...) cannot be used for
+  // control edges
+  int edge_count = 0;
+  for (auto edge : sync_node->in_edges()) {
+    if (edge->dst_input() == 0) {
+      in_0 = edge->src();
+      ASSERT_TRUE(IsRefType(sync_node->input_type(0)));
+    } else if (edge->dst_input() == Graph::kControlSlot) {
+      in_ctrl = edge->src();
+    }
+    edge_count++;
+  }
+
+  // Assert on edges connected to sync node
+  ASSERT_EQ(edge_count, 2);
+  ASSERT_EQ(in_0, node_map.at("var_node/non_ng_outputs/gid_0"));
+  ASSERT_EQ(in_ctrl, node_map.at("assign"));
+  ASSERT_EQ(sync_node->num_outputs(), 1);
+
+  for (auto edge : sync_node->out_edges()) {
+    if ((edge != nullptr)) {
+      ASSERT_EQ(edge->dst()->IsRetval(), true);
+    }
+  }
+
   node_map.clear();
 }  // end SimpleGraph1
 

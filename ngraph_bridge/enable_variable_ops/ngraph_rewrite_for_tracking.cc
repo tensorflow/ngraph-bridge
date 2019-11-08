@@ -79,7 +79,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
 
             // If the number of outputs for the TF optimizer > 1
             // we do not handle it and error out
-            if (node->num_outputs() > 1) {
+            if (edge->dst()->num_outputs() > 1) {
               return errors::InvalidArgument(
                   "The TF optimizer has more than 1 output ",
                   DebugNode(edge->dst()));
