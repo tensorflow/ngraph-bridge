@@ -97,6 +97,9 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
 
   void SetBufferDepth(int depth) {
     m_mutex.Lock();
+    // TODO assert m_prefetch_buffer_depth == -1 || m_prefetch_buffer_depth ==
+    // depth
+    // To make sure we never try to set a different depth once it is set
     m_prefetch_buffer_depth = depth;
     m_cv.SignalAll();
     m_mutex.Unlock();
