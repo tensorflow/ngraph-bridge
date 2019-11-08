@@ -971,7 +971,6 @@ TEST(ArrayOps, ScatterNd3D) {
 // these are done
 // TODO any other test? something broadcasty?
 
-
 // Test op: Shape, outputs the shape of a tensor
 TEST(ArrayOps, Shape2D) {
   Scope root = Scope::NewRootScope();
