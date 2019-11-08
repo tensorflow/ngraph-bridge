@@ -968,6 +968,9 @@ TEST(ArrayOps, ScatterNd3D) {
 }  // end of test op ScatterNd
 
 // TODO: add unit test for duplicate indices here and 3D,4D
+// these are done
+// TODO any other test? something broadcasty?
+
 
 // Test op: Shape, outputs the shape of a tensor
 TEST(ArrayOps, Shape2D) {
