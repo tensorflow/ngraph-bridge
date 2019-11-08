@@ -3677,6 +3677,30 @@ static Status TranslateRsqrtOp(
       });
 }
 
+static Status TranslateScatterNdOp(const Node* op,
+                                   const std::vector<const Tensor*>&,
+                                   Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_shape;
+  shared_ptr<ng::Node> ng_indices;
+  shared_ptr<ng::Node> ng_updates;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &ng_indices, &ng_updates, &ng_shape));
+
+  // Create a tensor and populate the tensor with "0" to Add to ScatterNd
+  auto shape = ng_shape->get_shape();
+  auto et = ng_updates->get_element_type();
+  std::vector<std::string> constant_values(ng::shape_size(shape), "0");
+  auto ng_inputs =
+      ConstructNgNode<ng::op::Constant>(op->name(), et, shape, constant_values);
+
+  cout << "ng_inputs" << ng_inputs->get_shape().size() << std::endl;
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::ScatterNDAdd>(op->name(), ng_inputs,
+                                                 ng_indices, ng_updates));
+
+  return Status::OK();
+}
+
 static Status TranslateRsqrtGradOp(const Node* op,
                                    const std::vector<const Tensor*>&,
                                    Builder::OpMap& ng_op_map) {
@@ -4955,11 +4979,12 @@ const static std::map<
       {"Relu", TranslateUnaryOp<ngraph::op::Relu>}, {"Relu6", TranslateRelu6Op},
       {"ReluGrad", TranslateReluGradOp}, {"Reshape", TranslateReshapeOp},
       {"Rsqrt", TranslateRsqrtOp}, {"RsqrtGrad", TranslateRsqrtGradOp},
-      {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
-      {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
-      {"Size", TranslateSizeOp}, {"Sign", TranslateUnaryOp<ngraph::op::Sign>},
-      {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
-      {"Softmax", TranslateSoftmaxOp}, {"Softplus", TranslateSoftplusOp},
+      {"ScatterNd", TranslateScatterNdOp}, {"Select", TranslateSelectOp},
+      {"Shape", TranslateShapeOp}, {"Sigmoid", TranslateSigmoidOp},
+      {"SigmoidGrad", TranslateSigmoidGradOp}, {"Size", TranslateSizeOp},
+      {"Sign", TranslateUnaryOp<ngraph::op::Sign>}, {"Slice", TranslateSliceOp},
+      {"Snapshot", TranslateIdentityOp}, {"Softmax", TranslateSoftmaxOp},
+      {"Softplus", TranslateSoftplusOp},
       {"SpaceToDepth", TranslateSpaceToDepthOp},
       {"SparseSoftmaxCrossEntropyWithLogits",
        TranslateSparseSoftmaxCrossEntropyWithLogitsOp},

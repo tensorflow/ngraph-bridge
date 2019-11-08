@@ -366,6 +366,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Reshape"] = SimpleConfirmationFunction();
       confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
       confirmation_function_map["RsqrtGrad"] = SimpleConfirmationFunction();
+      confirmation_function_map["ScatterNd"] = SimpleConfirmationFunction();
       confirmation_function_map["Select"] = SimpleConfirmationFunction();
       confirmation_function_map["Shape"] = SimpleConfirmationFunction();
       confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
@@ -558,6 +559,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
       type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
       type_constraint_map["RsqrtGrad"]["T"] = NGraphRealDTypes();
+      type_constraint_map["ScatterNd"]["T"] = NGraphRealDTypes();
       type_constraint_map["Select"]["T"] = NGraphDTypes();
       type_constraint_map["Shape"]["T"] = NGraphDTypes();
       type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();

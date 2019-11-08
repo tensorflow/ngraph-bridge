@@ -902,6 +902,33 @@ TEST(ArrayOps, Rank) {
   opexecuter.RunTest();
 }  // end of RankOp
 
+// Test op: ScatterNd Op
+TEST(ArrayOps, ScatterNd2D) {
+  Tensor indices(DT_INT32, TensorShape({4, 1}));
+  Tensor updates(DT_INT32, TensorShape({4}));
+  Tensor shape(DT_INT32, TensorShape({1}));
+
+  AssignInputValues<int>(indices, {{2}, {3}, {1}, {7}});
+  AssignInputValues<int>(updates, {9, 10, 11, 12});
+  AssignInputValues<int>(shape, {8});
+
+  vector<int> static_input_indexes = {};
+
+  vector<DataType> output_datatypes = {DT_INT32};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::ScatterNd(root, indices, updates, shape);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+  vector<Tensor> tf_outputs;
+  opexecuter.ExecuteOnNGraph(tf_outputs);
+
+}  // end of test op ScatterNd
+
+// TODO: add unit test for duplicate indices here and 3D,4D
+
 // Test op: Shape, outputs the shape of a tensor
 TEST(ArrayOps, Shape2D) {
   Scope root = Scope::NewRootScope();
