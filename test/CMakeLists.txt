@@ -41,7 +41,7 @@ set_target_properties(
 
 set(SRC
     main.cpp
-    graph_exec.cpp
+    test_ngraph_exec.cpp
     tf_exec.cpp
     padding.cpp
     conversions.cpp
@@ -102,7 +102,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
-     COMMAND ${CMAKE_COMMAND} -E create_symlink
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_graph_1.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_graph_1.pbtxt
 )
