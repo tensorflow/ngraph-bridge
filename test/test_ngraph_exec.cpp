@@ -88,11 +88,11 @@ class NGraphExecTest : public ::testing::Test {
       ng_shape[j] = tf_tensor.shape().dim_size(j);
     }
     GetTensorFromBackend(ng_backend, ng_element_type, ng_shape, ng_tensor);
-    cout<<"copy"<<endl;
-    cout << "print tf ptr "<< &tf_tensor<<endl;
-    cout << "print ng ptr "<< ng_tensor.get()<<endl;
+    cout << "copy" << endl;
+    cout << "print tf ptr " << &tf_tensor << endl;
+    cout << "print ng ptr " << ng_tensor.get() << endl;
     WriteNGTensor(ng_tensor, &tf_tensor);
-    cout<<"copy"<<endl;
+    cout << "copy" << endl;
 
     return Status::OK();
   }
@@ -101,10 +101,10 @@ class NGraphExecTest : public ::testing::Test {
                               ng::element::Type ng_element_type,
                               ng::Shape ng_shape,
                               shared_ptr<ngraph::runtime::Tensor>& ng_tensor) {
-        cout<<"created"<<endl;
+    cout << "created" << endl;
 
     ng_tensor = ng_backend->create_tensor(ng_element_type, ng_shape);
-    cout << "print ng ptr "<< ng_tensor.get()<<endl;
+    cout << "print ng ptr " << ng_tensor.get() << endl;
     return Status::OK();
   }
 };
@@ -434,69 +434,64 @@ TEST_F(NGraphExecTest, MixedTensorsPipelined) {
                              pipelined_output_indexes, pipeline_depth);
   PipelinedTensorMatrix pipelined_inputs = get<0>(inp_out);
   PipelinedTensorMatrix pipelined_outputs = get<1>(inp_out);
-  cout<<"Created Pipelined Tensor "<<endl;
+  cout << "Created Pipelined Tensor " << endl;
   for (int itr = 0; itr < pipeline_depth; itr++) {
     // Prepare Inputs
     // Get Backend Tensors
     for (auto index : non_pipelined_input_indexes) {
-      cout<<"Getting Backend Tensor "<<index<<endl;
-  
+      cout << "Getting Backend Tensor " << index << endl;
+
       GetTensorFromBackend(backend, tf_inputs[index], ng_inputs[index]);
     }
     // Get Pipelined Tensors
     for (auto index : pipelined_input_indexes) {
-      int count=0;
+      int count = 0;
       ng_inputs[index] = pipelined_inputs[count++][itr];
       WriteNGTensor(ng_inputs[index], &tf_inputs[index]);
-      cout<<"Created Pipelined Tensor "<<index <<endl;
-  
+      cout << "Created Pipelined Tensor " << index << endl;
     }
 
     // Prepare Outputs
     // Get Backend Tensors
     for (auto index : non_pipelined_output_indexes) {
-      cout<<"Getting Backend Tensor op "<<index<<endl;
-  
+      cout << "Getting Backend Tensor op " << index << endl;
+
       auto shape = ng_function->get_output_shape(index);
       auto elem_type = ng_function->get_output_element_type(index);
       GetTensorFromBackend(backend, elem_type, shape, ng_outputs[index]);
     }
     for (auto index : pipelined_output_indexes) {
-      cout<<"Created Pipelined op Tensor "<<index <<endl;
-      int count=0;
+      cout << "Created Pipelined op Tensor " << index << endl;
+      int count = 0;
       ng_outputs[index] = pipelined_outputs[count++][itr];
-      cout<<"Created Pipelined op Tensor "<<index <<endl;
+      cout << "Created Pipelined op Tensor " << index << endl;
     }
 
-    for(auto ptr: ng_inputs){
-      cout<<ptr<<endl;
+    for (auto ptr : ng_inputs) {
+      cout << ptr << endl;
     }
 
-    for(auto ptr: ng_outputs){
-      cout<<ptr<<endl;
+    for (auto ptr : ng_outputs) {
+      cout << ptr << endl;
     }
     // call
     ng_exec->call(ng_outputs, ng_inputs);
 
     // compare
 
-  for (size_t i = 0; i < num_outputs; i++) {
-    // Convert to tf tensor
-    Tensor output_tensor(tf_dt, tf_shape);
-    void* dst_ptr = DMAHelper::base(&output_tensor);
-    ng_outputs[i]->read(dst_ptr, 0, output_tensor.TotalBytes());
-    //actual_outputs.push_back(output_tensor);
-    cout<<output_tensor.DebugString()<<endl;
-  }
+    for (size_t i = 0; i < num_outputs; i++) {
+      // Convert to tf tensor
+      Tensor output_tensor(tf_dt, tf_shape);
+      void* dst_ptr = DMAHelper::base(&output_tensor);
+      ng_outputs[i]->read(dst_ptr, 0, output_tensor.TotalBytes());
+      // actual_outputs.push_back(output_tensor);
+      cout << output_tensor.DebugString() << endl;
+    }
 
     // clear
     break;
   }
-
-  
 }
-
-
 
 }  // namespace testing
 }  // namespace ngraph_bridge
