@@ -46,7 +46,19 @@ class NGraphExecTest : public ::testing::Test {
     // Set the allow_internal_ops to true so that graphs with node names such as
     // _arg_Placeholder_1_0_1_0_arg are allowed. These op names are generated
     // during the graph rewrite passes and considered internal
+    opts.allow_internal_ops = true;
     TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(opts, gdef, graph));
+    return Status::OK();
+  }
+
+  Status TranslateTFGraphNoStatic(const vector<TensorShape>& tf_input_shapes,
+                                  const Graph& input_graph,
+                                  shared_ptr<ngraph::Function>& ng_function) {
+    // Translate the Graph: Create ng_function
+    std::vector<const Tensor*> static_input_map(tf_input_shapes.size(),
+                                                nullptr);
+    TF_RETURN_IF_ERROR(ngraph_bridge::Builder::TranslateGraph(
+        tf_input_shapes, static_input_map, &input_graph, ng_function));
     return Status::OK();
   }
 
@@ -58,9 +70,9 @@ class NGraphExecTest : public ::testing::Test {
   }
 
   tuple<PipelinedTensorMatrix, PipelinedTensorMatrix> CreatePipelinedTensors(
-      const shared_ptr<ngraph::runtime::Executable> ng_exec,
-      const vector<int> pipelined_input_indexes,
-      const vector<int> pipelined_output_indexes, const int pipeline_depth) {
+      const shared_ptr<ngraph::runtime::Executable>& ng_exec,
+      const vector<int>& pipelined_input_indexes,
+      const vector<int>& pipelined_output_indexes, const int& pipeline_depth) {
     PipelinedTensorMatrix inputs(pipelined_input_indexes.size());
     PipelinedTensorMatrix outputs(pipelined_output_indexes.size());
 
@@ -88,12 +100,7 @@ class NGraphExecTest : public ::testing::Test {
       ng_shape[j] = tf_tensor.shape().dim_size(j);
     }
     GetTensorFromBackend(ng_backend, ng_element_type, ng_shape, ng_tensor);
-    cout << "copy" << endl;
-    cout << "print tf ptr " << &tf_tensor << endl;
-    cout << "print ng ptr " << ng_tensor.get() << endl;
     WriteNGTensor(ng_tensor, &tf_tensor);
-    cout << "copy" << endl;
-
     return Status::OK();
   }
 
@@ -101,11 +108,32 @@ class NGraphExecTest : public ::testing::Test {
                               ng::element::Type ng_element_type,
                               ng::Shape ng_shape,
                               shared_ptr<ngraph::runtime::Tensor>& ng_tensor) {
-    cout << "created" << endl;
-
     ng_tensor = ng_backend->create_tensor(ng_element_type, ng_shape);
-    cout << "print ng ptr " << ng_tensor.get() << endl;
     return Status::OK();
+  }
+
+  Status RunGraphOnTF(const Graph& graph,
+                      const vector<pair<string, Tensor>>& feed_dict,
+                      const vector<string>& out_node_names,
+                      vector<Tensor>& out_tensors) {
+    // Create Session
+    SessionOptions options;
+    options.config.mutable_graph_options()
+        ->mutable_optimizer_options()
+        ->set_opt_level(tf::OptimizerOptions_Level_L0);
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_constant_folding(tf::RewriterConfig::OFF);
+    std::unique_ptr<Session> session(NewSession(options));
+
+    // Attach Graph
+    GraphDef gdef;
+    graph.ToGraphDef(&gdef);
+    TF_RETURN_IF_ERROR(session->Create(gdef));
+    DeactivateNGraph();
+    Status status = session->Run(feed_dict, out_node_names, {}, &out_tensors);
+    ActivateNGraph();
+    return status;
   }
 };
 
@@ -265,41 +293,32 @@ TEST(NGraphExec, Axpy8bit) {
 }
 
 TEST_F(NGraphExecTest, MixedTensors) {
-  GraphDef gdef;
-  ASSERT_OK(ReadTextProto(Env::Default(), "test_axpy_launchop.pbtxt", &gdef))
-      << "Can't read protobuf graph";
-
   Graph input_graph(OpRegistry::Global());
-
-  GraphConstructorOptions opts;
-  // Set the allow_internal_ops to true so that graphs with node names such as
-  // _arg_Placeholder_1_0_1_0_arg are allowed. These op names are generated
-  // during the graph rewrite passes and considered internal
-  opts.allow_internal_ops = true;
-
-  ASSERT_OK(ConvertGraphDefToGraph(opts, gdef, &input_graph))
-      << "Could not convert graphdef to graph";
+  ASSERT_OK(LoadGraph("test_axpy_launchop.pbtxt", &input_graph));
 
   // Create the inputs for this graph
   DataType tf_dt = DT_FLOAT;
   TensorShape tf_shape = TensorShape({2, 3});
+  int num_inputs = 2;
+
+  // Run Graph on TF: Expected output
   Tensor x(tf_dt, tf_shape);
   Tensor y(tf_dt, tf_shape);
   AssignInputValues(x, 1.0f);
   AssignInputValues(y, 1.0f);
   std::vector<Tensor> tf_inputs = {x, y};
+  vector<Tensor> expected_outputs;
+  vector<pair<string, Tensor>> feed_dict = {{"x", x}, {"y", y}};
+  vector<string> out_node_names = {"add", "mul"};
+  ASSERT_OK(
+      RunGraphOnTF(input_graph, feed_dict, out_node_names, expected_outputs));
 
-  std::vector<TensorShape> tf_input_shapes;
-  tf_input_shapes.push_back(x.shape());
-  tf_input_shapes.push_back(y.shape());
-
-  // Translate the Graph: Create ng_function
-  std::vector<const Tensor*> static_input_map(2, nullptr);
+  // Run on nGraph
+  // Translate Graph
+  std::vector<TensorShape> tf_input_shapes(num_inputs, tf_shape);
   shared_ptr<ng::Function> ng_function;
-  ASSERT_EQ(Status::OK(),
-            ngraph_bridge::Builder::TranslateGraph(
-                tf_input_shapes, static_input_map, &input_graph, ng_function))
-      << "Could not complete TranslateGraph successfully";
+  ASSERT_OK(
+      TranslateTFGraphNoStatic(tf_input_shapes, input_graph, ng_function));
 
   // Create the nGraph backend
   string backend_name = "INTERPRETER";
@@ -316,23 +335,14 @@ TEST_F(NGraphExecTest, MixedTensors) {
 
   // Allocate ng tensors for inputs
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
-
   for (int i = 0; i < 2; ++i) {
     shared_ptr<ng::runtime::Tensor> ng_input;
     if (i % 2 == 0) {
       ng_input = exec->create_input_tensor(i);
+      WriteNGTensor(ng_input, &tf_inputs[i]);
     } else {
-      ng::element::Type ng_element_type;
-      ASSERT_OK(TFDataTypeToNGraphElementType(tf_inputs[i].dtype(),
-                                              &ng_element_type));
-      ng::Shape ng_shape(tf_inputs[i].shape().dims());
-      for (int j = 0; j < tf_inputs[i].shape().dims(); ++j) {
-        ng_shape[j] = tf_inputs[i].shape().dim_size(j);
-      }
-      ng_input = backend->create_tensor(ng_element_type, ng_shape);
+      GetTensorFromBackend(backend, tf_inputs[i], ng_input);
     }
-    void* src_ptr = DMAHelper::base(&tf_inputs[i]);
-    ng_input->write(src_ptr, 0, tf_inputs[i].TotalBytes());
     ng_inputs.push_back(ng_input);
   }
 
@@ -346,7 +356,7 @@ TEST_F(NGraphExecTest, MixedTensors) {
     } else {
       auto shape = ng_function->get_output_shape(i);
       auto elem_type = ng_function->get_output_element_type(i);
-      ng_output = backend->create_tensor(elem_type, shape);
+      GetTensorFromBackend(backend, elem_type, shape, ng_output);
     }
     ng_outputs.push_back(ng_output);
   }
@@ -364,14 +374,8 @@ TEST_F(NGraphExecTest, MixedTensors) {
     void* dst_ptr = DMAHelper::base(&output_tensor);
     ng_outputs[i]->read(dst_ptr, 0, output_tensor.TotalBytes());
     actual_outputs.push_back(output_tensor);
+    cout << actual_outputs[i].DebugString() << endl;
   }
-
-  // Expected output
-  Tensor output1(DT_FLOAT, TensorShape({2, 3}));
-  Tensor output2(DT_FLOAT, TensorShape({2, 3}));
-  AssignInputValues(output1, 6.0f);
-  AssignInputValues(output2, 5.0f);
-  vector<Tensor> expected_outputs = {output1, output2};
 
   // Comparing
   Compare(expected_outputs, actual_outputs);
@@ -385,15 +389,7 @@ TEST_F(NGraphExecTest, MixedTensorsPipelined) {
   int num_inputs = 3;
   DataType tf_dt = DT_FLOAT;
   TensorShape tf_shape = TensorShape({2, 3});
-  Tensor x(tf_dt, tf_shape);
-  Tensor y(tf_dt, tf_shape);
-  Tensor z(tf_dt, tf_shape);
-  AssignInputValues(x, 1.0f);
-  AssignInputValues(y, 2.0f);
-  AssignInputValues(z, 3.0f);
-
-  std::vector<Tensor> tf_inputs = {x, y, z};
-  std::vector<TensorShape> tf_input_shapes = {x.shape(), y.shape(), z.shape()};
+  std::vector<TensorShape> tf_input_shapes(num_inputs, tf_shape);
 
   // Translate the Graph: Create ng_function
   shared_ptr<ngraph::Function> ng_function;
@@ -419,77 +415,83 @@ TEST_F(NGraphExecTest, MixedTensorsPipelined) {
   int num_outputs = ng_function->get_output_size();
   int pipeline_depth = 2;
 
-  // Allocate ng tensors for inputs and outputs
-  vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_inputs, nullptr);
-  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_outputs, nullptr);
-
   // Lets assume inputs and outputs 0 and 2 are pipelined
   vector<int> pipelined_input_indexes = {0, 2};
-  vector<int> pipelined_output_indexes = {0, 2};
+  vector<int> pipelined_output_indexes = {1};
   vector<int> non_pipelined_input_indexes = {1};
-  vector<int> non_pipelined_output_indexes = {1};
+  vector<int> non_pipelined_output_indexes = {0, 2};
 
   auto inp_out =
       CreatePipelinedTensors(ng_exec, pipelined_input_indexes,
                              pipelined_output_indexes, pipeline_depth);
   PipelinedTensorMatrix pipelined_inputs = get<0>(inp_out);
   PipelinedTensorMatrix pipelined_outputs = get<1>(inp_out);
-  cout << "Created Pipelined Tensor " << endl;
-  for (int itr = 0; itr < pipeline_depth; itr++) {
+
+  int increment = 2.0f;
+
+  for (int itr = 0; itr < 10; itr++) {
+    int use_pipeline_depth = (itr % 2);
+    Tensor x(tf_dt, tf_shape);
+    Tensor y(tf_dt, tf_shape);
+    Tensor z(tf_dt, tf_shape);
+    AssignInputValues(x, 1.0f + increment);
+    AssignInputValues(y, 2.0f + increment);
+    AssignInputValues(z, 3.0f + increment);
+
+    vector<Tensor> tf_inputs = {x, y, z};
+    vector<std::pair<string, Tensor>> feed_dict = {
+        {"x", x}, {"y", y}, {"z", z}};
+    vector<string> out_node_names = {"N3_Mul", "N2_Add", "N4_Sub"};
+    vector<Tensor> desired_outputs;
+    ASSERT_OK(
+        RunGraphOnTF(input_graph, feed_dict, out_node_names, desired_outputs));
+
+    // Run on nGraph
+    // Allocate ng tensors for inputs and outputs
+    vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_inputs, nullptr);
+    vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_outputs, nullptr);
+
     // Prepare Inputs
     // Get Backend Tensors
     for (auto index : non_pipelined_input_indexes) {
-      cout << "Getting Backend Tensor " << index << endl;
-
       GetTensorFromBackend(backend, tf_inputs[index], ng_inputs[index]);
     }
     // Get Pipelined Tensors
-    for (auto index : pipelined_input_indexes) {
-      int count = 0;
-      ng_inputs[index] = pipelined_inputs[count++][itr];
+    for (int i = 0; i < pipelined_input_indexes.size(); i++) {
+      int index = pipelined_input_indexes[i];
+      ng_inputs[index] = pipelined_inputs[i][use_pipeline_depth];
       WriteNGTensor(ng_inputs[index], &tf_inputs[index]);
-      cout << "Created Pipelined Tensor " << index << endl;
     }
 
     // Prepare Outputs
     // Get Backend Tensors
     for (auto index : non_pipelined_output_indexes) {
-      cout << "Getting Backend Tensor op " << index << endl;
-
       auto shape = ng_function->get_output_shape(index);
       auto elem_type = ng_function->get_output_element_type(index);
       GetTensorFromBackend(backend, elem_type, shape, ng_outputs[index]);
     }
-    for (auto index : pipelined_output_indexes) {
-      cout << "Created Pipelined op Tensor " << index << endl;
-      int count = 0;
-      ng_outputs[index] = pipelined_outputs[count++][itr];
-      cout << "Created Pipelined op Tensor " << index << endl;
+    // Get Pipelined Tensors
+    for (int i = 0; i < pipelined_output_indexes.size(); i++) {
+      int index = pipelined_output_indexes[i];
+      ng_outputs[index] = pipelined_outputs[i][use_pipeline_depth];
     }
 
-    for (auto ptr : ng_inputs) {
-      cout << ptr << endl;
-    }
-
-    for (auto ptr : ng_outputs) {
-      cout << ptr << endl;
-    }
     // call
     ng_exec->call(ng_outputs, ng_inputs);
 
-    // compare
-
+    // Read outputs to compare
+    std::vector<Tensor> actual_outputs;
     for (size_t i = 0; i < num_outputs; i++) {
       // Convert to tf tensor
       Tensor output_tensor(tf_dt, tf_shape);
       void* dst_ptr = DMAHelper::base(&output_tensor);
       ng_outputs[i]->read(dst_ptr, 0, output_tensor.TotalBytes());
-      // actual_outputs.push_back(output_tensor);
-      cout << output_tensor.DebugString() << endl;
+      actual_outputs.push_back(output_tensor);
     }
 
-    // clear
-    break;
+    // Compare Outputs
+    Compare(desired_outputs, actual_outputs);
+    increment++;
   }
 }
 
