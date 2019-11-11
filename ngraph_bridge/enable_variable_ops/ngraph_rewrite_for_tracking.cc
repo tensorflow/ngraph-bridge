@@ -131,7 +131,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
   }
 
   for (auto node : add_sync_nodes_to) {
-    // Since the dst node takes in this variable as a reference
+    // Since the node takes in variable as a reference
     // and is not supported by NGraph, it might update the
     // variable hence the sync node is required here.
     for (auto edge : node->in_edges()) {
@@ -156,12 +156,21 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
         TF_RETURN_IF_ERROR(status);
         sync_node->set_assigned_device_name(
             edge->src()->assigned_device_name());
+
         // Connect output edges from the TF optimizer to the sync node
         // which will be for the input index 0 since that is the
         // output we want.
-        // This should not replace the control edges.
+        // And, also make sure that the output is a ref type otherwise
+        // don't move the edges.
         if (edge->dst_input() == 0) {
-          TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, sync_node));
+          if (IsRefType(node->output_type(0))) {
+            TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, sync_node));
+          } else {
+            for (auto out_edge : node->out_edges()) {
+              graph->AddEdge(sync_node, Graph::kControlSlot, out_edge->dst(),
+                             Graph::kControlSlot);
+            }
+          }
         }
 
         // Add a control edge from the TF optimizer node
