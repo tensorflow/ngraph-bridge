@@ -26,7 +26,7 @@
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
-#include "test_utilities.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
