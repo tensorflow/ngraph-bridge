@@ -14,55 +14,36 @@
  * limitations under the License.
  *******************************************************************************/
 
-#ifndef THREAD_SAFE_QUEUE_H_
-#define THREAD_SAFE_QUEUE_H_
+#ifndef NGRAPH_TF_VARIABLE_UPDATE_NG_TENSOR_OP_H_
+#define NGRAPH_TF_VARIABLE_UPDATE_NG_TENSOR_OP_H_
 #pragma once
 
-#include <queue>
+#include <ostream>
 
-#include "absl/synchronization/mutex.h"
+#include "tensorflow/core/graph/graph.h"
 
-using namespace std;
+/* -------------------------------------------------
+//
+// NGraphVariableUpdateNGTensor
+//
+---------------------------------------------------*/
+
 namespace tensorflow {
+
 namespace ngraph_bridge {
 
-template <typename T>
-class ThreadSafeQueue {
+class NGraphVariableUpdateNGTensorOp : public OpKernel {
  public:
-  // Return T and a status thing so that in case or termination,
-  // caller can check
-  // TODO
-  T GetNextAvailable() {
-    m_mutex.Lock();
-    while (m_queue.empty()) {
-      m_cv.Wait(&m_mutex);
-    }
-
-    T next = std::move(m_queue.front());
-    m_queue.pop();
-    m_mutex.Unlock();
-    return next;
-  }
-
-  void Add(T item) {
-    m_mutex.Lock();
-    m_queue.push(std::move(item));
-    m_cv.SignalAll();
-    m_mutex.Unlock();
-  }
-
-  void Terminate() {
-    // TODO
-    //
-  }
+  explicit NGraphVariableUpdateNGTensorOp(OpKernelConstruction* ctx);
+  ~NGraphVariableUpdateNGTensorOp() override;
+  void Compute(OpKernelContext* ctx) override;
 
  private:
-  queue<T> m_queue;
-  absl::CondVar m_cv;
-  absl::Mutex m_mutex;
+  int ng_graph_id_;
+  string ng_variable_shared_name_;
 };
 
 }  // namespace ngraph_bridge
-}  // namespace tensorflow
 
-#endif  // THREAD_SAFE_QUEUE_H_
+}  // namespace tensorflow
+#endif  // NGRAPH_TF_VARIABLE_UPDATE_NG_TENSOR_OP_H_
