@@ -2280,9 +2280,6 @@ static Status TranslateGatherV2Op(
   std::string backend_name;
   TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
 
-  // split and check the first part only, since the node attribute contains
-  // the full backend creation string
-
   // Negative axis is supported. Accounting for that
   auto ng_input_shape = ng_input->get_shape();
   size_t ng_input_rank = ng_input_shape.size();
