@@ -1689,7 +1689,7 @@ TEST(MathOps, UnsortedSegmentSum) {
   AssignInputValues(B, std::vector<int>{0, 1, 0});
   AssignInputValues(C, 2);
 
-  vector<int> static_input_indexes = {1, 2};
+  vector<int> static_input_indexes = {2};
   auto R = ops::UnsortedSegmentSum(root, A, B, C);
 
   vector<DataType> output_datatypes = {DT_FLOAT};
@@ -1712,7 +1712,7 @@ TEST(MathOps, UnsortedSegmentSumIdxRange) {
   AssignInputValues(B, std::vector<int>{0, 1, 2, 3});
   AssignInputValues(C, 4);
 
-  vector<int> static_input_indexes = {1, 2};
+  vector<int> static_input_indexes = {2};
   auto R = ops::UnsortedSegmentSum(root, A, B, C);
 
   vector<DataType> output_datatypes = {DT_FLOAT};
@@ -1735,7 +1735,7 @@ TEST(MathOps, UnsortedSegmentSumMissingIndices) {
   AssignInputValues(B, std::vector<int>{0, 1, 3, 4, 0});
   AssignInputValues(C, 5);
 
-  vector<int> static_input_indexes = {1, 2};
+  vector<int> static_input_indexes = {2};
   auto R = ops::UnsortedSegmentSum(root, A, B, C);
 
   vector<DataType> output_datatypes = {DT_FLOAT};
@@ -1758,7 +1758,7 @@ TEST(MathOps, UnsortedSegmentSumSingleIndex) {
   AssignInputValues(B, std::vector<int>{0, 0, 0, 0, 0});
   AssignInputValues(C, 1);
 
-  vector<int> static_input_indexes = {1, 2};
+  vector<int> static_input_indexes = {2};
   auto R = ops::UnsortedSegmentSum(root, A, B, C);
 
   vector<DataType> output_datatypes = {DT_FLOAT};
@@ -1781,7 +1781,7 @@ TEST(MathOps, UnsortedSegmentSumTwoDims) {
   AssignInputValues(B, std::vector<int>{0, 1, 0, 1, 0, 1});
   AssignInputValues(C, 2);
 
-  vector<int> static_input_indexes = {1, 2};
+  vector<int> static_input_indexes = {2};
   auto R = ops::UnsortedSegmentSum(root, A, B, C);
 
   vector<DataType> output_datatypes = {DT_FLOAT};
