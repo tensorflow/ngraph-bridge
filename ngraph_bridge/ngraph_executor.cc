@@ -192,7 +192,7 @@ Status NGraphExecutor::ComputeSignature(
 }
 
 //---------------------------------------------------------------------------
-//  NGraphExecutor::GetExecutableAndTensors
+//  NGraphExecutor::GetExecutableFunctionAndTensors
 //---------------------------------------------------------------------------
 Status NGraphExecutor::GetExecutableFunctionAndTensors(
     const std::vector<Tensor>& tf_input_tensors,
