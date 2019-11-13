@@ -147,9 +147,17 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
   int graph_id{-1};
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
 
+  int my_function_cache_depth_in_items = 16;
+  const char* cache_depth_specified =
+      std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
+  if (cache_depth_specified != nullptr) {
+    my_function_cache_depth_in_items = atoi(cache_depth_specified);
+  }
+
   // Create the Executor object
-  m_parallel_executor = move(unique_ptr<NGraphExecutor>(new NGraphExecutor(
-      s_instance_id, cluster_id, graph_id, encap_subgraph, backend_name)));
+  m_parallel_executor = move(unique_ptr<NGraphExecutor>(
+      new NGraphExecutor(s_instance_id, cluster_id, graph_id, encap_subgraph,
+                         backend_name, my_function_cache_depth_in_items)));
   s_instance_id++;
 
   // Get the optional attributes

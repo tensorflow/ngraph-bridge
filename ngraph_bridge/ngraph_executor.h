@@ -41,7 +41,7 @@ class NGraphExecutor {
   // Transforms, compiles and executes TesnorFlow computation graph using nGraph
   explicit NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                           unique_ptr<tensorflow::Graph>& graph,
-                          const string& backend_name);
+                          const string& backend_name, const int cache_depth);
 
   ~NGraphExecutor();
 
@@ -92,7 +92,6 @@ class NGraphExecutor {
   std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
   GetNgExecutable(std::string signature,
                   std::shared_ptr<ngraph::Function>& ng_function,
-                  const string serialized_ng_func,
                   ng::runtime::Backend*& op_backend);
   // Allocates the necessary tensors from the Executable (or backend in future)
   // Called from CreateCallback
@@ -127,7 +126,7 @@ class NGraphExecutor {
   NgraphDataCache<std::string,
                   std::tuple<std::shared_ptr<ngraph::runtime::Executable>,
                              std::string, shared_ptr<PipelinedTensorsStore>>>
-      m_ng_data_cache{my_function_cache_depth_in_items};
+      m_ng_data_cache;
 
   bool m_executable_can_create_tensor;
 

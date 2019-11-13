@@ -61,12 +61,14 @@ namespace ngraph_bridge {
 //---------------------------------------------------------------------------
 NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                                unique_ptr<tensorflow::Graph>& graph,
-                               const string& backend_name)
+                               const string& backend_name,
+                               const int cache_depth)
     : m_instance_id(instance_id),
       m_ngraph_cluster_id(cluster_id),
       m_graph_id(graph_id),
       m_graph(std::move(graph)),
-      m_op_backend_name(backend_name) {
+      m_op_backend_name(backend_name),
+      m_ng_data_cache(cache_depth) {
   // Sanity checks
   if (m_graph == nullptr) {
     throw std::runtime_error("Graph is nullptr!");
@@ -299,7 +301,7 @@ NGraphExecutor::CreateCallback(const std::string signature,
   }
   // Get NgExecutable
   auto status_ng_exec_pair =
-      GetNgExecutable(signature, ng_function, serialized_ng_func, op_backend);
+      GetNgExecutable(signature, ng_function, op_backend);
   // Create PipelinedTensorStore
   if (status_ng_exec_pair.first == Status::OK()) {
     ng_exec = status_ng_exec_pair.second;
@@ -307,9 +309,16 @@ NGraphExecutor::CreateCallback(const std::string signature,
     pts = status_ng_pts_pair.second;
     return std::make_pair(status_ng_pts_pair.first,
                           std::make_tuple(ng_exec, serialized_ng_func, pts));
+  } else {
+    Status st = StringToFile("tf_function_error_" + m_node_name + ".json",
+                             serialized_ng_func);
+    string status_string =
+        "Error in compiling op_backend." +
+        (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                         st.error_message()));
+    return std::make_pair(errors::Internal(status_string),
+                          std::make_tuple(ng_exec, serialized_ng_func, pts));
   }
-  return std::make_pair(status_ng_exec_pair.first,
-                        std::make_tuple(ng_exec, serialized_ng_func, pts));
 }
 
 //---------------------------------------------------------------------------
@@ -318,7 +327,6 @@ NGraphExecutor::CreateCallback(const std::string signature,
 std::pair<Status, std::shared_ptr<ngraph::runtime::Executable>>
 NGraphExecutor::GetNgExecutable(std::string signature,
                                 std::shared_ptr<ngraph::Function>& ng_function,
-                                const string serialized_ng_func,
                                 ng::runtime::Backend*& op_backend) {
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
 
@@ -344,21 +352,12 @@ NGraphExecutor::GetNgExecutable(std::string signature,
     }
   } catch (const std::exception& exp) {
     BackendManager::UnlockBackend(m_op_backend_name);
-    Status st = StringToFile("tf_function_error_" + m_node_name + ".json",
-                             serialized_ng_func);
     string status_string =
-        "Caught exception while compiling op_backend: " + string(exp.what()) +
-        (st.ok() ? "" : (" Also error in dumping serialized function: " +
-                         st.error_message()));
+        "Caught exception while compiling op_backend: " + string(exp.what());
     return std::make_pair(errors::Internal(status_string), nullptr);
   } catch (...) {
     BackendManager::UnlockBackend(m_op_backend_name);
-    Status st = StringToFile("tf_function_error_" + m_node_name + ".json",
-                             serialized_ng_func);
-    string status_string =
-        "Error in compiling op_backend." +
-        (st.ok() ? "" : (" Also error in dumping serialized function: " +
-                         st.error_message()));
+    string status_string = "Error in compiling op_backend.";
     return std::make_pair(errors::Internal(status_string), nullptr);
   }
   BackendManager::UnlockBackend(m_op_backend_name);
