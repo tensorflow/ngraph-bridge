@@ -233,6 +233,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
       confirmation_function_map["AvgPoolGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
+      confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
       confirmation_function_map["BiasAdd"] = SimpleConfirmationFunction();
       confirmation_function_map["BiasAddGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["Cast"] = SimpleConfirmationFunction();
@@ -285,6 +286,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       };
       confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
       confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
+      confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
       confirmation_function_map["_FusedMatMul"] =
           SimpleConfirmationFunction();  // TODO accept under all conditions?
                                          // check?
@@ -435,6 +437,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
       type_constraint_map["AvgPoolGrad"]["T"] = NGraphNumericDTypes();
       type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
       type_constraint_map["BiasAdd"]["T"] = NGraphNumericDTypes();
       type_constraint_map["BiasAddGrad"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Cast"]["SrcT"] = NGraphDTypes();
@@ -661,16 +664,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   // Right now it cannot be inside the if(!initialized) block, because it is
   // backend dependent, which might change with different sess.run()s
-  confirmation_function_map["GatherV2"] = [&current_backend](Node*,
-                                                             bool* result) {
-    // TODO: replace current_backend ->
-    // BackendManager::GetCurrentlySetBackendName()
-    auto config_map =
-        BackendManager::GetBackendAttributeValues(current_backend);
-    *result = (config_map.at("ngraph_backend") == "NNPI");
-    return Status::OK();
-  };
-
   confirmation_function_map["NonMaxSuppressionV4"] = [&current_backend](
       Node*, bool* result) {
     auto config_map =
