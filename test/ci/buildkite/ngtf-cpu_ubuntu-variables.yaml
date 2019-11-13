@@ -48,8 +48,7 @@
     agents:
     - "queue=cpu"
 
-  - wait: ~
-    continue_on_failure: true
+  - wait 
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
@@ -76,13 +75,12 @@
     agents:
     - "queue=cpu"
 
-  - wait: ~
-    continue_on_failure: true
+  - wait
   
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install pytest
-      NGRAPH_TF_NGVARIABLE_BUFFER_SHARING=0 PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
+      PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_tf_python
     
     label: ":python: TensorFlow Pytest"
@@ -90,8 +88,7 @@
     agents:
     - "queue=cpu"
 
-  - wait: ~
-    continue_on_failure: true
+  - wait
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
@@ -103,7 +100,6 @@
     - "queue=cpu"
 
   - wait: ~
-    continue_on_failure: true
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
