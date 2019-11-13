@@ -36,7 +36,6 @@ import json
 
 import ngraph_bridge
 import os
-from os import environ
 
 # If the below graph is run for many iterations
 # The NGraphVar's NGTensor is updated every iteration
