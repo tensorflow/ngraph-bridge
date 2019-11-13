@@ -53,13 +53,16 @@ set(SRC
     graph_rewrites/disable_ops_test.cc
     graph_rewrites/mark_for_clustering_test.cc
     test_index_library.cpp
+    test_ngraph_data_cache.cpp
     test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
     test_array_ops.cpp
     test_variable_ops.cpp
+    test_parallel_executor.cpp
     test_momentum_op.cpp
     opexecuter.cpp
+    test_thread_safe_queue.cc
 )
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
@@ -67,6 +70,8 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/enter_in_catalog_test.cc)
     list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
     list(APPEND SRC graph_rewrites/test_replace_optimizer.cpp)
+    list(APPEND SRC tf_fake_input.cc)
+    list(APPEND SRC graph_rewrites/test_ng_var_update_ng_tensor.cc)
 endif()
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
@@ -74,9 +79,14 @@ if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
     list(APPEND SRC graph_rewrites/partial_shapes_test.cc)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+# The compile flag -DNDEBUG is required since
+# tensorflow::Core::RefCounted is error prone as explained here:
+# https://github.com/tensorflow/tensorflow/issues/17316
+# Also, the ngraph_bridge code when compiled has this flag enabled(https://github.com/tensorflow/ngraph-bridge/blob/018c010df44a51a988c6a2d009e6210506b4d96f/ngraph_bridge/CMakeLists.txt#L26)
+# hence the error seen while testing the custom op does not show up there.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DNDEBUG")
 
-message(STATUS "Compile Flags: ${CMAKE_CXX_FLAGS}")
+message(STATUS "Compile Flags for test dir: ${CMAKE_CXX_FLAGS}")
 message(STATUS "Shared Link Flags: ${CMAKE_SHARED_LINKER_FLAGS}")
 
 add_executable(gtest_ngtf ${SRC})
@@ -93,6 +103,12 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_launchop.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_int8_launchop.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
 )
 
 if (APPLE)
@@ -113,6 +129,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
+        absl_synchronization
     )
 else()
     target_link_libraries(
@@ -123,6 +140,7 @@ else()
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
+        absl_synchronization
     )
 endif()
 
@@ -144,6 +162,8 @@ endif()
 install(TARGETS gtest_ngtf DESTINATION ${CMAKE_INSTALL_PREFIX}/test)  
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test

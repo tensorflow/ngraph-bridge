@@ -35,8 +35,9 @@
 
 #include "ngraph/event_tracing.hpp"
 
-#include "examples/cpp/infer_multiple_networks/inference_engine.h"
+#include "inference_engine.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/version.h"
 
 using namespace std;
@@ -44,6 +45,8 @@ namespace tf = tensorflow;
 
 extern tf::Status PrintTopLabels(const std::vector<tf::Tensor>& outputs,
                                  const string& labels_file_name);
+extern tf::Status CheckTopLabel(const std::vector<tf::Tensor>& outputs,
+                                int expected, bool* is_expected);
 
 // Prints the available backends
 void PrintAvailableBackends() {
@@ -89,14 +92,25 @@ void PrintVersion() {
   PrintAvailableBackends();
 }
 
+//-----------------------------------------------------------------------------
+//  The benchmark test for inference does the following
+//    1. Preloads the input image buffer (currently single image)
+//    2. Creates the TensorFlow Session by loading a frozen inference graph
+//    3. Starts the worker threads and runs the test for a specifed iterations
+//
+//  Each worker thread does the following:
+//    1. Gets an image from the image pool
+//    2. Copies the data to a TensorFlow Tensor
+//    3. Runs the inference using the same session used by others as well
+//
+//-----------------------------------------------------------------------------
 int main(int argc, char** argv) {
   // parameters below need to modified as per model
-  string image = "grace_hopper.jpg";
+  string image_file = "grace_hopper.jpg";
   int batch_size = 1;
-  // Vector size is same as the batch size, populating with single image
-  vector<string> images(batch_size, image);
   string graph = "inception_v3_2016_08_28_frozen.pb";
   string labels = "";
+  int label_index = -1;
   int input_width = 299;
   int input_height = 299;
   float input_mean = 0.0;
@@ -106,12 +120,13 @@ int main(int argc, char** argv) {
   bool use_NCHW = false;
   bool preload_images = true;
   int input_channels = 3;
-  int iteration_count = 10;
+  int iteration_count = 20;
 
   std::vector<tf::Flag> flag_list = {
-      tf::Flag("image", &image, "image to be processed"),
+      tf::Flag("image", &image_file, "image to be processed"),
       tf::Flag("graph", &graph, "graph to be executed"),
       tf::Flag("labels", &labels, "name of file containing labels"),
+      tf::Flag("label_index", &label_index, "Index of the expected label"),
       tf::Flag("input_width", &input_width,
                "resize image to this width in pixels"),
       tf::Flag("input_height", &input_height,
@@ -126,6 +141,9 @@ int main(int argc, char** argv) {
                "How many times to repeat the inference"),
       tf::Flag("preload_images", &preload_images,
                "Repeat the same image for inference"),
+      tf::Flag(
+          "batch_size", &batch_size,
+          "Input bach size. The same images is copied to create the batch"),
   };
 
   string usage = tensorflow::Flags::Usage(argv[0], flag_list);
@@ -151,47 +169,106 @@ int main(int argc, char** argv) {
   std::cout << "Component versions\n";
   PrintVersion();
 
-  infer_multiple_networks::InferenceEngine infer_engine_1("engine_1");
-  TF_CHECK_OK(infer_engine_1.Load(
-      graph, images, input_width, input_height, input_mean, input_std,
-      input_layer, output_layer, use_NCHW, preload_images, input_channels));
-  infer_multiple_networks::InferenceEngine infer_engine_2("engine_2");
-  TF_CHECK_OK(infer_engine_2.Load(
-      graph, images, input_width, input_height, input_mean, input_std,
-      input_layer, output_layer, use_NCHW, preload_images, input_channels));
-  infer_multiple_networks::InferenceEngine infer_engine_3("engine_3");
-  TF_CHECK_OK(infer_engine_3.Load(
-      graph, images, input_width, input_height, input_mean, input_std,
+  // If batch size is more than one then expand the input
+  vector<string> image_files;
+  for (int i = 0; i < batch_size; i++) {
+    image_files.push_back(image_file);
+  }
+  // Instantiate the Engine
+  benchmark::InferenceEngine inference_engine("Foo");
+  TF_CHECK_OK(inference_engine.LoadImage(
+      graph, image_files, input_width, input_height, input_mean, input_std,
       input_layer, output_layer, use_NCHW, preload_images, input_channels));
 
-  bool engine_1_running = true;
-  TF_CHECK_OK(infer_engine_1.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      TF_CHECK_OK(infer_engine_1.Stop());
-      engine_1_running = false;
-    }
-  }));
-
-  bool engine_2_running = true;
-  TF_CHECK_OK(infer_engine_2.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      TF_CHECK_OK(infer_engine_2.Stop());
-      engine_2_running = false;
-    }
-  }));
-
-  bool engine_3_running = true;
-  TF_CHECK_OK(infer_engine_3.Start([&](int step_count) {
-    if (step_count == (iteration_count - 1)) {
-      TF_CHECK_OK(infer_engine_3.Stop());
-      engine_3_running = false;
-    }
-  }));
-
-  while (engine_1_running || engine_2_running || engine_3_running) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  string backend_name = "CPU";
+  if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
+    backend_name = std::getenv("NGRAPH_TF_BACKEND");
   }
 
-  std::cout << "Done" << std::endl;
+  unique_ptr<Session> the_session;
+  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
+                                                        "0", the_session));
+
+  ngraph::Event evt_compilation("Compilation", "Compilation", "");
+
+  // Call it onces to get the nGraph compilation done
+  Tensor next_image;
+  TF_CHECK_OK(inference_engine.GetNextImage(next_image));
+  std::vector<Tensor> outputs;
+  // Run inference once. This will trigger a compilation
+  tf::ngraph_bridge::Timer compilation_time;
+  TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer}, {},
+                               &outputs));
+  compilation_time.Stop();
+
+  cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
+       << endl;
+  evt_compilation.Stop();
+  ngraph::Event::write_trace(evt_compilation);
+
+  atomic<int> total_time_in_ms{0};
+  atomic<int> total_images_processed{0};
+
+  auto worker = [&](int worker_id) {
+    ostringstream oss;
+    oss << "Worker_" << worker_id;
+    for (int i = 0; i < iteration_count; i++) {
+      ngraph::Event evt_run(oss.str(), to_string(i), "");
+      tf::ngraph_bridge::Timer iteration_timer;
+      // Get the image
+      Tensor next_image;
+      TF_CHECK_OK(inference_engine.GetNextImage(next_image));
+
+      // Run inference
+      TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer},
+                                   {}, &outputs));
+
+      // End. Mark time
+      iteration_timer.Stop();
+      total_time_in_ms += iteration_timer.ElapsedInMS();
+      cout << "Iteration: " << i << " Time: " << iteration_timer.ElapsedInMS()
+           << endl;
+      total_images_processed++;
+      evt_run.Stop();
+      ngraph::Event::write_trace(evt_run);
+    }
+  };
+
+  tf::ngraph_bridge::Timer benchmark_timer;
+  std::thread thread0(worker, 0);
+  std::thread thread1(worker, 1);
+  std::thread thread2(worker, 2);
+
+  thread0.join();
+  thread1.join();
+  thread2.join();
+  benchmark_timer.Stop();
+
+  // Adjust the total images with the batch size
+  total_images_processed = total_images_processed * batch_size;
+
+  cout << "Time for each image: "
+       << ((float)total_time_in_ms / (float)total_images_processed) << " ms"
+       << endl;
+  cout << "Images/Sec: "
+       << (float)total_images_processed /
+              (benchmark_timer.ElapsedInMS() / 1000.0)
+       << endl;
+  cout << "Total frames: " << total_images_processed << "\n";
+  cout << "Total time: " << benchmark_timer.ElapsedInMS() << " ms\n";
+  // Validate the label if provided
+  if (!labels.empty()) {
+    cout << "Classification results\n";
+    // Validate the label
+    PrintTopLabels(outputs, labels);
+    if (label_index != -1) {
+      bool found = false;
+      CheckTopLabel(outputs, label_index, &found);
+      if (!found) {
+        cout << "Error - label doesn't match expected\n";
+        return -1;
+      }
+    }
+  }
   return 0;
 }

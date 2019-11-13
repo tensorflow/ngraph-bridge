@@ -43,6 +43,7 @@ set(SRC
    ngraph_encapsulate_clusters.cc
    ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
+   ngraph_executor.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
    ngraph_freshness_tracker.cc
@@ -54,6 +55,9 @@ set(SRC
    ngraph_utils.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
+   prefetch_autotuner.cc
+   ngraph_prefetch_dataset_op.cc
+   stats_utils.cc
    version.cc
 )
 
@@ -84,6 +88,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_replace_op_utilities.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_variable_modifiers.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
     
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 endif()
@@ -113,7 +118,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             absl_algorithm
             absl_container
             absl_strings
-            lib_tbb
             lib_mkldnn
             lib_iomp5
         )
@@ -156,7 +160,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
-        lib_tbb
         lib_mkldnn
         lib_mklml_intel
         lib_iomp5

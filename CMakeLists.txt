@@ -248,8 +248,8 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.25.1-rc.7
-        CMAKE_ARGS
+        GIT_TAG v0.25.1-rc.8
+        CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
             -DNGRAPH_USE_CXX_ABI=${TensorFlow_CXX_ABI}
@@ -326,10 +326,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${LIB_MKLML_INTEL_IMPORTED_LOCATION}
     )
 
-    add_library(lib_tbb INTERFACE)
-    target_link_libraries(lib_tbb INTERFACE
-        ${NGRAPH_INSTALL_DIR}/${LIB}/libtbb.so)
-
     add_library(lib_iomp5 SHARED IMPORTED)
     set_target_properties(
         lib_iomp5
@@ -365,6 +361,7 @@ get_filename_component(
     ABSOLUTE
 )
 
+add_subdirectory(experimental/ngraph_device)
 add_subdirectory(examples)
 if (DEFINED TF_SRC_DIR)
     message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
