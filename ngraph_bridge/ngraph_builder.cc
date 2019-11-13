@@ -951,9 +951,45 @@ static Status TranslateBatchMatMulOp(
   return Status::OK();
 }
 
-static Status TranslateBiasAddOp(const Node* op,
-                                 const std::vector<const Tensor*>&,
-                                 Builder::OpMap& ng_op_map) {
+static Status TranslateBatchMatMulV2Op(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_lhs, ng_rhs;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
+
+  auto ng_lhs_shape = ng_lhs->get_shape();
+  auto ng_rhs_shape = ng_rhs->get_shape();
+  size_t n_dims = ng_lhs_shape.size();
+
+  if (ng_lhs_shape.size() != ng_rhs_shape.size()) {
+    return errors::InvalidArgument(
+        "Dimensions of two input args are not the same for BatchMatMul");
+  }
+
+  for (size_t i = 0; i < n_dims - 2; ++i) {
+    if (!((ng_lhs_shape[i] == ng_rhs_shape[i]) || (ng_lhs_shape[i] == 1) ||
+          (ng_rhs_shape[i] == 1))) {
+      return errors::InvalidArgument(
+          "ng_lhs_shape and ng_rhs_shape must be broadcastable for "
+          "BatchMatMulV2 "
+          "for each dimension. Failed to match dimension ",
+          i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
+          ng_rhs_shape[i]);
+    } else if ((ng_lhs_shape[i] == 1) || (ng_rhs_shape[i] == 1)) {
+      return errors::Unimplemented(
+          "ng_lhs_shape and ng_rhs_shape must be the same for each dimension, "
+          "for current implementation of BatchMatMulV2."
+          "Failed to match dimension ",
+          i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
+          ng_rhs_shape[i]);
+    }
+  }
+  return TranslateBatchMatMulOp(op, static_input_map, ng_op_map);
+}
+
+static Status TranslateBiasAddOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input, ng_bias;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_bias));
 
@@ -1070,6 +1106,7 @@ static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
   }
   return Status::OK();
 }
+
 static Status TranslateCombinedNonMaxSuppressionOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -4912,14 +4949,17 @@ const static std::map<
       {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
       {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
       {"AvgPool", TranslateAvgPoolOp}, {"AvgPoolGrad", TranslateAvgPoolGradOp},
-      {"BatchMatMul", TranslateBatchMatMulOp}, {"BiasAdd", TranslateBiasAddOp},
-      {"BiasAddGrad", TranslateBiasAddGradOp}, {"Cast", TranslateCastOp},
+      {"BatchMatMul", TranslateBatchMatMulOp},
+      {"BatchMatMulV2", TranslateBatchMatMulV2Op},
+      {"BiasAdd", TranslateBiasAddOp}, {"BiasAddGrad", TranslateBiasAddGradOp},
+      {"Cast", TranslateCastOp},
       {"CombinedNonMaxSuppression", TranslateCombinedNonMaxSuppressionOp},
       {"ConcatV2", TranslateConcatV2Op}, {"Const", TranslateConstOp},
       {"Conv2D", TranslateConv2DOp},
       {"Conv2DBackpropFilter", TranslateConv2DBackpropFilterOp},
       {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
-      {"Conv3D", TranslateConv3DOp}, {"DepthToSpace", TranslateDepthToSpaceOp},
+      {"Conv3D", TranslateConv3DOp}, {"Cos", TranslateUnaryOp<ngraph::op::Cos>},
+      {"DepthToSpace", TranslateDepthToSpaceOp},
       {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
       {"Dequantize", TranslateDequantizeOp},
       {"Equal", TranslateBinaryOp<ngraph::op::Equal>},
@@ -4990,9 +5030,10 @@ const static std::map<
       {"Rsqrt", TranslateRsqrtOp}, {"RsqrtGrad", TranslateRsqrtGradOp},
       {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
       {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
-      {"Size", TranslateSizeOp}, {"Sign", TranslateUnaryOp<ngraph::op::Sign>},
-      {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
-      {"Softmax", TranslateSoftmaxOp}, {"Softplus", TranslateSoftplusOp},
+      {"Sin", TranslateUnaryOp<ngraph::op::Sin>}, {"Size", TranslateSizeOp},
+      {"Sign", TranslateUnaryOp<ngraph::op::Sign>}, {"Slice", TranslateSliceOp},
+      {"Snapshot", TranslateIdentityOp}, {"Softmax", TranslateSoftmaxOp},
+      {"Softplus", TranslateSoftplusOp},
       {"SpaceToDepth", TranslateSpaceToDepthOp},
       {"SparseSoftmaxCrossEntropyWithLogits",
        TranslateSparseSoftmaxCrossEntropyWithLogitsOp},

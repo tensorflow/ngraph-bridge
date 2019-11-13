@@ -233,6 +233,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
       confirmation_function_map["AvgPoolGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
+      confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
       confirmation_function_map["BiasAdd"] = SimpleConfirmationFunction();
       confirmation_function_map["BiasAddGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["Cast"] = SimpleConfirmationFunction();
@@ -243,9 +244,10 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
           SimpleConfirmationFunction();
       confirmation_function_map["Conv2DBackpropInput"] =
           SimpleConfirmationFunction();
+      confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
+      confirmation_function_map["Cos"] = SimpleConfirmationFunction();
       confirmation_function_map["DepthwiseConv2dNative"] =
           SimpleConfirmationFunction();
-      confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
       confirmation_function_map["DepthToSpace"] = [](Node* n, bool* result) {
         std::string tf_data_format;
         TF_RETURN_IF_ERROR(
@@ -373,6 +375,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
       confirmation_function_map["SigmoidGrad"] = SimpleConfirmationFunction();
       confirmation_function_map["Sign"] = SimpleConfirmationFunction();
+      confirmation_function_map["Sin"] = SimpleConfirmationFunction();
       confirmation_function_map["Size"] = SimpleConfirmationFunction();
       confirmation_function_map["Slice"] = SimpleConfirmationFunction();
       confirmation_function_map["Snapshot"] = SimpleConfirmationFunction();
@@ -434,6 +437,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
       type_constraint_map["AvgPoolGrad"]["T"] = NGraphNumericDTypes();
       type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
       type_constraint_map["BiasAdd"]["T"] = NGraphNumericDTypes();
       type_constraint_map["BiasAddGrad"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Cast"]["SrcT"] = NGraphDTypes();
@@ -444,6 +448,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Conv2D"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Conv2DBackpropInput"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Conv3D"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["Cos"]["T"] = NGraphRealDTypes();
       type_constraint_map["DepthToSpace"]["T"] = NGraphDTypes();
       type_constraint_map["DepthwiseConv2dNative"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Dequantize"]["T"] = NGraphSupportedQuantizedDTypes();
@@ -567,6 +572,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
       type_constraint_map["SigmoidGrad"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["Sin"]["T"] = NGraphRealDTypes();
       type_constraint_map["Size"]["T"] = NGraphDTypes();
       type_constraint_map["Size"]["out_type"] = NGraphIndexDTypes();
       type_constraint_map["Slice"]["T"] = NGraphDTypes();

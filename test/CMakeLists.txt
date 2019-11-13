@@ -53,6 +53,7 @@ set(SRC
     graph_rewrites/disable_ops_test.cc
     graph_rewrites/mark_for_clustering_test.cc
     test_index_library.cpp
+    test_ngraph_data_cache.cpp
     test_utilities.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
@@ -69,6 +70,8 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/enter_in_catalog_test.cc)
     list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
     list(APPEND SRC graph_rewrites/test_replace_optimizer.cpp)
+    list(APPEND SRC tf_fake_input.cc)
+    list(APPEND SRC graph_rewrites/test_ng_var_update_ng_tensor.cc)
 endif()
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
@@ -76,9 +79,14 @@ if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
     list(APPEND SRC graph_rewrites/partial_shapes_test.cc)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+# The compile flag -DNDEBUG is required since
+# tensorflow::Core::RefCounted is error prone as explained here:
+# https://github.com/tensorflow/tensorflow/issues/17316
+# Also, the ngraph_bridge code when compiled has this flag enabled(https://github.com/tensorflow/ngraph-bridge/blob/018c010df44a51a988c6a2d009e6210506b4d96f/ngraph_bridge/CMakeLists.txt#L26)
+# hence the error seen while testing the custom op does not show up there.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DNDEBUG")
 
-message(STATUS "Compile Flags: ${CMAKE_CXX_FLAGS}")
+message(STATUS "Compile Flags for test dir: ${CMAKE_CXX_FLAGS}")
 message(STATUS "Shared Link Flags: ${CMAKE_SHARED_LINKER_FLAGS}")
 
 add_executable(gtest_ngtf ${SRC})
