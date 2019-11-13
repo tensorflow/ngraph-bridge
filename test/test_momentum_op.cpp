@@ -110,6 +110,7 @@ TEST(ReplaceModifier, Momentum1) {
   }
 
   Compare(tf_outputs1_s, ng_outputs1_s);
+  // Compare(tf_outputs1, ng_outputs1);
   Compare(tf_outputs2, ng_outputs2);
   Compare(tf_outputs3, ng_outputs3);
 

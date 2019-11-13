@@ -36,6 +36,7 @@ import json
 
 import ngraph_bridge
 import os
+from os import environ
 
 # If the below graph is run for many iterations
 # The NGraphVar's NGTensor is updated every iteration
@@ -111,9 +112,11 @@ class TestVariableStaticInputs(NgraphTest):
         # property we can use this env flag NGRAPH_TF_NGVARIABLE_BUFFER_SHARING
 
         # set env variable to disable NGraphVariable's buffer sharing
-        buffer_sharing_env = "NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"
-        env_var_map = self.store_env_variables([buffer_sharing_env])
-        self.set_env_variable(buffer_sharing_env, "0")
+        # buffer_sharing_env = "NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"
+        # env_var_map = self.store_env_variables([buffer_sharing_env])
+        # self.set_env_variable(buffer_sharing_env, "0")
+        if "NGRAPH_TF_NGVARIABLE_BUFFER_SHARING" in os.environ:
+            print("KANVI------------")
 
         # Run on nGraph
         ng_var_init_val, ng_mean_values, ng_var_final = self.with_ngraph(
