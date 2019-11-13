@@ -79,8 +79,7 @@ void PrintTensorAllValues(
     const Tensor& T1,
     int64 max_entries);  // print max_entries of elements in the Tensor
 
-std::vector<string> ConvertToString(const std::vector<tensorflow::Tensor>,
-                                    int64 max_entries);
+std::vector<string> ConvertToString(const std::vector<tensorflow::Tensor>);
 
 // Generating Random Seed
 unsigned int GetSeedForRandomFunctions();

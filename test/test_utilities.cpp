@@ -156,11 +156,14 @@ void PrintTensorAllValues(const Tensor& T1, int64 max_entries) {
   LOG(INFO) << "all tensor values" << T1.SummarizeValue(max_entries) << endl;
 }
 
-std::vector<string> ConvertToString(const std::vector<tensorflow::Tensor> T1,
-                                    int64 max_entries) {
+std::vector<string> ConvertToString(const std::vector<tensorflow::Tensor> T1) {
   std::vector<string> out;
   for (auto i = 0; i < T1.size(); i++) {
-    out.push_back(T1[i].SummarizeValue(max_entries));
+    int total_enteries = 1;
+    for (int j=0; j<T1[i].dims(); j++) {
+      total_enteries = total_enteries * T1[i].dim_size(j);
+    }
+    out.push_back(T1[i].SummarizeValue(total_enteries));
   }
   return out;
 }
