@@ -1326,19 +1326,23 @@ TEST(MathOps, RandomUniform) {
   Scope root = Scope::NewRootScope();
 
   vector<int> static_input_indexes = {0};
+  int out_size = 10000;
 
   Tensor shape(DT_INT32, TensorShape({1}));
-  AssignInputValues(shape, 10);
+  AssignInputValues(shape, out_size);
+
+  auto keep_dims_attr = ops::Sum::Attrs().KeepDims({true});
 
   auto R = ops::RandomUniform(root, shape, DT_FLOAT);
+  auto S = ops::Sum(root, R, 0, keep_dims_attr);
 
   vector<DataType> output_datatypes = {DT_FLOAT};
 
-  std::vector<Output> sess_run_fetchoutputs = {R};
+  std::vector<Output> sess_run_fetchoutputs = {S};
   OpExecuter opexecuter(root, "RandomUniform", static_input_indexes,
                         output_datatypes, sess_run_fetchoutputs);
 
-  opexecuter.RunTest();
+  opexecuter.RunTest(1.e-2, 1.e-2);
 } 
 
 // For FloorDiv op, the input and output data type should match
