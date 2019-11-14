@@ -470,9 +470,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       // Get the set of IO tensors for the next iteration
       std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
           io_tensors_next_iter;
-      OP_REQUIRES_OK(ctx, m_parallel_executor->GetTensorsFromPipeline(
-                              ng_exec, io_tensors_next_iter));
-
+      io_tensors_next_iter = pipelined_tensor_store->get_tensors();
       // Save the ngTensors for the next iteration
       NGraphPrefetchSharedResouce::IoTensorBundle next_io_tensor_bundle{
           get<0>(io_tensors_next_iter), get<1>(io_tensors_next_iter),
@@ -549,7 +547,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // And execute
   ngraph::Event event_execute_graph("Execute Graph", "", "");
-  
+
   BackendManager::LockBackend(m_parallel_executor->GetOpBackendName());
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "
                  << m_parallel_executor->GetNgraphClusterId();
