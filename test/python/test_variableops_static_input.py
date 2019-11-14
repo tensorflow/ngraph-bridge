@@ -106,6 +106,14 @@ class TestVariableStaticInputs(NgraphTest):
         return var_init_value, mean_values, var_final_val
 
     def test_variable_static_input_variables_dont_share_buffer(self):
+        # This test is not applicable for CPU as NGVariable's NG and TF Tensors
+        # share buffer on CPU. To simulate other backend's non buffer sharing
+        # property we can use this env flag NGRAPH_TF_NGVARIABLE_BUFFER_SHARING
+
+        # set env variable to disable NGraphVariable's buffer sharing
+        buffer_sharing_env = "NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"
+        env_var_map = self.store_env_variables([buffer_sharing_env])
+        self.set_env_variable(buffer_sharing_env, "0")
 
         # Run on nGraph
         ng_var_init_val, ng_mean_values, ng_var_final = self.with_ngraph(
@@ -133,6 +141,10 @@ class TestVariableStaticInputs(NgraphTest):
 
         # Final Var value will match
         assert np.allclose(ng_var_final, tf_var_final)
+
+        # clean up
+        self.unset_env_variable(buffer_sharing_env)
+        self.restore_env_variables(env_var_map)
 
     # Everything works fine when buffer is shared
     def test_variable_static_input_variables_share_buffer(self):

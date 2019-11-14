@@ -43,6 +43,10 @@ namespace testing {
 class NGVarUpdateNGTensorOpTest : public tensorflow::OpsTestBase {};
 
 TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
+  list<string> env_vars{"NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING", "0");
+
   // Create a normal TF tensor: input_tf_tensor and assign values
   // This will be used to assign initial value to the TF tensor
   // that is a part of the NGraph Var resource
@@ -111,6 +115,8 @@ TEST_F(NGVarUpdateNGTensorOpTest, KernelTest) {
   ng_t->read(dst_ptr, 0, output_tensor.TotalBytes());
 
   Compare(output_tensor, input_tf_tensor, 0);
+  UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
+  RestoreEnv(env_map);
 }
 }  // testing
 }  // ngraph_bridge
