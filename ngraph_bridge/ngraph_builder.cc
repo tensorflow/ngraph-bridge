@@ -1106,6 +1106,7 @@ static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
   }
   return Status::OK();
 }
+
 static Status TranslateCombinedNonMaxSuppressionOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -4914,6 +4915,7 @@ const static std::map<
       {"All", TranslateDirectReduceOp<ng::op::All>},
       {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
       {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
+      {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
       {"AvgPool", TranslateAvgPoolOp}, {"AvgPoolGrad", TranslateAvgPoolGradOp},
       {"BatchMatMul", TranslateBatchMatMulOp},
       {"BatchMatMulV2", TranslateBatchMatMulV2Op},
@@ -4924,7 +4926,8 @@ const static std::map<
       {"Conv2D", TranslateConv2DOp},
       {"Conv2DBackpropFilter", TranslateConv2DBackpropFilterOp},
       {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
-      {"Conv3D", TranslateConv3DOp}, {"DepthToSpace", TranslateDepthToSpaceOp},
+      {"Conv3D", TranslateConv3DOp}, {"Cos", TranslateUnaryOp<ngraph::op::Cos>},
+      {"DepthToSpace", TranslateDepthToSpaceOp},
       {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
       {"Dequantize", TranslateDequantizeOp},
       {"Equal", TranslateBinaryOp<ngraph::op::Equal>},
@@ -4995,9 +4998,10 @@ const static std::map<
       {"Rsqrt", TranslateRsqrtOp}, {"RsqrtGrad", TranslateRsqrtGradOp},
       {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
       {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
-      {"Size", TranslateSizeOp}, {"Sign", TranslateUnaryOp<ngraph::op::Sign>},
-      {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
-      {"Softmax", TranslateSoftmaxOp}, {"Softplus", TranslateSoftplusOp},
+      {"Sin", TranslateUnaryOp<ngraph::op::Sin>}, {"Size", TranslateSizeOp},
+      {"Sign", TranslateUnaryOp<ngraph::op::Sign>}, {"Slice", TranslateSliceOp},
+      {"Snapshot", TranslateIdentityOp}, {"Softmax", TranslateSoftmaxOp},
+      {"Softplus", TranslateSoftplusOp},
       {"SpaceToDepth", TranslateSpaceToDepthOp},
       {"SparseSoftmaxCrossEntropyWithLogits",
        TranslateSparseSoftmaxCrossEntropyWithLogitsOp},
