@@ -92,7 +92,7 @@
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
-      PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
+      NGRAPH_TF_NGVARIABLE_BUFFER_SHARING=0 PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_resnet
     label: ":bar_chart: ResNet50"
     timeout_in_minutes: 30
