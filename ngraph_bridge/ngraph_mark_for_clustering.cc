@@ -16,6 +16,8 @@
 
 #include "tensorflow/core/graph/graph.h"
 
+#include "ngraph/runtime/backend.hpp"
+#include "ngraph/runtime/backend_manager.hpp"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -135,6 +137,50 @@ static ConfirmationFunction SimpleConfirmationFunction() {
   };
   return cf;
 };
+
+// Create dummy ngraph nodes to pass to is_supported API
+static std::shared_ptr<ng::Node> ConstructDummyNgNode(const string op_name) {
+  std::shared_ptr<ng::Node> ng_dummy_node = nullptr;
+  if (op_name == "Floor") ng_dummy_node = std::make_shared<ngraph::op::Floor>();
+  if (op_name == "Divide")
+    ng_dummy_node = std::make_shared<ngraph::op::Divide>();
+  if (op_name == "Subtract")
+    ng_dummy_node = std::make_shared<ngraph::op::Subtract>();
+  if (op_name == "Multiply")
+    ng_dummy_node = std::make_shared<ngraph::op::Multiply>();
+  else
+    cout << "Cannot create a dummy ngraph node for this given op: " << op_name
+         << std::endl;
+  return ng_dummy_node;
+}
+
+// Check if op is supported by backend using is_supported API
+Status IsSupportedByBackend(bool& is_supported) {
+  is_supported = true;
+  // Map:: TF ops to NG Ops
+  std::map<std::string, std::vector<std::string>> TFtoNgraphOpMap{
+      {"FloorMod", {"Floor", "Divide", "Subtract", "Multiply"}}};
+
+  // Create backend to query
+  Status status = BackendManager::CreateBackend("CPU");
+  ng::runtime::Backend* op_backend = BackendManager::GetBackend("CPU");
+  // Loop through TFtoNgraphOpMap map create dummy node for each ngraph op
+  for (std::map<std::string, std::vector<std::string>>::const_iterator it =
+           TFtoNgraphOpMap.begin();
+       it != TFtoNgraphOpMap.end(); ++it) {
+    for (std::vector<std::string>::const_iterator b = it->second.begin();
+         b != it->second.end(); ++b) {
+      auto ng_floor = std::make_shared<ngraph::op::Floor>();
+      auto dummy_node = ConstructDummyNgNode(*b);
+      cout << "op: " << *b << std::endl;
+      if (!op_backend->is_supported(dummy_node)) {
+        is_supported = false;
+      }
+    }
+  }
+  BackendManager::ReleaseBackend("CPU");
+  return Status::OK();
+}
 
 //
 // Main entry point for the marking pass.
@@ -765,6 +811,13 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
         break;
       }
 
+      // check if op is supported by backend
+      bool is_supported = false;
+      TF_RETURN_IF_ERROR(IsSupportedByBackend(is_supported));
+      if (!is_supported) {
+        NGRAPH_VLOG(5) << "Op is not supported by backend";
+        break;
+      }
       // if all constraints are met, mark for clustering
       mark_for_clustering = true;
     } while (false);
@@ -808,7 +861,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   for (auto node : variable_type_nodes) {
     SetNodeBackend(node, current_backend);
   }
-
   return Status::OK();
 }
 
