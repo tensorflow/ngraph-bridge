@@ -161,10 +161,10 @@ TEST(GraphExec, Axpy8bit) {
 
   auto t_x = backend->create_tensor(ng::element::i8, ng_shape_x);
   int8 v_x[2][2] = {{1, 1}, {1, 1}};
-  t_x->write(&v_x, 0, sizeof(v_x));
+  t_x->write(&v_x, sizeof(v_x));
 
   auto t_y = backend->create_tensor(ng::element::i8, ng_shape_y);
-  t_y->write(&v_x, 0, sizeof(v_x));
+  t_y->write(&v_x, sizeof(v_x));
 
   // Allocate tensor for the result(s)
   vector<shared_ptr<ng::runtime::Tensor>> outputs;

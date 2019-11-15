@@ -525,7 +525,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[i]);
       try {
         io_tensor_bundle.Inputs[i]->write(
-            current_src_ptr, 0,
+            current_src_ptr,
             io_tensor_bundle.Inputs[i]->get_element_count() *
                 ng_element_type.size());
       } catch (const std::exception& exp) {
@@ -588,7 +588,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
     void* dst_ptr = DMAHelper::base(tf_output_tensor);
 
     io_tensor_bundle.Outputs[i]->read(
-        dst_ptr, 0, io_tensor_bundle.Outputs[i]->get_element_count() *
+        dst_ptr, io_tensor_bundle.Outputs[i]->get_element_count() *
                         ng_element_type.size());
     event_copy_d2h->Stop();
     output_copy_events.push_back(std::move(event_copy_d2h));
