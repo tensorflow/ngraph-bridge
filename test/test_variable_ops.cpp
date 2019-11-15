@@ -563,9 +563,8 @@ TEST(VariableTest, SmallGraph7) {
   std::vector<tensorflow::Tensor> ng_outputs1;
   std::vector<tensorflow::Tensor> ng_outputs2;
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({{var_assign, accum_assign}}, &ng_outputs1));
-  }
+  ASSERT_OK(ng_session.Run({{var_assign, accum_assign}}, &ng_outputs1));
+  std::vector<string> ng_outputs1_s = ConvertToString(ng_outputs1);
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(ng_session.Run({applyadagrad_t}, &ng_outputs2));
@@ -577,15 +576,14 @@ TEST(VariableTest, SmallGraph7) {
   std::vector<tensorflow::Tensor> tf_outputs1;
   std::vector<tensorflow::Tensor> tf_outputs2;
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({{var_assign, accum_assign}}, &tf_outputs1));
-  }
+  ASSERT_OK(tf_session.Run({{var_assign, accum_assign}}, &tf_outputs1));
+  std::vector<string> tf_outputs1_s = ConvertToString(tf_outputs1);
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(tf_session.Run({applyadagrad_t}, &tf_outputs2));
   }
 
-  Compare(tf_outputs1, ng_outputs1);
+  Compare(ng_outputs1_s, tf_outputs1_s);
   Compare(tf_outputs2, ng_outputs2);
 
   ActivateNGraph();
@@ -641,9 +639,8 @@ TEST(VariableTest, SmallGraph8) {
   std::vector<tensorflow::Tensor> ng_outputs2;
   std::vector<tensorflow::Tensor> ng_outputs3;
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({{var_assign, accum_assign}}, &ng_outputs1));
-  }
+  ASSERT_OK(ng_session.Run({{var_assign, accum_assign}}, &ng_outputs1));
+  std::vector<string> ng_outputs1_s = ConvertToString(ng_outputs1);
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(ng_session.Run({applyadagrad_t}, &ng_outputs2));
@@ -661,9 +658,8 @@ TEST(VariableTest, SmallGraph8) {
   std::vector<tensorflow::Tensor> tf_outputs2;
   std::vector<tensorflow::Tensor> tf_outputs3;
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({{var_assign, accum_assign}}, &tf_outputs1));
-  }
+  ASSERT_OK(tf_session.Run({{var_assign, accum_assign}}, &tf_outputs1));
+  std::vector<string> tf_outputs1_s = ConvertToString(tf_outputs1);
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(tf_session.Run({applyadagrad_t}, &tf_outputs2));
@@ -673,7 +669,7 @@ TEST(VariableTest, SmallGraph8) {
     ASSERT_OK(tf_session.Run({add}, &tf_outputs3));
   }
 
-  Compare(tf_outputs1, ng_outputs1);
+  Compare(tf_outputs1_s, ng_outputs1_s);
   Compare(tf_outputs2, ng_outputs2);
   Compare(tf_outputs3, ng_outputs3);
 
@@ -734,10 +730,9 @@ TEST(VariableTest, SmallGraph9) {
   std::vector<tensorflow::Tensor> ng_outputs3;
   std::vector<tensorflow::Tensor> ng_outputs4;
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(ng_session.Run({{var_assign, accum_assign, var1_assign}},
-                             &ng_outputs1));
-  }
+  ASSERT_OK(
+      ng_session.Run({{var_assign, accum_assign, var1_assign}}, &ng_outputs1));
+  std::vector<string> ng_outputs1_s = ConvertToString(ng_outputs1);
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(ng_session.Run({applyadagrad_t}, &ng_outputs2));
@@ -759,10 +754,9 @@ TEST(VariableTest, SmallGraph9) {
   std::vector<tensorflow::Tensor> tf_outputs3;
   std::vector<tensorflow::Tensor> tf_outputs4;
 
-  for (int i = 0; i < 10; i++) {
-    ASSERT_OK(tf_session.Run({{var_assign, accum_assign, var1_assign}},
-                             &tf_outputs1));
-  }
+  ASSERT_OK(
+      tf_session.Run({{var_assign, accum_assign, var1_assign}}, &tf_outputs1));
+  std::vector<string> tf_outputs1_s = ConvertToString(tf_outputs1);
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(tf_session.Run({applyadagrad_t}, &tf_outputs2));
@@ -776,7 +770,7 @@ TEST(VariableTest, SmallGraph9) {
     ASSERT_OK(tf_session.Run({var1}, &tf_outputs4));
   }
 
-  Compare(tf_outputs1, ng_outputs1);
+  Compare(tf_outputs1_s, ng_outputs1_s);
   Compare(tf_outputs2, ng_outputs2);
   Compare(tf_outputs3, ng_outputs3);
   Compare(tf_outputs4, ng_outputs4);
