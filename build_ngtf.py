@@ -358,11 +358,13 @@ def main():
     # Now build nGraph
     ngraph_cmake_flags = [
         "-DNGRAPH_INSTALL_PREFIX=" + artifacts_location,
-        "-DNGRAPH_USE_CXX_ABI=" + cxx_abi, "-DNGRAPH_DEX_ONLY=TRUE",
-        "-DNGRAPH_DEBUG_ENABLE=NO", "-DNGRAPH_UNIT_TEST_ENABLE=NO",
+        "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
+        "-DNGRAPH_DEX_ONLY=TRUE",
+        "-DNGRAPH_DEBUG_ENABLE=NO",
+        "-DNGRAPH_UNIT_TEST_ENABLE=NO",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
-        "-DNGRAPH_TBB_ENABLE=TRUE" #change it back to false when upgrading ngraph v0.27
+        "-DNGRAPH_TBB_ENABLE=TRUE"  #change it back to false when upgrading ngraph v0.27
     ]
 
     if arguments.use_ngraph_staticlibs:
