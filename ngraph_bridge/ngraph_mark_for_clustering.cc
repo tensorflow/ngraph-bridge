@@ -165,15 +165,10 @@ Status IsSupportedByBackend(bool& is_supported) {
   Status status = BackendManager::CreateBackend("CPU");
   ng::runtime::Backend* op_backend = BackendManager::GetBackend("CPU");
   // Loop through TFtoNgraphOpMap map create dummy node for each ngraph op
-  for (std::map<std::string, std::vector<std::string>>::const_iterator it =
-           TFtoNgraphOpMap.begin();
-       it != TFtoNgraphOpMap.end(); ++it) {
-    for (std::vector<std::string>::const_iterator b = it->second.begin();
-         b != it->second.end(); ++b) {
-      auto ng_floor = std::make_shared<ngraph::op::Floor>();
-      auto dummy_node = ConstructDummyNgNode(*b);
-      cout << "op: " << *b << std::endl;
-      if (!op_backend->is_supported(dummy_node)) {
+  for (const auto& tfop : TFtoNgraphOpMap) {
+    for (const auto& ngop : tfop.second) {
+      auto dummy_node = ConstructDummyNgNode(ngop);
+      if (!op_backend->is_supported(*dummy_node)) {
         is_supported = false;
       }
     }
