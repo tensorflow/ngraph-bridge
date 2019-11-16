@@ -286,6 +286,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       };
       confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
       confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
+      confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
       confirmation_function_map["_FusedMatMul"] =
           SimpleConfirmationFunction();  // TODO accept under all conditions?
                                          // check?
@@ -419,6 +420,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       };
       confirmation_function_map["Transpose"] = SimpleConfirmationFunction();
       confirmation_function_map["Unpack"] = SimpleConfirmationFunction();
+      confirmation_function_map["UnsortedSegmentSum"] =
+          SimpleConfirmationFunction();
       confirmation_function_map["ZerosLike"] = SimpleConfirmationFunction();
 
       //
@@ -604,6 +607,11 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Transpose"]["T"] = NGraphDTypes();
       type_constraint_map["Transpose"]["Tperm"] = NGraphIndexDTypes();
       type_constraint_map["Unpack"]["T"] = NGraphDTypes();
+      type_constraint_map["UnsortedSegmentSum"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["UnsortedSegmentSum"]["Tindices"] =
+          NGraphIndexDTypes();
+      type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
+          NGraphIndexDTypes();
 
       // Set Additional Attributes (if any)
       set_attributes_map["Any"] = SetStaticInputs({1});
@@ -656,23 +664,13 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       set_attributes_map["TopKV2"] = SetStaticInputs({1});
       set_attributes_map["Tile"] = SetStaticInputs({1});
       set_attributes_map["Transpose"] = SetStaticInputs({1});
-
+      set_attributes_map["UnsortedSegmentSum"] = SetStaticInputs({2});
       initialized = true;
     }
   }
 
   // Right now it cannot be inside the if(!initialized) block, because it is
   // backend dependent, which might change with different sess.run()s
-  confirmation_function_map["GatherV2"] = [&current_backend](Node*,
-                                                             bool* result) {
-    // TODO: replace current_backend ->
-    // BackendManager::GetCurrentlySetBackendName()
-    auto config_map =
-        BackendManager::GetBackendAttributeValues(current_backend);
-    *result = (config_map.at("ngraph_backend") == "NNPI");
-    return Status::OK();
-  };
-
   confirmation_function_map["NonMaxSuppressionV4"] = [&current_backend](
       Node*, bool* result) {
     auto config_map =
