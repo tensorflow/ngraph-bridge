@@ -157,12 +157,14 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
         sync_node->set_assigned_device_name(
             edge->src()->assigned_device_name());
 
-        // Connect output edges from the TF optimizer to the sync node
-        // which will be for the input index 0 since that is the
-        // output we want.
-        // And, also make sure that the output is a ref type otherwise
-        // don't move the edges.
+        // If the input edge is going to index 0 of the TF op,
+        // then move output edges from the TF op
+        // since that is the output we want.
         if (edge->dst_input() == 0) {
+          // Also check if the output of the TF op is a ref type and only
+          // move the output edges then otherwise keep the output edges
+          // attached to the TF op and add a control edge from the sync
+          // node to the output/s of the TF op.
           if (IsRefType(node->output_type(0))) {
             TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, sync_node));
           } else {
