@@ -57,6 +57,7 @@ cc_library(
         "src/ngraph/op/experimental/quantized_dot_bias.cpp",
         "src/ngraph/op/experimental/tile.cpp",
         "src/ngraph/op/experimental/transpose.cpp",
+        "src/ngraph/op/experimental/layers/interpolate.cpp",
         "src/ngraph/op/util/*.cpp",
         "src/ngraph/pattern/*.cpp",
         "src/ngraph/pattern/*.hpp",
