@@ -21,7 +21,7 @@
 #include "ngraph/serializer.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;

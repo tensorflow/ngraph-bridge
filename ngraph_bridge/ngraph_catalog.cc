@@ -19,7 +19,7 @@
 #include "ngraph/runtime/backend_manager.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 
 using namespace std;
 namespace ng = ngraph;
