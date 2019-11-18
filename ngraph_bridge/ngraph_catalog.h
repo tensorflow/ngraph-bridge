@@ -78,7 +78,7 @@ class NGraphCatalog {
   // Map keeps track of nodes whose input is an IteratorV2 and
   // the output goes to an encapsualte node.
   // This is map from the node to the input indexs of the
-  // encapsualte node.
+  // encapsulate node.
   // Will be used by NGraphEncapsulate Op.
   // Map of
   // Key
