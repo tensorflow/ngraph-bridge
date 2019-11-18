@@ -47,9 +47,13 @@ def run_training(FLAGS):
 
     model.summary()
 
-    config = tf.ConfigProto()
-    sess = tf.Session(config=ngraph_bridge.update_config(config))
-    keras.backend.set_session(sess)
+    # To enable ngraph with keras models, import ngraph_bridge is enough
+    # For grappler builds, make sure to update_config, and set keras's session
+    # You can do the update_config step on a normal, non-grappler build too
+    if ngraph_bridge.is_grappler_enabled():
+        config = tf.ConfigProto()
+        sess = tf.Session(config=ngraph_bridge.update_config(config))
+        keras.backend.set_session(sess)
 
     model.compile(
         loss='categorical_crossentropy', optimizer=SGD(), metrics=['accuracy'])
