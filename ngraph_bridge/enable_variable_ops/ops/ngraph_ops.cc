@@ -29,7 +29,6 @@ REGISTER_OP("NGraphApplyGradientDescent")
     .Attr("T: numbertype")
     .Attr("use_locking: bool = false")
     .Attr("just_looking: bool = false")
-    .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 
@@ -46,7 +45,6 @@ REGISTER_OP("NGraphApplyMomentum")
     .Attr("use_locking: bool = false")
     .Attr("use_nesterov: bool = false")
     .Attr("just_looking: bool = false")
-    .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 // ------------------------------------------------------------------
@@ -58,7 +56,6 @@ REGISTER_OP("NGraphAssign")
     .Attr("validate_shape: bool = true")
     .Attr("use_locking: bool = true")
     .Attr("just_looking: bool = false")
-    .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 
@@ -71,7 +68,6 @@ REGISTER_OP("NGraphAssignAdd")
     .Attr("validate_shape: bool = true")
     .Attr("use_locking: bool = true")
     .Attr("just_looking: bool = false")
-    .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 
@@ -84,7 +80,6 @@ REGISTER_OP("NGraphAssignSub")
     .Attr("validate_shape: bool = true")
     .Attr("use_locking: bool = true")
     .Attr("just_looking: bool = false")
-    .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 
@@ -107,13 +102,23 @@ REGISTER_OP("NGraphVariable")
     .Attr("shape: shape")
     .Attr("dtype: type")
     .Attr("just_looking: bool = false")
-    .Attr("is_tf_just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("container: string = ''")
     .Attr("shared_name: string = ''")
     .Attr("ngraph_graph_id: int")
     .SetIsStateful()
     .SetShapeFn(shape_inference::ExplicitShape);
+
+// ------------------------------------------------------------------
+REGISTER_OP("NGraphVariableUpdateNGTensor")
+    .Input("var: Ref(T)")
+    .Output("out: Ref(T)")
+    .Attr("T: type")
+    .Attr("ngraph_graph_id: int")
+    .Attr("ngraph_variable_shared_name: string = ''")
+    .Doc(
+        "nGraph variable update NG tensor op. For updating the NG Tensor when "
+        "TF tensor is modified by a TF variable modifier op");
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

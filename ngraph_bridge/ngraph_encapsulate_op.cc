@@ -45,6 +45,7 @@
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
+#include "ngraph_bridge/ngraph_prefetch_shared_data.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
@@ -400,10 +401,17 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;
 
+  // Note: Even though when we are using prefetching to device, the input
+  // tensors much come from the context as their shape determines the cache
+  // hit/miss
+  // This results in duplicate Tensors but ok as we are not memory limited
+  // (The prefetching applies for inputs)
   for (int i = 0; i < ctx->num_inputs(); i++) {
     tf_input_tensors.push_back(ctx->input(i));
   }
 
+  NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Input: " << ctx->num_inputs()
+                 << " Values: " << tf_input_tensors[0].DebugString();
   int step_id = ctx->step_id();
   ngraph::Event event_compile("Compile", "", "");
 
@@ -431,26 +439,104 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   event_get_tensor.Stop();
   ngraph::Event::write_trace(event_get_tensor);
 
+  NGraphPrefetchSharedResouce::IoTensorBundle io_tensor_bundle{
+      get<0>(io_tensors), get<1>(io_tensors), get<2>(io_tensors)};
+
+  bool skip_tf2ng_copy = false;
+  if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
+      nullptr) {
+    // Set the prefetch shared obj if applicable
+    NGraphPrefetchSharedResouce* shared_data = nullptr;
+    Status s = ctx->resource_manager()->Lookup(
+        NGraphPrefetchSharedResouce::CONTAINER_NAME,
+        NGraphPrefetchSharedResouce::RESOURCE_NAME, &shared_data);
+
+    if (!s.ok()) {
+      // We are using this for the first time i.e., we need to do the following
+      // 1. Create the shared data object
+      // 2. save the input/output nG tensor set to the shared data object
+      // 3. Get another pipelined tensor pair for the current iteration and
+      //    copy the TF tensor to this set and continue with the execution for
+      //    for this iteration.
+      shared_data = new NGraphPrefetchSharedResouce(
+          name(), m_parallel_executor->GetOpBackendName(),
+          m_parallel_executor->GetGraphId(),
+          m_parallel_executor->GetNgraphClusterId());
+
+      // Get the set of IO tensors for the next iteration
+      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
+          io_tensors_next_iter;
+      OP_REQUIRES_OK(ctx, m_parallel_executor->GetTensorsFromPipeline(
+                              ng_exec, io_tensors_next_iter));
+
+      // Save the ngTensors for the next iteration
+      NGraphPrefetchSharedResouce::IoTensorBundle next_io_tensor_bundle{
+          get<0>(io_tensors_next_iter), get<1>(io_tensors_next_iter),
+          get<2>(io_tensors_next_iter)};
+
+      shared_data->AddNextIoTensorsForDeviceTransfer(next_io_tensor_bundle);
+
+      ctx->SetStatus(ctx->resource_manager()->Create(
+          NGraphPrefetchSharedResouce::CONTAINER_NAME,
+          NGraphPrefetchSharedResouce::RESOURCE_NAME, shared_data));
+
+      // Continue the execution with the currently supplied TF tensor for the
+      // last time
+      NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Creating the shared object to "
+                        "signal prefetching";
+    } else {
+      int prefetch_buffer_depth = shared_data->GetBufferDepth();
+      int skip_count = shared_data->GetSkipCount();
+      NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: DEPTH: " << prefetch_buffer_depth
+                     << " skip count; " << skip_count;
+      if (skip_count >= prefetch_buffer_depth) {
+        // We have been using the pipelined tensors - therefore do the
+        // following:
+        // 1. Get the next set of IO tensors from the pipelined store
+        // 2. Save that to the shared data object so that the prefetcher
+        //    can continue with copying the next set of inout tensor to the
+        //    device
+        // 3. Execute the nGraph call for this iteration using the
+        //    nG tensors we got from the shared data
+        auto ng_io_tensors_ready =
+            shared_data->GetNextIoTensorsReadyForDeviceExecution();
+
+        // Add the next set of tensors for the next iteration
+        shared_data->AddNextIoTensorsForDeviceTransfer(io_tensor_bundle);
+
+        // Update the io_tenspr_bundle with the one ready for exdcution
+        io_tensor_bundle = ng_io_tensors_ready;
+        skip_tf2ng_copy = true;
+        NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Using device tensors";
+      }
+      shared_data->IncrSkipCount();
+    }
+  }
+
   // Allocate the input/
   ngraph::Event event_copy_input_tensor("Copy Input Tensor", "", "");
 
-  for (auto i = 0; i < tf_input_tensors.size(); i++) {
-    ng::element::Type ng_element_type;
-    OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(
-                            tf_input_tensors[i].dtype(), &ng_element_type));
+  if (!skip_tf2ng_copy) {
+    for (auto i = 0; i < tf_input_tensors.size(); i++) {
+      ng::element::Type ng_element_type;
+      OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(
+                              tf_input_tensors[i].dtype(), &ng_element_type));
 
-    void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[i]);
-    try {
-      get<1>(io_tensors)[i]->write(
-          current_src_ptr, 0,
-          get<1>(io_tensors)[i]->get_element_count() * ng_element_type.size());
-    } catch (const std::exception& exp) {
-      OP_REQUIRES(ctx, false,
-                  errors::Internal("Error copying TF tensor to device tensor: ",
-                                   exp.what()));
-    } catch (...) {
-      OP_REQUIRES(ctx, false,
-                  errors::Internal("Error copying TF tensor to device tensor"));
+      void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[i]);
+      try {
+        io_tensor_bundle.Inputs[i]->write(
+            current_src_ptr, io_tensor_bundle.Inputs[i]->get_element_count() *
+                                 ng_element_type.size());
+      } catch (const std::exception& exp) {
+        OP_REQUIRES(
+            ctx, false,
+            errors::Internal("Error copying TF tensor to device tensor: ",
+                             exp.what()));
+      } catch (...) {
+        OP_REQUIRES(
+            ctx, false,
+            errors::Internal("Error copying TF tensor to device tensor"));
+      }
     }
   }
   event_copy_input_tensor.Stop();
@@ -458,7 +544,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // And execute
   ngraph::Event event_execute_graph("Execute Graph", "", "");
-  ng_exec->call(get<2>(io_tensors), get<1>(io_tensors));
+  ng_exec->call(io_tensor_bundle.Outputs, io_tensor_bundle.Inputs);
   event_execute_graph.Stop();
   ngraph::Event::write_trace(event_execute_graph);
 
@@ -500,9 +586,9 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
         new ngraph::Event("Device to Host Copy", "", ""));
     void* dst_ptr = DMAHelper::base(tf_output_tensor);
 
-    get<2>(io_tensors)[i]->read(
-        dst_ptr, 0,
-        get<2>(io_tensors)[i]->get_element_count() * ng_element_type.size());
+    io_tensor_bundle.Outputs[i]->read(
+        dst_ptr, io_tensor_bundle.Outputs[i]->get_element_count() *
+                     ng_element_type.size());
     event_copy_d2h->Stop();
     output_copy_events.push_back(std::move(event_copy_d2h));
   }
@@ -516,9 +602,11 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // Now return them to the cache
   ngraph::Event event_return_tensor("Return Tensor", "", "");
-  m_parallel_executor->ReturnPipelinedTensors(ng_exec, get<0>(io_tensors));
+  m_parallel_executor->ReturnPipelinedTensors(ng_exec, io_tensor_bundle.Id);
   event_return_tensor.Stop();
   ngraph::Event::write_trace(event_return_tensor);
+
+  NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Done";
 }
 
 //---------------------------------------------------------------------------
@@ -727,14 +815,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                             ctx->resource_manager()->default_container(),
                             ref_var_name, &var));
 
-    if (var->sync_ng_tensor()) {
-      int copies = ng_encap_impl_.GetNumberOfCopies();
-      ng_encap_impl_.SetNumberOfCopies(copies++);
-      stringstream str;
-      str << "Var_Sync[" << input_index << "] ";
-      ng_encap_impl_.AppendCopyLog(str.str());
-    }
-
     void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
     bool is_stale = !ng_encap_impl_.GetNgraphFreshnessTracker()->IsFresh(
         current_tf_ptr, ng_exec);
@@ -835,12 +915,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
             ng_encap_impl_.SetNumberOfCopies(copies++);
             ng_encap_impl_.AppendCopyLog(" COPY_TO_TF ");
           }
-          if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
-                  output_key)) {
-            // Some tf op might update the ng-tensor value so mark it stale
-            ng_encap_impl_.AppendCopyLog(" SET_SYNC ");
-            var->set_sync_ng_tensor(true);
-          }
         }
         var->Unref();
       }
@@ -866,8 +940,8 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
             "Output_" + to_string(i) + "_" + to_string(copy_size);
         std::unique_ptr<ngraph::Event> event_copy_output_next(
             new ngraph::Event(event_name, name(), ""));
-        dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
-                                            ng_element_type.size());
+        dst_ng_tensor->read(dst_ptr, dst_ng_tensor->get_element_count() *
+                                         ng_element_type.size());
         event_copy_output_next->Stop();
         output_copy_events.push_back(std::move(event_copy_output_next));
       }
@@ -884,8 +958,8 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
              std::to_string(dst_ng_tensor->get_element_count() *
                             ng_element_type.size())),
             name(), ""));
-        dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
-                                            ng_element_type.size());
+        dst_ng_tensor->read(dst_ptr, dst_ng_tensor->get_element_count() *
+                                         ng_element_type.size());
         event_copy_output_next->Stop();
         output_copy_events.push_back(std::move(event_copy_output_next));
       }

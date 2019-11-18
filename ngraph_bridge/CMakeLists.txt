@@ -55,6 +55,9 @@ set(SRC
    ngraph_utils.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
+   prefetch_autotuner.cc
+   ngraph_prefetch_dataset_op.cc
+   stats_utils.cc
    version.cc
 )
 
@@ -85,6 +88,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_replace_op_utilities.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_variable_modifiers.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
     
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 endif()
