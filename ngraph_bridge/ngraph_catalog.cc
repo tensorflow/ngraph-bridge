@@ -33,6 +33,8 @@ unordered_map<string, unordered_set<int>>
     NGraphCatalog::encap_output_copy_indexes_map_;
 unordered_map<string, tuple<string, bool>>
     NGraphCatalog::encap_output_info_map_;
+unordered_map<string, unordered_set<int>>
+    NGraphCatalog::prefetched_input_index_map_;
 
 // Function to create the Node Key
 string NGraphCatalog::CreateNodeKey(const int& graph_id,
@@ -47,6 +49,7 @@ void NGraphCatalog::ClearCatalog() {
   NGraphCatalog::ClearInputVariableSharedNameMap();
   NGraphCatalog::ClearEncapOutputCopyIndexesMap();
   NGraphCatalog::ClearEncapOutputInfoMap();
+  NGraphCatalog::ClearPrefetchedInputIndexMap();
 }
 
 // Functions for Encapsulate Output Copy Indexes Map
@@ -204,5 +207,42 @@ void NGraphCatalog::PrintEncapOutputInfoMap() {
   }
 }
 
+// Functions for PrefetchedInputIndex Map
+void NGraphCatalog::AddToPrefetchedInputIndexMap(const int& graphid, const string& node_name,
+                                    const unordered_set<int>& val) {
+  string key = graphid + "_" + node_name;
+  NGraphCatalog::prefetched_input_index_map_.insert({key, val});
+}
+
+bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const int& graphid, const string& node_name) {
+  string key = graphid + "_" + node_name;
+  auto itr = NGraphCatalog::prefetched_input_index_map_.find(key);
+  return itr != NGraphCatalog::prefetched_input_index_map_.end();
+}
+
+bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const string& key) {
+  auto itr = NGraphCatalog::prefetched_input_index_map_.find(key);
+  return itr != NGraphCatalog::prefetched_input_index_map_.end();
+}
+
+const unordered_set<int>& NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(const int& graphid,
+                                             const string& node_name) {
+  string key = graphid + "_" + node_name;
+  return NGraphCatalog::prefetched_input_index_map_.at(key);
+}
+
+void NGraphCatalog::ClearPrefetchedInputIndexMap() {
+  NGraphCatalog::prefetched_input_index_map_.clear();
+}
+
+void NGraphCatalog::PrintPrefetchedInputIndexMap() {
+  NGRAPH_VLOG(4) << "PrefetchedInputIndexMap";
+  for (auto it : prefetched_input_index_map_) {
+    NGRAPH_VLOG(4) << "Key: (GraphId_NodeName) " << it.first;
+    for (auto itr = it.second.begin(); itr != it.second.end(); ++itr) {
+      NGRAPH_VLOG(4) << " Value: " << *itr;
+    }
+  }
+}
 }  // ngraph_bridge
 }  // tensorflow
