@@ -946,7 +946,6 @@ TEST(ArrayOps, ScatterNdRepeatIndices) {
   opexecuter.RunTest();
 }
 
-// This test runs on TF but not on Ng for now
 TEST(ArrayOps, ScatterNdComplex) {
   // indices.shape[-1] <= shape.rank
   // updates.shape = indices.shape[:-1] + shape[indices.shape[-1]:]
