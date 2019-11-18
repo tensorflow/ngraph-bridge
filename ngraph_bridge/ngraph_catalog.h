@@ -146,13 +146,13 @@ class NGraphCatalog {
 
   // Functions for PrefetedInputs Map
   static void AddToPrefetchedInputIndexMap(const int& graphid,
-                                             const string& node_name,
-                                             const unordered_set<int>& val);
+                                           const string& node_name,
+                                           const unordered_set<int>& val);
   static bool ExistsInPrefetchedInputIndexMap(const int& graphid,
-                                             const string& node_name);
+                                              const string& node_name);
   static bool ExistsInPrefetchedInputIndexMap(const string& key);
-  static const unordered_set<int>& GetIndexesFromPrefetchedInputIndexMap(const int& graphid,
-                                             const string& node_name);
+  static const unordered_set<int>& GetIndexesFromPrefetchedInputIndexMap(
+      const int& graphid, const string& node_name);
 
   static void ClearPrefetchedInputIndexMap();
   static void PrintPrefetchedInputIndexMap();
