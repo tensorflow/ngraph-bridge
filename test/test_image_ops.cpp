@@ -53,8 +53,9 @@ TEST(ImageOps, DISABLED_CropAndResize) {
   AssignInputValuesRandom(crop_size);
 
   // TODO check with non-zero extrapolation value and method="nearest"
-  auto attr = ops::CropAndResize::Attrs().ExtrapolationValue(0.0).Method("bilinear");
-  //attr.Method("bilinear");
+  auto attr =
+      ops::CropAndResize::Attrs().ExtrapolationValue(0.0).Method("bilinear");
+  // attr.Method("bilinear");
 
   vector<int> static_input_indexes = {};
   auto R = ops::CropAndResize(root, image, boxes, box_ind, crop_size, attr);

@@ -1644,18 +1644,23 @@ static Status TranslateCropAndResizeOp(const Node* op,
       GetNodeAttr(op->attrs(), "extrapolation_value", &extrapolation_value));
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "method", &method));
 
-  ng::op::CropAndResize::ResizeMethod ng_method = ng::op::CropAndResize::ResizeMethod::unspecified;
+  ng::op::CropAndResize::ResizeMethod ng_method =
+      ng::op::CropAndResize::ResizeMethod::unspecified;
   if (method == "bilinear") {
     ng_method = ng::op::CropAndResize::ResizeMethod::bilinear;
   } else if (method == "nearest") {
     ng_method = ng::op::CropAndResize::ResizeMethod::nearest;
   } else {
-    return errors::Internal("Expected crop and resize's interpolation mode to be bilinear or nearest, but got ", extrapolation_value, " in op ", op->name());
+    return errors::Internal(
+        "Expected crop and resize's interpolation mode to be bilinear or "
+        "nearest, but got ",
+        extrapolation_value, " in op ", op->name());
   }
 
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::CropAndResize>(
-                                      op->name(), image, boxes, box_ind,
-                                      crop_size, ng_method, extrapolation_value));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::CropAndResize>(op->name(), image, boxes,
+                                                  box_ind, crop_size, ng_method,
+                                                  extrapolation_value));
   return Status::OK();
 }
 
