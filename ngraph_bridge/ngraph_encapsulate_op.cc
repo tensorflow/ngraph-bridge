@@ -527,9 +527,8 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[i]);
       try {
         io_tensor_bundle.Inputs[i]->write(
-            current_src_ptr, 0,
-            io_tensor_bundle.Inputs[i]->get_element_count() *
-                ng_element_type.size());
+            current_src_ptr, io_tensor_bundle.Inputs[i]->get_element_count() *
+                                 ng_element_type.size());
       } catch (const std::exception& exp) {
         OP_REQUIRES(
             ctx, false,
@@ -618,8 +617,8 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
     void* dst_ptr = DMAHelper::base(tf_output_tensor);
 
     io_tensor_bundle.Outputs[i]->read(
-        dst_ptr, 0, io_tensor_bundle.Outputs[i]->get_element_count() *
-                        ng_element_type.size());
+        dst_ptr, io_tensor_bundle.Outputs[i]->get_element_count() *
+                     ng_element_type.size());
     event_copy_d2h->Stop();
     output_copy_events.push_back(std::move(event_copy_d2h));
   }
@@ -847,14 +846,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                             ctx->resource_manager()->default_container(),
                             ref_var_name, &var));
 
-    if (var->sync_ng_tensor()) {
-      int copies = ng_encap_impl_.GetNumberOfCopies();
-      ng_encap_impl_.SetNumberOfCopies(copies++);
-      stringstream str;
-      str << "Var_Sync[" << input_index << "] ";
-      ng_encap_impl_.AppendCopyLog(str.str());
-    }
-
     void* current_tf_ptr = (void*)DMAHelper::base(&ctx->input(input_index));
     bool is_stale = !ng_encap_impl_.GetNgraphFreshnessTracker()->IsFresh(
         current_tf_ptr, ng_exec);
@@ -955,12 +946,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
             ng_encap_impl_.SetNumberOfCopies(copies++);
             ng_encap_impl_.AppendCopyLog(" COPY_TO_TF ");
           }
-          if (!NGraphCatalog::GetIsTFJustLookingFromEncapOutputInfoMap(
-                  output_key)) {
-            // Some tf op might update the ng-tensor value so mark it stale
-            ng_encap_impl_.AppendCopyLog(" SET_SYNC ");
-            var->set_sync_ng_tensor(true);
-          }
         }
         var->Unref();
       }
@@ -986,8 +971,8 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
             "Output_" + to_string(i) + "_" + to_string(copy_size);
         std::unique_ptr<ngraph::Event> event_copy_output_next(
             new ngraph::Event(event_name, name(), ""));
-        dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
-                                            ng_element_type.size());
+        dst_ng_tensor->read(dst_ptr, dst_ng_tensor->get_element_count() *
+                                         ng_element_type.size());
         event_copy_output_next->Stop();
         output_copy_events.push_back(std::move(event_copy_output_next));
       }
@@ -1004,8 +989,8 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
              std::to_string(dst_ng_tensor->get_element_count() *
                             ng_element_type.size())),
             name(), ""));
-        dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
-                                            ng_element_type.size());
+        dst_ng_tensor->read(dst_ptr, dst_ng_tensor->get_element_count() *
+                                         ng_element_type.size());
         event_copy_output_next->Stop();
         output_copy_events.push_back(std::move(event_copy_output_next));
       }
