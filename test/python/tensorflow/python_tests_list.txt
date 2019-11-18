@@ -399,8 +399,7 @@ relu_op_test.ReluTest.testGradientScalar
 
 scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testBool
 scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testEmptyOutputShape1
-# TODO: Test failing due to incorrect error message
-# scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testEmptyOutputShape2
+scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testEmptyOutputShape2
 scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testEmptyOutputShape3
 scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testExtraIndicesDimensions
 scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testGradientsRank2ElementUpdate
@@ -428,7 +427,8 @@ scatter_nd_ops_test.ScatterNdTensorTest.test_session
 # This test fails on CPU backend on char (and maybe other data types)
 # scatter_nd_ops_test.ScatterNdTest.testBool
 scatter_nd_ops_test.ScatterNdTest.testEmptyOutputShape1
-scatter_nd_ops_test.ScatterNdTest.testEmptyOutputShape2
+# TODO: Test failing due to incorrect error message
+# scatter_nd_ops_test.ScatterNdTest.testEmptyOutputShape2
 scatter_nd_ops_test.ScatterNdTest.testEmptyOutputShape3
 # This test fails on CPU backend on some unsupported data types
 # scatter_nd_ops_test.ScatterNdTest.testExtraIndicesDimensions
