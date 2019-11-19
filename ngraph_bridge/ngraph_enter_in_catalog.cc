@@ -63,19 +63,25 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
     bool add_to_map = false;
     unordered_set<int> in_indexes_for_encap;
     for (auto edge : node->out_edges()) {
-      // then check that all it's outputs go to an encap
+      // Now check that all outputs of this node go to an encap
       // if yes, then catalog it along with the input indexes
       // for the encap op
       if (edge->dst()->type_string() == "NGraphEncapsulate") {
         add_to_map = true;
         in_indexes_for_encap.insert(edge->dst_input());
       } else {
-        // error
+        return errors::Internal("Output of node: ", DebugNode(node),
+                                "does not go to the encap op.\n");
       }
     }
     if (add_to_map) {
-      NGraphCatalog::AddToPrefetchedInputIndexMap(graph_id, node->name(),
-                                                  in_indexes_for_encap);
+      try {
+        NGraphCatalog::AddToPrefetchedInputIndexMap(graph_id, node->name(),
+                                                    in_indexes_for_encap);
+      } catch (const std::exception& exp) {
+        return errors::Internal("Caught exception while entering in catalog: ",
+                                exp.what(), "\n");
+      }
     }
   }
   NGRAPH_VLOG(4) << "Entered in Catalog";
