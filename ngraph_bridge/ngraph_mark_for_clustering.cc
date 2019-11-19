@@ -138,24 +138,6 @@ static ConfirmationFunction SimpleConfirmationFunction() {
   return cf;
 };
 
-// // Create dummy ngraph nodes to pass to is_supported API
-// static std::shared_ptr<ng::Node> ConstructDummyNgNode(const string op_name) {
-//   std::shared_ptr<ng::Node> ng_dummy_node = nullptr;
-//   if (op_name == "Floor") ng_dummy_node =
-//   std::make_shared<ngraph::op::Floor>();
-//   if (op_name == "Divide")
-//     ng_dummy_node = std::make_shared<ngraph::op::Divide>();
-//   if (op_name == "Subtract")
-//     ng_dummy_node = std::make_shared<ngraph::op::Subtract>();
-//   if (op_name == "Multiply")
-//     ng_dummy_node = std::make_shared<ngraph::op::Multiply>();
-//   else
-//     cout << "Cannot create a dummy ngraph node for this given op: " <<
-//     op_name
-//          << std::endl;
-//   return ng_dummy_node;
-// }
-
 // Check if op is supported by backend using is_supported API
 static Status IsSupportedByBackend(
     const Node* node,
@@ -168,6 +150,7 @@ static Status IsSupportedByBackend(
   ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
   // Loop through TFtoNgraphOpMap map create dummy node for each ngraph op
   for (const auto& ngop : TFtoNgraphOpMap[node->type_string()]) {
+    // Pass ngraph node to check if backend supports this op
     if (!op_backend->is_supported(*ngop)) {
       is_supported = false;
     }
