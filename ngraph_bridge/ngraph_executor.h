@@ -91,6 +91,10 @@ class NGraphExecutor {
     return m_executable_can_create_tensor ? m_depth : 1;
   }
 
+  const shared_ptr<NGraphTensorManager> GetTensorManager() {
+    return m_tensor_manager;
+  }
+
  private:
   // Allocates the necessary tensors from the Executable (or backend in future)
   // Since the pipeline cannot be created at the construction time, we need to
@@ -146,7 +150,7 @@ class NGraphExecutor {
   int m_depth{2};  // TODO make this settable
 
   // NGraphTensorManager
-  shared_ptr<NGraphTensorManager> m_ng_tensor_manager;
+  shared_ptr<NGraphTensorManager> m_tensor_manager;
 };
 
 }  // namespace ngraph_bridge

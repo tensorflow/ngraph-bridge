@@ -159,7 +159,7 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
         "max_index");
   }
 
-  m_ng_tensor_manager = make_shared<NGraphTensorManager>(
+  m_tensor_manager = make_shared<NGraphTensorManager>(
       GetNgraphClusterName(), GetNgraphClusterId(), GetGraphId(),
       number_of_inputs, number_of_outputs);
 }
@@ -205,7 +205,7 @@ NGraphExecutor::~NGraphExecutor() {
   m_executable_pipelined_tensors_map.clear();
   m_serialized_ng_function_map.clear();
   m_ng_exec_map.clear();
-  m_ng_tensor_manager.reset();
+  m_tensor_manager.reset();
 }
 
 //---------------------------------------------------------------------------
