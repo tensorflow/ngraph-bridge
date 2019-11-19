@@ -3777,6 +3777,34 @@ static Status TranslateRsqrtOp(
       });
 }
 
+static Status TranslateScatterNdOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_indices;
+  shared_ptr<ng::Node> ng_updates;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &ng_indices, &ng_updates, nullptr));
+
+  std::vector<int> ng_shape;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &ng_shape));
+  // Copy the int vector to a size_t vector, because that is what ng::Shape
+  // accepts
+  std::vector<size_t> ng_shape_size_t(ng_shape.begin(), ng_shape.end());
+
+  // Create a tensor and populate the tensor with "0" to Add to ScatterNd
+  auto et = ng_updates->get_element_type();
+  std::vector<std::string> constant_values(ng::shape_size(ng_shape_size_t),
+                                           "0");
+  auto ng_inputs = ConstructNgNode<ng::op::Constant>(
+      op->name(), et, ng::Shape(ng_shape_size_t), constant_values);
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::ScatterNDAdd>(op->name(), ng_inputs,
+                                                 ng_indices, ng_updates));
+
+  return Status::OK();
+}
+
 static Status TranslateRsqrtGradOp(const Node* op,
                                    const std::vector<const Tensor*>&,
                                    Builder::OpMap& ng_op_map) {
@@ -4934,8 +4962,9 @@ const static std::map<
       {"ReluGrad", TranslateReluGradOp}, {"Reshape", TranslateReshapeOp},
       {"ResizeBilinear", TranslateResizeBilinearOp},
       {"Rsqrt", TranslateRsqrtOp}, {"RsqrtGrad", TranslateRsqrtGradOp},
-      {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
-      {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
+      {"ScatterNd", TranslateScatterNdOp}, {"Select", TranslateSelectOp},
+      {"Shape", TranslateShapeOp}, {"Sigmoid", TranslateSigmoidOp},
+      {"SigmoidGrad", TranslateSigmoidGradOp},
       {"Sin", TranslateUnaryOp<ngraph::op::Sin>}, {"Size", TranslateSizeOp},
       {"Sign", TranslateUnaryOp<ngraph::op::Sign>}, {"Slice", TranslateSliceOp},
       {"Snapshot", TranslateIdentityOp}, {"Softmax", TranslateSoftmaxOp},
