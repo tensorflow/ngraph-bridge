@@ -42,6 +42,7 @@ set(SRC
    ngraph_conversions.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
+   ngraph_enter_in_catalog.cc
    ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
    ngraph_executor.cc
@@ -81,6 +82,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(REMOVE_ITEM SRC ngraph_tracked_variable.cc)
     list(APPEND SRC enable_variable_ops/ngraph_tracked_variable.cc)
 
+    list(REMOVE_ITEM SRC ngraph_enter_in_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)
 
     # new files

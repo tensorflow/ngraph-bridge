@@ -22,6 +22,7 @@
 
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_catalog.h"
+#include "ngraph_bridge/ngraph_enter_in_catalog.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
@@ -59,6 +60,37 @@ Status GetSharedName(Node* node, string* shared_name) {
 
 // 1. Populate the input_variable_map
 // 2. Attach Graph Ids to the node
+
+// Some terms:
+// NGraphSupported Ops : NGraphVariable, NGraphAssign, NGraphEncapsulate
+// NGraphVariableType Ops : NGraphVariable, NGraphAssign
+// NG-Tensor : ngraph backend tensor
+
+// TF's Variable Op is a wrapper on a persistent TF-tensor which is stored
+// in the TF Container and can be accessed/retrieved by TF Resource Manager
+// The NGraphVariable Op is a wrapper on a pair of TF-Tensor and NG-Tensor that
+// are synced lazily (when required)
+
+// We collect the below information for the catalog
+// 1. If the NGraphSupportedOp gets input from a NGraphVariableType Op,
+// it can directly access the ng-tensor via the TF Resource Manager using the
+// shared Name
+// We add mapping of {graphId_nodename_InputIndex : Shared_Name} to the
+// InputVariableSharedNameMap
+//
+// 2. If the input to NGraphAssign Op is from NGraphEncapsulate Op
+// We add mapping of
+// {graphId_encapnodename_OutputIndex : tuple:{Variable_Shared_Name, CopyToTF}}
+// to the EncapOutputInfoMap
+// We attach "_ngraph_remove" attribute to this NGraphAssign node
+//
+// 3. If the output of NGraphEncapsulate Op is not required by a TF Op or
+// NGraphEncapsulate Op,
+// then we can avoid copying it to HOST
+// We add mapping of {encapnodename : set of OutputIndexes that need a copy} to
+// the EncapsulateOutputCopyIndexesMap
+//
+
 Status EnterInCatalog(Graph* graph, int graph_id) {
   // Topological Sort
   vector<Node*> ordered;
