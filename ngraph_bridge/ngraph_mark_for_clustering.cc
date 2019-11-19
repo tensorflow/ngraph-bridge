@@ -814,8 +814,12 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
       // check if op is supported by backend
       bool is_supported = false;
+
+      // Create nGraph backend
+      string ng_backend_type;
+      BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
       TF_RETURN_IF_ERROR(IsSupportedByBackend(node, TFtoNgraphOpMap,
-                                              current_backend, is_supported));
+                                              ng_backend_type, is_supported));
       if (!is_supported) {
         NGRAPH_VLOG(5) << "TF Op is not supported by backend:" << node->name();
         break;
