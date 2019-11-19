@@ -138,26 +138,28 @@ static ConfirmationFunction SimpleConfirmationFunction() {
   return cf;
 };
 
-// Create dummy ngraph nodes to pass to is_supported API
-static std::shared_ptr<ng::Node> ConstructDummyNgNode(const string op_name) {
-  std::shared_ptr<ng::Node> ng_dummy_node = nullptr;
-  if (op_name == "Floor") ng_dummy_node = std::make_shared<ngraph::op::Floor>();
-  if (op_name == "Divide")
-    ng_dummy_node = std::make_shared<ngraph::op::Divide>();
-  if (op_name == "Subtract")
-    ng_dummy_node = std::make_shared<ngraph::op::Subtract>();
-  if (op_name == "Multiply")
-    ng_dummy_node = std::make_shared<ngraph::op::Multiply>();
-  else
-    cout << "Cannot create a dummy ngraph node for this given op: " << op_name
-         << std::endl;
-  return ng_dummy_node;
-}
+// // Create dummy ngraph nodes to pass to is_supported API
+// static std::shared_ptr<ng::Node> ConstructDummyNgNode(const string op_name) {
+//   std::shared_ptr<ng::Node> ng_dummy_node = nullptr;
+//   if (op_name == "Floor") ng_dummy_node =
+//   std::make_shared<ngraph::op::Floor>();
+//   if (op_name == "Divide")
+//     ng_dummy_node = std::make_shared<ngraph::op::Divide>();
+//   if (op_name == "Subtract")
+//     ng_dummy_node = std::make_shared<ngraph::op::Subtract>();
+//   if (op_name == "Multiply")
+//     ng_dummy_node = std::make_shared<ngraph::op::Multiply>();
+//   else
+//     cout << "Cannot create a dummy ngraph node for this given op: " <<
+//     op_name
+//          << std::endl;
+//   return ng_dummy_node;
+// }
 
 // Check if op is supported by backend using is_supported API
 static Status IsSupportedByBackend(
     const Node* node,
-    std::map<std::string, std::vector<std::string>>& TFtoNgraphOpMap,
+    std::map<std::string, std::vector<shared_ptr<ng::Node>>>& TFtoNgraphOpMap,
     const string& backend_name, bool& is_supported) {
   is_supported = true;
 
@@ -166,8 +168,7 @@ static Status IsSupportedByBackend(
   ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
   // Loop through TFtoNgraphOpMap map create dummy node for each ngraph op
   for (const auto& ngop : TFtoNgraphOpMap[node->type_string()]) {
-    auto dummy_node = ConstructDummyNgNode(ngop);
-    if (!op_backend->is_supported(*dummy_node)) {
+    if (!op_backend->is_supported(*ngop)) {
       is_supported = false;
     }
   }
@@ -235,8 +236,12 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   // are supported by backend
   // Update this Map if a new TF Op translation is
   // implemented or a new Ngraph Op has been added
-  std::map<std::string, std::vector<std::string>> TFtoNgraphOpMap{
-      {"FloorMod", {"Floor", "Divide", "Subtract", "Multiply"}},
+  std::map<std::string, std::vector<shared_ptr<ng::Node>>> TFtoNgraphOpMap{
+      {"FloorMod",
+       {std::make_shared<ngraph::op::Floor>(),
+        std::make_shared<ngraph::op::Divide>(),
+        std::make_shared<ngraph::op::Subtract>(),
+        std::make_shared<ngraph::op::Multiply>()}},
   };
 
   mutex init_mu;
