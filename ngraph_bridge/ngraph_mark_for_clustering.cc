@@ -171,7 +171,7 @@ static Status IsSupportedByBackend(
       is_supported = false;
     }
   }
-  BackendManager::ReleaseBackend("CPU");
+  BackendManager::ReleaseBackend(backend_name);
   return Status::OK();
 }
 
@@ -231,7 +231,10 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   static std::map<std::string, SetAttributesFunction> set_attributes_map;
 
-  // Map:: TF ops to NG Ops
+  // Map:: TF ops to NG Ops to track if all the Ngraph ops
+  // are supported by backend
+  // Update this Map if a new TF Op translation is
+  // implemented or a new Ngraph Op has been added
   std::map<std::string, std::vector<std::string>> TFtoNgraphOpMap{
       {"FloorMod", {"Floor", "Divide", "Subtract", "Multiply"}},
   };
