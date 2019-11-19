@@ -371,6 +371,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
           SimpleConfirmationFunction();
       confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
       confirmation_function_map["RsqrtGrad"] = SimpleConfirmationFunction();
+      confirmation_function_map["ScatterNd"] = SimpleConfirmationFunction();
       confirmation_function_map["Select"] = SimpleConfirmationFunction();
       confirmation_function_map["Shape"] = SimpleConfirmationFunction();
       confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
@@ -568,6 +569,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["ResizeBilinear"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
       type_constraint_map["RsqrtGrad"]["T"] = NGraphRealDTypes();
+      type_constraint_map["ScatterNd"]["T"] = NGraphDTypes();
+      type_constraint_map["ScatterNd"]["Tindices"] = NGraphIndexDTypes();
       type_constraint_map["Select"]["T"] = NGraphDTypes();
       type_constraint_map["Shape"]["T"] = NGraphDTypes();
       type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();
@@ -651,6 +654,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
         return Status::OK();
       };
       set_attributes_map["Reshape"] = SetStaticInputs({1});
+      set_attributes_map["ScatterNd"] = SetStaticInputs({2});
       set_attributes_map["Slice"] = SetStaticInputs({1, 2});
       set_attributes_map["Split"] = SetStaticInputs({0});
       set_attributes_map["SplitV"] = SetStaticInputs({1, 2});

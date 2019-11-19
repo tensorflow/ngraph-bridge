@@ -85,7 +85,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"v0.25.1-rc.9\\"',
+        '-D NGRAPH_VERSION=\\"v0.25.1-rc.10\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_STATIC_LIB_ENABLE'
@@ -118,7 +118,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"v0.25.1-rc.9\\"',
+        '-D NGRAPH_VERSION=\\"v0.25.1-rc.10\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
     ] + CXX_ABI,
@@ -269,7 +269,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"0.25.1-rc.9\\"',
+        '-D NGRAPH_VERSION=\\"0.25.1-rc.10\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
