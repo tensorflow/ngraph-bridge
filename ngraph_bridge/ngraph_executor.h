@@ -22,14 +22,16 @@
 #include <ostream>
 #include <vector>
 
+#include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/graph/graph.h"
 
 #include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
+#include "ngraph_bridge/ngraph_tensor_manager.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 namespace tensorflow {
 
@@ -76,6 +78,8 @@ class NGraphExecutor {
   }
 
   const int& GetNgraphClusterId() { return m_ngraph_cluster_id; }
+
+  const string& GetNgraphClusterName() { return m_node_name; }
 
   int GetGraphId() { return m_graph_id; }
 
@@ -140,6 +144,9 @@ class NGraphExecutor {
 
   mutex m_mutex;
   int m_depth{2};  // TODO make this settable
+
+  // NGraphTensorManager
+  shared_ptr<NGraphTensorManager> m_ng_tensor_manager;
 };
 
 }  // namespace ngraph_bridge

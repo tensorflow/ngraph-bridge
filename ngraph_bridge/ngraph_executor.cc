@@ -83,6 +83,8 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                              m_op_backend_name + string("' not available."));
   }
 
+  int number_of_inputs = FindNumberOfNodes(m_graph.get(), "_Arg");
+  int number_of_outputs = FindNumberOfNodes(m_graph.get(), "_Retval");
   //
   // Initialize the "m_input_is_static" vector as follows:
   // (1) create m_input_is_static with n+1 elements, where n is the max arg
@@ -144,6 +146,22 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
     NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
     m_input_is_static[index] = is_static;
   }
+
+  // Some error checking before refactoring the above code
+  if (number_of_inputs != size) {
+    throw std::runtime_error(
+        "Found discrepancy in no of Args in encapsulated graph and the "
+        "max_index");
+  }
+  if (number_of_inputs != arg_nodes.size()) {
+    throw std::runtime_error(
+        "Found discrepancy in no of Args in encapsulated graph and the "
+        "max_index");
+  }
+
+  m_ng_tensor_manager = make_shared<NGraphTensorManager>(
+      GetNgraphClusterName(), GetNgraphClusterId(), GetGraphId(),
+      number_of_inputs, number_of_outputs);
 }
 
 //---------------------------------------------------------------------------
@@ -187,6 +205,7 @@ NGraphExecutor::~NGraphExecutor() {
   m_executable_pipelined_tensors_map.clear();
   m_serialized_ng_function_map.clear();
   m_ng_exec_map.clear();
+  m_ng_tensor_manager.reset();
 }
 
 //---------------------------------------------------------------------------

@@ -43,6 +43,30 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+vector<int> FindComplementOf(const int& max_element,
+                             const vector<int> element_set) {
+  vector<int> complement;
+  vector<int> superset(max_element);
+  iota(begin(superset), end(superset), 0);
+
+  vector<int>::iterator it = set_difference(
+      superset.begin(), superset.begin() + superset.size(), element_set.begin(),
+      element_set.begin() + element_set.size(), complement.begin());
+  complement.resize(it - complement.begin());
+  return complement;
+}
+
+int FindNumberOfNodes(const Graph* graph, const string op_type) {
+  int count = 0;
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == op_type) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled) {
   const char* copy_env_var = std::getenv("NGRAPH_TF_LOG_TENSOR_COPIES");

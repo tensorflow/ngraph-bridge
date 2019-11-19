@@ -22,29 +22,44 @@
 #include <ostream>
 #include <vector>
 
-#include "tensorflow/core/framework/tensor_shape.h"
-#include "tensorflow/core/graph/graph.h"
+#include "absl/synchronization/mutex.h"
 
-#include "ngraph/ngraph.hpp"
-
-#include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_freshness_tracker.h"
-#include "ngraph_bridge/ngraph_pipelined_tensors.h"
-
+using namespace std;
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
 class NGraphTensorManager {
  public:
-  explicit NGraphTensorManager(const int number_of_inputs,
+  explicit NGraphTensorManager(const string ng_encap_node_name,
+                               const int ng_encap_cluster_id,
+                               const int ng_encap_graph_id,
+                               const int number_of_inputs,
                                const int number_of_outputs);
 
   ~NGraphTensorManager();
 
  private:
+  void Initialize();
+  string m_ng_encap_node_name;
+  int m_ng_encap_cluster_id;
+  int m_ng_encap_graph_id;
   int m_number_of_inputs;
   int m_number_of_outputs;
+
+  // Book-keeping for weights-on-device optimizations
+  vector<int> input_indexes_from_variables;
+  vector<int> output_indexes_assigning_variable;
+  vector<int> output_indexes_that_need_copy;
+
+  // All indexes that are not for from/to variables
+  vector<int> pipelined_input_indexes;
+  vector<int> pipelined_output_indexes;
+
+  //[TODO] Book-keeping for prefetched inputs
+  vector<int> input_indexes_that_are_prefetched;
+
+  absl::Mutex m_mutex;
 };
 
 }  // namespace ngraph_bridge
