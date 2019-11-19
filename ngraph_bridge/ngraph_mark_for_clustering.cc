@@ -155,22 +155,20 @@ static std::shared_ptr<ng::Node> ConstructDummyNgNode(const string op_name) {
 }
 
 // Check if op is supported by backend using is_supported API
-Status IsSupportedByBackend(bool& is_supported) {
+static Status IsSupportedByBackend(
+    const Node* node,
+    std::map<std::string, std::vector<std::string>>& TFtoNgraphOpMap,
+    const string& backend_name, bool& is_supported) {
   is_supported = true;
-  // Map:: TF ops to NG Ops
-  std::map<std::string, std::vector<std::string>> TFtoNgraphOpMap{
-      {"FloorMod", {"Floor", "Divide", "Subtract", "Multiply"}}};
 
   // Create backend to query
-  Status status = BackendManager::CreateBackend("CPU");
-  ng::runtime::Backend* op_backend = BackendManager::GetBackend("CPU");
+  Status status = BackendManager::CreateBackend(backend_name);
+  ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
   // Loop through TFtoNgraphOpMap map create dummy node for each ngraph op
-  for (const auto& tfop : TFtoNgraphOpMap) {
-    for (const auto& ngop : tfop.second) {
-      auto dummy_node = ConstructDummyNgNode(ngop);
-      if (!op_backend->is_supported(*dummy_node)) {
-        is_supported = false;
-      }
+  for (const auto& ngop : TFtoNgraphOpMap[node->type_string()]) {
+    auto dummy_node = ConstructDummyNgNode(ngop);
+    if (!op_backend->is_supported(*dummy_node)) {
+      is_supported = false;
     }
   }
   BackendManager::ReleaseBackend("CPU");
@@ -232,6 +230,11 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   //
 
   static std::map<std::string, SetAttributesFunction> set_attributes_map;
+
+  // Map:: TF ops to NG Ops
+  std::map<std::string, std::vector<std::string>> TFtoNgraphOpMap{
+      {"FloorMod", {"Floor", "Divide", "Subtract", "Multiply"}},
+  };
 
   mutex init_mu;
   static bool initialized = false;
@@ -808,11 +811,13 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
       // check if op is supported by backend
       bool is_supported = false;
-      TF_RETURN_IF_ERROR(IsSupportedByBackend(is_supported));
+      TF_RETURN_IF_ERROR(IsSupportedByBackend(node, TFtoNgraphOpMap,
+                                              current_backend, is_supported));
       if (!is_supported) {
-        NGRAPH_VLOG(5) << "Op is not supported by backend";
+        NGRAPH_VLOG(5) << "TF Op is not supported by backend:" << node->name();
         break;
       }
+
       // if all constraints are met, mark for clustering
       mark_for_clustering = true;
     } while (false);
