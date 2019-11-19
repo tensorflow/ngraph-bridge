@@ -83,9 +83,6 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                              m_op_backend_name + string("' not available."));
   }
 
-  int number_of_inputs = FindNumberOfNodes(m_graph.get(), "_Arg");
-  int number_of_outputs = FindNumberOfNodes(m_graph.get(), "_Retval");
-  //
   // Initialize the "m_input_is_static" vector as follows:
   // (1) create m_input_is_static with n+1 elements, where n is the max arg
   //     index
@@ -148,6 +145,9 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
   }
 
   // Some error checking before refactoring the above code
+  int number_of_inputs = FindNumberOfNodes(m_graph.get(), "_Arg");
+  int number_of_outputs = FindNumberOfNodes(m_graph.get(), "_Retval");
+
   if (number_of_inputs != size) {
     throw std::runtime_error(
         "Found discrepancy in no of Args in encapsulated graph and the "

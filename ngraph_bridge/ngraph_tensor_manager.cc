@@ -64,7 +64,6 @@ void NGraphTensorManager::Initialize() {
     }
   }
 #endif
-
   pipelined_input_indexes =
       FindComplementOf(m_number_of_inputs, input_indexes_from_variables);
   pipelined_output_indexes =

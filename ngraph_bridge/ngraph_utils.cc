@@ -45,10 +45,11 @@ namespace ngraph_bridge {
 
 vector<int> FindComplementOf(const int& max_element,
                              const vector<int> element_set) {
-  vector<int> complement;
   vector<int> superset(max_element);
   iota(begin(superset), end(superset), 0);
 
+  // max size of complement is superset
+  vector<int> complement(superset.size());
   vector<int>::iterator it = set_difference(
       superset.begin(), superset.begin() + superset.size(), element_set.begin(),
       element_set.begin() + element_set.size(), complement.begin());
