@@ -39,6 +39,30 @@ class NGraphTensorManager {
 
   ~NGraphTensorManager();
 
+  const vector<int>& GetInputIndexesFedByVariables() {
+    return m_input_indexes_from_variables;
+  }
+
+  const vector<int>& GetOutputIndexesAssigningVariables() {
+    return m_output_indexes_assigning_variable;
+  }
+
+  const vector<int>& GetOutputIndexesThatNeedCopy() {
+    return m_output_indexes_that_need_copy;
+  }
+
+  const vector<int>& GetPipelinedInputIndexes() {
+    return m_pipelined_input_indexes;
+  }
+
+  const vector<int>& GetPipelinedOutputIndexes() {
+    return m_pipelined_output_indexes;
+  }
+
+  const vector<int>& GetPrefetchedInputIndexes() {
+    return m_prefetched_input_indexes;
+  }
+
  private:
   void Initialize();
   string m_ng_encap_node_name;
@@ -48,16 +72,16 @@ class NGraphTensorManager {
   int m_number_of_outputs;
 
   // Book-keeping for weights-on-device optimizations
-  vector<int> input_indexes_from_variables;
-  vector<int> output_indexes_assigning_variable;
-  vector<int> output_indexes_that_need_copy;
+  vector<int> m_input_indexes_from_variables;
+  vector<int> m_output_indexes_assigning_variable;
+  vector<int> m_output_indexes_that_need_copy;
 
   // All indexes that are not for from/to variables
-  vector<int> pipelined_input_indexes;
-  vector<int> pipelined_output_indexes;
+  vector<int> m_pipelined_input_indexes;
+  vector<int> m_pipelined_output_indexes;
 
   //[TODO] Book-keeping for prefetched inputs
-  vector<int> input_indexes_that_are_prefetched;
+  vector<int> m_prefetched_input_indexes;
 
   absl::Mutex m_mutex;
 };

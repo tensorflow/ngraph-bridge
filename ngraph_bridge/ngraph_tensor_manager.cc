@@ -50,24 +50,25 @@ void NGraphTensorManager::Initialize() {
   for (int index = 0; index < m_number_of_inputs; index++) {
     if (NGraphCatalog::ExistsInInputVariableSharedNameMap(
             m_ng_encap_graph_id, m_ng_encap_node_name, index)) {
-      input_indexes_from_variables.push_back(index);
+      m_input_indexes_from_variables.push_back(index);
     }
   }
   for (int index = 0; index < m_number_of_outputs; index++) {
     if (NGraphCatalog::ExistsInEncapOutputInfoMap(
             m_ng_encap_graph_id, m_ng_encap_node_name, index)) {
-      output_indexes_assigning_variable.push_back(index);
+      m_output_indexes_assigning_variable.push_back(index);
     }
     if (NGraphCatalog::EncapOutputIndexNeedsCopy(m_ng_encap_graph_id,
                                                  m_ng_encap_node_name, index)) {
-      output_indexes_that_need_copy.push_back(index);
+      cout << "found " << index << endl;
+      m_output_indexes_that_need_copy.push_back(index);
     }
   }
 #endif
-  pipelined_input_indexes =
-      FindComplementOf(m_number_of_inputs, input_indexes_from_variables);
-  pipelined_output_indexes =
-      FindComplementOf(m_number_of_outputs, output_indexes_assigning_variable);
+  m_pipelined_input_indexes =
+      FindComplement(m_number_of_inputs, m_input_indexes_from_variables);
+  m_pipelined_output_indexes =
+      FindComplement(m_number_of_outputs, m_output_indexes_assigning_variable);
 }
 
 //---------------------------------------------------------------------------

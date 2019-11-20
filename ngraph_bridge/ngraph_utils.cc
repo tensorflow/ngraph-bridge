@@ -43,8 +43,8 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-vector<int> FindComplementOf(const int& max_element,
-                             const vector<int> element_set) {
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set) {
   vector<int> superset(max_element);
   iota(begin(superset), end(superset), 0);
 

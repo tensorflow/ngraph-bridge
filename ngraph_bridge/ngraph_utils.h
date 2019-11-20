@@ -39,11 +39,11 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 // Finds the complement of element_set
-// Given the max element
+// Given the max_element
 // Finds: {0,1,...,max_element-1} - element_set
 // Assumes element_set is sorted
-vector<int> FindComplementOf(const int& max_element,
-                             const vector<int> element_set);
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set);
 
 int FindNumberOfNodes(const Graph* graph, const string op_type);
 
