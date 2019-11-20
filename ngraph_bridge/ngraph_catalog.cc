@@ -211,7 +211,11 @@ void NGraphCatalog::PrintEncapOutputInfoMap() {
 void NGraphCatalog::AddToPrefetchedInputIndexMap(
     const int& graphid, const string& node_name,
     const unordered_set<int>& val) {
-  string key = graphid + "_" + node_name;
+  string key = to_string(graphid) + "_" + node_name;
+  if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(key)) {
+    throw runtime_error(
+        "Trying to add an already existing key in PrefetchedInputIndexMap");
+  }
   NGraphCatalog::prefetched_input_index_map_.insert({key, val});
 }
 

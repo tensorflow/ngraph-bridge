@@ -379,7 +379,7 @@ TEST_F(NGraphExecTest, MixedTensors) {
 
 TEST_F(NGraphExecTest, MixedTensorsPipelined) {
   Graph input_graph(OpRegistry::Global());
-  ASSERT_OK(LoadGraph("test_graph_1.pbtxt", &input_graph));
+  ASSERT_OK(LoadGraph("test_mixed_tensors_pipelined.pbtxt", &input_graph));
 
   // Create the inputs for this graph
   int num_inputs = 3;

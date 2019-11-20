@@ -36,54 +36,44 @@ namespace ngraph_bridge {
 // 2. Attach Graph Ids to the node
 
 // We collect the below information for the catalog
-// 1. If the input to a node (generally the IteratorGetNext)
-// is coming from the IteratorV2 node, we catalog it
-// i.e. we add the node_name and the input indexes of it's
-// outputs to the PrefetchedInputIndexMap for the encap
-// op's utilization
+// 1. If the input to "NGraphEncapsulate" node
+// is coming form IteratorGetNext, catalog it
+// i.e. we add the node_name and the input indexes for the
+// "NGraphEncapsulate" node to the PrefetchedInputIndexMap
 // We add mapping of {graphId_nodename : (input_indexs)} to the
 // PrefetchedInputIndexMap
 //
 
 Status EnterInCatalog(Graph* graph, int graph_id) {
   std::set<Node*> add_to_prefetch_map;
+  // Go over all the nodes in the graph
   for (auto node : graph->op_nodes()) {
-    // Go over all the inputs of the node
-    for (auto edge : node->in_edges()) {
-      // If any input is coming from "IteratorV2"
-      if (edge->src()->type_string() == "IteratorV2") {
-        NGRAPH_VLOG(2) << "src node " << DebugNode(edge->src());
-        NGRAPH_VLOG(2) << "adding node " << DebugNode(node)
-                       << " to PrefetchedInputIndexMap ";
-        add_to_prefetch_map.insert(node);
-      }
-    }
-  }
-  for (auto node : add_to_prefetch_map) {
-    bool add_to_map = false;
+    // If the node is a NGraphEncapsulate, go over all it's
+    // inputs
     unordered_set<int> in_indexes_for_encap;
-    for (auto edge : node->out_edges()) {
-      // Now check that all outputs of this node go to an encap
-      // if yes, then catalog it along with the input indexes
-      // for the encap op
-      if (edge->dst()->type_string() == "NGraphEncapsulate") {
-        add_to_map = true;
-        in_indexes_for_encap.insert(edge->dst_input());
-      } else {
-        return errors::Internal("Output of node: ", DebugNode(node),
-                                "does not go to the encap op.\n");
+    if (node->type_string() == "NGraphEncapsulate") {
+      for (auto edge : node->in_edges()) {
+        // If any input is coming from "IteratorGetNext" then
+        // add the input index for it to the set
+        if (edge->src()->type_string() == "IteratorGetNext") {
+          NGRAPH_VLOG(4) << "Adding to PrefetchedInputIndexMap";
+          NGRAPH_VLOG(4) << "Key: " << node->name();
+          NGRAPH_VLOG(4) << "Input index: " << edge->dst_input();
+          in_indexes_for_encap.insert(edge->dst_input());
+        }
+      }  // end loop over input edges
+
+      if (in_indexes_for_encap.size() > 0) {
+        try {
+          NGraphCatalog::AddToPrefetchedInputIndexMap(graph_id, node->name(),
+                                                      in_indexes_for_encap);
+        } catch (const std::exception& exp) {
+          return errors::Internal(
+              "Caught exception while entering in catalog: ", exp.what(), "\n");
+        }
       }
     }
-    if (add_to_map) {
-      try {
-        NGraphCatalog::AddToPrefetchedInputIndexMap(graph_id, node->name(),
-                                                    in_indexes_for_encap);
-      } catch (const std::exception& exp) {
-        return errors::Internal("Caught exception while entering in catalog: ",
-                                exp.what(), "\n");
-      }
-    }
-  }
+  }  // end loop over graph nodes
   NGRAPH_VLOG(4) << "Entered in Catalog";
   return Status::OK();
 }  // enter in catalog
