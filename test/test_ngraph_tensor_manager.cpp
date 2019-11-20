@@ -60,6 +60,12 @@ class NGraphTensorManagerTest : public ::testing::Test {
         ng_encap_graph_id, ng_encap_node_name, indexes_need_copy);
 #endif
   }
+
+  void ClearCatalog() {
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+    NGraphCatalog::ClearCatalog();
+#endif
+  }
 };
 
 TEST(NGraphUtils, FindComplement1) {
@@ -90,17 +96,15 @@ TEST_F(NGraphTensorManagerTest, NoVariables) {
   NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
                                      ng_encap_graph_id, number_of_inputs,
                                      number_of_outputs);
+  // expected
   vector<int> empty;
+  vector<int> expected_pipelined_inp_indexes = {0, 1, 2, 3, 4};
+  vector<int> expected_pipelined_out_indexes = {0, 1};
 
   // var related
   ASSERT_EQ(empty, tensor_manager.GetInputIndexesFedByVariables());
   ASSERT_EQ(empty, tensor_manager.GetOutputIndexesAssigningVariables());
   ASSERT_EQ(empty, tensor_manager.GetOutputIndexesThatNeedCopy());
-
-  // pipelined
-  vector<int> expected_pipelined_inp_indexes = {0, 1, 2, 3, 4};
-  vector<int> expected_pipelined_out_indexes = {0, 1};
-
   ASSERT_EQ(expected_pipelined_inp_indexes,
             tensor_manager.GetPipelinedInputIndexes());
   ASSERT_EQ(expected_pipelined_out_indexes,
@@ -129,8 +133,10 @@ TEST_F(NGraphTensorManagerTest, Variables) {
     // expected values
     expected_pipelined_inp_indexes = {1, 3, 4};
     expected_pipelined_out_indexes = {1};
-    expected_var_inp_indexes = {0, 2};
-    expected_var_out_indexes = {0};
+    expected_var_inp_indexes =
+        FindComplement(number_of_inputs, expected_pipelined_inp_indexes);
+    expected_var_out_indexes =
+        FindComplement(number_of_outputs, expected_pipelined_out_indexes);
     expected_out_indexes_need_copy = {1};
     expected_prefetched_inp_indexes = {};
 
@@ -170,7 +176,7 @@ TEST_F(NGraphTensorManagerTest, Variables) {
 
   // var related
   if (ngraph_tf_are_variables_enabled()) {
-    // NGraphCatalog::ClearCatalog();
+    ClearCatalog();
   }
 }
 
