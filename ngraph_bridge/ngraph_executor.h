@@ -22,10 +22,10 @@
 #include <ostream>
 #include <vector>
 
+#include "ngraph/ngraph.hpp"
+#include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/graph/graph.h"
-
-#include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
