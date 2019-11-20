@@ -148,10 +148,13 @@ static Status IsSupportedByBackend(
   // Create backend to query
   Status status = BackendManager::CreateBackend(backend_name);
   ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
-  // Loop through TFtoNgraphOpMap map create dummy node for each ngraph op
-  for (const auto& ngop : TFtoNgraphOpMap[node->type_string()]) {
+
+  auto ng_op = TFtoNgraphOpMap[node->type_string()];
+  // Loop through the ngraph op list to query
+  for (int i = 0; i < ng_op.size(); i++) {
     // Pass ngraph node to check if backend supports this op
-    if (!op_backend->is_supported(*ngop)) {
+    auto ret = op_backend->is_supported(*ng_op[i]);
+    if (!ret) {
       is_supported = false;
     }
   }
@@ -220,11 +223,18 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   // Update this Map if a new TF Op translation is
   // implemented or a new Ngraph Op has been added
   std::map<std::string, std::vector<shared_ptr<ng::Node>>> TFtoNgraphOpMap{
+      {"StridedSlice",
+       {std::make_shared<ngraph::op::Reverse>(),
+        std::make_shared<ngraph::op::Slice>(),
+        std::make_shared<ngraph::op::Reshape>()}},
       {"FloorMod",
        {std::make_shared<ngraph::op::Floor>(),
         std::make_shared<ngraph::op::Divide>(),
         std::make_shared<ngraph::op::Subtract>(),
         std::make_shared<ngraph::op::Multiply>()}},
+      {"Reshape", {std::make_shared<ngraph::op::Reshape>()}},
+      {"Const", {std::make_shared<ngraph::op::Reshape>()}},
+      {"Add", {std::make_shared<ngraph::op::Add>()}},
   };
 
   mutex init_mu;
