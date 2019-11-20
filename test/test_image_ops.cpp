@@ -27,6 +27,7 @@ namespace testing {
 
 // Test op: CropAndResize
 // Disabled till a backend starts supporting it
+// Add more tests when backend starts supporting
 
 TEST(ImageOps, DISABLED_CropAndResize) {
   Scope root = Scope::NewRootScope();
