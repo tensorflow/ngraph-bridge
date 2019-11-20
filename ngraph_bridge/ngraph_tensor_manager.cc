@@ -60,7 +60,6 @@ void NGraphTensorManager::Initialize() {
     }
     if (NGraphCatalog::EncapOutputIndexNeedsCopy(m_ng_encap_graph_id,
                                                  m_ng_encap_node_name, index)) {
-      cout << "found " << index << endl;
       m_output_indexes_that_need_copy.push_back(index);
     }
   }

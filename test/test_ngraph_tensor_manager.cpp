@@ -34,6 +34,7 @@ namespace testing {
 
 class NGraphTensorManagerTest : public ::testing::Test {
  protected:
+ // Utility to Simulate entering in catalog
   void EnterInCatalog(const int& ng_encap_graph_id,
                       const string& ng_encap_node_name,
                       const vector<int>& var_inp_indexes,
@@ -61,10 +62,18 @@ class NGraphTensorManagerTest : public ::testing::Test {
 #endif
   }
 
+  // Clears the Catalog
   void ClearCatalog() {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     NGraphCatalog::ClearCatalog();
 #endif
+  }
+
+  // returns {0,1,2, ... , size-1}
+  vector<int> FillRange(int size){
+    vector<int> vout(size);
+    iota(vout.begin(),vout.end(),0);
+    return vout;
   }
 };
 
@@ -98,8 +107,8 @@ TEST_F(NGraphTensorManagerTest, NoVariables) {
                                      number_of_outputs);
   // expected
   vector<int> empty;
-  vector<int> expected_pipelined_inp_indexes = {0, 1, 2, 3, 4};
-  vector<int> expected_pipelined_out_indexes = {0, 1};
+  vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
+  vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
 
   // var related
   ASSERT_EQ(empty, tensor_manager.GetInputIndexesFedByVariables());
@@ -146,8 +155,8 @@ TEST_F(NGraphTensorManagerTest, Variables) {
                    expected_out_indexes_need_copy);
 
   } else {
-    expected_pipelined_inp_indexes = {0, 1, 2, 3, 4};
-    expected_pipelined_out_indexes = {0, 1};
+    expected_pipelined_inp_indexes = FillRange(number_of_inputs);
+    expected_pipelined_out_indexes = FillRange(number_of_outputs);
 
     expected_var_inp_indexes = {};
     expected_var_out_indexes = {};
