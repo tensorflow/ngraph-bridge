@@ -34,6 +34,7 @@
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/version.h"
 #include "test/test_utilities.h"
 
 using namespace std;
@@ -59,6 +60,10 @@ Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph) {
 }
 
 TEST(PrefetchCatalogTest, SmallGraph1) {
+  // don't run the test for the variables build
+  if (ngraph_tf_are_variables_enabled()) {
+    return;
+  }
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
   Graph input_graph(OpRegistry::Global());
