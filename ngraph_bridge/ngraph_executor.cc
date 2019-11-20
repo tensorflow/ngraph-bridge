@@ -236,9 +236,7 @@ Status NGraphExecutor::GetExecutableFunctionAndTensors(
                                      destroy_ng_items_callback, cache_hit);
 
   if (status_ng_item_pair.first == Status::OK()) {
-    ng_exec = std::get<0>(status_ng_item_pair.second);
-    serialized_ng_func = std::get<1>(status_ng_item_pair.second);
-    pts = std::get<2>(status_ng_item_pair.second);
+    std::tie(ng_exec, serialized_ng_func, pts) = status_ng_item_pair.second;
   }
   return status_ng_item_pair.first;
 }

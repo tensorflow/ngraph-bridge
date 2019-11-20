@@ -148,7 +148,8 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
   int graph_id{-1};
   OP_REQUIRES_OK(ctx, ctx->GetAttr("ngraph_graph_id", &graph_id));
 
-  int my_function_cache_depth_in_items = 16;
+  const int cache_depth = 16;
+  int my_function_cache_depth_in_items = cache_depth;
   const char* cache_depth_specified =
       std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
   if (cache_depth_specified != nullptr) {
