@@ -22,7 +22,6 @@
 #include <ostream>
 #include <vector>
 
-#include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/graph/graph.h"
 

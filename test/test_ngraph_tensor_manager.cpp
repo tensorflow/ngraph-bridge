@@ -34,7 +34,7 @@ namespace testing {
 
 class NGraphTensorManagerTest : public ::testing::Test {
  protected:
- // Utility to Simulate entering in catalog
+  // Utility to Simulate entering in catalog
   void EnterInCatalog(const int& ng_encap_graph_id,
                       const string& ng_encap_node_name,
                       const vector<int>& var_inp_indexes,
@@ -70,9 +70,9 @@ class NGraphTensorManagerTest : public ::testing::Test {
   }
 
   // returns {0,1,2, ... , size-1}
-  vector<int> FillRange(int size){
+  vector<int> FillRange(int size) {
     vector<int> vout(size);
-    iota(vout.begin(),vout.end(),0);
+    iota(vout.begin(), vout.end(), 0);
     return vout;
   }
 };

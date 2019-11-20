@@ -39,6 +39,10 @@ class NGraphTensorManager {
 
   ~NGraphTensorManager();
 
+  const int& GetNumberOfInputs() { return m_number_of_inputs; }
+
+  const int& GetNumberOfOutputs() { return m_number_of_outputs; }
+
   const vector<int>& GetInputIndexesFedByVariables() {
     return m_input_indexes_from_variables;
   }
