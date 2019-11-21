@@ -246,12 +246,12 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       MemoryProfile(vm, rss);
       auto delta_vm_mem = vm - vm0;
       auto delta_res_mem = rss - rss0;
-      NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
-                     << " Cache length: " << m_ng_exec_map.size()
-                     << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
-                     << " Delta RSS: " << delta_res_mem
-                     << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
-                     << " VM: " << vm / (1024 * 1024) << " GB" << endl;
+      std::cout << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
+                << " Cache length: " << m_ng_exec_map.size()
+                << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
+                << " Delta RSS: " << delta_res_mem
+                << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
+                << " VM: " << vm / (1024 * 1024) << " GB" << endl;
     }
   }  // end of input signature not found in m_ng_exec_map
   else {
