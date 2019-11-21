@@ -22,8 +22,6 @@
 #include <ostream>
 #include <vector>
 
-#include "absl/synchronization/mutex.h"
-
 using namespace std;
 namespace tensorflow {
 
@@ -86,8 +84,6 @@ class NGraphTensorManager {
 
   //[TODO] Book-keeping for prefetched inputs
   vector<int> m_prefetched_input_indexes;
-
-  absl::Mutex m_mutex;
 };
 
 }  // namespace ngraph_bridge

@@ -14,11 +14,11 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/ngraph_tensor_manager.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 #include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 #endif
+#include "ngraph_bridge/ngraph_tensor_manager.h"
 
 using namespace std;
 
@@ -43,8 +43,6 @@ NGraphTensorManager::NGraphTensorManager(const string ng_encap_node_name,
 }
 
 void NGraphTensorManager::Initialize() {
-// absl::MutexLock lock(&m_mutex);
-// Initialize is called as part of constructor do we need to lock this
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   for (int index = 0; index < m_number_of_inputs; index++) {
     if (NGraphCatalog::ExistsInInputVariableSharedNameMap(
