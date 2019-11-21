@@ -118,6 +118,20 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
   return Status::OK();
 }
 
+Node* FindPrefetch(std::vector<Node*> in_nodes) {
+  std::vector<Node*> ins;
+  for (auto node : in_nodes) {
+    if (node->type_string() == "PrefetchDataset") {
+      return node;
+    } else {
+      for (auto edge : node->in_edges()) {
+        ins.push_back(edge->src());
+      }
+    }
+  }
+  FindPrefetch(ins);
+}
+
 //
 // Main entry point for the variable-capture.
 //
@@ -201,10 +215,16 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
         }
 
         replaced_nodes.push_back(node);
-      } else if (node->type_string() == "PrefetchDataset") {
-        // Collect the prefetch_node so that we can add
+      } else if (node->type_string() == "MakeIterator") {
+        // Recursively go over the inputs of MakeIterator and
+        // collect the first PrefetchDataset op found in the
+        // path so that we can add
         // the NGraphWriteToDevice Op after this one
-        prefetch_node = node;
+        std::vector<Node*> in_nodes;
+        for (auto edge : node->in_edges()) {
+          in_nodes.push_back(edge->src());
+        }
+        prefetch_node = FindPrefetch(in_nodes);
       }
     }
   }
