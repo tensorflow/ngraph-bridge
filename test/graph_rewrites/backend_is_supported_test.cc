@@ -53,10 +53,10 @@ class ModifiedInterpreter : public ngraph::runtime::interpreter::INTBackend {
 
 TEST(ModifiedInterpreter, SimpleTest) {
   // Object of the inherited INTERPRETER class
-  // IsSupported obj = IsSupported();
+
+  auto backend = std::make_shared<ModifiedInterpreter>();
+  auto interpreter = backend.get();
   Graph g(OpRegistry::Global());
-  auto backend = ngraph::runtime::Backend::create("INTERPRETER");
-  // ModifiedInterpreter obj = ModifiedInterpreter(interpreter);
 
   Tensor t_input_0(DT_FLOAT, TensorShape{2, 3});
   Tensor t_input_1(DT_FLOAT, TensorShape{2, 3});
@@ -89,7 +89,7 @@ TEST(ModifiedInterpreter, SimpleTest) {
   };
 
   ASSERT_OK(
-      IsSupportedByBackend(node3, backend, TFtoNgraphOpMap, is_supported));
+      IsSupportedByBackend(node3, interpreter, TFtoNgraphOpMap, is_supported));
 }
 }
 }

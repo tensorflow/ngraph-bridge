@@ -141,15 +141,15 @@ static ConfirmationFunction SimpleConfirmationFunction() {
 // Check if op is supported by backend using is_supported API
 Status IsSupportedByBackend(
     const Node* node, const ng::runtime::Backend* op_backend,
-    std::map<std::string, std::vector<shared_ptr<ng::Node>>>& TFtoNgraphOpMap,
+    std::map<std::string, std::set<shared_ptr<ng::Node>>>& TFtoNgraphOpMap,
     bool& is_supported) {
   is_supported = true;
 
   auto ng_op = TFtoNgraphOpMap[node->type_string()];
   // Loop through the ngraph op list to query
-  for (int i = 0; i < ng_op.size(); i++) {
+  for (auto it = ng_op.begin(); it != ng_op.end(); it++) {
     // Pass ngraph node to check if backend supports this op
-    auto ret = op_backend->is_supported(*ng_op[i]);
+    auto ret = op_backend->is_supported(**it);
     if (!ret) {
       is_supported = false;
     }
@@ -217,19 +217,45 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   // are supported by backend
   // Update this Map if a new TF Op translation is
   // implemented or a new Ngraph Op has been added
-  std::map<std::string, std::vector<shared_ptr<ng::Node>>> TFtoNgraphOpMap{
-      {"StridedSlice",
-       {std::make_shared<ngraph::op::Reverse>(),
-        std::make_shared<ngraph::op::Slice>(),
-        std::make_shared<ngraph::op::Reshape>()}},
-      {"FloorMod",
-       {std::make_shared<ngraph::op::Floor>(),
-        std::make_shared<ngraph::op::Divide>(),
-        std::make_shared<ngraph::op::Subtract>(),
-        std::make_shared<ngraph::op::Multiply>()}},
-      {"Reshape", {std::make_shared<ngraph::op::Reshape>()}},
-      {"Const", {std::make_shared<ngraph::op::Reshape>()}},
+  std::map<std::string, std::set<shared_ptr<ng::Node>>> TFtoNgraphOpMap{
+      //   {"StridedSlice",
+      //    {std::make_shared<ngraph::op::Reverse>(),
+      //     std::make_shared<ngraph::op::Slice>(),
+      //     std::make_shared<ngraph::op::Reshape>()}},
+      //   {"FloorMod",
+      //    {std::make_shared<ngraph::op::Floor>(),
+      //     std::make_shared<ngraph::op::Divide>(),
+      //     std::make_shared<ngraph::op::Subtract>(),
+      //     std::make_shared<ngraph::op::Multiply>()}},
+      //   {"Reshape", {std::make_shared<ngraph::op::Reshape>()}},
+      //   {"Const", {std::make_shared<ngraph::op::Reshape>()}},
+      {"Abs", {std::make_shared<ngraph::op::Abs>()}},
       {"Add", {std::make_shared<ngraph::op::Add>()}},
+      {"AddN", {std::make_shared<ngraph::op::Add>()}},
+      {"Any", {std::make_shared<ngraph::op::Any>()}},
+      {"All", {std::make_shared<ngraph::op::All>()}},
+      {"ArgMax", {std::make_shared<ngraph::op::ArgMax>()}},
+      {"ArgMin", {std::make_shared<ngraph::op::ArgMin>()}},
+      {"AvgPool", {std::make_shared<ngraph::op::AvgPool>()}},
+      {"AvgPoolGrad", {std::make_shared<ngraph::op::AvgPoolBackprop>()}},
+      {"BatchMatMul",
+       {std::make_shared<ngraph::op::BatchMatMul>(),
+        std::make_shared<ngraph::op::Dot>(),
+        std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::Slice>(),
+        std::make_shared<ngraph::op::Concat>()}},
+      {"BatchMatMulV2",
+       {std::make_shared<ngraph::op::BatchMatMul>(),
+        std::make_shared<ngraph::op::Dot>(),
+        std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::Slice>(),
+        std::make_shared<ngraph::op::Concat>()}},
+      {"BiasAdd",
+       {std::make_shared<ngraph::op::Add>(),
+        std::make_shared<ngraph::op::Broadcast>()}},
+      {"BiasAddGrad", {std::make_shared<ngraph::op::Sum>()}},
+      {"AvgPool", {std::make_shared<ngraph::op::AvgPool>()}},
+      {"AvgPool", {std::make_shared<ngraph::op::AvgPool>()}},
   };
 
   mutex init_mu;
