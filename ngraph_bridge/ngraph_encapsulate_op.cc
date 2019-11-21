@@ -545,7 +545,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   int time_execute_function = execute_function.ElapsedInMS();
   event_execute_function.Stop();
 
-  if (config::IsProfilingMemory) {
+  if (config::IsProfilingMemory()) {
     long vm, rss;
     MemoryProfile(vm, rss);
     NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
