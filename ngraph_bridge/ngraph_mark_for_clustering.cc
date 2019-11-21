@@ -139,15 +139,11 @@ static ConfirmationFunction SimpleConfirmationFunction() {
 };
 
 // Check if op is supported by backend using is_supported API
-static Status IsSupportedByBackend(
-    const Node* node,
+Status IsSupportedByBackend(
+    const Node* node, const ng::runtime::Backend* op_backend,
     std::map<std::string, std::vector<shared_ptr<ng::Node>>>& TFtoNgraphOpMap,
-    const string& backend_name, bool& is_supported) {
+    bool& is_supported) {
   is_supported = true;
-
-  // Create backend to query
-  Status status = BackendManager::CreateBackend(backend_name);
-  ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
 
   auto ng_op = TFtoNgraphOpMap[node->type_string()];
   // Loop through the ngraph op list to query
@@ -158,7 +154,6 @@ static Status IsSupportedByBackend(
       is_supported = false;
     }
   }
-  BackendManager::ReleaseBackend(backend_name);
   return Status::OK();
 }
 
@@ -816,8 +811,13 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       // Create nGraph backend
       string ng_backend_type;
       BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
-      TF_RETURN_IF_ERROR(IsSupportedByBackend(node, TFtoNgraphOpMap,
-                                              ng_backend_type, is_supported));
+      // Create backend to query
+      Status status = BackendManager::CreateBackend(ng_backend_type);
+      ng::runtime::Backend* op_backend =
+          BackendManager::GetBackend(ng_backend_type);
+      TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend, TFtoNgraphOpMap,
+                                              is_supported));
+      BackendManager::ReleaseBackend(ng_backend_type);
       if (!is_supported) {
         NGRAPH_VLOG(5) << "TF Op is not supported by backend:" << node->name();
         break;

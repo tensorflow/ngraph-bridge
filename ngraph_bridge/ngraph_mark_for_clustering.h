@@ -20,6 +20,8 @@
 
 #include "tensorflow/core/graph/graph.h"
 
+#include "ngraph/ngraph.hpp"
+
 namespace tensorflow {
 
 namespace ngraph_bridge {
@@ -31,7 +33,11 @@ void GetStaticInputs(const Node* node, std::vector<int32>* inputs);
 bool InputIsStatic(const Node* node, int index);
 Status GetNodeBackend(const Node* node, string* backend_name);
 void SetNodeBackend(Node* node, const string& backend_name);
-
+Status IsSupportedByBackend(
+    const Node* node, const ngraph::runtime::Backend* op_backend,
+    std::map<std::string, std::vector<std::shared_ptr<ngraph::Node>>>&
+        TFtoNgraphOpMap,
+    bool& is_supported);
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
 
