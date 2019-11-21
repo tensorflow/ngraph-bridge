@@ -68,7 +68,7 @@ extern std::set<string> GetDisabledOps();
 extern void SetDisabledOps(std::set<string>);
 extern void SetDisabledOps(string);
 
-extern bool IsProfilingMemory();
+extern bool IsMemoryProfilingEnabled();
 }  // namespace config
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

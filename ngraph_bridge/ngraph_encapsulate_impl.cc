@@ -130,7 +130,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
   // Translate the TensorFlow graph to nGraph.
   if (it == m_ng_exec_map.end()) {
     long vm, rss, vm0, rss0;
-    if (config::IsProfilingMemory()) {
+    if (config::IsMemoryProfilingEnabled()) {
       // Measure the current total memory usage
       MemoryProfile(vm0, rss0);
     }
@@ -241,7 +241,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     m_serialized_ng_function_map[ng_exec] = serialized_ng_func;
 
     m_lru.push_front(signature);
-    if (config::IsProfilingMemory()) {
+    if (config::IsMemoryProfilingEnabled()) {
       // Memory after
       MemoryProfile(vm, rss);
       auto delta_vm_mem = vm - vm0;
