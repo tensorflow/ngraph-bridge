@@ -69,6 +69,10 @@ TEST(PrefetchCatalogTest, SmallGraph1) {
   Graph input_graph(OpRegistry::Global());
 
   // Now read the graph
+  // test_catalog_for_prefetch.pbtxt was created by running the following
+  // command:
+  // NGRAPH_TF_DUMP_GRAPHS=1 python3 examples/axpy_pipelined.py
+  // and using the encapsulated_0003.pbtxt
   ASSERT_OK(
       LoadGraphFromPbTxt("test_catalog_for_prefetch.pbtxt", &input_graph));
 
