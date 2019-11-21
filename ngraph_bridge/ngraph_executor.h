@@ -112,7 +112,7 @@ class NGraphExecutor {
   const int m_graph_id{-1};
   const unique_ptr<Graph> m_graph;
 
-  int my_function_cache_depth_in_items = 16;
+  int my_function_cache_depth_in_items;
   const string m_op_backend_name;
   string m_node_name;
   std::vector<bool> m_input_is_static;
