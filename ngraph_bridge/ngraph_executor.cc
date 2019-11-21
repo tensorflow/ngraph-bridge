@@ -152,7 +152,7 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
     throw std::runtime_error(
         "Found discrepancy in no of Args in encapsulated graph and the "
         "max_index, num_of_inputs/Args " +
-        number_of_inputs + " size via arg index" + size);
+        to_string(number_of_inputs) + " size via arg index " + to_string(size));
   }
 
   m_tensor_manager = make_shared<NGraphTensorManager>(
