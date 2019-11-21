@@ -545,15 +545,17 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   int time_execute_function = execute_function.ElapsedInMS();
   event_execute_function.Stop();
 
-  long vm, rss;
-  MemoryProfile(vm, rss);
-  NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
-                 << ng_encap_impl.GetInstanceId() << " Step_ID: " << step_id
-                 << " Cluster: " << name() << " Input Tensors created: "
-                 << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
-                 << " Output Tensors created: "
-                 << ng_output_tensor_size_in_bytes / (1024 * 1024) << " MB"
-                 << " Total process memory: " << rss / (1024 * 1024) << " GB";
+  if (config::IsProfilingMemory) {
+    long vm, rss;
+    MemoryProfile(vm, rss);
+    NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
+                   << ng_encap_impl.GetInstanceId() << " Step_ID: " << step_id
+                   << " Cluster: " << name() << " Input Tensors created: "
+                   << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
+                   << " Output Tensors created: "
+                   << ng_output_tensor_size_in_bytes / (1024 * 1024) << " MB"
+                   << " Total process memory: " << rss / (1024 * 1024) << " GB";
+  }
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
                  << ng_encap_impl.GetNgraphCluster();
