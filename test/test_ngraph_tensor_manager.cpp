@@ -15,6 +15,7 @@
  *******************************************************************************/
 #include "gtest/gtest.h"
 
+#include "tensorflow/core/common_runtime/dma_helper.h"
 #include "ngraph_bridge/ngraph_tensor_manager.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
