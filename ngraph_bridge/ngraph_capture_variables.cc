@@ -129,7 +129,7 @@ Node* FindPrefetch(std::vector<Node*> in_nodes) {
       }
     }
   }
-  FindPrefetch(ins);
+  return (FindPrefetch(ins));
 }
 
 //
