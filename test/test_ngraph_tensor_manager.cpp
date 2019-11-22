@@ -15,11 +15,11 @@
  *******************************************************************************/
 #include "gtest/gtest.h"
 
+#include "tensorflow/core/common_runtime/dma_helper.h"
+
 #include "ngraph_bridge/ngraph_tensor_manager.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
-#include "tensorflow/core/common_runtime/dma_helper.h"
-#include "tensorflow/core/common_runtime/dma_helper.h"
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 #include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
