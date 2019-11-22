@@ -1063,7 +1063,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
                                               is_supported));
       BackendManager::ReleaseBackend(ng_backend_type);
       if (!is_supported) {
-        NGRAPH_VLOG(5) << "TF Op " << node->name() << "of type"
+        NGRAPH_VLOG(5) << "TF Op " << node->name() << "of type "
                        << node->type_string()
                        << "is not supported by backend:" << ng_backend_type;
         break;
