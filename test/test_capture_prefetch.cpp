@@ -79,8 +79,50 @@ TEST(CapturePrefetchTest, SmallGraph1) {
   }
   // There should only be one NGraphPrefetchDataset node
   ASSERT_EQ(count_ng_prefetch, 1);
-  // There should only be 0 PrefetchDataset nodes as it has been replaced
+  // There should be 0 PrefetchDataset nodes as it has been replaced
   ASSERT_EQ(count_tf_prefetch, 0);
+
+  UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
+  RestoreEnv(env_map);
+}
+
+TEST(CapturePrefetchTest, SmallGraph2) {
+  list<string> env_vars{"NGRAPH_TF_USE_PREFETCH"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_USE_PREFETCH", "1");
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  Graph input_graph(OpRegistry::Global());
+
+  // Now read the graph
+  // test_capture_prefetch_1.pbtxt was created by running resnet50
+  // and using the encapsulated_0002.pbtxt
+  ASSERT_OK(LoadGraphFromPbTxt("test_capture_prefetch_1.pbtxt", &input_graph));
+  std::set<string> skip_these_nodes = {};
+  ASSERT_OK(CaptureVariables(&input_graph, skip_these_nodes));
+  int count_ng_prefetch = 0;
+  int count_tf_prefetch = 0;
+  for (auto node : input_graph.op_nodes()) {
+    if (node->type_string() == "NGraphPrefetchDataset") {
+      count_ng_prefetch = count_ng_prefetch + 1;
+      // This NGraphPrefetchDataset node should have only one output
+      ASSERT_EQ(node->num_outputs(), 1);
+      Node* dst;
+      for (auto edge : node->out_edges()) {
+        dst = edge->dst();
+      }
+      // The only one output of NGraphPrefetchDataset should go to
+      // a MakeIterator node
+      ASSERT_EQ(dst->type_string(), "MakeIterator");
+    }
+    if (node->type_string() == "PrefetchDataset") {
+      count_tf_prefetch = count_tf_prefetch + 1;
+    }
+  }
+  // There should only be one NGraphPrefetchDataset node
+  ASSERT_EQ(count_ng_prefetch, 1);
+  // There should be 2 PrefetchDataset nodes that were not to be captured
+  ASSERT_EQ(count_tf_prefetch, 2);
 
   UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
   RestoreEnv(env_map);
