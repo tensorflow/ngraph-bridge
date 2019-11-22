@@ -152,9 +152,9 @@ static Status IsSupportedByBackend(
     auto ret = op_backend->is_supported(**it);
     if (!ret) {
       is_supported = false;
+      return Status::OK();
     }
   }
-  return Status::OK();
 }
 
 //
@@ -223,7 +223,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   // are supported by backend
   // Update this Map if a new TF Op translation is
   // implemented or a new Ngraph Op has been added
-  std::map<std::string, std::set<shared_ptr<ng::Node>>> TFtoNgraphOpMap{
+  static std::map<std::string, std::set<shared_ptr<ng::Node>>> TFtoNgraphOpMap{
       {"Abs", {std::make_shared<ngraph::op::Abs>()}},
       {"Add", {std::make_shared<ngraph::op::Add>()}},
       {"AddN", {std::make_shared<ngraph::op::Add>()}},
@@ -1056,7 +1056,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       string ng_backend_type;
       BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
       // Create backend to query
-      Status status = BackendManager::CreateBackend(ng_backend_type);
+      TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
       ng::runtime::Backend* op_backend =
           BackendManager::GetBackend(ng_backend_type);
       TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend, TFtoNgraphOpMap,
