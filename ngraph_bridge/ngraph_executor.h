@@ -90,7 +90,7 @@ class NGraphExecutor {
     return m_executable_can_create_tensor ? m_depth : 1;
   }
 
-  const shared_ptr<NGraphTensorManager> GetTensorManager() {
+  const shared_ptr<NGraphTensorManager>& GetTensorManager() {
     return m_tensor_manager;
   }
 
