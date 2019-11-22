@@ -129,9 +129,11 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
   // Translate the TensorFlow graph to nGraph.
   if (it == m_ng_exec_map.end()) {
-    // Measure the current total memory usage
     long vm, rss, vm0, rss0;
-    MemoryProfile(vm0, rss0);
+    if (config::IsMemoryProfilingEnabled()) {
+      // Measure the current total memory usage
+      MemoryProfile(vm0, rss0);
+    }
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
     string serialized_ng_func;
@@ -239,16 +241,18 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     m_serialized_ng_function_map[ng_exec] = serialized_ng_func;
 
     m_lru.push_front(signature);
-    // Memory after
-    MemoryProfile(vm, rss);
-    auto delta_vm_mem = vm - vm0;
-    auto delta_res_mem = rss - rss0;
-    NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
-                   << " Cache length: " << m_ng_exec_map.size()
-                   << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
-                   << " Delta RSS: " << delta_res_mem
-                   << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
-                   << " VM: " << vm / (1024 * 1024) << " GB" << endl;
+    if (config::IsMemoryProfilingEnabled()) {
+      // Memory after
+      MemoryProfile(vm, rss);
+      auto delta_vm_mem = vm - vm0;
+      auto delta_res_mem = rss - rss0;
+      std::cout << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
+                << " Cache length: " << m_ng_exec_map.size()
+                << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
+                << " Delta RSS: " << delta_res_mem
+                << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
+                << " VM: " << vm / (1024 * 1024) << " GB" << endl;
+    }
   }  // end of input signature not found in m_ng_exec_map
   else {
     // Found the input signature in m_ng_exec_map, use the cached executable
