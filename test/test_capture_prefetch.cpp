@@ -16,12 +16,6 @@
 
 #include "gtest/gtest.h"
 
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
-#include "tensorflow/core/graph/graph.h"
-#include "tensorflow/core/public/session.h"
-
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
@@ -37,19 +31,6 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 namespace testing {
-Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph) {
-  // Read the graph
-  tensorflow::GraphDef graph_def;
-  auto load_graph_status = ReadTextProto(Env::Default(), pb_file, &graph_def);
-  if (!load_graph_status.ok()) {
-    return load_graph_status;
-  }
-
-  GraphConstructorOptions opts;
-  opts.allow_internal_ops = true;
-  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph);
-  return status;
-}
 
 TEST(CapturePrefetchTest, SmallGraph1) {
   list<string> env_vars{"NGRAPH_TF_USE_PREFETCH"};
