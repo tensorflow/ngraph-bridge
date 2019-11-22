@@ -14,9 +14,9 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_tensor_manager.h"
+#include "ngraph_bridge/ngraph_catalog.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 

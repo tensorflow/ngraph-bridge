@@ -88,6 +88,32 @@ TEST(PrefetchCatalogTest, SmallGraph1) {
   NGraphCatalog::ClearCatalog();
 }
 
+TEST(PrefetchCatalogTest, SmallGraph2) {
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  Graph input_graph(OpRegistry::Global());
+
+  // Now read the graph
+  ASSERT_OK(
+      LoadGraphFromPbTxt("test_catalog_for_prefetch_1.pbtxt", &input_graph));
+
+  ASSERT_OK(EnterPrefetchInCatalog(&input_graph, 0));
+  ASSERT_TRUE(
+      NGraphCatalog::ExistsInPrefetchedInputIndexMap("0_ngraph_cluster_340"));
+  ASSERT_TRUE(
+      NGraphCatalog::ExistsInPrefetchedInputIndexMap(0, "ngraph_cluster_340"));
+  std::unordered_set<int> expected;
+  expected.insert(2);
+  expected.insert(3);
+  std::unordered_set<int> indexes;
+  indexes = NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
+      0, "ngraph_cluster_340");
+  ASSERT_EQ(indexes, expected);
+
+  // Clean up
+  NGraphCatalog::ClearCatalog();
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
