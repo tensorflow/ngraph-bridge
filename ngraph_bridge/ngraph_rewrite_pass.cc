@@ -29,7 +29,7 @@
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
-#include "ngraph_bridge/ngraph_enter_in_catalog.h"
+#include "ngraph_bridge/ngraph_enter_prefetch_in_catalog.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -282,10 +282,10 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
 
     // 6. Enter in catalog then.
-    TF_RETURN_IF_ERROR(EnterInCatalog(options.graph->get(), idx));
+    TF_RETURN_IF_ERROR(EnterPrefetchInCatalog(options.graph->get(), idx));
     if (DumpCatalogedGraphs()) {
-      DumpGraphs(options, idx, "cataloged",
-                 "Graph with Variables Inputs Entered in Catalog");
+      DumpGraphs(options, idx, "prefetch-cataloged",
+                 "Graph with Prefetched Inputs Entered in Catalog");
     }
 
     return Status::OK();

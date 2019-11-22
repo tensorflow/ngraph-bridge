@@ -45,6 +45,11 @@ string NGraphCatalog::CreateNodeKey(const int& graph_id,
   return to_string(graph_id) + "_" + node_name + ":" + to_string(index);
 }
 
+string NGraphCatalog::CreateNodeKey(const int& graph_id,
+                                    const string& node_name) {
+  return to_string(graph_id) + "_" + node_name;
+}
+
 void NGraphCatalog::ClearCatalog() {
   NGraphCatalog::ClearInputVariableSharedNameMap();
   NGraphCatalog::ClearEncapOutputCopyIndexesMap();
@@ -60,7 +65,7 @@ void NGraphCatalog::AddToEncapOutputCopyIndexesMap(
     throw runtime_error(
         "Trying to add an already existing key in EncapOutputIndexesCopy Map");
   }
-  string key = graphid + "_" + node_name;
+  string key = to_string(graphid) + "_" + node_name;
   NGraphCatalog::encap_output_copy_indexes_map_.insert({key, val});
 }
 
@@ -70,13 +75,13 @@ void NGraphCatalog::ClearEncapOutputCopyIndexesMap() {
 
 const unordered_set<int>& NGraphCatalog::GetEncapOutputIndexesThatNeedCopy(
     const int& graphid, const string& node_name) {
-  string key = graphid + "_" + node_name;
+  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   return NGraphCatalog::encap_output_copy_indexes_map_.at(key);
 }
 
 bool NGraphCatalog::EncapOutputNeedsCopy(const int& graphid,
                                          const string& node_name) {
-  string key = graphid + "_" + node_name;
+  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   auto itr = NGraphCatalog::encap_output_copy_indexes_map_.find(key);
   return itr != NGraphCatalog::encap_output_copy_indexes_map_.end();
 }
@@ -84,7 +89,7 @@ bool NGraphCatalog::EncapOutputNeedsCopy(const int& graphid,
 bool NGraphCatalog::EncapOutputIndexNeedsCopy(const int& graphid,
                                               const string& node_name,
                                               const int& index) {
-  string key = graphid + "_" + node_name;
+  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   auto itr = NGraphCatalog::encap_output_copy_indexes_map_.find(key);
   if (itr != NGraphCatalog::encap_output_copy_indexes_map_.end()) {
     auto op_copy_indexes = itr->second;
@@ -96,7 +101,7 @@ bool NGraphCatalog::EncapOutputIndexNeedsCopy(const int& graphid,
 
 void NGraphCatalog::DeleteFromEncapOutputCopyIndexesMap(
     const int& graphid, const string& node_name) {
-  string key = graphid + "_" + node_name;
+  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   NGraphCatalog::encap_output_copy_indexes_map_.erase(key);
 }
 
@@ -211,7 +216,7 @@ void NGraphCatalog::PrintEncapOutputInfoMap() {
 void NGraphCatalog::AddToPrefetchedInputIndexMap(
     const int& graphid, const string& node_name,
     const unordered_set<int>& val) {
-  string key = to_string(graphid) + "_" + node_name;
+  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(key)) {
     throw runtime_error("Trying to add an already existing key ( " + key +
                         " ) in PrefetchedInputIndexMap ");
@@ -221,7 +226,7 @@ void NGraphCatalog::AddToPrefetchedInputIndexMap(
 
 bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const int& graphid,
                                                     const string& node_name) {
-  string key = graphid + "_" + node_name;
+  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   return NGraphCatalog::ExistsInPrefetchedInputIndexMap(key);
 }
 
@@ -232,7 +237,7 @@ bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const string& key) {
 
 const unordered_set<int>& NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
     const int& graphid, const string& node_name) {
-  string key = graphid + "_" + node_name;
+  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   return NGraphCatalog::prefetched_input_index_map_.at(key);
 }
 

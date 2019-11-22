@@ -22,7 +22,7 @@
 
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_catalog.h"
-#include "ngraph_bridge/ngraph_enter_in_catalog.h"
+#include "ngraph_bridge/ngraph_enter_prefetch_in_catalog.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
@@ -44,8 +44,7 @@ namespace ngraph_bridge {
 // PrefetchedInputIndexMap
 //
 
-Status EnterInCatalog(Graph* graph, int graph_id) {
-  std::set<Node*> add_to_prefetch_map;
+Status EnterPrefetchInCatalog(Graph* graph, int graph_id) {
   // Go over all the nodes in the graph
   for (auto node : graph->op_nodes()) {
     // If the node is a NGraphEncapsulate, go over all it's

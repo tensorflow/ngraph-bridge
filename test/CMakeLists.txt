@@ -63,7 +63,7 @@ set(SRC
     test_momentum_op.cpp
     opexecuter.cpp
     test_thread_safe_queue.cc
-    test_enter_in_catalog_for_prefetch.cc
+    test_enter_prefetch_in_catalog.cc
 )
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
@@ -112,8 +112,8 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_mixed_tensors_pipelined.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_mixed_tensors_pipelined.pbtxt
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_general_graph.pbtxt
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_catalog_for_prefetch.pbtxt
@@ -172,7 +172,7 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy.pbtxt DESTINATION ${CMAKE_IN
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_mixed_tensors_pipelined.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 

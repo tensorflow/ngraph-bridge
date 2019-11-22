@@ -30,10 +30,8 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-// 1. Populate the NGraphCatalog
-// 2. Attach Graph Ids to the node
-
-Status EnterInCatalog(Graph* graph, int graph_id);
+// Populate the NGraphCatalog for Prefetched Inputs
+Status EnterPrefetchInCatalog(Graph* graph, int graph_id);
 
 }  // ngraph_bridge
 }  // tensorflow

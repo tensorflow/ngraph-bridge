@@ -75,10 +75,9 @@ class NGraphCatalog {
   //  bool : NGraphAssign‘s copy_to_tf attribute ‘s value
   static unordered_map<string, tuple<string, bool>> encap_output_info_map_;
 
-  // Map keeps track of nodes whose input is an IteratorV2 and
-  // the output goes to an encapsualte node.
+  // Map keeps track of encap nodes whose input is an IteratorGenNext.
   // This is map from the node to the input indexs of the
-  // encapsulate node.
+  // encapsulate node that are prefetched.
   // Will be used by NGraphEncapsulate Op.
   // Map of
   // Key
@@ -90,6 +89,8 @@ class NGraphCatalog {
   // Utility to create key to query the maps
   static string CreateNodeKey(const int& graph_id, const string& node_name,
                               const int& index);
+  static string CreateNodeKey(const int& graph_id, const string& node_name);
+
   // Clear all the maps
   static void ClearCatalog();
 

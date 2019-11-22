@@ -30,7 +30,7 @@
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
-#include "ngraph_bridge/ngraph_enter_in_catalog.h"
+#include "ngraph_bridge/ngraph_enter_prefetch_in_catalog.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -60,10 +60,6 @@ Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph) {
 }
 
 TEST(PrefetchCatalogTest, SmallGraph1) {
-  // don't run the test for the variables build
-  if (ngraph_tf_are_variables_enabled()) {
-    return;
-  }
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
   Graph input_graph(OpRegistry::Global());
@@ -71,14 +67,22 @@ TEST(PrefetchCatalogTest, SmallGraph1) {
   // Now read the graph
   // test_catalog_for_prefetch.pbtxt was created by running the following
   // command:
-  // NGRAPH_TF_DUMP_GRAPHS=1 python3 examples/axpy_pipelined.py
+  // NGRAPH_TF_DUMP_GRAPHS=1 python examples/axpy_pipelined.py
   // and using the encapsulated_0003.pbtxt
   ASSERT_OK(
       LoadGraphFromPbTxt("test_catalog_for_prefetch.pbtxt", &input_graph));
 
-  ASSERT_OK(EnterInCatalog(&input_graph, 0));
+  ASSERT_OK(EnterPrefetchInCatalog(&input_graph, 0));
   ASSERT_TRUE(
       NGraphCatalog::ExistsInPrefetchedInputIndexMap("0_ngraph_cluster_4"));
+  ASSERT_TRUE(
+      NGraphCatalog::ExistsInPrefetchedInputIndexMap(0, "ngraph_cluster_4"));
+  std::unordered_set<int> expected;
+  expected.insert(0);
+  std::unordered_set<int> indexes;
+  indexes = NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
+      0, "ngraph_cluster_4");
+  ASSERT_EQ(indexes, expected);
 
   // Clean up
   NGraphCatalog::ClearCatalog();
