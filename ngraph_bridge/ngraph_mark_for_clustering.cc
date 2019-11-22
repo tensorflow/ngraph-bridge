@@ -145,9 +145,14 @@ static Status IsSupportedByBackend(
     bool& is_supported) {
   is_supported = true;
 
-  auto ng_op = TFtoNgraphOpMap.at(node->type_string());
+  auto ng_op = TFtoNgraphOpMap.find(node->type_string());
+  if (ng_op == TFtoNgraphOpMap.end()) {
+    return errors::Internal("TF Op is not found in the map: ",
+                            node->type_string());
+  }
+
   // Loop through the ngraph op list to query
-  for (auto it = ng_op.begin(); it != ng_op.end(); it++) {
+  for (auto it = ng_op->second.begin(); it != ng_op->second.end(); it++) {
     // Pass ngraph node to check if backend supports this op
     auto ret = op_backend->is_supported(**it);
     if (!ret) {
