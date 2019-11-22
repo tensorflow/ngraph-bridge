@@ -145,7 +145,7 @@ static Status IsSupportedByBackend(
     bool& is_supported) {
   is_supported = true;
 
-  auto ng_op = TFtoNgraphOpMap[node->type_string()];
+  auto ng_op = TFtoNgraphOpMap.at(node->type_string());
   // Loop through the ngraph op list to query
   for (auto it = ng_op.begin(); it != ng_op.end(); it++) {
     // Pass ngraph node to check if backend supports this op
@@ -155,6 +155,7 @@ static Status IsSupportedByBackend(
       return Status::OK();
     }
   }
+  return Status::OK();
 }
 
 //
@@ -993,6 +994,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   std::unordered_map<string, int> fail_constraint_histogram;
   vector<Node*> nodes_marked_for_clustering;
   vector<Node*> variable_type_nodes;
+  string ng_backend_type;
 
   for (auto node : graph->op_nodes()) {
     bool mark_for_clustering = false;
@@ -1053,7 +1055,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       bool is_supported = false;
 
       // Create nGraph backend
-      string ng_backend_type;
       BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
       // Create backend to query
       TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
@@ -1061,7 +1062,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
           BackendManager::GetBackend(ng_backend_type);
       TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend, TFtoNgraphOpMap,
                                               is_supported));
-      BackendManager::ReleaseBackend(ng_backend_type);
+
       if (!is_supported) {
         NGRAPH_VLOG(5) << "TF Op " << node->name() << "of type "
                        << node->type_string()
@@ -1084,6 +1085,9 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
                      << node->type_string() << "]";
     }
   }
+
+  // Release backend created to query is_supported
+  BackendManager::ReleaseBackend(ng_backend_type);
 
   if (config::IsLoggingPlacement()) {
     std::cout << "\n=============New sub-graph logs=============\n";
