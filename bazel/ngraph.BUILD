@@ -109,7 +109,7 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"v0.27.0-rc.0\\"',
+        '-D NGRAPH_VERSION=\\"effcc47d39de1d5e662d6b78a8d42675ecf7815d\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
     ] + CXX_ABI,
