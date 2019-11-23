@@ -460,7 +460,7 @@ NGraphExecutor::InitializeIOTensorPipeline(
   size_t num_inputs = ng_exec->get_parameters().size();
   size_t num_outputs = ng_exec->get_results().size();
 
-  if (num_inputs == 0 || num_outputs == 0) {
+  if (num_outputs == 0) {
     return std::make_pair(
         errors::Internal("Bad input/output length. Input size: ", num_inputs,
                          " Output size: ", num_outputs),

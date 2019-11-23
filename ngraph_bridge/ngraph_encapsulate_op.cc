@@ -575,7 +575,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                          st.error_message()));
     OP_REQUIRES(ctx, false, errors::Internal(status_string));
   }
-
+  BackendManager::UnlockBackend(m_parallel_executor->GetOpBackendName());
   event_execute_graph.Stop();
   ngraph::Event::write_trace(event_execute_graph);
 
