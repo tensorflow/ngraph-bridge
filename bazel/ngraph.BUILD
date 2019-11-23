@@ -39,6 +39,8 @@ cc_library(
         "src/ngraph/op/*.cpp",
         "src/ngraph/op/fused/*.cpp",
         "src/ngraph/op/experimental/*.cpp",
+        "src/ngraph/op/experimental/layers/*.cpp",
+        "src/ngraph/op/experimental/layers/*.hpp",
         "src/ngraph/op/util/*.cpp",
         "src/ngraph/pattern/*.cpp",
         "src/ngraph/pattern/*.hpp",
