@@ -63,7 +63,7 @@ TEST(CapturePrefetchTest, SmallGraph1) {
   // There should be 0 PrefetchDataset nodes as it has been replaced
   ASSERT_EQ(count_tf_prefetch, 0);
 
-  UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
+  UnsetEnvVariable("NGRAPH_TF_USE_PREFETCH");
   RestoreEnv(env_map);
 }
 
@@ -105,7 +105,7 @@ TEST(CapturePrefetchTest, SmallGraph2) {
   // There should be 2 PrefetchDataset nodes that were not to be captured
   ASSERT_EQ(count_tf_prefetch, 2);
 
-  UnsetEnvVariable("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
+  UnsetEnvVariable("NGRAPH_TF_USE_PREFETCH");
   RestoreEnv(env_map);
 }
 
