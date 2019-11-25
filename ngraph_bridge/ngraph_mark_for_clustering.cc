@@ -327,6 +327,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
           SimpleConfirmationFunction();
       confirmation_function_map["Prod"] = SimpleConfirmationFunction();
       confirmation_function_map["Rank"] = SimpleConfirmationFunction();
+      confirmation_function_map["RandomUniform"] = SimpleConfirmationFunction();
       confirmation_function_map["QuantizeAndDequantizeV2"] = [](Node* n,
                                                                 bool* result) {
         // accept only when num_bits == 8 and range is given
@@ -508,6 +509,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
           DT_FLOAT};  // TF allows half too
       type_constraint_map["OneHot"]["T"] = NGraphDTypes();
       type_constraint_map["Pack"]["T"] = NGraphDTypes();
+      type_constraint_map["RandomUniform"]["T"] = NGraphDTypes();
       type_constraint_map["Pad"]["T"] = NGraphDTypes();
       type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
       type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
