@@ -1166,7 +1166,9 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   }
 
   // Release backend created to query is_supported
-  BackendManager::ReleaseBackend(ng_backend_type);
+  if (ng_backend_type != "NOP") {
+    BackendManager::ReleaseBackend(ng_backend_type);
+  }
 
   if (config::IsLoggingPlacement()) {
     std::cout << "\n=============New sub-graph logs=============\n";
