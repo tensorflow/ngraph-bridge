@@ -32,8 +32,7 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-// 1. Populate the PrefetchedInputIndexMap
-// 2. Attach Graph Ids to the node
+// Populate the PrefetchedInputIndexMap
 
 // We collect the below information for the catalog
 // 1. If the input to "NGraphEncapsulate" node

@@ -58,7 +58,10 @@ Status GetSharedName(Node* node, string* shared_name) {
   return GetSharedName(input_0, shared_name);
 }
 
-// 1. Populate the input_variable_map
+// 1. Populate the NGraphCatalog
+//    - input_variable_map
+//    - encap_output_info_map_
+//    - encap_output_copy_indexes_map_
 // 2. Attach Graph Ids to the node
 
 Status EnterInCatalog(Graph* graph, int graph_id) {

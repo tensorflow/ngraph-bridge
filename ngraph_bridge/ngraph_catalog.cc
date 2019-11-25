@@ -65,7 +65,7 @@ void NGraphCatalog::AddToEncapOutputCopyIndexesMap(
     throw runtime_error(
         "Trying to add an already existing key in EncapOutputIndexesCopy Map");
   }
-  string key = to_string(graphid) + "_" + node_name;
+  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   NGraphCatalog::encap_output_copy_indexes_map_.insert({key, val});
 }
 
