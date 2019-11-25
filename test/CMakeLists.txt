@@ -41,7 +41,7 @@ set_target_properties(
 
 set(SRC
     main.cpp
-    graph_exec.cpp
+    test_ngraph_exec.cpp
     tf_exec.cpp
     padding.cpp
     conversions.cpp
@@ -63,6 +63,7 @@ set(SRC
     test_momentum_op.cpp
     opexecuter.cpp
     test_thread_safe_queue.cc
+    test_ngraph_tensor_manager.cpp
 )
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
@@ -71,7 +72,9 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
     list(APPEND SRC graph_rewrites/test_replace_optimizer.cpp)
     list(APPEND SRC tf_fake_input.cc)
+    list(APPEND SRC test_ng_var_update_ng_tensor_kernel.cc)
     list(APPEND SRC graph_rewrites/test_ng_var_update_ng_tensor.cc)
+    add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 endif()
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
@@ -109,6 +112,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_graph_1.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_graph_1.pbtxt
 )
 
 if (APPLE)
@@ -164,6 +170,7 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy.pbtxt DESTINATION ${CMAKE_IN
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_graph_1.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
