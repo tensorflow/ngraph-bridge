@@ -38,29 +38,30 @@ using std::thread;
 using std::atomic;
 using std::function;
 
-namespace infer_multiple_networks {
-
+namespace benchmark {
 class InferenceEngine {
  public:
   InferenceEngine(const string& name);
   ~InferenceEngine();
 
-  Status Load(const string& network, const std::vector<string>& image_files,
-              int input_width, int input_height, float input_mean,
-              float input_std, const string& input_layer,
-              const string& output_layer, bool use_NCHW, bool preload_images,
-              int input_channels);
+  Status LoadImage(const string& network,
+                   const std::vector<string>& image_files, int input_width,
+                   int input_height, float input_mean, float input_std,
+                   const string& input_layer, const string& output_layer,
+                   bool use_NCHW, bool preload_images, int input_channels);
 
-  Status Start();
-  Status Start(const std::function<void(int)>& step_callback);
-  Status Stop();
+  Status GetNextImage(Tensor& image) const {
+    image = m_image_to_repeat;
+    return Status::OK();
+  }
+
+  static Status CreateSession(const string& network, const string& backend,
+                              const string& dev_id,
+                              unique_ptr<Session>& session);
 
  private:
-  Status CreateSession(const string& network, unique_ptr<Session>& session);
-
   const string m_name;
   unique_ptr<Session> m_session;
-  void ThreadMain();
   thread m_worker;
   atomic<bool> m_terminate_worker{false};
   std::function<void(int)> m_step_callback{nullptr};
@@ -78,7 +79,5 @@ class InferenceEngine {
   int m_input_channels;
   Tensor m_image_to_repeat;
 };
-
-}  // namespace infer_multiple_networks
-
+}  // namespace benchmark
 #endif  // _INFERENCE_ENGINE_H_

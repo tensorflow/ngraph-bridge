@@ -24,7 +24,7 @@
 // nGraph-TensorFlow bridge uses semantic versioning: see http://semver.org/
 
 #define NG_TF_MAJOR_VERSION 0
-#define NG_TF_MINOR_VERSION 19
+#define NG_TF_MINOR_VERSION 21
 #define NG_TF_PATCH_VERSION 0
 
 // The version suffix is used for pre-release version numbers
@@ -67,6 +67,14 @@ bool ngraph_tf_is_grappler_enabled() {
 
 bool ngraph_tf_are_variables_enabled() {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+  return true;
+#else
+  return false;
+#endif
+}
+
+bool ngraph_tf_is_distributed_enabled() {
+#if defined(NGRAPH_DISTRIBUTED)
   return true;
 #else
   return false;

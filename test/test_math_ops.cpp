@@ -30,6 +30,7 @@
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/public/session.h"
 
+#include <cmath>
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/opexecuter.h"
@@ -43,8 +44,6 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 namespace testing {
-
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 
 // Test(TestCaseName, TestName)
 // Please ensure
@@ -816,6 +815,334 @@ TEST(MathOps, BatchMatMul4DAdjXY) {
   opexecuter.RunTest();
 }  // end of test op BatchMatMul
 
+// Test op: BatchMatMulV2
+// BatchMatMulV22D
+// AdjX = false
+// AdjY = false
+TEST(MathOps, BatchMatMulV22D) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3}));
+  Tensor B(DT_FLOAT, TensorShape({3, 4}));
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::BatchMatMulV2(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV22D
+// AdjX = true
+// AdjY = false
+TEST(MathOps, BatchMatMulV22DAdjX) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3}));
+  Tensor B(DT_FLOAT, TensorShape({2, 4}));
+
+  auto attrs_x = ops::BatchMatMulV2::Attrs();
+  attrs_x = attrs_x.AdjX(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_x);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV22D
+// AdjX = false
+// AdjY = true
+TEST(MathOps, BatchMatMulV22DAdjY) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 4}));
+  Tensor B(DT_FLOAT, TensorShape({3, 4}));
+
+  auto attrs_y = ops::BatchMatMulV2::Attrs();
+  attrs_y = attrs_y.AdjY(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_y);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV22D
+// AdjX = true
+// AdjY = true
+TEST(MathOps, BatchMatMulV22DAdjXY) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 4}));
+  Tensor B(DT_FLOAT, TensorShape({3, 2}));
+
+  auto attrs_xy = ops::BatchMatMulV2::Attrs();
+  attrs_xy = attrs_xy.AdjY(true);
+  attrs_xy = attrs_xy.AdjX(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_xy);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV23D
+// AdjX = false
+// AdjY = false
+TEST(MathOps, BatchMatMulV23D) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3, 4}));
+  Tensor B(DT_FLOAT, TensorShape({2, 4, 5}));
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV23D
+// AdjX = true
+// AdjY = false
+TEST(MathOps, BatchMatMulV23DAdjX) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3, 4}));
+  Tensor B(DT_FLOAT, TensorShape({2, 3, 5}));
+
+  auto attrs_x = ops::BatchMatMulV2::Attrs();
+  attrs_x = attrs_x.AdjX(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_x);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV23D
+// AdjX = false
+// AdjY = true
+TEST(MathOps, BatchMatMulV23DAdjY) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 4, 3}));
+  Tensor B(DT_FLOAT, TensorShape({2, 5, 3}));
+
+  auto attrs_y = ops::BatchMatMulV2::Attrs();
+  attrs_y = attrs_y.AdjY(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_y);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV2 3D
+// AdjX = true
+// AdjY = true
+TEST(MathOps, BatchMatMulV23DAdjXY) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 4, 5}));
+  Tensor B(DT_FLOAT, TensorShape({2, 3, 4}));
+
+  auto attrs_xy = ops::BatchMatMulV2::Attrs();
+  attrs_xy = attrs_xy.AdjX(true);
+  attrs_xy = attrs_xy.AdjY(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_xy);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV2 4D
+// AdjX = false
+// AdjY = false
+TEST(MathOps, BatchMatMulV24D) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3, 4, 5}));
+  Tensor B(DT_FLOAT, TensorShape({2, 3, 5, 1}));
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV2 4D
+// AdjX = true
+// AdjY = false
+TEST(MathOps, BatchMatMulV24DAdjX) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3, 4, 5}));
+  Tensor B(DT_FLOAT, TensorShape({2, 3, 4, 1}));
+
+  auto attrs_x = ops::BatchMatMulV2::Attrs();
+  attrs_x = attrs_x.AdjX(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_x);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV2 4D
+// AdjX = false
+// AdjY = true
+TEST(MathOps, BatchMatMulV24DAdjY) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3, 4, 5}));
+  Tensor B(DT_FLOAT, TensorShape({2, 3, 5, 5}));
+
+  auto attrs_y = ops::BatchMatMulV2::Attrs();
+  attrs_y = attrs_y.AdjY(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_y);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// BatchMatMulV2 4D
+// AdjX = true
+// AdjY = true
+TEST(MathOps, BatchMatMulV24DAdjXY) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3, 4, 5}));
+  Tensor B(DT_FLOAT, TensorShape({2, 3, 1, 4}));
+
+  auto attrs_xy = ops::BatchMatMulV2::Attrs();
+  attrs_xy = attrs_xy.AdjX(true);
+  attrs_xy = attrs_xy.AdjY(true);
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::BatchMatMulV2(root, A, B, attrs_xy);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMulV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op BatchMatMulV2
+
 // Test op: Cast : float to int
 TEST(MathOps, Cast1D) {
   Scope root = Scope::NewRootScope();
@@ -856,6 +1183,28 @@ TEST(MathOps, Cast2D) {
 
   opexecuter.RunTest();
 }  // end of test op Cast
+
+// Test op: Cos
+TEST(MathOps, Cos) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 5;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues<float>(
+      A, {0, -0, M_PI / 2, M_PI, 1.0, 3.8, 4.2, -3.9, -4.2, -1.0});
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Cos(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Cos", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Cos
 
 // Test op: Exp
 TEST(MathOps, Exp1D) {
@@ -1483,6 +1832,28 @@ TEST(MathOps, Rsqrt) {
   opexecuter.RunTest();
 }  // end of test op Rsqrt
 
+// Test op: Sin
+TEST(MathOps, Sin) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 5;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues<float>(
+      A, {0, -0, M_PI / 2, M_PI, 1.0, 3.8, 4.2, -3.9, -4.2, -1.0});
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Sin(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Sin", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Sin
+
 // Test op: Square
 TEST(MathOps, Square) {
   Scope root = Scope::NewRootScope();
@@ -1633,6 +2004,122 @@ TEST(MathOps, SquaredDifferenceBroadcasting) {
 
   opexecuter.RunTest();
 }  // end of test op SquaredDifferenceBroadcasting
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSum) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({3, 4}));
+  Tensor B(DT_INT32, TensorShape({3}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValues(A, std::vector<float>{1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f,
+                                          8.f, 4.f, 3.f, 2.f, 1.f});
+  AssignInputValues(B, std::vector<int>{0, 1, 0});
+  AssignInputValues(C, 2);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSumIdxRange) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({4, 4, 3}));
+  Tensor B(DT_INT32, TensorShape({4}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValuesRandom(A);
+  AssignInputValues(B, std::vector<int>{0, 1, 2, 3});
+  AssignInputValues(C, 4);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSumMissingIndices) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({5, 4, 3}));
+  Tensor B(DT_INT32, TensorShape({5}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValuesRandom(A);
+  AssignInputValues(B, std::vector<int>{0, 1, 3, 4, 0});
+  AssignInputValues(C, 5);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSumSingleIndex) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({5, 4, 3}));
+  Tensor B(DT_INT32, TensorShape({5}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValuesRandom(A);
+  AssignInputValues(B, std::vector<int>{0, 0, 0, 0, 0});
+  AssignInputValues(C, 1);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSumTwoDims) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({2, 3, 3}));
+  Tensor B(DT_INT32, TensorShape({2, 3}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValuesRandom(A);
+  AssignInputValues(B, std::vector<int>{0, 1, 0, 1, 0, 1});
+  AssignInputValues(C, 2);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
 
 }  // namespace testing
 }  // namespace ngraph_bridge

@@ -213,7 +213,14 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
     NGRAPH_VLOG(0) << "NGraph using backend: " << ng_backend_type;
   }
-  auto backend = BackendManager::GetBackend(ng_backend_type);
+
+  ng::runtime::Backend* backend;
+  try {
+    backend = BackendManager::GetBackend(ng_backend_type);
+  } catch (...) {
+    throw std::runtime_error("No backend available :" + ng_backend_type +
+                             ". Cannot execute graph");
+  }
 
   // Add the _ngraph_backend attr to the node
   test_op->AddAttr("_ngraph_backend", ng_backend_type);
@@ -370,7 +377,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     std::shared_ptr<ngraph::runtime::Tensor> result;
     if (ng_backend_type != "CPU") {
       result = backend->create_tensor(ng_et, ng_shape);
-      result->write(src_ptr, 0, result->get_element_count() * ng_et.size());
+      result->write(src_ptr, result->get_element_count() * ng_et.size());
     } else {
       result = backend->create_tensor(ng_et, ng_shape, src_ptr);
     }
@@ -431,7 +438,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     // Convert to tf tensor
     Tensor output_tensor(expected_output_datatypes_[i], tf_op_shapes[i]);
     void* dst_ptr = DMAHelper::base(&output_tensor);
-    ng_op_tensors[i]->read(dst_ptr, 0, output_tensor.TotalBytes());
+    ng_op_tensors[i]->read(dst_ptr, output_tensor.TotalBytes());
     ngraph_outputs.push_back(output_tensor);
     NGRAPH_VLOG(5) << " NGRAPH op " << i << ngraph_outputs[i].DebugString();
   }

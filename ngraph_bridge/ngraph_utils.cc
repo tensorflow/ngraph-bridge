@@ -43,6 +43,31 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set) {
+  vector<int> superset(max_element);
+  iota(begin(superset), end(superset), 0);
+
+  // max size of complement is superset
+  vector<int> complement(superset.size());
+  vector<int>::iterator it = set_difference(
+      superset.begin(), superset.begin() + superset.size(), element_set.begin(),
+      element_set.begin() + element_set.size(), complement.begin());
+  complement.resize(it - complement.begin());
+  return complement;
+}
+
+int FindNumberOfNodes(const Graph* graph, const string op_type) {
+  int count = 0;
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == op_type) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled) {
   const char* copy_env_var = std::getenv("NGRAPH_TF_LOG_TENSOR_COPIES");
@@ -62,6 +87,32 @@ Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
   is_copy_log_enabled = (test_graph_id == -1 || test_graph_id == graph_id);
   return Status::OK();
 }
+
+Status GetNgraphVarBufferSharingState(int& buffer_sharing_state) {
+  const char* ngvar_buffer_env_var =
+      std::getenv("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
+  if (ngvar_buffer_env_var == nullptr) {
+    buffer_sharing_state = -1;
+    return Status::OK();
+  }
+  int env_var_val;
+  try {
+    env_var_val = stoi(string(ngvar_buffer_env_var));
+  } catch (const std::invalid_argument& ia) {
+    return errors::InvalidArgument(
+        "Invalid argument for NGRAPH_TF_NGVARIABLE_BUFFER_SHARING. Exception: ",
+        ia.what());
+  }
+  if (env_var_val != 0 && env_var_val != 1) {
+    return errors::InvalidArgument(
+        "Invalid argument for NGRAPH_TF_NGVARIABLE_BUFFER_SHARING. Pass 1 to "
+        "enable, 0 to disable");
+  }
+
+  buffer_sharing_state = env_var_val;
+  return Status::OK();
+}
+
 void PrintTFTensor(Tensor& T1) {
   NGRAPH_VLOG(4) << "all tensor values" << (T1).SummarizeValue(64) << endl;
 }
@@ -89,8 +140,8 @@ void ReadNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                   Tensor* tf_tensor) {
   ngraph::Event event_sync_ng_tf_tensors("Tensor Read D2H", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
-  ng_tensor->read(tf_src_ptr, 0, ng_tensor->get_element_count() *
-                                     ng_tensor->get_element_type().size());
+  ng_tensor->read(tf_src_ptr, ng_tensor->get_element_count() *
+                                  ng_tensor->get_element_type().size());
   event_sync_ng_tf_tensors.Stop();
   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
@@ -100,8 +151,8 @@ void WriteNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                    Tensor* tf_tensor) {
   ngraph::Event event_sync_ng_tf_tensors("Tensor Write H2D", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
-  ng_tensor->write(tf_src_ptr, 0, ng_tensor->get_element_count() *
-                                      ng_tensor->get_element_type().size());
+  ng_tensor->write(tf_src_ptr, ng_tensor->get_element_count() *
+                                   ng_tensor->get_element_type().size());
   event_sync_ng_tf_tensors.Stop();
   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
@@ -185,6 +236,9 @@ Status TFDataTypeToNGraphElementType(DataType tf_dt,
       break;
     case DataType::DT_UINT8:
       *ng_et = ng::element::u8;
+      break;
+    case DataType::DT_INT8:
+      *ng_et = ng::element::i8;
       break;
     case DataType::DT_UINT16:
       *ng_et = ng::element::u16;
@@ -318,7 +372,7 @@ Status NgraphSerialize(const std::string& file_name,
         "Passed a null pointer as ng function to serialize");
   }
   try {
-    ngraph::serialize(ng_function, json_indentation);
+    serialized = ngraph::serialize(ng_function, json_indentation);
   } catch (...) {
     return errors::Internal("Failed to serialize ngraph function");
   }
