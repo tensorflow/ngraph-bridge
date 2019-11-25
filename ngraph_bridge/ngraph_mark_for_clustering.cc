@@ -1133,18 +1133,20 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
       // Create nGraph backend
       BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
-      // Create backend to query
-      TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
-      ng::runtime::Backend* op_backend =
-          BackendManager::GetBackend(ng_backend_type);
-      TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend, TFtoNgraphOpMap,
-                                              is_supported));
+      if (ng_backend_type != "NOP") {
+        // Create backend to query
+        TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
+        ng::runtime::Backend* op_backend =
+            BackendManager::GetBackend(ng_backend_type);
+        TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend,
+                                                TFtoNgraphOpMap, is_supported));
 
-      if (!is_supported) {
-        NGRAPH_VLOG(5) << "TF Op " << node->name() << "of type "
-                       << node->type_string()
-                       << "is not supported by backend:" << ng_backend_type;
-        break;
+        if (!is_supported) {
+          NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
+                         << node->type_string()
+                         << " is not supported by backend: " << ng_backend_type;
+          break;
+        }
       }
 
       // if all constraints are met, mark for clustering
