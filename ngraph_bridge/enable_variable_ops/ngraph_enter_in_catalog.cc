@@ -80,10 +80,6 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
         bool copy_to_tf;
         TF_RETURN_IF_ERROR(
             GetNodeAttr(node->attrs(), "copy_to_tf", &copy_to_tf));
-        // get attribute is_tf_just_looking
-        bool is_tf_just_looking;
-        TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "is_tf_just_looking",
-                                       &is_tf_just_looking));
         // populate encap_output_info_map_
         const Edge* edge;
         TF_RETURN_IF_ERROR(node->input_edge(1, &edge));
@@ -92,13 +88,16 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
         string key = NGraphCatalog::CreateNodeKey(graph_id, input_1->name(),
                                                   output_index);
 
-        tuple<string, bool, bool> value =
-            make_tuple(shared_name, copy_to_tf, is_tf_just_looking);
+        tuple<string, bool> value = make_tuple(shared_name, copy_to_tf);
         NGRAPH_VLOG(4) << "Adding to EncapOutputInfoMap ";
         NGRAPH_VLOG(4) << "Key: " << key;
-        NGRAPH_VLOG(4) << "Value: " << get<0>(value) << " " << get<1>(value)
-                       << " " << get<2>(value);
-        NGraphCatalog::AddToEncapOutputInfoMap(key, value);
+        NGRAPH_VLOG(4) << "Value: " << get<0>(value) << " " << get<1>(value);
+        try {
+          NGraphCatalog::AddToEncapOutputInfoMap(key, value);
+        } catch (const std::exception& exp) {
+          return errors::Internal(
+              "Caught exception while entering in catalog: ", exp.what(), "\n");
+        }
         // This NGraphAssign will be removed subsequently
         // so we dont need to fill the rest of the catalog
         continue;
@@ -110,8 +109,12 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
       string node_key = NGraphCatalog::CreateNodeKey(graph_id, node->name(), 0);
       string shared_name;
       TF_RETURN_IF_ERROR(GetSharedName(node, &shared_name));
-      NGraphCatalog::AddToInputVariableSharedNameMap(node_key, shared_name);
-
+      try {
+        NGraphCatalog::AddToInputVariableSharedNameMap(node_key, shared_name);
+      } catch (const std::exception& exp) {
+        return errors::Internal("Caught exception while entering in catalog: ",
+                                exp.what(), "\n");
+      }
       NGRAPH_VLOG(4) << "Adding in InputVariableSharedNameMap ";
       NGRAPH_VLOG(4) << "Key: " << node_key;
       NGRAPH_VLOG(4) << "Value: " << shared_name;
@@ -125,10 +128,17 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
                                                          edge->dst_input());
           string shared_name;
           TF_RETURN_IF_ERROR(GetSharedName(src, &shared_name));
-          NGraphCatalog::AddToInputVariableSharedNameMap(node_key, shared_name);
-          NGRAPH_VLOG(4) << "Adding in InputVariableSharedNameMap ";
-          NGRAPH_VLOG(4) << "Key: " << node_key;
-          NGRAPH_VLOG(4) << "Value: " << shared_name;
+          try {
+            NGraphCatalog::AddToInputVariableSharedNameMap(node_key,
+                                                           shared_name);
+            NGRAPH_VLOG(4) << "Adding in InputVariableSharedNameMap ";
+            NGRAPH_VLOG(4) << "Key: " << node_key;
+            NGRAPH_VLOG(4) << "Value: " << shared_name;
+          } catch (const std::exception& exp) {
+            return errors::Internal(
+                "Caught exception while entering in catalog: ", exp.what(),
+                "\n");
+          }
         }
       }
 
@@ -144,8 +154,17 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
           op_index_to_copy.insert(edge->src_output());
         }
       }
-      NGraphCatalog::AddToEncapOutputCopyIndexesMap(graph_id, node->name(),
-                                                    op_index_to_copy);
+
+      // are there indexes that need copy
+      if (op_index_to_copy.size() > 0) {
+        try {
+          NGraphCatalog::AddToEncapOutputCopyIndexesMap(graph_id, node->name(),
+                                                        op_index_to_copy);
+        } catch (const std::exception& exp) {
+          return errors::Internal(
+              "Caught exception while entering in catalog: ", exp.what(), "\n");
+        }
+      }
 
     }  // end of node is type NGraphEncapsulate
   }    // enter in catalog

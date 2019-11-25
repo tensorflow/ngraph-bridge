@@ -38,14 +38,19 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-/* -------------------------------------------------
-//
-// NGraphVariableMap : Map of Variable names and their backend tensors
-//
----------------------------------------------------*/
+// Finds the complement of element_set
+// Given the max_element
+// Finds: {0,1,...,max_element-1} - element_set
+// Assumes element_set is sorted
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set);
+
+int FindNumberOfNodes(const Graph* graph, const string op_type);
 
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled);
+
+Status GetNgraphVarBufferSharingState(int& buffer_sharing_state);
 
 void PrintTFTensor(Tensor& T1);
 std::string DebugNode(Node* node);
@@ -178,7 +183,7 @@ template <typename T>
 T GetScalarFromTensor(const std::shared_ptr<ngraph::runtime::Tensor>& t,
                       size_t element_offset = 0) {
   T result;
-  t->read(&result, element_offset * sizeof(T), sizeof(T));
+  t->read(&result, sizeof(T));
   return result;
 }
 
