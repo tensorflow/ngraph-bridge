@@ -219,12 +219,15 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   static std::map<std::string, SetAttributesFunction> set_attributes_map;
 
-  // Constant Op does not have default Constructor in ngraph, so passing a dummy
-  // node
-  // Commented few other ops like GetOutputElement, Or Relubackprop until
-  // default constructors are added
+  // Constant Op, ReluGrad Op do not have default Constructor
+  // in ngraph, so passing a dummy node
   auto constant = ngraph::op::Constant::create(ngraph::element::f32,
                                                ngraph::Shape{}, {2.0f});
+  auto shape_a = ngraph::Shape{2, 5};
+  auto A = make_shared<ngraph::op::Parameter>(ngraph::element::f32, shape_a);
+  auto delta_val =
+      make_shared<ngraph::op::Parameter>(ngraph::element::f32, shape_a);
+  auto relu = make_shared<ngraph::op::ReluBackprop>(A, delta_val);
   // Map:: TF ops to NG Ops to track if all the Ngraph ops
   // are supported by backend
   // Update this Map if a new TF Op translation is
@@ -381,7 +384,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       {"Pack",
        {std::make_shared<ngraph::op::Concat>(),
         std::make_shared<ngraph::op::Reshape>()}},
-      {"Pack", {constant, std::make_shared<ngraph::op::Pad>()}},
+      {"Pad", {constant, std::make_shared<ngraph::op::Pad>()}},
       {"Pow", {std::make_shared<ngraph::op::Power>()}},
       {"PreventGradient", {}},
       {"Prod", {std::make_shared<ngraph::op::Product>()}},
@@ -472,7 +475,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       {"Relu6",
        {constant, std::make_shared<ngraph::op::Minimum>(),
         std::make_shared<ngraph::op::Relu>()}},
-      //{"ReluGrad", {std::make_shared<ngraph::op::ReluBackprop>()}},
+      {"ReluGrad", {relu}},
       {"Reshape", {std::make_shared<ngraph::op::Reshape>()}},
       {"Rsqrt", {constant, std::make_shared<ngraph::op::Power>()}},
       {"RsqrtGrad",
