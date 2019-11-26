@@ -118,20 +118,6 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
   return Status::OK();
 }
 
-Node* FindPrefetch(std::vector<Node*> in_nodes) {
-  std::vector<Node*> ins;
-  for (auto node : in_nodes) {
-    if (node->type_string() == "PrefetchDataset") {
-      return node;
-    } else {
-      for (auto edge : node->in_edges()) {
-        ins.push_back(edge->src());
-      }
-    }
-  }
-  return (FindPrefetch(ins));
-}
-
 //
 // Main entry point for the variable-capture.
 //
@@ -218,15 +204,33 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
       } else if (node->type_string() == "MakeIterator") {
         if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
             nullptr) {
-          // Recursively go over the inputs of MakeIterator and
-          // collect the first PrefetchDataset op found in the
-          // path so that we can add
-          // the NGraphWriteToDevice Op after this one
-          std::vector<Node*> in_nodes;
-          for (auto edge : node->in_edges()) {
-            in_nodes.push_back(edge->src());
+          // We expect the MakeIterator to have 1 input thats
+          // an iterator and the other one it can be either a
+          // PrefetchDataset node or a ModelDataset node
+          // Other cases are not handled at the moment.
+          for (auto e1 : node->in_edges()) {
+            Node* n = e1->src();
+            // resnet case
+            if (n->type_string() == "PrefetchDataset") {
+              prefetch_node = n;
+            } else if (n->type_string() == "ModelDataset") {  // axpy case
+              for (auto e2 : n->in_edges()) {
+                if (e2->src()->type_string() == "OptimizeDataset") {
+                  for (auto e3 : e2->src()->in_edges()) {
+                    if (e3->src()->type_string() == "PrefetchDataset") {
+                      prefetch_node = e3->src();
+                      break;
+                    }
+                  }
+                } else {
+                  // error
+                  // this is neither axpy nor resnet
+                  return errors::Internal(
+                      "The input node is not PrefetchDataset");
+                }
+              }
+            }
           }
-          prefetch_node = FindPrefetch(in_nodes);
         }
       }
     }

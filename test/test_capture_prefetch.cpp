@@ -33,6 +33,10 @@ namespace ngraph_bridge {
 namespace testing {
 
 TEST(CapturePrefetchTest, SmallGraph1) {
+  // don't run the test for the variables build
+  if (ngraph_tf_are_variables_enabled()) {
+    return;
+  }
   list<string> env_vars{"NGRAPH_TF_USE_PREFETCH"};
   const unordered_map<string, string>& env_map = StoreEnv(env_vars);
   SetEnvVariable("NGRAPH_TF_USE_PREFETCH", "1");
@@ -68,6 +72,10 @@ TEST(CapturePrefetchTest, SmallGraph1) {
 }
 
 TEST(CapturePrefetchTest, SmallGraph2) {
+  // don't run the test for the variables build
+  if (ngraph_tf_are_variables_enabled()) {
+    return;
+  }
   list<string> env_vars{"NGRAPH_TF_USE_PREFETCH"};
   const unordered_map<string, string>& env_map = StoreEnv(env_vars);
   SetEnvVariable("NGRAPH_TF_USE_PREFETCH", "1");
