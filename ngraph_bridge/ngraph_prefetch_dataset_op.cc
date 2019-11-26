@@ -418,7 +418,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
           ngraph::Event evt_dev_cp("Prf Dev Copy", "Copy", "");
           shared_data->SetBufferDepth(m_buffer_size);
           auto ng_input_tensor_bundle =
-              shared_data->GetNextIoTensorsForDeviceTransfer();
+              shared_data->GetNextInputTensorBundleForDeviceTransfer();
 
           // Write to these tensors
           for (auto i = 0; i < buffer_element.value.size(); i++) {
@@ -445,7 +445,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
           }
 
           // Now add them back to the other queue
-          shared_data->AddNextIoTensorsReadyForDeviceExecution(
+          shared_data->AddNextInputTensorBundleReadyForDeviceExecution(
               ng_input_tensor_bundle);
           shared_data->Unref();
           evt_dev_cp.Stop();

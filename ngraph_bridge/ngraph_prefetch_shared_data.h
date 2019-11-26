@@ -68,26 +68,26 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
 
   // Adds the given nGraph input tensors to write to
   // This is called by the NGraphEncapOp
-  void AddNextInputTensorsForDeviceTransfer(InputTensorBundle next) {
+  void AddNextInputTensorBundleForDeviceTransfer(InputTensorBundle next) {
     m_tf_2_ng.Add(std::move(next));
   }
 
   // Returns the Input tensors to be used to copy TF tensors to NG device
   // This will be called by the prefetcher
-  InputTensorBundle GetNextInputTensorsForDeviceTransfer() {
+  InputTensorBundle GetNextInputTensorBundleForDeviceTransfer() {
     return std::move(m_tf_2_ng.GetNextAvailable());
   }
 
   // Adds the given nGraph input tensors to write to
   // This is called by the prefetcher to add Tensors that are copied
   // from TF tensor and are now ready for the next iteration
-  void AddNextInputTensorsReadyForDeviceExecution(InputTensorBundle next) {
+  void AddNextInputTensorBundleReadyForDeviceExecution(InputTensorBundle next) {
     m_ng_2_tf.Add(std::move(next));
   }
 
   // Returns the Input tensors to be ready to be executed by NG device
   // This will be called by the NGEncOp
-  InputTensorBundle GetNextInputTensorsReadyForDeviceExecution() {
+  InputTensorBundle GetNextInputTensorBundleReadyForDeviceExecution() {
     return std::move(m_ng_2_tf.GetNextAvailable());
   }
 
