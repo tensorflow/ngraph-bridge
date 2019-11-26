@@ -45,7 +45,7 @@ namespace testing {
 // Tests functionality of IsSupportedByBackend in mark for clustering
 // CPU, INTERPRETER should supports these ops, NOP does not.
 
-TEST(OpByOpCapability, Backend1) {
+TEST(OpByOpCapability, Backend) {
   // Create Graph
   Scope root = Scope::NewRootScope();
   auto A = ops::Const(root.WithOpName("A"), {3.f, 2.f});
@@ -60,113 +60,41 @@ TEST(OpByOpCapability, Backend1) {
   bool is_supported;
   string ng_backend_type;
 
-  ASSERT_OK(BackendManager::SetBackendName("CPU"));
-  // Create nGraph backend
-  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
-  ASSERT_OK(BackendManager::CreateBackend(ng_backend_type));
-  ng::runtime::Backend* backend = BackendManager::GetBackend(ng_backend_type);
+  // Map with all the backends, and what the boolean is_supported should be
+  std::map<std::string, bool> backend_map{
+      {"CPU", true}, {"INTERPRETER", true}, {"NOP", false}};
 
-  // Create dummy node for Const as there is no default ctor yet
-  // TODO(Sindhu) Change this to default once this is added in nGraph
-  auto constant = ngraph::op::Constant::create(ngraph::element::f32,
-                                               ngraph::Shape{}, {2.0f});
-  std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>
-      TFtoNgraphOpMap{
-          {"Reshape", {std::make_shared<ngraph::op::Reshape>()}},
-          {"Const", {constant}},
-          {"Add", {std::make_shared<ngraph::op::Add>()}},
-          {"Mul", {std::make_shared<ngraph::op::Multiply>()}},
-      };
+  // Tests three cases of (Backend, is_supported=true/false)
+  // 1.CPU,true
+  // 2.INTERPRETER,true
+  // 3.NOP,false
+  for (auto it = backend_map.begin(); it != backend_map.end(); it++) {
+    ASSERT_OK(BackendManager::SetBackendName(it->first));
+    // Create nGraph backend
+    ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
+    ASSERT_OK(BackendManager::CreateBackend(ng_backend_type));
+    ng::runtime::Backend* backend = BackendManager::GetBackend(ng_backend_type);
 
-  for (auto node : graph.op_nodes()) {
-    ASSERT_OK(
-        IsSupportedByBackend(node, backend, TFtoNgraphOpMap, is_supported));
-    ASSERT_EQ(is_supported, true);
+    // Create dummy node for Const as there is no default ctor yet
+    // TODO(Sindhu) Change this to default once this is added in nGraph
+    auto constant = ngraph::op::Constant::create(ngraph::element::f32,
+                                                 ngraph::Shape{}, {2.0f});
+    std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>
+        TFtoNgraphOpMap{
+            {"Const", {constant}},
+            {"Add", {std::make_shared<ngraph::op::Add>()}},
+            {"Mul",
+             {std::make_shared<ngraph::op::Multiply>(),
+              std::make_shared<ngraph::op::Subtract>()}},
+        };
+
+    for (auto node : graph.op_nodes()) {
+      ASSERT_OK(
+          IsSupportedByBackend(node, backend, TFtoNgraphOpMap, is_supported));
+      ASSERT_EQ(is_supported, it->second);
+    }
+    BackendManager::ReleaseBackend(ng_backend_type);
   }
-  BackendManager::ReleaseBackend(ng_backend_type);
-}
-
-TEST(OpByOpCapability, Backend2) {
-  // Create Graph
-  Scope root = Scope::NewRootScope();
-  auto A = ops::Const(root.WithOpName("A"), {3.f, 2.f});
-  auto B = ops::Const(root.WithOpName("B"), {3.f, 2.f});
-  auto Add = ops::Add(root.WithOpName("Add"), A, B);
-  auto C = ops::Const(root.WithOpName("C"), {3.f, 2.f});
-  auto Mul = ops::Mul(root.WithOpName("Mul"), Add, C);
-
-  Graph graph(OpRegistry::Global());
-  TF_CHECK_OK(root.ToGraph(&graph));
-
-  bool is_supported;
-  string ng_backend_type;
-
-  ASSERT_OK(BackendManager::SetBackendName("INTERPRETER"));
-  // Create nGraph backend
-  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
-  ASSERT_OK(BackendManager::CreateBackend(ng_backend_type));
-  ng::runtime::Backend* backend = BackendManager::GetBackend(ng_backend_type);
-
-  // Create dummy node for Const as there is no default ctor yet
-  // TODO(Sindhu) Change this to default once this is added in nGraph
-  auto constant = ngraph::op::Constant::create(ngraph::element::f32,
-                                               ngraph::Shape{}, {2.0f});
-  std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>
-      TFtoNgraphOpMap{
-          {"Reshape", {std::make_shared<ngraph::op::Reshape>()}},
-          {"Const", {constant}},
-          {"Add", {std::make_shared<ngraph::op::Add>()}},
-          {"Mul", {std::make_shared<ngraph::op::Multiply>()}},
-      };
-
-  for (auto node : graph.op_nodes()) {
-    ASSERT_OK(
-        IsSupportedByBackend(node, backend, TFtoNgraphOpMap, is_supported));
-    ASSERT_EQ(is_supported, true);
-  }
-  BackendManager::ReleaseBackend(ng_backend_type);
-}
-
-TEST(OpByOpCapability, Backend3) {
-  // Create Graph
-  Scope root = Scope::NewRootScope();
-  auto A = ops::Const(root.WithOpName("A"), {3.f, 2.f});
-  auto B = ops::Const(root.WithOpName("B"), {3.f, 2.f});
-  auto Add = ops::Add(root.WithOpName("Add"), A, B);
-  auto C = ops::Const(root.WithOpName("C"), {3.f, 2.f});
-  auto Mul = ops::Mul(root.WithOpName("Mul"), Add, C);
-
-  Graph graph(OpRegistry::Global());
-  TF_CHECK_OK(root.ToGraph(&graph));
-
-  bool is_supported;
-  string ng_backend_type;
-
-  ASSERT_OK(BackendManager::SetBackendName("NOP"));
-  // Create nGraph backend
-  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
-  ASSERT_OK(BackendManager::CreateBackend(ng_backend_type));
-  ng::runtime::Backend* backend = BackendManager::GetBackend(ng_backend_type);
-
-  // Create dummy node for Const as there is no default ctor yet
-  // TODO(Sindhu) Change this to default once this is added in nGraph
-  auto constant = ngraph::op::Constant::create(ngraph::element::f32,
-                                               ngraph::Shape{}, {2.0f});
-  std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>
-      TFtoNgraphOpMap{
-          {"Reshape", {std::make_shared<ngraph::op::Reshape>()}},
-          {"Const", {constant}},
-          {"Add", {std::make_shared<ngraph::op::Add>()}},
-          {"Mul", {std::make_shared<ngraph::op::Multiply>()}},
-      };
-
-  for (auto node : graph.op_nodes()) {
-    ASSERT_OK(
-        IsSupportedByBackend(node, backend, TFtoNgraphOpMap, is_supported));
-    // NOP does not support the ops, so checking for false here
-    ASSERT_EQ(is_supported, false);
-  }
-  BackendManager::ReleaseBackend(ng_backend_type);
 }
 }
 }
