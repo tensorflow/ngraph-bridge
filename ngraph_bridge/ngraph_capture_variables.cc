@@ -226,7 +226,10 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
                   // error
                   // this is neither axpy nor resnet
                   return errors::Internal(
-                      "The input node is not PrefetchDataset");
+                      "When capturing MakeIterator, did not find "
+                      "PrefetchDataset or "
+                      "ModelDataset+OptimizeDataset+PrefetchDataset at its "
+                      "inputs. Only those 2 cases are handled for now.");
                 }
               }
             }
