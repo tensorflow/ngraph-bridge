@@ -39,7 +39,6 @@ class NGraphTensorManagerTest : public ::testing::Test {
                       const vector<int>& var_inp_indexes,
                       const vector<int>& var_out_indexes,
                       const vector<int>& out_indexes_need_copy) {
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     for (int index : var_inp_indexes) {
       string key = NGraphCatalog::CreateNodeKey(ng_encap_graph_id,
                                                 ng_encap_node_name, index);
@@ -58,15 +57,10 @@ class NGraphTensorManagerTest : public ::testing::Test {
     }
     NGraphCatalog::AddToEncapOutputCopyIndexesMap(
         ng_encap_graph_id, ng_encap_node_name, indexes_need_copy);
-#endif
   }
 
   // Clears the Catalog
-  void ClearCatalog() {
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    NGraphCatalog::ClearCatalog();
-#endif
-  }
+  void ClearCatalog() { NGraphCatalog::ClearCatalog(); }
 
   // returns {0,1,2, ... , size-1}
   vector<int> FillRange(int size) {
@@ -182,10 +176,8 @@ TEST_F(NGraphTensorManagerTest, Variables) {
   ASSERT_EQ(expected_pipelined_out_indexes,
             tensor_manager.GetPipelinedOutputIndexes());
 
-  // var related
-  if (ngraph_tf_are_variables_enabled()) {
-    ClearCatalog();
-  }
+  // clean up
+  ClearCatalog();
 }
 
 }  // namespace testing
