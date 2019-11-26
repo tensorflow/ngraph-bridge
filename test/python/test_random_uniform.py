@@ -30,11 +30,13 @@ from common import NgraphTest
 class TestRandomUniformOperations(NgraphTest):
 
     def test_rand_uniform(self):
-        shape = [10000]
+        samples = 10000
+        shape = [samples]
         data = tf.random.uniform(shape)
         out = tf.math.reduce_sum(data, axis=0, keep_dims=True)
+        rel_out = tf.math.divide(out, samples)
 
-        sess_fn = lambda sess: sess.run([out], feed_dict={})
+        sess_fn = lambda sess: sess.run([rel_out], feed_dict={})
         assert np.allclose(
             self.with_ngraph(sess_fn),
             self.without_ngraph(sess_fn),
