@@ -139,7 +139,7 @@ static ConfirmationFunction SimpleConfirmationFunction() {
 };
 
 // Check if op is supported by backend using is_supported API
-static Status IsSupportedByBackend(
+Status IsSupportedByBackend(
     const Node* node, const ng::runtime::Backend* op_backend,
     std::map<std::string, std::set<shared_ptr<ng::Node>>>& TFtoNgraphOpMap,
     bool& is_supported) {
@@ -1163,9 +1163,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   }
 
   // Release backend created to query is_supported
-  if (ng_backend_type != "NOP") {
-    BackendManager::ReleaseBackend(ng_backend_type);
-  }
+  BackendManager::ReleaseBackend(ng_backend_type);
 
   if (config::IsLoggingPlacement()) {
     std::cout << "\n=============New sub-graph logs=============\n";
