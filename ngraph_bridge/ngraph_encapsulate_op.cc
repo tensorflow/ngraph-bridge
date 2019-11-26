@@ -544,7 +544,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       int prefetch_buffer_depth = shared_data->GetBufferDepth();
       int skip_count = shared_data->GetSkipCount();
       NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: DEPTH: " << prefetch_buffer_depth
-                     << " skip count; " << skip_count << endl;
+                     << " skip count; " << skip_count;
       if (skip_count >= prefetch_buffer_depth) {
         // We have been using the pipelined tensors - therefore do the
         // following:
