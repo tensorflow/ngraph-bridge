@@ -146,7 +146,6 @@ void OpExecuter::RunTest(const string& ng_backend_name, float rtol,
     atol = std::atof(std::getenv("NGRAPH_TF_UTEST_ATOL"));
   }
 
-  
   Compare(tf_outputs, ngraph_outputs, rtol, atol);
 }
 
