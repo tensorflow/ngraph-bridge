@@ -205,7 +205,7 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
         if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
             nullptr) {
           // We expect the MakeIterator to have 1 input thats
-          // an iterator and the other one it can be either a
+          // an iterator and the other one can be either a
           // PrefetchDataset node or a ModelDataset node
           // Other cases are not handled at the moment.
           for (auto e1 : node->in_edges()) {
