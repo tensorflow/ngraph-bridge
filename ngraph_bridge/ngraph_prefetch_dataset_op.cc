@@ -360,6 +360,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
     //
     // It owns the iterator context passed to it.
     void PrefetchThread(const std::shared_ptr<IteratorContext>& ctx) {
+      cout << "PREFETCH Created Prefetch Thread " << endl;
       RecordStart(ctx.get());
       auto cleanup = gtl::MakeCleanup([this, ctx] { RecordStop(ctx.get()); });
       // Keep track of where we are in an iteration "burst"
@@ -415,10 +416,16 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
             ngraph_bridge::NGraphPrefetchSharedResouce::RESOURCE_NAME,
             &shared_data);
         if (s.ok()) {
+          cout << " PREFETCH op Found shared object " << endl;
           ngraph::Event evt_dev_cp("Prf Dev Copy", "Copy", "");
           shared_data->SetBufferDepth(m_buffer_size);
+          cout << " PREFETCH Set shared buffer depth  " << m_buffer_size
+               << endl;
+
           auto ng_input_tensor_bundle =
               shared_data->GetNextInputTensorBundleForDeviceTransfer();
+          cout << "PREFETCH Got Next input tensor bundle for device transfer  "
+               << m_buffer_size << endl;
 
           // Write to these tensors
           for (auto i = 0; i < buffer_element.value.size(); i++) {
@@ -429,6 +436,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
             void* current_src_ptr =
                 (void*)DMAHelper::base(&buffer_element.value[i]);
             try {
+              cout << " PREFETCH copying data to device  " << i << endl;
               NGRAPH_VLOG(2)
                   << "[PREFETCH] INPUT tensor being written by Prefetch: "
                   << " Value: " << buffer_element.value[i].DebugString();
@@ -447,6 +455,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
           // Now add them back to the other queue
           shared_data->AddNextInputTensorBundleReadyForDeviceExecution(
               ng_input_tensor_bundle);
+          cout << " PREFETCH Added back to queue for device execution " << endl;
           shared_data->Unref();
           evt_dev_cp.Stop();
           ngraph::Event::write_trace(evt_dev_cp);
