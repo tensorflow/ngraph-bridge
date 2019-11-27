@@ -45,7 +45,6 @@ Node* FindPrefetch(Node* makeiterator_node) {
             }
           }
         } else {
-          // error
           // this is neither axpy nor resnet
           NGRAPH_VLOG(0) << 
               "When capturing MakeIterator, did not find "
@@ -130,7 +129,7 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
     graph->RemoveEdge(edge);
   }
 
-  // FInally remove the current preftetch node
+  // Finally remove the current preftetch node
   graph->RemoveNode(prefetch_node);
 
   return Status::OK();
