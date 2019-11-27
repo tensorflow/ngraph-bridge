@@ -1,7 +1,7 @@
 ### Build and run nGraph in Docker
 
 To run nGraph in Docker, choose one of two ways to create your container:
-  1. Use the [`docker_build_and_run_ngtf.sh`](docker_build_and_run_ngtf.sh) script to do a multi-stage build and run nGraph for Ubuntu 18.04 in a single command. 
+  1. Use the [`docker_build_and_install_ngtf.sh`](docker_build_and_install_ngtf.sh) script to do a multi-stage build and run nGraph for Ubuntu 18.04 in a single command. 
      This will perform all of the build steps automatically in an intermediate container and provide a final image without all the tools needed to build Tensorflow and nGraph. 
   2. Use `Dockerfile.ubuntu.18.04` by itself to set up a build environment that you can use to then manually build Tensorflow, nGraph, and the bridge in a virtualenv. 
 
@@ -20,7 +20,7 @@ To run nGraph in Docker, choose one of two ways to create your container:
 
         . docker_build_and_install_ngtf.sh '--use_prebuilt_tensorflow --use_grappler_optimizer'
 
-  For more information about build options, see [here](build_ngtf.py).
+  For more information about build options, see [here](/build_ngtf.py).
   There may be some build options not supported with this method, so if your customized build is failing, **Method 2** is recommended. 
   
 - When the multi-stage docker build is complete, you will be able to run a container with Tensorflow and nGraph using the `ngraph-bridge:ngtf` image:
@@ -47,7 +47,7 @@ To run nGraph in Docker, choose one of two ways to create your container:
         cd ..
         docker run -it -v ${PWD}:/workspace -w /workspace --name ngtf ngraph-bridge:devel
 
-- Follow the instructions in [Build an nGraph bridge](/#build-an-ngraph-bridge) to execute `python3 build_ngtf.py`.
+- Follow the instructions in [Build an nGraph bridge](/README.md#build-an-ngraph-bridge) to execute `python3 build_ngtf.py`.
   You do not need to clone the repo inside the container because it is already mounted to `/workspace`.
   The mounted volume allows you to access the build artifacts (`whl` files) outside the container if you wish to do so.
   

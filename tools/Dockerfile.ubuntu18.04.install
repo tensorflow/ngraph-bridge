@@ -14,10 +14,7 @@
 #  limitations under the License.
 # ==============================================================================
 
-ARG http_proxy
-ARG https_proxy
 ARG base_image
-ARG ngtf_build_options
 
 FROM $base_image as base
 ARG http_proxy
@@ -26,7 +23,7 @@ ARG ngtf_build_options
 
 RUN git clone https://github.com/tensorflow/ngraph-bridge.git /ngraph-bridge
 
-WORKDIR /src/ngraph-bridge
+WORKDIR /ngraph-bridge
 
 ENV http_proxy=$http_proxy
 ENV https_proxy=$https_proxy
