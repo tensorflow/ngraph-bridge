@@ -202,6 +202,7 @@ cc_library(
         "src/ngraph/runtime/cpu/builder/softmax.cpp",
         "src/ngraph/runtime/cpu/builder/get_output_element.cpp",
         "src/ngraph/runtime/cpu/builder/sum.cpp",
+        "src/ngraph/runtime/cpu/builder/cum_sum.cpp"
         "src/ngraph/runtime/cpu/builder/topk.cpp",
         "src/ngraph/runtime/cpu/builder/tile.cpp",
         "src/ngraph/runtime/cpu/builder/update_slice.cpp",
