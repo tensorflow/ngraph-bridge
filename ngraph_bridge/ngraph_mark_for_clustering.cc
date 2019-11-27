@@ -636,7 +636,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       set_attributes_map["OneHot"] = SetStaticInputs({1});
       set_attributes_map["Pad"] = SetStaticInputs({1});
       set_attributes_map["Prod"] = SetStaticInputs({1});
-      
+
       set_attributes_map["QuantizeAndDequantizeV2"] = SetStaticInputs({1, 2});
       set_attributes_map["QuantizedConcat"] = [](Node* n) {
         SetStaticInputs(n, {0});  // the axis
