@@ -59,6 +59,7 @@ TEST(OpByOpCapability, Backend) {
 
   bool is_supported;
   string ng_backend_type;
+  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
 
   // Map with all the backends, and what the boolean is_supported should be
   std::map<std::string, bool> backend_map{
@@ -71,9 +72,8 @@ TEST(OpByOpCapability, Backend) {
   for (auto it = backend_map.begin(); it != backend_map.end(); it++) {
     ASSERT_OK(BackendManager::SetBackendName(it->first));
     // Create nGraph backend
-    ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
-    ASSERT_OK(BackendManager::CreateBackend(ng_backend_type));
-    ng::runtime::Backend* backend = BackendManager::GetBackend(ng_backend_type);
+    ASSERT_OK(BackendManager::CreateBackend(it->first));
+    ng::runtime::Backend* backend = BackendManager::GetBackend(it->first);
 
     // Create dummy node for Const as there is no default ctor yet
     // TODO(Sindhu) Change this to default once this is added in nGraph
@@ -93,8 +93,9 @@ TEST(OpByOpCapability, Backend) {
           IsSupportedByBackend(node, backend, TFtoNgraphOpMap, is_supported));
       ASSERT_EQ(is_supported, it->second);
     }
-    BackendManager::ReleaseBackend(ng_backend_type);
+    BackendManager::ReleaseBackend(it->first);
   }
+  ASSERT_OK(BackendManager::SetBackendName(ng_backend_type));
 }
 }
 }
