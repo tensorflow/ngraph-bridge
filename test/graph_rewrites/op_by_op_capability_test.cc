@@ -66,7 +66,7 @@ TEST(OpByOpCapability, Backend) {
       {"CPU", true}, {"INTERPRETER", true}, {"NOP", false}};
 
   // Tests three cases of (Backend, is_supported=true/false)
-  // 1.CPU,true
+  // 1. CPU, true
   // 2.INTERPRETER,true
   // 3. NOP,false
   for (auto it = backend_map.begin(); it != backend_map.end(); it++) {
