@@ -244,12 +244,38 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
   int number_of_outputs = 4;
 
   // expected
-  vector<int> empty;
-  vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
-  vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
-  vector<int> expected_prefetched_inp_indexes = {1, 3};
-  vector<int> expected_pipelined_inp_indexes_prefetched = {
-      1, 3};  // as all inputs are pipelined
+  vector<int> expected_pipelined_inp_indexes, expected_pipelined_out_indexes,
+      expected_var_inp_indexes, expected_var_out_indexes,
+      expected_out_indexes_need_copy, expected_prefetched_inp_indexes,
+      expected_pipelined_inp_indexes_prefetched;
+
+  if (ngraph_tf_are_variables_enabled()) {
+    // expected values
+    expected_pipelined_inp_indexes = {1, 3, 4, 6};
+    expected_prefetched_inp_indexes = {3, 6};
+    expected_pipelined_inp_indexes_prefetched = {1, 3};
+    expected_pipelined_out_indexes = {0, 2};
+    expected_var_inp_indexes =
+        FindComplement(number_of_inputs, expected_pipelined_inp_indexes);
+    expected_var_out_indexes =
+        FindComplement(number_of_outputs, expected_pipelined_out_indexes);
+    expected_out_indexes_need_copy = {2.3};
+    // enter in catalog
+    EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name,
+                      expected_var_inp_indexes, expected_var_out_indexes,
+                      expected_out_indexes_need_copy);
+
+  } else {
+    expected_pipelined_inp_indexes = FillRange(number_of_inputs);
+    expected_pipelined_out_indexes = FillRange(number_of_outputs);
+    expected_prefetched_inp_indexes = {3, 6};
+    expected_pipelined_inp_indexes_prefetched = {
+        3, 6};  // all inputs are pipelined
+
+    expected_var_inp_indexes = {};
+    expected_var_out_indexes = {};
+    expected_out_indexes_need_copy = {};
+  }
 
   EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
                          expected_prefetched_inp_indexes);
