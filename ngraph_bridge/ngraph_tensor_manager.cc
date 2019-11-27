@@ -64,10 +64,8 @@ void NGraphTensorManager::Initialize() {
   m_pipelined_output_indexes =
       FindComplement(m_number_of_outputs, m_output_indexes_assigning_variable);
 
-  string node_prefetch_key =
-      NGraphCatalog::CreateNodeKey(m_ng_encap_graph_id, m_ng_encap_node_name);
-
-  if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(node_prefetch_key)) {
+  if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(m_ng_encap_graph_id,
+                                                     m_ng_encap_node_name)) {
     auto prefetch_indexes =
         NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
             m_ng_encap_graph_id, m_ng_encap_node_name);
