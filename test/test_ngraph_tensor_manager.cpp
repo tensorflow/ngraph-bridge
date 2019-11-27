@@ -59,12 +59,12 @@ class NGraphTensorManagerTest : public ::testing::Test {
         ng_encap_graph_id, ng_encap_node_name, indexes_need_copy);
   }
 
-  EnterPrefetchInCatalog(const int& ng_encap_graph_id,
-                         const string& ng_encap_node_name,
-                         const vector<int>& prefetched_inp_indexes) {
+  void EnterPrefetchInCatalog(const int& ng_encap_graph_id,
+                              const string& ng_encap_node_name,
+                              const vector<int>& prefetched_inp_indexes) {
     unordered_set<int> pref_indexes;
     for (int index : prefetched_inp_indexes) {
-      indexes_need_copy.insert(index);
+      pref_indexes.insert(index);
     }
     NGraphCatalog::AddToPrefetchedInputIndexMap(
         ng_encap_graph_id, ng_encap_node_name, pref_indexes);
@@ -155,9 +155,9 @@ TEST_F(NGraphTensorManagerTest, HasVariablesNoPrefetch) {
     expected_prefetched_inp_indexes = {};
 
     // enter in catalog
-    EnterInCatalog(ng_encap_graph_id, ng_encap_node_name,
-                   expected_var_inp_indexes, expected_var_out_indexes,
-                   expected_out_indexes_need_copy);
+    EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name,
+                      expected_var_inp_indexes, expected_var_out_indexes,
+                      expected_out_indexes_need_copy);
 
   } else {
     expected_pipelined_inp_indexes = FillRange(number_of_inputs);
@@ -205,9 +205,9 @@ TEST_F(NGraphTensorManagerTest, NoVariablesHasPrefetch) {
   vector<int> empty;
   vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
   vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
-  vector<int> expected_prefetched_inp_indexes = {2, 3};
+  vector<int> expected_prefetched_inp_indexes = {1, 3};
   vector<int> expected_pipelined_inp_indexes_prefetched = {
-      2, 3};  // as all inputs are pipelined
+      1, 3};  // as all inputs are pipelined
 
   EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
                          expected_prefetched_inp_indexes);
@@ -226,8 +226,52 @@ TEST_F(NGraphTensorManagerTest, NoVariablesHasPrefetch) {
             tensor_manager.GetPipelinedOutputIndexes());
 
   // prefetched
-  ASSERT_EQ(empty, tensor_manager.GetPrefetchedInputIndexes());
-  ASSERT_EQ(empty, tensor_manager.GetPrefetchedInputIndexes());
+  ASSERT_EQ(expected_prefetched_inp_indexes,
+            tensor_manager.GetPrefetchedInputIndexes());
+  ASSERT_EQ(expected_pipelined_inp_indexes_prefetched,
+            tensor_manager.GetPipelinedInputIndexesThatArePrefetched());
+
+  // clean up
+  ClearCatalog();
+}
+
+// Tests scenario when the graph has variables and prefetched inputs
+TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
+  string ng_encap_node_name = "xyz_1";
+  int ng_encap_cluster_id = 1;
+  int ng_encap_graph_id = 1;
+  int number_of_inputs = 7;
+  int number_of_outputs = 4;
+
+  // expected
+  vector<int> empty;
+  vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
+  vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
+  vector<int> expected_prefetched_inp_indexes = {1, 3};
+  vector<int> expected_pipelined_inp_indexes_prefetched = {
+      1, 3};  // as all inputs are pipelined
+
+  EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
+                         expected_prefetched_inp_indexes);
+
+  NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
+                                     ng_encap_graph_id, number_of_inputs,
+                                     number_of_outputs);
+
+  // var related
+  ASSERT_EQ(empty, tensor_manager.GetInputIndexesFedByVariables());
+  ASSERT_EQ(empty, tensor_manager.GetOutputIndexesAssigningVariables());
+  ASSERT_EQ(empty, tensor_manager.GetOutputIndexesThatNeedCopy());
+  ASSERT_EQ(expected_pipelined_inp_indexes,
+            tensor_manager.GetPipelinedInputIndexes());
+  ASSERT_EQ(expected_pipelined_out_indexes,
+            tensor_manager.GetPipelinedOutputIndexes());
+
+  // prefetched
+  ASSERT_EQ(expected_prefetched_inp_indexes,
+            tensor_manager.GetPrefetchedInputIndexes());
+  ASSERT_EQ(expected_pipelined_inp_indexes_prefetched,
+            tensor_manager.GetPipelinedInputIndexesThatArePrefetched());
 }
 
 }  // namespace testing

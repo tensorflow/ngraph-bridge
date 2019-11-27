@@ -67,7 +67,7 @@ class NGraphTensorManager {
     return m_prefetched_input_indexes;
   }
 
-  const vector<int>& GetPipelinedInputIndesThatArePrefetched() {
+  const vector<int>& GetPipelinedInputIndexesThatArePrefetched() {
     return m_pipelined_input_indexes_prefetched;
   }
 
