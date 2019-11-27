@@ -2,14 +2,19 @@
     "default": {
         "logparse": {
             "0": {
-                "num_ng_clusters": 0,
-                "num_nodes_in_graph": 83,
-                "num_nodes_marked_for_clustering": 0
+                "num_ng_clusters": 0, 
+                "num_nodes_marked_for_clustering": 0, 
+                "num_nodes_in_graph": 83
             },
             "1": {
-                "num_ng_clusters": 19,
-                "num_nodes_in_graph": 449,
-                "num_nodes_marked_for_clustering": 363
+                "num_ng_clusters": 19, 
+                "num_nodes_marked_for_clustering": 363, 
+                "num_nodes_in_graph": 449
+            }, 
+            "2": {
+                "num_ng_clusters": 6, 
+                "num_nodes_marked_for_clustering": 55, 
+                "num_nodes_in_graph": 77
             }
         },
         "time": 13
