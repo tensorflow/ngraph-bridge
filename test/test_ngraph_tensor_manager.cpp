@@ -259,7 +259,7 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
         FindComplement(number_of_inputs, expected_pipelined_inp_indexes);
     expected_var_out_indexes =
         FindComplement(number_of_outputs, expected_pipelined_out_indexes);
-    expected_out_indexes_need_copy = {2.3};
+    expected_out_indexes_need_copy = {2, 3};
     // enter in catalog
     EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name,
                       expected_var_inp_indexes, expected_var_out_indexes,
@@ -285,9 +285,12 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
                                      number_of_outputs);
 
   // var related
-  ASSERT_EQ(empty, tensor_manager.GetInputIndexesFedByVariables());
-  ASSERT_EQ(empty, tensor_manager.GetOutputIndexesAssigningVariables());
-  ASSERT_EQ(empty, tensor_manager.GetOutputIndexesThatNeedCopy());
+  ASSERT_EQ(expected_var_inp_indexes,
+            tensor_manager.GetInputIndexesFedByVariables());
+  ASSERT_EQ(expected_var_out_indexes,
+            tensor_manager.GetOutputIndexesAssigningVariables());
+  ASSERT_EQ(expected_out_indexes_need_copy,
+            tensor_manager.GetOutputIndexesThatNeedCopy());
   ASSERT_EQ(expected_pipelined_inp_indexes,
             tensor_manager.GetPipelinedInputIndexes());
   ASSERT_EQ(expected_pipelined_out_indexes,
@@ -315,8 +318,9 @@ TEST_F(NGraphTensorManagerTest, PrefetchNotInPipeline) {
                          prefetched_inp_indexes);
 
   ASSERT_THROW(NGraphTensorManager tensor_manager(
-      ng_encap_node_name, ng_encap_cluster_id, ng_encap_graph_id,
-      number_of_inputs, number_of_outputs));
+                   ng_encap_node_name, ng_encap_cluster_id, ng_encap_graph_id,
+                   number_of_inputs, number_of_outputs),
+               std::runtime_error);
 
   // clean up
   ClearCatalog();
