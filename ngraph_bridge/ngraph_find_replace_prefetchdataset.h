@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+#ifndef NGRAPH_FIND_REPLACE_PREFETCHDATASET_H_
+#define NGRAPH_FIND_REPLACE_PREFETCHDATASET_H_
+#pragma once
 
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/node_builder.h"
@@ -134,3 +137,4 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow
+#endif  // NGRAPH_FIND_REPLACE_PREFETCHDATASET_H_

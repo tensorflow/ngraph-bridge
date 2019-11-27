@@ -37,7 +37,7 @@ cc_library(
         "ngraph_bridge/ngraph_executor.h",
         "ngraph_bridge/ngraph_encapsulate_op.h",
         "ngraph_bridge/ngraph_data_cache.h",
-        "ngraph_bridge/ngraph_find_replace_prefetchdataset.h"
+        "ngraph_bridge/ngraph_find_replace_prefetchdataset.h",
         "ngraph_bridge/ngraph_freshness_tracker.h",
         "ngraph_bridge/ngraph_mark_for_clustering.h",
         "ngraph_bridge/ngraph_partial_shapes.h",
