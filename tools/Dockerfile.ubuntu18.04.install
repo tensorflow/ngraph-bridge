@@ -24,7 +24,7 @@ ARG http_proxy
 ARG https_proxy
 ARG ngtf_build_options
 
-RUN git clone https://github.com/tensorflow/ngraph-bridge.git /src/ngraph-bridge
+RUN git clone https://github.com/tensorflow/ngraph-bridge.git /ngraph-bridge
 
 WORKDIR /src/ngraph-bridge
 
@@ -41,7 +41,7 @@ ARG https_proxy
 ENV http_proxy=$http_proxy
 ENV https_proxy=$https_proxy
 
-ENV PATH="/src/ngraph-bridge/build_cmake/venv-tf-py3/bin:$PATH"
+ENV PATH="/ngraph-bridge/build_cmake/venv-tf-py3/bin:$PATH"
 
 RUN apt-get update &&  apt-get install -y \
     vim \
@@ -52,9 +52,9 @@ RUN apt-get update &&  apt-get install -y \
     sudo
 
 # Copy virtual environment from the previous layer
-COPY --from=base /src/ngraph-bridge/build_cmake/venv-tf-py3 /src/ngraph-bridge/build_cmake/venv-tf-py3
+COPY --from=base /ngraph-bridge/build_cmake/venv-tf-py3 /ngraph-bridge/build_cmake/venv-tf-py3
 
 # Copy ngraph-bridge examples
-COPY --from=base /src/ngraph-bridge/examples /examples
+COPY --from=base /ngraph-bridge/examples /examples
 
 RUN python -c "import tensorflow as tf; print('TensorFlow version: ',tf.__version__);import ngraph_bridge; print(ngraph_bridge.__version__)"
