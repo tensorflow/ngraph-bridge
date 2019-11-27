@@ -46,11 +46,11 @@ Node* FindPrefetch(Node* makeiterator_node) {
           }
         } else {
           // this is neither axpy nor resnet
-          NGRAPH_VLOG(0) << 
-              "When capturing MakeIterator, did not find "
-              "PrefetchDataset or "
-              "ModelDataset+OptimizeDataset+PrefetchDataset at its "
-              "inputs. Only those 2 cases are handled for now.";
+          NGRAPH_VLOG(0)
+              << "When capturing MakeIterator, did not find "
+                 "PrefetchDataset or "
+                 "ModelDataset+OptimizeDataset+PrefetchDataset at its "
+                 "inputs. Only those 2 cases are handled for now.";
         }
       }
     }
