@@ -53,6 +53,8 @@ TEST(CapturePrefetchTest, SmallGraph1) {
   for (auto node : input_graph.op_nodes()) {
     if (node->type_string() == "NGraphPrefetchDataset") {
       count_ng_prefetch = count_ng_prefetch + 1;
+      // This NGraphPrefetchDataset node should have only one output
+      ASSERT_EQ(node->num_outputs(), 1);
     }
     if (node->type_string() == "PrefetchDataset") {
       count_tf_prefetch = count_tf_prefetch + 1;
