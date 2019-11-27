@@ -298,6 +298,28 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
             tensor_manager.GetPrefetchedInputIndexes());
   ASSERT_EQ(expected_pipelined_inp_indexes_prefetched,
             tensor_manager.GetPipelinedInputIndexesThatArePrefetched());
+  // clean up
+  ClearCatalog();
+}
+
+// check error
+TEST_F(NGraphTensorManagerTest, PrefetchNotInPipeline) {
+  string ng_encap_node_name = "xyz_1";
+  int ng_encap_cluster_id = 1;
+  int ng_encap_graph_id = 1;
+  int number_of_inputs = 5;
+  int number_of_outputs = 2;
+
+  vector<int> prefetched_inp_indexes = {6, 7};
+  EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
+                         prefetched_inp_indexes);
+
+  ASSERT_THROW(NGraphTensorManager tensor_manager(
+      ng_encap_node_name, ng_encap_cluster_id, ng_encap_graph_id,
+      number_of_inputs, number_of_outputs));
+
+  // clean up
+  ClearCatalog();
 }
 
 }  // namespace testing
