@@ -3189,7 +3189,6 @@ static Status TranslateRankOp(const Node* op, const std::vector<const Tensor*>&,
 static Status TranslateRandomUniformOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  // std::cout<<"--------------- begin\n";
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
 
@@ -3206,13 +3205,16 @@ static Status TranslateRandomUniformOp(
       op->name(), ng::element::i64, ng::Shape{shape.size()}, shape);
 
   auto const_use_fixed_seed = ConstructNgNode<ng::op::Constant>(
-      op->name(), ng::element::boolean, ng::Shape{}, std::vector<bool>{false});
+      op->name(), ng::element::boolean, ng::Shape{}, std::vector<bool>{true});
+
+  tensorflow::int64 seed{};
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "seed", &seed));
 
   auto random_uniform = ConstructNgNode<ng::op::RandomUniform>(
-      op->name(), const_min, const_max, const_shape, const_use_fixed_seed, 0);
+      op->name(), const_min, const_max, const_shape, const_use_fixed_seed,
+      seed);
 
   SaveNgOp(ng_op_map, op->name(), random_uniform);
-  // std::cout<<"--------------- end\n";
   return Status::OK();
 }
 

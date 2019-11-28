@@ -32,7 +32,7 @@ class TestRandomUniformOperations(NgraphTest):
     def test_rand_uniform(self):
         samples = 10000
         shape = [samples]
-        data = tf.random.uniform(shape)
+        data = tf.random.uniform(shape, seed=0)
         out = tf.math.reduce_sum(data, axis=0, keep_dims=True)
         rel_out = tf.math.divide(out, samples)
 
@@ -41,4 +41,4 @@ class TestRandomUniformOperations(NgraphTest):
             self.with_ngraph(sess_fn),
             self.without_ngraph(sess_fn),
             rtol=1.e-2,
-            atol=1.e-3)
+            atol=1.e-2)
