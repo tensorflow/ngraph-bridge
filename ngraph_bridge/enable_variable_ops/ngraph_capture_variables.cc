@@ -63,7 +63,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           {"VariableV2", std::make_pair("NGraphVariable", ReplaceVariable)}};
 
   std::set<Node*> nodes_to_capture;
-  std::set<Node*> make_iterator_nodes;
+  std::vector<Node*> make_iterator_nodes;
 
   for (auto node : graph->op_nodes()) {
     std::set<Node*> ref_list;
@@ -88,7 +88,7 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           ref_list.clear();
         }
       } else if (node->type_string() == "MakeIterator") {
-        make_iterator_nodes.insert(node);
+        make_iterator_nodes.push_back(node);
       }
     }
   }

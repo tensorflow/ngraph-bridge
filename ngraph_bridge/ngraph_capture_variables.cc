@@ -50,7 +50,7 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
   }
 
   std::vector<Node*> replaced_nodes;
-  std::set<Node*> make_iterator_nodes;
+  std::vector<Node*> make_iterator_nodes;
   for (auto node : graph->op_nodes()) {
     if (!IsOutputNode(node, skip_these_nodes)) {
       if (node->type_string() == "VariableV2") {
@@ -123,7 +123,7 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
 
         replaced_nodes.push_back(node);
       } else if (node->type_string() == "MakeIterator") {
-        make_iterator_nodes.insert(node);
+        make_iterator_nodes.push_back(node);
       }
     }
   }

@@ -105,7 +105,7 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
   }
 
   for (auto edge : prefetch_node->out_edges()) {
-    NGRAPH_VLOG(0) << "Replacing: OutEdge " << edge->DebugString();
+    NGRAPH_VLOG(4) << "Replacing: OutEdge " << edge->DebugString();
     // Collect new output edges between the new prefetch node and the next node
     edges_to_add.push_back(std::tuple<Node*, int, Node*, int>(
         replacement, edge->src_output(), edge->dst(), edge->dst_input()));
@@ -116,7 +116,7 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
   // Now add the new output edges
   // The input edges to the new node is added during the node creation
   for (const auto& i : edges_to_add) {
-    NGRAPH_VLOG(0) << "Adding: " << get<0>(i)->name() << "  " << get<1>(i)
+    NGRAPH_VLOG(4) << "Adding: " << get<0>(i)->name() << "  " << get<1>(i)
                    << "  " << get<2>(i)->name() << " " << get<3>(i);
     graph->AddEdge(get<0>(i), get<1>(i), get<2>(i), get<3>(i));
   }
@@ -124,13 +124,14 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
   // Though edges will be removed when we remove the prefetch_node
   // we specifically remove the edges to be sure
   for (auto edge : edges_to_remove) {
-    NGRAPH_VLOG(0) << "Removing: " << edge->DebugString();
+    NGRAPH_VLOG(4) << "Removing: " << edge->DebugString();
     graph->RemoveEdge(edge);
   }
 
   // Finally remove the current preftetch node
   graph->RemoveNode(prefetch_node);
-
+  NGRAPH_VLOG(4) << "Replaced TF Prefetch Node " << prefetch_node->name()
+                 << " with NG Prefetch Node " << replacement->name();
   return Status::OK();
 }
 
