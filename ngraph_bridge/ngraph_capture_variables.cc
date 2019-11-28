@@ -50,8 +50,7 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
   }
 
   std::vector<Node*> replaced_nodes;
-  Node* prefetch_node = nullptr;
-
+  std::set<Node*> make_iterator_nodes;
   for (auto node : graph->op_nodes()) {
     if (!IsOutputNode(node, skip_these_nodes)) {
       if (node->type_string() == "VariableV2") {
@@ -124,14 +123,7 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
 
         replaced_nodes.push_back(node);
       } else if (node->type_string() == "MakeIterator") {
-        if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
-            nullptr) {
-          // We expect the MakeIterator to have 1 input thats
-          // an iterator and the other one can be either a
-          // PrefetchDataset node or a ModelDataset node
-          // Other cases are not handled at the moment.
-          prefetch_node = FindPrefetch(node);
-        }
+        make_iterator_nodes.insert(node);
       }
     }
   }
@@ -140,8 +132,21 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
     NGRAPH_VLOG(4) << "Removing: " << node->name();
     graph->RemoveNode(node);
   }
+
+  // If Prefetch is requested
   if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
       nullptr) {
+    if (make_iterator_nodes.size() > 1) {
+      return errors::Internal(
+          "Found more than 1 MakeIterator nodes. This case is not supported.");
+    }
+    // Else try to capture it
+    Node* make_iterator_node = make_iterator_nodes[0];
+    // We expect the MakeIterator to have 1 input thats
+    // an iterator and the other one can be either a
+    // PrefetchDataset node or a ModelDataset node
+    // Other cases are not handled at the moment.
+    Node* prefetch_node = FindPrefetch(make_iterator_node);
     if (prefetch_node != nullptr) {
       return ReplacePrefetch(graph, prefetch_node);
     } else {
@@ -151,6 +156,9 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
           "nodes' inputs. Only those 2 cases are handled for now.");
     }
   }
+
+  make_iterator_nodes.clear();
+  nodes_to_capture.clear();
   return Status::OK();
 }
 
