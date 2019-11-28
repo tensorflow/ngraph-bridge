@@ -158,7 +158,7 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
   }
 
   make_iterator_nodes.clear();
-  nodes_to_capture.clear();
+  replaced_nodes.clear();
   return Status::OK();
 }
 
