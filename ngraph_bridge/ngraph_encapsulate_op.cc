@@ -413,6 +413,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 // ComputeUsingParallelExecutor
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
+  cout << "using parallel exec " << endl;
   // TF input tensors
   std::vector<Tensor> tf_input_tensors;
 
@@ -484,7 +485,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // create inputs, outputs, pipelineId
   int num_of_inputs = tensor_manager->GetNumberOfInputs();
-  int num_of_outputs = tensor_manager->GetNumberOfInputs();
+  int num_of_outputs = tensor_manager->GetNumberOfOutputs();
   int current_iter_pipeline_depth = get<0>(io_tensors);
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_of_inputs);
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_of_outputs);
@@ -497,6 +498,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   bool skip_tf2ng_copy = false;
   if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
       nullptr) {
+    cout << "using prefetch env flag " << endl;
     NGraphPrefetchSharedResouce::InputTensorBundle prefetch_input_tensor_bundle{
         current_iter_pipeline_depth, ng_inputs};
     // Set the prefetch shared obj if applicable
@@ -542,6 +544,8 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Creating the shared object to "
                         "signal prefetching";
     } else {
+      cout << "using prefetch inputs " << endl;
+
       int prefetch_buffer_depth = shared_data->GetBufferDepth();
       int skip_count = shared_data->GetSkipCount();
       NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: DEPTH: " << prefetch_buffer_depth
