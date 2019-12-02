@@ -656,6 +656,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
         return Status::OK();
       };
       set_attributes_map["Reshape"] = SetStaticInputs({1});
+      set_attributes_map["ResizeBilinear"] = SetStaticInputs({1});
       set_attributes_map["ScatterNd"] = SetStaticInputs({2});
       set_attributes_map["Slice"] = SetStaticInputs({1, 2});
       set_attributes_map["Split"] = SetStaticInputs({0});
