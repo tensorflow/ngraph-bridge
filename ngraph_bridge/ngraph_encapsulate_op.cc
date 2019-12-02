@@ -470,6 +470,12 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                        " and num of "
                        "input tensors from ctxt ",
                        tf_input_tensors.size(), " do not match"));
+  OP_REQUIRES(
+      ctx, num_of_inputs == ng_exec->get_parameters().size(),
+      errors::Internal("Num of inputs from TensorManager ", num_of_inputs,
+                       " and num of "
+                       "parameters from exec ",
+                       ng_exec->get_parameters().size(), " do not match"));
 
   OP_REQUIRES(ctx, num_of_outputs == ctx->num_outputs(),
               errors::Internal("Num of outputs from TensorManager ",
