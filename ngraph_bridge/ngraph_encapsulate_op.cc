@@ -17,6 +17,7 @@
 #include <mutex>
 #include <utility>
 
+#include "ngraph/runtime/backend.hpp"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/common_runtime/function.h"
 #include "tensorflow/core/common_runtime/optimization_registry.h"
@@ -28,9 +29,6 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
-
-#include "ngraph/event_tracing.hpp"
-#include "ngraph/runtime/backend.hpp"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
@@ -276,18 +274,9 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
-  std::ostringstream oss;
-  oss << "Execute: Encapsulate_" << ng_encap_impl.GetInstanceId() << ": "
-      << name();
-  ngraph::Event event(oss.str(), name(), "");
+  NG_TRACE("NGTF_Compute", "");
 
-  Timer compute_time;
   std::lock_guard<std::mutex> lock(m_compute_lock);
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
-                 << ng_encap_impl.GetNgraphCluster();
-
-  ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
-  Timer function_lookup_or_create;
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
@@ -307,19 +296,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   OP_REQUIRES_OK(ctx, ng_encap_impl.GetNgExecutable(
                           tf_input_tensors, input_shapes, static_input_map,
                           op_backend, ng_exec));
-
-  NGRAPH_VLOG(1) << " Step_ID: " << step_id;
-  NGRAPH_VLOG(4)
-      << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
-      << ng_encap_impl.GetNgraphCluster();
-
-  int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
-  event_func_maybe_create.Stop();
-
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
-                 << ng_encap_impl.GetNgraphCluster();
-
-  Timer create_or_lookup_tensors;
 
   int pipeline_idx = -1;
   PipelinedTensorVector inp_group_from_pipeline;
@@ -359,67 +335,55 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     ng_encap_impl.SetNgraphFreshnessTracker(set_tracker);
   }
 
-  NGRAPH_VLOG(4)
-      << "NGraphEncapsulateOp::Compute got freshness tracker for cluster "
-      << ng_encap_impl.GetNgraphCluster();
-
-  // Allocate tensors for input arguments.
-  ngraph::Event event_alloc_input("Input: maybe create", name(), "");
-
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
 
-  OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGInputTensors(
-                          tf_input_tensors, ng_exec, inp_group_from_pipeline,
-                          op_backend, ng_inputs));
+  {
+    NG_TRACE("NGTF_Input_Alloc", "");
+    OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGInputTensors(
+                            tf_input_tensors, ng_exec, inp_group_from_pipeline,
+                            op_backend, ng_inputs));
+  }
 
-  event_alloc_input.Stop();
-
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
-                    "for cluster "
-                 << ng_encap_impl.GetNgraphCluster();
   // Allocate tensors for the output results.
-  ngraph::Event event_alloc_output("Output: maybe create", name(), "");
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
   std::vector<Tensor*> tf_output_tensors;
 
-  for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-    auto ng_element = ng_exec->get_results()[i];
-    auto ng_shape = ng_element->get_shape();
-    auto ng_element_type = ng_element->get_element_type();
+  {
+    NG_TRACE("NGTF_Output_Alloc", "");
+    for (auto i = 0; i < ng_exec->get_results().size(); i++) {
+      auto ng_element = ng_exec->get_results()[i];
+      auto ng_shape = ng_element->get_shape();
+      auto ng_element_type = ng_element->get_element_type();
 
-    // Create the TF output tensor
-    vector<int64> dims;
-    for (auto dim : ng_shape) {
-      dims.push_back(dim);
+      // Create the TF output tensor
+      vector<int64> dims;
+      for (auto dim : ng_shape) {
+        dims.push_back(dim);
+      }
+      TensorShape tf_shape(dims);
+      Tensor* output_tensor = nullptr;
+      OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
+      tf_output_tensors.push_back(output_tensor);
+
+      // Make sure the nGraph-inferred element type agrees with what TensorFlow
+      // expected.
+      ng::element::Type expected_elem_type;
+      OP_REQUIRES_OK(
+          ctx, TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
+                                             &expected_elem_type));
+      OP_REQUIRES(
+          ctx, ng_element_type == expected_elem_type,
+          errors::Internal("Element type inferred by nGraph does not match "
+                           "the element type expected by TensorFlow"));
     }
-    TensorShape tf_shape(dims);
-    Tensor* output_tensor = nullptr;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
-    tf_output_tensors.push_back(output_tensor);
 
-    // Make sure the nGraph-inferred element type agrees with what TensorFlow
-    // expected.
-    ng::element::Type expected_elem_type;
-    OP_REQUIRES_OK(ctx,
-                   TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
-                                                 &expected_elem_type));
-    OP_REQUIRES(
-        ctx, ng_element_type == expected_elem_type,
-        errors::Internal("Element type inferred by nGraph does not match "
-                         "the element type expected by TensorFlow"));
+    OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGOutputTensors(
+                            tf_output_tensors, ng_exec, out_group_from_pipeline,
+                            op_backend, ng_outputs));
   }
-
-  OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGOutputTensors(
-                          tf_output_tensors, ng_exec, out_group_from_pipeline,
-                          op_backend, ng_outputs));
   auto output_caches = ng_encap_impl.GetNgExecOutputCacheMap(ng_exec);
-
-  event_alloc_output.Stop();
-  NGRAPH_VLOG(4)
-      << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
-      << ng_encap_impl.GetNgraphCluster();
 
 // Dealing with the output from Variable nodes here
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
@@ -513,15 +477,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event::write_trace(event_input_check_in_catalog);
 #endif
 
-  int time_create_or_lookup_tensors = create_or_lookup_tensors.ElapsedInMS();
-
-  // Execute the nGraph function.
-  ngraph::Event event_execute_function("Execute nGraph", name(), "");
-  Timer execute_function;
   {
+    NG_TRACE("NGTF_Call", "");
     BackendManager::LockBackend(ng_encap_impl.GetOpBackend());
-    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "
-                   << ng_encap_impl.GetNgraphCluster();
     try {
       ng_exec->call(ng_outputs, ng_inputs);
     } catch (const std::exception& exp) {
@@ -542,29 +500,12 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     }
     BackendManager::UnlockBackend(ng_encap_impl.GetOpBackend());
   }
-  int time_execute_function = execute_function.ElapsedInMS();
-  event_execute_function.Stop();
-
-  long vm, rss;
-  MemoryProfile(vm, rss);
-  NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
-                 << ng_encap_impl.GetInstanceId() << " Step_ID: " << step_id
-                 << " Cluster: " << name() << " Input Tensors created: "
-                 << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
-                 << " Output Tensors created: "
-                 << ng_output_tensor_size_in_bytes / (1024 * 1024) << " MB"
-                 << " Total process memory: " << rss / (1024 * 1024) << " GB";
-
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
-                 << ng_encap_impl.GetNgraphCluster();
 
   // Copy value to host if backend is not CPU
-  ngraph::Event event_copy_output("Output - copy back", name(), "");
-  Timer copy_output_tensors_to_host;
 
   try {
+    NG_TRACE("NGTF_Copy_Out", "");
     size_t output_tensor_count = output_caches.size();
-    std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     if (ng_encap_impl.GetNumberOfOutputs() == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
@@ -627,8 +568,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
             "Output_" + to_string(i) + "_" + to_string(copy_size);
         std::unique_ptr<ngraph::Event> event_copy_output_next(
             new ngraph::Event(event_name, name(), ""));
-        dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
-                                            ng_element_type.size());
+        dst_ng_tensor->read(
+            dst_ptr, 0,
+            dst_ng_tensor->get_element_count() * ng_element_type.size());
         event_copy_output_next->Stop();
         output_copy_events.push_back(std::move(event_copy_output_next));
       }
@@ -640,32 +582,22 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
         std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
         auto ng_element_type = dst_ng_tensor->get_element_type();
-        std::unique_ptr<ngraph::Event> event_copy_output_next(new ngraph::Event(
-            ("Output_" + std::to_string(i) + "_" +
-             std::to_string(dst_ng_tensor->get_element_count() *
-                            ng_element_type.size())),
-            name(), ""));
-        dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
-                                            ng_element_type.size());
-        event_copy_output_next->Stop();
-        output_copy_events.push_back(std::move(event_copy_output_next));
+        dst_ng_tensor->read(
+            dst_ptr, 0,
+            dst_ng_tensor->get_element_count() * ng_element_type.size());
       }
     }
 #endif
-    // Now write the events back
-    for (auto& next : output_copy_events) {
-      ngraph::Event::write_trace(*next.get());
-    }
   } catch (const std::exception& exp) {
     OP_REQUIRES(ctx, false,
                 errors::Internal(
                     "Caught exception while transferring tensor data to host: ",
                     exp.what(), "\n"));
   } catch (...) {
-    OP_REQUIRES(ctx, false, errors::Internal(
-                                "Error in transferring tensor data to host\n"));
+    OP_REQUIRES(
+        ctx, false,
+        errors::Internal("Error in transferring tensor data to host\n"));
   }
-  event_copy_output.Stop();
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   std::stringstream str;
@@ -683,8 +615,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     void* src_ptr = (void*)DMAHelper::base(&ctx->input(i));
     ng_encap_impl.GetNgraphFreshnessTracker()->MarkFresh(src_ptr, ng_exec);
   }
-  int time_copy_output_tensors_to_host =
-      copy_output_tensors_to_host.ElapsedInMS();
 
   if (ng_encap_impl.GetExecCanCreateTensor()) {
     try {
@@ -696,28 +626,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                       exp.what(), "\n"));
     }
   }
-
-  NGRAPH_VLOG(4)
-      << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
-      << ng_encap_impl.GetNgraphCluster();
-  NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: "
-                 << ng_encap_impl.GetInstanceId() << " Step_ID: " << step_id
-                 << " Cluster: " << name()
-                 << " Time-Compute: " << compute_time.ElapsedInMS()
-                 << " Function-Create-or-Lookup: " << time_func_create_or_lookup
-                 << " Create-and-copy-tensors: "
-                 << time_create_or_lookup_tensors
-                 << " Execute: " << time_execute_function
-                 << " Copy-outputs-to-host: "
-                 << time_copy_output_tensors_to_host;
-  event.Stop();
-  ngraph::Event::write_trace(event_func_maybe_create);
-  ngraph::Event::write_trace(event_alloc_output);
-  ngraph::Event::write_trace(event_alloc_input);
-  ngraph::Event::write_trace(event_execute_function);
-  ngraph::Event::write_trace(event_copy_output);
-  ngraph::Event::write_trace(event);
-
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;
