@@ -127,6 +127,12 @@ void SetDisabledOps(set<string> disabled_ops_set) {
   disabled_op_types = disabled_ops_set;
 }
 
+bool IsMemoryProfilingEnabled() {
+  static bool mem_profiling =
+      std::getenv("NGRAPH_TF_MEMORY_PROFILE") != nullptr;
+  return mem_profiling;
+}
+
 }  // namespace config
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
