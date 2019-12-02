@@ -458,34 +458,29 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // Get Tensor Manager and some error checking
   auto tensor_manager = m_parallel_executor->GetTensorManager();
-  OP_REQUIRES(ctx, tensor_manager->GetNumberOfInputs() == ctx->num_inputs(),
+  int num_of_inputs = tensor_manager->GetNumberOfInputs();
+  int num_of_outputs = tensor_manager->GetNumberOfOutputs();
+  OP_REQUIRES(ctx, num_of_inputs == ctx->num_inputs(),
               errors::Internal("Num of inputs from TensorManager ",
-                               tensor_manager->GetNumberOfInputs(),
-                               " and Ctx->num_inputs() ", ctx->num_inputs(),
-                               " do not match"));
-  OP_REQUIRES(ctx,
-              tensor_manager->GetNumberOfInputs() == tf_input_tensors.size(),
-              errors::Internal("Num of inputs from TensorManager ",
-                               tensor_manager->GetNumberOfInputs(),
-                               " and num of "
-                               "input tensors from ctxt ",
-                               tf_input_tensors.size(), " do not match"));
+                               num_of_inputs, " and Ctx->num_inputs() ",
+                               ctx->num_inputs(), " do not match"));
+  OP_REQUIRES(
+      ctx, num_of_inputs == tf_input_tensors.size(),
+      errors::Internal("Num of inputs from TensorManager ", num_of_inputs,
+                       " and num of "
+                       "input tensors from ctxt ",
+                       tf_input_tensors.size(), " do not match"));
 
-  OP_REQUIRES(ctx, tensor_manager->GetNumberOfOutputs() == ctx->num_outputs(),
+  OP_REQUIRES(ctx, num_of_outputs == ctx->num_outputs(),
               errors::Internal("Num of outputs from TensorManager ",
-                               tensor_manager->GetNumberOfOutputs(),
-                               " and Ctx->num_outputs()", ctx->num_outputs(),
-                               " do not match"));
-  OP_REQUIRES(ctx, tensor_manager->GetNumberOfOutputs() ==
-                       ng_exec->get_results().size(),
+                               num_of_outputs, " and Ctx->num_outputs()",
+                               ctx->num_outputs(), " do not match"));
+  OP_REQUIRES(ctx, num_of_outputs == ng_exec->get_results().size(),
               errors::Internal("Num of outputs from TensorManager ",
-                               tensor_manager->GetNumberOfOutputs(),
-                               "and number of exec outputs ",
+                               num_of_outputs, "and number of exec outputs ",
                                ng_exec->get_results().size(), " do not match"));
 
   // create inputs, outputs, pipelineId
-  int num_of_inputs = tensor_manager->GetNumberOfInputs();
-  int num_of_outputs = tensor_manager->GetNumberOfOutputs();
   int current_iter_pipeline_depth = get<0>(io_tensors);
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_of_inputs);
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_of_outputs);
