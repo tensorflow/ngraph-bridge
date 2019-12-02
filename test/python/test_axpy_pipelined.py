@@ -16,7 +16,9 @@ from common import NgraphTest
 #sys.path.insert(0, '../../examples')
 
 from axpy_pipelined import *
+
 #os.environ.clear()
+
 
 class TestAxpyPipelined(NgraphTest):
 
@@ -27,8 +29,8 @@ class TestAxpyPipelined(NgraphTest):
         self.set_env_variable(prefetch_env, "1")
         self.set_env_variable(ngraph_backend_i, "INTERPRETER")
         input_array, output_array, expected_output_array = run_axpy_pipeline()
-        print (os.environ)
-        print ("------------------")
+        print(os.environ)
+        print("------------------")
         for i in range(1, 10):
             print("Iteration:", i, " Input: ", input_array[i - 1], " Output: ",
                   output_array[i - 1], " Expected: ",
@@ -40,4 +42,4 @@ class TestAxpyPipelined(NgraphTest):
         self.unset_env_variable(prefetch_env)
         self.unset_env_variable(ngraph_backend_i)
         self.restore_env_variables(env_var_map)
-        print (os.environ)
+        print(os.environ)
