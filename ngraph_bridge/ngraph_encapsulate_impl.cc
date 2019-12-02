@@ -224,8 +224,8 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
       StringToFile("tf_function_error_" + m_name + ".json", serialized_ng_func);
-      return errors::Internal(
-          "Caught exception while compiling op_backend: ", exp.what(), "\n");
+      return errors::Internal("Caught exception while compiling op_backend: ",
+                              exp.what(), "\n");
     } catch (...) {
       BackendManager::UnlockBackend(m_op_backend_name);
       StringToFile("tf_function_error_" + m_name + ".json", serialized_ng_func);
