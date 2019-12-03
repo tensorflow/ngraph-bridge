@@ -24,7 +24,10 @@
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
 
+#include "ngraph/ngraph.hpp"
+
 using namespace std;
+namespace ng = ngraph;
 namespace tensorflow {
 
 namespace ngraph_bridge {

@@ -525,9 +525,12 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       io_tensors_next_iter = pipelined_tensor_store->get_tensors();
 
       // Get prefetched inputs
-      pipelined_input_tensors_next_iter = get<1>(io_tensors_next_iter);
-      prefetched_input_tensors_next_iter = tensor_manager->GetPrefetchedTensors(
-          pipelined_input_tensors_next_iter);
+      vector<shared_ptr<ng::runtime::Tensor>>
+          pipelined_input_tensors_next_iter = get<1>(io_tensors_next_iter);
+      vector<shared_ptr<ng::runtime::Tensor>>
+          prefetched_input_tensors_next_iter =
+              tensor_manager->GetPrefetchedTensors(
+                  pipelined_input_tensors_next_iter);
 
       // Save the ngTensors for the next iteration
       NGraphPrefetchSharedResouce::InputTensorBundle next_input_tensor_bundle{

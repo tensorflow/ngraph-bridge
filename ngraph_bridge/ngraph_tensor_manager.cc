@@ -98,7 +98,8 @@ NGraphTensorManager::~NGraphTensorManager() {}
 //---------------------------------------------------------------------------
 //  NGraphTensorManager::GetPrefetchedTensors
 //---------------------------------------------------------------------------
-vector<shared_ptr<ng::runtime::Tensor>> GetPrefetchedTensors(
+vector<shared_ptr<ng::runtime::Tensor>>
+NGraphTensorManager::GetPrefetchedTensors(
     const vector<shared_ptr<ng::runtime::Tensor>>& pipelined_input_tensors) {
   vector<shared_ptr<ng::runtime::Tensor>> prefetched_tensors;
   auto prefetched_indexes = GetPipelinedInputIndexesThatArePrefetched();
