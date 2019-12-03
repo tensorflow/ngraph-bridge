@@ -28,13 +28,13 @@ import ngraph_bridge
 import sys
 
 
-def build_simple_model(input_array):
+def build_simple_model(input_array, tensor_var):
     # Convert the numpy array to TF Tensor
     input = tf.cast(input_array, tf.float32)
 
     # Define the Ops
     mul = tf.compat.v1.math.multiply(input_array, 5)
-    add = tf.compat.v1.math.add(mul, 10)
+    add = tf.compat.v1.math.add(mul, tensor_var)
     output = add
     return output
 
@@ -53,13 +53,14 @@ def build_data_pipeline(input_array, map_function, batch_size):
 if __name__ == '__main__':
     input_array = [1, 2, 3, 4, 5, 6, 7, 8, 9]
     multiplier = 10
+    v = tf.Variable(10)
     for i in range(1, 10):
         input_array[i - 1] = input_array[i - 1] * i * multiplier
     map_function = lambda x: x * multiplier
     batch_size = 1
     pipeline, iterator = build_data_pipeline(input_array, map_function,
                                              batch_size)
-    model = build_simple_model(pipeline)
+    model = build_simple_model(pipeline, v)
 
     with tf.Session() as sess:
         # Initialize the globals and the dataset
