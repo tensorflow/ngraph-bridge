@@ -34,6 +34,7 @@ def build_simple_model(input_array, tensor_var):
 
     # Define the Ops
     mul = tf.compat.v1.math.multiply(input_array, 5)
+    tensor_var = tensor_var + 1
     add = tf.compat.v1.math.add(mul, tensor_var)
     output = add
     return output
@@ -53,7 +54,8 @@ def build_data_pipeline(input_array, map_function, batch_size):
 if __name__ == '__main__':
     input_array = [1, 2, 3, 4, 5, 6, 7, 8, 9]
     multiplier = 10
-    v = tf.Variable(10)
+    init = tf.constant(10)
+    v = tf.get_variable('x', initializer=init)
     for i in range(1, 10):
         input_array[i - 1] = input_array[i - 1] * i * multiplier
     map_function = lambda x: x * multiplier
@@ -69,12 +71,12 @@ if __name__ == '__main__':
 
         for i in range(1, 10):
             # Expected value is:
-            expected_output = ((input_array[i - 1] * multiplier) * 5) + 10
+            expected_output = ((input_array[i - 1] * multiplier) * 5) + 11
 
             # Run one iteration
             output = sess.run(model)
 
             # Results?
             print("Iteration:", i, " Input: ", input_array[i - 1], " Output: ",
-                  output[0], " Expected: ", expected_output)
+                    output[0], " Expected: ", expected_output)
             sys.stdout.flush()
