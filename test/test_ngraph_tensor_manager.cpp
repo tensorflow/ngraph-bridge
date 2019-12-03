@@ -341,50 +341,7 @@ TEST_F(NGraphTensorManagerTest, PrefetchNotInPipeline) {
   ClearCatalog();
 }
 
-TEST_F(NGraphTensorManagerTest, GetPrefetchedTensors) {
-  string ng_encap_node_name = "xyz_1";
-  int ng_encap_cluster_id = 1;
-  int ng_encap_graph_id = 1;
-  int number_of_inputs = 5;
-  int number_of_outputs = 2;
-
-  // expected
-  vector<int> empty;
-  vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
-  vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
-  vector<int> expected_prefetched_inp_indexes = {1, 3};
-
-  EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
-                         expected_prefetched_inp_indexes);
-
-  NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
-                                     ng_encap_graph_id, number_of_inputs,
-                                     number_of_outputs);
-
-  // Allocate tensors for arguments a, b, c
-  vector<shared_ptr<ng::runtime::Tensor>> pipelined_input_tensors(
-      number_of_inputs);
-
-  for (int i = 0; i < number_of_inputs; i++) {
-    pipelined_input_tensors[i] = CreateNGraphScalarTensor(i);
-  }
-
-  vector<shared_ptr<ng::runtime::Tensor>> prefetched_input_tensors =
-      tensor_manager.GetPrefetchedTensors(pipelined_input_tensors);
-  ASSERT_EQ(prefetched_input_tensors.size(),
-            expected_prefetched_inp_indexes.size());
-
-  for (int i = 0; i < expected_prefetched_inp_indexes.size(); i++) {
-    int tensor_val = 0;
-    prefetched_input_tensors[i]->read(&tensor_val, sizeof(tensor_val));
-    ASSERT_EQ(tensor_val, expected_prefetched_inp_indexes[i]);
-  }
-
-  // clean up
-  ClearCatalog();
-}
-
-TEST_F(NGraphTensorManagerTest, GetPrefetchedTensors2) {
+TEST_F(NGraphTensorManagerTest, GetPrefetchedTensors1) {
   string ng_encap_node_name = "xyz_1";
   int ng_encap_cluster_id = 1;
   int ng_encap_graph_id = 1;
@@ -432,7 +389,6 @@ TEST_F(NGraphTensorManagerTest, GetPrefetchedTensors2) {
                                      ng_encap_graph_id, number_of_inputs,
                                      number_of_outputs);
 
-  // Allocate tensors for arguments a, b, c
   vector<shared_ptr<ng::runtime::Tensor>> pipelined_input_tensors(
       expected_pipelined_inp_indexes.size());
 
