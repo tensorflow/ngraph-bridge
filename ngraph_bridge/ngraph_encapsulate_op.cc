@@ -290,8 +290,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     tf_input_tensors.push_back(ctx->input(i));
   }
 
-  int step_id = ctx->step_id();
-
   // Get ngraph executable and inputs information
   OP_REQUIRES_OK(ctx, ng_encap_impl.GetNgExecutable(
                           tf_input_tensors, input_shapes, static_input_map,
@@ -336,7 +334,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   }
 
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
-  int ng_input_tensor_size_in_bytes = 0;
 
   {
     NG_TRACE("NGTF_Input_Alloc", "");
@@ -347,7 +344,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   // Allocate tensors for the output results.
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
-  int ng_output_tensor_size_in_bytes = 0;
   std::vector<Tensor*> tf_output_tensors;
 
   {
@@ -562,16 +558,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
         NGRAPH_VLOG(4) << "Copying Output " << def().name() << " ,index: " << i;
         auto ng_element_type = dst_ng_tensor->get_element_type();
-        size_t copy_size =
-            dst_ng_tensor->get_element_count() * ng_element_type.size();
-        string event_name =
-            "Output_" + to_string(i) + "_" + to_string(copy_size);
-        std::unique_ptr<ngraph::Event> event_copy_output_next(
-            new ngraph::Event(event_name, name(), ""));
         dst_ng_tensor->read(dst_ptr, 0, dst_ng_tensor->get_element_count() *
                                             ng_element_type.size());
-        event_copy_output_next->Stop();
-        output_copy_events.push_back(std::move(event_copy_output_next));
       }
     }
 #else

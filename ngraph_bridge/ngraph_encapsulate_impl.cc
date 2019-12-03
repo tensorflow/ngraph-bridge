@@ -330,8 +330,6 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
         SetNumberOfCopies(copies++);
         copy_log_str << " COPY_INP_VAL[" << i << "]";
 #endif
-        size_t copy_size =
-            current_ng_tensor->get_element_count() * ng_element_type.size();
         current_ng_tensor->write(
             current_src_ptr, 0,
             current_ng_tensor->get_element_count() * ng_element_type.size());
