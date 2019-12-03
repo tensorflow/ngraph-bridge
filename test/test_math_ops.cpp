@@ -297,7 +297,28 @@ TEST(MathOps, AllPositiveAxis) {
 
   opexecuter.RunTest();
 }  // end of test op All
+// Test op: Add
+TEST(MathOps, Cumsum) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
 
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  Tensor B(DT_INT32, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 2.1f);
+  AssignInputValues(B, 0);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Cumsum(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Add", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Add
 // Test op: Sum with & without keep dims & with both positive & negative axis
 TEST(MathOps, Sum) {
   int dim1 = 2;
