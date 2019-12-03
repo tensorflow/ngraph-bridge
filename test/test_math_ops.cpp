@@ -304,7 +304,7 @@ TEST(MathOps, Cumsum) {
   int dim2 = 2;
 
   Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
-  Tensor B(DT_INT32, TensorShape({dim1, dim2}));
+  Tensor B(DT_INT32);
 
   AssignInputValues(A, 2.1f);
   AssignInputValues(B, 0);
@@ -314,7 +314,7 @@ TEST(MathOps, Cumsum) {
 
   vector<DataType> output_datatypes = {DT_FLOAT};
   std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "Add", static_input_indexes, output_datatypes,
+  OpExecuter opexecuter(root, "Cumsum", static_input_indexes, output_datatypes,
                         sess_run_fetchoutputs);
 
   opexecuter.RunTest();
