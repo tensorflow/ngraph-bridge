@@ -1670,8 +1670,7 @@ static Status TranslateCumsumOp(
 
   shared_ptr<ng::Node> ng_x, ng_axis;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_x, &ng_axis));
-
-bool exclusive, reverse;
+  bool exclusive, reverse;
 TF_RETURN_IF_ERROR(
       GetNodeAttr(op->attrs(), "exclusive", &exclusive));
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "reverse", &reverse));

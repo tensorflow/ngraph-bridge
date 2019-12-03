@@ -304,19 +304,21 @@ TEST(MathOps, Cumsum) {
   int dim2 = 2;
 
   Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
-  Tensor B(DT_INT32);
+  Tensor B(DT_INT32, TensorShape({}));
 
   AssignInputValues(A, 2.1f);
   AssignInputValues(B, 0);
 
   vector<int> static_input_indexes = {};
-  auto R = ops::Cumsum(root, A, B);
+  auto attrs = ops::Cumsum::Attrs();
+  attrs.exclusive_ = true;
+  attrs.reverse_ = true;
+  auto R = ops::Cumsum(root, A, B, attrs);
 
   vector<DataType> output_datatypes = {DT_FLOAT};
   std::vector<Output> sess_run_fetchoutputs = {R};
   OpExecuter opexecuter(root, "Cumsum", static_input_indexes, output_datatypes,
                         sess_run_fetchoutputs);
-
   opexecuter.RunTest();
 }  // end of test op Add
 // Test op: Sum with & without keep dims & with both positive & negative axis
