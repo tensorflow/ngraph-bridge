@@ -523,9 +523,15 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
           io_tensors_next_iter;
       io_tensors_next_iter = pipelined_tensor_store->get_tensors();
+
+      // Get prefetched inputs
+      pipelined_input_tensors_next_iter = get<1>(io_tensors_next_iter);
+      prefetched_input_tensors_next_iter = tensor_manager->GetPrefetchedTensors(
+          pipelined_input_tensors_next_iter);
+
       // Save the ngTensors for the next iteration
       NGraphPrefetchSharedResouce::InputTensorBundle next_input_tensor_bundle{
-          get<0>(io_tensors_next_iter), get<1>(io_tensors_next_iter)};
+          get<0>(io_tensors_next_iter), prefetched_input_tensors_next_iter};
 
       OP_REQUIRES(ctx,
                   current_iter_pipeline_depth == (!next_input_tensor_bundle.Id),
@@ -552,6 +558,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: DEPTH: " << prefetch_buffer_depth
                      << " skip count; " << skip_count;
       if (skip_count >= prefetch_buffer_depth) {
+        cout << "skip_tf2ng_copy true " << endl;
         // We have been using the pipelined tensors - therefore do the
         // following:
         // 1. Get the next set of IO tensors from the pipelined store
@@ -586,6 +593,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   if (!skip_tf2ng_copy) {
     for (auto i = 0; i < tf_input_tensors.size(); i++) {
+      cout << "copying inputs true " << endl;
       ng::element::Type ng_element_type;
       OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(
                               tf_input_tensors[i].dtype(), &ng_element_type));

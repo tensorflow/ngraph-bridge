@@ -326,6 +326,8 @@ TEST_F(NGraphTensorManagerTest, PrefetchNotInPipeline) {
   ClearCatalog();
 }
 
+TEST_F(NGraphTensorManagerTest, GetPrefetchedTensors) {}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

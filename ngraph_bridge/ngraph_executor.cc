@@ -481,8 +481,9 @@ NGraphExecutor::InitializeIOTensorPipeline(
 
   // If the input or the output size if 0 then???
   NGRAPH_VLOG(5) << "InitializeIOTensorPipeline: No. of Pipelined Inputs: "
-                 << num_inputs
-                 << " No. of Pipelined Pipelined Outputs: " << num_outputs;
+                 << num_pipelined_inputs
+                 << " No. of Pipelined Pipelined Outputs: "
+                 << num_pipelined_outputs;
   PipelinedTensorMatrix pipelined_input_tensors(num_pipelined_inputs);
   PipelinedTensorMatrix pipelined_output_tensors(num_pipelined_outputs);
 

@@ -95,5 +95,18 @@ void NGraphTensorManager::Initialize() {
 //---------------------------------------------------------------------------
 NGraphTensorManager::~NGraphTensorManager() {}
 
+//---------------------------------------------------------------------------
+//  NGraphTensorManager::GetPrefetchedTensors
+//---------------------------------------------------------------------------
+vector<shared_ptr<ng::runtime::Tensor>> GetPrefetchedTensors(
+    const vector<shared_ptr<ng::runtime::Tensor>>& pipelined_input_tensors) {
+  vector<shared_ptr<ng::runtime::Tensor>> prefetched_tensors;
+  auto prefetched_indexes = GetPipelinedInputIndexesThatArePrefetched();
+  for (auto index : prefetched_indexes) {
+    prefetched_tensors.push_back(pipelined_input_tensors[index]);
+  }
+  return prefetched_tensors;
+}
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

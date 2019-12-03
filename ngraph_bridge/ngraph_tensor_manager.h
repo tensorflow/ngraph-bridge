@@ -71,6 +71,9 @@ class NGraphTensorManager {
     return m_pipelined_input_indexes_prefetched;
   }
 
+  vector<shared_ptr<ng::runtime::Tensor>> GetPrefetchedTensors(
+      const vector<shared_ptr<ng::runtime::Tensor>>& pipelined_input_tensors);
+
  private:
   void Initialize();
   string m_ng_encap_node_name;
