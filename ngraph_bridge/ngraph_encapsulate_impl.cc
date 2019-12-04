@@ -17,6 +17,8 @@
 #include <mutex>
 #include <utility>
 
+#include "ngraph/event_tracing.hpp"
+#include "ngraph/runtime/backend.hpp"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/common_runtime/function.h"
 #include "tensorflow/core/common_runtime/optimization_registry.h"
@@ -27,9 +29,6 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
-
-#include "ngraph/event_tracing.hpp"
-#include "ngraph/runtime/backend.hpp"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
@@ -274,7 +273,6 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     const PipelinedTensorVector& inp_group_from_pipeline,
     ng::runtime::Backend* const op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
-  std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
   std::vector<TensorShape> input_shapes;
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
       input_caches = m_ng_exec_input_cache_map[ng_exec];
@@ -332,18 +330,9 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
         SetNumberOfCopies(copies++);
         copy_log_str << " COPY_INP_VAL[" << i << "]";
 #endif
-        size_t copy_size =
-            current_ng_tensor->get_element_count() * ng_element_type.size();
-        string event_name =
-            "Input_" + to_string(i) + "_" + to_string(copy_size);
-        std::unique_ptr<ngraph::Event> event_copy_input_next(
-            new ngraph::Event(event_name, m_name, ""));
         current_ng_tensor->write(
             current_src_ptr, 0,
             current_ng_tensor->get_element_count() * ng_element_type.size());
-
-        event_copy_input_next->Stop();
-        input_copy_events.push_back(std::move(event_copy_input_next));
 
       } catch (const std::exception& exp) {
         return errors::Internal(
@@ -359,10 +348,6 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     ng_inputs.push_back(current_ng_tensor);
   }  // for (int i = 0; i < input_shapes.size(); i++)
 
-  // Now write the events back
-  for (auto& next : input_copy_events) {
-    ngraph::Event::write_trace(*next.get());
-  }
   return Status::OK();
 }
 
