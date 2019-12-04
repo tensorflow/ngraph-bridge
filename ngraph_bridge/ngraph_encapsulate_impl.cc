@@ -432,17 +432,18 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   // values. ie, it will not reuse the same space if its rewritten it
   bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;
   bool no_ng_tensor_found = last_ng_tensor == nullptr;
-  bool is_cpu = m_op_backend_name == "CPU";
+  bool is_cpu_or_nnpi =
+      (m_op_backend_name == "CPU") || (m_op_backend_name == "NNPI");
 
   // We need to check last_ng_tensor != nullptr, since there are cases where
   // at the first call to the ng_exec, both current_dst_ptr (when the
   // output is a 0-sized tensor) and last_dst_ptr (uninitialized at the
   // first call) are nullptr
   // A new tensor needs to be created for sure if no_ng_tensor_found
-  // Additionally for CPU, it needs to be created if tf_tensor_has_changed,
+  // Additionally for CPU/NNPI, it needs to be created if tf_tensor_has_changed,
   // for others, we do not create
   bool need_new_tensor_creation;
-  if (is_cpu) {
+  if (is_cpu_or_nnpi) {
     need_new_tensor_creation = no_ng_tensor_found || tf_tensor_has_changed;
   } else {
     need_new_tensor_creation = no_ng_tensor_found;
@@ -464,7 +465,7 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
     current_ng_tensor = tensor_from_pipeline;
   } else {
     if (need_new_tensor_creation) {
-      if (is_cpu) {
+      if (is_cpu_or_nnpi) {
         current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
                                                       current_tf_ptr);
       } else {
