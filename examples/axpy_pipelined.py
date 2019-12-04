@@ -53,6 +53,7 @@ def run_axpy_pipeline():
     expected_output_array = [-1, -1, 1, -1, -1, -1, -1, -1, -1]
     output_array = [0, 0, 0, 0, 0, 0, 0, 0, 0]
     multiplier = 10
+
     for i in range(1, 10):
         input_array[i - 1] = input_array[i - 1] * i * multiplier
     map_function = lambda x: x * multiplier
