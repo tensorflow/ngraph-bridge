@@ -60,6 +60,7 @@ set(SRC
    tf_deadness_analysis.cc
    prefetch_autotuner.cc
    ngraph_prefetch_dataset_op.cc
+   ngraph_encasulate_get_prefetch.cc
    stats_utils.cc
    version.cc
 )
