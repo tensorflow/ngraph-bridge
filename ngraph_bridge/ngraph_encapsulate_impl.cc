@@ -432,8 +432,9 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   // values. ie, it will not reuse the same space if its rewritten it
   bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;
   bool no_ng_tensor_found = last_ng_tensor == nullptr;
-  bool is_cpu_or_nnpi =
-      (m_op_backend_name == "CPU") || (m_op_backend_name == "NNPI");
+  // m_op_backend_name might be BE:0, check if it starts with BE
+  bool is_cpu_or_nnpi = (m_op_backend_name.find("CPU") == 0) ||
+                        (m_op_backend_name.find("NNPI") == 0);
 
   // We need to check last_ng_tensor != nullptr, since there are cases where
   // at the first call to the ng_exec, both current_dst_ptr (when the
@@ -466,7 +467,6 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   } else {
     if (need_new_tensor_creation) {
       if (is_cpu_or_nnpi) {
-        NGRAPH_VLOG(0) << "Backend creating tensor with tf pointer";
         current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
                                                       current_tf_ptr);
       } else {
