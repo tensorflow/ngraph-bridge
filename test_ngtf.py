@@ -80,7 +80,7 @@ def main():
                 "MathOps.AnyKeepDims:MathOps.AnyNegativeAxis:MathOps.AnyPositiveAxis:"
                 "MathOps.AllKeepDims:MathOps.AllNegativeAxis:MathOps.AllPositiveAxis:"
                 "NNOps.Qu*:NNOps.SoftmaxZeroDimTest*:"
-                "NNOps.SparseSoftmaxCrossEntropyWithLogits"))
+                "NNOps.*SoftmaxCrossEntropyWithLogits"))
 
     # If the PLAIDML tests are requested, then run them as well
     if (arguments.plaidml_unit_tests_enable):
