@@ -62,13 +62,14 @@ namespace ngraph_bridge {
 NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                                unique_ptr<tensorflow::Graph>& graph,
                                const string& backend_name,
-                               const int cache_depth)
+                               const int cache_depth, const string& node_name)
     : m_instance_id(instance_id),
       m_ngraph_cluster_id(cluster_id),
       m_graph_id(graph_id),
       m_graph(std::move(graph)),
       m_op_backend_name(backend_name),
-      m_ng_data_cache(cache_depth) {
+      m_ng_data_cache(cache_depth),
+      m_node_name(node_name) {
   // Sanity checks
   if (m_graph == nullptr) {
     throw std::runtime_error("Graph is nullptr!");

@@ -64,16 +64,24 @@ void NGraphTensorManager::Initialize() {
   m_pipelined_output_indexes =
       FindComplement(m_number_of_outputs, m_output_indexes_assigning_variable);
 
+  cout << "TM m_ng_encap_graph_id " << m_ng_encap_graph_id << endl;
+  cout << "TM m_ng_encap_node_name " << m_ng_encap_node_name << endl;
   if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(m_ng_encap_graph_id,
                                                      m_ng_encap_node_name)) {
     auto prefetch_indexes =
         NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
             m_ng_encap_graph_id, m_ng_encap_node_name);
+    for (auto i : m_prefetched_input_indexes) {
+      cout << "TM " << i << endl;
+    }
     m_prefetched_input_indexes.insert(m_prefetched_input_indexes.begin(),
                                       prefetch_indexes.begin(),
                                       prefetch_indexes.end());
     // keeping the indexes sorted, is helpful in general testing
     sort(m_prefetched_input_indexes.begin(), m_prefetched_input_indexes.end());
+    for (auto i : m_prefetched_input_indexes) {
+      cout << "TM " << i << endl;
+    }
   }
 
   // the prefetched input indexes will also be pipelined

@@ -62,6 +62,10 @@ Status EnterPrefetchInCatalog(Graph* graph, int graph_id) {
       }  // end loop over input edges
 
       if (in_indexes_for_encap.size() > 0) {
+        for (auto i : in_indexes_for_encap) {
+          cout << "Enter Prefetch in catalog " << i << endl;
+        }
+
         try {
           NGraphCatalog::AddToPrefetchedInputIndexMap(graph_id, node->name(),
                                                       in_indexes_for_encap);

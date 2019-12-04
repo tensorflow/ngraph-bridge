@@ -25,7 +25,7 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status GetPrefetchTensors(Graph* graph);
+Status GetPrefetchTensors();
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

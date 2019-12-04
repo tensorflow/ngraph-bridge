@@ -220,17 +220,21 @@ void NGraphCatalog::AddToPrefetchedInputIndexMap(
     throw runtime_error("Trying to add an already existing key ( " + key +
                         " ) in PrefetchedInputIndexMap ");
   }
+  cout << " AddToPrefetchedInputIndexMap key " << key << endl;
   NGraphCatalog::prefetched_input_index_map_.insert({key, val});
 }
 
 bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const int& graphid,
                                                     const string& node_name) {
   string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
+  cout << " ExistsInPrefetchedInputIndexMap key " << key << endl;
   return NGraphCatalog::ExistsInPrefetchedInputIndexMap(key);
 }
 
 bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const string& key) {
   auto itr = NGraphCatalog::prefetched_input_index_map_.find(key);
+  cout << " ExistsInPrefetchedInputIndexMap check "
+       << (itr != NGraphCatalog::prefetched_input_index_map_.end()) << endl;
   return itr != NGraphCatalog::prefetched_input_index_map_.end();
 }
 
