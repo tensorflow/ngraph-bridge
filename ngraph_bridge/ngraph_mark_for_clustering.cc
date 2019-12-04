@@ -742,6 +742,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Slice"] = SimpleConfirmationFunction();
       confirmation_function_map["Snapshot"] = SimpleConfirmationFunction();
       confirmation_function_map["Softmax"] = SimpleConfirmationFunction();
+      confirmation_function_map["SoftmaxCrossEntropyWithLogits"] = SimpleConfirmationFunction();
       confirmation_function_map["Softplus"] = SimpleConfirmationFunction();
       confirmation_function_map["SpaceToDepth"] =
           confirmation_function_map["DepthToSpace"];
@@ -943,6 +944,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Slice"]["Index"] = NGraphIndexDTypes();
       type_constraint_map["Snapshot"]["T"] = NGraphDTypes();
       type_constraint_map["Softmax"]["T"] = NGraphNumericDTypes();
+      // For SoftmaxCrossEntropyWithLogits, see https://github.com/tensorflow/tensorflow/blob/c95ca05536144451ef78ca6e2c15f0f65ebaaf95/tensorflow/core/ops/nn_ops.cc#L1096
+      type_constraint_map["SoftmaxCrossEntropyWithLogits"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Softplus"]["T"] = NGraphRealDTypes();
       type_constraint_map["SpaceToDepth"]["T"] = NGraphDTypes();
       type_constraint_map["SparseSoftmaxCrossEntropyWithLogits"]["T"] =
