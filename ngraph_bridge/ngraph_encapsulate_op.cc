@@ -200,10 +200,12 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 
   // For NNPI (even though executable can create tensor) use backend to create
   // tensor
+  // Keep the executable_can_create_tensors check before the
+  // backend_name!="NNPI"
   bool executable_create_tensor =
-      (backend_name != "NNPI") &&
       BackendManager::GetBackend(ng_encap_impl.GetOpBackend())
-          ->executable_can_create_tensors();
+          ->executable_can_create_tensors() &&
+      (backend_name != "NNPI");
   ng_encap_impl.SetExecCanCreateTensor(executable_create_tensor);
   NGRAPH_VLOG(5) << "Executable can "
                  << (ng_encap_impl.GetExecCanCreateTensor() ? "" : "not")
