@@ -20,15 +20,17 @@
 #include <ostream>
 #include <sstream>
 
+#include "ngraph/event_tracing.hpp"
+#include "ngraph/ngraph.hpp"
+#include "ngraph/runtime/chrome_trace.hpp"
+#include "ngraph/serializer.hpp"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/platform/tensor_coding.h"
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
-
-#include "ngraph/event_tracing.hpp"
-#include "ngraph/ngraph.hpp"
-#include "ngraph/serializer.hpp"
+#define NG_TRACE(name, category) \
+  ngraph::runtime::event::Duration dx__ { name, category }
 
 #include "logging/ngraph_log.h"
 
