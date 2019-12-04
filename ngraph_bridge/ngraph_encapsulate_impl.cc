@@ -466,6 +466,7 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   } else {
     if (need_new_tensor_creation) {
       if (is_cpu_or_nnpi) {
+        NGRAPH_VLOG(0) << "Backend creating tensor with tf pointer";
         current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
                                                       current_tf_ptr);
       } else {
