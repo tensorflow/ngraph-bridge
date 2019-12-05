@@ -27,6 +27,7 @@
 #include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
 

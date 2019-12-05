@@ -246,6 +246,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Conv2DBackpropInput"] =
           SimpleConfirmationFunction();
       confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
+      confirmation_function_map["CropAndResize"] = SimpleConfirmationFunction();
       confirmation_function_map["Cos"] = SimpleConfirmationFunction();
       confirmation_function_map["DepthwiseConv2dNative"] =
           SimpleConfirmationFunction();
@@ -451,6 +452,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Conv2D"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Conv2DBackpropInput"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Conv3D"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["CropAndResize"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Cos"]["T"] = NGraphRealDTypes();
       type_constraint_map["DepthToSpace"]["T"] = NGraphDTypes();
       type_constraint_map["DepthwiseConv2dNative"]["T"] = NGraphNumericDTypes();
@@ -655,6 +657,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
         return Status::OK();
       };
       set_attributes_map["Reshape"] = SetStaticInputs({1});
+      set_attributes_map["ResizeBilinear"] = SetStaticInputs({1});
       set_attributes_map["ScatterNd"] = SetStaticInputs({2});
       set_attributes_map["Slice"] = SetStaticInputs({1, 2});
       set_attributes_map["Split"] = SetStaticInputs({0});

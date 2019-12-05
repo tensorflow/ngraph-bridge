@@ -1629,6 +1629,41 @@ static Status TranslateConv3DOp(const Node* op,
   return Status::OK();
 }
 
+// Translate TranslateCropAndResizeOp op
+static Status TranslateCropAndResizeOp(const Node* op,
+                                       const std::vector<const Tensor*>&,
+                                       Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> image, boxes, box_ind, crop_size;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &image, &boxes, &box_ind, &crop_size));
+
+  // Get the attributes
+  float extrapolation_value;
+  std::string method;
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(op->attrs(), "extrapolation_value", &extrapolation_value));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "method", &method));
+
+  ng::op::CropAndResize::ResizeMethod ng_method =
+      ng::op::CropAndResize::ResizeMethod::unspecified;
+  if (method == "bilinear") {
+    ng_method = ng::op::CropAndResize::ResizeMethod::bilinear;
+  } else if (method == "nearest") {
+    ng_method = ng::op::CropAndResize::ResizeMethod::nearest;
+  } else {
+    return errors::Internal(
+        "Expected crop and resize's interpolation mode to be bilinear or "
+        "nearest, but got ",
+        extrapolation_value, " in op ", op->name());
+  }
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::CropAndResize>(op->name(), image, boxes,
+                                                  box_ind, crop_size, ng_method,
+                                                  extrapolation_value));
+  return Status::OK();
+}
+
 // Translate DepthToSpace op
 static Status TranslateDepthToSpaceOp(const Node* op,
                                       const std::vector<const Tensor*>&,
@@ -3701,8 +3736,15 @@ static Status TranslateReshapeOp(
 static Status TranslateResizeBilinearOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> images, size;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &images, &size));
+  shared_ptr<ng::Node> images;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &images, nullptr));
+
+  std::vector<int32> size_vector;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 1, static_input_map, &size_vector));
+
+  auto size_int64 = ConstructNgNode<ng::op::Constant>(
+      op->name(), ngraph::element::i64, ng::Shape{2}, size_vector);
 
   bool align_corners;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "align_corners", &align_corners));
@@ -3717,8 +3759,6 @@ static Status TranslateResizeBilinearOp(
   attrs.axes = {1, 2};
   // TODO: pads_begin and pads_end are not populated. Check correctness
 
-  auto size_int64 =
-      ConstructNgNode<ng::op::Convert>(op->name(), size, ngraph::element::i64);
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Interpolate>(
                                       op->name(), images, size_int64, attrs));
 
@@ -5023,6 +5063,7 @@ const static std::map<
       {"Conv2DBackpropFilter", TranslateConv2DBackpropFilterOp},
       {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
       {"Conv3D", TranslateConv3DOp}, {"Cos", TranslateUnaryOp<ngraph::op::Cos>},
+      {"CropAndResize", TranslateCropAndResizeOp},
       {"DepthToSpace", TranslateDepthToSpaceOp},
       {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
       {"Dequantize", TranslateDequantizeOp},
