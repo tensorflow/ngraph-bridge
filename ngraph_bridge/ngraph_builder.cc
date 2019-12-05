@@ -2352,7 +2352,6 @@ static Status TranslateFusedMatMulOp(const Node* op,
 static Status TranslateGatherV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-
   shared_ptr<ng::Node> ng_input, ng_input_coords;
   TF_RETURN_IF_ERROR(
       GetInputNodes(ng_op_map, op, &ng_input, &ng_input_coords, nullptr));
@@ -5005,7 +5004,6 @@ static Status TranslateSelectOp(const Node* op,
 static Status TranslateWhereOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-
   shared_ptr<ngraph::Node> ng_input;
 
   // Only allow condition input
@@ -5027,8 +5025,7 @@ static Status TranslateWhereOp(
 
   ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
 
-  shared_ptr<ng::Node> ng_where =
-      backend->get_backend_op("Where", &ng_input);
+  shared_ptr<ng::Node> ng_where = backend->get_backend_op("Where", &ng_input);
 
   if (ng_where == nullptr) {
     return errors::Internal("In translating Where op ", op->name(),
