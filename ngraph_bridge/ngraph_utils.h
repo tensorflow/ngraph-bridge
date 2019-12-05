@@ -21,6 +21,7 @@
 #include <sstream>
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
+#include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/platform/tensor_coding.h"
@@ -31,6 +32,7 @@
 #include "ngraph/serializer.hpp"
 
 #include "logging/ngraph_log.h"
+#include "logging/tf_graph_writer.h"
 
 namespace ng = ngraph;
 using namespace std;
@@ -38,11 +40,14 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-/* -------------------------------------------------
-//
-// NGraphVariableMap : Map of Variable names and their backend tensors
-//
----------------------------------------------------*/
+// Finds the complement of element_set
+// Given the max_element
+// Finds: {0,1,...,max_element-1} - element_set
+// Assumes element_set is sorted
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set);
+
+int FindNumberOfNodes(const Graph* graph, const string op_type);
 
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled);
@@ -180,7 +185,7 @@ template <typename T>
 T GetScalarFromTensor(const std::shared_ptr<ngraph::runtime::Tensor>& t,
                       size_t element_offset = 0) {
   T result;
-  t->read(&result, element_offset * sizeof(T), sizeof(T));
+  t->read(&result, sizeof(T));
   return result;
 }
 
@@ -324,6 +329,9 @@ std::string GraphFilenamePrefix(std::string, int);
 
 std::string GraphFilenamePrefix(std::string, int, int);
 
+void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
+                std::string filename_prefix, std::string title);
+
 bool DumpAllGraphs();
 
 bool DumpPrecaptureGraphs();
@@ -341,6 +349,8 @@ bool DumpDeclusteredGraphs();
 bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
+
+bool DumpCatalogedGraphs();
 
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order

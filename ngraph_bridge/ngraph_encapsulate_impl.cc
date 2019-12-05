@@ -46,8 +46,8 @@
 #include "ngraph_bridge/ngraph_utils.h"
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 #endif
 
 using namespace std;
@@ -347,7 +347,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
         std::unique_ptr<ngraph::Event> event_copy_input_next(
             new ngraph::Event(event_name, m_name, ""));
         current_ng_tensor->write(
-            current_src_ptr, 0,
+            current_src_ptr,
             current_ng_tensor->get_element_count() * ng_element_type.size());
 
         event_copy_input_next->Stop();

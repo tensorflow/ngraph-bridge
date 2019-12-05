@@ -37,10 +37,12 @@ set(SRC
    ngraph_builder.cc
    ngraph_backend_manager.cc
    ngraph_capture_variables.cc
+   ngraph_catalog.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
+   ngraph_enter_prefetch_in_catalog.cc
    ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
    ngraph_executor.cc
@@ -51,10 +53,14 @@ set(SRC
    ngraph_partial_shapes.cc
    ngraph_rewrite_for_tracking.cc
    ngraph_rewrite_pass.cc
+   ngraph_tensor_manager.cc
    ngraph_tracked_variable.cc
    ngraph_utils.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
+   prefetch_autotuner.cc
+   ngraph_prefetch_dataset_op.cc
+   stats_utils.cc
    version.cc
 )
 
@@ -79,12 +85,12 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 
     # new files
     list(APPEND SRC enable_variable_ops/ngraph_assign_op.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_remove_ngraphassigns.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_op_utilities.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_variable_modifiers.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
     
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 endif()

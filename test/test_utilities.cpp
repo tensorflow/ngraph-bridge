@@ -65,17 +65,20 @@ void SetEnvVariable(const string& env_var_name, const string& env_var_val) {
                  << env_var_val;
 }
 
-// Store/Restore Env Variables
-unordered_map<string, string> StoreEnv() {
+// Store Env Variables
+unordered_map<string, string> StoreEnv(list<string> env_vars) {
   unordered_map<string, string> env_map;
-  string env_name = "NGRAPH_TF_BACKEND";
-  if (IsEnvVariableSet(env_name)) {
-    env_map[env_name] = GetEnvVariable(env_name);
-    UnsetEnvVariable(env_name);
+  for (auto it = env_vars.begin(); it != env_vars.end(); ++it) {
+    string env_name = *it;
+    if (IsEnvVariableSet(env_name)) {
+      env_map[env_name] = GetEnvVariable(env_name);
+      UnsetEnvVariable(env_name);
+    }
   }
   return env_map;
 }
 
+// Restore
 void RestoreEnv(const unordered_map<string, string>& map) {
   for (auto itr : map) {
     setenv(itr.first.c_str(), itr.second.c_str(), 1);
@@ -151,6 +154,18 @@ void PrintTensor(const Tensor& T1) {
 // Only displays values in tensor without shape information etc.
 void PrintTensorAllValues(const Tensor& T1, int64 max_entries) {
   LOG(INFO) << "all tensor values" << T1.SummarizeValue(max_entries) << endl;
+}
+
+std::vector<string> ConvertToString(const std::vector<tensorflow::Tensor> T1) {
+  std::vector<string> out;
+  for (auto i = 0; i < T1.size(); i++) {
+    int total_enteries = 1;
+    for (int j = 0; j < T1[i].dims(); j++) {
+      total_enteries = total_enteries * T1[i].dim_size(j);
+    }
+    out.push_back(T1[i].SummarizeValue(total_enteries));
+  }
+  return out;
 }
 
 // Compares Tensors considering tolerance
@@ -238,6 +253,18 @@ bool Compare(float desired, float actual, float rtol, float atol) {
   }
 }
 
+bool Compare(std::vector<string> desired, std::vector<string> actual) {
+  if (desired.size() != actual.size()) {
+    return false;
+  }
+  for (auto i = 0; i < desired.size(); i++) {
+    if (desired[i] != actual[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 Status CreateSession(const string& graph_filename, const string& backend_name,
                      unique_ptr<tf::Session>& session) {
   tf::SessionOptions options;
@@ -284,6 +311,16 @@ Status LoadGraph(const string& graph_file_name,
   }
   session->reset(tensorflow::NewSession(options));
   return (*session)->Create(graph_def);
+}
+
+Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph) {
+  // Read the graph
+  tensorflow::GraphDef graph_def;
+  TF_RETURN_IF_ERROR(ReadTextProto(Env::Default(), pb_file, &graph_def));
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph);
+  return status;
 }
 
 template <>

@@ -18,8 +18,10 @@
 
 #include "gtest/gtest.h"
 
+#include "tensorflow/cc/client/client_session.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
+#include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/public/session.h"
 
@@ -49,8 +51,16 @@ namespace testing {
 void ActivateNGraph();
 void DeactivateNGraph();
 
-// Store/Restore Env Variables
-unordered_map<string, string> StoreEnv();
+// Store Env Variables
+// This function takes a list of env var that the user would
+// want to change for his particular test scenario and hence
+// save the current value for if it is set/unset
+unordered_map<string, string> StoreEnv(list<string> env_vars);
+
+// Restore Env Variables
+// This function takes the map of <env var, val> created using
+// StoreEnv and restores the env variables to their
+// previous state
 void RestoreEnv(const unordered_map<string, string>& map);
 
 // EnvVariable Utilities
@@ -70,6 +80,8 @@ void PrintTensor(const Tensor& T1);
 void PrintTensorAllValues(
     const Tensor& T1,
     int64 max_entries);  // print max_entries of elements in the Tensor
+
+std::vector<string> ConvertToString(const std::vector<tensorflow::Tensor>);
 
 // Generating Random Seed
 unsigned int GetSeedForRandomFunctions();
@@ -138,6 +150,8 @@ bool Compare(T arg0, T arg1, T rtol, T atol) {
 template <>
 bool Compare(float arg0, float arg1, float rtol, float atol);
 
+bool Compare(std::vector<string> arg0, std::vector<string> arg1);
+
 // Compares two Tensors
 // Right now only tensors contain float values will modify the tolerance
 // parameters
@@ -179,6 +193,8 @@ Status CreateSession(const string& graph_filename, const string& backend_name,
 Status LoadGraph(const string& graph_file_name,
                  std::unique_ptr<tensorflow::Session>* session,
                  const tensorflow::SessionOptions& options);
+
+Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph);
 
 }  // namespace testing
 

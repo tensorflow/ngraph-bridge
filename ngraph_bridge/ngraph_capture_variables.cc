@@ -19,6 +19,7 @@
 
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
+#include "ngraph_bridge/ngraph_find_replace_prefetchdataset.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
@@ -49,7 +50,7 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
   }
 
   std::vector<Node*> replaced_nodes;
-
+  std::vector<Node*> make_iterator_nodes;
   for (auto node : graph->op_nodes()) {
     if (!IsOutputNode(node, skip_these_nodes)) {
       if (node->type_string() == "VariableV2") {
@@ -121,6 +122,8 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
         }
 
         replaced_nodes.push_back(node);
+      } else if (node->type_string() == "MakeIterator") {
+        make_iterator_nodes.push_back(node);
       }
     }
   }
@@ -130,6 +133,32 @@ Status CaptureVariables(Graph* graph, const std::set<string> skip_these_nodes) {
     graph->RemoveNode(node);
   }
 
+  // If Prefetch is requested
+  if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
+      nullptr) {
+    if (make_iterator_nodes.size() > 1) {
+      return errors::Internal(
+          "Found more than 1 MakeIterator nodes. This case is not supported.");
+    }
+    // Else try to capture it
+    Node* make_iterator_node = make_iterator_nodes[0];
+    // We expect the MakeIterator to have 1 input thats
+    // an iterator and the other one can be either a
+    // PrefetchDataset node or a ModelDataset node
+    // Other cases are not handled at the moment.
+    Node* prefetch_node = FindPrefetch(make_iterator_node);
+    if (prefetch_node != nullptr) {
+      return ReplacePrefetch(graph, prefetch_node);
+    } else {
+      return errors::Internal(
+          "Did not find PrefetchDataset or "
+          "ModelDataset+OptimizeDataset+PrefetchDataset as MakeIterator "
+          "nodes' inputs. Only those 2 cases are handled for now.");
+    }
+  }
+
+  make_iterator_nodes.clear();
+  replaced_nodes.clear();
   return Status::OK();
 }
 
