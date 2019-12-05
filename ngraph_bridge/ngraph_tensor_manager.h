@@ -66,12 +66,24 @@ class NGraphTensorManager {
     return m_pipelined_output_indexes;
   }
 
+  // wrt to all inputs
   const vector<int>& GetPrefetchedInputIndexes() {
     return m_prefetched_input_indexes;
   }
 
+  // wrt to all inputs
+  const vector<int>& GetPipelinedButNotPrefetchedInputIndexes() {
+    return m_pipelined_not_prefetched_input_indexes;
+  }
+
+  // wrt to pipelined inputs
   const vector<int>& GetPipelinedInputIndexesThatArePrefetched() {
     return m_pipelined_input_indexes_prefetched;
+  }
+
+  // wrt to pipelined inputs
+  const vector<int>& GetPipelinedInputIndexesThatAreNotPrefetched() {
+    return m_pipelined_input_indexes_not_prefetched;
   }
 
   vector<shared_ptr<ng::runtime::Tensor>> GetPrefetchedTensors(
@@ -94,9 +106,11 @@ class NGraphTensorManager {
   vector<int> m_pipelined_input_indexes;
   vector<int> m_pipelined_output_indexes;
   vector<int> m_pipelined_input_indexes_prefetched;
+  vector<int> m_pipelined_input_indexes_not_prefetched;
 
   //[TODO] Book-keeping for prefetched inputs
   vector<int> m_prefetched_input_indexes;
+  vector<int> m_pipelined_not_prefetched_input_indexes;
 };
 
 }  // namespace ngraph_bridge

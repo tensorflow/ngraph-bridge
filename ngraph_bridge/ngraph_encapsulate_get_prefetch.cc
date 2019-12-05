@@ -188,11 +188,14 @@ Status GetPipelinedIOTensorsReadyForExecution(
 
     // Gives the TF input index
     auto pipelined_input_indexes_not_prefetched =
-        tensor_manager->GetPipelinedInputIndexes();
+        tensor_manager->GetPipelinedInputIndexesNotPrefetched();
+
+    auto pipelined_input_indexes_not_prefetched =
+        tensor_manager->GetPipelinedInputIndexesNotPrefetched();
 
     // Gives the mapping for corresponding
     for (auto i = 0; i < pipelined_input_indexes_not_prefetched.size(); i++) {
-      cout << "copying inputs true " << endl;
+      cout << "copying some inputs true " << endl;
       int index = pipelined_input_indexes_not_prefetched[i];
       ng::element::Type ng_element_type;
       OP_REQUIRES_OK(
