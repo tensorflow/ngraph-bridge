@@ -1539,12 +1539,15 @@ TEST(NNOps, SoftmaxCrossEntropyWithLogits) {
   int batch = 10;
   int num_of_classes = 10;
 
-  Tensor A(DT_FLOAT, TensorShape({batch, num_of_classes})); // logits/features
-  Tensor B(DT_FLOAT, TensorShape({batch, num_of_classes})); // labels with a valid Prob Distr
+  Tensor A(DT_FLOAT, TensorShape({batch, num_of_classes}));  // logits/features
+  Tensor B(
+      DT_FLOAT,
+      TensorShape({batch, num_of_classes}));  // labels with a valid Prob Distr
 
   AssignInputValuesRandom<float>(A, -200.0f, 200.0f);
   AssignInputValuesRandom<float>(B, 0.0f, 1.0f);
-  // TODO: To make B a valid prob distr, let's ensure that the sum of each row is 1, using a Softmax
+  // TODO: To make B a valid prob distr, let's ensure that the sum of each row
+  // is 1, using a Softmax
 
   vector<int> static_input_indexes = {};
   auto R = ops::SoftmaxCrossEntropyWithLogits(root, A, B);

@@ -3934,11 +3934,12 @@ static Status TranslateSliceOp(
   return Status::OK();
 }
 
-
-
-// See TF C++ API https://www.tensorflow.org/versions/r1.15/api_docs/cc/class/tensorflow/ops/softmax-cross-entropy-with-logits.html 
-// Computes softmax cross entropy cost and gradients to backpropagate. Inputs are the logits, not probabilities. 
-// Note: Labels used in softmax_cross_entropy_with_logits are equivalent to the one hot version of labels used in sparse_softmax_cross_entropy_with_logits
+// See TF C++ API
+// https://www.tensorflow.org/versions/r1.15/api_docs/cc/class/tensorflow/ops/softmax-cross-entropy-with-logits.html
+// Computes softmax cross entropy cost and gradients to backpropagate. Inputs
+// are the logits, not probabilities.
+// Note: Labels used in softmax_cross_entropy_with_logits are equivalent to the
+// one hot version of labels used in sparse_softmax_cross_entropy_with_logits
 static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
     const Node* op, const std::vector<const Tensor*>&,
     Builder::OpMap& ng_op_map) {
@@ -3948,7 +3949,8 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
   //     Type : float (-inf, +inf)
   //  2. Labels
   //    Shape : [BatchSize B, NumOfClasses NC]
-  //    Range : valid distribution of probabilities across classes (for a given sample)
+  //    Range : valid distribution of probabilities across classes (for a given
+  //    sample)
   //     Type : float [0, 1], and sum-total across NumOfClasses = 1
   shared_ptr<ng::Node> ng_features, ng_labels;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_features, &ng_labels));
@@ -3972,7 +3974,8 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
                                    " while building op ", op->type_string());
   }
 
-  // Logits/Features and Labels must have the same first dimension (i.e. BatchSize)
+  // Logits/Features and Labels must have the same first dimension (i.e.
+  // BatchSize)
   if (ng_labels_shape[0] != ng_features_shape[0]) {
     return errors::InvalidArgument(
         " Logits/Features and Labels must have the same first dimension, got "
@@ -3981,7 +3984,8 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
         ng::join(ng_labels_shape), " while building op ", op->type_string());
   }
 
-  // Logits/Features and Labels must have the same second dimension (i.e. NumOfClasses)
+  // Logits/Features and Labels must have the same second dimension (i.e.
+  // NumOfClasses)
   if (ng_labels_shape[1] != ng_features_shape[1]) {
     return errors::InvalidArgument(
         " Logits/Features and Labels must have the same second dimension, got "
@@ -4032,11 +4036,12 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
   auto predicted_prob =
       ConstructNgNode<ng::op::Divide>(op->name(), exp_logits, sum_exp_logits);
 
-
   // Output 1
-  // Note: both labels (y_true OR actual_prob) and predicted_prob (y_pred) have dimesions [B,NC]; the result will be [B,1]==[B]
+  // Note: both labels (y_true OR actual_prob) and predicted_prob (y_pred) have
+  // dimesions [B,NC]; the result will be [B,1]==[B]
   // loss = - sum[labels * log(predicted_prob)] ==> OR ==>
-  // loss = sum[labels * { log(sum(exp(logits_normalized))) - logits_normalized }]
+  // loss = sum[labels * { log(sum(exp(logits_normalized))) - logits_normalized
+  // }]
   auto ng_loss = ConstructNgNode<ng::op::Sum>(
       op->name(),
       ConstructNgNode<ng::op::Multiply>(
@@ -4049,14 +4054,13 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
 
   // Output 2
   // backprop = y_pred - y_true
-  auto ng_backprop = ConstructNgNode<ng::op::Subtract>(
-      op->name(), predicted_prob, ng_labels);
+  auto ng_backprop =
+      ConstructNgNode<ng::op::Subtract>(op->name(), predicted_prob, ng_labels);
 
   SaveNgOp(ng_op_map, op->name(), ng_loss);
   SaveNgOp(ng_op_map, op->name(), ng_backprop);
   return Status::OK();
 }
-
 
 static Status TranslateSoftmaxOp(const Node* op,
                                  const std::vector<const Tensor*>&,
