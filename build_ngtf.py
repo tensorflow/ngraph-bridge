@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.25.1-rc.10"
+    ngraph_version = "df4d896be578fc706061929dec1fad31fe37da24"  #Pruthvi Cumsum for Waymo
     tf_version = "v1.14.0"
 
     # Command line parser options

@@ -1664,6 +1664,21 @@ static Status TranslateCropAndResizeOp(const Node* op,
   return Status::OK();
 }
 
+static Status TranslateCumsumOp(const Node* op,
+                                const std::vector<const Tensor*>&,
+                                Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_x, ng_axis;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_x, &ng_axis));
+  bool exclusive, reverse;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "exclusive", &exclusive));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "reverse", &reverse));
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::CumSum>(op->name(), ng_x, ng_axis, exclusive,
+                                           reverse));
+  return Status::OK();
+}
+
 // Translate DepthToSpace op
 static Status TranslateDepthToSpaceOp(const Node* op,
                                       const std::vector<const Tensor*>&,
@@ -5024,7 +5039,7 @@ const static std::map<
       {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
       {"Conv3D", TranslateConv3DOp}, {"Cos", TranslateUnaryOp<ngraph::op::Cos>},
       {"CropAndResize", TranslateCropAndResizeOp},
-      {"DepthToSpace", TranslateDepthToSpaceOp},
+      {"Cumsum", TranslateCumsumOp}, {"DepthToSpace", TranslateDepthToSpaceOp},
       {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
       {"Dequantize", TranslateDequantizeOp},
       {"Equal", TranslateBinaryOp<ngraph::op::Equal>},
