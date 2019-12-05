@@ -14,8 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
-#ifndef NGRAPH_TF_BRIDGE_GET_PREFETCH_H
-#define NGRAPH_TF_BRIDGE_GET_PREFETCH_H
+#ifndef NGRAPH_TF_BRIDGE_GET_PIPELINED_TENSORS_H
+#define NGRAPH_TF_BRIDGE_GET_PIPELINED_TENSORS_H
 
 #pragma once
 
@@ -25,9 +25,14 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status GetPrefetchTensors();
+Status GetPipelinedIOTensorsReadyForExecution(
+    OpKernelContext* ctx, const std::vector<Tensor>& tf_input_tensors,
+    const shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
+    const shared_ptr<NGraphTensorManager>& tensor_manager,
+    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
+        pipelined_io_tensors);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
 
-#endif  // NGRAPH_TF_BRIDGE_GET_PREFETCH_H
+#endif  // NGRAPH_TF_BRIDGE_GET_PIPELINED_TENSORS_H
