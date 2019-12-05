@@ -419,7 +419,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
           shared_data->SetBufferDepth(m_buffer_size);
 
           auto ng_input_tensor_bundle =
-              shared_data->GetNextInputTensorBundleForDeviceTransfer();
+              shared_data->GetNextIOTensorBundleForDeviceTransfer();
           auto ng_prefetch_input_indexes =
               shared_data->GetPrefetchInputIndexes();
 
@@ -459,7 +459,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
           }
 
           // Now add them back to the other queue
-          shared_data->AddNextInputTensorBundleReadyForDeviceExecution(
+          shared_data->AddNextIOTensorBundleReadyForDeviceExecution(
               ng_input_tensor_bundle);
           shared_data->Unref();
           evt_dev_cp.Stop();

@@ -532,18 +532,19 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       io_tensors_next_iter = pipelined_tensor_store->get_tensors();
 
       // Save the prefetched input ngTensors for the next iteration
-      NGraphPrefetchSharedResouce::InputTensorBundle next_input_tensor_bundle{
-          get<0>(io_tensors_next_iter), get<1>(io_tensors_next_iter)};
+      NGraphPrefetchSharedResouce::IOTensorBundle next_io_tensor_bundle{
+          get<0>(io_tensors_next_iter), get<1>(io_tensors_next_iter),
+          get<2>(io_tensors_next_iter)};
 
       OP_REQUIRES(ctx,
-                  current_iter_pipeline_depth == (!next_input_tensor_bundle.Id),
+                  current_iter_pipeline_depth == (!next_io_tensor_bundle.Id),
                   errors::Internal("Current Pipeline Depth is ",
                                    current_iter_pipeline_depth,
                                    " and next iter pipeline depth is also  ",
-                                   next_input_tensor_bundle.Id));
+                                   next_io_tensor_bundle.Id));
 
-      shared_data->AddNextInputTensorBundleForDeviceTransfer(
-          next_input_tensor_bundle);
+      shared_data->AddNextIOTensorBundleForDeviceTransfer(
+          next_io_tensor_bundle);
 
       ctx->SetStatus(ctx->resource_manager()->Create(
           NGraphPrefetchSharedResouce::CONTAINER_NAME,
@@ -563,7 +564,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
         cout << "skip_tf2ng_copy true " << endl;
         // We have been using the pipelined tensors - therefore do the
         // following:
-        // 1. Save the prefetched Input tensors for the current iteration
+        // 1. Save the prefetched Input/Output tensors for the current iteration
         //    to the shared data object so that the prefetcher
         //    can continue with copying the next set of inout tensor to the
         //    device
@@ -572,23 +573,23 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
         // Add the current prefetched tensors for the next iteration
         // Get prefetched inputs
-        NGraphPrefetchSharedResouce::InputTensorBundle
-            prefetch_input_tensor_bundle{current_iter_pipeline_depth,
-                                         ng_inputs};
-        shared_data->AddNextInputTensorBundleForDeviceTransfer(
-            prefetch_input_tensor_bundle);
+        NGraphPrefetchSharedResouce::IOTensorBundle prefetch_io_tensor_bundle{
+            current_iter_pipeline_depth, ng_inputs, ng_outputs};
+        shared_data->AddNextIOTensorBundleForDeviceTransfer(
+            prefetch_io_tensor_bundle);
 
         // Update the input_tensors with the one ready for exdcution
-        auto ng_input_tensor_bundle_ready =
-            shared_data->GetNextInputTensorBundleReadyForDeviceExecution();
-        current_iter_pipeline_depth = ng_input_tensor_bundle_ready.Id;
-        ng_inputs = ng_input_tensor_bundle_ready.Inputs;
-        OP_REQUIRES(ctx, current_iter_pipeline_depth ==
-                             (!prefetch_input_tensor_bundle.Id),
-                    errors::Internal("Current Pipeline Depth is ",
-                                     current_iter_pipeline_depth,
-                                     " and next iter pipeline depth is ",
-                                     "also ", prefetch_input_tensor_bundle.Id));
+        auto ng_io_tensor_bundle_ready =
+            shared_data->GetNextIOTensorBundleReadyForDeviceExecution();
+        current_iter_pipeline_depth = ng_io_tensor_bundle_ready.Id;
+        ng_inputs = ng_io_tensor_bundle_ready.Inputs;
+        ng_outputs = ng_io_tensor_bundle_ready.Outputs;
+        OP_REQUIRES(
+            ctx, current_iter_pipeline_depth == (!prefetch_io_tensor_bundle.Id),
+            errors::Internal("Current Pipeline Depth is ",
+                             current_iter_pipeline_depth,
+                             " and next iter pipeline depth is ", "also ",
+                             prefetch_io_tensor_bundle.Id));
         skip_tf2ng_copy = true;
         NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Using device tensors";
       }

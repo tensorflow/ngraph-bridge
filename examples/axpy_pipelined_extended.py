@@ -18,6 +18,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 import numpy as np
 
 import tensorflow as tf
+from tensorflow.python.framework import dtypes
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 import os
@@ -26,15 +27,18 @@ import ngraph_bridge
 import sys
 
 
-def build_simple_model(input_array):
+def build_simple_model(input_array, c1, c2):
     # Convert the numpy array to TF Tensor
-    input = tf.cast(input_array, tf.float32)
+    input_f = tf.cast(input_array, tf.float32)
 
     # Define the Ops
-    mul = tf.compat.v1.math.multiply(input_array, 5)
-    add = tf.compat.v1.math.add(mul, 10)
-    output = add
-    return output
+    pl = tf.placeholder(dtype=dtypes.int32)
+    pl_f = tf.cast(pl, tf.float32)
+    mul = tf.compat.v1.math.multiply(input_f, c1)
+    add = tf.compat.v1.math.add(mul, c2)
+    add2 = add + pl_f
+    output = add2
+    return output, pl
 
 
 def build_data_pipeline(input_array, map_function, batch_size):
@@ -52,28 +56,30 @@ def run_axpy_pipeline():
     input_array = [1, 2, 3, 4, 5, 6, 7, 8, 9]
     expected_output_array = [-1, -1, 1, -1, -1, -1, -1, -1, -1]
     output_array = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    multiplier = 10
+    map_multiplier = 10
 
-    for i in range(1, 10):
-        input_array[i - 1] = input_array[i - 1] * i * multiplier
-    map_function = lambda x: x * multiplier
+    map_function = lambda x: x * map_multiplier
     batch_size = 1
     pipeline, iterator = build_data_pipeline(input_array, map_function,
                                              batch_size)
-    model = build_simple_model(pipeline)
+
+    # some constants
+    c1 = 5.0
+    c2 = 10.0
+    model, pl = build_simple_model(pipeline, c1, c2)
 
     with tf.Session() as sess:
         # Initialize the globals and the dataset
-        sess.run(tf.global_variables_initializer())
         sess.run(iterator.initializer)
 
         for i in range(1, 10):
             # Expected value is:
+            # Change it to run on TF if the model gets too complex
             expected_output_array[i - 1] = (
-                (input_array[i - 1] * multiplier) * 5) + 10
+                (input_array[i - 1] * map_multiplier) * c1) + c2 + i
 
             # Run one iteration
-            output = sess.run(model)
+            output = sess.run(model, feed_dict={pl: i})
             output_array[i - 1] = output[0]
     return input_array, output_array, expected_output_array
 
