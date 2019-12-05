@@ -612,6 +612,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
       confirmation_function_map["CropAndResize"] = SimpleConfirmationFunction();
       confirmation_function_map["Cos"] = SimpleConfirmationFunction();
+      confirmation_function_map["Cumsum"] = SimpleConfirmationFunction();
       confirmation_function_map["DepthwiseConv2dNative"] =
           SimpleConfirmationFunction();
       confirmation_function_map["DepthToSpace"] = [](Node* n, bool* result) {
@@ -813,6 +814,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Conv3D"]["T"] = NGraphNumericDTypes();
       type_constraint_map["CropAndResize"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Cos"]["T"] = NGraphRealDTypes();
+      type_constraint_map["Cumsum"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["Cumsum"]["Tidx"] = NGraphIndexDTypes();
       type_constraint_map["DepthToSpace"]["T"] = NGraphDTypes();
       type_constraint_map["DepthwiseConv2dNative"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Dequantize"]["T"] = NGraphSupportedQuantizedDTypes();

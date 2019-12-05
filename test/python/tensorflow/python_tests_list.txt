@@ -398,6 +398,22 @@ relu_op_test.ReluTest.testGradientFloat32
 relu_op_test.ReluTest.testGradientFloat64
 relu_op_test.ReluTest.testGradientScalar
 
+scan_ops_test.CumsumTest.test1D
+scan_ops_test.CumsumTest.test2D
+scan_ops_test.CumsumTest.test3D
+scan_ops_test.CumsumTest.test6D
+scan_ops_test.CumsumTest.testAxisType
+scan_ops_test.CumsumTest.testEmpty
+scan_ops_test.CumsumTest.testGradient
+scan_ops_test.CumsumTest.testGradient2D
+scan_ops_test.CumsumTest.testGradientExclusive
+scan_ops_test.CumsumTest.testGradientExclusiveReverse
+scan_ops_test.CumsumTest.testGradientReverse
+#This test fails due to error string matching issue
+#scan_ops_test.CumsumTest.testInvalidAxis
+scan_ops_test.CumsumTest.testLarge
+scan_ops_test.CumsumTest.test_session
+
 scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testBool
 scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testEmptyOutputShape1
 scatter_nd_ops_test.ScatterNdNonAliasingAddTest.testEmptyOutputShape2
