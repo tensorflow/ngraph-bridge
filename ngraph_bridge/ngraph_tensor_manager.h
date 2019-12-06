@@ -42,6 +42,12 @@ class NGraphTensorManager {
 
   ~NGraphTensorManager();
 
+  string GetName() { return m_ng_encap_node_name; }
+
+  int GetClusterId() { return m_ng_encap_cluster_id; }
+
+  int GetGraphId() { return m_ng_encap_graph_id; }
+
   const int& GetNumberOfInputs() { return m_number_of_inputs; }
 
   const int& GetNumberOfOutputs() { return m_number_of_outputs; }
@@ -98,17 +104,21 @@ class NGraphTensorManager {
   int m_number_of_outputs;
 
   // Book-keeping for weights-on-device optimizations
+  // indexes wrt all inputs/outputs
   vector<int> m_input_indexes_from_variables;
   vector<int> m_output_indexes_assigning_variable;
   vector<int> m_output_indexes_that_need_copy;
 
-  // All indexes that are not for from/to variables
+  // All indexes that are not from/to variables
+  // These are pipelined, some of these are also prefetched
+  // indexes wrt all inputs/outputs
   vector<int> m_pipelined_input_indexes;
   vector<int> m_pipelined_output_indexes;
+  // indexes wrt pipelined inputs
   vector<int> m_pipelined_input_indexes_prefetched;
   vector<int> m_pipelined_input_indexes_not_prefetched;
 
-  //[TODO] Book-keeping for prefetched inputs
+  // indexes wrt all inputs
   vector<int> m_prefetched_input_indexes;
   vector<int> m_pipelined_not_prefetched_input_indexes;
 };

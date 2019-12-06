@@ -21,15 +21,20 @@
 
 #include "tensorflow/core/graph/graph.h"
 
+#include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_pipelined_tensors.h"
+#include "ngraph_bridge/ngraph_tensor_manager.h"
+
+using namespace std;
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
 Status GetPipelinedIOTensorsReadyForExecution(
-    OpKernelContext* ctx, const std::vector<Tensor>& tf_input_tensors,
-    const shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
-    const shared_ptr<NGraphTensorManager>& tensor_manager,
-    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
+    OpKernelContext* ctx, vector<Tensor>& tf_input_tensors,
+    shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
+    shared_ptr<NGraphTensorManager>& tensor_manager,
+    tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
         pipelined_io_tensors);
 
 }  // namespace ngraph_bridge

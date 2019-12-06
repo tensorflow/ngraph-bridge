@@ -57,6 +57,21 @@ vector<int> FindComplement(const int& max_element,
   return complement;
 }
 
+// Finds the complement of element_set
+// From the superset
+// Finds: superset - element_set
+// Assumes superset and element_superset are sorted
+vector<int> FindComplement(const vector<int>& superset,
+                           const vector<int>& element_set) {
+  // max size of complement is superset
+  vector<int> complement(superset.size());
+  vector<int>::iterator it = set_difference(
+      superset.begin(), superset.begin() + superset.size(), element_set.begin(),
+      element_set.begin() + element_set.size(), complement.begin());
+  complement.resize(it - complement.begin());
+  return complement;
+}
+
 int FindNumberOfNodes(const Graph* graph, const string op_type) {
   int count = 0;
   for (auto node : graph->nodes()) {

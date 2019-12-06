@@ -39,11 +39,11 @@ namespace ngraph_bridge {
 class NGraphPrefetchSharedResouce : public ResourceBase {
  public:
   explicit NGraphPrefetchSharedResouce(const std::string& ng_enc_op_name,
-                                       const std::string& backend_name,
+                                       // const std::string& backend_name,
                                        int cluster_id, int graph_id,
                                        const vector<int> prefetch_input_indexes)
       : m_ng_enc_op_name(ng_enc_op_name),
-        m_backend_name(backend_name),
+        // m_backend_name(backend_name),
         m_graph_id(graph_id),
         m_cluster_id(cluster_id),
         m_prefetch_input_indexes(prefetch_input_indexes) {}
@@ -54,7 +54,7 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
   // Returns memory used by this resource.
   int64 MemoryUsed() const override { return 0; }
   std::string GetName() const { return m_ng_enc_op_name; }
-  std::string GetBackendName() const { return m_backend_name; }
+  // std::string GetBackendName() const { return m_backend_name; }
   int GetGraphId() const { return m_graph_id; }
   int GetClusterId() const { return m_cluster_id; }
 
@@ -126,7 +126,7 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
 
  private:
   const std::string m_ng_enc_op_name;
-  const std::string m_backend_name;
+  // const std::string m_backend_name;
   const int m_graph_id;
   const int m_cluster_id;
   const vector<int> m_prefetch_input_indexes;

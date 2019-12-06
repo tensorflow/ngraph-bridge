@@ -488,7 +488,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       pipelined_io_tensors;
   OP_REQUIRES_OK(ctx, GetPipelinedIOTensorsReadyForExecution(
                           ctx, tf_input_tensors, pipelined_tensor_store,
-                          pipelined_io_tensors));
+                          tensor_manager, pipelined_io_tensors));
 
   int current_iter_pipeline_depth = get<0>(pipelined_io_tensors);
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_of_inputs);

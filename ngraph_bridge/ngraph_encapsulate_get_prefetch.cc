@@ -16,6 +16,7 @@
 
 #include "ngraph_bridge/ngraph_encapsulate_get_prefetch.h"
 #include "ngraph_bridge/ngraph_prefetch_shared_data.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 
@@ -24,9 +25,9 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 Status GetPipelinedIOTensorsReadyForExecution(
-    OpKernelContext* ctx, const std::vector<Tensor>& tf_input_tensors,
-    const shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
-    const shared_ptr<NGraphTensorManager>& tensor_manager,
+    OpKernelContext* ctx, std::vector<Tensor>& tf_input_tensors,
+    shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
+    shared_ptr<NGraphTensorManager>& tensor_manager,
     std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
         pipelined_io_tensors) {
   auto io_tensors = pipelined_tensor_store->get_tensors();
@@ -35,18 +36,24 @@ Status GetPipelinedIOTensorsReadyForExecution(
   PipelinedTensorVector ng_pipelined_inputs = get<1>(io_tensors);
   PipelinedTensorVector ng_pipelined_outputs = get<2>(io_tensors);
   auto pipelined_input_indexes = tensor_manager->GetPipelinedInputIndexes();
-  auto pipelined_output_indexes = tensor_manager->GetPipelinedInputIndexes();
+  auto pipelined_output_indexes = tensor_manager->GetPipelinedOutputIndexes();
 
   if (current_iter_pipeline_depth < 0) {
-    return errors::Internal("No free tensor available"));
+    return errors::Internal("No free tensor available");
   }
 
   if (pipelined_input_indexes.size() != ng_pipelined_inputs.size()) {
-    return errors::Internal("Pipelined input tensors size ", ng_pipelined_inputs.size(), " does not match the no. of pipelined inputs indexes ", pipelined_input_indexes.size()));
+    return errors::Internal(
+        "Pipelined input tensors size ", ng_pipelined_inputs.size(),
+        " does not match the no. of pipelined inputs indexes ",
+        pipelined_input_indexes.size());
   }
 
   if (pipelined_output_indexes.size() != ng_pipelined_outputs.size()) {
-    return errors::Internal("Pipelined output tensors size ", ng_pipelined_outputs.size(), " does not match the no. of pipelined output indexes ", pipelined_output_indexes.size()));
+    return errors::Internal(
+        "Pipelined output tensors size ", ng_pipelined_outputs.size(),
+        " does not match the no. of pipelined output indexes ",
+        pipelined_output_indexes.size());
   }
 
   bool skip_tf2ng_copy = false;
@@ -75,9 +82,8 @@ Status GetPipelinedIOTensorsReadyForExecution(
         cout << " inp indez " << inp << endl;
       }
       shared_data = new NGraphPrefetchSharedResouce(
-          name(), m_parallel_executor->GetOpBackendName(),
-          m_parallel_executor->GetGraphId(),
-          m_parallel_executor->GetNgraphClusterId(), ng_prefetch_input_indexes);
+          tensor_manager->GetName(), tensor_manager->GetGraphId(),
+          tensor_manager->GetClusterId(), ng_prefetch_input_indexes);
 
       // Get the set of IO tensors for the next iteration
       std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
@@ -159,26 +165,23 @@ Status GetPipelinedIOTensorsReadyForExecution(
 
     for (auto i = 0; i < pipelined_input_indexes.size(); i++) {
       cout << "copying inputs true " << endl;
-      int index = pipelined_input_indexes[i];
-      ng::element::Type ng_element_type;
-      OP_REQUIRES_OK(
-          ctx, TFDataTypeToNGraphElementType(tf_input_tensors[index].dtype(),
-                                             &ng_element_type));
+      int tf_index = pipelined_input_indexes[i];
+      cout << "tf index " << tf_index << "ng index " << i << endl;
 
-      void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[index]);
+      ng::element::Type ng_element_type;
+      TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
+          tf_input_tensors[tf_index].dtype(), &ng_element_type));
+      void* current_src_ptr =
+          (void*)DMAHelper::base(&tf_input_tensors[tf_index]);
       try {
         ng_pipelined_inputs[i]->write(
             current_src_ptr, ng_pipelined_inputs[i]->get_element_count() *
                                  ng_element_type.size());
       } catch (const std::exception& exp) {
-        OP_REQUIRES(
-            ctx, false,
-            errors::Internal("Error copying TF tensor to device tensor: ",
-                             exp.what()));
+        return errors::Internal("Error copying TF tensor to device tensor: ",
+                                exp.what());
       } catch (...) {
-        OP_REQUIRES(
-            ctx, false,
-            errors::Internal("Error copying TF tensor to device tensor"));
+        return errors::Internal("Error copying TF tensor to device tensor");
       }
     }
   } else {
@@ -186,36 +189,35 @@ Status GetPipelinedIOTensorsReadyForExecution(
     // Note skip_tf2ng_copy will be true only when PREFETCH is enabled via env
     // flag
 
-    // Gives the TF input index
-    auto pipelined_input_indexes_not_prefetched =
-        tensor_manager->GetPipelinedInputIndexesNotPrefetched();
+    // Gives the TF input index : wrt to all inputs
+    auto pipelined_not_prefetched_input_indexes =
+        tensor_manager->GetPipelinedButNotPrefetchedInputIndexes();
 
+    // Gives the corresponding pipelined input index : wrt pipelined
     auto pipelined_input_indexes_not_prefetched =
-        tensor_manager->GetPipelinedInputIndexesNotPrefetched();
+        tensor_manager->GetPipelinedInputIndexesThatAreNotPrefetched();
 
     // Gives the mapping for corresponding
     for (auto i = 0; i < pipelined_input_indexes_not_prefetched.size(); i++) {
       cout << "copying some inputs true " << endl;
-      int index = pipelined_input_indexes_not_prefetched[i];
+      int tf_index = pipelined_not_prefetched_input_indexes[i];
+      int ng_index = pipelined_input_indexes_not_prefetched[i];
       ng::element::Type ng_element_type;
-      OP_REQUIRES_OK(
-          ctx, TFDataTypeToNGraphElementType(tf_input_tensors[index].dtype(),
-                                             &ng_element_type));
-
-      void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[index]);
+      cout << "tf index " << tf_index << " ng_index " << ng_index << endl;
+      TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
+          tf_input_tensors[tf_index].dtype(), &ng_element_type));
+      void* current_src_ptr =
+          (void*)DMAHelper::base(&tf_input_tensors[tf_index]);
       try {
-        ng_pipelined_inputs[index]->write(
-            current_src_ptr, ng_pipelined_inputs[index]->get_element_count() *
-                                 ng_element_type.size());
+        ng_pipelined_inputs[ng_index]->write(
+            current_src_ptr,
+            ng_pipelined_inputs[ng_index]->get_element_count() *
+                ng_element_type.size());
       } catch (const std::exception& exp) {
-        OP_REQUIRES(
-            ctx, false,
-            errors::Internal("Error copying TF tensor to device tensor: ",
-                             exp.what()));
+        return errors::Internal("Error copying TF tensor to device tensor: ",
+                                exp.what());
       } catch (...) {
-        OP_REQUIRES(
-            ctx, false,
-            errors::Internal("Error copying TF tensor to device tensor"));
+        return errors::Internal("Error copying TF tensor to device tensor");
       }
     }
   }
