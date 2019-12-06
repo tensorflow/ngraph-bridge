@@ -147,7 +147,6 @@ void Compare(const Tensor& T1, const Tensor& T2,
   for (int k = 0; k < T_size; k++) {
     auto a = T1_data[k];
     auto b = T2_data[k];
-    cout << "a: " << a << ", b: " << b << "\n";
     bool rt = Compare<T>(a, b, rtol, atol);
     EXPECT_TRUE(rt) << " TF output " << a << endl << " NG output " << b;
   }
