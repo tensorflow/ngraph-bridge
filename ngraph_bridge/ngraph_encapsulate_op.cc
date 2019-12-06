@@ -209,7 +209,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
                  << (ng_encap_impl.GetExecCanCreateTensor() ? "" : "not")
                  << " create tensors";
 
-
   const char* not_persistent_flag = std::getenv("NGRAPH_TF_NOT_PERSISTENT");
   m_use_persistent = (not_persistent_flag == nullptr);
 
@@ -357,51 +356,18 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   std::vector<Tensor*> tf_output_tensors;
   std::vector<tensorflow::PersistentTensor> cached_persistent_output_tensors;
+  bool present_in_cache = false;
 
-  if (m_use_persistent) {
-    bool present_in_cache = false;
-    present_in_cache = ng_encap_impl.PersistentOutputsExist(ng_exec);
-    if (present_in_cache) {
-      ng_encap_impl.GetPersistentTFOutputTensor(
-          ng_exec, cached_persistent_output_tensors);
-    }
-
-    for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-      auto ng_element = ng_exec->get_results()[i];
-      auto ng_shape = ng_element->get_shape();
-      auto ng_element_type = ng_element->get_element_type();
-      // Create the TF output tensor
-      vector<int64> dims;
-      for (auto dim : ng_shape) {
-        dims.push_back(dim);
-      }
-      TensorShape tf_shape(dims);
-      Tensor* output_tensor = nullptr;
-      if (present_in_cache) {
-        output_tensor = cached_persistent_output_tensors[i].AccessTensor(ctx);
-      } else {
-        // create a persistent tensor
-          PersistentTensor out_persistent;
-          OP_REQUIRES_OK(ctx, ctx->allocate_persistent(
-                                  ctx->expected_output_dtype(i), tf_shape,
-                                  &out_persistent, &output_tensor));
-          cout << "ctx->expected_output_dtype(i): "
-              << ctx->expected_output_dtype(i) << "\n";
-          cout << "Creation time: " << output_tensor->dtype() << "\n";
-          cached_persistent_output_tensors.push_back(out_persistent);
-      }
-      tf_output_tensors.push_back(output_tensor);
-    }
-    if (!present_in_cache){
-      OP_REQUIRES_OK(ctx, ng_encap_impl.RegisterOutputPersistentTensors(
-                                ng_exec, cached_persistent_output_tensors));
-    }
-    OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGOutputTensors(
-                          tf_output_tensors, ng_exec, out_group_from_pipeline,
-                          op_backend, ng_outputs));
-  } else
   {
     NG_TRACE("NGTF_Output_Alloc", "");
+    if (m_use_persistent) {
+      present_in_cache = ng_encap_impl.PersistentOutputsExist(ng_exec);
+      if (present_in_cache) {
+        ng_encap_impl.GetPersistentTFOutputTensor(
+            ng_exec, cached_persistent_output_tensors);
+      }
+    }
+
     for (auto i = 0; i < ng_exec->get_results().size(); i++) {
       auto ng_element = ng_exec->get_results()[i];
       auto ng_shape = ng_element->get_shape();
@@ -414,12 +380,13 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       }
       TensorShape tf_shape(dims);
       Tensor* output_tensor = nullptr;
-      OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
-      tf_output_tensors.push_back(output_tensor);
 
       // Make sure the nGraph-inferred element type agrees with what TensorFlow
       // expected.
       ng::element::Type expected_elem_type;
+      // TODO, we only need to do these checks once when the exec was
+      // created/compiled, not again and again
+
       OP_REQUIRES_OK(
           ctx, TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
                                              &expected_elem_type));
@@ -427,8 +394,26 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           ctx, ng_element_type == expected_elem_type,
           errors::Internal("Element type inferred by nGraph does not match "
                            "the element type expected by TensorFlow"));
-    }
 
+      if (m_use_persistent) {
+        if (present_in_cache) {
+          output_tensor = cached_persistent_output_tensors[i].AccessTensor(ctx);
+        } else {
+          // create a persistent tensor
+          PersistentTensor out_persistent;
+          OP_REQUIRES_OK(ctx, ctx->allocate_persistent(
+                                  ctx->expected_output_dtype(i), tf_shape,
+                                  &out_persistent, &output_tensor));
+          cout << "ctx->expected_output_dtype(i): "
+               << ctx->expected_output_dtype(i) << "\n";
+          cout << "Creation time: " << output_tensor->dtype() << "\n";
+          cached_persistent_output_tensors.push_back(out_persistent);
+        }
+      } else {
+        OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
+      }
+      tf_output_tensors.push_back(output_tensor);
+    }
     OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGOutputTensors(
                             tf_output_tensors, ng_exec, out_group_from_pipeline,
                             op_backend, ng_outputs));

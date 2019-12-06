@@ -454,7 +454,8 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   } else {
     if (need_new_tensor_creation) {
       if (is_cpu_or_nnpi) {
-        cout << "Backend creating tensor with pointer: " << current_tf_ptr << "\n";
+        cout << "Backend creating tensor with pointer: " << current_tf_ptr
+             << "\n";
         current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
                                                       current_tf_ptr);
       } else {
@@ -580,7 +581,6 @@ void NGraphEncapsulateImpl::DumpNgFunction(
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
   StringToFile(file_name, m_serialized_ng_function_map[ng_exec]);
 }
-
 
 Status NGraphEncapsulateImpl::GetPersistentTFOutputTensor(
     std::shared_ptr<ngraph::runtime::Executable> exec,
