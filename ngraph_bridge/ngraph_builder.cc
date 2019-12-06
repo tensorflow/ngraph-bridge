@@ -4411,7 +4411,6 @@ static Status TranslateSqueezeOp(const Node* op,
 static Status TranslateStridedSliceOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
 
@@ -4443,45 +4442,49 @@ static Status TranslateStridedSliceOp(
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 3, static_input_map, &stride_vec));
 
-
   // Desired implementation ==>
   // SaveNgOp(ng_op_map, op->name(),
-  //          ConstructNgNode<ng::op::StridedSlice>(op->name(), begin_vec, end_vec, stride_vec,
+  //          ConstructNgNode<ng::op::StridedSlice>(op->name(), begin_vec,
+  //          end_vec, stride_vec,
   //                             tf_begin_mask, tf_end_mask,
-  //                             tf_new_axis_mask, tf_shrink_axis_mask, tf_ellipsis_mask));
+  //                             tf_new_axis_mask, tf_shrink_axis_mask,
+  //                             tf_ellipsis_mask));
 
-  // Temporarily we are borrowing this implementation from nGraph-core until ng::op::StridedSlice is released for use in ngraph-bridge
+  // Temporarily we are borrowing this implementation from nGraph-core until
+  // ng::op::StridedSlice is released for use in ngraph-bridge
 
   auto convert_mask_to_axes = [](const std::vector<int64_t>& mask) {
-      ng::AxisSet axes{};
-      for (auto i = 0; i < mask.size(); ++i)
-      {
-          if (mask[i] == 1)
-          {
-              axes.emplace(i);
-          }
+    ng::AxisSet axes{};
+    for (auto i = 0; i < mask.size(); ++i) {
+      if (mask[i] == 1) {
+        axes.emplace(i);
       }
-      return axes;
+    }
+    return axes;
   };
 
   ng::Shape input_shape = ng_input->get_shape();
 
   auto sp = ng::make_slice_plan(input_shape, begin_vec, end_vec, stride_vec,
-                  convert_mask_to_axes(tf_begin_mask), convert_mask_to_axes(tf_end_mask),
-                  convert_mask_to_axes(tf_new_axis_mask), convert_mask_to_axes(tf_shrink_axis_mask), convert_mask_to_axes(tf_ellipsis_mask));
-  
-  auto ng_result =
-      ConstructNgNode<ng::op::Slice>(op->name(), ng_input, begin_vec, end_vec, stride_vec);
-  
-  if(sp.reshape_in_shape != sp.reshape_out_shape) {
+                                convert_mask_to_axes(tf_begin_mask),
+                                convert_mask_to_axes(tf_end_mask),
+                                convert_mask_to_axes(tf_new_axis_mask),
+                                convert_mask_to_axes(tf_shrink_axis_mask),
+                                convert_mask_to_axes(tf_ellipsis_mask));
+
+  auto ng_result = ConstructNgNode<ng::op::Slice>(
+      op->name(), ng_input, begin_vec, end_vec, stride_vec);
+
+  if (sp.reshape_in_shape != sp.reshape_out_shape) {
     ng::AxisVector ng_reshape_shape;
     ng::AxisVector ng_axis_order(input_shape.size());
-    ng_result = ConstructNgNode<ng::op::Reshape>(op->name(), ng_result, ng_axis_order, ng_reshape_shape);
+    ng_result = ConstructNgNode<ng::op::Reshape>(
+        op->name(), ng_result, ng_axis_order, ng_reshape_shape);
   }
 
-  if (!sp.reverse_axes.empty())
-  {
-      ng_result = ConstructNgNode<ng::op::Reverse>(op->name(), ng_result, sp.reverse_axes);
+  if (!sp.reverse_axes.empty()) {
+    ng_result = ConstructNgNode<ng::op::Reverse>(op->name(), ng_result,
+                                                 sp.reverse_axes);
   }
 
   SaveNgOp(ng_op_map, op->name(), ng_result);
