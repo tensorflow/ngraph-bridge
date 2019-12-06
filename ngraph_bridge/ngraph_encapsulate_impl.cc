@@ -17,6 +17,8 @@
 #include <mutex>
 #include <utility>
 
+#include "ngraph/event_tracing.hpp"
+#include "ngraph/runtime/backend.hpp"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/common_runtime/function.h"
 #include "tensorflow/core/common_runtime/optimization_registry.h"
@@ -27,9 +29,6 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
-
-#include "ngraph/event_tracing.hpp"
-#include "ngraph/runtime/backend.hpp"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"
@@ -274,7 +273,6 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     const PipelinedTensorVector& inp_group_from_pipeline,
     ng::runtime::Backend* const op_backend,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
-  std::vector<std::unique_ptr<ngraph::Event>> input_copy_events;
   std::vector<TensorShape> input_shapes;
   std::vector<std::pair<void*, std::shared_ptr<ng::runtime::Tensor>>>&
       input_caches = m_ng_exec_input_cache_map[ng_exec];
@@ -333,18 +331,9 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
         SetNumberOfCopies(copies++);
         copy_log_str << " COPY_INP_VAL[" << i << "]";
 #endif
-        size_t copy_size =
-            current_ng_tensor->get_element_count() * ng_element_type.size();
-        string event_name =
-            "Input_" + to_string(i) + "_" + to_string(copy_size);
-        std::unique_ptr<ngraph::Event> event_copy_input_next(
-            new ngraph::Event(event_name, m_name, ""));
         current_ng_tensor->write(
             current_src_ptr, 0,
             current_ng_tensor->get_element_count() * ng_element_type.size());
-
-        event_copy_input_next->Stop();
-        input_copy_events.push_back(std::move(event_copy_input_next));
 
       } catch (const std::exception& exp) {
         return errors::Internal(
@@ -360,10 +349,6 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     ng_inputs.push_back(current_ng_tensor);
   }  // for (int i = 0; i < input_shapes.size(); i++)
 
-  // Now write the events back
-  for (auto& next : input_copy_events) {
-    ngraph::Event::write_trace(*next.get());
-  }
   return Status::OK();
 }
 
@@ -594,6 +579,38 @@ void NGraphEncapsulateImpl::DumpNgFunction(
     const string& file_name,
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
   StringToFile(file_name, m_serialized_ng_function_map[ng_exec]);
+}
+
+
+Status NGraphEncapsulateImpl::GetPersistentTFOutputTensor(
+    std::shared_ptr<ngraph::runtime::Executable> exec,
+    std::vector<tensorflow::PersistentTensor>& tf_output_tensors) {
+  auto itr = m_out_persistents.find(exec);
+  if (itr == m_out_persistents.end()) {
+    return errors::Internal(
+        "Expected persistent tensor to be present in cache");
+  } else {
+    tf_output_tensors = itr->second;
+  }
+  return Status::OK();
+}
+
+bool NGraphEncapsulateImpl::PersistentOutputsExist(
+    std::shared_ptr<ngraph::runtime::Executable> exec) {
+  return m_out_persistents.find(exec) != m_out_persistents.end();
+}
+
+Status NGraphEncapsulateImpl::RegisterOutputPersistentTensors(
+    std::shared_ptr<ngraph::runtime::Executable> exec,
+    std::vector<tensorflow::PersistentTensor> persistent_tensors) {
+  auto itr = m_out_persistents.find(exec);
+  if (itr != m_out_persistents.end()) {
+    return errors::Internal(
+        "Found an entry already exists in the cache for persistent tensors");
+  }
+  m_out_persistents.emplace(exec, persistent_tensors);
+  cout << "m_out_persistents: " << m_out_persistents.size() << "\n";
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge
