@@ -4453,10 +4453,10 @@ static Status TranslateStridedSliceOp(
   // Temporarily we are borrowing this implementation from nGraph-core until
   // ng::op::StridedSlice is released for use in ngraph-bridge
 
-  auto convert_mask_to_axes = [](const std::vector<int64_t>& mask) {
+  auto convert_mask_to_axes = [](const int mask) {
     ng::AxisSet axes{};
-    for (auto i = 0; i < mask.size(); ++i) {
-      if (mask[i] == 1) {
+    for (auto i = 0; i < sizeof(int) * 8; ++i) {
+      if ((unsigned char)(mask >> i & 0x01) == 1) {
         axes.emplace(i);
       }
     }
@@ -4465,15 +4465,23 @@ static Status TranslateStridedSliceOp(
 
   ng::Shape input_shape = ng_input->get_shape();
 
-  auto sp = ng::make_slice_plan(input_shape, begin_vec, end_vec, stride_vec,
-                                convert_mask_to_axes(tf_begin_mask),
-                                convert_mask_to_axes(tf_end_mask),
-                                convert_mask_to_axes(tf_new_axis_mask),
-                                convert_mask_to_axes(tf_shrink_axis_mask),
-                                convert_mask_to_axes(tf_ellipsis_mask));
+  std::vector<int64_t> begin_vec_longint(begin_vec.begin(), begin_vec.end());
+  std::vector<int64_t> end_vec_longint(end_vec.begin(), end_vec.end());
+  std::vector<int64_t> stride_vec_longint(stride_vec.begin(), stride_vec.end());
 
-  auto ng_result = ConstructNgNode<ng::op::Slice>(
-      op->name(), ng_input, sp.begins, sp.ends, sp.strides);
+  auto sp = ng::make_slice_plan(
+      input_shape, begin_vec_longint, end_vec_longint, stride_vec_longint,
+      convert_mask_to_axes(tf_begin_mask), convert_mask_to_axes(tf_end_mask),
+      convert_mask_to_axes(tf_new_axis_mask),
+      convert_mask_to_axes(tf_shrink_axis_mask),
+      convert_mask_to_axes(tf_ellipsis_mask));
+
+  std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
+  std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
+  std::vector<size_t> sp_strides(sp.strides.begin(), sp.strides.end());
+
+  shared_ptr<ng::Node> ng_result = ConstructNgNode<ng::op::Slice>(
+      op->name(), ng_input, sp_begins, sp_ends, sp_strides);
 
   if (sp.reshape_in_shape != sp.reshape_out_shape) {
     ng::AxisVector ng_axis_out_shape(sp.reshape_out_shape.size());
