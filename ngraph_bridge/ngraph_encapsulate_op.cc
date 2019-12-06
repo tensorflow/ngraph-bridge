@@ -302,7 +302,8 @@ void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx,
   bool exec_can_create_tensor =
       BackendManager::GetBackend(ng_encap_impl_.GetOpBackend())
           ->executable_can_create_tensors();
-  ng_encap_impl_.SetExecCanCreateTensor(exec_can_create_tensor);
+  // ng_encap_impl_.SetExecCanCreateTensor(exec_can_create_tensor);
+  ng_encap_impl_.SetExecCanCreateTensor(false);
   NGRAPH_VLOG(5) << "Executable can " << (exec_can_create_tensor ? "" : "not")
                  << " create tensors";
 
