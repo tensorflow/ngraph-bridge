@@ -4473,13 +4473,13 @@ static Status TranslateStridedSliceOp(
                                 convert_mask_to_axes(tf_ellipsis_mask));
 
   auto ng_result = ConstructNgNode<ng::op::Slice>(
-      op->name(), ng_input, begin_vec, end_vec, stride_vec);
+      op->name(), ng_input, sp.begins, sp.ends, sp.strides);
 
   if (sp.reshape_in_shape != sp.reshape_out_shape) {
-    ng::AxisVector ng_reshape_shape;
-    ng::AxisVector ng_axis_order(input_shape.size());
+    ng::AxisVector ng_axis_out_shape(sp.reshape_out_shape.size());
+    ng::AxisVector ng_axis_in_shape(sp.reshape_in_shape.size());
     ng_result = ConstructNgNode<ng::op::Reshape>(
-        op->name(), ng_result, ng_axis_order, ng_reshape_shape);
+        op->name(), ng_result, ng_axis_in_shape, ng_axis_out_shape);
   }
 
   if (!sp.reverse_axes.empty()) {
