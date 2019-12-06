@@ -322,6 +322,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
         current_src_ptr, last_src_ptr, last_ng_tensor, false, ng_exec,
         op_backend, ng_element_type, ng_shape,
         m_executable_can_create_tensor ? inp_group_from_pipeline[i] : nullptr);
+    cout << "Using input tensor ptr: " << current_ng_tensor << "\n";
     bool is_cpu = m_op_backend_name == "CPU";
 
     if (!is_cpu && current_ng_tensor->get_stale()) {
@@ -410,7 +411,7 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
         current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
         op_backend, ng_element_type, ng_shape,
         m_executable_can_create_tensor ? out_group_from_pipeline[i] : nullptr);
-
+    cout << "Using output tensor ptr: " << current_ng_tensor << "\n";
     current_ng_tensor->set_stale(true);
     output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
     ng_outputs.push_back(current_ng_tensor);
@@ -431,6 +432,7 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   // NOTE: we assume that TF's pointers WILL change if it actually changes
   // values. ie, it will not reuse the same space if its rewritten it
   bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;
+  cout << "tf_tensor_has_changed: " << tf_tensor_has_changed << "\n";
   bool no_ng_tensor_found = last_ng_tensor == nullptr;
   // m_op_backend_name might be BE:0, check if it starts with BE
   bool is_cpu_or_nnpi = (m_op_backend_name.find("CPU") == 0) ||
@@ -467,6 +469,7 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   } else {
     if (need_new_tensor_creation) {
       if (is_cpu_or_nnpi) {
+        cout << "Backend creating tensor with pointer: " << current_tf_ptr << "\n";
         current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
                                                       current_tf_ptr);
       } else {

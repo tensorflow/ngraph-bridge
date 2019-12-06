@@ -138,6 +138,41 @@ TEST(tf_exec, SingleGraphOn2Threads) {
   }
 }
 
+
+TEST(tf_exec, model) {
+  string graph_name = "test_axpy.pbtxt";
+
+    unique_ptr<Session> session;
+    ASSERT_OK(CreateSession(graph_name, "CPU", session));
+
+    string inp_tensor_name_0{"x"};
+    string inp_tensor_name_1{"y"};
+    string out_tensor_name{"add"};
+    std::vector<Tensor> out_tensor_vals;
+
+    Tensor inp_tensor_val(tensorflow::DT_FLOAT,
+                            tensorflow::TensorShape({2, 3}));
+    Tensor out_tensor_expected_val(tensorflow::DT_FLOAT,
+                                      tensorflow::TensorShape({2, 3}));
+    for (int i = 0; i < 10; i++) {
+      
+      vector<float> in_vals(6, float(i));
+      AssignInputValues<float>(inp_tensor_val, in_vals);
+      
+      vector<float> out_vals(6, 6.0 * float(i));
+      AssignInputValues<float>(out_tensor_expected_val, out_vals);
+
+      std::vector<std::pair<string, tensorflow::Tensor>> inputs = {
+          {inp_tensor_name_0, inp_tensor_val},
+          {inp_tensor_name_1, inp_tensor_val}};
+
+      ASSERT_OK(
+          session->Run(inputs, {out_tensor_name}, {}, &out_tensor_vals));
+      Compare(out_tensor_vals, {out_tensor_expected_val});
+    }
+}
+
+
 TEST(tf_exec, hello_world) {
   Scope root = Scope::NewRootScope();
 

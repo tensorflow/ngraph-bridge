@@ -726,6 +726,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   ngraph::Event::write_trace(event_copy_output);
   ngraph::Event::write_trace(event);
 
+  cout << "\n";
+
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;
