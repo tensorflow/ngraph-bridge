@@ -121,7 +121,7 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
   graph_def = NGraphClusterManager::GetClusterGraph(cluster_id);
 
   if (graph_def == nullptr) {
-    string flib_key = name();
+    string flib_key = "ngraph_cluster_" + to_string(cluster_id);
     // Read graphdef from function library
     const FunctionLibraryDefinition flib =
         *ctx->function_library()->GetFunctionLibraryDefinition();
