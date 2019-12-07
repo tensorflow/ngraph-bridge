@@ -4484,10 +4484,18 @@ static Status TranslateStridedSliceOp(
       op->name(), ng_input, sp_begins, sp_ends, sp_strides);
 
   if (sp.reshape_in_shape != sp.reshape_out_shape) {
-    ng::AxisVector ng_axis_out_shape(sp.reshape_out_shape.size());
-    ng::AxisVector ng_axis_in_shape(sp.reshape_in_shape.size());
-    ng_result = ConstructNgNode<ng::op::Reshape>(
-        op->name(), ng_result, ng_axis_in_shape, ng_axis_out_shape);
+    ng::Shape ng_out_shape(sp.reshape_out_shape);
+    ng::AxisVector ng_axis_order(sp.reshape_in_shape.size());
+    // std::iota Fills the range [first, last) with sequentially increasing
+    // values,
+    // starting with value and repetitively evaluating ++value
+    std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
+
+    NGRAPH_VLOG(3) << " Output  shape " << ng::join(ng_out_shape);
+    NGRAPH_VLOG(3) << " NG  axis order " << ng::join(ng_axis_order);
+
+    ng_result = ConstructNgNode<ng::op::Reshape>(op->name(), ng_result,
+                                                 ng_axis_order, ng_out_shape);
   }
 
   if (!sp.reverse_axes.empty()) {
