@@ -150,7 +150,7 @@ cc_library(
         "src/ngraph/runtime/cpu/cpu_tensor_view.cpp",
         "src/ngraph/runtime/cpu/cpu_tracing.cpp",
         "src/ngraph/runtime/cpu/cpu_visualize_tree.cpp",
-        "src/ngraph/runtime/cpu/cpu_builder_registry.hpp",
+        "src/ngraph/runtime/cpu/builder/cum_sum.cpp",
         "src/ngraph/runtime/cpu/cpu_cse.cpp",
         "src/ngraph/runtime/cpu/cpu_debugger.cpp",
         "src/ngraph/runtime/cpu/builder/add.cpp",
