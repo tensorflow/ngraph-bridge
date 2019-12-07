@@ -4469,6 +4469,16 @@ static Status TranslateStridedSliceOp(
   std::vector<int64_t> end_vec_longint(end_vec.begin(), end_vec.end());
   std::vector<int64_t> stride_vec_longint(stride_vec.begin(), stride_vec.end());
 
+  NGRAPH_VLOG(4) << "Arguments to make_slice_plan: Input shape: " << input_shape
+                 << ", begin vector: " << ng::join(begin_vec_longint)
+                 << ", end vector: " << ng::join(end_vec_longint)
+                 << ", stride vector: " << ng::join(stride_vec_longint)
+                 << ", begin mask: " << tf_begin_mask
+                 << ", end mask: " << tf_end_mask
+                 << ", new axis mask: " << tf_new_axis_mask
+                 << ", shrink axis mask: " << tf_shrink_axis_mask
+                 << ", ellipsis mask: " << tf_ellipsis_mask;
+
   auto sp = ng::make_slice_plan(
       input_shape, begin_vec_longint, end_vec_longint, stride_vec_longint,
       convert_mask_to_axes(tf_begin_mask), convert_mask_to_axes(tf_end_mask),
@@ -4476,6 +4486,14 @@ static Status TranslateStridedSliceOp(
       convert_mask_to_axes(tf_shrink_axis_mask),
       convert_mask_to_axes(tf_ellipsis_mask));
 
+  NGRAPH_VLOG(4) << "Return values of make_slice_plan: begin: "
+                 << ng::join(sp.begins) << ", end: " << ng::join(sp.ends)
+                 << ", stride: " << ng::join(sp.strides)
+                 << ", reshape input shape: " << sp.reshape_in_shape
+                 << ", reshape output shape: " << sp.reshape_out_shape
+                 << ", reverse axis: " << sp.reverse_axes;
+
+  // Need to convert int64_t to size_t
   std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
   std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
   std::vector<size_t> sp_strides(sp.strides.begin(), sp.strides.end());
