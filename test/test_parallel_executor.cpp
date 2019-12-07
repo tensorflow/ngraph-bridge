@@ -471,7 +471,7 @@ TEST(ParallelExecutor, E2E8Bit) {
   if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
     backend_name = std::getenv("NGRAPH_TF_BACKEND");
   }
-
+  
   unique_ptr<Session> session;
   ASSERT_OK(CreateSession(graph_name, backend_name, session));
 
