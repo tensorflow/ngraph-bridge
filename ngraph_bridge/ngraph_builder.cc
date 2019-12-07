@@ -4480,6 +4480,28 @@ static Status TranslateStridedSliceOp(
   std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
   std::vector<size_t> sp_strides(sp.strides.begin(), sp.strides.end());
 
+  auto in_rank = ng_input->get_shape().size();
+  if (sp.begins.size() > in_rank) {
+    return errors::InvalidArgument("Index out of range using input dim ",
+                                   sp.begins.size(), "; input has only ",
+                                   in_rank, " dims");
+  }
+
+  int64 shrink_axis_mask = tf_shrink_axis_mask;
+  for (size_t i = 0; i < sp.begins.size(); i++) {
+    if ((shrink_axis_mask & 1) == 1) {
+      // TODO: must it equal 1 or can it be 0 too?
+      if (sp.ends[i] - sp.begins[i] > 1)
+        return errors::InvalidArgument(
+            "Trying to shrink specification ", i,
+            "where tf begin, end, strides are: ", begin_vec[i], ":", end_vec[i],
+            ":", stride_vec[i], ". nGraph begin, end, stride are: ",
+            sp.begins[i], ":", sp.ends[i], ":", sp.strides[i],
+            ". nGraph's begin and end have difference greater than 1");
+    }
+    shrink_axis_mask >>= 1;
+  }
+
   shared_ptr<ng::Node> ng_result = ConstructNgNode<ng::op::Slice>(
       op->name(), ng_input, sp_begins, sp_ends, sp_strides);
 
