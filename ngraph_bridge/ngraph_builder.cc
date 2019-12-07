@@ -4479,6 +4479,13 @@ static Status TranslateStridedSliceOp(
                  << ", shrink axis mask: " << tf_shrink_axis_mask
                  << ", ellipsis mask: " << tf_ellipsis_mask;
 
+  auto in_rank = ng_input->get_shape().size();
+  if (begin_vec_longint.size() > in_rank) {
+    return errors::InvalidArgument("Index out of range using input dim ",
+                                   begin_vec_longint.size(),
+                                   "; input has only ", in_rank, " dims");
+  }
+
   auto sp = ng::make_slice_plan(
       input_shape, begin_vec_longint, end_vec_longint, stride_vec_longint,
       convert_mask_to_axes(tf_begin_mask), convert_mask_to_axes(tf_end_mask),
@@ -4497,13 +4504,6 @@ static Status TranslateStridedSliceOp(
   std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
   std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
   std::vector<size_t> sp_strides(sp.strides.begin(), sp.strides.end());
-
-  auto in_rank = ng_input->get_shape().size();
-  if (sp.begins.size() > in_rank) {
-    return errors::InvalidArgument("Index out of range using input dim ",
-                                   sp.begins.size(), "; input has only ",
-                                   in_rank, " dims");
-  }
 
   int64 shrink_axis_mask = tf_shrink_axis_mask;
   for (size_t i = 0; i < sp.begins.size(); i++) {
