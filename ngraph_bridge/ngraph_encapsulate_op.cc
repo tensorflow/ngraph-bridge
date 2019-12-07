@@ -121,7 +121,7 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
   graph_def = NGraphClusterManager::GetClusterGraph(cluster_id);
 
   if (graph_def == nullptr) {
-    string flib_key = "ngraph_cluster_" + to_string(cluster_id);
+    string flib_key = name();
     // Read graphdef from function library
     const FunctionLibraryDefinition flib =
         *ctx->function_library()->GetFunctionLibraryDefinition();
@@ -157,9 +157,9 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
   }
 
   // Create the Executor object
-  m_parallel_executor = move(unique_ptr<NGraphExecutor>(
-      new NGraphExecutor(s_instance_id, cluster_id, graph_id, encap_subgraph,
-                         backend_name, my_function_cache_depth_in_items)));
+  m_parallel_executor = move(unique_ptr<NGraphExecutor>(new NGraphExecutor(
+      s_instance_id, cluster_id, graph_id, encap_subgraph, backend_name, name(),
+      my_function_cache_depth_in_items)));
 
   auto tensor_manager = m_parallel_executor->GetTensorManager();
   OP_REQUIRES(ctx, tensor_manager->GetNumberOfInputs() == ctx->num_inputs(),
