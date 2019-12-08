@@ -219,6 +219,28 @@ class TestSliceOperations(NgraphTest):
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
+    # array_ops_test.StridedSliceTest.testTensorIndexing
+    def test_strided_slice_5(self):
+        a = [[[[[1, 2, 4, 5], [5, 6, 7, 8], [9, 10, 11, 12]]],
+              [[[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]]]]]
+
+        x = tf.placeholder(dtype=dtypes.float32)
+        bar = tf.constant(2)
+        bar2 = tf.constant(3)
+        x = tf.placeholder(dtype=dtypes.float32)
+        slice_ts = [
+            x[..., bar:bar2], x[..., bar], x[..., 3], x[..., 2**64 // 2**63]
+        ]
+
+        def run_test(sess):
+            return sess.run(slice_ts, feed_dict={x: a})
+
+        slice_vals_ng = self.with_ngraph(run_test)
+        slice_vals_tf = self.without_ngraph(run_test)
+
+        for v, e in zip(slice_vals_ng, slice_vals_tf):
+            np.testing.assert_array_equal(v, e)
+
     def test_strided_slice_zerodim(self):
         inp = np.random.rand(4, 0, 5).astype("f")
         slice_ts = []
