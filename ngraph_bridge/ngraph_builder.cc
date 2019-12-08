@@ -4480,10 +4480,12 @@ static Status TranslateStridedSliceOp(
                  << ", ellipsis mask: " << tf_ellipsis_mask;
 
   auto in_rank = ng_input->get_shape().size();
-  if (begin_vec_longint.size() > in_rank) {
-    return errors::InvalidArgument("Index out of range using input dim ",
-                                   begin_vec_longint.size(),
-                                   "; input has only ", in_rank, " dims");
+  if (tf_new_axis_mask == 0) {
+    if (begin_vec_longint.size() > in_rank) {
+      return errors::InvalidArgument("Index out of range using input dim ",
+                                     begin_vec_longint.size(),
+                                     "; input has only ", in_rank, " dims");
+    }
   }
 
   auto sp = ng::make_slice_plan(
