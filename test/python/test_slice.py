@@ -241,20 +241,6 @@ class TestSliceOperations(NgraphTest):
         for v, e in zip(slice_vals_ng, slice_vals_tf):
             np.testing.assert_array_equal(v, e)
 
-    # array_ops_test.StridedSliceTest.testExpandVariable
-    def test_strided_slice_6(self):
-
-        def run_test(sess):
-            x = tf.Variable(7, dtype=tf.int32)
-            sess.run(x.initializer)
-            return sess.run(x[None])
-
-        slice_vals_ng = self.with_ngraph(run_test)
-        slice_vals_tf = self.without_ngraph(run_test)
-
-        for v, e in zip(slice_vals_ng, slice_vals_tf):
-            np.testing.assert_array_equal(slice_vals_ng, slice_vals_tf)
-
     def test_strided_slice_zerodim(self):
         inp = np.random.rand(4, 0, 5).astype("f")
         slice_ts = []
