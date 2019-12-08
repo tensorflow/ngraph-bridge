@@ -175,6 +175,28 @@ class TestSliceOperations(NgraphTest):
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
+    def test_strided_slice_3(self):
+        inp = np.random.rand(3, 2, 3).astype("f")
+
+        slice_ts = []
+        expected = []
+        a = np.array([float(x) for x in inp.ravel(order="C")])
+        a.shape = (3, 2, 3)
+
+        x = tf.placeholder(dtype=dtypes.float32)
+
+        slice_ts.append(x[-1:0, -10:-10, 2:3:-1])
+
+        def run_test(sess):
+            return sess.run(slice_ts, feed_dict={x: a})
+
+        slice_vals = self.with_ngraph(run_test)
+
+        expected.append(inp[-1:0, 2:2, 2:3:-1])
+
+        for v, e in zip(slice_vals, expected):
+            np.testing.assert_array_equal(v, e)
+
     def test_strided_slice_zerodim(self):
         inp = np.random.rand(4, 0, 5).astype("f")
         slice_ts = []
