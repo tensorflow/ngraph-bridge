@@ -4500,6 +4500,22 @@ static Status TranslateStridedSliceOp(
                  << ", reshape output shape: " << sp.reshape_out_shape
                  << ", reverse axis: " << sp.reverse_axes;
 
+  // To handle cases like x[2:2], where shape(x) = [1],
+  // TF returns shape = [0], empty vector
+  // make_slice_plan returns begin=2, end=2, but that is > 1
+  // So must clamp them
+  // Another example:
+  // for dimension 3, Also 2:3:-1 gives 4:4, which will also fail if we try to
+  // construct slice. So must clamp to 2:2 etc
+
+  auto clamp = [](int64_t x, int64_t min, int64_t max) {
+    return x > max ? max : (x < min ? min : x);
+  };
+  for (int i = 0; i < sp.begins.size(); i++) {
+    sp.begins[i] = clamp(sp.begins[i], 0, input_shape[i]);
+    sp.ends[i] = clamp(sp.ends[i], 0, input_shape[i]);
+  }
+
   // Need to convert int64_t to size_t
   std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
   std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
