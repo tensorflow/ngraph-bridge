@@ -355,7 +355,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Allocate tensors for the output results.
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   std::vector<Tensor*> tf_output_tensors;
-  std::vector<tensorflow::PersistentTensor> cached_persistent_output_tensors;
+  std::vector<tensorflow::PersistentTensor> cached_persistent_output_tensors(
+      ng_exec->get_results().size());
   bool present_in_cache = false;
 
   {
@@ -400,14 +401,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           output_tensor = cached_persistent_output_tensors[i].AccessTensor(ctx);
         } else {
           // create a persistent tensor
-          PersistentTensor out_persistent;
-          OP_REQUIRES_OK(ctx, ctx->allocate_persistent(
-                                  ctx->expected_output_dtype(i), tf_shape,
-                                  &out_persistent, &output_tensor));
-          cout << "ctx->expected_output_dtype(i): "
-               << ctx->expected_output_dtype(i) << "\n";
-          cout << "Creation time: " << output_tensor->dtype() << "\n";
-          cached_persistent_output_tensors.push_back(out_persistent);
+          OP_REQUIRES_OK(
+              ctx, ctx->allocate_persistent(
+                       ctx->expected_output_dtype(i), tf_shape,
+                       &cached_persistent_output_tensors[i], &output_tensor));
         }
       } else {
         OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
