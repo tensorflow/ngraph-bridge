@@ -1,25 +1,5 @@
 {
-    "default":{
-        "logparse": {
-            "0": {
-                "num_ng_clusters": 0, 
-                "num_nodes_marked_for_clustering": 0, 
-                "num_nodes_in_graph": 50
-            },
-            "1": {
-                "num_ng_clusters": 15, 
-                "num_nodes_marked_for_clustering": 251, 
-                "num_nodes_in_graph": 311
-            }, 
-            "2": {
-                "num_ng_clusters": 3, 
-                "num_nodes_marked_for_clustering": 45, 
-                "num_nodes_in_graph": 65
-            }
-        },
-        "time": 10
-    },
-    "grappler": {
+    "default": {
         "logparse": {
             "0": {
                 "num_ng_clusters": 0,
@@ -28,8 +8,23 @@
             },
             "1": {
                 "num_ng_clusters": 15,
-                "num_nodes_in_graph": 330,
-                "num_nodes_marked_for_clustering": 267
+                "num_nodes_in_graph": 311,
+                "num_nodes_marked_for_clustering": 249
+            }
+        },
+        "time": 10
+    },
+    "grappler": {
+        "logparse": {
+            "1": {
+                "num_nodes_in_graph": 330, 
+                "num_nodes_marked_for_clustering": 269, 
+                "num_ng_clusters": 15
+                }, 
+            "2": {
+                "num_nodes_in_graph": 72, 
+                "num_nodes_marked_for_clustering": 51, 
+                "num_ng_clusters": 3
             }
         },
         "time": 10
