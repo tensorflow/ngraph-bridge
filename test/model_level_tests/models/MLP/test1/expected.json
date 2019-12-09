@@ -1,15 +1,15 @@
 {
     "default": {
         "logparse": {
-            "0": {
-                "num_ng_clusters": 0,
-                "num_nodes_in_graph": 50,
-                "num_nodes_marked_for_clustering": 0
-            },
             "1": {
-                "num_ng_clusters": 15,
                 "num_nodes_in_graph": 311,
-                "num_nodes_marked_for_clustering": 249
+                "num_nodes_marked_for_clustering": 251,
+                "num_ng_clusters": 15
+            },
+            "2": {
+                "num_nodes_in_graph": 65,
+                "num_nodes_marked_for_clustering": 45,
+                "num_ng_clusters": 3
             }
         },
         "time": 10
