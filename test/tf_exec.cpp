@@ -238,6 +238,49 @@ TEST(tf_exec, axpy) {
   }
 }
 
+TEST(tf_exec, axpyIntermediate) {
+  GraphDef gdef;
+  auto status = ReadTextProto(Env::Default(), "test_axpy.pbtxt", &gdef);
+  ASSERT_TRUE(status == Status::OK()) << "Can't read protobuf graph";
+
+  SessionOptions options;
+  ConfigProto& config = options.config;
+  config.set_allow_soft_placement(true);
+  std::unique_ptr<Session> session(NewSession(options));
+
+  ASSERT_OK(session->Create(gdef));
+
+  // Create the inputs for this graph
+  Tensor x(DT_FLOAT, TensorShape({2, 3}));
+  auto x_flat = x.flat<float>();
+  for (int i = 0; i < x_flat.size(); i++) {
+    x_flat.data()[i] = 1.0;
+  }
+
+  Tensor y(DT_FLOAT, TensorShape({2, 3}));
+  auto y_flat = y.flat<float>();
+  for (int i = 0; i < y_flat.size(); i++) {
+    y_flat.data()[i] = 1.0;
+  }
+
+  std::vector<Tensor> outputs;
+
+  ASSERT_OK(session->Run({{"x", x}, {"y", y}}, {"mul"}, {}, &outputs));
+
+  ASSERT_EQ(outputs.size(), 1);
+  auto mat1 = outputs[0].matrix<float>();
+  EXPECT_FLOAT_EQ(5.0, mat1(0, 0));
+  EXPECT_FLOAT_EQ(5.0, mat1(1, 0));
+
+  for (auto output : outputs) {
+    auto output_flat = output.flat<float>();
+    for (int i = 0; i < x_flat.size(); i++) {
+      cout << output_flat.data()[i] << " ";
+    }
+    cout << endl;
+  }
+}
+
 TEST(tf_exec, DISABLED_BatchMatMul_0D) {
   Scope root = Scope::NewRootScope();
   auto dev_scope = root.WithDevice("/device:NGRAPH:0");

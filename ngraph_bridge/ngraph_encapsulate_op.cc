@@ -363,8 +363,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     if (m_use_persistent) {
       present_in_cache = ng_encap_impl.PersistentOutputsExist(ng_exec);
       if (present_in_cache) {
-        ng_encap_impl.GetPersistentTFOutputTensor(
-            ng_exec, cached_persistent_output_tensors);
+        OP_REQUIRES_OK(ctx, ng_encap_impl.GetPersistentTFOutputTensor(
+                                ng_exec, cached_persistent_output_tensors));
       }
     }
 
@@ -657,14 +657,17 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   if (m_use_persistent) {
     for (int out_idx = 0; out_idx < ng_exec->get_results().size(); out_idx++) {
+      OP_REQUIRES_OK(ctx, ng_encap_impl.GetPersistentTFOutputTensor(
+                              ng_exec, cached_persistent_output_tensors));
+      auto out_tensor =
+          cached_persistent_output_tensors[out_idx].AccessTensor(ctx);
+
       // TODO uncomment
       cout << "----\nSetting output " << out_idx << " --- "
-           << tf_output_tensors[out_idx]->dtype() << " "
-           << tf_output_tensors[out_idx]->NumElements() << "----\n";
+           << out_tensor->dtype() << " " << out_tensor->NumElements()
+           << "----\n";
       // ctx->set_output(out_idx, *tf_output_tensors[out_idx]);
-      ctx->set_output(
-          out_idx,
-          *(cached_persistent_output_tensors[out_idx].AccessTensor(ctx)));
+      ctx->set_output(out_idx, *out_tensor);
     }
   }
 
