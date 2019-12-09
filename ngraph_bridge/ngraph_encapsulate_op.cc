@@ -658,17 +658,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                               ng_exec, cached_persistent_output_tensors));
       auto out_tensor =
           cached_persistent_output_tensors[out_idx].AccessTensor(ctx);
-
-      // TODO uncomment
-      cout << "----\nSetting output " << out_idx << " --- "
-           << out_tensor->dtype() << " " << out_tensor->NumElements()
-           << "----\n";
-      // ctx->set_output(out_idx, *tf_output_tensors[out_idx]);
       ctx->set_output(out_idx, *out_tensor);
     }
   }
-
-  cout << "\n";
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;
