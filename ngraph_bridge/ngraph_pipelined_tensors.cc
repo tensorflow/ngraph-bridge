@@ -95,18 +95,14 @@ PipelinedTensorsStore::PipelinedTensorsStore(PipelinedTensorMatrix in,
   auto m_depth_in = in.size();
   auto m_depth_out = out.size();
 
-  // We assume that input and output depths are same
-  m_depth = std::min(m_depth_in, m_depth_out);
-
-  // The executable could have no inputs or no outputs.
-  // Hence the if-else below to determine m_depth
-  bool has_inputs = in[0].size() > 0;
-  bool has_outputs = out[0].size() > 0;
-  if (has_inputs && !has_outputs) {
-    m_depth = in.size();
-  } else if (!has_inputs && has_outputs) {
-    m_depth = out.size();
+  if (m_depth_in != m_depth_out) {
+    throw std::runtime_error(
+        "Input and Output depth does not match. Input depth: " +
+        to_string(m_depth_in) + " Output depth: " + to_string(m_depth_out));
   }
+
+  // We assume that input and output depths are same
+  m_depth = m_depth_in;
 
   idx_lib = make_shared<IndexLibrary>(m_depth);
 }
@@ -124,13 +120,11 @@ void PipelinedTensorsStore::return_tensors(size_t id) {
 
 PipelinedTensorVector PipelinedTensorsStore::get_group(bool is_input,
                                                        size_t i) {
-  PipelinedTensorVector group;
   if (is_input) {
-    group = m_in_tensors[i];
+    return m_in_tensors[i];
   } else {
-    group = m_out_tensors[i];
+    return m_out_tensors[i];
   }
-  return group;
 }
 }
 }
