@@ -31,10 +31,15 @@
     },
     "varopts": {
         "logparse": {
+            "0": {
+                "num_nodes_in_graph": 50,
+                "num_nodes_marked_for_clustering": 0,
+                "num_ng_clusters": 0
+            },
             "1": {
                 "num_nodes_in_graph": 312,
                 "num_nodes_marked_for_clustering": 252,
-                "num_ng_clusters": 2
+                "num_ng_clusters": 15
             },
             "2": {
                 "num_nodes_in_graph": 65,
