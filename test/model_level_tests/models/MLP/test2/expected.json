@@ -21,17 +21,10 @@
     },
     "grappler": {
         "logparse": {
-            "0": {
-                "num_nodes_in_graph": 83,
-                "num_nodes_marked_for_clustering": 0,
-                "num_ng_clusters": 0
-                
-            },
             "1": {
                 "num_nodes_in_graph": 479,
                 "num_nodes_marked_for_clustering": 394,
                 "num_ng_clusters": 19
-                
             },
             "2": {
                 "num_nodes_in_graph": 86,
