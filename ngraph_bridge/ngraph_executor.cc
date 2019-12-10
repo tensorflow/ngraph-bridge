@@ -475,27 +475,26 @@ NGraphExecutor::InitializeIOTensorPipeline(
   size_t num_inputs = ng_exec->get_parameters().size();
   size_t num_outputs = ng_exec->get_results().size();
 
-  if (num_outputs == 0) {
-    return std::make_pair(
-        errors::Internal("Bad input/output length. Input size: ", num_inputs,
-                         " Output size: ", num_outputs),
-        nullptr);
-  }
-
   // If the input or the output size if 0 then???
   NGRAPH_VLOG(5) << "InitializeIOTensorPipeline: In: " << num_inputs
                  << " Out: " << num_outputs;
-  PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
-  PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
+  PipelinedTensorMatrix pipelined_input_tensors(m_depth);
+  PipelinedTensorMatrix pipelined_output_tensors(m_depth);
+  PipelinedTensorVector temp;
   for (size_t i = 0; i < num_inputs; i++) {
-    pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, m_depth);
+    temp = ng_exec->create_input_tensor(i, m_depth);
+    for (size_t j = 0; j < temp.size(); j++) {
+      pipelined_input_tensors[j].push_back(temp[j]);
+    }
   }
   for (size_t i = 0; i < num_outputs; i++) {
-    pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, m_depth);
+    temp = ng_exec->create_output_tensor(i, m_depth);
+    for (size_t j = 0; j < temp.size(); j++) {
+      pipelined_output_tensors[j].push_back(temp[j]);
+    }
   }
   shared_ptr<PipelinedTensorsStore> pts(new PipelinedTensorsStore(
       pipelined_input_tensors, pipelined_output_tensors));
-
   return std::make_pair(Status::OK(), pts);
 }
 
