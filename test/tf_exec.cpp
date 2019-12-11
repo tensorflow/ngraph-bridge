@@ -148,36 +148,6 @@ TEST(tf_exec, SingleGraphOn2Threads) {
   UnsetEnvVariable("NGRAPH_TF_NOT_PERSISTENT");
 }
 
-TEST(tf_exec, model) {
-  string graph_name = "test_axpy.pbtxt";
-
-  unique_ptr<Session> session;
-  ASSERT_OK(CreateSession(graph_name, "CPU", session));
-
-  string inp_tensor_name_0{"x"};
-  string inp_tensor_name_1{"y"};
-  string out_tensor_name{"add"};
-  std::vector<Tensor> out_tensor_vals;
-
-  Tensor inp_tensor_val(tensorflow::DT_FLOAT, tensorflow::TensorShape({2, 3}));
-  Tensor out_tensor_expected_val(tensorflow::DT_FLOAT,
-                                 tensorflow::TensorShape({2, 3}));
-  for (int i = 0; i < 10; i++) {
-    vector<float> in_vals(6, float(i));
-    AssignInputValues<float>(inp_tensor_val, in_vals);
-
-    vector<float> out_vals(6, 6.0 * float(i));
-    AssignInputValues<float>(out_tensor_expected_val, out_vals);
-
-    std::vector<std::pair<string, tensorflow::Tensor>> inputs = {
-        {inp_tensor_name_0, inp_tensor_val},
-        {inp_tensor_name_1, inp_tensor_val}};
-
-    ASSERT_OK(session->Run(inputs, {out_tensor_name}, {}, &out_tensor_vals));
-    Compare(out_tensor_vals, {out_tensor_expected_val});
-  }
-}
-
 TEST(tf_exec, hello_world) {
   Scope root = Scope::NewRootScope();
 
@@ -238,49 +208,6 @@ TEST(tf_exec, axpy) {
   auto mat2 = outputs[1].matrix<float>();
   EXPECT_FLOAT_EQ(6.0, mat2(0, 0));
   EXPECT_FLOAT_EQ(6.0, mat2(1, 0));
-
-  for (auto output : outputs) {
-    auto output_flat = output.flat<float>();
-    for (int i = 0; i < x_flat.size(); i++) {
-      cout << output_flat.data()[i] << " ";
-    }
-    cout << endl;
-  }
-}
-
-TEST(tf_exec, axpyIntermediate) {
-  GraphDef gdef;
-  auto status = ReadTextProto(Env::Default(), "test_axpy.pbtxt", &gdef);
-  ASSERT_TRUE(status == Status::OK()) << "Can't read protobuf graph";
-
-  SessionOptions options;
-  ConfigProto& config = options.config;
-  config.set_allow_soft_placement(true);
-  std::unique_ptr<Session> session(NewSession(options));
-
-  ASSERT_OK(session->Create(gdef));
-
-  // Create the inputs for this graph
-  Tensor x(DT_FLOAT, TensorShape({2, 3}));
-  auto x_flat = x.flat<float>();
-  for (int i = 0; i < x_flat.size(); i++) {
-    x_flat.data()[i] = 1.0;
-  }
-
-  Tensor y(DT_FLOAT, TensorShape({2, 3}));
-  auto y_flat = y.flat<float>();
-  for (int i = 0; i < y_flat.size(); i++) {
-    y_flat.data()[i] = 1.0;
-  }
-
-  std::vector<Tensor> outputs;
-
-  ASSERT_OK(session->Run({{"x", x}, {"y", y}}, {"mul"}, {}, &outputs));
-
-  ASSERT_EQ(outputs.size(), 1);
-  auto mat1 = outputs[0].matrix<float>();
-  EXPECT_FLOAT_EQ(5.0, mat1(0, 0));
-  EXPECT_FLOAT_EQ(5.0, mat1(1, 0));
 
   for (auto output : outputs) {
     auto output_flat = output.flat<float>();
