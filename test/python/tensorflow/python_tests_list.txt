@@ -445,11 +445,11 @@ sparse_xent_op_test.SparseXentTest.testGradient
 sparse_xent_op_test.SparseXentTest.testHalf
 sparse_xent_op_test.SparseXentTest.testHighDim
 sparse_xent_op_test.SparseXentTest.testHighDim2
-sparse_xent_op_test.SparseXentTest.testInvalidLabel
-sparse_xent_op_test.SparseXentTest.testLabelsPlaceholderScalar
+#sparse_xent_op_test.SparseXentTest.testInvalidLabel
+#sparse_xent_op_test.SparseXentTest.testLabelsPlaceholderScalar
 sparse_xent_op_test.SparseXentTest.testNpXent
 sparse_xent_op_test.SparseXentTest.testScalar
-sparse_xent_op_test.SparseXentTest.testScalarHandling
+#sparse_xent_op_test.SparseXentTest.testScalarHandling
 sparse_xent_op_test.SparseXentTest.testSecondGradient
 sparse_xent_op_test.SparseXentTest.testShapeMismatch
 sparse_xent_op_test.SparseXentTest.testSingleClass
@@ -515,8 +515,8 @@ xent_op_test.XentTest.testHalf
 xent_op_test.XentTest.testNotMatrix
 xent_op_test.XentTest.testNpXent
 xent_op_test.XentTest.testRankTooLarge
-xent_op_test.XentTest.testSecondGradient
-xent_op_test.XentTest.testShapeBroadcast
+#xent_op_test.XentTest.testSecondGradient
+#xent_op_test.XentTest.testShapeBroadcast
 xent_op_test.XentTest.testShapeMismatch
 xent_op_test.XentTest.testSingleClass
 xent_op_test.XentTest.testWrapper
