@@ -7,8 +7,6 @@ index 544190e23d..9b652bd49e 100644
      self._tempdir = None
      self._cached_session = None
 +    import ngraph_bridge
-+
-+    ngraph_bridge.set_disabled_ops('NoOp')
  
    def setUp(self):
      self._ClearCachedSession()
