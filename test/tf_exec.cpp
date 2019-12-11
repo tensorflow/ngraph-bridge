@@ -104,7 +104,7 @@ Status CreateSession(const string& graph_filename, const string& backend_name,
 // TODO: see how persistenttensors might fit in with this kind of multithreading
 // (symmetric parallel)
 TEST(tf_exec, SingleGraphOn2Threads) {
-  SetEnvVariable("NGRAPH_TF_NOT_PERSISTENT", "1");
+  SetEnvVariable("NGRAPH_TF_DISABLE_PERSISTENT", "1");
   string graph_name = "test_axpy.pbtxt";
   vector<string> backends{"CPU", "INTERPRETER"};
   for (auto be : backends) {
@@ -145,7 +145,7 @@ TEST(tf_exec, SingleGraphOn2Threads) {
     thread0.join();
     thread1.join();
   }
-  UnsetEnvVariable("NGRAPH_TF_NOT_PERSISTENT");
+  UnsetEnvVariable("NGRAPH_TF_DISABLE_PERSISTENT");
 }
 
 TEST(tf_exec, hello_world) {

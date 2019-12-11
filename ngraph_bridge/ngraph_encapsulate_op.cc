@@ -209,7 +209,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
                  << (ng_encap_impl.GetExecCanCreateTensor() ? "" : "not")
                  << " create tensors";
 
-  const char* not_persistent_flag = std::getenv("NGRAPH_TF_NOT_PERSISTENT");
+  const char* not_persistent_flag = std::getenv("NGRAPH_TF_DISABLE_PERSISTENT");
   m_use_persistent = (not_persistent_flag == nullptr);
 
   event.Stop();
