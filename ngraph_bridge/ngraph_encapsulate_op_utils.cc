@@ -14,7 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/ngraph_encapsulate_get_prefetch.h"
+#include "ngraph_bridge/ngraph_encapsulate_op_utils.h"
 #include "ngraph_bridge/ngraph_prefetch_shared_data.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
