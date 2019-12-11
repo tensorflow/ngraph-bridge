@@ -129,11 +129,13 @@ TEST_F(NGraphTensorManagerTest, NoVariablesNoPrefetch) {
   vector<int> empty;
   vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
   vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
+  vector<int> expected_out_indexes_need_copy = FillRange(number_of_outputs);
 
   // var related
   ASSERT_EQ(empty, tensor_manager.GetInputIndexesFedByVariables());
   ASSERT_EQ(empty, tensor_manager.GetOutputIndexesAssigningVariables());
-  ASSERT_EQ(empty, tensor_manager.GetOutputIndexesThatNeedCopy());
+  ASSERT_EQ(expected_out_indexes_need_copy,
+            tensor_manager.GetOutputIndexesThatNeedCopy());
   ASSERT_EQ(expected_pipelined_inp_indexes,
             tensor_manager.GetPipelinedInputIndexes());
   ASSERT_EQ(expected_pipelined_out_indexes,
@@ -180,7 +182,7 @@ TEST_F(NGraphTensorManagerTest, HasVariablesNoPrefetch) {
 
     expected_var_inp_indexes = {};
     expected_var_out_indexes = {};
-    expected_out_indexes_need_copy = {};
+    expected_out_indexes_need_copy = FillRange(number_of_outputs);
     expected_prefetched_inp_indexes = {};
   }
 
@@ -220,6 +222,7 @@ TEST_F(NGraphTensorManagerTest, NoVariablesHasPrefetch) {
   vector<int> empty;
   vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
   vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
+  vector<int> expected_out_indexes_need_copy = FillRange(number_of_outputs);
   vector<int> expected_prefetched_inp_indexes = {1, 3};
   vector<int> expected_pipelined_inp_indexes_prefetched = {
       1, 3};  // as all inputs are pipelined
@@ -234,7 +237,8 @@ TEST_F(NGraphTensorManagerTest, NoVariablesHasPrefetch) {
   // var related
   ASSERT_EQ(empty, tensor_manager.GetInputIndexesFedByVariables());
   ASSERT_EQ(empty, tensor_manager.GetOutputIndexesAssigningVariables());
-  ASSERT_EQ(empty, tensor_manager.GetOutputIndexesThatNeedCopy());
+  ASSERT_EQ(expected_out_indexes_need_copy,
+            tensor_manager.GetOutputIndexesThatNeedCopy());
   ASSERT_EQ(expected_pipelined_inp_indexes,
             tensor_manager.GetPipelinedInputIndexes());
   ASSERT_EQ(expected_pipelined_out_indexes,
@@ -289,7 +293,7 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
 
     expected_var_inp_indexes = {};
     expected_var_out_indexes = {};
-    expected_out_indexes_need_copy = {};
+    expected_out_indexes_need_copy = FillRange(number_of_outputs);
   }
 
   EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
@@ -336,77 +340,6 @@ TEST_F(NGraphTensorManagerTest, PrefetchNotInPipeline) {
                    ng_encap_node_name, ng_encap_cluster_id, ng_encap_graph_id,
                    number_of_inputs, number_of_outputs),
                std::runtime_error);
-
-  // clean up
-  ClearCatalog();
-}
-
-TEST_F(NGraphTensorManagerTest, GetPrefetchedTensors1) {
-  string ng_encap_node_name = "xyz_1";
-  int ng_encap_cluster_id = 1;
-  int ng_encap_graph_id = 1;
-  int number_of_inputs = 7;
-  int number_of_outputs = 4;
-
-  // expected
-  vector<int> expected_pipelined_inp_indexes, expected_pipelined_out_indexes,
-      expected_var_inp_indexes, expected_var_out_indexes,
-      expected_out_indexes_need_copy, expected_prefetched_inp_indexes,
-      expected_pipelined_inp_indexes_prefetched;
-
-  if (ngraph_tf_are_variables_enabled()) {
-    // expected values
-    expected_pipelined_inp_indexes = {1, 3, 4, 6};
-    expected_prefetched_inp_indexes = {3, 6};
-    expected_pipelined_inp_indexes_prefetched = {1, 3};
-    expected_pipelined_out_indexes = {0, 2};
-    expected_var_inp_indexes =
-        FindComplement(number_of_inputs, expected_pipelined_inp_indexes);
-    expected_var_out_indexes =
-        FindComplement(number_of_outputs, expected_pipelined_out_indexes);
-    expected_out_indexes_need_copy = {2, 3};
-    // enter in catalog
-    EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name,
-                      expected_var_inp_indexes, expected_var_out_indexes,
-                      expected_out_indexes_need_copy);
-
-  } else {
-    expected_pipelined_inp_indexes = FillRange(number_of_inputs);
-    expected_pipelined_out_indexes = FillRange(number_of_outputs);
-    expected_prefetched_inp_indexes = {3, 6};
-    expected_pipelined_inp_indexes_prefetched = {
-        3, 6};  // all inputs are pipelined
-
-    expected_var_inp_indexes = {};
-    expected_var_out_indexes = {};
-    expected_out_indexes_need_copy = {};
-  }
-
-  EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
-                         expected_prefetched_inp_indexes);
-
-  NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
-                                     ng_encap_graph_id, number_of_inputs,
-                                     number_of_outputs);
-
-  vector<shared_ptr<ng::runtime::Tensor>> pipelined_input_tensors(
-      expected_pipelined_inp_indexes.size());
-
-  for (int i = 0; i < pipelined_input_tensors.size(); i++) {
-    pipelined_input_tensors[i] =
-        CreateNGraphScalarTensor(expected_pipelined_inp_indexes[i]);
-  }
-
-  vector<shared_ptr<ng::runtime::Tensor>> prefetched_input_tensors =
-      tensor_manager.GetPrefetchedTensors(pipelined_input_tensors);
-  ASSERT_EQ(prefetched_input_tensors.size(),
-            expected_prefetched_inp_indexes.size());
-
-  for (int i = 0; i < expected_prefetched_inp_indexes.size(); i++) {
-    int tensor_val = 0;
-    prefetched_input_tensors[i]->read(&tensor_val, sizeof(tensor_val));
-    ASSERT_EQ(tensor_val, expected_prefetched_inp_indexes[i]);
-  }
 
   // clean up
   ClearCatalog();
