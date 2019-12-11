@@ -24,6 +24,7 @@
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
 
+#include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -35,7 +36,10 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-explicit NGraphVar(DataType dtype, TensorShape shape, string BackendName)
+//---------------------------------------------------------------------------
+//  NGraphVar::ctor
+//---------------------------------------------------------------------------
+NGraphVar::NGraphVar(DataType dtype, TensorShape shape, string BackendName)
     : tf_tensor_(dtype, shape), ng_backend_name_(BackendName) {
   // TF datatype to nGraph element type
   ng::element::Type ng_element_type;
@@ -89,19 +93,10 @@ explicit NGraphVar(DataType dtype, TensorShape shape, string BackendName)
   }
 }
 
-mutex* mu() { return &mu_; }
-Tensor* tensor() { return &tf_tensor_; }
-shared_ptr<ngraph::runtime::Tensor> ng_tensor() { return ng_tensor_; };
-
-string DebugString() const override {
-  return strings::StrCat(DataTypeString(tf_tensor_.dtype()), "/",
-                         tf_tensor_.shape().DebugString());
-}
-
 // Copies the NG Tensor to TF Tensor for this variable
 // Involves a copy from device to host
 // Returns the number of tensor copies made (0 or 1)
-int copy_ng_to_tf() {
+int NGraphVar::copy_ng_to_tf() {
   if (ng_tf_share_buffer_) {
     return 0;
   }
@@ -112,7 +107,7 @@ int copy_ng_to_tf() {
 // Copies the TF Tensor to NG Tensor for this variable
 // Involves a copy from host to device
 // Returns the number of tensor copies made (0 or 1)
-int copy_tf_to_ng() {
+int NGraphVar::copy_tf_to_ng() {
   if (ng_tf_share_buffer_) {
     return 0;
   }
@@ -125,7 +120,7 @@ int copy_tf_to_ng() {
 // NGraphEncapsulateOp
 // and saved in Catalog
 // Returns the number of tensor copies made (0 or 1)
-int update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value) {
+int NGraphVar::update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value) {
   ng_tensor_->copy_from(*new_value);
   return 0;
 }
@@ -133,7 +128,7 @@ int update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value) {
 // updates the NGTensor with the new value
 // This new_value could be from tf-tensor, for e.g. when computed from a TF op
 // Returns the number of tensor copies made (0 or 1)
-int update_ng_tensor(Tensor* new_value) {
+int NGraphVar::update_ng_tensor(Tensor* new_value) {
   WriteNGTensor(ng_tensor_, new_value);
   if (ng_tf_share_buffer_) {
     return 0;

@@ -46,11 +46,14 @@ class NGraphVar : public ResourceBase {
   NGraphVar(const NGraphVar&) = delete;
   NGraphVar& operator=(const NGraphVar&) = delete;
 
-  mutex* mu();
-  Tensor* tensor();
-  shared_ptr<ngraph::runtime::Tensor> ng_tensor();
+  mutex* mu() { return &mu_; }
+  Tensor* tensor() { return &tf_tensor_; }
+  shared_ptr<ngraph::runtime::Tensor> ng_tensor() { return ng_tensor_; };
 
-  string DebugString() const override;
+  string DebugString() const override {
+    return strings::StrCat(DataTypeString(tf_tensor_.dtype()), "/",
+                           tf_tensor_.shape().DebugString());
+  }
 
   // Copies the NG Tensor to TF Tensor for this variable
   // Involves a copy from device to host
