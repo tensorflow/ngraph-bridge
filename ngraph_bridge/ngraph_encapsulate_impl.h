@@ -264,7 +264,6 @@ class NGraphEncapsulateImpl {
 
   // each executable (which comes from a new shape) corresponds to a vector of
   // output tensors
-  // TODO: give better name
   // TODO: Should the vector store PersistentTensor or PersistentTensor* ?
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      std::vector<tensorflow::PersistentTensor>>
