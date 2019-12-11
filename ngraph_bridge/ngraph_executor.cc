@@ -308,7 +308,7 @@ NGraphExecutor::CreateCallback(const std::string signature,
         "tf_function_" + m_node_name + "_" + to_string(rank_id) + ".json",
         serialized_ng_func);
     if (status != Status::OK()) {
-      return std::make_tuple(status, std::make_pair(ng_exec, ng_function, pts));
+      return std::make_pair(status, std::make_tuple(ng_exec, ng_function, pts));
     }
 #endif
   }
