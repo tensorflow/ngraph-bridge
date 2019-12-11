@@ -958,11 +958,11 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       // For SoftmaxCrossEntropyWithLogits, see
       // https://github.com/tensorflow/tensorflow/blob/c95ca05536144451ef78ca6e2c15f0f65ebaaf95/tensorflow/core/ops/nn_ops.cc#L1096
       type_constraint_map["SoftmaxCrossEntropyWithLogits"]["T"] =
-          NGraphNumericDTypes();
+          NGraphRealDTypes();
       type_constraint_map["Softplus"]["T"] = NGraphRealDTypes();
       type_constraint_map["SpaceToDepth"]["T"] = NGraphDTypes();
       type_constraint_map["SparseSoftmaxCrossEntropyWithLogits"]["T"] =
-          NGraphNumericDTypes();
+          NGraphRealDTypes();
       type_constraint_map["SparseSoftmaxCrossEntropyWithLogits"]["Tlabels"] =
           NGraphNumericDTypes();
       type_constraint_map["Split"]["T"] = NGraphDTypes();
