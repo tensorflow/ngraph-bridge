@@ -143,7 +143,6 @@ class TestVariableStaticInputs(NgraphTest):
         assert np.allclose(ng_var_final, tf_var_final)
 
         # clean up
-        ngraph_bridge.set_disabled_ops('')
         self.unset_env_variable(buffer_sharing_env)
         self.restore_env_variables(env_var_map)
 
