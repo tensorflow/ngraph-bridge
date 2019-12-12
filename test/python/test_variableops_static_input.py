@@ -115,11 +115,6 @@ class TestVariableStaticInputs(NgraphTest):
         env_var_map = self.store_env_variables([buffer_sharing_env])
         self.set_env_variable(buffer_sharing_env, "0")
 
-        # disable NoOp it forms a single cluster with no inputs or outputs
-        # Pipelined Tensor Store thinks it is depth 0 and errors out
-        # TODO: Revisit PTS to set valid PTS depth
-        ngraph_bridge.set_disabled_ops('NoOp')
-
         # Run on nGraph
         ng_var_init_val, ng_mean_values, ng_var_final = self.with_ngraph(
             self.__run_test)
@@ -187,4 +182,3 @@ class TestVariableStaticInputs(NgraphTest):
         # clean up
         self.unset_env_variable(buffer_sharing_env)
         self.restore_env_variables(env_var_map)
-        ngraph_bridge.set_disabled_ops('')
