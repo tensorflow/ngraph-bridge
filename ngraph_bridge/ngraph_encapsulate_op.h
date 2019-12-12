@@ -43,6 +43,7 @@ class NGraphEncapsulateOp : public OpKernel {
  private:
   NGraphEncapsulateImpl ng_encap_impl;
   std::mutex m_compute_lock;
+  bool m_use_persistent;
 };
 
 }  // namespace ngraph_bridge
