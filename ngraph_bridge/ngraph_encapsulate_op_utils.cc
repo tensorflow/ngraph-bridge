@@ -59,7 +59,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
   bool skip_tf2ng_copy = false;
   if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
       nullptr) {
-    NGRAPH_VLOG(2)<<"[PREFETCH] NGRAPH_TF_USE_PREFETCH Set";
+    NGRAPH_VLOG(2) << "[PREFETCH] NGRAPH_TF_USE_PREFETCH Set";
     // Set the prefetch shared obj if applicable
     NGraphPrefetchSharedResouce* shared_data = nullptr;
     Status s = ctx->resource_manager()->Lookup(
@@ -108,7 +108,6 @@ Status GetPipelinedIOTensorsReadyForExecution(
       NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Creating the shared object to "
                         "signal prefetching";
     } else {
-      
       int prefetch_buffer_depth = shared_data->GetBufferDepth();
       int skip_count = shared_data->GetSkipCount();
       NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: DEPTH: " << prefetch_buffer_depth

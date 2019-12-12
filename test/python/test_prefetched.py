@@ -15,8 +15,10 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 
 import ngraph_bridge
 
+
 class TestPrefetched(NgraphTest):
-    def build_data_pipeline(self,input_array, map_function, batch_size):
+
+    def build_data_pipeline(self, input_array, map_function, batch_size):
         dataset = (tf.data.Dataset.from_tensor_slices(
             (tf.constant(input_array)
             )).map(map_function).batch(batch_size).prefetch(1))
@@ -25,8 +27,7 @@ class TestPrefetched(NgraphTest):
         data_to_be_prefetched_and_used = iterator.get_next()
         return data_to_be_prefetched_and_used, iterator
 
-
-    def build_model1(self,input_array, c1, c2):
+    def build_model1(self, input_array, c1, c2):
         # Convert the numpy array to TF Tensor
         input_f = tf.cast(input_array, tf.float32)
 
@@ -41,8 +42,8 @@ class TestPrefetched(NgraphTest):
         add2 = add + pl1_f
         output = add2 - c2
         return output, pl1, pl2
-    
-    def build_model2(self,input_array, c1, c2):
+
+    def build_model2(self, input_array, c1, c2):
         # Convert the numpy array to TF Tensor
         input_f = tf.cast(input_array, tf.float32)
 
@@ -51,41 +52,39 @@ class TestPrefetched(NgraphTest):
         pl1_f = tf.cast(pl1, tf.float32)
         pl2 = tf.placeholder(dtype=dtypes.int32)
         pl2_f = tf.cast(pl2, tf.float32)
-        
+
         mul = tf.compat.v1.math.multiply(pl2_f, input_f)
         add = tf.compat.v1.math.add(mul, c2)
         add2 = add + pl1_f * c1
         output = add2
         return output, pl1, pl2
 
-
-    def __run_test(self, pipeline_creator, model):       
+    def __run_test(self, pipeline_creator, model):
         # build model
         input_array = [1, 2, 3, 4, 5, 6, 7, 8, 9]
         map_multiplier = 10
         map_function = lambda x: x * map_multiplier
         batch_size = 1
         pipeline, iterator = pipeline_creator(input_array, map_function,
-                                                batch_size)
+                                              batch_size)
 
         # some constants
         c1 = 5.0
         c2 = 10.0
         model, pl1, pl2 = model(pipeline, c1, c2)
 
-        outputs=[]
-        
+        outputs = []
+
         sess = tf.Session()
 
         # Initialize the globals and the dataset
         sess.run(iterator.initializer)
 
         for i in range(1, 10):
-            output = sess.run(model, feed_dict={pl1: i, pl2: i+3})
+            output = sess.run(model, feed_dict={pl1: i, pl2: i + 3})
             outputs.append(output)
-        
-        return outputs
 
+        return outputs
 
     # test hangs when "NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS" is set
     def test_prefetch1(self):
@@ -93,47 +92,50 @@ class TestPrefetched(NgraphTest):
         prefetch_env = "NGRAPH_TF_USE_PREFETCH"
         env_var_map = self.store_env_variables([prefetch_env])
         self.set_env_variable(prefetch_env, "1")
-        
+
         # Run on nGraph
-        ng_outputs = self.__run_test(self.build_data_pipeline,self.build_model1)
+        ng_outputs = self.__run_test(self.build_data_pipeline,
+                                     self.build_model1)
 
         # Reset Graph
         tf.reset_default_graph()
 
         # Run on TF
-        disable_tf="NGRAPH_TF_DISABLE"
+        disable_tf = "NGRAPH_TF_DISABLE"
         self.set_env_variable(disable_tf, "1")
-        tf_outputs = self.__run_test(self.build_data_pipeline,self.build_model1)
+        tf_outputs = self.__run_test(self.build_data_pipeline,
+                                     self.build_model1)
 
         # Compare Values
         assert np.allclose(ng_outputs, tf_outputs)
-                     
+
         # unset env variable
         self.unset_env_variable(prefetch_env)
         self.unset_env_variable(disable_tf)
         self.restore_env_variables(env_var_map)
-
 
     def test_prefetch2(self):
         # set flags
         prefetch_env = "NGRAPH_TF_USE_PREFETCH"
         env_var_map = self.store_env_variables([prefetch_env])
         self.set_env_variable(prefetch_env, "1")
-        
+
         # Run on nGraph
-        ng_outputs = self.__run_test(self.build_data_pipeline, self.build_model2)
+        ng_outputs = self.__run_test(self.build_data_pipeline,
+                                     self.build_model2)
 
         # Reset Graph
         tf.reset_default_graph()
 
         # Run on TF
-        disable_tf="NGRAPH_TF_DISABLE"
+        disable_tf = "NGRAPH_TF_DISABLE"
         self.set_env_variable(disable_tf, "1")
-        tf_outputs = self.__run_test(self.build_data_pipeline, self.build_model2)
+        tf_outputs = self.__run_test(self.build_data_pipeline,
+                                     self.build_model2)
 
         # Compare Values
         assert np.allclose(ng_outputs, tf_outputs)
-                     
+
         # unset env variable
         self.unset_env_variable(prefetch_env)
         self.unset_env_variable(disable_tf)
