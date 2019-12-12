@@ -32,8 +32,8 @@ def build_simple_model(input_array, tensor_var):
 
     # Define the Ops
     mul = tf.compat.v1.math.multiply(input_array, 5)
-    tensor_var = tensor_var + 1
-    add = tf.compat.v1.math.add(mul, tensor_var)
+    tensor_var_assign = tensor_var.assign(tensor_var + 1)
+    add = tf.compat.v1.math.add(mul, tensor_var_assign)
     output = add
     return output
 
@@ -73,7 +73,7 @@ def run_axpy_pipeline():
             # Expected value is:
             expected_output_array[i - 1] = (
                 (input_array[i - 1] * multiplier) * 5) + var_sum
-
+            var_sum = var_sum + 1
             # Run one iteration
             output = sess.run(model)
             output_array[i - 1] = output[0]
