@@ -33,14 +33,9 @@ TEST(PipelinedTensorStoreTest, SimpleTest) {
   int out_depth = 3;
   PipelinedTensorMatrix pipelined_input_tensors(in_depth);
   PipelinedTensorMatrix pipelined_output_tensors(out_depth);
-  bool test_passed = false;
-  try {
-    PipelinedTensorsStore* pts = new PipelinedTensorsStore(
-        pipelined_input_tensors, pipelined_output_tensors);
-  } catch (...) {
-    test_passed = true;
-  }
-  ASSERT_EQ(test_passed, true);
+  ASSERT_THROW(new PipelinedTensorsStore(pipelined_input_tensors,
+                                         pipelined_output_tensors),
+               std::runtime_error);
 }
 
 }  // namespace testing
