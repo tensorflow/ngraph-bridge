@@ -598,7 +598,7 @@ bool NGraphEncapsulateImpl::PersistentOutputsExist(
   return m_out_persistents.find(exec) != m_out_persistents.end();
 }
 
-Status NGraphEncapsulateImpl::RegisterOutputPersistentTensors(
+Status NGraphEncapsulateImpl::RegisterPersistentOutputTensors(
     std::shared_ptr<ngraph::runtime::Executable> exec,
     std::vector<tensorflow::PersistentTensor> persistent_tensors) {
   auto itr = m_out_persistents.find(exec);

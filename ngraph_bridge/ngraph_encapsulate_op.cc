@@ -412,7 +412,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       tf_output_tensors.push_back(output_tensor);
     }
     if (m_use_persistent && !present_in_cache) {
-      OP_REQUIRES_OK(ctx, ng_encap_impl.RegisterOutputPersistentTensors(
+      OP_REQUIRES_OK(ctx, ng_encap_impl.RegisterPersistentOutputTensors(
                               ng_exec, cached_persistent_output_tensors));
     }
     OP_REQUIRES_OK(ctx, ng_encap_impl.AllocateNGOutputTensors(

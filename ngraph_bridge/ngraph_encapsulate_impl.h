@@ -182,7 +182,7 @@ class NGraphEncapsulateImpl {
 
   bool PersistentOutputsExist(std::shared_ptr<ngraph::runtime::Executable>);
 
-  Status RegisterOutputPersistentTensors(
+  Status RegisterPersistentOutputTensors(
       std::shared_ptr<ngraph::runtime::Executable>,
       std::vector<tensorflow::PersistentTensor>);
 
