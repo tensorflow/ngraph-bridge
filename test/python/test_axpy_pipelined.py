@@ -16,7 +16,6 @@ from common import NgraphTest
 sys.path.insert(0, '../../examples')
 
 from axpy_pipelined import *
-from axpy_pipelined_extended import *
 
 
 class TestAxpyPipelined(NgraphTest):
