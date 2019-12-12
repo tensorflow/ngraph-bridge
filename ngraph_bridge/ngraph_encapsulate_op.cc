@@ -114,7 +114,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
                                                  const string& backend_name) {
-  NGRAPH_VLOG(1)<<"Create Parallel Executor"<<name();
+  NGRAPH_VLOG(1)<<"Create Parallel Executor "<<name();
   GraphDef* graph_def;
   unique_ptr<Graph> encap_subgraph(new Graph(OpRegistry::Global()));
 
@@ -186,7 +186,7 @@ void NGraphEncapsulateOp::CreateParallelExecutor(OpKernelConstruction* ctx,
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx,
                                                const string& backend_name) {
-  NGRAPH_VLOG(1)<<"Create Legacy Executor"<<name();
+  NGRAPH_VLOG(1)<<"Create Legacy Executor "<<name();
   ng_encap_impl_.SetName(name());
 
   std::ostringstream oss;
@@ -420,7 +420,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 // ComputeUsingParallelExecutor
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
-  NGRAPH_VLOG(1)<<"Compute using Parallel Executor"<<name();
+  NGRAPH_VLOG(1)<<"Compute using Parallel Executor "<<name();
   // TF input tensors
   std::vector<Tensor> tf_input_tensors;
 
@@ -596,14 +596,14 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   event_return_tensor.Stop();
   ngraph::Event::write_trace(event_return_tensor);
 
-  NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Done";
+  NGRAPH_VLOG(2) << "COMPUTE: Done "<< name();
 }
 
 //---------------------------------------------------------------------------
 //    ComputeUsingLegacyExecutor
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
-  NGRAPH_VLOG(1)<<"Compute using Legacy Executor"<<name();
+  NGRAPH_VLOG(1)<<"Compute using Legacy Executor "<<name();
   std::ostringstream oss;
   oss << "Execute: Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
       << name();
