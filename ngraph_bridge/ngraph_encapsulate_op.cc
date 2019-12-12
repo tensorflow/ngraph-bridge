@@ -418,7 +418,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 // ComputeUsingParallelExecutor
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
-  cout << "using parallel exec " << endl;
   // TF input tensors
   std::vector<Tensor> tf_input_tensors;
 

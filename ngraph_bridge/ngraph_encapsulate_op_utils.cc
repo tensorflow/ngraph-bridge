@@ -59,7 +59,6 @@ Status GetPipelinedIOTensorsReadyForExecution(
   bool skip_tf2ng_copy = false;
   if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
       nullptr) {
-    cout << "using prefetch env flag " << endl;
     // Set the prefetch shared obj if applicable
     NGraphPrefetchSharedResouce* shared_data = nullptr;
     Status s = ctx->resource_manager()->Lookup(
@@ -75,12 +74,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
       // prefetched inputs to device
       auto ng_prefetch_input_indexes =
           tensor_manager->GetPipelinedInputIndexesThatArePrefetched();
-      cout << "ng_prefetch_input_indexes " << ng_prefetch_input_indexes.size()
-           << endl;
 
-      for (auto inp : ng_prefetch_input_indexes) {
-        cout << " inp indez " << inp << endl;
-      }
       shared_data = new NGraphPrefetchSharedResouce(
           tensor_manager->GetName(), tensor_manager->GetGraphId(),
           tensor_manager->GetClusterId(), ng_prefetch_input_indexes);
@@ -113,14 +107,11 @@ Status GetPipelinedIOTensorsReadyForExecution(
       NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Creating the shared object to "
                         "signal prefetching";
     } else {
-      cout << "using prefetch inputs " << endl;
-
       int prefetch_buffer_depth = shared_data->GetBufferDepth();
       int skip_count = shared_data->GetSkipCount();
       NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: DEPTH: " << prefetch_buffer_depth
                      << " skip count; " << skip_count;
       if (skip_count >= prefetch_buffer_depth) {
-        cout << "skip_tf2ng_copy true " << endl;
         // We have been using the pipelined tensors - therefore do the
         // following:
         // 1. Save the prefetched Input/Output tensors for the current iteration
@@ -164,9 +155,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
     // All pipelined inputs are copied
 
     for (auto i = 0; i < pipelined_input_indexes.size(); i++) {
-      cout << "copying inputs true " << endl;
       int tf_index = pipelined_input_indexes[i];
-      cout << "tf index " << tf_index << "ng index " << i << endl;
 
       ng::element::Type ng_element_type;
       TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
@@ -199,11 +188,9 @@ Status GetPipelinedIOTensorsReadyForExecution(
 
     // Gives the mapping for corresponding
     for (auto i = 0; i < pipelined_input_indexes_not_prefetched.size(); i++) {
-      cout << "copying some inputs true " << endl;
       int tf_index = pipelined_not_prefetched_input_indexes[i];
       int ng_index = pipelined_input_indexes_not_prefetched[i];
       ng::element::Type ng_element_type;
-      cout << "tf index " << tf_index << " ng_index " << ng_index << endl;
       TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
           tf_input_tensors[tf_index].dtype(), &ng_element_type));
       void* current_src_ptr =
