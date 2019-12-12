@@ -107,14 +107,19 @@ TEST_F(NGraphTensorManagerTest, NoVariablesNoPrefetch) {
   int number_of_inputs = 5;
   int number_of_outputs = 2;
 
-  NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
-                                     ng_encap_graph_id, number_of_inputs,
-                                     number_of_outputs);
   // expected
   vector<int> empty;
   vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
   vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
   vector<int> expected_out_indexes_need_copy = FillRange(number_of_outputs);
+
+  if (ngraph_tf_are_variables_enabled()) {
+    EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name, empty, empty,
+                      expected_out_indexes_need_copy);
+  }
+  NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
+                                     ng_encap_graph_id, number_of_inputs,
+                                     number_of_outputs);
 
   // var related
   ASSERT_EQ(empty, tensor_manager.GetInputIndexesFedByVariables());
@@ -136,6 +141,8 @@ TEST_F(NGraphTensorManagerTest, NoVariablesNoPrefetch) {
   ASSERT_EQ(empty, tensor_manager.GetPipelinedInputIndexesThatArePrefetched());
   ASSERT_EQ(expected_pipelined_inp_indexes,
             tensor_manager.GetPipelinedInputIndexesThatAreNotPrefetched());
+  // clean up
+  ClearCatalog();
 }
 
 // Tests scenario when the graph has variables but no prefetched inputs
@@ -263,6 +270,11 @@ TEST_F(NGraphTensorManagerTest, NoVariablesHasPrefetch) {
       expected_prefetched_inp_indexes;
   vector<int> expected_pipelined_input_indexes_not_prefetched =
       expected_pipelined_not_prefetched_input_indexes;
+
+  if (ngraph_tf_are_variables_enabled()) {
+    EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name, empty, empty,
+                      expected_out_indexes_need_copy);
+  }
 
   EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
                          expected_prefetched_inp_indexes);

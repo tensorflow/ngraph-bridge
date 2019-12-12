@@ -129,9 +129,10 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
   }
 
   // Finally remove the current preftetch node
-  graph->RemoveNode(prefetch_node);
   NGRAPH_VLOG(4) << "Replaced TF Prefetch Node " << prefetch_node->name()
                  << " with NG Prefetch Node " << replacement->name();
+  graph->RemoveNode(prefetch_node);
+
   return Status::OK();
 }
 

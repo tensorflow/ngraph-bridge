@@ -95,7 +95,7 @@ void NGraphTensorManager::Initialize() {
 
   // complements
   m_pipelined_input_indexes_not_prefetched = FindComplement(
-      m_pipelined_input_indexes, m_pipelined_input_indexes_prefetched);
+      m_pipelined_input_indexes.size(), m_pipelined_input_indexes_prefetched);
   m_pipelined_not_prefetched_input_indexes =
       FindComplement(m_pipelined_input_indexes, m_prefetched_input_indexes);
 }
