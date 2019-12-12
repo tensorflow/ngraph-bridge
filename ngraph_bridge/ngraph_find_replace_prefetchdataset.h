@@ -92,7 +92,7 @@ Status ReplacePrefetch(Graph* graph, Node* prefetch_node) {
                          .Finalize(graph, &replacement));
   replacement->set_assigned_device_name(prefetch_node->assigned_device_name());
 
-  string new_name = graph->NewName("NGraph" + prefetch_node->name());
+  string new_name = graph->NewName("NGraph_" + prefetch_node->name());
   replacement->set_name(new_name);
 
   std::vector<const Edge*> edges;

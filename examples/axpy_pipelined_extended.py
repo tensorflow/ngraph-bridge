@@ -41,6 +41,21 @@ def build_simple_model(input_array, c1, c2):
     return output, pl
 
 
+def build_simple_model2(input_array, c1, c2):
+    # Convert the numpy array to TF Tensor
+    input_f = tf.cast(input_array, tf.float32)
+
+    # Define the Ops
+    pl = tf.placeholder(dtype=dtypes.int32)
+    pl_f = tf.cast(pl, tf.float32)
+    pl1 = tf.placeholder(dtype=dtypes.int32)
+    pl1_f = tf.cast(pl1, tf.float32)
+    mul = tf.compat.v1.math.multiply(pl1_f, input_f)
+    add = tf.compat.v1.math.add(mul, c1)
+    sub = add - pl_f
+    output = sub + c2
+    return output, pl, pl1
+
 def build_data_pipeline(input_array, map_function, batch_size):
     dataset = (tf.data.Dataset.from_tensor_slices(
         (tf.constant(input_array)
@@ -52,7 +67,7 @@ def build_data_pipeline(input_array, map_function, batch_size):
     return data_to_be_prefetched_and_used, iterator
 
 
-def run_axpy_pipeline():
+def run_axpy_pipeline_extended():
     input_array = [1, 2, 3, 4, 5, 6, 7, 8, 9]
     expected_output_array = [-1, -1, 1, -1, -1, -1, -1, -1, -1]
     output_array = [0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -84,8 +99,41 @@ def run_axpy_pipeline():
     return input_array, output_array, expected_output_array
 
 
+
+def run_axpy_pipeline_extended2():
+    input_array = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    expected_output_array = [-1, -1, 1, -1, -1, -1, -1, -1, -1]
+    output_array = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    map_multiplier = 10
+
+    map_function = lambda x: x * map_multiplier
+    batch_size = 1
+    pipeline, iterator = build_data_pipeline(input_array, map_function,
+                                             batch_size)
+
+    # some constants
+    c1 = 5.0
+    c2 = 10.0
+    model, pl1, pl2 = build_simple_model2(pipeline, c1, c2)
+
+    with tf.Session() as sess:
+        # Initialize the globals and the dataset
+        sess.run(iterator.initializer)
+
+        for i in range(1, 10):
+            # Expected value is:
+            # Change it to run on TF if the model gets too complex
+            expected_output_array[i - 1] = (
+                (input_array[i - 1] * map_multiplier) * (i+4)) + c1 -i + c2
+
+            # Run one iteration
+            output = sess.run(model, feed_dict={pl1: i, pl2: (i+4)})
+            output_array[i - 1] = output[0]
+    return input_array, output_array, expected_output_array
+
+
 def main(_):
-    input_array, output_array, expected_output_array = run_axpy_pipeline()
+    input_array, output_array, expected_output_array = run_axpy_pipeline_extended()
     for i in range(1, 10):
         print("Iteration:", i, " Input: ", input_array[i - 1], " Output: ",
               output_array[i - 1], " Expected: ", expected_output_array[i - 1])
@@ -93,6 +141,5 @@ def main(_):
 
 
 if __name__ == '__main__':
-    os.environ['NGRAPH_TF_BACKEND'] = "INTERPRETER"
     #os.environ['NGRAPH_TF_USE_PREFETCH'] = "1"
     tf.app.run(main=main)
