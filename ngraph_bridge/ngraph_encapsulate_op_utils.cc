@@ -71,8 +71,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
       // 1. Create the shared data object
       // 2. We get another pipelined tensor pair for the current iteration and
       //   add it to the shared data. It will be accessed by prefetcher to copy
-      //   the
-      // prefetched inputs to device
+      //   the prefetched inputs to device
       auto ng_prefetch_input_indexes =
           tensor_manager->GetPipelinedInputIndexesThatArePrefetched();
 
