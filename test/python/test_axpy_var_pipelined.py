@@ -22,7 +22,7 @@ class TestAxpyPipelined(NgraphTest):
 
     def test_axpy_pipelined(self):
         #prefetch_env = "NGRAPH_TF_USE_PREFETCH"
-        #env_var_map = self.store_env_variables([prefetch_env, ngraph_backend_i])
+        #env_var_map = self.store_env_variables([prefetch_env])
         #self.set_env_variable(prefetch_env, "1")
         input_array, output_array, expected_output_array = run_axpy_pipeline()
         for i in range(1, 10):

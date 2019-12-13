@@ -63,7 +63,6 @@ def run_axpy_pipeline():
     model = build_simple_model(pipeline)
     with tf.Session() as sess:
         # Initialize the globals and the dataset
-        sess.run(tf.global_variables_initializer())
         sess.run(iterator.initializer)
 
         for i in range(1, 10):
