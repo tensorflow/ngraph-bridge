@@ -112,7 +112,7 @@ TEST(PrefetchCatalogTest, SmallGraph2) {
 
   // Clean up
   NGraphCatalog::ClearCatalog();
-  // Unset, Restore env flga
+  // Unset, restore env flags
   UnsetEnvVariable("NGRAPH_TF_USE_PREFETCH");
   RestoreEnv(env_map);
 }

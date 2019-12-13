@@ -90,7 +90,7 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
     m_ng_2_tf.Add(std::move(next));
   }
 
-  // Returns the Input output tensors to be ready to be executed by NG device
+  // Returns the Input output tensors ready to be executed by NG device
   // This will be called by the NGEncOp
   IOTensorBundle GetNextIOTensorBundleReadyForDeviceExecution() {
     return std::move(m_ng_2_tf.GetNextAvailable());
