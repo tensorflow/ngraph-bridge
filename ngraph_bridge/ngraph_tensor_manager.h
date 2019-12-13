@@ -84,12 +84,12 @@ class NGraphTensorManager {
 
   // wrt to pipelined inputs
   const vector<int>& GetPipelinedInputIndexesThatArePrefetched() {
-    return m_pipelined_input_indexes_prefetched;
+    return m_pipelined_input_indexes_that_are_prefetched;
   }
 
   // wrt to pipelined inputs
   const vector<int>& GetPipelinedInputIndexesThatAreNotPrefetched() {
-    return m_pipelined_input_indexes_not_prefetched;
+    return m_pipelined_input_indexes_that_are_not_prefetched;
   }
 
  private:
@@ -112,8 +112,8 @@ class NGraphTensorManager {
   vector<int> m_pipelined_input_indexes;
   vector<int> m_pipelined_output_indexes;
   // indexes wrt pipelined inputs
-  vector<int> m_pipelined_input_indexes_prefetched;
-  vector<int> m_pipelined_input_indexes_not_prefetched;
+  vector<int> m_pipelined_input_indexes_that_are_prefetched;
+  vector<int> m_pipelined_input_indexes_that_are_not_prefetched;
 
   // indexes wrt all inputs
   vector<int> m_prefetched_input_indexes;
