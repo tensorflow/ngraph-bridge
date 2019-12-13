@@ -499,7 +499,8 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_of_inputs);
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_of_outputs);
 
-  // Assume All inputs and outputs are pipelined
+  // All inputs and outputs are pipelined.
+  // Of all these pipelined inputs some are prefetched
   // TODO: Fit in variables
   ng_inputs = get<1>(pipelined_io_tensors);
   ng_outputs = get<2>(pipelined_io_tensors);

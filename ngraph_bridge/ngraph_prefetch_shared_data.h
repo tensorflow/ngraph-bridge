@@ -38,9 +38,9 @@ namespace ngraph_bridge {
 
 class NGraphPrefetchSharedResouce : public ResourceBase {
  public:
-  explicit NGraphPrefetchSharedResouce(const std::string& ng_enc_op_name,
-                                       int cluster_id, int graph_id,
-                                       const vector<int> prefetch_input_indexes)
+  explicit NGraphPrefetchSharedResouce(
+      const std::string& ng_enc_op_name, int cluster_id, int graph_id,
+      const vector<int>& prefetch_input_indexes)
       : m_ng_enc_op_name(ng_enc_op_name),
         m_graph_id(graph_id),
         m_cluster_id(cluster_id),
@@ -140,9 +140,7 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
   // 1          NGEncOp pushes the Input/Output tensors to m_ng_2_tf queue
   // 2
   //            Prefetcher pulls Input/Output tensors out of m_ng_2_tf queue and
-  //            copies
-  //            TF
-  //            data to the prefetched inputs
+  //            and copies TF data to the prefetched inputs
   //            Prefetcher pushes this item to the m_tf_2_ng queue
   //            NGEncOp pushes the Input/Output tensors to m_ng_2_tf queue
   //            NGEncOp pulls Input/Output tensors from m_tf_2_ng (from previous

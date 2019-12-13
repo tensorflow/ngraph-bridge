@@ -30,6 +30,21 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+// This function does the following
+// 1. Gets pipelined tensors for current execution from pipelined tensor store
+// (PTS)
+// 2. If prefetch is enabled
+//          a. if prefetch shared resource is not created
+//               creates it
+//               gets next set of tensors from PTS and adds it to the shared
+//               object for prefetching
+//          b.  else
+//               gets the tensors from prefetch object and adds the tensors from
+//               step 1 to the prefetch object
+// 3. Copies the tf input tensors that are not prefetched to the ngraph
+// pipelined input tensors
+//
+
 Status GetPipelinedIOTensorsReadyForExecution(
     OpKernelContext* ctx, vector<Tensor>& tf_input_tensors,
     shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,

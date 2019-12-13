@@ -126,7 +126,7 @@ TEST_F(NGraphTensorManagerTest, NoVariablesNoPrefetch) {
   ASSERT_EQ(empty, tensor_manager.GetOutputIndexesAssigningVariables());
   ASSERT_EQ(expected_out_indexes_need_copy,
             tensor_manager.GetOutputIndexesThatNeedCopy());
-  // piplined
+  // pipelined
   ASSERT_EQ(expected_pipelined_inp_indexes,
             tensor_manager.GetPipelinedInputIndexes());
   ASSERT_EQ(expected_pipelined_out_indexes,
