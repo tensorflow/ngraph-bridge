@@ -3960,33 +3960,38 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
   NGRAPH_VLOG(3) << " number of classes " << ng_features_shape[1];
   NGRAPH_VLOG(3) << " Batch " << ng_features_shape[0];
 
+  // See .../tensorflow/tensorflow/core/kernels/xent_op.cc for TF implementation
+  auto ng_features_dim = ng_features_shape.size();
+  auto ng_features_dim1 = ng_features_shape[0];
+  auto ng_features_dim2 = ng_features_shape[1];
+  auto ng_labels_dim = ng_labels_shape.size();
+  auto ng_labels_dim1 = ng_labels_shape[0];
+  auto ng_labels_dim2 = ng_labels_shape[1];
+
   // Logits/Features must be 2-d shape
-  if (ng_features_shape.size() != 2) {
+  if (ng_features_dim != 2) {
     return errors::InvalidArgument(
         " Logits/Features must be shape 2-D, but got shape ",
         ng::join(ng_features_shape), " while building op ", op->type_string());
   }
 
-  // Labels must be 2-d shape
-  if (ng_labels_shape.size() != 2) {
-    return errors::InvalidArgument(" Labels must be shape 2-D, but got shape ",
-                                   ng::join(ng_labels_shape),
-                                   " while building op ", op->type_string());
+  // Logits/Features second dimension must be >0, i.e. NumOfClasses>0
+  if (ng_features_dim2 <= 0) {
+    return errors::InvalidArgument(
+        " Logits/Features must have atleast one class but got shape ",
+        ng::join(ng_features_shape), " while building op ", op->type_string());
   }
 
-  // Logits/Features and Labels must have the same first dimension (i.e.
-  // BatchSize)
-  if (ng_labels_shape[0] != ng_features_shape[0]) {
+  // Labels second dimension must be >0, i.e. NumOfClasses>0
+  if (ng_labels_dim2 <= 0) {
     return errors::InvalidArgument(
-        " Logits/Features and Labels must have the same first dimension, got "
-        "Logits shape ",
-        ng::join(ng_features_shape), " and Labels shape ",
+        " Labels must have atleast one class but got shape ",
         ng::join(ng_labels_shape), " while building op ", op->type_string());
   }
 
   // Logits/Features and Labels must have the same second dimension (i.e.
   // NumOfClasses)
-  if (ng_labels_shape[1] != ng_features_shape[1]) {
+  if (ng_labels_dim2 != ng_features_dim2) {
     return errors::InvalidArgument(
         " Logits/Features and Labels must have the same second dimension, got "
         "Logits shape ",
@@ -3994,17 +3999,17 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
         ng::join(ng_labels_shape), " while building op ", op->type_string());
   }
 
-  // Logits dimension 1 must be >0, i.e. NumOfClasses>0
-  if (ng_features_shape[1] <= 0) {
+  // ng_labels_dim1 should be SAME AS ng_features_dim1 or
+  // 1 which would be broadcastable to ng_features_dim1
+  if (ng_labels_dim1 == ng_features_dim1) {
+    // no shape-broadcasting needed
+  } else if (ng_labels_dim1 == 1) {
+    std::tie(ng_features, ng_labels) =
+        Builder::PerformNgBroadcast(op->name(), ng_features, ng_labels);
+  } else {
+    // bad ng_labels_dim1
     return errors::InvalidArgument(
-        " Logits/Features must have atleast one class but got shape ",
-        ng::join(ng_features_shape), " while building op ", op->type_string());
-  }
-
-  // Labels dimension 1 must be >0, i.e. NumOfClasses>0
-  if (ng_labels_shape[1] <= 0) {
-    return errors::InvalidArgument(
-        " Labels must have atleast one class but got shape ",
+        " Labels must be broadcastable or 1 in first dimension : Labels shape ",
         ng::join(ng_labels_shape), " while building op ", op->type_string());
   }
 
