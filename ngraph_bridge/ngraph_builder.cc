@@ -813,7 +813,7 @@ static Status TranslateBatchMatMulOp(
 
   // Get the backend name, if the backend is CPU and n_dims >= 3
   // then use the BatchMatMul op supported by nGraph
-  if (n_dims >= 3 && backend_name == "CPU") {
+  if (n_dims >= 3){// && backend_name == "CPU") {
     // Transpose X if AdjX = true
     if (tf_adj_x) {
       ng_lhs_axes.push_back(n_dims - 1);
@@ -976,14 +976,14 @@ static Status TranslateBatchMatMulV2Op(
           "for each dimension. Failed to match dimension ",
           i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
           ng_rhs_shape[i]);
-    } else if ((ng_lhs_shape[i] == 1) || (ng_rhs_shape[i] == 1)) {
+    } /* else if ((ng_lhs_shape[i] == 1) || (ng_rhs_shape[i] == 1)) {
       return errors::Unimplemented(
           "ng_lhs_shape and ng_rhs_shape must be the same for each dimension, "
           "for current implementation of BatchMatMulV2."
           "Failed to match dimension ",
           i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
           ng_rhs_shape[i]);
-    }
+    }*/
   }
   return TranslateBatchMatMulOp(op, static_input_map, ng_op_map);
 }
@@ -4984,7 +4984,10 @@ const static std::map<
                           Builder::OpMap&)>>
     TRANSLATE_OP_MAP {
   {"Abs", TranslateUnaryOp<ngraph::op::Abs>},
-      {"Add", TranslateBinaryOp<ngraph::op::Add>}, {"AddN", TranslateAddNOp},
+//      {"Add", TranslateBinaryOp<ngraph::op::Add>}, {"AddN", TranslateAddNOp},
+      {"Add", TranslateBinaryOp<ngraph::op::Add>}, 
+      {"AddV2", TranslateBinaryOp<ngraph::op::Add>}, 
+      {"AddN", TranslateAddNOp},
       {"Any", TranslateDirectReduceOp<ng::op::Any>},
       {"All", TranslateDirectReduceOp<ng::op::All>},
       {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},

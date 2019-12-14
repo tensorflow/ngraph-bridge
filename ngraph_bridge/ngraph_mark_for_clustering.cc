@@ -235,6 +235,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   static std::map<std::string, std::set<shared_ptr<ng::Node>>> TFtoNgraphOpMap{
       {"Abs", {std::make_shared<ngraph::op::Abs>()}},
       {"Add", {std::make_shared<ngraph::op::Add>()}},
+      {"AddV2", {std::make_shared<ngraph::op::Add>()}},  
       {"AddN", {std::make_shared<ngraph::op::Add>()}},
       {"Any", {std::make_shared<ngraph::op::Any>()}},
       {"All", {std::make_shared<ngraph::op::All>()}},
@@ -587,6 +588,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       //
       confirmation_function_map["Abs"] = SimpleConfirmationFunction();
       confirmation_function_map["Add"] = SimpleConfirmationFunction();
+      confirmation_function_map["AddV2"] = SimpleConfirmationFunction();
       confirmation_function_map["AddN"] = SimpleConfirmationFunction();
       confirmation_function_map["Any"] = SimpleConfirmationFunction();
       confirmation_function_map["All"] = SimpleConfirmationFunction();
@@ -791,6 +793,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       //
       type_constraint_map["Abs"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Add"]["T"] = NGraphNumericDTypes();
+      type_constraint_map["AddV2"]["T"] = NGraphNumericDTypes();
       type_constraint_map["AddN"]["T"] = NGraphNumericDTypes();
       type_constraint_map["Any"]["Tidx"] = NGraphIndexDTypes();
       type_constraint_map["All"]["Tidx"] = NGraphIndexDTypes();
