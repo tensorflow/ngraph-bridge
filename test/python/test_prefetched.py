@@ -88,7 +88,6 @@ class TestPrefetched(NgraphTest):
 
         return outputs
 
-    # test hangs when "NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS" is set
     def test_prefetch1(self):
         # set flags
         prefetch_env = "NGRAPH_TF_USE_PREFETCH"

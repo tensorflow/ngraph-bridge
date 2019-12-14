@@ -57,8 +57,13 @@ Status GetPipelinedIOTensorsReadyForExecution(
   }
 
   bool skip_tf2ng_copy = false;
+  // Prefetch only if there are input tensors that are prefetched && prefetch
+  // has been requested
+  // [TODO] we support prefetching only when there is atmost 1 encap
+  // that has prefetched inputs
   if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
-      nullptr) {
+          nullptr &&
+      !(tensor_manager->GetPipelinedInputIndexesThatArePrefetched()).empty()) {
     NGRAPH_VLOG(2) << "[PREFETCH] NGRAPH_TF_USE_PREFETCH Set";
     // Set the prefetch shared obj if applicable
     NGraphPrefetchSharedResouce* shared_data = nullptr;
