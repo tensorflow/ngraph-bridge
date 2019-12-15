@@ -92,15 +92,15 @@ class NGraphTensorManager {
     return m_pipelined_input_indexes_that_are_not_prefetched;
   }
 
-  // input variable shared name
+  // input ng-variable shared name
   Status GetInputVariableSharedName(const int& input_index,
                                     string* input_var_shared_name);
 
-  // output variable shared name
+  // output ng-variable shared name
   Status GetOutputVariableSharedName(const int& output_index,
                                      string* output_var_shared_name);
 
-  // input variable shared name
+  // does output ng-variable's host-TF tensor needs to be updated
   Status GetOutputVariableCopyToTF(const int& output_index,
                                    bool* output_var_copy_to_tf);
 
