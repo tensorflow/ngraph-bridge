@@ -452,11 +452,13 @@ TEST_F(NGraphTensorManagerTest, SharedName) {
   int ng_encap_cluster_id = 1;
   int ng_encap_graph_id = 1;
   int number_of_inputs = 5;
-  int number_of_outputs = 2;
+  int number_of_outputs = 6;
 
   unordered_map<int, string> input_var_info_map = {{0, "A"}, {3, "C"}};
   unordered_map<int, tuple<string, bool>> output_var_info_map = {
-      {1, make_tuple("X", false)}, {5, make_tuple("Y", true)}};
+      {1, make_tuple("X", false)},
+      {5, make_tuple("Y", true)},
+      {0, make_tuple("Z", false)}};
 
   EnterVarSharedInfoInCatalog(ng_encap_graph_id, ng_encap_node_name,
                               input_var_info_map, output_var_info_map);
@@ -483,6 +485,8 @@ TEST_F(NGraphTensorManagerTest, SharedName) {
     ASSERT_EQ(shared_name, "Y");
 
     ASSERT_NOT_OK(tensor_manager.GetOutputVariableSharedName(2, &shared_name));
+    ASSERT_OK(tensor_manager.GetOutputVariableSharedName(0, &shared_name));
+    ASSERT_EQ(shared_name, "Z");
 
     // output var copy_to_tf
     ASSERT_OK(tensor_manager.GetOutputVariableCopyToTF(1, &copy_to_tf));
@@ -491,6 +495,9 @@ TEST_F(NGraphTensorManagerTest, SharedName) {
     ASSERT_TRUE(copy_to_tf);
 
     ASSERT_NOT_OK(tensor_manager.GetOutputVariableCopyToTF(2, &copy_to_tf));
+
+    ASSERT_OK(tensor_manager.GetOutputVariableCopyToTF(0, &copy_to_tf));
+    ASSERT_FALSE(copy_to_tf);
 
   } else {
     string shared_name;

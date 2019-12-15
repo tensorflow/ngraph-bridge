@@ -53,7 +53,7 @@ void NGraphTensorManager::Initialize() {
         auto shared_name = NGraphCatalog::GetInputVariableSharedName(
             m_ng_encap_graph_id, m_ng_encap_node_name, index);
         input_variable_shared_name_map.insert({index, shared_name});
-      } catch {
+      } catch (const std::exception& exp) {
         throw runtime_error(
             "Could not find variable shared name in catalog for input index " +
             to_string(index) + "for encapsulate op " + m_ng_encap_node_name);
@@ -74,7 +74,7 @@ void NGraphTensorManager::Initialize() {
             NGraphCatalog::GetInfoFromEncapOutputInfoMap(
                 m_ng_encap_graph_id, m_ng_encap_node_name, index);
         output_variable_info_map.insert({index, shared_name_copy_to_tf});
-      } catch {
+      } catch (const std::exception& exp) {
         throw runtime_error(
             "Could not find variable shared name and copy_to_tf information in "
             "catalog for output index " +
@@ -141,9 +141,8 @@ Status NGraphTensorManager::GetInputVariableSharedName(
     const int& input_index, string* input_var_shared_name) {
   auto itr = input_variable_shared_name_map.find(input_index);
   if (itr == input_variable_shared_name_map.end()) {
-    return errors::Internal(
-        "Could not find shared name for input index in tensor manager ",
-        input_index);
+    return errors::Internal("Could not find shared name info for input index ",
+                            input_index, " in tensor manager ");
   }
   *input_var_shared_name = itr->second;
   return Status::OK();
@@ -156,10 +155,8 @@ Status NGraphTensorManager::GetOutputVariableSharedName(
     const int& output_index, string* output_var_shared_name) {
   auto itr = output_variable_info_map.find(output_index);
   if (itr == output_variable_info_map.end()) {
-    return errors::Internal(
-        "Could not find shared name and copy_to_tf info for output index in "
-        "tensor manager ",
-        output_index);
+    return errors::Internal("Could not find shared name info for output index ",
+                            output_index, " in tensor manager");
   }
   *output_var_shared_name = get<0>(itr->second);
   return Status::OK();
@@ -172,10 +169,8 @@ Status NGraphTensorManager::GetOutputVariableCopyToTF(
     const int& output_index, bool* output_var_copy_to_tf) {
   auto itr = output_variable_info_map.find(output_index);
   if (itr == output_variable_info_map.end()) {
-    return errors::Internal(
-        "Could not find shared name and copy_to_tf info for output index in "
-        "tensor manager ",
-        output_index);
+    return errors::Internal("Could not find copy_to_tf info for output index ",
+                            output_index, " in tensor manager");
   }
   *output_var_copy_to_tf = get<1>(itr->second);
   return Status::OK();
