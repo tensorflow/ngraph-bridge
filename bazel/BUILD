@@ -83,6 +83,7 @@ cc_library(
         "ngraph_bridge/ngraph_executor.cc",
         "ngraph_bridge/ngraph_encapsulate_op.cc",
         "ngraph_bridge/ngraph_encapsulate_op_utils.cc",
+        "ngraph_bridge/ngraph_find_replace_prefetchdataset.cc",
         "ngraph_bridge/ngraph_freshness_tracker.cc",
         "ngraph_bridge/ngraph_mark_for_clustering.cc",
         "ngraph_bridge/ngraph_partial_shapes.cc",
