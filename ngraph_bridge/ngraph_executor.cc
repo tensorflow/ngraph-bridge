@@ -477,22 +477,24 @@ NGraphExecutor::InitializeIOTensorPipeline(
         nullptr);
   }
   // Create these pipelined ng tensors only if needed, else reuse from cache
-  size_t num_inputs = ng_exec->get_parameters().size();
-  size_t num_outputs = ng_exec->get_results().size();
+  size_t num_pipelined_inputs = pipelined_input_indexes.size();
+  size_t num_pipelined_outputs = pipelined_output_indexes.size();
 
   // If the input or the output size if 0 then???
-  NGRAPH_VLOG(5) << "InitializeIOTensorPipeline: In: " << num_inputs
-                 << " Out: " << num_outputs;
+  NGRAPH_VLOG(5) << "InitializeIOTensorPipeline: No. of Pipelined Inputs: "
+                 << num_pipelined_inputs
+                 << " No. of Pipelined Pipelined Outputs: "
+                 << num_pipelined_outputs;
   PipelinedTensorMatrix pipelined_input_tensors(m_depth);
   PipelinedTensorMatrix pipelined_output_tensors(m_depth);
   PipelinedTensorVector temp;
-  for (size_t i = 0; i < num_inputs; i++) {
+  for (size_t i = 0; i < num_pipelined_inputs; i++) {
     temp = ng_exec->create_input_tensor(i, m_depth);
     for (size_t j = 0; j < temp.size(); j++) {
       pipelined_input_tensors[j].push_back(temp[j]);
     }
   }
-  for (size_t i = 0; i < num_outputs; i++) {
+  for (size_t i = 0; i < num_pipelined_outputs; i++) {
     temp = ng_exec->create_output_tensor(i, m_depth);
     for (size_t j = 0; j < temp.size(); j++) {
       pipelined_output_tensors[j].push_back(temp[j]);
