@@ -3975,6 +3975,13 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
         ng::join(ng_features_shape), " while building op ", op->type_string());
   }
 
+  // Labels must be 2-d shape
+  if (ng_labels_dim != 2) {
+    return errors::InvalidArgument(
+        " Labels must be shape 2-D, but got shape ",
+        ng::join(ng_labels_shape), " while building op ", op->type_string());
+  }
+
   // Logits/Features second dimension must be >0, i.e. NumOfClasses>0
   if (ng_features_dim2 <= 0) {
     return errors::InvalidArgument(
@@ -3999,17 +4006,26 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
         ng::join(ng_labels_shape), " while building op ", op->type_string());
   }
 
-  // ng_labels_dim1 should be SAME AS ng_features_dim1 or
-  // 1 which would be broadcastable to ng_features_dim1
+  // ng_labels_dim1 and ng_features_dim1 should be SAME or
+  // either should be 1, which would be broadcastable to the other xxx_dim1
   if (ng_labels_dim1 == ng_features_dim1) {
     // no shape-broadcasting needed
   } else if (ng_labels_dim1 == 1) {
+    // So we want labels's dim1 to be broadcast to feature's dim1
+    std::tie(ng_labels, ng_features) =
+        Builder::PerformNgBroadcast(op->name(), ng_labels, ng_features);
+    ng_labels_shape = ng_labels->get_shape();
+  } else if (ng_features_dim1 == 1) {
+    // So we want feature's dim1 to be broadcast to label's dim1
     std::tie(ng_features, ng_labels) =
         Builder::PerformNgBroadcast(op->name(), ng_features, ng_labels);
+    ng_features_shape = ng_features->get_shape();
   } else {
     // bad ng_labels_dim1
     return errors::InvalidArgument(
-        " Labels must be broadcastable or 1 in first dimension : Labels shape ",
+        " Logits/Features and Labels must be broadcastable, but got Logits "
+        "shape ",
+        ng::join(ng_features_shape), " and Labels shape ",
         ng::join(ng_labels_shape), " while building op ", op->type_string());
   }
 
