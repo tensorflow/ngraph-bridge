@@ -104,7 +104,9 @@ class NGraphExecutor {
   // Called from CreateCallback
   std::pair<Status, shared_ptr<PipelinedTensorsStore>>
   InitializeIOTensorPipeline(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+      std::shared_ptr<ngraph::runtime::Executable> ng_exec,
+      const vector<int>& pipelined_input_indexes,
+      const vector<int>& pipelined_output_indexes);
 
   // Get tensorflow input tensors, input shapes, static_inputs to Compute
   // Signature
@@ -119,7 +121,6 @@ class NGraphExecutor {
   const int m_graph_id{-1};
   const unique_ptr<Graph> m_graph;
 
-  int my_function_cache_depth_in_items;
   const string m_op_backend_name;
   string m_node_name;
   std::vector<bool> m_input_is_static;

@@ -37,6 +37,7 @@ set(SRC
    ngraph_builder.cc
    ngraph_backend_manager.cc
    ngraph_capture_variables.cc
+   ngraph_find_replace_prefetchdataset.cc
    ngraph_catalog.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
@@ -48,6 +49,7 @@ set(SRC
    ngraph_executor.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
+   ngraph_encapsulate_op_utils.cc
    ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc
@@ -84,6 +86,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_tracked_variable.cc)
 
     # new files
+    list(APPEND SRC enable_variable_ops/ngraph_var.cc)
     list(APPEND SRC enable_variable_ops/ngraph_assign_op.cc)
     list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_remove_ngraphassigns.cc)
