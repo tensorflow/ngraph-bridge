@@ -3977,9 +3977,9 @@ static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
 
   // Labels must be 2-d shape
   if (ng_labels_dim != 2) {
-    return errors::InvalidArgument(
-        " Labels must be shape 2-D, but got shape ",
-        ng::join(ng_labels_shape), " while building op ", op->type_string());
+    return errors::InvalidArgument(" Labels must be shape 2-D, but got shape ",
+                                   ng::join(ng_labels_shape),
+                                   " while building op ", op->type_string());
   }
 
   // Logits/Features second dimension must be >0, i.e. NumOfClasses>0
