@@ -16,6 +16,8 @@
 
 #include "gtest/gtest.h"
 
+#include "tensorflow/core/common_runtime/dma_helper.h"
+
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
 #include "test/test_utilities.h"
 
