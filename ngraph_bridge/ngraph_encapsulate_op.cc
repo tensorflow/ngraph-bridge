@@ -540,12 +540,11 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   ngraph::Event::write_trace(event_execute_graph);
 
   // Now prepare the output
-  ngraph::Event event_copy_output_tensor("Copy Output Tensor", "", "");
-
-  std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
+  // Allocate TF Tensors
+  vector<Tensor*> tf_output_tensors;
+  ngraph::Event event_allocate_tf_output_tensors("Allocate TF Output Tensor",
+                                                 "", "");
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-    std::unique_ptr<ngraph::Event> event_copy_prep(
-        new ngraph::Event("Copy Prep", "", ""));
     auto ng_element = ng_exec->get_results()[i];
     auto ng_shape = ng_element->get_shape();
     auto ng_element_type = ng_element->get_element_type();
@@ -558,7 +557,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
     TensorShape tf_shape(dims);
     Tensor* tf_output_tensor = nullptr;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &tf_output_tensor));
-
+    tf_output_tensors.push_back(tf_output_tensor);
     // Make sure the nGraph-inferred element type agrees with what TensorFlow
     // expected.
     ng::element::Type expected_elem_type;
@@ -569,26 +568,33 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
         ctx, ng_element_type == expected_elem_type,
         errors::Internal("Element type inferred by nGraph does not match "
                          "the element type expected by TensorFlow"));
-    event_copy_prep->Stop();
-    output_copy_events.push_back(std::move(event_copy_prep));
+  }
+  event_allocate_tf_output_tensors.Stop();
+  ngraph::Event::write_trace(event_allocate_tf_output_tensors);
 
-    // Now copy the nGraph Tensor to Host Tensor
+  // Copy Tensors that are required
+  ngraph::Event event_read_ng_tensors("Read NG Tensor", "", "");
+  std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
+
+  auto output_indexes_to_be_copied =
+      tensor_manager->GetOutputIndexesThatNeedCopy();
+  for (auto output_index : output_indexes_to_be_copied) {
+    // Copy the nGraph Tensor to Host Tensor
     std::unique_ptr<ngraph::Event> event_copy_d2h(
-        new ngraph::Event("Device to Host Copy", "", ""));
-    void* dst_ptr = DMAHelper::base(tf_output_tensor);
-
-    ng_outputs[i]->read(
-        dst_ptr, ng_outputs[i]->get_element_count() * ng_element_type.size());
+        new ngraph::Event("Output_" + std::to_string(output_index), "", ""));
+    void* dst_ptr = DMAHelper::base(tf_output_tensors[output_index]);
+    ng_outputs[output_index]->read(
+        dst_ptr, ng_outputs[output_index]->get_element_count() *
+                     ng_outputs[output_index]->get_element_type().size());
     event_copy_d2h->Stop();
     output_copy_events.push_back(std::move(event_copy_d2h));
   }
-
   for (auto& next : output_copy_events) {
     ngraph::Event::write_trace(*next.get());
   }
 
-  event_copy_output_tensor.Stop();
-  ngraph::Event::write_trace(event_copy_output_tensor);
+  event_read_ng_tensors.Stop();
+  ngraph::Event::write_trace(event_read_ng_tensors);
 
   // Now return them to the cache
   ngraph::Event event_return_tensor("Return Tensor", "", "");
