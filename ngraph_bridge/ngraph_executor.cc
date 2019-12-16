@@ -489,13 +489,15 @@ NGraphExecutor::InitializeIOTensorPipeline(
   PipelinedTensorMatrix pipelined_output_tensors(m_depth);
   PipelinedTensorVector temp;
   for (size_t i = 0; i < num_pipelined_inputs; i++) {
-    temp = ng_exec->create_input_tensor(i, m_depth);
+    int input_index = pipelined_input_indexes[i];
+    temp = ng_exec->create_input_tensor(input_index, m_depth);
     for (size_t j = 0; j < temp.size(); j++) {
       pipelined_input_tensors[j].push_back(temp[j]);
     }
   }
   for (size_t i = 0; i < num_pipelined_outputs; i++) {
-    temp = ng_exec->create_output_tensor(i, m_depth);
+    int output_index = pipelined_output_indexes[i];
+    temp = ng_exec->create_output_tensor(output_index, m_depth);
     for (size_t j = 0; j < temp.size(); j++) {
       pipelined_output_tensors[j].push_back(temp[j]);
     }
