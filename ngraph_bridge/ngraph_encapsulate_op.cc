@@ -597,9 +597,11 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   for (auto& next : output_copy_events) {
     ngraph::Event::write_trace(*next.get());
   }
-
   event_read_ng_tensors.Stop();
   ngraph::Event::write_trace(event_read_ng_tensors);
+
+  // Synch Var Output Tensors as required
+  OP_REQUIRES_OK(ctx, SyncOutputVarTensors(ctx, tensor_manager));
 
   // Now return them to the cache
   ngraph::Event event_return_tensor("Return Tensor", "", "");

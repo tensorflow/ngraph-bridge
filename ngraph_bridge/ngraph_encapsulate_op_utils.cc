@@ -226,7 +226,8 @@ Status GetPipelinedIOTensorsReadyForExecution(
   return Status::OK();
 }
 
-Status GetTensorFromContext(OpKernelContext* ctx, const string& shared_name,
+Status GetTensorFromContext(const OpKernelContext* ctx,
+                            const string& shared_name,
                             shared_ptr<ng::runtime::Tensor>& ng_tensor) {
   // Get shared name from tensor manager
   NGraphVar* var;
@@ -279,6 +280,31 @@ Status GetIOTensorsReadyForExecution(
   }
 
   return Status::OK();
+}
+
+Status SyncOutputVarTensors(
+    const OpKernelContext* ctx,
+    const shared_ptr<NGraphTensorManager>& tensor_manager) {
+  // Get Variables that are outputs
+  auto var_output_indexes =
+      tensor_manager->GetOutputIndexesAssigningVariables();
+  for (int output_index : var_output_indexes) {
+    bool copy_to_tf;
+    TF_RETURN_IF_ERROR(
+        tensor_manager->GetOutputVariableCopyToTF(output_index, &copy_to_tf));
+
+    if (copy_to_tf) {
+      string shared_name;
+      TF_RETURN_IF_ERROR(tensor_manager->GetOutputVariableSharedName(
+          output_index, &shared_name));
+      // Get shared name from tensor manager
+      NGraphVar* var;
+      TF_RETURN_IF_ERROR(ctx->resource_manager()->Lookup<NGraphVar>(
+          ctx->resource_manager()->default_container(), shared_name, &var));
+      var->copy_ng_to_tf();
+      var->Unref();
+    }
+  }
 }
 
 }  // namespace ngraph_bridge

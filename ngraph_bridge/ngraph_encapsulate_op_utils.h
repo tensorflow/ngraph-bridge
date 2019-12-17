@@ -59,8 +59,13 @@ Status GetIOTensorsReadyForExecution(
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
 
-Status GetTensorFromContext(OpKernelContext* ctx, const string& shared_name,
+Status GetTensorFromContext(const OpKernelContext* ctx,
+                            const string& shared_name,
                             shared_ptr<ng::runtime::Tensor>& ng_tensor);
+
+Status SyncOutputVarTensors(
+    const OpKernelContext* ctx,
+    const shared_ptr<NGraphTensorManager>& tensor_manager);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
