@@ -286,12 +286,16 @@ Status SyncOutputVarTensors(
   // Get Variables that are outputs
   auto var_output_indexes =
       tensor_manager->GetOutputIndexesAssigningVariables();
+  NGRAPH_VLOG(4) << "output indexes size " << var_output_indexes.size();
+
   for (int output_index : var_output_indexes) {
+    NGRAPH_VLOG(4) << "Checking Sync For " << output_index;
     bool copy_to_tf;
     TF_RETURN_IF_ERROR(
         tensor_manager->GetOutputVariableCopyToTF(output_index, &copy_to_tf));
 
     if (copy_to_tf) {
+      NGRAPH_VLOG(4) << "Sync NG Output Variable Tensors " << output_index;
       string shared_name;
       TF_RETURN_IF_ERROR(tensor_manager->GetOutputVariableSharedName(
           output_index, &shared_name));
@@ -301,8 +305,10 @@ Status SyncOutputVarTensors(
           ctx->resource_manager()->default_container(), shared_name, &var));
       var->copy_ng_to_tf();
       var->Unref();
+      NGRAPH_VLOG(4) << "Sync Completed " << output_index;
     }
   }
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge

@@ -49,9 +49,9 @@
 #include "ngraph_bridge/ngraph_prefetch_shared_data.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_var.h"
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/ngraph_catalog.h"
 #endif
 
@@ -546,6 +546,8 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
 
   // Now prepare the output
   // Allocate TF Tensors
+  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute Allocating TF Output Tensors "
+                 << m_parallel_executor->GetNgraphClusterId();
   vector<Tensor*> tf_output_tensors;
   ngraph::Event event_allocate_tf_output_tensors("Allocate TF Output Tensor",
                                                  "", "");
@@ -578,6 +580,9 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   ngraph::Event::write_trace(event_allocate_tf_output_tensors);
 
   // Copy Tensors that are required
+  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute Read NG Output Tensors "
+                 << m_parallel_executor->GetNgraphClusterId();
+
   ngraph::Event event_read_ng_tensors("Read NG Tensor", "", "");
   std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 
@@ -601,9 +606,14 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   ngraph::Event::write_trace(event_read_ng_tensors);
 
   // Synch Var Output Tensors as required
+  NGRAPH_VLOG(4)
+      << "NGraphEncapsulateOp::Compute Sync NG Output Variable Tensors "
+      << m_parallel_executor->GetNgraphClusterId();
   OP_REQUIRES_OK(ctx, SyncOutputVarTensors(ctx, tensor_manager));
 
   // Now return them to the cache
+  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Returning Tensors "
+                 << m_parallel_executor->GetNgraphClusterId();
   ngraph::Event event_return_tensor("Return Tensor", "", "");
   pipelined_tensor_store->return_tensors(current_iter_pipeline_depth);
 
