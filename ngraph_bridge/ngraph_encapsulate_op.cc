@@ -500,11 +500,15 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_of_inputs);
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_of_outputs);
 
-  // All inputs and outputs are pipelined.
-  // Of all these pipelined inputs some are prefetched
-  // TODO: Fit in variables
-  ng_inputs = get<1>(pipelined_io_tensors);
-  ng_outputs = get<2>(pipelined_io_tensors);
+  OP_REQUIRES_OK(ctx, GetIOTensorsReadyForExecution(
+                          ctx, tensor_manager, get<1>(pipelined_io_tensors),
+                          get<2>(pipelined_io_tensors), ng_inputs, ng_outputs));
+
+  // // All inputs and outputs are pipelined.
+  // // Of all these pipelined inputs some are prefetched
+  // // TODO: Fit in variables
+  // ng_inputs = get<1>(pipelined_io_tensors);
+  // ng_outputs = get<2>(pipelined_io_tensors);
 
   // And execute
   ngraph::Event event_execute_graph("Execute Graph", "", "");
@@ -581,8 +585,8 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       tensor_manager->GetOutputIndexesThatNeedCopy();
   for (auto output_index : output_indexes_to_be_copied) {
     // Copy the nGraph Tensor to Host Tensor
-    std::unique_ptr<ngraph::Event> event_copy_d2h(
-        new ngraph::Event("Output_" + std::to_string(output_index), "", ""));
+    std::unique_ptr<ngraph::Event> event_copy_d2h(new ngraph::Event(
+        "D2H_Output_" + std::to_string(output_index), "", ""));
     ng_outputs[output_index]->read(
         tf_output_tensors[output_index],
         ng_outputs[output_index]->get_element_count() *

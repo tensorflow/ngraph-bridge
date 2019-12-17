@@ -18,6 +18,10 @@
 #include "ngraph_bridge/ngraph_prefetch_shared_data.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+#include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
+#endif
+
 using namespace std;
 
 namespace tensorflow {
@@ -25,9 +29,9 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 Status GetPipelinedIOTensorsReadyForExecution(
-    OpKernelContext* ctx, std::vector<Tensor>& tf_input_tensors,
-    shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
-    shared_ptr<NGraphTensorManager>& tensor_manager,
+    OpKernelContext* ctx, const vector<Tensor>& tf_input_tensors,
+    const shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
+    const shared_ptr<NGraphTensorManager>& tensor_manager,
     std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
         pipelined_io_tensors) {
   auto io_tensors = pipelined_tensor_store->get_tensors();
@@ -218,6 +222,61 @@ Status GetPipelinedIOTensorsReadyForExecution(
 
   pipelined_io_tensors = make_tuple(current_iter_pipeline_depth,
                                     ng_pipelined_inputs, ng_pipelined_outputs);
+
+  return Status::OK();
+}
+
+Status GetTensorFromContext(OpKernelContext* ctx, const string& shared_name,
+                            shared_ptr<ng::runtime::Tensor>& ng_tensor) {
+  // Get shared name from tensor manager
+  NGraphVar* var;
+  TF_RETURN_IF_ERROR(ctx->resource_manager()->Lookup<NGraphVar>(
+      ctx->resource_manager()->default_container(), shared_name, &var));
+  ng_tensor = var->ng_tensor();
+  var->Unref();
+  return Status::OK();
+}
+
+Status GetIOTensorsReadyForExecution(
+    OpKernelContext* ctx, const shared_ptr<NGraphTensorManager>& tensor_manager,
+    const PipelinedTensorVector& pipelined_in_tensors,
+    const PipelinedTensorVector& pipelined_out_tensors,
+    vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs,
+    vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs) {
+  // Get Variables that are inputs
+  auto var_input_indexes = tensor_manager->GetInputIndexesFedByVariables();
+  for (int input_index : var_input_indexes) {
+    string shared_name;
+    TF_RETURN_IF_ERROR(
+        tensor_manager->GetInputVariableSharedName(input_index, &shared_name));
+    TF_RETURN_IF_ERROR(
+        GetTensorFromContext(ctx, shared_name, ng_inputs[input_index]));
+  }
+
+  // Get Variables that are outputs
+  auto var_output_indexes =
+      tensor_manager->GetOutputIndexesAssigningVariables();
+  for (int output_index : var_output_indexes) {
+    string shared_name;
+    TF_RETURN_IF_ERROR(tensor_manager->GetOutputVariableSharedName(
+        output_index, &shared_name));
+    TF_RETURN_IF_ERROR(
+        GetTensorFromContext(ctx, shared_name, ng_outputs[output_index]));
+  }
+
+  // Fit Pipelined Input Tensors
+  auto pipelined_input_indexes = tensor_manager->GetPipelinedInputIndexes();
+  for (int i = 0; i < pipelined_input_indexes.size(); i++) {
+    int input_index = pipelined_input_indexes[i];
+    ng_inputs[input_index] = pipelined_in_tensors[i];
+  }
+
+  // Fit Pipelined Output Tensors
+  auto pipelined_output_indexes = tensor_manager->GetPipelinedOutputIndexes();
+  for (int i = 0; i < pipelined_output_indexes.size(); i++) {
+    int output_index = pipelined_output_indexes[i];
+    ng_outputs[output_index] = pipelined_out_tensors[i];
+  }
 
   return Status::OK();
 }

@@ -46,11 +46,21 @@ namespace ngraph_bridge {
 //
 
 Status GetPipelinedIOTensorsReadyForExecution(
-    OpKernelContext* ctx, vector<Tensor>& tf_input_tensors,
-    shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
-    shared_ptr<NGraphTensorManager>& tensor_manager,
+    OpKernelContext* ctx, const vector<Tensor>& tf_input_tensors,
+    const shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
+    const shared_ptr<NGraphTensorManager>& tensor_manager,
     tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
         pipelined_io_tensors);
+
+Status GetIOTensorsReadyForExecution(
+    OpKernelContext* ctx, const shared_ptr<NGraphTensorManager>& tensor_manager,
+    const PipelinedTensorVector& pipelined_in_tensors,
+    const PipelinedTensorVector& pipelined_out_tensors,
+    vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs,
+    vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
+
+Status GetTensorFromContext(OpKernelContext* ctx, const string& shared_name,
+                            shared_ptr<ng::runtime::Tensor>& ng_tensor);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
