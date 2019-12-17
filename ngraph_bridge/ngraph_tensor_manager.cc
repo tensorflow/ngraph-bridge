@@ -41,6 +41,9 @@ NGraphTensorManager::NGraphTensorManager(const string ng_encap_node_name,
 }
 
 void NGraphTensorManager::Initialize() {
+  cout << "Number of inputs " << m_number_of_inputs << endl;
+  cout << "Number of outputs " << m_number_of_outputs << endl;
+
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 
   // input variables book-keeping
@@ -86,6 +89,16 @@ void NGraphTensorManager::Initialize() {
       m_output_indexes_that_need_copy.push_back(index);
     }
   }
+
+  // For graphs that were run through AOT
+  // Graph rewrite is not done
+  if (!NGraphCatalog::EncapOutputNeedsCopy(m_ng_encap_graph_id,
+                                           m_ng_encap_node_name)) {
+    m_output_indexes_that_need_copy.resize(m_number_of_outputs);
+    iota(begin(m_output_indexes_that_need_copy),
+         end(m_output_indexes_that_need_copy), 0);
+  }
+
 #else
   m_output_indexes_that_need_copy.resize(m_number_of_outputs);
   iota(begin(m_output_indexes_that_need_copy),
@@ -127,6 +140,54 @@ void NGraphTensorManager::Initialize() {
                      m_pipelined_input_indexes_that_are_prefetched);
   m_pipelined_not_prefetched_input_indexes =
       FindComplement(m_pipelined_input_indexes, m_prefetched_input_indexes);
+  Print();
+}
+
+void NGraphTensorManager::Print() {
+  cout << "Input indexes from Variables" << endl;
+  for (int index : m_input_indexes_from_variables) {
+    cout << index << endl;
+  }
+
+  cout << "Input indexes to Assigns" << endl;
+  for (int index : m_output_indexes_assigning_variable) {
+    cout << index << endl;
+  }
+
+  cout << "Input need copy" << endl;
+  for (int index : m_output_indexes_that_need_copy) {
+    cout << index << endl;
+  }
+
+  cout << "Input pipelined" << endl;
+  for (int index : m_pipelined_input_indexes) {
+    cout << index << endl;
+  }
+
+  cout << "Output pipelined" << endl;
+  for (int index : m_pipelined_output_indexes) {
+    cout << index << endl;
+  }
+
+  cout << "prefetched " << endl;
+  for (int index : m_prefetched_input_indexes) {
+    cout << index << endl;
+  }
+
+  cout << "not prefetched " << endl;
+  for (int index : m_pipelined_not_prefetched_input_indexes) {
+    cout << index << endl;
+  }
+
+  cout << "pipelined prefetched " << endl;
+  for (int index : m_pipelined_input_indexes_that_are_prefetched) {
+    cout << index << endl;
+  }
+
+  cout << "pipelined not prefetched " << endl;
+  for (int index : m_pipelined_input_indexes_that_are_not_prefetched) {
+    cout << index << endl;
+  }
 }
 
 //---------------------------------------------------------------------------
