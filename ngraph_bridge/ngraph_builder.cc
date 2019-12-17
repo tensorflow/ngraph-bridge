@@ -976,8 +976,7 @@ static Status TranslateBatchMatMulV2Op(
           "for each dimension. Failed to match dimension ",
           i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
           ng_rhs_shape[i]);
-    } else if (((ng_lhs_shape[i] == 1) || (ng_rhs_shape[i] == 1)) &&
-               (ng_lhs_shape[i] != ng_lhs_shape[i])) {
+    } else if (ng_lhs_shape[i] != ng_lhs_shape[i]) {
       return errors::Unimplemented(
           "ng_lhs_shape and ng_rhs_shape must be the same for each dimension, "
           "for current implementation of BatchMatMulV2. "
