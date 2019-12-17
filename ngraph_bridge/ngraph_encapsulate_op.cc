@@ -88,13 +88,14 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       ctx, backend != nullptr,
       errors::Internal("Cannot get the backend object for BE: ", be_name));
 
-// If we have the VARIABLE capture on then we can't use the
-// parallel executor until that support is added.
-#if !defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+  // // If we have the VARIABLE capture on then we can't use the
+  // // parallel executor until that support is added.
+  // #if !defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+  //   m_use_parallel_executor = backend->executable_can_create_tensors();
+  // #else
+  //   m_use_parallel_executor = false;
+  // #endif
   m_use_parallel_executor = backend->executable_can_create_tensors();
-#else
-  m_use_parallel_executor = false;
-#endif
 
   // Override the switch for debugging/testing
   if (std::getenv("NGRAPH_TF_USE_LEGACY_EXECUTOR") != nullptr) {
