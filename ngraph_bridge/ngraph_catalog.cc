@@ -220,13 +220,13 @@ void NGraphCatalog::PrintEncapOutputInfoMap() {
 // Functions for PrefetchedInputIndex Map
 void NGraphCatalog::AddToPrefetchedInputIndexMap(
     const int& graphid, const string& node_name,
-    const unordered_set<int>& val) {
+    const map<int, int>& encap_inp_indexes) {
   string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(key)) {
     throw runtime_error("Trying to add an already existing key ( " + key +
                         " ) in PrefetchedInputIndexMap ");
   }
-  NGraphCatalog::prefetched_input_index_map_.insert({key, val});
+  NGraphCatalog::prefetched_input_index_map_.insert({key, encap_inp_indexes});
 }
 
 bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const int& graphid,
@@ -240,7 +240,7 @@ bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const string& key) {
   return itr != NGraphCatalog::prefetched_input_index_map_.end();
 }
 
-const unordered_set<int>& NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
+const map<int, int>& NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
     const int& graphid, const string& node_name) {
   string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
   return NGraphCatalog::prefetched_input_index_map_.at(key);

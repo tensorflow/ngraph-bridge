@@ -98,14 +98,16 @@ void NGraphTensorManager::Initialize() {
 
   if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(m_ng_encap_graph_id,
                                                      m_ng_encap_node_name)) {
-    auto prefetch_indexes =
+    auto prefetch_index_map =
         NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
             m_ng_encap_graph_id, m_ng_encap_node_name);
-    m_prefetched_input_indexes.insert(m_prefetched_input_indexes.begin(),
-                                      prefetch_indexes.begin(),
-                                      prefetch_indexes.end());
-    // keeping the indexes sorted, is helpful in general testing
-    sort(m_prefetched_input_indexes.begin(), m_prefetched_input_indexes.end());
+
+    // Since it's a map, the keys must be sorted
+    for (auto itr : prefetch_index_map) {
+      m_prefetched_input_indexes.push_back(itr->first);
+    }
+
+    m_prefetch_iterator_encap_index_map = prefetch_index_map;
   }
 
   // the prefetched input indexes will also be pipelined
