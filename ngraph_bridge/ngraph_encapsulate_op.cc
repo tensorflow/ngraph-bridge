@@ -587,10 +587,10 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
     // Copy the nGraph Tensor to Host Tensor
     std::unique_ptr<ngraph::Event> event_copy_d2h(new ngraph::Event(
         "D2H_Output_" + std::to_string(output_index), "", ""));
+    void* dst_ptr = (void*)DMAHelper::base(tf_output_tensors[output_index]);
     ng_outputs[output_index]->read(
-        tf_output_tensors[output_index],
-        ng_outputs[output_index]->get_element_count() *
-            ng_outputs[output_index]->get_element_type().size());
+        dst_ptr, ng_outputs[output_index]->get_element_count() *
+                     ng_outputs[output_index]->get_element_type().size());
     event_copy_d2h->Stop();
     output_copy_events.push_back(std::move(event_copy_d2h));
   }
