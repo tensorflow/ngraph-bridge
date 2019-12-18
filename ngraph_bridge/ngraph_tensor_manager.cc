@@ -143,36 +143,6 @@ void NGraphTensorManager::Initialize() {
   Print();
 }
 
-void NGraphTensorManager::Print() {
-  cout << "Input indexes from Variables" << endl;
-  for (int index : m_input_indexes_from_variables) {
-    cout << index << endl;
-  }
-
-  cout << "Input indexes to Assigns" << endl;
-  for (int index : m_output_indexes_assigning_variable) {
-    cout << index << endl;
-  }
-
-  cout << "Input need copy" << endl;
-  for (int index : m_output_indexes_that_need_copy) {
-    cout << index << endl;
-  }
-
-  cout << "Input pipelined" << endl;
-  for (int index : m_pipelined_input_indexes) {
-    cout << index << endl;
-  }
-
-  cout << "Output pipelined" << endl;
-  for (int index : m_pipelined_output_indexes) {
-    cout << index << endl;
-  }
-
-  cout << "prefetched " << endl;
-  for (int index : m_prefetched_input_indexes) {
-    cout << index << endl;
-  }
 
   cout << "not prefetched " << endl;
   for (int index : m_pipelined_not_prefetched_input_indexes) {
