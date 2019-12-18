@@ -33,6 +33,7 @@
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
+#include "ngraph/component_manager.hpp"
 #include "ngraph/event_tracing.hpp"
 
 #include "ngraph_bridge/ngraph_backend_manager.h"
@@ -52,6 +53,8 @@ extern tf::Status CheckTopLabel(const std::vector<tf::Tensor>& outputs,
 
 // Prints the available backends
 void PrintAvailableBackends() {
+  // Register the backend
+  ngraph_register_cpu_backend();
   // Get the list of backends
   auto supported_backends =
       tf::ngraph_bridge::BackendManager::GetSupportedBackendNames();
@@ -164,14 +167,14 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  std::cout << "Component versions\n";
+  PrintVersion();
+
   const char* backend = "CPU";
   if (SetNGraphBackend(backend) != tf::Status::OK()) {
     std::cout << "Error: Cannot set the backend: " << backend << std::endl;
     return -1;
   }
-
-  std::cout << "Component versions\n";
-  PrintVersion();
 
   // If batch size is more than one then expand the input
   vector<string> image_files;

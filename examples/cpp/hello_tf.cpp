@@ -28,6 +28,8 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
 
+#include "ngraph/component_manager.hpp"
+
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/version.h"
@@ -36,6 +38,8 @@ using namespace std;
 
 // Prints the available backends
 void PrintAvailableBackends() {
+  // Register the backend
+  ngraph_register_cpu_backend();
   // Get the list of backends
   auto supported_backends =
       tensorflow::ngraph_bridge::BackendManager::GetSupportedBackendNames();

@@ -157,7 +157,7 @@ Status ReadTensorFromImageFile(const std::vector<string>& file_names,
   std::vector<std::pair<string, tensorflow::Tensor>> inputs;
   std::vector<tensorflow::Output> div_tensors;
 
-  for (int i = 0; i < file_names.size(); i++) {
+  for (auto i = 0; i < file_names.size(); i++) {
     // read file_name into a tensor named input
     Tensor input(tensorflow::DT_STRING, tensorflow::TensorShape());
     TF_RETURN_IF_ERROR(
