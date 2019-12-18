@@ -175,6 +175,9 @@ tf_cc_binary(
     visibility = ["//visibility:public"],
 )
 
+# In order to use this example with bazel you will
+# need uncomment 2 lines mentioned in
+# examples/cpp/inference/infer_multiple_networks.cc
 tf_cc_binary(
     name = 'infer_multiple_networks',
     srcs = [
