@@ -105,15 +105,16 @@ void NGraphTensorManager::Initialize() {
 
     // Since it's a map, the keys must be sorted
     for (auto itr : prefetch_index_map) {
-      int pref_index = itr.first;
-      m_prefetched_input_indexes.push_back(pref_index);
+      int prefetch_index = itr.first;
+      m_prefetched_input_indexes.push_back(prefetch_index);
 
       // the prefetched input indexes will also be pipelined
-      auto position = std::find(m_pipelined_input_indexes.begin(),
-                                m_pipelined_input_indexes.end(), pref_index);
+      auto position =
+          std::find(m_pipelined_input_indexes.begin(),
+                    m_pipelined_input_indexes.end(), prefetch_index);
       if (position == m_pipelined_input_indexes.end()) {
         throw std::runtime_error("Prefetched input index " +
-                                 to_string(pref_index) +
+                                 to_string(prefetch_index) +
                                  " not found in pipelined inputs.");
       }
 
@@ -125,7 +126,6 @@ void NGraphTensorManager::Initialize() {
       // The EncapOp shares with prefetch op only the pipelined tensors
       // so the map needs relative indexing for encap op
       // the corresponding iteratorgetnext output ops
-
       int corres_iterator_index = prefetch_index_map.at(prefetch_index);
       m_prefetch_iterator_encap_index_map.insert(
           {prefetch_index_wrt_pipeline, corres_iterator_index});

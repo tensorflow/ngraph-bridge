@@ -142,7 +142,7 @@ class NGraphTensorManager {
   // Map of
   // key : index of the pipelined input tensors that are prefetched
   // value: index of the IteratorGetNext feeding into this input of NGEncap Op
-  // Used by prefetch shared data created by NGEncap Op
+  // Used to create prefetch shared data by NGEncap Op
   map<int, int> m_prefetch_iterator_encap_index_map;
 
   // Book-keeping for weights-on-device optimizations
