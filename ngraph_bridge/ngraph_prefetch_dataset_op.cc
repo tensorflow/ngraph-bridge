@@ -424,19 +424,20 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
               shared_data->GetPrefetchInputIndexesMap();
 
           int number_of_buffer_elements = buffer_element.value.size();
-          if (number_of_buffer_elements != ng_prefetch_input_indexes.size()) {
+          if (number_of_buffer_elements !=
+              ng_prefetch_input_indexes_map.size()) {
             throw std::runtime_error(
                 "Prefetch buffer elements size " +
                 to_string(number_of_buffer_elements) +
                 " does not match the number of prefetch inputs expected by "
                 "encap " +
-                to_string(ng_prefetch_input_indexes.size()));
+                to_string(ng_prefetch_input_indexes_map.size()));
           }
 
           // Write to these tensors
           for (auto itr : ng_prefetch_input_indexes_map) {
-            int ng_index = itr->first;
-            int tf_index = itr->second;
+            int ng_index = itr.first;
+            int tf_index = itr.second;
 
             ng::element::Type ng_element_type;
             auto status = ngraph_bridge::TFDataTypeToNGraphElementType(

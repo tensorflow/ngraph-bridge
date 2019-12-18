@@ -33,8 +33,7 @@ unordered_map<string, unordered_set<int>>
     NGraphCatalog::encap_output_copy_indexes_map_;
 unordered_map<string, tuple<string, bool>>
     NGraphCatalog::encap_output_info_map_;
-unordered_map<string, unordered_set<int>>
-    NGraphCatalog::prefetched_input_index_map_;
+unordered_map<string, map<int, int>> NGraphCatalog::prefetched_input_index_map_;
 
 // Function to create the Node Key
 string NGraphCatalog::CreateNodeKey(const int& graph_id,
@@ -255,7 +254,7 @@ void NGraphCatalog::PrintPrefetchedInputIndexMap() {
   for (auto it : prefetched_input_index_map_) {
     NGRAPH_VLOG(4) << "Key: (GraphId_NodeName) " << it.first;
     for (auto itr = it.second.begin(); itr != it.second.end(); ++itr) {
-      NGRAPH_VLOG(4) << " Value: " << *itr;
+      NGRAPH_VLOG(4) << " Key " << itr->first << " Value: " << itr->second;
     }
   }
 }

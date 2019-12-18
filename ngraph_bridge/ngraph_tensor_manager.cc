@@ -104,7 +104,7 @@ void NGraphTensorManager::Initialize() {
 
     // Since it's a map, the keys must be sorted
     for (auto itr : prefetch_index_map) {
-      m_prefetched_input_indexes.push_back(itr->first);
+      m_prefetched_input_indexes.push_back(itr.first);
     }
 
     m_prefetch_iterator_encap_index_map = prefetch_index_map;

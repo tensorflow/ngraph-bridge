@@ -85,8 +85,7 @@ class NGraphCatalog {
   // Key
   //      string : GraphId + _ + nodename
   // Value : Set of indices
-  static unordered_map < string,
-      tuple<unordered_set<int>, unordered_set<int>> prefetched_input_index_map_;
+  static unordered_map<string, map<int, int>> prefetched_input_index_map_;
 
  public:
   // Utility to create key to query the maps

@@ -66,7 +66,7 @@ Status EnterPrefetchInCatalog(Graph* graph, int graph_id) {
           NGRAPH_VLOG(4) << "Adding to PrefetchedInputIndexMap";
           NGRAPH_VLOG(4) << "Key: " << node->name();
           NGRAPH_VLOG(4) << "Input index: " << edge->dst_input();
-          in_indexes_for_encap.insert(edge->dst_input(), edge->src_output());
+          in_indexes_for_encap.insert({edge->dst_input(), edge->src_output()});
         }
       }  // end loop over input edges
 

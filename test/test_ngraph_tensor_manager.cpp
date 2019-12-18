@@ -66,9 +66,9 @@ class NGraphTensorManagerTest : public ::testing::Test {
   void EnterPrefetchInCatalog(const int& ng_encap_graph_id,
                               const string& ng_encap_node_name,
                               const vector<int>& prefetched_inp_indexes) {
-    unordered_set<int> pref_indexes;
+    map<int, int> pref_indexes;
     for (int index : prefetched_inp_indexes) {
-      pref_indexes.insert(index);
+      pref_indexes.insert({index, 0});
     }
     NGraphCatalog::AddToPrefetchedInputIndexMap(
         ng_encap_graph_id, ng_encap_node_name, pref_indexes);
