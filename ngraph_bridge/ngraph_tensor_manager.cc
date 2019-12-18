@@ -41,11 +41,7 @@ NGraphTensorManager::NGraphTensorManager(const string ng_encap_node_name,
 }
 
 void NGraphTensorManager::Initialize() {
-  cout << "Number of inputs " << m_number_of_inputs << endl;
-  cout << "Number of outputs " << m_number_of_outputs << endl;
-
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-
   // input variables book-keeping
   for (int index = 0; index < m_number_of_inputs; index++) {
     if (NGraphCatalog::ExistsInInputVariableSharedNameMap(
@@ -91,7 +87,8 @@ void NGraphTensorManager::Initialize() {
   }
 
   // For graphs that were run through AOT
-  // Graph rewrite is not done
+  // Graph rewrite is not done, and there is no entry in catalog
+  // If there is not entry in catalog all outputs need to be copied
   if (!NGraphCatalog::EncapOutputNeedsCopy(m_ng_encap_graph_id,
                                            m_ng_encap_node_name)) {
     m_output_indexes_that_need_copy.resize(m_number_of_outputs);

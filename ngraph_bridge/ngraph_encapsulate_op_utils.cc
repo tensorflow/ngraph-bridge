@@ -26,6 +26,9 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+//---------------------------------------------------------------------------
+//  GetPipelinedIOTensorsReadyForExecution
+//---------------------------------------------------------------------------
 Status GetPipelinedIOTensorsReadyForExecution(
     OpKernelContext* ctx, const vector<Tensor>& tf_input_tensors,
     const shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
@@ -224,6 +227,9 @@ Status GetPipelinedIOTensorsReadyForExecution(
   return Status::OK();
 }
 
+//---------------------------------------------------------------------------
+//  GetTensorFromContext
+//---------------------------------------------------------------------------
 Status GetTensorFromContext(const OpKernelContext* ctx,
                             const string& shared_name,
                             shared_ptr<ng::runtime::Tensor>& ng_tensor) {
@@ -236,6 +242,9 @@ Status GetTensorFromContext(const OpKernelContext* ctx,
   return Status::OK();
 }
 
+//---------------------------------------------------------------------------
+//  GetIOTensorsReadyForExecution
+//---------------------------------------------------------------------------
 Status GetIOTensorsReadyForExecution(
     OpKernelContext* ctx, const shared_ptr<NGraphTensorManager>& tensor_manager,
     const PipelinedTensorVector& pipelined_in_tensors,
@@ -280,6 +289,9 @@ Status GetIOTensorsReadyForExecution(
   return Status::OK();
 }
 
+//---------------------------------------------------------------------------
+//  SyncOutputVarTensors
+//---------------------------------------------------------------------------
 Status SyncOutputVarTensors(
     const OpKernelContext* ctx,
     const shared_ptr<NGraphTensorManager>& tensor_manager) {
@@ -289,20 +301,20 @@ Status SyncOutputVarTensors(
   NGRAPH_VLOG(4) << "output indexes size " << var_output_indexes.size();
 
   for (int output_index : var_output_indexes) {
-    NGRAPH_VLOG(4) << "Checking Sync For " << output_index;
     bool copy_to_tf;
     TF_RETURN_IF_ERROR(
         tensor_manager->GetOutputVariableCopyToTF(output_index, &copy_to_tf));
 
     if (copy_to_tf) {
       NGRAPH_VLOG(4) << "Sync NG Output Variable Tensors " << output_index;
+      // Get shared name from tensor manager
       string shared_name;
       TF_RETURN_IF_ERROR(tensor_manager->GetOutputVariableSharedName(
           output_index, &shared_name));
-      // Get shared name from tensor manager
       NGraphVar* var;
       TF_RETURN_IF_ERROR(ctx->resource_manager()->Lookup<NGraphVar>(
           ctx->resource_manager()->default_container(), shared_name, &var));
+      // update tensor
       var->copy_ng_to_tf();
       var->Unref();
       NGRAPH_VLOG(4) << "Sync Completed " << output_index;

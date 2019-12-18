@@ -52,6 +52,15 @@ Status GetPipelinedIOTensorsReadyForExecution(
     tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
         pipelined_io_tensors);
 
+// Assembles the different types of input and output tensors into a right order
+// Retrofit Variable tensors and pipelined tensors to ng_input and ng_outputs
+// 1. For input indexes that are fed by variables, get the variable tensors from
+// context
+// 2. For output indexes that are updating variables, get the variable tensors
+// from context
+//    This enable update-in-place
+// 3. For input and output indexes that are pipelined, get the respective tensor
+//
 Status GetIOTensorsReadyForExecution(
     OpKernelContext* ctx, const shared_ptr<NGraphTensorManager>& tensor_manager,
     const PipelinedTensorVector& pipelined_in_tensors,
@@ -59,10 +68,17 @@ Status GetIOTensorsReadyForExecution(
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
 
+// Gets the Tensor from OpKernelContext's Container for the given shared_name
 Status GetTensorFromContext(const OpKernelContext* ctx,
                             const string& shared_name,
                             shared_ptr<ng::runtime::Tensor>& ng_tensor);
 
+// Encapsulate Op updates the NGVariable's device tensor in-place
+// ie. the NGVariable's backend tensor is updated
+// Some of these Variables may be required by the TF ops and they will use the
+// host tensor
+// These were marked as "copy-to-tf" True in the Rewrite Phase
+// We will update these tensors here
 Status SyncOutputVarTensors(
     const OpKernelContext* ctx,
     const shared_ptr<NGraphTensorManager>& tensor_manager);

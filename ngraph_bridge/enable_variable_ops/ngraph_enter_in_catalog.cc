@@ -160,7 +160,6 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
         }
       }
 
-      // are there indexes that need copy
       try {
         NGraphCatalog::AddToEncapOutputCopyIndexesMap(graph_id, node->name(),
                                                       op_index_to_copy);
