@@ -88,13 +88,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       ctx, backend != nullptr,
       errors::Internal("Cannot get the backend object for BE: ", be_name));
 
-  // // If we have the VARIABLE capture on then we can't use the
-  // // parallel executor until that support is added.
-  // #if !defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  //   m_use_parallel_executor = backend->executable_can_create_tensors();
-  // #else
-  //   m_use_parallel_executor = false;
-  // #endif
+  // If backend executable can create tensors we use parallel executor
   m_use_parallel_executor = backend->executable_can_create_tensors();
 
   // Override the switch for debugging/testing
@@ -460,6 +454,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                                m_parallel_executor->GetTensorPipelineDepth()));
 
   // Get Tensor Manager and some error checking
+  ngraph::Event event_prepare_ng_tensors("Prepare NG In/Out Tensors", "", "");
   auto tensor_manager = m_parallel_executor->GetTensorManager();
   int num_of_inputs = tensor_manager->GetNumberOfInputs();
   int num_of_outputs = tensor_manager->GetNumberOfOutputs();
@@ -500,15 +495,13 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_of_inputs);
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_of_outputs);
 
+  // Prepare NG Input Output Tensors
+  // Retrofit Variable tensors and pipelined tensors to ng_input and ng_outputs
   OP_REQUIRES_OK(ctx, GetIOTensorsReadyForExecution(
                           ctx, tensor_manager, get<1>(pipelined_io_tensors),
                           get<2>(pipelined_io_tensors), ng_inputs, ng_outputs));
-
-  // // All inputs and outputs are pipelined.
-  // // Of all these pipelined inputs some are prefetched
-  // // TODO: Fit in variables
-  // ng_inputs = get<1>(pipelined_io_tensors);
-  // ng_outputs = get<2>(pipelined_io_tensors);
+  event_prepare_ng_tensors.Stop();
+  ngraph::Event::write_trace(event_prepare_ng_tensors);
 
   // And execute
   ngraph::Event event_execute_graph("Execute Graph", "", "");
@@ -548,9 +541,10 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   // Allocate TF Tensors
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute Allocating TF Output Tensors "
                  << m_parallel_executor->GetNgraphClusterId();
+
+  ngraph::Event event_prepare_tf_output_tensors("Prepare TF Output Tensor", "",
+                                                "");
   vector<Tensor*> tf_output_tensors;
-  ngraph::Event event_allocate_tf_output_tensors("Allocate TF Output Tensor",
-                                                 "", "");
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
     auto ng_element = ng_exec->get_results()[i];
     auto ng_shape = ng_element->get_shape();
@@ -576,14 +570,11 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
         errors::Internal("Element type inferred by nGraph does not match "
                          "the element type expected by TensorFlow"));
   }
-  event_allocate_tf_output_tensors.Stop();
-  ngraph::Event::write_trace(event_allocate_tf_output_tensors);
 
   // Copy Tensors that are required
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute Read NG Output Tensors "
                  << m_parallel_executor->GetNgraphClusterId();
 
-  ngraph::Event event_read_ng_tensors("Read NG Tensor", "", "");
   std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 
   auto output_indexes_to_be_copied =
@@ -602,14 +593,17 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   for (auto& next : output_copy_events) {
     ngraph::Event::write_trace(*next.get());
   }
-  event_read_ng_tensors.Stop();
-  ngraph::Event::write_trace(event_read_ng_tensors);
+  event_prepare_tf_output_tensors.Stop();
+  ngraph::Event::write_trace(event_prepare_tf_output_tensors);
 
   // Synch Var Output Tensors as required
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute Sync NG Output Variable Tensors "
       << m_parallel_executor->GetNgraphClusterId();
+  ngraph::Event event_update_ngvar_tensors("Update NGVar Tensors", "", "");
   OP_REQUIRES_OK(ctx, SyncOutputVarTensors(ctx, tensor_manager));
+  event_update_ngvar_tensors.Stop();
+  ngraph::Event::write_trace(event_update_ngvar_tensors);
 
   // Now return them to the cache
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Returning Tensors "
