@@ -40,30 +40,6 @@ namespace ngraph_bridge {
 // (Changes: Renamed from LegacyVar, modified to take a TensorShape in
 // constructor.)
 
-// THIS CLASS IS NOT BEING USED ANYWHERE
-class NGraphVar : public ResourceBase {
- public:
-  explicit NGraphVar(DataType dtype, TensorShape shape)
-      : tensor_(dtype, shape) {}
-  // Not copyable or movable.
-  NGraphVar(const NGraphVar&) = delete;
-  NGraphVar& operator=(const NGraphVar&) = delete;
-
-  mutex* mu() { return &mu_; }
-  Tensor* tensor() { return &tensor_; }
-
-  string DebugString() const override {
-    return strings::StrCat(DataTypeString(tensor_.dtype()), "/",
-                           tensor_.shape().DebugString());
-  }
-
- private:
-  mutex mu_;
-  Tensor tensor_;
-
-  ~NGraphVar() override {}
-};
-
 class NGraphVariableOp : public OpKernel {
  public:
   explicit NGraphVariableOp(OpKernelConstruction* context);
