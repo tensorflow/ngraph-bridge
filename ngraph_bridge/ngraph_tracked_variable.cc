@@ -40,6 +40,29 @@ namespace ngraph_bridge {
 // (Changes: Renamed from LegacyVar, modified to take a TensorShape in
 // constructor.)
 
+// THIS CLASS IS NOT BEING USED ANYWHERE
+class NGraphVar : public ResourceBase {
+ public:
+  explicit NGraphVar(DataType dtype, TensorShape shape)
+      : tensor_(dtype, shape) {}
+  // Not copyable or movable.
+  NGraphVar(const NGraphVar&) = delete;
+  NGraphVar& operator=(const NGraphVar&) = delete;
+
+  mutex* mu() { return &mu_; }
+  Tensor* tensor() { return &tensor_; }
+
+  string DebugString() const override {
+    return strings::StrCat(DataTypeString(tensor_.dtype()), "/",
+                           tensor_.shape().DebugString());
+  }
+
+ private:
+  mutex mu_;
+  Tensor tensor_;
+  ~NGraphVar() override {}
+};
+
 class NGraphVariableOp : public OpKernel {
  public:
   explicit NGraphVariableOp(OpKernelConstruction* context);
@@ -51,6 +74,8 @@ class NGraphVariableOp : public OpKernel {
   bool just_looking_;
   NGraphFreshnessTracker* tracker_;
   DataType dtype_;
+  int ng_graph_id_;
+  string ng_backend_name_;
 
   mutex init_mu_;
   ContainerInfo cinfo_ GUARDED_BY(init_mu_);
@@ -74,6 +99,9 @@ NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
 
   OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
   OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
+  OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
+  OP_REQUIRES_OK(context,
+                 context->GetAttr("_ngraph_backend", &ng_backend_name_));
   NGRAPH_VLOG(5) << def().name() << ": just looking? " << just_looking_;
 }
 
@@ -93,7 +121,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     initialized_ = true;
   }
   auto creator = [this](NGraphVar** var) {
-    *var = new NGraphVar(dtype_, shape_);
+    *var = new NGraphVar(dtype_, shape_, ng_backend_name_);
     //(*var)->tensor()->set_shape(shape_);
     return Status::OK();
   };
