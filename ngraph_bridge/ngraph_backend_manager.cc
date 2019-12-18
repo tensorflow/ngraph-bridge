@@ -45,6 +45,8 @@ Status BackendManager::SetBackendName(const string& backend_name) {
 }
 
 Status BackendManager::CreateBackend(const string& backend_name) {
+  ngraph_register_cpu_backend();
+  ngraph_register_interpreter_backend();
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   auto itr = BackendManager::ng_backend_map_.find(backend_name);
   // if backend does not exist create it
