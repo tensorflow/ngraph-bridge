@@ -125,6 +125,10 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
   const std::string m_ng_enc_op_name;
   const int m_graph_id;
   const int m_cluster_id;
+
+  // Map of
+  // Key : indexes of IOTensorBundle.Inputs that are prefetched
+  // Value : corresponding index for TF PrefetchBuffer
   const map<int, int> m_prefetch_input_index_map;
   // We need to maintain two queues as follows:
   // ----------+------------+------------+------------------------------------+
