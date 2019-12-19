@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "silee2/control_export"
+    ngraph_version = "v0.27.1-rc.1"
     tf_version = "v1.14.0"
 
     # Command line parser options
