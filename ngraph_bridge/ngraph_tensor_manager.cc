@@ -148,6 +148,48 @@ void NGraphTensorManager::Initialize() {
                      m_pipelined_input_indexes_that_are_prefetched);
   m_pipelined_not_prefetched_input_indexes =
       FindComplement(m_pipelined_input_indexes, m_prefetched_input_indexes);
+  Print();
+}
+
+//---------------------------------------------------------------------------
+// PrintVector Utility
+//---------------------------------------------------------------------------
+void PrintVector(const vector<int>& input_vector, const string title) {
+  cout << title << endl;
+  std::stringstream ss;
+  for (int val : input_vector) {
+    ss << val << " ";
+  }
+  cout << ss.str() << endl;
+}
+
+//---------------------------------------------------------------------------
+//  NGraphTensorManager::Print
+//---------------------------------------------------------------------------
+void NGraphTensorManager::Print() {
+  cout << "** NGEncapsulate TensorManager:" << m_ng_encap_node_name << " **"
+       << endl;
+
+  cout << "** Variables Related **" << endl;
+  PrintVector(m_input_indexes_from_variables, "Input Indexes from Variables");
+  PrintVector(m_output_indexes_assigning_variable,
+              "Output Indexes Referring to Variables");
+  PrintVector(m_output_indexes_that_need_copy, "Output Indexes to be Read");
+
+  cout << "** Pipelined **" << endl;
+  PrintVector(m_pipelined_input_indexes, "Pipelined Input Indexes");
+  PrintVector(m_pipelined_output_indexes, "Pipelined Output Indexes");
+
+  cout << "** Prefetched **" << endl;
+  PrintVector(m_prefetched_input_indexes, "Prefetched Input Indexes");
+  PrintVector(m_pipelined_not_prefetched_input_indexes,
+              "Pipelined But Not Prefetched Input Indexes");
+
+  cout << "** Prefetched wrt pipelined indexes **" << endl;
+  PrintVector(m_pipelined_input_indexes_that_are_prefetched,
+              "Prefetched Input Indexes wrt Pipelined Inputs");
+  PrintVector(m_pipelined_input_indexes_that_are_not_prefetched,
+              "Not Prefetched Input Indexes wrt Pipelined Inputs");
 }
 
 //---------------------------------------------------------------------------
