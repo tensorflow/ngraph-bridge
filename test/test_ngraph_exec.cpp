@@ -25,6 +25,7 @@
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_pipelined_tensors.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/version.h"
 
 #include "test/test_utilities.h"
 
@@ -44,8 +45,13 @@ class NGraphExecTest : public ::testing::Test {
     GraphDef gdef;
     TF_RETURN_IF_ERROR(ReadTextProto(Env::Default(), graph_pbtxt_file, &gdef));
     GraphConstructorOptions opts;
-    ngraph_register_cpu_backend();
-    ngraph_register_interpreter_backend();
+
+    // Register backends for static linking
+    if (ngraph_bridge_static_lib_enable()) {
+      ngraph_register_cpu_backend();
+      ngraph_register_interpreter_backend();
+    }
+
     // Set the allow_internal_ops to true so that graphs with node names such as
     // _arg_Placeholder_1_0_1_0_arg are allowed. These op names are generated
     // during the graph rewrite passes and considered internal

@@ -73,6 +73,14 @@ bool ngraph_tf_are_variables_enabled() {
 #endif
 }
 
+bool ngraph_bridge_static_lib_enable() {
+#if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+  return true;
+#else
+  return false;
+#endif
+}
+
 bool ngraph_tf_is_distributed_enabled() {
 #if defined(NGRAPH_DISTRIBUTED)
   return true;

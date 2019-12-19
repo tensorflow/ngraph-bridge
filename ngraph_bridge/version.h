@@ -38,6 +38,10 @@ bool ngraph_tf_is_grappler_enabled();
 // --enable_variables_and_optimizers flag
 bool ngraph_tf_are_variables_enabled();
 
+// Returns true when nGraph-bridge is built with
+// ----use_ngraph_staticlibs flag
+bool ngraph_bridge_static_lib_enable();
+
 // Return true when nGraph-bridge is build with
 // --distributed_build flag
 bool ngraph_tf_is_distributed_enabled();
