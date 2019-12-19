@@ -92,6 +92,23 @@ class NGraphTensorManager {
     return m_pipelined_input_indexes_that_are_not_prefetched;
   }
 
+  // wrt to pipelined inputs
+  const map<int, int>& GetInputIndexesForPrefetchSharedObject() {
+    return m_prefetch_iterator_encap_index_map;
+  }
+
+  // input ng-variable shared name
+  Status GetInputVariableSharedName(const int& input_index,
+                                    string* input_var_shared_name);
+
+  // output ng-variable shared name
+  Status GetOutputVariableSharedName(const int& output_index,
+                                     string* output_var_shared_name);
+
+  // does output ng-variable's host-TF tensor needs to be updated
+  Status GetOutputVariableCopyToTF(const int& output_index,
+                                   bool* output_var_copy_to_tf);
+
  private:
   void Initialize();
   string m_ng_encap_node_name;
@@ -107,10 +124,13 @@ class NGraphTensorManager {
   vector<int> m_output_indexes_that_need_copy;
 
   // All indexes that are not from/to variables
+  // Book-keeping primarily for data pipelining
   // These are pipelined, some of these are also prefetched
+
   // indexes wrt all inputs/outputs
   vector<int> m_pipelined_input_indexes;
   vector<int> m_pipelined_output_indexes;
+
   // indexes wrt pipelined inputs
   vector<int> m_pipelined_input_indexes_that_are_prefetched;
   vector<int> m_pipelined_input_indexes_that_are_not_prefetched;
@@ -118,6 +138,16 @@ class NGraphTensorManager {
   // indexes wrt all inputs
   vector<int> m_prefetched_input_indexes;
   vector<int> m_pipelined_not_prefetched_input_indexes;
+
+  // Map of
+  // key : index of the pipelined input tensors that are prefetched
+  // value: index of the IteratorGetNext feeding into this input of NGEncap Op
+  // Used to create prefetch shared data by NGEncap Op
+  map<int, int> m_prefetch_iterator_encap_index_map;
+
+  // Book-keeping for weights-on-device optimizations
+  unordered_map<int, string> input_variable_shared_name_map;
+  unordered_map<int, tuple<string, bool>> output_variable_info_map;
 };
 
 }  // namespace ngraph_bridge
