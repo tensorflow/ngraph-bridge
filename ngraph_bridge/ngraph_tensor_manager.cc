@@ -88,7 +88,7 @@ void NGraphTensorManager::Initialize() {
 
   // For graphs that were run through AOT
   // Graph rewrite is not done, and there is no entry in catalog
-  // If there is not entry in catalog all outputs need to be copied
+  // If there is no entry in catalog all outputs need to be copied
   if (!NGraphCatalog::EncapOutputNeedsCopy(m_ng_encap_graph_id,
                                            m_ng_encap_node_name)) {
     m_output_indexes_that_need_copy.resize(m_number_of_outputs);
@@ -155,11 +155,7 @@ void NGraphTensorManager::Initialize() {
 //---------------------------------------------------------------------------
 void PrintVector(const vector<int>& input_vector, const string title) {
   cout << title << endl;
-  std::stringstream ss;
-  for (int val : input_vector) {
-    ss << val << " ";
-  }
-  cout << ss.str() << endl;
+  cout << ng::join(input_vector) << endl;
 }
 
 //---------------------------------------------------------------------------
