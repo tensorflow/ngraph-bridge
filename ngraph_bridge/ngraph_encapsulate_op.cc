@@ -504,7 +504,9 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   ngraph::Event::write_trace(event_prepare_ng_tensors);
 
   // And execute
-  ngraph::Event event_execute_graph("Execute Graph", "", "");
+  ngraph::Event event_execute_graph(
+      "Execute Graph Pipeline Indx" + to_string(current_iter_pipeline_depth),
+      "", "");
 
   BackendManager::LockBackend(m_parallel_executor->GetOpBackendName());
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "

@@ -33,7 +33,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
     OpKernelContext* ctx, const vector<Tensor>& tf_input_tensors,
     const shared_ptr<PipelinedTensorsStore>& pipelined_tensor_store,
     const shared_ptr<NGraphTensorManager>& tensor_manager,
-    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
+    tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
         pipelined_io_tensors) {
   auto io_tensors = pipelined_tensor_store->get_tensors();
 
@@ -89,7 +89,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
           tensor_manager->GetInputIndexesForPrefetchSharedObject());
 
       // Get the set of IO tensors for the next iteration
-      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
+      tuple<int, PipelinedTensorVector, PipelinedTensorVector>
           io_tensors_next_iter;
       io_tensors_next_iter = pipelined_tensor_store->get_tensors();
 
@@ -209,21 +209,21 @@ Status GetPipelinedIOTensorsReadyForExecution(
           tf_input_tensors[tf_index].dtype(), &ng_element_type));
       void* current_src_ptr =
           (void*)DMAHelper::base(&tf_input_tensors[tf_index]);
-      std::unique_ptr<ngraph::Event> event_copy_h2d(
-          new ngraph::Event("H2D_Input_" + std::to_string(tf_index), "", ""));
+      unique_ptr<ngraph::Event> event_copy_h2d(
+          new ngraph::Event("H2D_Input_" + to_string(tf_index), "", ""));
       try {
         ng_pipelined_inputs[ng_index]->write(
             current_src_ptr,
             ng_pipelined_inputs[ng_index]->get_element_count() *
                 ng_element_type.size());
-      } catch (const std::exception& exp) {
+      } catch (const exception& exp) {
         return errors::Internal("Error copying TF tensor to device tensor: ",
                                 exp.what());
       } catch (...) {
         return errors::Internal("Error copying TF tensor to device tensor");
       }
       event_copy_h2d->Stop();
-      input_write_events.push_back(std::move(event_copy_h2d));
+      input_write_events.push_back(move(event_copy_h2d));
     }
   }
 
