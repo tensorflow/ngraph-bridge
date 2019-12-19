@@ -119,7 +119,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
                  << " ,backend_name " << ng_backend_name_;
 
   std::ostringstream oss;
-  oss << "NGraphVariable: " << my_instance_id << ": " << name();
+  oss << "NGVariable::Compute::" << name();
   ngraph::Event event_compute(oss.str(), name(), "");
 
   bool log_copies = false;
@@ -250,6 +250,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     ctx->record_persistent_memory_allocation(var->tensor()->AllocatedBytes());
   }
   var->Unref();
+  event_compute.Stop();
   ngraph::Event::write_trace(event_compute);
 }
 

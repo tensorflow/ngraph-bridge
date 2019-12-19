@@ -67,6 +67,7 @@ NGraphVariableUpdateNGTensorOp::~NGraphVariableUpdateNGTensorOp() {
 void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
   std::ostringstream oss;
   // Start event tracing
+  oss << "NGVariableUpdateNGTensor::Compute::" << name();
   ngraph::Event event_compute(oss.str(), name(), "");
   bool log_copies = false;
   OP_REQUIRES_OK(context,

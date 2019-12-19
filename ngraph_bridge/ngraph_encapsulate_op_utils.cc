@@ -159,18 +159,21 @@ Status GetPipelinedIOTensorsReadyForExecution(
 
   // Allocate the input/
   ngraph::Event event_copy_input_tensor("Copy Pipelined Input Tensors", "", "");
-
+  std::vector<std::unique_ptr<ngraph::Event>> input_write_events;
   if (!skip_tf2ng_copy) {
     // All pipelined inputs are copied
 
     for (auto i = 0; i < pipelined_input_indexes.size(); i++) {
       int tf_index = pipelined_input_indexes[i];
-
       ng::element::Type ng_element_type;
       TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(
           tf_input_tensors[tf_index].dtype(), &ng_element_type));
       void* current_src_ptr =
           (void*)DMAHelper::base(&tf_input_tensors[tf_index]);
+
+      std::unique_ptr<ngraph::Event> event_copy_h2d(
+          new ngraph::Event("H2D_Input_" + std::to_string(tf_index), "", ""));
+
       try {
         ng_pipelined_inputs[i]->write(
             current_src_ptr, ng_pipelined_inputs[i]->get_element_count() *
@@ -181,6 +184,8 @@ Status GetPipelinedIOTensorsReadyForExecution(
       } catch (...) {
         return errors::Internal("Error copying TF tensor to device tensor");
       }
+      event_copy_h2d->Stop();
+      input_write_events.push_back(std::move(event_copy_h2d));
     }
   } else {
     // All pipelined inputs that are not prefetched are copied
@@ -204,6 +209,8 @@ Status GetPipelinedIOTensorsReadyForExecution(
           tf_input_tensors[tf_index].dtype(), &ng_element_type));
       void* current_src_ptr =
           (void*)DMAHelper::base(&tf_input_tensors[tf_index]);
+      std::unique_ptr<ngraph::Event> event_copy_h2d(
+          new ngraph::Event("H2D_Input_" + std::to_string(tf_index), "", ""));
       try {
         ng_pipelined_inputs[ng_index]->write(
             current_src_ptr,
@@ -215,7 +222,13 @@ Status GetPipelinedIOTensorsReadyForExecution(
       } catch (...) {
         return errors::Internal("Error copying TF tensor to device tensor");
       }
+      event_copy_h2d->Stop();
+      input_write_events.push_back(std::move(event_copy_h2d));
     }
+  }
+
+  for (auto& next : input_write_events) {
+    ngraph::Event::write_trace(*next.get());
   }
   event_copy_input_tensor.Stop();
   ngraph::Event::write_trace(event_copy_input_tensor);

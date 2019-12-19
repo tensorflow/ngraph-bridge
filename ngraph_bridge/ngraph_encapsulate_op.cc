@@ -397,7 +397,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
-  ngraph::Event event_compute("Compute", "", "");
+  ngraph::Event event_compute("NGEncap::Compute::" + name(), name(), "");
 
   if (m_use_parallel_executor) {
     NGRAPH_VLOG(1) << "NGraphEncapsulateOp::Compute: Using Parallel Executor";

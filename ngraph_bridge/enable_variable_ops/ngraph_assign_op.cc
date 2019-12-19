@@ -83,7 +83,7 @@ class NGraphAssignOp : public OpKernel {
 
   void Compute(OpKernelContext* context) override {
     std::ostringstream oss;
-    oss << "Execute: Assign_" << my_instance_id << ": " << name();
+    oss << "NGAssign::Compute::" << name();
     ngraph::Event event_compute(oss.str(), name(), "");
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Compute called for: " << def().name()
