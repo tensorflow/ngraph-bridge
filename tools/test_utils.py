@@ -41,6 +41,7 @@ def install_ngraph_bridge(artifacts_dir):
     # Determine the ngraph whl
     ngtf_wheel_files = glob.glob(artifacts_dir +
                                  "/ngraph_tensorflow_bridge-*.whl")
+
     if (len(ngtf_wheel_files) != 1):
         print("Multiple Python whl files exist. Please remove old wheels")
         for whl in ngtf_wheel_files:

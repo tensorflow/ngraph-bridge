@@ -62,12 +62,13 @@ namespace ngraph_bridge {
 NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
                                unique_ptr<tensorflow::Graph>& graph,
                                const string& backend_name,
-                               const int cache_depth)
+                               const string& node_name, const int cache_depth)
     : m_instance_id(instance_id),
       m_ngraph_cluster_id(cluster_id),
       m_graph_id(graph_id),
       m_graph(std::move(graph)),
       m_op_backend_name(backend_name),
+      m_node_name(node_name),
       m_ng_data_cache(cache_depth) {
   // Sanity checks
   if (m_graph == nullptr) {
@@ -85,7 +86,6 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
     throw std::runtime_error(string("Requested backend: '") +
                              m_op_backend_name + string("' not available."));
   }
-
   // Initialize the "m_input_is_static" vector as follows:
   // (1) create m_input_is_static with n+1 elements, where n is the max arg
   //     index
@@ -308,7 +308,8 @@ NGraphExecutor::CreateCallback(const std::string signature,
         "tf_function_" + m_node_name + "_" + to_string(rank_id) + ".json",
         serialized_ng_func);
     if (status != Status::OK()) {
-      return std::make_pair(status, std::make_pair(ng_exec, ng_function));
+      return std::make_pair(status,
+                            std::make_tuple(ng_exec, serialized_ng_func, pts));
     }
 #endif
   }
@@ -318,7 +319,9 @@ NGraphExecutor::CreateCallback(const std::string signature,
   // Create PipelinedTensorStore
   if (status_ng_exec_pair.first == Status::OK()) {
     ng_exec = status_ng_exec_pair.second;
-    auto status_ng_pts_pair = InitializeIOTensorPipeline(ng_exec);
+    auto status_ng_pts_pair = InitializeIOTensorPipeline(
+        ng_exec, m_tensor_manager->GetPipelinedInputIndexes(),
+        m_tensor_manager->GetPipelinedOutputIndexes());
     pts = status_ng_pts_pair.second;
     return std::make_pair(status_ng_pts_pair.first,
                           std::make_tuple(ng_exec, serialized_ng_func, pts));
@@ -463,7 +466,9 @@ Status NGraphExecutor::ParseNodeAttributes(
 
 std::pair<Status, shared_ptr<PipelinedTensorsStore>>
 NGraphExecutor::InitializeIOTensorPipeline(
-    std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec,
+    const vector<int>& pipelined_input_indexes,
+    const vector<int>& pipelined_output_indexes) {
   if (!m_executable_can_create_tensor) {
     return std::make_pair(
         errors::Internal(
@@ -472,30 +477,34 @@ NGraphExecutor::InitializeIOTensorPipeline(
         nullptr);
   }
   // Create these pipelined ng tensors only if needed, else reuse from cache
-  size_t num_inputs = ng_exec->get_parameters().size();
-  size_t num_outputs = ng_exec->get_results().size();
-
-  if (num_outputs == 0) {
-    return std::make_pair(
-        errors::Internal("Bad input/output length. Input size: ", num_inputs,
-                         " Output size: ", num_outputs),
-        nullptr);
-  }
+  size_t num_pipelined_inputs = pipelined_input_indexes.size();
+  size_t num_pipelined_outputs = pipelined_output_indexes.size();
 
   // If the input or the output size if 0 then???
-  NGRAPH_VLOG(5) << "InitializeIOTensorPipeline: In: " << num_inputs
-                 << " Out: " << num_outputs;
-  PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
-  PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
-  for (size_t i = 0; i < num_inputs; i++) {
-    pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, m_depth);
+  NGRAPH_VLOG(5) << "InitializeIOTensorPipeline: No. of Pipelined Inputs: "
+                 << num_pipelined_inputs
+                 << " No. of Pipelined Pipelined Outputs: "
+                 << num_pipelined_outputs;
+  PipelinedTensorMatrix pipelined_input_tensors(m_depth);
+  PipelinedTensorMatrix pipelined_output_tensors(m_depth);
+  PipelinedTensorVector temp;
+  for (size_t i = 0; i < num_pipelined_inputs; i++) {
+    int input_index = pipelined_input_indexes[i];
+    temp = ng_exec->create_input_tensor(input_index, m_depth);
+    for (size_t j = 0; j < temp.size(); j++) {
+      pipelined_input_tensors[j].push_back(temp[j]);
+    }
   }
-  for (size_t i = 0; i < num_outputs; i++) {
-    pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, m_depth);
+  for (size_t i = 0; i < num_pipelined_outputs; i++) {
+    int output_index = pipelined_output_indexes[i];
+    temp = ng_exec->create_output_tensor(output_index, m_depth);
+    for (size_t j = 0; j < temp.size(); j++) {
+      pipelined_output_tensors[j].push_back(temp[j]);
+    }
   }
+
   shared_ptr<PipelinedTensorsStore> pts(new PipelinedTensorsStore(
       pipelined_input_tensors, pipelined_output_tensors));
-
   return std::make_pair(Status::OK(), pts);
 }
 

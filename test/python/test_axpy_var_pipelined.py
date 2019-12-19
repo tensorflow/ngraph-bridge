@@ -13,14 +13,14 @@ from common import NgraphTest
 
 # For eg. when running the test from ngraph-bridge/build_cmake/test/python
 # you can add this path as below
-# sys.path.insert(0, '../../examples')
+sys.path.insert(0, '../../examples')
 
-from axpy_pipelined import *
+from axpy_var_pipelined import *
 
 
-class TestAxpyPipelined(NgraphTest):
+class TestAxpyVarPipelined(NgraphTest):
 
-    def test_axpy_pipelined(self):
+    def test_axpy_var_pipelined(self):
         prefetch_env = "NGRAPH_TF_USE_PREFETCH"
         env_var_map = self.store_env_variables([prefetch_env])
         self.set_env_variable(prefetch_env, "1")

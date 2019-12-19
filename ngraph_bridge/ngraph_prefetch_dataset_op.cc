@@ -417,24 +417,41 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
         if (s.ok()) {
           ngraph::Event evt_dev_cp("Prf Dev Copy", "Copy", "");
           shared_data->SetBufferDepth(m_buffer_size);
+
           auto ng_input_tensor_bundle =
-              shared_data->GetNextInputTensorBundleForDeviceTransfer();
+              shared_data->GetNextIOTensorBundleForDeviceTransfer();
+          auto ng_prefetch_input_indexes_map =
+              shared_data->GetPrefetchInputIndexesMap();
+
+          int number_of_buffer_elements = buffer_element.value.size();
+          if (number_of_buffer_elements !=
+              ng_prefetch_input_indexes_map.size()) {
+            throw std::runtime_error(
+                "Prefetch buffer elements size " +
+                to_string(number_of_buffer_elements) +
+                " does not match the number of prefetch inputs expected by "
+                "encap " +
+                to_string(ng_prefetch_input_indexes_map.size()));
+          }
 
           // Write to these tensors
-          for (auto i = 0; i < buffer_element.value.size(); i++) {
+          for (auto itr : ng_prefetch_input_indexes_map) {
+            int ng_index = itr.first;
+            int tf_index = itr.second;
+
             ng::element::Type ng_element_type;
             auto status = ngraph_bridge::TFDataTypeToNGraphElementType(
-                buffer_element.value[i].dtype(), &ng_element_type);
+                buffer_element.value[tf_index].dtype(), &ng_element_type);
 
             void* current_src_ptr =
-                (void*)DMAHelper::base(&buffer_element.value[i]);
+                (void*)DMAHelper::base(&buffer_element.value[tf_index]);
             try {
               NGRAPH_VLOG(2)
                   << "[PREFETCH] INPUT tensor being written by Prefetch: "
-                  << " Value: " << buffer_element.value[i].DebugString();
-              ng_input_tensor_bundle.Inputs[i]->write(
+                  << " Value: " << buffer_element.value[tf_index].DebugString();
+              ng_input_tensor_bundle.Inputs[ng_index]->write(
                   current_src_ptr,
-                  ng_input_tensor_bundle.Inputs[i]->get_element_count() *
+                  ng_input_tensor_bundle.Inputs[ng_index]->get_element_count() *
                       ng_element_type.size());
             } catch (const std::exception& exp) {
               throw exp;
@@ -445,7 +462,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
           }
 
           // Now add them back to the other queue
-          shared_data->AddNextInputTensorBundleReadyForDeviceExecution(
+          shared_data->AddNextIOTensorBundleReadyForDeviceExecution(
               ng_input_tensor_bundle);
           shared_data->Unref();
           evt_dev_cp.Stop();
