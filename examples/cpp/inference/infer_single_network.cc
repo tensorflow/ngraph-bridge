@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-// Register backends for static linking
+// Register cpu backend for static linking
 #if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
   ngraph_register_cpu_backend();
 #endif
