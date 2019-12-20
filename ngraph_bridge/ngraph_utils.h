@@ -140,6 +140,18 @@ Status ValuesFromConstNode(const NodeDef& node,
       n_elements *= shape.dim(i).size();
     }
     values->resize(n_elements);
+
+    auto val_lastsaved = 0;
+#define SET_VALS(val_size, val_vec)                        \
+  if (val_size == 0) {                                     \
+    return errors::InvalidArgument("Empty values vector"); \
+  } else if (i < val_size) {                               \
+    (*values)[i] = val_vec[i];                             \
+    val_lastsaved = val_vec[i];                            \
+  } else {                                                 \
+    (*values)[i] = val_lastsaved;                          \
+  }
+
     for (auto i = 0; i < n_elements; i++) {
       auto& tensor = node.attr().at("value").tensor();
       auto dt = node.attr().at("dtype").type();
@@ -147,25 +159,19 @@ Status ValuesFromConstNode(const NodeDef& node,
         // TODO(amprocte/NGRAPH-2502): there are more element types to support
         // here
         case DT_INT32:
-          (*values)[i] = (tensor.int_val_size() == 1 ? tensor.int_val()[0]
-                                                     : tensor.int_val()[i]);
+          SET_VALS(tensor.int_val_size(), tensor.int_val());
           break;
         case DT_INT64:
-          (*values)[i] = (tensor.int64_val_size() == 1 ? tensor.int64_val()[0]
-                                                       : tensor.int64_val()[i]);
+          SET_VALS(tensor.int64_val_size(), tensor.int64_val());
           break;
         case DT_FLOAT:
-          (*values)[i] = (tensor.float_val_size() == 1 ? tensor.float_val()[0]
-                                                       : tensor.float_val()[i]);
+          SET_VALS(tensor.float_val_size(), tensor.float_val());
           break;
         case DT_BOOL:
-          (*values)[i] = (tensor.bool_val_size() == 1 ? tensor.bool_val()[0]
-                                                      : tensor.bool_val()[i]);
+          SET_VALS(tensor.bool_val_size(), tensor.bool_val());
           break;
         case DT_DOUBLE:
-          (*values)[i] =
-              (tensor.double_val_size() == 1 ? tensor.double_val()[0]
-                                             : tensor.double_val()[i]);
+          SET_VALS(tensor.double_val_size(), tensor.double_val());
           break;
         default:
           NGRAPH_VLOG(0)
@@ -178,6 +184,7 @@ Status ValuesFromConstNode(const NodeDef& node,
                                        " on an empty tensor");
       }
     }
+#undef SET_VALS
   } else {
     values->resize(tensor_content_size / sizeof(VecT));
     port::CopyToArray(tensor.tensor_content(),
