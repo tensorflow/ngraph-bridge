@@ -448,7 +448,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
             void* current_src_ptr =
                 (void*)DMAHelper::base(&buffer_element.value[tf_index]);
             std::unique_ptr<ngraph::Event> event_copy_h2d(new ngraph::Event(
-                "H2D_PrefetchInput_" + std::to_string(tf_index), "", ""));
+                "H2D_PrefetchInput_" + std::to_string(tf_index), "Copy", ""));
             try {
               NGRAPH_VLOG(2)
                   << "[PREFETCH] INPUT tensor being written by Prefetch: "
@@ -465,6 +465,10 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
             }
             event_copy_h2d->Stop();
             prefetch_input_write_events.push_back(std::move(event_copy_h2d));
+          }
+
+          for (auto& next : prefetch_input_write_events) {
+            ngraph::Event::write_trace(*next.get());
           }
 
           // Now add them back to the other queue
