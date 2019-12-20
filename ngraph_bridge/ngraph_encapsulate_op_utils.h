@@ -52,8 +52,9 @@ Status GetPipelinedIOTensorsReadyForExecution(
     tuple<int, PipelinedTensorVector, PipelinedTensorVector>&
         pipelined_io_tensors);
 
-// Assembles the different types of input and output tensors into a right order
-// Retrofit Variable tensors and pipelined tensors to ng_input and ng_outputs
+// Assembles the different types of input and output tensors
+// Variable tensors and pipelined tensors are put together in the right order
+// into ng_inputs and ng_outputs
 // 1. For input indexes that are fed by variables, get the variable tensors from
 // context
 // 2. For output indexes that are updating variables, get the variable tensors
