@@ -165,6 +165,7 @@ int main(int argc, char** argv) {
   }
 
 // Register cpu backend for static linking
+// [TODO]: Revisit this to see if we can remove registering here and register only in BackendManager.
 #if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
   ngraph_register_cpu_backend();
 #endif
