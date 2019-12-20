@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#ifndef NGRAPH_TF_ENTER_PREFETCH_IN_CATALOG_H_
-#define NGRAPH_TF_ENTER_PREFETCH_IN_CATALOG_H_
-#pragma once
 
-#include "tensorflow/core/graph/graph.h"
+#include "gtest/gtest.h"
 
-#include "ngraph/ngraph.hpp"
+#include "tensorflow/core/common_runtime/dma_helper.h"
 
-#include "ngraph_bridge/ngraph_catalog.h"
+#include "ngraph_bridge/ngraph_pipelined_tensors.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -30,10 +28,18 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-// Populate the NGraphCatalog for Prefetched Inputs
-Status EnterPrefetchInCatalog(Graph* graph, int graph_id);
+namespace testing {
 
-}  // ngraph_bridge
-}  // tensorflow
+TEST(PipelinedTensorStoreTest, SimpleTest) {
+  int in_depth = 2;
+  int out_depth = 3;
+  PipelinedTensorMatrix pipelined_input_tensors(in_depth);
+  PipelinedTensorMatrix pipelined_output_tensors(out_depth);
+  ASSERT_THROW(new PipelinedTensorsStore(pipelined_input_tensors,
+                                         pipelined_output_tensors),
+               std::runtime_error);
+}
 
-#endif
+}  // namespace testing
+}  // namespace ngraph_bridge
+}  // namespace tensorflow
