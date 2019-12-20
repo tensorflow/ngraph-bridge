@@ -35,16 +35,20 @@
 using namespace std;
 
 // Prints the available backends
-void PrintAvailableBackends() {
+int PrintAvailableBackends() {
   // Get the list of backends
   auto supported_backends =
       tensorflow::ngraph_bridge::BackendManager::GetSupportedBackendNames();
   vector<string> backends(supported_backends.begin(), supported_backends.end());
-
+  if (backends.empty()) {
+    cout << "No backend available " << endl;
+    return -1;
+  }
   cout << "Available backends: " << endl;
   for (auto& backend_name : backends) {
     cout << "Backend: " << backend_name << std::endl;
   }
+  return 0;
 }
 
 // Create a simple computation graph and run
@@ -116,12 +120,17 @@ void PrintVersion() {
                     ? std::string("Yes")
                     : std::string("No"))
             << std::endl;
-
-  PrintAvailableBackends();
+  std::cout << std::endl;
 }
 
 int main(int argc, char** argv) {
   PrintVersion();
+
+  // Print the avialable backends and if none are available
+  // error out
+  if (PrintAvailableBackends()) {
+    return -1;
+  }
 
   // Run a simple example
   RunSimpleNetworkExample();
