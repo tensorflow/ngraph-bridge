@@ -28,9 +28,13 @@ import os
 
 from common import NgraphTest
 
+#This test is just a sample test to test bf16 dtype
+#This fails, should enable and expand once CPU backend adds bfloat16 support
+
 
 class TestMatmulBfloat16(NgraphTest):
 
+    @pytest.mark.skip(reason="CPU backend does not support dtype bf16")
     def test_matmul_bfloat16(self):
         a = tf.placeholder(tf.bfloat16, [2, 3], name='a')
         x = tf.placeholder(tf.bfloat16, [3, 4], name='x')
@@ -41,6 +45,4 @@ class TestMatmulBfloat16(NgraphTest):
         def run_test(sess):
             return sess.run((out,), feed_dict={a: a_inp, x: x_inp})
 
-        # import pdb
-        # pdb.set_trace()
         assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
