@@ -151,17 +151,14 @@ void NGraphTensorManager::Initialize() {
 }
 
 //---------------------------------------------------------------------------
-// PrintVector Utility
-//---------------------------------------------------------------------------
-void PrintVector(const vector<int>& input_vector, const string title) {
-  cout << title << endl;
-  cout << ng::join(input_vector) << endl;
-}
-
-//---------------------------------------------------------------------------
 //  NGraphTensorManager::Print
 //---------------------------------------------------------------------------
 void NGraphTensorManager::Print() {
+  auto PrintVector = [](const vector<int>& input_vector, const string title) {
+    cout << title << endl;
+    cout << ng::join(input_vector) << endl;
+  };
+
   cout << "** NGEncapsulate TensorManager:" << m_ng_encap_node_name << " **"
        << endl;
 
