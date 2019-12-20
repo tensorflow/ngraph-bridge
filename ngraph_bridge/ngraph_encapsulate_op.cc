@@ -496,7 +496,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_of_outputs);
 
   // Prepare NG Input Output Tensors
-  // Retrofit Variable tensors and pipelined tensors to ng_input and ng_outputs
+  // Assemble Variable tensors and pipelined tensors to ng_input and ng_outputs
   OP_REQUIRES_OK(ctx, GetIOTensorsReadyForExecution(
                           ctx, tensor_manager, get<1>(pipelined_io_tensors),
                           get<2>(pipelined_io_tensors), ng_inputs, ng_outputs));
