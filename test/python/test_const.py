@@ -72,7 +72,6 @@ class TestConstOperations(NgraphTest):
         assert (
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
 
-
     def test_const_empty(self):
         log = logging.getLogger('test_const_empty')
         zz = tf.constant([], dtype=float, shape=[2, 3])
@@ -94,5 +93,3 @@ class TestConstOperations(NgraphTest):
         except:
             log.debug('Passed, expected NG to raise error...')
             assert True
-
-        
