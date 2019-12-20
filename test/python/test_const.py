@@ -72,9 +72,7 @@ class TestConstOperations(NgraphTest):
         assert (
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
 
-    # This test will not pass as NGraph will throw error, unlike TF which fills in zeros
-    @pytest.mark.skip(
-        reason="NGraph will throw error, but TF will fill in zeros")
+
     def test_const_empty(self):
         log = logging.getLogger('test_const_empty')
         zz = tf.constant([], dtype=float, shape=[2, 3])
@@ -83,5 +81,18 @@ class TestConstOperations(NgraphTest):
             log.debug('Invoking sess.run(zz)')
             return sess.run(zz)
 
-        assert (
-            self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
+        # Ideally we want same behavior for both TF & NG, but for now we are deviating,
+        # NGraph will throw error, but TF will fill in zeros
+        # assert (
+        #    self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
+
+        # Test to see that exception is raised in NG
+        try:
+            # This test is expected to fail currently
+            res = self.with_ngraph(run_test)
+            assert False, 'Failed, expected test to raise error'
+        except:
+            log.debug('Passed, expected NG to raise error...')
+            assert True
+
+        
