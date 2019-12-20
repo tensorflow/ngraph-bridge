@@ -395,7 +395,6 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
         current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
         op_backend, ng_element_type, ng_shape,
         m_executable_can_create_tensor ? out_group_from_pipeline[i] : nullptr);
-
     current_ng_tensor->set_stale(true);
     output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
     ng_outputs.push_back(current_ng_tensor);
@@ -416,18 +415,21 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
   // NOTE: we assume that TF's pointers WILL change if it actually changes
   // values. ie, it will not reuse the same space if its rewritten it
   bool tf_tensor_has_changed = current_tf_ptr != last_tf_ptr;
+  NGRAPH_VLOG(5) << "tf_tensor_has_changed: " << tf_tensor_has_changed;
   bool no_ng_tensor_found = last_ng_tensor == nullptr;
-  bool is_cpu = m_op_backend_name == "CPU";
+  // m_op_backend_name might be BE:0, check if it starts with BE
+  bool is_cpu_or_nnpi = (m_op_backend_name.find("CPU") == 0) ||
+                        (m_op_backend_name.find("NNPI") == 0);
 
   // We need to check last_ng_tensor != nullptr, since there are cases where
   // at the first call to the ng_exec, both current_dst_ptr (when the
   // output is a 0-sized tensor) and last_dst_ptr (uninitialized at the
   // first call) are nullptr
   // A new tensor needs to be created for sure if no_ng_tensor_found
-  // Additionally for CPU, it needs to be created if tf_tensor_has_changed,
+  // Additionally for CPU/NNPI, it needs to be created if tf_tensor_has_changed,
   // for others, we do not create
   bool need_new_tensor_creation;
-  if (is_cpu) {
+  if (is_cpu_or_nnpi) {
     need_new_tensor_creation = no_ng_tensor_found || tf_tensor_has_changed;
   } else {
     need_new_tensor_creation = no_ng_tensor_found;
@@ -449,7 +451,9 @@ std::shared_ptr<ng::runtime::Tensor> NGraphEncapsulateImpl::GetCurrentNgTensor(
     current_ng_tensor = tensor_from_pipeline;
   } else {
     if (need_new_tensor_creation) {
-      if (is_cpu) {
+      if (is_cpu_or_nnpi) {
+        NGRAPH_VLOG(5) << "Backend creating tensor with pointer: "
+                       << current_tf_ptr;
         current_ng_tensor = op_backend->create_tensor(ng_element_type, ng_shape,
                                                       current_tf_ptr);
       } else {
@@ -574,6 +578,36 @@ void NGraphEncapsulateImpl::DumpNgFunction(
     const string& file_name,
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
   StringToFile(file_name, m_serialized_ng_function_map[ng_exec]);
+}
+
+Status NGraphEncapsulateImpl::GetPersistentTFOutputTensor(
+    std::shared_ptr<ngraph::runtime::Executable> exec,
+    std::vector<tensorflow::PersistentTensor>& tf_output_tensors) {
+  auto itr = m_out_persistents.find(exec);
+  if (itr == m_out_persistents.end()) {
+    return errors::Internal(
+        "Expected persistent tensor to be present in cache");
+  } else {
+    tf_output_tensors = itr->second;
+  }
+  return Status::OK();
+}
+
+bool NGraphEncapsulateImpl::PersistentOutputsExist(
+    std::shared_ptr<ngraph::runtime::Executable> exec) {
+  return m_out_persistents.find(exec) != m_out_persistents.end();
+}
+
+Status NGraphEncapsulateImpl::RegisterPersistentOutputTensors(
+    std::shared_ptr<ngraph::runtime::Executable> exec,
+    std::vector<tensorflow::PersistentTensor> persistent_tensors) {
+  auto itr = m_out_persistents.find(exec);
+  if (itr != m_out_persistents.end()) {
+    return errors::Internal(
+        "Found an entry already exists in the cache for persistent tensors");
+  }
+  m_out_persistents.emplace(exec, persistent_tensors);
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge
