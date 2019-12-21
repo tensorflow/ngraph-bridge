@@ -86,24 +86,47 @@ class NGraphEncapsulateImpl {
       const ng::element::Type& ng_element_type, const ng::Shape& ng_shape,
       std::shared_ptr<ng::runtime::Tensor> tensor_from_pipeline);
 
+<<<<<<< HEAD
   void DumpNgFunction(const string&,
                       std::shared_ptr<ngraph::runtime::Executable>);
+=======
+  // Clear all maps with ng_exec as keys
+  void ClearExecMaps();
+
+  // Get pipeline index and input and output tensor groups from executable (if
+  // they can create tensors)
+  Status GetPipelineIdxAndTensors(
+      const std::shared_ptr<ngraph::runtime::Executable>&,
+      std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>&);
+
+  // Once done using, return the index to indicate that those executable created
+  // tensors are free for reuse
+  Status ReturnPipelinedTensors(std::shared_ptr<ngraph::runtime::Executable>,
+                                size_t);
+
+  Status DumpNgFunction(const string&,
+                        std::shared_ptr<ngraph::runtime::Executable>);
+>>>>>>> master
 
   // Accessors(getters and setters) for the private data members of
   // NgraphEncapsulateImpl class
-  // needed by
-  // NgraphEncapsulateOp class
-  const int& GetNumberOfCopies() { return number_of_copies; }
-
-  void SetNumberOfCopies(const int& number) { number_of_copies = number; }
-
-  const int& GetNgraphCluster() { return m_ngraph_cluster; }
-
-  void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
+  // needed by NgraphEncapsulateOp class
 
   int GetGraphId() { return m_graph_id; }
 
   void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
+
+#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+  const int& GetNumberOfCopies() { return number_of_copies; }
+
+  void SetNumberOfCopies(const int& number) { number_of_copies = number; }
+
+  void AppendCopyLog(const string str) { copy_log_str << str; }
+#endif
+
+  const int& GetNgraphCluster() { return m_ngraph_cluster; }
+
+  void SetNgraphCluster(const int& cluster) { m_ngraph_cluster = cluster; }
 
   const int& GetFunctionCache() { return my_function_cache_depth_in_items; }
 
@@ -128,8 +151,6 @@ class NGraphEncapsulateImpl {
   void SetLogCopies(bool value) { log_copies = value; }
 
   const string GetCopyLog() { return copy_log_str.str(); }
-
-  void SetCopyLog(const string str) { copy_log_str.str() = str; }
 
   const std::vector<bool> GetStaticInputVector() { return m_input_is_static; }
 
@@ -174,6 +195,7 @@ class NGraphEncapsulateImpl {
     m_serialized_ng_function_map.clear();
   }
 
+<<<<<<< HEAD
   void ClearNgExecPersistentOutputCache() { m_out_persistents.clear(); }
 
   Status GetPersistentTFOutputTensor(
@@ -186,6 +208,8 @@ class NGraphEncapsulateImpl {
       std::shared_ptr<ngraph::runtime::Executable>,
       std::vector<tensorflow::PersistentTensor>);
 
+=======
+>>>>>>> master
   NGraphFreshnessTracker* GetNgraphFreshnessTracker() {
     return m_freshness_tracker;
   }
@@ -205,17 +229,6 @@ class NGraphEncapsulateImpl {
 
   void ClearNgExecPipelinedTensorMap() {
     m_executable_pipelined_tensors_map.clear();
-  }
-
-  Status CachePipelinedTensorIfNeeded(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec);
-
-  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
-  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
-
-  void ReturnPipelinedTensors(
-      std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
-    m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
   }
 
   // TF Graph for the cluster
@@ -259,6 +272,11 @@ class NGraphEncapsulateImpl {
   std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>,
                      PipelinedTensorsStore>
       m_executable_pipelined_tensors_map;
+
+  Status UpdatePipelinedTensorCache(
+      std::shared_ptr<ngraph::runtime::Executable> ng_exec);
+  std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>
+  GetTensorsFromPipeline(std::shared_ptr<ngraph::runtime::Executable> ng_exec);
 
   int m_depth{2};  // TODO make this settable
 

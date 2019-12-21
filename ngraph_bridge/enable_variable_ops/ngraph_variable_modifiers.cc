@@ -26,9 +26,9 @@
 
 #include "ngraph/runtime/backend.hpp"
 
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -39,7 +39,37 @@ namespace ng = ngraph;
 namespace tensorflow {
 
 namespace ngraph_bridge {
+/* -------------------------------------------------
+//
+// NGraphApplyMomentumOp
+//
+---------------------------------------------------*/
 
+class NGraphApplyMomentumOp : public OpKernel {
+ private:
+ public:
+  explicit NGraphApplyMomentumOp(OpKernelConstruction* context)
+      : OpKernel(context) {
+    OP_REQUIRES(context, false,
+                errors::Internal("This constructor should not get called",
+                                 name(), "\n"));
+  }
+
+  //---------------------------------------------------------------------------
+  //  ~NGraphApplyMomentumOp()
+  //---------------------------------------------------------------------------
+  ~NGraphApplyMomentumOp() override {}
+
+  // This will never be called
+  void Compute(OpKernelContext* context) override {
+    OP_REQUIRES(
+        context, false,
+        errors::Internal("This kernel should not get called", name(), "\n"));
+  }  // end of compute function
+};   // end of NGraphApplyGradientDescent class definition
+
+REGISTER_KERNEL_BUILDER(Name("NGraphApplyMomentum").Device(DEVICE_CPU),
+                        NGraphApplyMomentumOp);
 /* -------------------------------------------------
 //
 // NGraphApplyGradientDescentOp

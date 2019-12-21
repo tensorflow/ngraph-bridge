@@ -45,8 +45,6 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
-
 // Test(TestCaseName, TestName)
 // Please ensure
 // Neither TestCaseName nor TestName should contain underscore
@@ -124,6 +122,45 @@ TEST(MathOps, Add) {
 
   opexecuter.RunTest();
 }  // end of test op Add
+
+// Test op: AddV2
+TEST(MathOps, AddV2) {
+  // Run a bunch of sub-test combinations to check shape broadcasting
+  vector<TensorShape> tensors_combs = {
+      // A-size, B-size
+      {2, 4}, {2, 4},  // sub-test# 1
+      {2, 4}, {2, 1},  // sub-test# 2
+      {2, 4}, {1, 4},  // sub-test# 3
+      {2, 1}, {2, 4},  // sub-test# 4
+      {1, 4}, {2, 4},  // sub-test# 5
+      {2, 4}, {1, 1},  // sub-test# 6
+      {1, 1}, {2, 4},  // sub-test# 7
+  };
+
+  for (int i = 0; i < tensors_combs.size(); i += 2) {
+    NGRAPH_VLOG(5) << "========>> Running AddV2 sub-test# " << (int)(i / 2 + 1)
+                   << " ...";
+
+    Scope root = Scope::NewRootScope();
+
+    Tensor A(DT_FLOAT, TensorShape(tensors_combs[i]));
+    Tensor B(DT_FLOAT, TensorShape(tensors_combs[i + 1]));
+
+    AssignInputValues(A, 2.1f);
+    AssignInputValues(B, 4.1f);
+
+    vector<int> static_input_indexes = {};
+    auto R = ops::AddV2(root, A, B);
+
+    vector<DataType> output_datatypes = {DT_FLOAT};
+    std::vector<Output> sess_run_fetchoutputs = {R};
+    OpExecuter opexecuter(root, "AddV2", static_input_indexes, output_datatypes,
+                          sess_run_fetchoutputs);
+
+    opexecuter.RunTest();
+  }
+
+}  // end of test op AddV2
 
 // Test op: AddN
 TEST(MathOps, AddN) {
@@ -1463,6 +1500,33 @@ TEST(MathOps, FloorModNegFloat) {
   opexecuter.RunTest();
 }  // end of test op FloorModNegFloat
 
+// Test op: IsFinite
+TEST(MathOps, IsFinite) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 8;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1}));
+  std::vector<float> values{0.f,
+                            1.f,
+                            2.f,
+                            -2.f,
+                            std::numeric_limits<float>::infinity(),
+                            -std::numeric_limits<float>::infinity(),
+                            std::numeric_limits<float>::quiet_NaN(),
+                            std::numeric_limits<float>::signaling_NaN()};
+  AssignInputValues(A, values);
+  vector<int> static_input_indexes = {};
+  auto R = ops::IsFinite(root, A);
+
+  vector<DataType> output_datatypes = {DT_BOOL};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "IsFinite", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op IsFinite
+
 // Test op: Log
 TEST(MathOps, Log1D) {
   Scope root = Scope::NewRootScope();
@@ -2002,6 +2066,122 @@ TEST(MathOps, SquaredDifferenceBroadcasting) {
 
   opexecuter.RunTest();
 }  // end of test op SquaredDifferenceBroadcasting
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSum) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({3, 4}));
+  Tensor B(DT_INT32, TensorShape({3}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValues(A, std::vector<float>{1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f,
+                                          8.f, 4.f, 3.f, 2.f, 1.f});
+  AssignInputValues(B, std::vector<int>{0, 1, 0});
+  AssignInputValues(C, 2);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSumIdxRange) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({4, 4, 3}));
+  Tensor B(DT_INT32, TensorShape({4}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValuesRandom(A);
+  AssignInputValues(B, std::vector<int>{0, 1, 2, 3});
+  AssignInputValues(C, 4);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSumMissingIndices) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({5, 4, 3}));
+  Tensor B(DT_INT32, TensorShape({5}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValuesRandom(A);
+  AssignInputValues(B, std::vector<int>{0, 1, 3, 4, 0});
+  AssignInputValues(C, 5);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSumSingleIndex) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({5, 4, 3}));
+  Tensor B(DT_INT32, TensorShape({5}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValuesRandom(A);
+  AssignInputValues(B, std::vector<int>{0, 0, 0, 0, 0});
+  AssignInputValues(C, 1);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
+
+// Test op: UnsortedSegmentSum
+TEST(MathOps, UnsortedSegmentSumTwoDims) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({2, 3, 3}));
+  Tensor B(DT_INT32, TensorShape({2, 3}));
+  Tensor C(DT_INT32, TensorShape({}));
+
+  AssignInputValuesRandom(A);
+  AssignInputValues(B, std::vector<int>{0, 1, 0, 1, 0, 1});
+  AssignInputValues(C, 2);
+
+  vector<int> static_input_indexes = {2};
+  auto R = ops::UnsortedSegmentSum(root, A, B, C);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "UnsortedSegmentSum", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op UnsortedSegmentSum
 
 }  // namespace testing
 }  // namespace ngraph_bridge

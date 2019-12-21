@@ -59,4 +59,8 @@ class TestNgraphSerialize(NgraphTest):
         new_files = final_contents.difference(initial_contents)
         flname = new_files.pop()
         assert (flname.startswith('tf_function_') and flname.endswith('json'))
+<<<<<<< HEAD
         os.remove(flname)
+=======
+        os.remove(flname)
+>>>>>>> master

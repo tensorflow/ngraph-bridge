@@ -43,6 +43,40 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set) {
+  vector<int> superset(max_element);
+  iota(begin(superset), end(superset), 0);
+
+  return FindComplement(superset, element_set);
+}
+
+// Finds the complement of element_set
+// From the superset
+// Finds: superset - element_set
+// Assumes superset and element_superset are sorted
+vector<int> FindComplement(const vector<int>& superset,
+                           const vector<int>& element_set) {
+  // max size of complement is superset
+  vector<int> complement(superset.size());
+  vector<int>::iterator it = set_difference(
+      superset.begin(), superset.begin() + superset.size(), element_set.begin(),
+      element_set.begin() + element_set.size(), complement.begin());
+  complement.resize(it - complement.begin());
+  return complement;
+}
+
+int FindNumberOfNodes(const Graph* graph, const string op_type) {
+  int count = 0;
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == op_type) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled) {
   const char* copy_env_var = std::getenv("NGRAPH_TF_LOG_TENSOR_COPIES");
@@ -62,6 +96,32 @@ Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
   is_copy_log_enabled = (test_graph_id == -1 || test_graph_id == graph_id);
   return Status::OK();
 }
+
+Status GetNgraphVarBufferSharingState(int& buffer_sharing_state) {
+  const char* ngvar_buffer_env_var =
+      std::getenv("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
+  if (ngvar_buffer_env_var == nullptr) {
+    buffer_sharing_state = -1;
+    return Status::OK();
+  }
+  int env_var_val;
+  try {
+    env_var_val = stoi(string(ngvar_buffer_env_var));
+  } catch (const std::invalid_argument& ia) {
+    return errors::InvalidArgument(
+        "Invalid argument for NGRAPH_TF_NGVARIABLE_BUFFER_SHARING. Exception: ",
+        ia.what());
+  }
+  if (env_var_val != 0 && env_var_val != 1) {
+    return errors::InvalidArgument(
+        "Invalid argument for NGRAPH_TF_NGVARIABLE_BUFFER_SHARING. Pass 1 to "
+        "enable, 0 to disable");
+  }
+
+  buffer_sharing_state = env_var_val;
+  return Status::OK();
+}
+
 void PrintTFTensor(Tensor& T1) {
   NGRAPH_VLOG(4) << "all tensor values" << (T1).SummarizeValue(64) << endl;
 }
@@ -89,8 +149,8 @@ void ReadNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                   Tensor* tf_tensor) {
   ngraph::Event event_sync_ng_tf_tensors("Tensor Read D2H", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
-  ng_tensor->read(tf_src_ptr, 0, ng_tensor->get_element_count() *
-                                     ng_tensor->get_element_type().size());
+  ng_tensor->read(tf_src_ptr, ng_tensor->get_element_count() *
+                                  ng_tensor->get_element_type().size());
   event_sync_ng_tf_tensors.Stop();
   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
@@ -100,8 +160,8 @@ void WriteNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                    Tensor* tf_tensor) {
   ngraph::Event event_sync_ng_tf_tensors("Tensor Write H2D", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
-  ng_tensor->write(tf_src_ptr, 0, ng_tensor->get_element_count() *
-                                      ng_tensor->get_element_type().size());
+  ng_tensor->write(tf_src_ptr, ng_tensor->get_element_count() *
+                                   ng_tensor->get_element_type().size());
   event_sync_ng_tf_tensors.Stop();
   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
@@ -185,6 +245,9 @@ Status TFDataTypeToNGraphElementType(DataType tf_dt,
       break;
     case DataType::DT_UINT8:
       *ng_et = ng::element::u8;
+      break;
+    case DataType::DT_INT8:
+      *ng_et = ng::element::i8;
       break;
     case DataType::DT_UINT16:
       *ng_et = ng::element::u16;
@@ -309,6 +372,7 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank) {
   return Status::OK();
 }
 
+<<<<<<< HEAD
 void NgraphSerialize(const std::string& file_name,
                      const std::shared_ptr<ngraph::Function>& ng_function) {
   NGRAPH_VLOG(0) << "Serializing graph to: " << file_name << std::endl;
@@ -321,13 +385,56 @@ void StringToFile(const std::string& file_name, const std::string& contents) {
   f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
   try {
     f.open(file_name);
+=======
+Status NgraphSerialize(const std::string& file_name,
+                       const std::shared_ptr<ngraph::Function>& ng_function) {
+  int json_indentation = 4;
+  string serialized;
+  if (ng_function == nullptr) {
+    return errors::Internal(
+        "Passed a null pointer as ng function to serialize");
+  }
+  try {
+    serialized = ngraph::serialize(ng_function, json_indentation);
+  } catch (...) {
+    return errors::Internal("Failed to serialize ngraph function");
+  }
+  return StringToFile(file_name, serialized, true);
+}
+
+string SanitizeFileName(const string file_name) {
+  // Sanitizing file name to take care of '/' that might be present in TF node
+  // names
+  string new_file_name;
+  // The valid TF node names seem to be: [A-Za-z0-9.][A-Za-z0-9_.\\-/]*
+  // . is another non-alphanumeric char, but once / are replaced by --, . is
+  // fine in a file name.
+  for (const auto& itr : file_name) {
+    new_file_name += ((itr == '/') ? string("--") : string({itr}));
+  }
+  return new_file_name;
+}
+
+Status StringToFile(const std::string& file_name, const std::string& contents,
+                    bool sanitize_name) {
+  string new_file_name =
+      sanitize_name ? SanitizeFileName(file_name) : file_name;
+  NGRAPH_VLOG(0) << "Serializing graph to: " << new_file_name << std::endl;
+  std::ofstream f;
+  f.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  try {
+    f.open(new_file_name);
+>>>>>>> master
     f << contents;
     f.close();
   } catch (std::ofstream::failure& e) {
-    NGRAPH_VLOG(0) << "Exception opening/closing file " << file_name
+    NGRAPH_VLOG(0) << "Exception opening/closing file " << new_file_name
                    << std::endl;
     NGRAPH_VLOG(0) << e.what() << std::endl;
+    return errors::Internal("Failed to dump string to file. Filename: ",
+                            new_file_name, ". Exception: ", e.what());
   }
+  return Status::OK();
 }
 
 void MemoryProfile(long& vm_usage, long& resident_set) {
@@ -390,6 +497,41 @@ std::string GraphFilenamePrefix(std::string kind, int idx, int sub_idx) {
   return ss.str();
 }
 
+void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
+                std::string filename_prefix, std::string title) {
+  // If we have a "main" graph, dump that.
+  if (options.graph != nullptr) {
+    auto dot_filename = DotFilename(filename_prefix, idx);
+    auto pbtxt_filename = PbtxtFilename(filename_prefix, idx);
+    NGRAPH_VLOG(0) << "Dumping main graph to " << dot_filename;
+    NGRAPH_VLOG(0) << "Dumping main graph to " << pbtxt_filename;
+
+    GraphToDotFile(options.graph->get(), dot_filename, title);
+    GraphToPbTextFile(options.graph->get(), pbtxt_filename);
+  }
+
+  // If we have partition graphs (we shouldn't), dump those.
+  if (options.partition_graphs != nullptr) {
+    int sub_idx = 0;
+
+    for (auto& kv : *options.partition_graphs) {
+      auto dot_filename = DotFilename(filename_prefix, idx, sub_idx);
+      auto pbtxt_filename = PbtxtFilename(filename_prefix, idx, sub_idx);
+      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
+                     << dot_filename;
+      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
+                     << pbtxt_filename;
+
+      Graph* pg = kv.second.get();
+
+      GraphToDotFile(pg, dot_filename, title);
+      GraphToPbTextFile(pg, pbtxt_filename);
+
+      sub_idx++;
+    }
+  }
+}
+
 bool DumpAllGraphs() { return std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr; }
 
 bool DumpPrecaptureGraphs() {
@@ -430,6 +572,11 @@ bool DumpEncapsulatedGraphs() {
 bool DumpTrackedGraphs() {
   return DumpAllGraphs() ||
          std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
+}
+
+bool DumpCatalogedGraphs() {
+  return DumpAllGraphs() ||
+         std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
 }
 
 #if defined(NGRAPH_DISTRIBUTED)

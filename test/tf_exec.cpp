@@ -41,6 +41,7 @@ namespace ngraph_bridge {
 
 namespace testing {
 
+<<<<<<< HEAD
 #define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 
 Status LoadGraph(const string& graph_file_name,
@@ -105,6 +106,9 @@ Status CreateSession(const string& graph_filename, const string& backend_name,
 // (symmetric parallel)
 TEST(tf_exec, SingleGraphOn2Threads) {
   SetEnvVariable("NGRAPH_TF_DISABLE_PERSISTENT", "1");
+=======
+TEST(TFExec, SingleGraphOn2Threads) {
+>>>>>>> master
   string graph_name = "test_axpy.pbtxt";
   vector<string> backends{"CPU", "INTERPRETER"};
   for (auto be : backends) {
@@ -148,7 +152,7 @@ TEST(tf_exec, SingleGraphOn2Threads) {
   UnsetEnvVariable("NGRAPH_TF_DISABLE_PERSISTENT");
 }
 
-TEST(tf_exec, hello_world) {
+TEST(TFExec, hello_world) {
   Scope root = Scope::NewRootScope();
 
   // root = root.WithDevice("/device:NGRAPH:0");
@@ -167,7 +171,7 @@ TEST(tf_exec, hello_world) {
   LOG(INFO) << outputs[0].matrix<float>();
 }
 
-TEST(tf_exec, axpy) {
+TEST(TFExec, axpy) {
   GraphDef gdef;
   // auto status = ReadTextProto(Env::Default(), "test_py.pbtxt",
   // &gdef);
@@ -177,6 +181,31 @@ TEST(tf_exec, axpy) {
   // graph::SetDefaultDevice("/device:NGRAPH:0", &gdef);
 
   SessionOptions options;
+  options.config.mutable_graph_options()
+      ->mutable_optimizer_options()
+      ->set_opt_level(tf::OptimizerOptions_Level_L0);
+  options.config.mutable_graph_options()
+      ->mutable_rewrite_options()
+      ->set_constant_folding(tf::RewriterConfig::OFF);
+
+  if (ngraph_tf_is_grappler_enabled()) {
+    auto* custom_config = options.config.mutable_graph_options()
+                              ->mutable_rewrite_options()
+                              ->add_custom_optimizers();
+
+    custom_config->set_name("ngraph-optimizer");
+    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s("CPU");
+    (*custom_config->mutable_parameter_map())["device_id"].set_s("0");
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_min_graph_nodes(-1);
+
+    options.config.mutable_graph_options()
+        ->mutable_rewrite_options()
+        ->set_meta_optimizer_iterations(tf::RewriterConfig::ONE);
+  }
+
   ConfigProto& config = options.config;
   config.set_allow_soft_placement(true);
   std::unique_ptr<Session> session(NewSession(options));

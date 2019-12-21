@@ -1,2 +1,6 @@
 https://github.com/keras-team/keras.git
+<<<<<<< HEAD
 2.2.5
+=======
+2.2.5
+>>>>>>> master

@@ -248,7 +248,11 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
+<<<<<<< HEAD
         GIT_TAG v0.25.1-rc.10
+=======
+        GIT_TAG v0.27.1-rc.1
+>>>>>>> master
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
@@ -361,6 +365,7 @@ get_filename_component(
     ABSOLUTE
 )
 
+add_subdirectory(experimental/ngraph_device)
 add_subdirectory(examples)
 if (DEFINED TF_SRC_DIR)
     message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")

@@ -40,6 +40,7 @@ namespace ngraph_bridge {
 // THIS CLASS IS NOT BEING USED ANYWHERE
 class NGraphVar : public ResourceBase {
  public:
+<<<<<<< HEAD
   explicit NGraphVar(DataType dtype, TensorShape shape, string BackendName)
       : tf_tensor_(dtype, shape),
         ng_backend_name_(BackendName),
@@ -74,6 +75,10 @@ class NGraphVar : public ResourceBase {
       ng_tensor_ = op_backend->create_tensor(ng_element_type, ng_shape);
     }
   }
+=======
+  explicit NGraphVar(DataType dtype, TensorShape shape, string BackendName);
+
+>>>>>>> master
   // Not copyable or movable.
   NGraphVar(const NGraphVar&) = delete;
   NGraphVar& operator=(const NGraphVar&) = delete;
@@ -87,64 +92,27 @@ class NGraphVar : public ResourceBase {
                            tf_tensor_.shape().DebugString());
   }
 
-  bool need_sync_ng_tensor() { return sync_ng_tensor_; }
-  void set_sync_ng_tensor(bool sync_ng_tensor) {
-    sync_ng_tensor_ = sync_ng_tensor;
-  }
-
   // Copies the NG Tensor to TF Tensor for this variable
   // Involves a copy from device to host
   // Returns the number of tensor copies made (0 or 1)
-  int copy_ng_to_tf() {
-    if (ng_tf_share_buffer_) {
-      return 0;
-    }
-    ReadNGTensor(ng_tensor_, &tf_tensor_);
-    return 1;
-  }
+  int copy_ng_to_tf();
 
   // Copies the TF Tensor to NG Tensor for this variable
   // Involves a copy from host to device
   // Returns the number of tensor copies made (0 or 1)
-  int copy_tf_to_ng() {
-    if (ng_tf_share_buffer_) {
-      return 0;
-    }
-    WriteNGTensor(ng_tensor_, &tf_tensor_);
-    return 1;
-  }
-
-  // If the NGTensor is behind TF Tensor (ie if NGTensor is out-of-date)
-  // It updates ng_tensor by copy_tf_to_ng
-  // Returns the number of tensor copies made (0 or 1)
-  int sync_ng_tensor() {
-    if (sync_ng_tensor_) {
-      return copy_tf_to_ng();
-    }
-    return 0;
-  }
+  int copy_tf_to_ng();
 
   // updates the NGTensor with the new value
   // This new_value could be from ngraph-tensor, for e.g. when computed from
   // NGraphEncapsulateOp
   // and saved in Catalog
   // Returns the number of tensor copies made (0 or 1)
-  int update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value) {
-    ng_tensor_->copy_from(*new_value);
-    return 0;
-  }
+  int update_ng_tensor(shared_ptr<ngraph::runtime::Tensor> new_value);
 
   // updates the NGTensor with the new value
   // This new_value could be from tf-tensor, for e.g. when computed from a TF op
   // Returns the number of tensor copies made (0 or 1)
-  int update_ng_tensor(Tensor* new_value) {
-    WriteNGTensor(ng_tensor_, new_value);
-    if (ng_tf_share_buffer_) {
-      return 0;
-    }
-
-    return 1;
-  }
+  int update_ng_tensor(Tensor* new_value);
 
  private:
   mutex mu_;
@@ -152,8 +120,6 @@ class NGraphVar : public ResourceBase {
   shared_ptr<ngraph::runtime::Tensor> ng_tensor_;
   string ng_backend_name_;
   bool ng_tf_share_buffer_;
-  // sync from tf to ng
-  bool sync_ng_tensor_;
   ~NGraphVar() override {
     // Release the backend
     NGRAPH_VLOG(2) << "~NGraphVar::ReleaseBackend";

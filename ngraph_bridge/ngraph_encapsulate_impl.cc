@@ -45,8 +45,8 @@
 #include "ngraph_bridge/ngraph_utils.h"
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 #endif
 
 using namespace std;
@@ -155,12 +155,23 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     // Serialize to nGraph if needed
     if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
       std::string file_name = "tf_function_" + m_name + ".json";
+<<<<<<< HEAD
       StringToFile("tf_function_" + m_name + ".json", serialized_ng_func);
 #if defined NGRAPH_DISTRIBUTED
       int rank_id;
       rank_id = ng::get_distributed_interface()->get_rank();
       StringToFile("tf_function_" + m_name + "_" + to_string(rank_id) + ".json",
                    serialized_ng_func);
+=======
+      TF_RETURN_IF_ERROR(
+          StringToFile("tf_function_" + m_name + ".json", serialized_ng_func));
+#if defined NGRAPH_DISTRIBUTED
+      int rank_id;
+      rank_id = ng::get_distributed_interface()->get_rank();
+      TF_RETURN_IF_ERROR(StringToFile(
+          "tf_function_" + m_name + "_" + to_string(rank_id) + ".json",
+          serialized_ng_func));
+>>>>>>> master
 #endif
     }
     // Evict the cache if the number of elements exceeds the limit
@@ -223,6 +234,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       }
     } catch (const std::exception& exp) {
       BackendManager::UnlockBackend(m_op_backend_name);
+<<<<<<< HEAD
       StringToFile("tf_function_error_" + m_name + ".json", serialized_ng_func);
       return errors::Internal("Caught exception while compiling op_backend: ",
                               exp.what(), "\n");
@@ -230,16 +242,36 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       BackendManager::UnlockBackend(m_op_backend_name);
       StringToFile("tf_function_error_" + m_name + ".json", serialized_ng_func);
       return errors::Internal("Error in compiling op_backend\n");
+=======
+      Status st = StringToFile("tf_function_error_" + m_name + ".json",
+                               serialized_ng_func);
+      string status_string =
+          "Caught exception while compiling op_backend: " + string(exp.what()) +
+          (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                           st.error_message()));
+      return errors::Internal(status_string);
+    } catch (...) {
+      BackendManager::UnlockBackend(m_op_backend_name);
+      Status st = StringToFile("tf_function_error_" + m_name + ".json",
+                               serialized_ng_func);
+      string status_string =
+          "Error in compiling op_backend." +
+          (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                           st.error_message()));
+      return errors::Internal(status_string);
+>>>>>>> master
     }
     BackendManager::UnlockBackend(m_op_backend_name);
     event_compile.Stop();
     ngraph::Event::write_trace(event_compile);
 
     SetNgExecMap(signature, ng_exec);
+
     // caching ng_function to serialize to ngraph if needed
     m_serialized_ng_function_map[ng_exec] = serialized_ng_func;
 
     m_lru.push_front(signature);
+<<<<<<< HEAD
     if (config::IsMemoryProfilingEnabled()) {
       // Memory after
       MemoryProfile(vm, rss);
@@ -252,6 +284,18 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                 << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
                 << " VM: " << vm / (1024 * 1024) << " GB" << endl;
     }
+=======
+    // Memory after
+    MemoryProfile(vm, rss);
+    auto delta_vm_mem = vm - vm0;
+    auto delta_res_mem = rss - rss0;
+    NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
+                   << " Cache length: " << m_ng_exec_map.size()
+                   << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
+                   << " Delta RSS: " << delta_res_mem
+                   << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
+                   << " VM: " << vm / (1024 * 1024) << " GB" << endl;
+>>>>>>> master
   }  // end of input signature not found in m_ng_exec_map
   else {
     // Found the input signature in m_ng_exec_map, use the cached executable
@@ -331,7 +375,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
         copy_log_str << " COPY_INP_VAL[" << i << "]";
 #endif
         current_ng_tensor->write(
-            current_src_ptr, 0,
+            current_src_ptr,
             current_ng_tensor->get_element_count() * ng_element_type.size());
 
       } catch (const std::exception& exp) {
@@ -527,11 +571,11 @@ Status NGraphEncapsulateImpl::ParseNodeAttributes(
   return Status::OK();
 }
 
-Status NGraphEncapsulateImpl::CachePipelinedTensorIfNeeded(
+Status NGraphEncapsulateImpl::UpdatePipelinedTensorCache(
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
   if (!m_executable_can_create_tensor) {
     return errors::Internal(
-        "CachePipelinedTensorIfNeeded called, but executable cannot create "
+        "UpdatePipelinedTensorCache called, but executable cannot create "
         "tensors");
   }
   auto itr = m_executable_pipelined_tensors_map.find(ng_exec);
@@ -539,13 +583,20 @@ Status NGraphEncapsulateImpl::CachePipelinedTensorIfNeeded(
     // Create these pipelined ng tensors only if needed, else reuse from cache
     size_t num_inputs = ng_exec->get_parameters().size();
     size_t num_outputs = ng_exec->get_results().size();
-    PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
-    PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
+    PipelinedTensorMatrix pipelined_input_tensors(m_depth);
+    PipelinedTensorMatrix pipelined_output_tensors(m_depth);
+    PipelinedTensorVector temp;
     for (size_t i = 0; i < num_inputs; i++) {
-      pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, m_depth);
+      temp = ng_exec->create_input_tensor(i, m_depth);
+      for (size_t j = 0; j < temp.size(); j++) {
+        pipelined_input_tensors[j].push_back(temp[j]);
+      }
     }
     for (size_t i = 0; i < num_outputs; i++) {
-      pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, m_depth);
+      temp = ng_exec->create_output_tensor(i, m_depth);
+      for (size_t j = 0; j < temp.size(); j++) {
+        pipelined_output_tensors[j].push_back(temp[j]);
+      }
     }
     m_executable_pipelined_tensors_map.insert(
         {ng_exec, PipelinedTensorsStore(pipelined_input_tensors,
@@ -574,6 +625,7 @@ NGraphEncapsulateImpl::GetTensorsFromPipeline(
   return out_tpl;
 }
 
+<<<<<<< HEAD
 void NGraphEncapsulateImpl::DumpNgFunction(
     const string& file_name,
     std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
@@ -607,6 +659,61 @@ Status NGraphEncapsulateImpl::RegisterPersistentOutputTensors(
         "Found an entry already exists in the cache for persistent tensors");
   }
   m_out_persistents.emplace(exec, persistent_tensors);
+=======
+Status NGraphEncapsulateImpl::DumpNgFunction(
+    const string& file_name,
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec) {
+  auto itr = m_serialized_ng_function_map.find(ng_exec);
+  if (itr == m_serialized_ng_function_map.end()) {
+    return errors::Internal(
+        "Did not find requested executable in map for exec->serialized ngraph "
+        "function when dumping ngraph function");
+  }
+  return StringToFile(file_name, itr->second);
+}
+
+void NGraphEncapsulateImpl::NGraphEncapsulateImpl::ClearExecMaps() {
+  m_ng_exec_input_cache_map.clear();
+  m_ng_exec_output_cache_map.clear();
+  m_ng_exec_map.clear();
+  m_serialized_ng_function_map.clear();
+  m_executable_pipelined_tensors_map.clear();
+}
+
+Status NGraphEncapsulateImpl::GetPipelineIdxAndTensors(
+    const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
+    std::tuple<int, PipelinedTensorVector, PipelinedTensorVector>& tpl) {
+  // Check if the pipelined tensors for this executable is created
+  // If not create and add them to the cache
+  TF_RETURN_IF_ERROR(UpdatePipelinedTensorCache(ng_exec));
+  // Cache must contain the ng_exec at this point
+
+  try {
+    tpl = GetTensorsFromPipeline(ng_exec);
+  } catch (const std::exception& exp) {
+    return errors::Internal(
+        "Caught exception while getting pipelined tensors: ", exp.what(), "\n");
+  }
+
+  auto pipeline_idx = get<0>(tpl);
+  if (pipeline_idx < 0) {
+    return errors::Internal(
+        "Expected GetTensorsFromPipeline to return an index >= 0, but got ",
+        pipeline_idx);
+  }
+  return Status::OK();
+}
+
+Status NGraphEncapsulateImpl::ReturnPipelinedTensors(
+    std::shared_ptr<ngraph::runtime::Executable> ng_exec, size_t idx) {
+  try {
+    m_executable_pipelined_tensors_map.at(ng_exec).return_tensors(idx);
+  } catch (const std::exception& exp) {
+    return errors::Internal(
+        "Caught exception while returning pipelined tensors: ", exp.what(),
+        "\n");
+  }
+>>>>>>> master
   return Status::OK();
 }
 

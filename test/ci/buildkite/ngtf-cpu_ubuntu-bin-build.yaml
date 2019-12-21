@@ -5,7 +5,11 @@
     label: ":gear: Setup"
     timeout_in_minutes: 30
     agents:
+<<<<<<< HEAD
     - "queue=cpu"
+=======
+    - "queue=cpu_gcc_4.8"
+>>>>>>> master
     parallelism: 1
 
   - wait
@@ -17,7 +21,11 @@
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
     agents:
+<<<<<<< HEAD
     - "queue=cpu"
+=======
+    - "queue=cpu_gcc_4.8"
+>>>>>>> master
     parallelism: 1
 
   - wait
@@ -31,7 +39,11 @@
     label: ":bazel: Bazel Build"
     timeout_in_minutes: 30
     agents:
+<<<<<<< HEAD
     - "queue=cpu"
+=======
+    - "queue=cpu_gcc_4.8"
+>>>>>>> master
 
   - wait
 
@@ -44,13 +56,20 @@
     label: ":bar_chart: ResNet50"
     timeout_in_minutes: 30
     agents:
+<<<<<<< HEAD
     - "queue=cpu"
+=======
+    - "queue=cpu_gcc_4.8"
+>>>>>>> master
 
   - wait: ~
-    continue_on_failure: true
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
     agents:
+<<<<<<< HEAD
     - "queue=cpu"
+=======
+    - "queue=cpu_gcc_4.8"
+>>>>>>> master
 

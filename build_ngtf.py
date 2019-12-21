@@ -53,7 +53,11 @@ def main():
     '''
 
     # Component versions
+<<<<<<< HEAD
     ngraph_version = "v0.25.1-rc.10"
+=======
+    ngraph_version = "v0.27.1-rc.1"
+>>>>>>> master
     tf_version = "v1.14.0"
 
     # Command line parser options
@@ -453,6 +457,7 @@ def main():
         "-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=" +
         flag_string_map[arguments.enable_variables_and_optimizers]
     ])
+
     ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=" +
         flag_string_map[arguments.use_grappler_optimizer]

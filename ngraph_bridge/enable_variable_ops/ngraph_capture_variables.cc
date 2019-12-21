@@ -20,6 +20,8 @@
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
+#include "ngraph_bridge/ngraph_find_replace_prefetchdataset.h"
+#include "ngraph_bridge/ngraph_prefetch_shared_data.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
@@ -42,23 +44,26 @@ static bool NGraphPlacementRequested(const Node* node) { return true; }
 Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
   const static std::map<
       const string,
-      const pair<
-          string,
-          function<Status(
-              Graph * graph, Node * node, Node * *replacement,
-              const string replacement_node_name,
-              const string replacement_op_type, const bool just_looking,
-              const bool is_tf_just_looking, const bool outputs_ng_supported,
-              const int graph_id, const bool is_backend_set)>>>
+      const pair<string,
+                 function<Status(
+                     Graph * graph, Node * node, Node * *replacement,
+                     const string replacement_node_name,
+                     const string replacement_op_type, const bool just_looking,
+                     const bool outputs_ng_supported, const int graph_id,
+                     const bool is_backend_set)>>>
       CAPTURE_REPLACE_OP_MAP{
-          {"ApplyGradientDescent", std::make_pair("NGraphApplyGradientDescent",
-                                                  ReplaceApplyGradientDescent)},
+          {"ApplyGradientDescent",
+           std::make_pair("NGraphApplyGradientDescent", ReplaceOptimizer)},
+          {"ApplyMomentum",
+           std::make_pair("NGraphApplyMomentum", ReplaceOptimizer)},
+
           {"Assign", std::make_pair("NGraphAssign", ReplaceAssign)},
           {"AssignAdd", std::make_pair("NGraphAssignAdd", ReplaceAssign)},
           {"AssignSub", std::make_pair("NGraphAssignSub", ReplaceAssign)},
           {"VariableV2", std::make_pair("NGraphVariable", ReplaceVariable)}};
 
-  std::vector<Node*> nodes_to_capture;
+  std::set<Node*> nodes_to_capture;
+  std::vector<Node*> make_iterator_nodes;
 
   for (auto node : graph->op_nodes()) {
     std::set<Node*> ref_list;
@@ -77,11 +82,13 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           for (auto n : ref_list) {
             auto itr = CAPTURE_REPLACE_OP_MAP.find(n->type_string());
             if (itr != CAPTURE_REPLACE_OP_MAP.end()) {
-              nodes_to_capture.push_back(n);
+              nodes_to_capture.insert(n);
             }
           }
           ref_list.clear();
         }
+      } else if (node->type_string() == "MakeIterator") {
+        make_iterator_nodes.push_back(node);
       }
     }
   }
@@ -92,10 +99,9 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     // Create the replacement node
     TF_RETURN_IF_ERROR((itr->second.second)(graph, node, &replacement,
                                             node->name(), itr->second.first,
-                                            true, false, false, 0, false));
+                                            true, false, 0, false));
     NGRAPH_VLOG(4) << "Replacing Node " << node->DebugString() << " with "
                    << replacement->DebugString();
-
     TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
     TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
   }  // end of looping through nodes in the capture list
@@ -105,6 +111,32 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
     graph->RemoveNode(node);
   }
 
+  // If Prefetch is requested
+  if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
+      nullptr) {
+    if (make_iterator_nodes.size() > 1) {
+      return errors::Internal(
+          "Found more than 1 MakeIterator nodes. This case is not supported.");
+    }
+    // Else try to capture it
+    Node* make_iterator_node = make_iterator_nodes[0];
+    // We expect the MakeIterator to have 1 input thats
+    // an iterator and the other one can be either a
+    // PrefetchDataset node or a ModelDataset node
+    // Other cases are not handled at the moment.
+    Node* prefetch_node = FindPrefetch(make_iterator_node);
+    if (prefetch_node != nullptr) {
+      return ReplacePrefetch(graph, prefetch_node);
+    } else {
+      return errors::Internal(
+          "Did not find PrefetchDataset or "
+          "ModelDataset+OptimizeDataset+PrefetchDataset as MakeIterator "
+          "nodes' inputs. Only those 2 cases are handled for now.");
+    }
+  }
+
+  make_iterator_nodes.clear();
+  nodes_to_capture.clear();
   return Status::OK();
 }
 

@@ -41,6 +41,7 @@ def install_ngraph_bridge(artifacts_dir):
     # Determine the ngraph whl
     ngtf_wheel_files = glob.glob(artifacts_dir +
                                  "/ngraph_tensorflow_bridge-*.whl")
+
     if (len(ngtf_wheel_files) != 1):
         print("Multiple Python whl files exist. Please remove old wheels")
         for whl in ngtf_wheel_files:
@@ -599,7 +600,11 @@ def run_bazel_build_test(venv_dir, build_dir):
     command_executor(['bazel-bin/hello_tf'])
 
     # Now built the bigger app
+<<<<<<< HEAD
     command_executor(['bazel', 'build', 'infer_multi'])
+=======
+    command_executor(['bazel', 'build', 'infer_multiple_networks'])
+>>>>>>> master
 
     # Return to the original directory
     os.chdir(root_pwd)
@@ -619,7 +624,11 @@ def run_bazel_build():
     command_executor(['bazel-bin/hello_tf'])
 
     # Now built the bigger app
+<<<<<<< HEAD
     command_executor(['bazel', 'build', 'infer_multi'])
+=======
+    command_executor(['bazel', 'build', 'infer_multiple_networks'])
+>>>>>>> master
 
     # Return to the original directory
     os.chdir(root_pwd)
