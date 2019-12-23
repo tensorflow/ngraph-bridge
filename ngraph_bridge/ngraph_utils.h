@@ -142,36 +142,34 @@ Status ValuesFromConstNode(const NodeDef& node,
     values->resize(n_elements);
 
     auto val_lastsaved = 0;
-#define SET_VALS(val_size, val_vec)                        \
-  if (val_size == 0) {                                     \
-    return errors::InvalidArgument("Empty values vector"); \
-  } else if (i < val_size) {                               \
-    (*values)[i] = val_vec[i];                             \
-    val_lastsaved = val_vec[i];                            \
-  } else {                                                 \
-    (*values)[i] = val_lastsaved;                          \
-  }
 
     for (auto i = 0; i < n_elements; i++) {
       auto& tensor = node.attr().at("value").tensor();
       auto dt = node.attr().at("dtype").type();
+      int64 val_size = 0;
+      auto val_i = 0;
       switch (dt) {
         // TODO(amprocte/NGRAPH-2502): there are more element types to support
         // here
         case DT_INT32:
-          SET_VALS(tensor.int_val_size(), tensor.int_val());
+          val_size = tensor.int_val_size();
+          if (val_size > 0) val_i = tensor.int_val()[i];
           break;
         case DT_INT64:
-          SET_VALS(tensor.int64_val_size(), tensor.int64_val());
+          val_size = tensor.int64_val_size();
+          if (val_size > 0) val_i = tensor.int64_val()[i];
           break;
         case DT_FLOAT:
-          SET_VALS(tensor.float_val_size(), tensor.float_val());
+          val_size = tensor.float_val_size();
+          if (val_size > 0) val_i = tensor.float_val()[i];
           break;
         case DT_BOOL:
-          SET_VALS(tensor.bool_val_size(), tensor.bool_val());
+          val_size = tensor.bool_val_size();
+          if (val_size > 0) val_i = tensor.bool_val()[i];
           break;
         case DT_DOUBLE:
-          SET_VALS(tensor.double_val_size(), tensor.double_val());
+          val_size = tensor.double_val_size();
+          if (val_size > 0) val_i = tensor.double_val()[i];
           break;
         default:
           NGRAPH_VLOG(0)
@@ -183,8 +181,15 @@ Status ValuesFromConstNode(const NodeDef& node,
                                        DataType_Name(dt),
                                        " on an empty tensor");
       }
+      if (val_size == 0) {
+        return errors::InvalidArgument("Empty values vector");
+      } else if (i < val_size) {
+        (*values)[i] = val_i;
+        val_lastsaved = val_i;
+      } else {
+        (*values)[i] = val_lastsaved;
+      }
     }
-#undef SET_VALS
   } else {
     values->resize(tensor_content_size / sizeof(VecT));
     port::CopyToArray(tensor.tensor_content(),
