@@ -798,7 +798,7 @@ static Status TranslateBatchMatMulOp(
     if (ng_lhs_shape[i] != ng_rhs_shape[i]) {
       return errors::InvalidArgument(
           "ng_lhs_shape and ng_rhs_shape must be the same for BatchMatMul "
-          "for each dimension",
+          "for each dimension ",
           i);
     }
     out_axes.push_back(i);
@@ -811,12 +811,7 @@ static Status TranslateBatchMatMulOp(
 
   auto ng_lhs_axes = out_axes;
   auto ng_rhs_axes = out_axes;
-
-  if (n_dims == 3) {
-    SaveNgOp(ng_op_map, op->name(),
-             ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
-                 op->name(), ng_lhs, ng_rhs, tf_adj_x, tf_adj_y));
-  } else {
+  if (n_dims == 2) {
     // Transpose X if AdjX = true
     if (tf_adj_x) {
       ng_lhs_axes.push_back(n_dims - 1);
@@ -839,39 +834,45 @@ static Status TranslateBatchMatMulOp(
       ng_rhs_axes.push_back(n_dims - 2);
       ng_rhs_axes.push_back(n_dims - 1);
     }
+    SaveNgOp(ng_op_map, op->name(),
+             ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs));
+  } else if (n_dims == 3) {
+    SaveNgOp(ng_op_map, op->name(),
+             ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
+                 op->name(), ng_lhs, ng_rhs, tf_adj_x, tf_adj_y));
+  } else {
+    ng_lhs_axes.push_back(n_dims - 2);
+    ng_lhs_axes.push_back(n_dims - 1);
+    ng_rhs_axes.push_back(n_dims - 2);
+    ng_rhs_axes.push_back(n_dims - 1);
 
-    if (n_dims == 2) {
-      SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs));
-    } else {
-      // Find the compound size for dim1 so as to reshape to 3D
-      size_t compound_size = 1;
-      for (size_t i = 0; i < out_axes.size(); i++) {
-        compound_size *= ng_lhs_shape[i];
-      }
-
-      ng::Shape tmp_lhs_shape = {compound_size, ng_lhs_shape[n_dims - 2],
-                                 ng_lhs_shape[n_dims - 1]};
-      ng::Shape tmp_rhs_shape = {compound_size, ng_rhs_shape[n_dims - 2],
-                                 ng_rhs_shape[n_dims - 1]};
-
-      auto output_shape = ng_lhs_shape;
-      output_shape[n_dims - 1] = ng_rhs_shape[n_dims - 1];
-      ng::AxisVector tmp_axes = {0, 1, 2};
-
-      std::shared_ptr<ng::Node> lhs_reshape =
-          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, ng_lhs_axes,
-                                               tmp_lhs_shape);
-      std::shared_ptr<ng::Node> rhs_reshape =
-          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, ng_rhs_axes,
-                                               tmp_rhs_shape);
-      std::shared_ptr<ng::Node> batchmatmul =
-          ConstructNgNode<ngraph::op::BatchMatMul>(op->name(), lhs_reshape,
-                                                   rhs_reshape);
-      SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ngraph::op::Reshape>(op->name(), batchmatmul,
-                                                    tmp_axes, output_shape));
+    size_t compound_size = 1;
+    for (size_t i = 0; i < out_axes.size(); i++) {
+      compound_size *= ng_lhs_shape[i];
     }
+
+    ng::Shape tmp_lhs_shape = {compound_size, ng_lhs_shape[n_dims - 2],
+                               ng_lhs_shape[n_dims - 1]};
+    ng::Shape tmp_rhs_shape = {compound_size, ng_rhs_shape[n_dims - 2],
+                               ng_rhs_shape[n_dims - 1]};
+
+    auto output_shape = ng_lhs_shape;
+    output_shape[n_dims - 2] = ng_lhs_shape[n_dims - (tf_adj_x ? 1 : 2)];
+    output_shape[n_dims - 1] = ng_rhs_shape[n_dims - (tf_adj_y ? 2 : 1)];
+    ng::AxisVector tmp_axes = {0, 1, 2};
+
+    std::shared_ptr<ng::Node> lhs_reshape =
+        ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, ng_lhs_axes,
+                                             tmp_lhs_shape);
+    std::shared_ptr<ng::Node> rhs_reshape =
+        ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, ng_rhs_axes,
+                                             tmp_rhs_shape);
+    std::shared_ptr<ng::Node> batchmatmul_transpose =
+        ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
+            op->name(), lhs_reshape, rhs_reshape, tf_adj_x, tf_adj_y);
+    SaveNgOp(ng_op_map, op->name(),
+             ConstructNgNode<ngraph::op::Reshape>(
+                 op->name(), batchmatmul_transpose, tmp_axes, output_shape));
   }
   return Status::OK();
 }
