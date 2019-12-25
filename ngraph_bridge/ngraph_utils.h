@@ -141,13 +141,13 @@ Status ValuesFromConstNode(const NodeDef& node,
     }
     values->resize(n_elements);
 
-    auto val_lastsaved = (T) 0; // cast
+    auto val_lastsaved = (T)0;  // cast
 
     for (auto i = 0; i < n_elements; i++) {
       auto& tensor = node.attr().at("value").tensor();
       auto dt = node.attr().at("dtype").type();
       int64 val_size = 0;
-      auto val_i = (T) 0; // cast
+      auto val_i = (T)0;  // cast
       switch (dt) {
         // TODO(amprocte/NGRAPH-2502): there are more element types to support
         // here
