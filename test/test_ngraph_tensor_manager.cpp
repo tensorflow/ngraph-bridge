@@ -62,15 +62,12 @@ class NGraphTensorManagerTest : public ::testing::Test {
         ng_encap_graph_id, ng_encap_node_name, indexes_need_copy);
   }
 
+  // Utility to Simulate entering prefetch info in catalog
   void EnterPrefetchInCatalog(const int& ng_encap_graph_id,
                               const string& ng_encap_node_name,
-                              const vector<int>& prefetched_inp_indexes) {
-    unordered_set<int> pref_indexes;
-    for (int index : prefetched_inp_indexes) {
-      pref_indexes.insert(index);
-    }
+                              const map<int, int>& prefetched_inp_indexes_map) {
     NGraphCatalog::AddToPrefetchedInputIndexMap(
-        ng_encap_graph_id, ng_encap_node_name, pref_indexes);
+        ng_encap_graph_id, ng_encap_node_name, prefetched_inp_indexes_map);
   }
 
   // Clears the Catalog
@@ -81,6 +78,24 @@ class NGraphTensorManagerTest : public ::testing::Test {
     vector<int> vout(size);
     iota(vout.begin(), vout.end(), 0);
     return vout;
+  }
+
+  // Utility to Simulate entering variable shared name info info in catalog
+  void EnterVarSharedInfoInCatalog(
+      const int& ng_encap_graph_id, const string& ng_encap_node_name,
+      const unordered_map<int, string>& input_var_info_map,
+      const unordered_map<int, tuple<string, bool>>& output_var_info_map) {
+    for (auto itr : input_var_info_map) {
+      string key = NGraphCatalog::CreateNodeKey(ng_encap_graph_id,
+                                                ng_encap_node_name, itr.first);
+      NGraphCatalog::AddToInputVariableSharedNameMap(key, itr.second);
+    }
+
+    for (auto itr : output_var_info_map) {
+      string key = NGraphCatalog::CreateNodeKey(ng_encap_graph_id,
+                                                ng_encap_node_name, itr.first);
+      NGraphCatalog::AddToEncapOutputInfoMap(key, itr.second);
+    }
   }
 };
 
@@ -109,6 +124,7 @@ TEST_F(NGraphTensorManagerTest, NoVariablesNoPrefetch) {
 
   // expected
   vector<int> empty;
+  map<int, int> empty_map;
   vector<int> expected_pipelined_inp_indexes = FillRange(number_of_inputs);
   vector<int> expected_pipelined_out_indexes = FillRange(number_of_outputs);
   vector<int> expected_out_indexes_need_copy = FillRange(number_of_outputs);
@@ -141,6 +157,8 @@ TEST_F(NGraphTensorManagerTest, NoVariablesNoPrefetch) {
   ASSERT_EQ(empty, tensor_manager.GetPipelinedInputIndexesThatArePrefetched());
   ASSERT_EQ(expected_pipelined_inp_indexes,
             tensor_manager.GetPipelinedInputIndexesThatAreNotPrefetched());
+
+  ASSERT_EQ(empty_map, tensor_manager.GetInputIndexesForPrefetchSharedObject());
   // clean up
   ClearCatalog();
 }
@@ -162,6 +180,7 @@ TEST_F(NGraphTensorManagerTest, HasVariablesNoPrefetch) {
       expected_pipelined_not_prefetched_input_indexes,
       expected_pipelined_input_indexes_prefetched,
       expected_pipelined_input_indexes_not_prefetched;
+  map<int, int> expected_prefetch_indexes_map;
 
   // expected values
   if (ngraph_tf_are_variables_enabled()) {
@@ -183,6 +202,8 @@ TEST_F(NGraphTensorManagerTest, HasVariablesNoPrefetch) {
     // prefetched relative to pipelined tensors
     expected_pipelined_input_indexes_prefetched = {};
     expected_pipelined_input_indexes_not_prefetched = {0, 1, 2};
+
+    expected_prefetch_indexes_map = {};
 
     // enter in catalog
     EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name,
@@ -206,6 +227,7 @@ TEST_F(NGraphTensorManagerTest, HasVariablesNoPrefetch) {
     expected_pipelined_input_indexes_prefetched = {};
     expected_pipelined_input_indexes_not_prefetched =
         expected_pipelined_not_prefetched_input_indexes;
+    expected_prefetch_indexes_map = {};
   }
 
   NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
@@ -238,6 +260,8 @@ TEST_F(NGraphTensorManagerTest, HasVariablesNoPrefetch) {
   ASSERT_EQ(expected_pipelined_input_indexes_not_prefetched,
             tensor_manager.GetPipelinedInputIndexesThatAreNotPrefetched());
 
+  ASSERT_EQ(expected_prefetch_indexes_map,
+            tensor_manager.GetInputIndexesForPrefetchSharedObject());
   // clean up
   ClearCatalog();
 }
@@ -271,13 +295,15 @@ TEST_F(NGraphTensorManagerTest, NoVariablesHasPrefetch) {
   vector<int> expected_pipelined_input_indexes_not_prefetched =
       expected_pipelined_not_prefetched_input_indexes;
 
+  map<int, int> expected_prefetch_indexes_map = {{1, 3}, {3, 6}};
+
   if (ngraph_tf_are_variables_enabled()) {
     EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name, empty, empty,
                       expected_out_indexes_need_copy);
   }
 
   EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
-                         expected_prefetched_inp_indexes);
+                         expected_prefetch_indexes_map);
 
   NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
                                      ng_encap_graph_id, number_of_inputs,
@@ -305,6 +331,10 @@ TEST_F(NGraphTensorManagerTest, NoVariablesHasPrefetch) {
             tensor_manager.GetPipelinedInputIndexesThatArePrefetched());
   ASSERT_EQ(expected_pipelined_input_indexes_not_prefetched,
             tensor_manager.GetPipelinedInputIndexesThatAreNotPrefetched());
+
+  ASSERT_EQ(expected_prefetch_indexes_map,
+            tensor_manager.GetInputIndexesForPrefetchSharedObject());
+
   // clean up
   ClearCatalog();
 }
@@ -325,6 +355,8 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
       expected_pipelined_inp_indexes_prefetched,
       expected_pipelined_inp_indexes_not_prefetched;
 
+  map<int, int> input_prefetch_indexes_map, expected_prefetch_indexes_map;
+
   if (ngraph_tf_are_variables_enabled()) {
     // expected values
     // pipelined
@@ -343,6 +375,9 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
 
     expected_pipelined_inp_indexes_prefetched = {1, 3};
     expected_pipelined_inp_indexes_not_prefetched = {0, 2};
+
+    input_prefetch_indexes_map = {{3, 3}, {6, 8}};
+    expected_prefetch_indexes_map = {{1, 3}, {3, 8}};
 
     // enter in catalog
     EnterVarInCatalog(ng_encap_graph_id, ng_encap_node_name,
@@ -368,10 +403,13 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
         expected_prefetched_inp_indexes;  // all inputs are pipelined
     expected_pipelined_inp_indexes_not_prefetched =
         expected_pipelined_not_prefetched_input_indexes;
+
+    input_prefetch_indexes_map = {{3, 3}, {6, 8}};
+    expected_prefetch_indexes_map = {{3, 3}, {6, 8}};
   }
 
   EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
-                         expected_prefetched_inp_indexes);
+                         input_prefetch_indexes_map);
 
   NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
                                      ng_encap_graph_id, number_of_inputs,
@@ -402,6 +440,9 @@ TEST_F(NGraphTensorManagerTest, VariablesAndPrefetch) {
   ASSERT_EQ(expected_pipelined_inp_indexes_not_prefetched,
             tensor_manager.GetPipelinedInputIndexesThatAreNotPrefetched());
 
+  ASSERT_EQ(expected_prefetch_indexes_map,
+            tensor_manager.GetInputIndexesForPrefetchSharedObject());
+
   // clean up
   ClearCatalog();
 }
@@ -414,14 +455,90 @@ TEST_F(NGraphTensorManagerTest, PrefetchNotInPipeline) {
   int number_of_inputs = 5;
   int number_of_outputs = 2;
 
-  vector<int> prefetched_inp_indexes = {6, 7};
+  map<int, int> prefetched_inp_indexe_map = {{6, 7}, {6, 8}};
   EnterPrefetchInCatalog(ng_encap_graph_id, ng_encap_node_name,
-                         prefetched_inp_indexes);
+                         prefetched_inp_indexe_map);
 
   ASSERT_THROW(NGraphTensorManager tensor_manager(
                    ng_encap_node_name, ng_encap_cluster_id, ng_encap_graph_id,
                    number_of_inputs, number_of_outputs),
                std::runtime_error);
+
+  // clean up
+  ClearCatalog();
+}
+
+// check book-keeping of shared information
+TEST_F(NGraphTensorManagerTest, SharedName) {
+  string ng_encap_node_name = "xyz_1";
+  int ng_encap_cluster_id = 1;
+  int ng_encap_graph_id = 1;
+  int number_of_inputs = 5;
+  int number_of_outputs = 6;
+
+  unordered_map<int, string> input_var_info_map = {{0, "A"}, {3, "C"}};
+  unordered_map<int, tuple<string, bool>> output_var_info_map = {
+      {1, make_tuple("X", false)},
+      {5, make_tuple("Y", true)},
+      {0, make_tuple("Z", false)}};
+
+  EnterVarSharedInfoInCatalog(ng_encap_graph_id, ng_encap_node_name,
+                              input_var_info_map, output_var_info_map);
+
+  NGraphTensorManager tensor_manager(ng_encap_node_name, ng_encap_cluster_id,
+                                     ng_encap_graph_id, number_of_inputs,
+                                     number_of_outputs);
+
+  if (ngraph_tf_are_variables_enabled()) {
+    string shared_name;
+    bool copy_to_tf;
+    // input var
+    ASSERT_OK(tensor_manager.GetInputVariableSharedName(0, &shared_name));
+    ASSERT_EQ(shared_name, "A");
+    ASSERT_OK(tensor_manager.GetInputVariableSharedName(3, &shared_name));
+    ASSERT_EQ(shared_name, "C");
+
+    ASSERT_NOT_OK(tensor_manager.GetInputVariableSharedName(2, &shared_name));
+
+    // output var
+    ASSERT_OK(tensor_manager.GetOutputVariableSharedName(1, &shared_name));
+    ASSERT_EQ(shared_name, "X");
+    ASSERT_OK(tensor_manager.GetOutputVariableSharedName(5, &shared_name));
+    ASSERT_EQ(shared_name, "Y");
+
+    ASSERT_NOT_OK(tensor_manager.GetOutputVariableSharedName(2, &shared_name));
+    ASSERT_OK(tensor_manager.GetOutputVariableSharedName(0, &shared_name));
+    ASSERT_EQ(shared_name, "Z");
+
+    // output var copy_to_tf
+    ASSERT_OK(tensor_manager.GetOutputVariableCopyToTF(1, &copy_to_tf));
+    ASSERT_FALSE(copy_to_tf);
+    ASSERT_OK(tensor_manager.GetOutputVariableCopyToTF(5, &copy_to_tf));
+    ASSERT_TRUE(copy_to_tf);
+
+    ASSERT_NOT_OK(tensor_manager.GetOutputVariableCopyToTF(2, &copy_to_tf));
+
+    ASSERT_OK(tensor_manager.GetOutputVariableCopyToTF(0, &copy_to_tf));
+    ASSERT_FALSE(copy_to_tf);
+
+  } else {
+    string shared_name;
+    bool copy_to_tf;
+    // input var
+    ASSERT_NOT_OK(tensor_manager.GetInputVariableSharedName(0, &shared_name));
+    ASSERT_NOT_OK(tensor_manager.GetInputVariableSharedName(3, &shared_name));
+    ASSERT_NOT_OK(tensor_manager.GetInputVariableSharedName(2, &shared_name));
+
+    // output var
+    ASSERT_NOT_OK(tensor_manager.GetOutputVariableSharedName(1, &shared_name));
+    ASSERT_NOT_OK(tensor_manager.GetOutputVariableSharedName(5, &shared_name));
+    ASSERT_NOT_OK(tensor_manager.GetOutputVariableSharedName(2, &shared_name));
+
+    // output var copy_to_tf
+    ASSERT_NOT_OK(tensor_manager.GetOutputVariableCopyToTF(1, &copy_to_tf));
+    ASSERT_NOT_OK(tensor_manager.GetOutputVariableCopyToTF(5, &copy_to_tf));
+    ASSERT_NOT_OK(tensor_manager.GetOutputVariableCopyToTF(2, &copy_to_tf));
+  }
 
   // clean up
   ClearCatalog();

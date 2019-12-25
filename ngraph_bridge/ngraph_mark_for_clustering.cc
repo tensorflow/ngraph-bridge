@@ -469,6 +469,10 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
         std::make_shared<ngraph::op::Abs>(),
         std::make_shared<ngraph::op::Maximum>(),
         std::make_shared<ngraph::op::Quantize>()}},
+      {
+          "RandomUniform",
+          {constant, std::make_shared<ngraph::op::RandomUniform>()},
+      },
       {"Rank", {constant}},
       {"RealDiv", {std::make_shared<ngraph::op::Divide>()}},
       {"Reciprocal", {constant, std::make_shared<ngraph::op::Power>()}},
@@ -502,6 +506,16 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       {"Slice", {std::make_shared<ngraph::op::Slice>()}},
       {"Snapshot", {}},
       {"Softmax", {std::make_shared<ngraph::op::Softmax>()}},
+      {"SoftmaxCrossEntropyWithLogits",
+       {std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Max>(),
+        std::make_shared<ngraph::op::Subtract>(),
+        std::make_shared<ngraph::op::Exp>(),
+        std::make_shared<ngraph::op::Sum>(),
+        std::make_shared<ngraph::op::Divide>(),
+        std::make_shared<ngraph::op::Convert>(),
+        std::make_shared<ngraph::op::Multiply>(),
+        std::make_shared<ngraph::op::Log>()}},
       {"Softplus",
        {constant, std::make_shared<ngraph::op::Exp>(),
         std::make_shared<ngraph::op::Log>(),
@@ -691,6 +705,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
           SimpleConfirmationFunction();
       confirmation_function_map["Prod"] = SimpleConfirmationFunction();
       confirmation_function_map["Rank"] = SimpleConfirmationFunction();
+      confirmation_function_map["RandomUniform"] = SimpleConfirmationFunction();
       confirmation_function_map["QuantizeAndDequantizeV2"] = [](Node* n,
                                                                 bool* result) {
         // accept only when num_bits == 8 and range is given
@@ -744,6 +759,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["Slice"] = SimpleConfirmationFunction();
       confirmation_function_map["Snapshot"] = SimpleConfirmationFunction();
       confirmation_function_map["Softmax"] = SimpleConfirmationFunction();
+      confirmation_function_map["SoftmaxCrossEntropyWithLogits"] =
+          SimpleConfirmationFunction();
       confirmation_function_map["Softplus"] = SimpleConfirmationFunction();
       confirmation_function_map["SpaceToDepth"] =
           confirmation_function_map["DepthToSpace"];
@@ -756,17 +773,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       confirmation_function_map["SquaredDifference"] =
           SimpleConfirmationFunction();
       confirmation_function_map["Squeeze"] = SimpleConfirmationFunction();
-      confirmation_function_map["StridedSlice"] = [](Node* n, bool* result) {
-        // Reject if "new_axis_mask" is set.
-        int tf_new_axis_mask;
-        TF_RETURN_IF_ERROR(
-            GetNodeAttr(n->attrs(), "new_axis_mask", &tf_new_axis_mask));
-        int tf_ellipsis_mask;
-        TF_RETURN_IF_ERROR(
-            GetNodeAttr(n->attrs(), "ellipsis_mask", &tf_ellipsis_mask));
-        *result = (tf_new_axis_mask == 0) && (tf_ellipsis_mask == 0);
-        return Status::OK();
-      };
+      confirmation_function_map["StridedSlice"] = SimpleConfirmationFunction();
       confirmation_function_map["Pack"] = SimpleConfirmationFunction();
       confirmation_function_map["Sub"] = SimpleConfirmationFunction();
       confirmation_function_map["Sum"] = SimpleConfirmationFunction();
@@ -873,6 +880,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
           DT_FLOAT};  // TF allows half too
       type_constraint_map["OneHot"]["T"] = NGraphDTypes();
       type_constraint_map["Pack"]["T"] = NGraphDTypes();
+      type_constraint_map["RandomUniform"]["T"] = NGraphDTypes();
       type_constraint_map["Pad"]["T"] = NGraphDTypes();
       type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
       type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
@@ -946,10 +954,14 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["Slice"]["Index"] = NGraphIndexDTypes();
       type_constraint_map["Snapshot"]["T"] = NGraphDTypes();
       type_constraint_map["Softmax"]["T"] = NGraphNumericDTypes();
+      // For SoftmaxCrossEntropyWithLogits, see
+      // https://github.com/tensorflow/tensorflow/blob/c95ca05536144451ef78ca6e2c15f0f65ebaaf95/tensorflow/core/ops/nn_ops.cc#L1096
+      type_constraint_map["SoftmaxCrossEntropyWithLogits"]["T"] =
+          NGraphRealDTypes();
       type_constraint_map["Softplus"]["T"] = NGraphRealDTypes();
       type_constraint_map["SpaceToDepth"]["T"] = NGraphDTypes();
       type_constraint_map["SparseSoftmaxCrossEntropyWithLogits"]["T"] =
-          NGraphNumericDTypes();
+          NGraphRealDTypes();
       type_constraint_map["SparseSoftmaxCrossEntropyWithLogits"]["Tlabels"] =
           NGraphNumericDTypes();
       type_constraint_map["Split"]["T"] = NGraphDTypes();
@@ -999,6 +1011,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       set_attributes_map["OneHot"] = SetStaticInputs({1});
       set_attributes_map["Pad"] = SetStaticInputs({1});
       set_attributes_map["Prod"] = SetStaticInputs({1});
+
       set_attributes_map["QuantizeAndDequantizeV2"] = SetStaticInputs({1, 2});
       set_attributes_map["QuantizedConcat"] = [](Node* n) {
         SetStaticInputs(n, {0});  // the axis
@@ -1020,6 +1033,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
         SetStaticInputs(n, static_input_vec);
         return Status::OK();
       };
+      set_attributes_map["RandomUniform"] = SetStaticInputs({0});
       set_attributes_map["Reshape"] = SetStaticInputs({1});
       set_attributes_map["Slice"] = SetStaticInputs({1, 2});
       set_attributes_map["Split"] = SetStaticInputs({0});
