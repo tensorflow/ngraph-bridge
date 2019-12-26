@@ -12,3 +12,4 @@ cpu_codegen/
 
 .*.swp
 .nfs*
+build_cmake
