@@ -294,8 +294,6 @@ NGraphExecutor::CreateCallback(const std::string signature,
 
   // Serialize to nGraph if needed
   if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-    std::string file_name = "tf_function_" + m_node_name + ".json";
-
 #if defined NGRAPH_DISTRIBUTED
     int rank_id;
     rank_id = ng::get_distributed_interface()->get_rank();
