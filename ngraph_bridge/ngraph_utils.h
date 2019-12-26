@@ -21,6 +21,7 @@
 #include <sstream>
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
+#include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/platform/tensor_coding.h"
@@ -31,6 +32,7 @@
 #include "ngraph/serializer.hpp"
 
 #include "logging/ngraph_log.h"
+#include "logging/tf_graph_writer.h"
 
 namespace ng = ngraph;
 using namespace std;
@@ -38,14 +40,26 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-/* -------------------------------------------------
-//
-// NGraphVariableMap : Map of Variable names and their backend tensors
-//
----------------------------------------------------*/
+// Finds the complement of element_set
+// Given the max_element
+// Finds: {0,1,...,max_element-1} - element_set
+// Assumes element_set is sorted
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set);
+
+// Finds the complement of element_set
+// From the superset
+// Finds: superset - element_set
+// Assumes superset and element_superset are sorted
+vector<int> FindComplement(const vector<int>& element_superset,
+                           const vector<int>& element_set);
+
+int FindNumberOfNodes(const Graph* graph, const string op_type);
 
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled);
+
+Status GetNgraphVarBufferSharingState(int& buffer_sharing_state);
 
 void PrintTFTensor(Tensor& T1);
 std::string DebugNode(Node* node);
@@ -178,7 +192,7 @@ template <typename T>
 T GetScalarFromTensor(const std::shared_ptr<ngraph::runtime::Tensor>& t,
                       size_t element_offset = 0) {
   T result;
-  t->read(&result, element_offset * sizeof(T), sizeof(T));
+  t->read(&result, sizeof(T));
   return result;
 }
 
@@ -297,8 +311,15 @@ const gtl::ArraySlice<DataType>& NGraphBiasDTypes();
 Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank);
 
 // Serialize a ngraph function into a file
-void NgraphSerialize(const std::string&,
-                     const std::shared_ptr<ngraph::Function>&);
+Status NgraphSerialize(const std::string&,
+                       const std::shared_ptr<ngraph::Function>&);
+
+// Dump given string to file
+Status StringToFile(const std::string&, const std::string&,
+                    bool sanitize_name = true);
+
+// Remove '/' from file name (which might appear due to say, tf scopes)
+string SanitizeFileName(const string file_name);
 
 // Collect the total memory usage through /proc/self/stat
 void MemoryProfile(long&, long&);
@@ -314,6 +335,9 @@ std::string PbtxtFilename(std::string kind, int idx, int sub_idx);
 std::string GraphFilenamePrefix(std::string, int);
 
 std::string GraphFilenamePrefix(std::string, int, int);
+
+void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
+                std::string filename_prefix, std::string title);
 
 bool DumpAllGraphs();
 
@@ -332,6 +356,8 @@ bool DumpDeclusteredGraphs();
 bool DumpEncapsulatedGraphs();
 
 bool DumpTrackedGraphs();
+
+bool DumpCatalogedGraphs();
 
 #if defined(NGRAPH_DISTRIBUTED)
 // Insert constrol dependency for AllReduce ops to ensure execution order

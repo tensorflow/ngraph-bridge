@@ -36,7 +36,6 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 #define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 /*
@@ -46,7 +45,8 @@ These tests test the Backend Handling by the bridge.
 // Test SetBackendAPI
 TEST(BackendManager, SetBackend) {
   // If NGRAPH_TF_BACKEND is set, unset it
-  const unordered_map<string, string>& env_map = StoreEnv();
+  list<string> env_vars{"NGRAPH_TF_BACKEND"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
 
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
   string cpu_backend;
@@ -72,7 +72,8 @@ TEST(BackendManager, SetBackend) {
 // Test with env variable set
 TEST(BackendManager, GetCurrentlySetBackendName) {
   // If NGRAPH_TF_BACKEND is set, unset it
-  const unordered_map<string, string>& env_map = StoreEnv();
+  list<string> env_vars{"NGRAPH_TF_BACKEND"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
 
   string cpu_backend = "CPU";
   string intp_backend = "INTERPRETER";
@@ -80,33 +81,41 @@ TEST(BackendManager, GetCurrentlySetBackendName) {
   // set backend to interpreter and env variable to CPU
   // expected CPU
   ASSERT_OK(BackendManager::SetBackendName(intp_backend));
-  SetNGraphTFBackend(cpu_backend);
+  SetBackendUsingEnvVar(cpu_backend);
   string backend;
   ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
   ASSERT_EQ(cpu_backend, backend);
 
   // unset env variable
   // expected interpreter
-  UnsetNGraphTFBackend();
+  UnsetBackendUsingEnvVar();
   ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
   ASSERT_EQ(intp_backend, backend);
 
   // set env variable to DUMMY
   // expected ERROR
-  SetNGraphTFBackend("DUMMY");
+  SetBackendUsingEnvVar("DUMMY");
   ASSERT_NOT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
 
   // set env variable to ""
   // expected ERROR
-  SetNGraphTFBackend("");
+  SetBackendUsingEnvVar("");
   ASSERT_NOT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
 
   // Clean up
-  UnsetNGraphTFBackend();
+  UnsetBackendUsingEnvVar();
   ASSERT_OK(BackendManager::SetBackendName("CPU"));
   // restore
   // If NGRAPH_TF_BACKEND was set, set it back
   RestoreEnv(env_map);
+}
+
+// Test CanCreateBackend
+TEST(BackendManager, CanCreateBackend) {
+  ASSERT_OK(BackendManager::CanCreateBackend("CPU"));
+  ASSERT_OK(BackendManager::CanCreateBackend("CPU:0"));
+  ASSERT_NOT_OK(BackendManager::CanCreateBackend("temp"));
+  ASSERT_NOT_OK(BackendManager::CanCreateBackend(""));
 }
 
 // Test GetSupportedBackendNames

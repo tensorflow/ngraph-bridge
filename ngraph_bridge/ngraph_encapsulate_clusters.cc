@@ -218,7 +218,6 @@ Status EncapsulateClusters(
       std::stringstream ss;
       ss << "ngraph_output_" << cluster_output_dt_map[src_cluster_idx].size();
       string output_name = ss.str();
-
       auto new_output_node_def =
           NGraphClusterManager::GetClusterGraph(src_cluster_idx)->add_node();
       new_output_node_def->set_name(output_name);
@@ -256,6 +255,7 @@ Status EncapsulateClusters(
 
       input_rename_map[std::make_tuple(dst_cluster_idx, src->name(),
                                        edge->src_output())] = new_input_name;
+      string input_prov_tag = src->name();
 
       auto new_input_node_def =
           NGraphClusterManager::GetClusterGraph(dst_cluster_idx)->add_node();
@@ -266,6 +266,8 @@ Status EncapsulateClusters(
       SetAttrValue(dt, &((*(new_input_node_def->mutable_attr()))["T"]));
       SetAttrValue(arg_index_count[dst_cluster_idx],
                    &((*(new_input_node_def->mutable_attr()))["index"]));
+      SetAttrValue(input_prov_tag,
+                   &((*(new_input_node_def->mutable_attr()))["_prov_tag"]));
 
       arg_index_count[dst_cluster_idx]++;
 
@@ -492,6 +494,7 @@ Status EncapsulateClusters(
   }
 
   // Pass 6: Remove clustered nodes from the graph.
+  std::vector<Node*> nodes_to_remove;
   for (auto node : graph->op_nodes()) {
     int cluster_idx;
 
@@ -499,7 +502,11 @@ Status EncapsulateClusters(
         Status::OK()) {
       continue;
     }
+    nodes_to_remove.push_back(node);
+  }
 
+  for (auto node : nodes_to_remove) {
+    NGRAPH_VLOG(4) << "Removing: " << node->name();
     graph->RemoveNode(node);
   }
 
@@ -763,10 +770,6 @@ Status EncapsulateClusters(
           TF_RETURN_IF_ERROR(
               ConvertGraphDefToGraph(opts, *gdef_for_current_encapsulate,
                                      &graph_for_current_encapsulate));
-          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-              input_shapes, static_input_map, &graph_for_current_encapsulate,
-              ng_function));
-          string serialized_ngfunc(ngraph::serialize(ng_function, 4));
 
           // get backend.
           // TODO: Note that this is code duplication of some stuff present
@@ -793,6 +796,14 @@ Status EncapsulateClusters(
           }
           TF_RETURN_IF_ERROR(BackendManager::CreateBackend(
               op_backend_name));  // Created a backend here. must free it
+          // TranslateGraph must be called AFTER CreateBackend because some TF
+          // ops like CNMS and gather use backend specific nodes
+          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+              input_shapes, static_input_map, &graph_for_current_encapsulate,
+              ng_function));
+          int json_indentation = 4;
+          string serialized_ngfunc(
+              ngraph::serialize(ng_function, json_indentation));
           std::unordered_map<std::string, std::string> additional_attribute_map;
           for (auto itr : node->attrs()) {
             // Find the optional attributes to be sent to the backend.
@@ -804,7 +815,7 @@ Status EncapsulateClusters(
             // For e.g. _ngraph_ice_cores --> ice_cores
             if (itr.first.find("_ngraph_") != std::string::npos) {
               // leave out _ngraph_aot_requested
-              if (itr.first.find("_ngraph_aot_requested") !=
+              if (itr.first.find("_ngraph_aot_requested") ==
                   std::string::npos) {
                 additional_attribute_map.insert(
                     {itr.first.substr(strlen("_ngraph_")), itr.second.s()});
@@ -826,9 +837,14 @@ Status EncapsulateClusters(
             ng_exec = op_backend->compile(ng_function);
           } catch (...) {
             BackendManager::UnlockBackend(op_backend_name);
-            NgraphSerialize("tf_function_error_aot.json", ng_function);
+            Status st =
+                NgraphSerialize("tf_function_error_aot.json", ng_function);
             BackendManager::ReleaseBackend(op_backend_name);
-            return errors::Internal("Failed to compile ng_function for AOT");
+            return errors::Internal(
+                "Failed to compile ng_function for AOT.",
+                (st.ok() ? ""
+                         : " Failed to serialize as well with error: " +
+                               st.error_message()));
           }
           BackendManager::UnlockBackend(op_backend_name);
           BackendManager::ReleaseBackend(op_backend_name);

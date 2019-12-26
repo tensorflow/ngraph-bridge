@@ -202,26 +202,25 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   int number_of_inputs = test_op->num_inputs();
 
   // Create nGraph backend
-  // If NGRAPH_TF_BACKEND is set create that backend
-  // Else create backend of type ng_backend_name
-  string ng_backend_type = ng_backend_name;
-  const char* ng_backend_env_value = std::getenv("NGRAPH_TF_BACKEND");
+  string ng_backend_type;
+  BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
 
-  if (ng_backend_env_value != nullptr) {
-    string backend_env = std::string(ng_backend_env_value);
-    bool valid_ngraph_tf_backend =
-        !backend_env.empty() && BackendManager::IsSupportedBackend(backend_env);
-    ASSERT_TRUE(valid_ngraph_tf_backend) << "NGRAPH_TF_BACKEND " << backend_env
-                                         << " is not a supported backend";
-    ng_backend_type = backend_env;
-  }
-
-  NGRAPH_VLOG(5) << " Creating NG Backend " << ng_backend_type;
   Status status = BackendManager::CreateBackend(ng_backend_type);
   if (!status.ok()) {
-    NGRAPH_VLOG(5) << "Cannot create backend " << ng_backend_type;
+    throw std::runtime_error{"Cannot create backend " + ng_backend_type +
+                             ", Got exception " + status.error_message()};
   }
-  auto backend = BackendManager::GetBackend(ng_backend_type);
+  if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
+    NGRAPH_VLOG(0) << "NGraph using backend: " << ng_backend_type;
+  }
+
+  ng::runtime::Backend* backend;
+  try {
+    backend = BackendManager::GetBackend(ng_backend_type);
+  } catch (...) {
+    throw std::runtime_error("No backend available :" + ng_backend_type +
+                             ". Cannot execute graph");
+  }
 
   // Add the _ngraph_backend attr to the node
   test_op->AddAttr("_ngraph_backend", ng_backend_type);
@@ -351,7 +350,9 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   // For debug
   // Serialize to nGraph if needed
   if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-    NgraphSerialize("unit_test_" + test_op_type_ + ".json", ng_function);
+    ASSERT_EQ(
+        Status::OK(),
+        NgraphSerialize("unit_test_" + test_op_type_ + ".json", ng_function));
   }
 
   // Allocate tensors for inputs
@@ -376,7 +377,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     std::shared_ptr<ngraph::runtime::Tensor> result;
     if (ng_backend_type != "CPU") {
       result = backend->create_tensor(ng_et, ng_shape);
-      result->write(src_ptr, 0, result->get_element_count() * ng_et.size());
+      result->write(src_ptr, result->get_element_count() * ng_et.size());
     } else {
       result = backend->create_tensor(ng_et, ng_shape, src_ptr);
     }
@@ -419,11 +420,15 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     exec->call(ng_op_tensors, ng_ip_tensors);
   } catch (const std::exception& exp) {
     BackendManager::UnlockBackend(ng_backend_type);
-    NgraphSerialize("unit_test_error_" + test_op_type_ + ".json", ng_function);
+    ASSERT_EQ(Status::OK(),
+              NgraphSerialize("unit_test_error_" + test_op_type_ + ".json",
+                              ng_function));
     FAIL() << "Exception while executing on nGraph " << exp.what();
   } catch (...) {
     BackendManager::UnlockBackend(ng_backend_type);
-    NgraphSerialize("unit_test_error_" + test_op_type_ + ".json", ng_function);
+    ASSERT_EQ(Status::OK(),
+              NgraphSerialize("unit_test_error_" + test_op_type_ + ".json",
+                              ng_function));
     FAIL() << "Exception while executing on nGraph";
   }
   BackendManager::UnlockBackend(ng_backend_type);
@@ -433,7 +438,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     // Convert to tf tensor
     Tensor output_tensor(expected_output_datatypes_[i], tf_op_shapes[i]);
     void* dst_ptr = DMAHelper::base(&output_tensor);
-    ng_op_tensors[i]->read(dst_ptr, 0, output_tensor.TotalBytes());
+    ng_op_tensors[i]->read(dst_ptr, output_tensor.TotalBytes());
     ngraph_outputs.push_back(output_tensor);
     NGRAPH_VLOG(5) << " NGRAPH op " << i << ngraph_outputs[i].DebugString();
   }
