@@ -42,7 +42,6 @@ NGraphTensorManager::NGraphTensorManager(const string ng_encap_node_name,
 
 void NGraphTensorManager::Initialize() {
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-
   // input variables book-keeping
   for (int index = 0; index < m_number_of_inputs; index++) {
     if (NGraphCatalog::ExistsInInputVariableSharedNameMap(
@@ -86,6 +85,17 @@ void NGraphTensorManager::Initialize() {
       m_output_indexes_that_need_copy.push_back(index);
     }
   }
+
+  // For graphs that were run through AOT
+  // Graph rewrite is not done, and there is no entry in catalog
+  // If there is no entry in catalog all outputs need to be copied
+  if (!NGraphCatalog::EncapOutputNeedsCopy(m_ng_encap_graph_id,
+                                           m_ng_encap_node_name)) {
+    m_output_indexes_that_need_copy.resize(m_number_of_outputs);
+    iota(begin(m_output_indexes_that_need_copy),
+         end(m_output_indexes_that_need_copy), 0);
+  }
+
 #else
   m_output_indexes_that_need_copy.resize(m_number_of_outputs);
   iota(begin(m_output_indexes_that_need_copy),
@@ -96,30 +106,41 @@ void NGraphTensorManager::Initialize() {
   m_pipelined_output_indexes =
       FindComplement(m_number_of_outputs, m_output_indexes_assigning_variable);
 
+  // Prefetch indexes
   if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(m_ng_encap_graph_id,
                                                      m_ng_encap_node_name)) {
-    auto prefetch_indexes =
+    auto prefetch_index_map =
         NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
             m_ng_encap_graph_id, m_ng_encap_node_name);
-    m_prefetched_input_indexes.insert(m_prefetched_input_indexes.begin(),
-                                      prefetch_indexes.begin(),
-                                      prefetch_indexes.end());
-    // keeping the indexes sorted, is helpful in general testing
-    sort(m_prefetched_input_indexes.begin(), m_prefetched_input_indexes.end());
-  }
 
-  // the prefetched input indexes will also be pipelined
-  for (int pref_index : m_prefetched_input_indexes) {
-    auto position = std::find(m_pipelined_input_indexes.begin(),
-                              m_pipelined_input_indexes.end(), pref_index);
-    if (position == m_pipelined_input_indexes.end()) {
-      throw std::runtime_error("Prefetched input index " +
-                               to_string(pref_index) +
-                               " not found in pipelined inputs.");
+    // Since it's a map, the keys must be sorted
+    for (auto itr : prefetch_index_map) {
+      int prefetch_index = itr.first;
+      m_prefetched_input_indexes.push_back(prefetch_index);
+
+      // the prefetched input indexes will also be pipelined
+      auto position =
+          std::find(m_pipelined_input_indexes.begin(),
+                    m_pipelined_input_indexes.end(), prefetch_index);
+      if (position == m_pipelined_input_indexes.end()) {
+        throw std::runtime_error("Prefetched input index " +
+                                 to_string(prefetch_index) +
+                                 " not found in pipelined inputs.");
+      }
+
+      int prefetch_index_wrt_pipeline =
+          position - m_pipelined_input_indexes.begin();
+      m_pipelined_input_indexes_that_are_prefetched.push_back(
+          prefetch_index_wrt_pipeline);
+
+      // The EncapOp shares with prefetch op only the pipelined tensors
+      // so the map needs relative indexing for encap op
+      // the corresponding iteratorgetnext output ops
+      int corres_iterator_index = prefetch_index_map.at(prefetch_index);
+      m_prefetch_iterator_encap_index_map.insert(
+          {prefetch_index_wrt_pipeline, corres_iterator_index});
     }
-    m_pipelined_input_indexes_that_are_prefetched.push_back(
-        position - m_pipelined_input_indexes.begin());
-  }
+  }  // if prefetch input found in catalog
 
   // complements
   m_pipelined_input_indexes_that_are_not_prefetched =
@@ -127,6 +148,40 @@ void NGraphTensorManager::Initialize() {
                      m_pipelined_input_indexes_that_are_prefetched);
   m_pipelined_not_prefetched_input_indexes =
       FindComplement(m_pipelined_input_indexes, m_prefetched_input_indexes);
+}
+
+//---------------------------------------------------------------------------
+//  NGraphTensorManager::Print
+//---------------------------------------------------------------------------
+void NGraphTensorManager::Print() {
+  auto PrintVector = [](const vector<int>& input_vector, const string title) {
+    cout << title << endl;
+    cout << ng::join(input_vector) << endl;
+  };
+
+  cout << "** NGEncapsulate TensorManager:" << m_ng_encap_node_name << " **"
+       << endl;
+
+  cout << "** Variables Related **" << endl;
+  PrintVector(m_input_indexes_from_variables, "Input Indexes from Variables");
+  PrintVector(m_output_indexes_assigning_variable,
+              "Output Indexes Referring to Variables");
+  PrintVector(m_output_indexes_that_need_copy, "Output Indexes to be Read");
+
+  cout << "** Pipelined **" << endl;
+  PrintVector(m_pipelined_input_indexes, "Pipelined Input Indexes");
+  PrintVector(m_pipelined_output_indexes, "Pipelined Output Indexes");
+
+  cout << "** Prefetched **" << endl;
+  PrintVector(m_prefetched_input_indexes, "Prefetched Input Indexes");
+  PrintVector(m_pipelined_not_prefetched_input_indexes,
+              "Pipelined But Not Prefetched Input Indexes");
+
+  cout << "** Prefetched wrt pipelined indexes **" << endl;
+  PrintVector(m_pipelined_input_indexes_that_are_prefetched,
+              "Prefetched Input Indexes wrt Pipelined Inputs");
+  PrintVector(m_pipelined_input_indexes_that_are_not_prefetched,
+              "Not Prefetched Input Indexes wrt Pipelined Inputs");
 }
 
 //---------------------------------------------------------------------------
