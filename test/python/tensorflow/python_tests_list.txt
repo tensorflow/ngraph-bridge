@@ -516,7 +516,7 @@ xent_op_test.XentTest.testHalf
 xent_op_test.XentTest.testNotMatrix
 xent_op_test.XentTest.testNpXent
 xent_op_test.XentTest.testRankTooLarge
-xent_op_test.XentTest.testSecondGradient
+#xent_op_test.XentTest.testSecondGradient
 xent_op_test.XentTest.testShapeBroadcast
 xent_op_test.XentTest.testShapeMismatch
 xent_op_test.XentTest.testSingleClass
