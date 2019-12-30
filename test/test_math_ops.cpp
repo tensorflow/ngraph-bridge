@@ -334,7 +334,8 @@ TEST(MathOps, AllPositiveAxis) {
 
   opexecuter.RunTest();
 }  // end of test op All
-// Test op: Add
+
+// Test op: Cumsum
 TEST(MathOps, Cumsum) {
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
@@ -357,7 +358,8 @@ TEST(MathOps, Cumsum) {
   OpExecuter opexecuter(root, "Cumsum", static_input_indexes, output_datatypes,
                         sess_run_fetchoutputs);
   opexecuter.RunTest();
-}  // end of test op Add
+}  // end of test op Cumsum
+
 // Test op: Sum with & without keep dims & with both positive & negative axis
 TEST(MathOps, Sum) {
   int dim1 = 2;
