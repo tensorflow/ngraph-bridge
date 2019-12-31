@@ -786,23 +786,26 @@ static Status TranslateBatchMatMulOp(
 
   if (ng_lhs_shape.size() != ng_rhs_shape.size()) {
     return errors::InvalidArgument(
-        "Dimensions of two input args are not the same for BatchMatMul");
+        "Dimensions of two input args are not the same for BatchMatMul. Left "
+        "shape is ",
+        ng::join(ng_lhs_shape), " of rank ", ng_lhs_shape.size(),
+        " and Right shape is ", ng::join(ng_rhs_shape), " of rank ",
+        ng_rhs_shape.size());
   }
   size_t n_dims = ng_lhs_shape.size();
   if (n_dims < 2) {
     return errors::InvalidArgument(
-        "Dimensions of input args for BatchMatMul must be >=2", n_dims);
+        "Dimensions of input args for BatchMatMul must be >=2 but is ", n_dims);
   }
 
-  ng::AxisVector out_axes;
   for (size_t i = 0; i < n_dims - 2; ++i) {
     if (ng_lhs_shape[i] != ng_rhs_shape[i]) {
       return errors::InvalidArgument(
           "ng_lhs_shape and ng_rhs_shape must be the same for BatchMatMul "
-          "for each dimension ",
-          i);
+          "for each dimension but found ",
+          i, "th dimension different. Left shape is ", ng::join(ng_lhs_shape),
+          "and Right shape is ", ng::join(ng_rhs_shape));
     }
-    out_axes.push_back(i);
   }
 
   bool tf_adj_x = false;
@@ -810,30 +813,18 @@ static Status TranslateBatchMatMulOp(
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "adj_x", &tf_adj_x));
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "adj_y", &tf_adj_y));
 
-  auto ng_lhs_axes = out_axes;
-  auto ng_rhs_axes = out_axes;
   if (n_dims == 2) {
     // Transpose X if AdjX = true
     if (tf_adj_x) {
-      ng_lhs_axes.push_back(n_dims - 1);
-      ng_lhs_axes.push_back(n_dims - 2);
-      ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng_lhs_axes);
+      ng_lhs = ng::builder::numpy_transpose(ng_lhs, {1, 0});
       Builder::SetTracingInfo(op->name(), ng_lhs);
       ng_lhs_shape = ng_lhs->get_shape();
-    } else {
-      ng_lhs_axes.push_back(n_dims - 2);
-      ng_lhs_axes.push_back(n_dims - 1);
     }
     // Transpose Y if AdjY = true
     if (tf_adj_y) {
-      ng_rhs_axes.push_back(n_dims - 1);
-      ng_rhs_axes.push_back(n_dims - 2);
-      ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
+      ng_rhs = ng::builder::numpy_transpose(ng_rhs, {1, 0});
       Builder::SetTracingInfo(op->name(), ng_rhs);
       ng_rhs_shape = ng_rhs->get_shape();
-    } else {
-      ng_rhs_axes.push_back(n_dims - 2);
-      ng_rhs_axes.push_back(n_dims - 1);
     }
     SaveNgOp(ng_op_map, op->name(),
              ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs));
@@ -842,13 +833,11 @@ static Status TranslateBatchMatMulOp(
              ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
                  op->name(), ng_lhs, ng_rhs, tf_adj_x, tf_adj_y));
   } else {
-    ng_lhs_axes.push_back(n_dims - 2);
-    ng_lhs_axes.push_back(n_dims - 1);
-    ng_rhs_axes.push_back(n_dims - 2);
-    ng_rhs_axes.push_back(n_dims - 1);
+    ng::AxisVector out_axes(n_dims);
+    std::iota(out_axes.begin(), out_axes.end(), 0);
 
     size_t compound_size = 1;
-    for (size_t i = 0; i < out_axes.size(); i++) {
+    for (size_t i = 0; i < n_dims - 2; i++) {
       compound_size *= ng_lhs_shape[i];
     }
 
@@ -863,10 +852,10 @@ static Status TranslateBatchMatMulOp(
     ng::AxisVector tmp_axes = {0, 1, 2};
 
     std::shared_ptr<ng::Node> lhs_reshape =
-        ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, ng_lhs_axes,
+        ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, out_axes,
                                              tmp_lhs_shape);
     std::shared_ptr<ng::Node> rhs_reshape =
-        ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, ng_rhs_axes,
+        ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, out_axes,
                                              tmp_rhs_shape);
     std::shared_ptr<ng::Node> batchmatmul_transpose =
         ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
@@ -890,7 +879,11 @@ static Status TranslateBatchMatMulV2Op(
 
   if (ng_lhs_shape.size() != ng_rhs_shape.size()) {
     return errors::InvalidArgument(
-        "Dimensions of two input args are not the same for BatchMatMul");
+        "Dimensions of two input args are not the same for BatchMatMul. Left "
+        "shape is ",
+        ng::join(ng_lhs_shape), " of rank ", ng_lhs_shape.size(),
+        " and Right shape is ", ng::join(ng_rhs_shape), " of rank ",
+        ng_rhs_shape.size());
   }
 
   for (size_t i = 0; i < n_dims - 2; ++i) {
