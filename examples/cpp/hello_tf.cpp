@@ -41,12 +41,12 @@ int PrintAvailableBackends() {
       tensorflow::ngraph_bridge::BackendManager::GetSupportedBackendNames();
   vector<string> backends(supported_backends.begin(), supported_backends.end());
   if (backends.empty()) {
-    cout << "No backend available " << endl;
+    std::cout << "No backend available " << std::endl;
     return -1;
   }
-  cout << "Available backends: " << endl;
+  std::cout << "Available backends: " << std::endl;
   for (auto& backend_name : backends) {
-    cout << "Backend: " << backend_name << std::endl;
+    std::cout << "Backend: " << backend_name << std::endl;
   }
   return 0;
 }
