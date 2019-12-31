@@ -27,6 +27,7 @@
 #include "ngraph/builder/quantize_builder.hpp"
 #include "ngraph/op/argmax.hpp"
 #include "ngraph/op/argmin.hpp"
+#include "ngraph/op/experimental/layers/interpolate.hpp"
 #include "ngraph/op/util/logical_reduction.hpp"
 #include "ngraph/slice_plan.hpp"
 
@@ -785,23 +786,26 @@ static Status TranslateBatchMatMulOp(
 
   if (ng_lhs_shape.size() != ng_rhs_shape.size()) {
     return errors::InvalidArgument(
-        "Dimensions of two input args are not the same for BatchMatMul");
+        "Dimensions of two input args are not the same for BatchMatMul. Left "
+        "shape is ",
+        ng::join(ng_lhs_shape), " of rank ", ng_lhs_shape.size(),
+        " and Right shape is ", ng::join(ng_rhs_shape), " of rank ",
+        ng_rhs_shape.size());
   }
   size_t n_dims = ng_lhs_shape.size();
   if (n_dims < 2) {
     return errors::InvalidArgument(
-        "Dimensions of input args for BatchMatMul must be >=2", n_dims);
+        "Dimensions of input args for BatchMatMul must be >=2 but is ", n_dims);
   }
 
-  ng::AxisVector out_axes;
   for (size_t i = 0; i < n_dims - 2; ++i) {
     if (ng_lhs_shape[i] != ng_rhs_shape[i]) {
       return errors::InvalidArgument(
           "ng_lhs_shape and ng_rhs_shape must be the same for BatchMatMul "
-          "for each dimension",
-          i);
+          "for each dimension but found ",
+          i, "th dimension different. Left shape is ", ng::join(ng_lhs_shape),
+          "and Right shape is ", ng::join(ng_rhs_shape));
     }
-    out_axes.push_back(i);
   }
 
   bool tf_adj_x = false;
@@ -809,146 +813,54 @@ static Status TranslateBatchMatMulOp(
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "adj_x", &tf_adj_x));
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "adj_y", &tf_adj_y));
 
-  auto ng_lhs_axes = out_axes;
-  auto ng_rhs_axes = out_axes;
-
-  // Get the backend name, if the backend is CPU and n_dims >= 3
-  // then use the BatchMatMul op supported by nGraph
-  if (n_dims >= 3 && backend_name == "CPU") {
+  if (n_dims == 2) {
     // Transpose X if AdjX = true
     if (tf_adj_x) {
-      ng_lhs_axes.push_back(n_dims - 1);
-      ng_lhs_axes.push_back(n_dims - 2);
-      ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng_lhs_axes);
+      ng_lhs = ng::builder::numpy_transpose(ng_lhs, {1, 0});
       Builder::SetTracingInfo(op->name(), ng_lhs);
-      ng_lhs_shape = ng_lhs->get_shape();
-    } else {
-      ng_lhs_axes.push_back(n_dims - 2);
-      ng_lhs_axes.push_back(n_dims - 1);
     }
     // Transpose Y if AdjY = true
     if (tf_adj_y) {
-      ng_rhs_axes.push_back(n_dims - 1);
-      ng_rhs_axes.push_back(n_dims - 2);
-      ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
+      ng_rhs = ng::builder::numpy_transpose(ng_rhs, {1, 0});
       Builder::SetTracingInfo(op->name(), ng_rhs);
-      ng_rhs_shape = ng_rhs->get_shape();
-    } else {
-      ng_rhs_axes.push_back(n_dims - 2);
-      ng_rhs_axes.push_back(n_dims - 1);
     }
-
-    if (n_dims == 3) {
-      SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ngraph::op::BatchMatMul>(
-                                          op->name(), ng_lhs, ng_rhs));
-    } else {
-      // Find the compound size for dim1 so as to reshape to 3D
-      size_t compound_size = 1;
-      for (size_t i = 0; i < out_axes.size(); i++) {
-        compound_size *= ng_lhs_shape[i];
-      }
-
-      ng::Shape tmp_lhs_shape = {compound_size, ng_lhs_shape[n_dims - 2],
-                                 ng_lhs_shape[n_dims - 1]};
-      ng::Shape tmp_rhs_shape = {compound_size, ng_rhs_shape[n_dims - 2],
-                                 ng_rhs_shape[n_dims - 1]};
-
-      auto output_shape = ng_lhs_shape;
-      output_shape[n_dims - 1] = ng_rhs_shape[n_dims - 1];
-      ng::AxisVector tmp_axes = {0, 1, 2};
-
-      std::shared_ptr<ng::Node> lhs_reshape =
-          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, ng_lhs_axes,
-                                               tmp_lhs_shape);
-      std::shared_ptr<ng::Node> rhs_reshape =
-          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, ng_rhs_axes,
-                                               tmp_rhs_shape);
-      std::shared_ptr<ng::Node> batchmatmul =
-          ConstructNgNode<ngraph::op::BatchMatMul>(op->name(), lhs_reshape,
-                                                   rhs_reshape);
-      SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ngraph::op::Reshape>(op->name(), batchmatmul,
-                                                    tmp_axes, output_shape));
-    }
+    SaveNgOp(ng_op_map, op->name(),
+             ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs));
+  } else if (n_dims == 3) {
+    SaveNgOp(ng_op_map, op->name(),
+             ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
+                 op->name(), ng_lhs, ng_rhs, tf_adj_x, tf_adj_y));
   } else {
-    if (tf_adj_x) {
-      ng_lhs_axes.push_back(n_dims - 1);
-      ng_lhs_axes.push_back(n_dims - 2);
-      ng_lhs = ng::builder::numpy_transpose(ng_lhs, ng_lhs_axes);
-      Builder::SetTracingInfo(op->name(), ng_lhs);
-    }
-    if (tf_adj_y) {
-      ng_rhs_axes.insert(ng_rhs_axes.begin(), n_dims - 2);
-      ng_rhs_axes.insert(ng_rhs_axes.begin(), n_dims - 1);
-      ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
-      Builder::SetTracingInfo(op->name(), ng_rhs);
-    } else {
-      ng_rhs_axes.insert(ng_rhs_axes.begin(), n_dims - 1);
-      ng_rhs_axes.insert(ng_rhs_axes.begin(), n_dims - 2);
-      ng_rhs = ng::builder::numpy_transpose(ng_rhs, ng_rhs_axes);
-      Builder::SetTracingInfo(op->name(), ng_rhs);
+    ng::AxisVector out_axes(n_dims);
+    std::iota(out_axes.begin(), out_axes.end(), 0);
+
+    size_t compound_size = 1;
+    for (size_t i = 0; i < n_dims - 2; i++) {
+      compound_size *= ng_lhs_shape[i];
     }
 
-    ng_lhs_shape = ng_lhs->get_shape();
-    ng_rhs_shape = ng_rhs->get_shape();
+    ng::Shape tmp_lhs_shape = {compound_size, ng_lhs_shape[n_dims - 2],
+                               ng_lhs_shape[n_dims - 1]};
+    ng::Shape tmp_rhs_shape = {compound_size, ng_rhs_shape[n_dims - 2],
+                               ng_rhs_shape[n_dims - 1]};
 
-    if (ng_lhs_shape[n_dims - 1] != ng_rhs_shape[0]) {
-      return errors::InvalidArgument(
-          "The last dimension of ng_lhs and the first dimension of ng_rhs "
-          "should have the same size");
-    }
+    auto output_shape = ng_lhs_shape;
+    output_shape[n_dims - 2] = ng_lhs_shape[n_dims - (tf_adj_x ? 1 : 2)];
+    output_shape[n_dims - 1] = ng_rhs_shape[n_dims - (tf_adj_y ? 2 : 1)];
+    ng::AxisVector tmp_axes = {0, 1, 2};
 
-    if (n_dims == 2) {
-      SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs));
-    } else {
-      auto output_shape = ng_lhs_shape;
-      output_shape[n_dims - 1] = ng_rhs_shape[1];
-      auto dot_output =
-          ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs);
-
-      size_t compound_size = 1;
-      for (size_t i = 0; i < out_axes.size(); i++) {
-        compound_size *= output_shape[i];
-      }
-      auto dot_axes = out_axes;
-      dot_axes.push_back(n_dims - 2);
-      dot_axes.push_back(n_dims - 1);
-      for (size_t i = 0; i < out_axes.size(); i++) {
-        dot_axes.push_back(n_dims + i);
-      }
-      ng::Shape dot_shape = {compound_size, ng_lhs_shape[n_dims - 2],
-                             ng_rhs_shape[1], compound_size};
-      std::shared_ptr<ng::Node> dot_reshape;
-      if (n_dims == 3) {
-        dot_reshape = dot_output;
-      } else {
-        dot_reshape = ConstructNgNode<ngraph::op::Reshape>(
-            op->name(), dot_output, dot_axes, dot_shape);
-      }
-      ng::Shape tmp_shape = {1, ng_lhs_shape[n_dims - 2], ng_rhs_shape[1]};
-      vector<shared_ptr<ngraph::Node>> tmp_tensors;
-      for (size_t i = 0; i < dot_shape[0]; i++) {
-        const std::vector<size_t> lower_bound{i, 0, 0, i};
-        const std::vector<size_t> upper_bound{i + 1, dot_shape[1], dot_shape[2],
-                                              i + 1};
-        auto slice_out = ConstructNgNode<ngraph::op::Slice>(
-            op->name(), dot_reshape, lower_bound, upper_bound);
-        auto reshape_out = ConstructNgNode<ngraph::op::Reshape>(
-            op->name(), slice_out, ng::AxisVector{0, 1, 2, 3}, tmp_shape);
-        tmp_tensors.push_back(reshape_out);
-      }
-      auto concat_op =
-          ConstructNgNode<ngraph::op::Concat>(op->name(), tmp_tensors, 0);
-      if (n_dims == 3) {
-        SaveNgOp(ng_op_map, op->name(), concat_op);
-      } else {
-        SaveNgOp(
-            ng_op_map, op->name(),
-            ConstructNgNode<ngraph::op::Reshape>(
-                op->name(), concat_op, ng::AxisVector{0, 1, 2}, output_shape));
-      }
-    }
+    std::shared_ptr<ng::Node> lhs_reshape =
+        ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, out_axes,
+                                             tmp_lhs_shape);
+    std::shared_ptr<ng::Node> rhs_reshape =
+        ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, out_axes,
+                                             tmp_rhs_shape);
+    std::shared_ptr<ng::Node> batchmatmul_transpose =
+        ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
+            op->name(), lhs_reshape, rhs_reshape, tf_adj_x, tf_adj_y);
+    SaveNgOp(ng_op_map, op->name(),
+             ConstructNgNode<ngraph::op::Reshape>(
+                 op->name(), batchmatmul_transpose, tmp_axes, output_shape));
   }
   return Status::OK();
 }
@@ -965,7 +877,11 @@ static Status TranslateBatchMatMulV2Op(
 
   if (ng_lhs_shape.size() != ng_rhs_shape.size()) {
     return errors::InvalidArgument(
-        "Dimensions of two input args are not the same for BatchMatMul");
+        "Dimensions of two input args are not the same for BatchMatMul. Left "
+        "shape is ",
+        ng::join(ng_lhs_shape), " of rank ", ng_lhs_shape.size(),
+        " and Right shape is ", ng::join(ng_rhs_shape), " of rank ",
+        ng_rhs_shape.size());
   }
 
   for (size_t i = 0; i < n_dims - 2; ++i) {
@@ -1627,6 +1543,56 @@ static Status TranslateConv3DOp(const Node* op,
 
   BatchToTensorflow3D(op->name(), is_ndhwc, ng_conv);
   SaveNgOp(ng_op_map, op->name(), ng_conv);
+  return Status::OK();
+}
+
+// Translate TranslateCropAndResizeOp op
+static Status TranslateCropAndResizeOp(const Node* op,
+                                       const std::vector<const Tensor*>&,
+                                       Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> image, boxes, box_ind, crop_size;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &image, &boxes, &box_ind, &crop_size));
+
+  // Get the attributes
+  float extrapolation_value;
+  std::string method;
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(op->attrs(), "extrapolation_value", &extrapolation_value));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "method", &method));
+
+  ng::op::CropAndResize::ResizeMethod ng_method =
+      ng::op::CropAndResize::ResizeMethod::unspecified;
+  if (method == "bilinear") {
+    ng_method = ng::op::CropAndResize::ResizeMethod::bilinear;
+  } else if (method == "nearest") {
+    ng_method = ng::op::CropAndResize::ResizeMethod::nearest;
+  } else {
+    return errors::Internal(
+        "Expected crop and resize's interpolation mode to be bilinear or "
+        "nearest, but got ",
+        extrapolation_value, " in op ", op->name());
+  }
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::CropAndResize>(op->name(), image, boxes,
+                                                  box_ind, crop_size, ng_method,
+                                                  extrapolation_value));
+  return Status::OK();
+}
+
+static Status TranslateCumsumOp(const Node* op,
+                                const std::vector<const Tensor*>&,
+                                Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_x, ng_axis;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_x, &ng_axis));
+  bool exclusive, reverse;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "exclusive", &exclusive));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "reverse", &reverse));
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::CumSum>(op->name(), ng_x, ng_axis, exclusive,
+                                           reverse));
   return Status::OK();
 }
 
@@ -3763,6 +3729,33 @@ static Status TranslateReshapeOp(
   return Status::OK();
 }
 
+static Status TranslateResizeBilinearOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> images, size;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &images, &size));
+
+  bool align_corners;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "align_corners", &align_corners));
+
+  ngraph::op::InterpolateAttrs attrs;
+  attrs.align_corners = align_corners;
+  attrs.mode = "linear";
+  attrs.antialias = false;
+  // The TF "images" is has dimensions [batch, height, width, channels].
+  // So 1 and 2 are the spatial axes
+  // TODO check this parameter
+  attrs.axes = {1, 2};
+  // TODO: pads_begin and pads_end are not populated. Check correctness
+
+  auto size_int64 =
+      ConstructNgNode<ng::op::Convert>(op->name(), size, ngraph::element::i64);
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Interpolate>(
+                                      op->name(), images, size_int64, attrs));
+
+  return Status::OK();
+}
+
 static Status TranslateRsqrtOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -3779,6 +3772,34 @@ static Status TranslateRsqrtOp(
         // Raise each element of the input to the power -0.5.
         return ConstructNgNode<ng::op::Power>(op->name(), n, ng_exponent);
       });
+}
+
+static Status TranslateScatterNdOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_indices;
+  shared_ptr<ng::Node> ng_updates;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &ng_indices, &ng_updates, nullptr));
+
+  std::vector<int> ng_shape;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &ng_shape));
+  // Copy the int vector to a size_t vector, because that is what ng::Shape
+  // accepts
+  std::vector<size_t> ng_shape_size_t(ng_shape.begin(), ng_shape.end());
+
+  // Create a tensor and populate the tensor with "0" to Add to ScatterNd
+  auto et = ng_updates->get_element_type();
+  std::vector<std::string> constant_values(ng::shape_size(ng_shape_size_t),
+                                           "0");
+  auto ng_inputs = ConstructNgNode<ng::op::Constant>(
+      op->name(), et, ng::Shape(ng_shape_size_t), constant_values);
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::ScatterNDAdd>(op->name(), ng_inputs,
+                                                 ng_indices, ng_updates));
+
+  return Status::OK();
 }
 
 static Status TranslateRsqrtGradOp(const Node* op,
@@ -5005,6 +5026,7 @@ const static std::map<
       {"All", TranslateDirectReduceOp<ng::op::All>},
       {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
       {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
+      {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
       {"AvgPool", TranslateAvgPoolOp}, {"AvgPoolGrad", TranslateAvgPoolGradOp},
       {"BatchMatMul", TranslateBatchMatMulOp},
       {"BatchMatMulV2", TranslateBatchMatMulV2Op},
@@ -5016,7 +5038,8 @@ const static std::map<
       {"Conv2DBackpropFilter", TranslateConv2DBackpropFilterOp},
       {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
       {"Conv3D", TranslateConv3DOp}, {"Cos", TranslateUnaryOp<ngraph::op::Cos>},
-      {"DepthToSpace", TranslateDepthToSpaceOp},
+      {"CropAndResize", TranslateCropAndResizeOp},
+      {"Cumsum", TranslateCumsumOp}, {"DepthToSpace", TranslateDepthToSpaceOp},
       {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
       {"Dequantize", TranslateDequantizeOp},
       {"Equal", TranslateBinaryOp<ngraph::op::Equal>},
@@ -5085,9 +5108,11 @@ const static std::map<
       {"Reciprocal", TranslateReciprocalOp},
       {"Relu", TranslateUnaryOp<ngraph::op::Relu>}, {"Relu6", TranslateRelu6Op},
       {"ReluGrad", TranslateReluGradOp}, {"Reshape", TranslateReshapeOp},
+      {"ResizeBilinear", TranslateResizeBilinearOp},
       {"Rsqrt", TranslateRsqrtOp}, {"RsqrtGrad", TranslateRsqrtGradOp},
-      {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
-      {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
+      {"ScatterNd", TranslateScatterNdOp}, {"Select", TranslateSelectOp},
+      {"Shape", TranslateShapeOp}, {"Sigmoid", TranslateSigmoidOp},
+      {"SigmoidGrad", TranslateSigmoidGradOp},
       {"Sin", TranslateUnaryOp<ngraph::op::Sin>}, {"Size", TranslateSizeOp},
       {"Sign", TranslateUnaryOp<ngraph::op::Sign>}, {"Slice", TranslateSliceOp},
       {"Snapshot", TranslateIdentityOp}, {"Softmax", TranslateSoftmaxOp},

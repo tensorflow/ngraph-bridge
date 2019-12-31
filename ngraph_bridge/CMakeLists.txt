@@ -57,6 +57,7 @@ set(SRC
    ngraph_rewrite_pass.cc
    ngraph_tensor_manager.cc
    ngraph_tracked_variable.cc
+   ngraph_var.cc
    ngraph_utils.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
@@ -86,7 +87,6 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_tracked_variable.cc)
 
     # new files
-    list(APPEND SRC enable_variable_ops/ngraph_var.cc)
     list(APPEND SRC enable_variable_ops/ngraph_assign_op.cc)
     list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_remove_ngraphassigns.cc)
@@ -96,6 +96,18 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
     
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+endif()
+
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+endif()
+
+if(NGRAPH_CPU_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_CPU_STATIC_LIB_ENABLE)
+endif()
+
+if(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
 endif()
 
 
