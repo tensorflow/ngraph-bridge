@@ -818,13 +818,11 @@ static Status TranslateBatchMatMulOp(
     if (tf_adj_x) {
       ng_lhs = ng::builder::numpy_transpose(ng_lhs, {1, 0});
       Builder::SetTracingInfo(op->name(), ng_lhs);
-      ng_lhs_shape = ng_lhs->get_shape();
     }
     // Transpose Y if AdjY = true
     if (tf_adj_y) {
       ng_rhs = ng::builder::numpy_transpose(ng_rhs, {1, 0});
       Builder::SetTracingInfo(op->name(), ng_rhs);
-      ng_rhs_shape = ng_rhs->get_shape();
     }
     SaveNgOp(ng_op_map, op->name(),
              ConstructNgNode<ngraph::op::Dot>(op->name(), ng_lhs, ng_rhs));
