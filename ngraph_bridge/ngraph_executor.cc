@@ -43,9 +43,9 @@
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_var.h"
 
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
 #include "ngraph_bridge/ngraph_catalog.h"
 #endif
 
@@ -294,13 +294,6 @@ NGraphExecutor::CreateCallback(const std::string signature,
 
   // Serialize to nGraph if needed
   if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-    std::string file_name = "tf_function_" + m_node_name + ".json";
-    auto status_ser = StringToFile("tf_function_" + m_node_name + ".json",
-                                   serialized_ng_func);
-    if (status_ser != Status::OK()) {
-      return std::make_pair(status_ser,
-                            std::make_tuple(ng_exec, serialized_ng_func, pts));
-    }
 #if defined NGRAPH_DISTRIBUTED
     int rank_id;
     rank_id = ng::get_distributed_interface()->get_rank();
@@ -309,6 +302,13 @@ NGraphExecutor::CreateCallback(const std::string signature,
         serialized_ng_func);
     if (status != Status::OK()) {
       return std::make_pair(status,
+                            std::make_tuple(ng_exec, serialized_ng_func, pts));
+    }
+#else
+    auto status_ser = StringToFile("tf_function_" + m_node_name + ".json",
+                                   serialized_ng_func);
+    if (status_ser != Status::OK()) {
+      return std::make_pair(status_ser,
                             std::make_tuple(ng_exec, serialized_ng_func, pts));
     }
 #endif
@@ -329,7 +329,8 @@ NGraphExecutor::CreateCallback(const std::string signature,
     Status st = StringToFile("tf_function_error_" + m_node_name + ".json",
                              serialized_ng_func);
     string status_string =
-        "Error in compiling op_backend." +
+        "Error in compiling op_backend with error: " +
+        status_ng_exec_pair.first.error_message() +
         (st.ok() ? "" : (" Also error in dumping serialized function: " +
                          st.error_message()));
     return std::make_pair(errors::Internal(status_string),
