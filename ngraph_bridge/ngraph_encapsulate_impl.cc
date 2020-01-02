@@ -45,9 +45,9 @@
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
+#include "ngraph_bridge/ngraph_var.h"
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 #endif
 
 using namespace std;
@@ -347,7 +347,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
         std::unique_ptr<ngraph::Event> event_copy_input_next(
             new ngraph::Event(event_name, m_name, ""));
         current_ng_tensor->write(
-            current_src_ptr, 0,
+            current_src_ptr,
             current_ng_tensor->get_element_count() * ng_element_type.size());
 
         event_copy_input_next->Stop();
@@ -558,13 +558,20 @@ Status NGraphEncapsulateImpl::UpdatePipelinedTensorCache(
     // Create these pipelined ng tensors only if needed, else reuse from cache
     size_t num_inputs = ng_exec->get_parameters().size();
     size_t num_outputs = ng_exec->get_results().size();
-    PipelinedTensorMatrix pipelined_input_tensors(num_inputs);
-    PipelinedTensorMatrix pipelined_output_tensors(num_outputs);
+    PipelinedTensorMatrix pipelined_input_tensors(m_depth);
+    PipelinedTensorMatrix pipelined_output_tensors(m_depth);
+    PipelinedTensorVector temp;
     for (size_t i = 0; i < num_inputs; i++) {
-      pipelined_input_tensors[i] = ng_exec->create_input_tensor(i, m_depth);
+      temp = ng_exec->create_input_tensor(i, m_depth);
+      for (size_t j = 0; j < temp.size(); j++) {
+        pipelined_input_tensors[j].push_back(temp[j]);
+      }
     }
     for (size_t i = 0; i < num_outputs; i++) {
-      pipelined_output_tensors[i] = ng_exec->create_output_tensor(i, m_depth);
+      temp = ng_exec->create_output_tensor(i, m_depth);
+      for (size_t j = 0; j < temp.size(); j++) {
+        pipelined_output_tensors[j].push_back(temp[j]);
+      }
     }
     m_executable_pipelined_tensors_map.insert(
         {ng_exec, PipelinedTensorsStore(pipelined_input_tensors,

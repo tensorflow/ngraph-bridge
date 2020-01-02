@@ -43,6 +43,40 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set) {
+  vector<int> superset(max_element);
+  iota(begin(superset), end(superset), 0);
+
+  return FindComplement(superset, element_set);
+}
+
+// Finds the complement of element_set
+// From the superset
+// Finds: superset - element_set
+// Assumes superset and element_superset are sorted
+vector<int> FindComplement(const vector<int>& superset,
+                           const vector<int>& element_set) {
+  // max size of complement is superset
+  vector<int> complement(superset.size());
+  vector<int>::iterator it = set_difference(
+      superset.begin(), superset.begin() + superset.size(), element_set.begin(),
+      element_set.begin() + element_set.size(), complement.begin());
+  complement.resize(it - complement.begin());
+  return complement;
+}
+
+int FindNumberOfNodes(const Graph* graph, const string op_type) {
+  int count = 0;
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == op_type) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled) {
   const char* copy_env_var = std::getenv("NGRAPH_TF_LOG_TENSOR_COPIES");
@@ -115,8 +149,8 @@ void ReadNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                   Tensor* tf_tensor) {
   ngraph::Event event_sync_ng_tf_tensors("Tensor Read D2H", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
-  ng_tensor->read(tf_src_ptr, 0, ng_tensor->get_element_count() *
-                                     ng_tensor->get_element_type().size());
+  ng_tensor->read(tf_src_ptr, ng_tensor->get_element_count() *
+                                  ng_tensor->get_element_type().size());
   event_sync_ng_tf_tensors.Stop();
   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
@@ -126,8 +160,8 @@ void WriteNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                    Tensor* tf_tensor) {
   ngraph::Event event_sync_ng_tf_tensors("Tensor Write H2D", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
-  ng_tensor->write(tf_src_ptr, 0, ng_tensor->get_element_count() *
-                                      ng_tensor->get_element_type().size());
+  ng_tensor->write(tf_src_ptr, ng_tensor->get_element_count() *
+                                   ng_tensor->get_element_type().size());
   event_sync_ng_tf_tensors.Stop();
   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
@@ -448,6 +482,41 @@ std::string GraphFilenamePrefix(std::string kind, int idx, int sub_idx) {
   return ss.str();
 }
 
+void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
+                std::string filename_prefix, std::string title) {
+  // If we have a "main" graph, dump that.
+  if (options.graph != nullptr) {
+    auto dot_filename = DotFilename(filename_prefix, idx);
+    auto pbtxt_filename = PbtxtFilename(filename_prefix, idx);
+    NGRAPH_VLOG(0) << "Dumping main graph to " << dot_filename;
+    NGRAPH_VLOG(0) << "Dumping main graph to " << pbtxt_filename;
+
+    GraphToDotFile(options.graph->get(), dot_filename, title);
+    GraphToPbTextFile(options.graph->get(), pbtxt_filename);
+  }
+
+  // If we have partition graphs (we shouldn't), dump those.
+  if (options.partition_graphs != nullptr) {
+    int sub_idx = 0;
+
+    for (auto& kv : *options.partition_graphs) {
+      auto dot_filename = DotFilename(filename_prefix, idx, sub_idx);
+      auto pbtxt_filename = PbtxtFilename(filename_prefix, idx, sub_idx);
+      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
+                     << dot_filename;
+      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
+                     << pbtxt_filename;
+
+      Graph* pg = kv.second.get();
+
+      GraphToDotFile(pg, dot_filename, title);
+      GraphToPbTextFile(pg, pbtxt_filename);
+
+      sub_idx++;
+    }
+  }
+}
+
 bool DumpAllGraphs() { return std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr; }
 
 bool DumpPrecaptureGraphs() {
@@ -488,6 +557,11 @@ bool DumpEncapsulatedGraphs() {
 bool DumpTrackedGraphs() {
   return DumpAllGraphs() ||
          std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
+}
+
+bool DumpCatalogedGraphs() {
+  return DumpAllGraphs() ||
+         std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
 }
 
 #if defined(NGRAPH_DISTRIBUTED)

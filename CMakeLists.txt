@@ -248,7 +248,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.25.1-rc.8
+        GIT_TAG v0.27.1-rc.1
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
@@ -275,6 +275,9 @@ if (NOT USE_PRE_BUILT_NGRAPH)
 endif()
 set(NGRAPH_INSTALL_DIR ${NGRAPH_ARTIFACTS_DIR})
 
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+endif()
 
 if(OS_VERSION STREQUAL "\"centos\"")
     set(LIB "lib64")
