@@ -14,7 +14,6 @@
 // limitations under the License.
 //*****************************************************************************
 
-
 #include "ngraph/descriptor/layout/dense_tensor_layout.hpp"
 #include "ngraph/except.hpp"
 #include "ngraph/op/convert.hpp"
@@ -34,46 +33,40 @@ namespace ng = ngraph;
 
 namespace ngraph {
 
-
 // using descriptor::layout::DenseTensorLayout;
 
-shared_ptr<runtime::Tensor> runtime::dummy::DummyBackend::create_tensor(const ng::element::Type& type,
-                                                                    const ng::Shape& shape)
-{
-    return make_shared<runtime::HostTensor>(type, shape, "external");
+shared_ptr<runtime::Tensor> runtime::dummy::DummyBackend::create_tensor(
+    const ng::element::Type& type, const ng::Shape& shape) {
+  return make_shared<runtime::HostTensor>(type, shape, "external");
 }
 
-shared_ptr<runtime::Tensor> runtime::dummy::DummyBackend::create_tensor(const ng::element::Type& type,
-                                                                    const ng::Shape& shape,
-                                                                    void* memory_pointer)
-{
-    return make_shared<runtime::HostTensor>(type, shape, memory_pointer, "external");
+shared_ptr<runtime::Tensor> runtime::dummy::DummyBackend::create_tensor(
+    const ng::element::Type& type, const ng::Shape& shape,
+    void* memory_pointer) {
+  return make_shared<runtime::HostTensor>(type, shape, memory_pointer,
+                                          "external");
 }
 
-shared_ptr<runtime::Executable>
-    runtime::dummy::DummyBackend::compile(shared_ptr<ng::Function> function,
-                                      bool enable_performance_collection)
-{
-    return make_shared<DummyExecutable>(function, enable_performance_collection);
+shared_ptr<runtime::Executable> runtime::dummy::DummyBackend::compile(
+    shared_ptr<ng::Function> function, bool enable_performance_collection) {
+  return make_shared<DummyExecutable>(function, enable_performance_collection);
 }
 
-runtime::dummy::DummyExecutable::DummyExecutable(shared_ptr<ng::Function> function,
-                                           bool /* enable_performance_collection */)
-{
-    cout << "DummyExecutable\n";
-    // pass::Manager pass_manager;
-    // pass_manager.register_pass<pass::AssignLayout<DenseTensorLayout>>();
-    // pass_manager.run_passes(function);
+runtime::dummy::DummyExecutable::DummyExecutable(
+    shared_ptr<ng::Function> function,
+    bool /* enable_performance_collection */) {
+  cout << "DummyExecutable\n";
+  // pass::Manager pass_manager;
+  // pass_manager.register_pass<pass::AssignLayout<DenseTensorLayout>>();
+  // pass_manager.run_passes(function);
 
-    // set_parameters_and_results(*function);
+  // set_parameters_and_results(*function);
 }
 
-bool runtime::dummy::DummyExecutable::call(const vector<shared_ptr<runtime::Tensor>>& /* outputs */,
-                                       const vector<shared_ptr<runtime::Tensor>>& /* inputs */)
-{
-    return true;
+bool runtime::dummy::DummyExecutable::call(
+    const vector<shared_ptr<runtime::Tensor>>& /* outputs */,
+    const vector<shared_ptr<runtime::Tensor>>& /* inputs */) {
+  return true;
 }
 
 }  // namespace ngraph
-
-

@@ -30,32 +30,35 @@ namespace ng = ngraph;
 
 namespace ngraph {
 
-    namespace runtime {
+namespace runtime {
 
-        namespace dummy {
-                            
-                            class DummyBackend;
-                            class DummyExecutable;
-        }
-    }
+namespace dummy {
+
+class DummyBackend;
+class DummyExecutable;
+}
+}
 }
 
-class ng::runtime::dummy::DummyBackend : public ng::runtime::Backend
-{
-public:
-    std::shared_ptr<ng::runtime::Tensor>
-        create_tensor(const ng::element::Type& type, const ng::Shape& shape, void* memory_pointer) override;
+class ng::runtime::dummy::DummyBackend : public ng::runtime::Backend {
+ public:
+  std::shared_ptr<ng::runtime::Tensor> create_tensor(
+      const ng::element::Type& type, const ng::Shape& shape,
+      void* memory_pointer) override;
 
-    std::shared_ptr<ng::runtime::Tensor> create_tensor(const ng::element::Type& type, const ng::Shape& shape) override;
+  std::shared_ptr<ng::runtime::Tensor> create_tensor(
+      const ng::element::Type& type, const ng::Shape& shape) override;
 
-    std::shared_ptr<ng::runtime::Executable> compile(std::shared_ptr<ng::Function> function,
-                                        bool enable_performance_data = false) override;
+  std::shared_ptr<ng::runtime::Executable> compile(
+      std::shared_ptr<ng::Function> function,
+      bool enable_performance_data = false) override;
 };
 
-class ng::runtime::dummy::DummyExecutable : public ng::runtime::Executable
-{
-public:
-    DummyExecutable(std::shared_ptr<ng::Function> function, bool enable_performance_collection = false);
-    bool call(const std::vector<std::shared_ptr<ng::runtime::Tensor>>& outputs,
-              const std::vector<std::shared_ptr<ng::runtime::Tensor>>& inputs) override;
+class ng::runtime::dummy::DummyExecutable : public ng::runtime::Executable {
+ public:
+  DummyExecutable(std::shared_ptr<ng::Function> function,
+                  bool enable_performance_collection = false);
+  bool call(
+      const std::vector<std::shared_ptr<ng::runtime::Tensor>>& outputs,
+      const std::vector<std::shared_ptr<ng::runtime::Tensor>>& inputs) override;
 };
