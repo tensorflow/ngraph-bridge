@@ -52,6 +52,8 @@ class ng::runtime::dummy::DummyBackend : public ng::runtime::Backend {
   std::shared_ptr<ng::runtime::Executable> compile(
       std::shared_ptr<ng::Function> function,
       bool enable_performance_data = false) override;
+
+  bool is_supported(const ngraph::Node& node) const override;
 };
 
 class ng::runtime::dummy::DummyExecutable : public ng::runtime::Executable {

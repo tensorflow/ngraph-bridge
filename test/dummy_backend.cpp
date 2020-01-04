@@ -33,7 +33,7 @@ namespace ng = ngraph;
 
 namespace ngraph {
 
-// using descriptor::layout::DenseTensorLayout;
+using descriptor::layout::DenseTensorLayout;
 
 shared_ptr<runtime::Tensor> runtime::dummy::DummyBackend::create_tensor(
     const ng::element::Type& type, const ng::Shape& shape) {
@@ -52,15 +52,18 @@ shared_ptr<runtime::Executable> runtime::dummy::DummyBackend::compile(
   return make_shared<DummyExecutable>(function, enable_performance_collection);
 }
 
+bool runtime::dummy::DummyBackend::is_supported(const Node& node) const {
+  return false;
+}
+
 runtime::dummy::DummyExecutable::DummyExecutable(
     shared_ptr<ng::Function> function,
     bool /* enable_performance_collection */) {
-  cout << "DummyExecutable\n";
-  // pass::Manager pass_manager;
-  // pass_manager.register_pass<pass::AssignLayout<DenseTensorLayout>>();
-  // pass_manager.run_passes(function);
+  pass::Manager pass_manager;
+  pass_manager.register_pass<pass::AssignLayout<DenseTensorLayout>>();
+  pass_manager.run_passes(function);
 
-  // set_parameters_and_results(*function);
+  set_parameters_and_results(*function);
 }
 
 bool runtime::dummy::DummyExecutable::call(
