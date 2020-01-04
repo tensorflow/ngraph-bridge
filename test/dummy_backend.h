@@ -42,6 +42,11 @@ class DummyExecutable;
 
 class ng::runtime::dummy::DummyBackend : public ng::runtime::Backend {
  public:
+  DummyBackend();
+  DummyBackend(const DummyBackend&) = delete;
+  DummyBackend(DummyBackend&&) = delete;
+  DummyBackend& operator=(const DummyBackend&) = delete;
+
   std::shared_ptr<ng::runtime::Tensor> create_tensor(
       const ng::element::Type& type, const ng::Shape& shape,
       void* memory_pointer) override;
@@ -54,6 +59,7 @@ class ng::runtime::dummy::DummyBackend : public ng::runtime::Backend {
       bool enable_performance_data = false) override;
 
   bool is_supported(const ngraph::Node& node) const override;
+  ~DummyBackend() override;
 };
 
 class ng::runtime::dummy::DummyExecutable : public ng::runtime::Executable {

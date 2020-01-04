@@ -34,6 +34,9 @@ namespace ng = ngraph;
 namespace ngraph {
 
 using descriptor::layout::DenseTensorLayout;
+runtime::dummy::DummyBackend::DummyBackend() {
+  cout << "Dummy Backend constructor called " << endl;
+}
 
 shared_ptr<runtime::Tensor> runtime::dummy::DummyBackend::create_tensor(
     const ng::element::Type& type, const ng::Shape& shape) {
@@ -54,6 +57,10 @@ shared_ptr<runtime::Executable> runtime::dummy::DummyBackend::compile(
 
 bool runtime::dummy::DummyBackend::is_supported(const Node& node) const {
   return false;
+}
+
+runtime::dummy::DummyBackend::~DummyBackend() {
+  cout << "Dummy Backend destructor called " << endl;
 }
 
 runtime::dummy::DummyExecutable::DummyExecutable(

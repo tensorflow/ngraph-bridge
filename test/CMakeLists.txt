@@ -70,6 +70,7 @@ set(SRC
     test_capture_prefetch.cpp
     test_pipelined_tensor_store.cc
     dummy_backend.cpp
+    test_dummy_backend.cpp
 )
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
