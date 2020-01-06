@@ -73,17 +73,20 @@ static Status TypeConstraintOk(Node* node,
                                const TypeConstraintMap& type_constraint_map,
                                bool& type_constraints_ok) {
   type_constraints_ok = true;
-  for (auto& name_and_set : type_constraint_map.at(node->type_string())) {
-    auto& type_attr_name = name_and_set.first;
-    auto& allowed_types = name_and_set.second;
+  const auto& itr = type_constraint_map.find(node->type_string());
+  if (itr != type_constraint_map.end()) {
+    for (const auto& name_and_set : itr->second) {
+      auto& type_attr_name = name_and_set.first;
+      auto& allowed_types = name_and_set.second;
 
-    DataType dt;
+      DataType dt;
 
-    if (GetNodeAttr(node->attrs(), type_attr_name, &dt) != Status::OK() ||
-        std::find(allowed_types.begin(), allowed_types.end(), dt) ==
-            allowed_types.end()) {
-      type_constraints_ok = false;
-      break;
+      if (GetNodeAttr(node->attrs(), type_attr_name, &dt) != Status::OK() ||
+          std::find(allowed_types.begin(), allowed_types.end(), dt) ==
+              allowed_types.end()) {
+        type_constraints_ok = false;
+        break;
+      }
     }
   }
   return Status::OK();
