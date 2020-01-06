@@ -962,7 +962,7 @@ GetTFToNgOpMap() {
          {std::make_shared<ngraph::op::Reshape>(),
           std::make_shared<ngraph::op::Broadcast>(),
           std::make_shared<ngraph::op::Select>()}},
-        {"Reshape", {constant}},
+        {"Reshape", {std::make_shared<ngraph::op::Reshape>()}},
         {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},
         {"Shape", {constant}}, {"Sigmoid",
                                 {constant, std::make_shared<ngraph::op::Exp>(),
