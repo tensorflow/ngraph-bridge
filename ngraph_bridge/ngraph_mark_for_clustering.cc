@@ -52,7 +52,6 @@ namespace ngraph_bridge {
 using ConfirmationFunction = std::function<Status(Node*, bool*)>;
 using TypeConstraintMap =
     std::map<std::string, std::map<std::string, gtl::ArraySlice<DataType>>>;
-using SetAttributesFunction = std::function<Status(Node*)>;
 
 // Different Checks before we mark for clustering
 //
@@ -163,6 +162,86 @@ Status IsSupportedByBackend(
   return Status::OK();
 }
 
+const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
+  //
+  // A map of op types (e.g. "Add") to set_attribute functions. These can be
+  // used to set any additional attributes. For example:
+  //
+  //    confirmation_function_map["MyOp"] = [](Node* n) {
+  //     if(n->condition()){
+  //        int dummy=5;
+  //        n->AddAttr("_ngraph_dummy_attr", dummy);
+  //      }
+  //
+  //      vector<int32> static_input_index =5;
+  //      n->AddAttr("_ngraph_static_inputs", static_input_index);
+  //      return Status::OK();
+  //    };
+  //
+
+  static std::map<std::string, SetAttributesFunction> set_attributes_map;
+  static bool initialized = false;
+
+  if (!initialized) {
+  // Set Additional Attributes (if any)
+    set_attributes_map["Any"] = SetStaticInputs({1});
+    set_attributes_map["All"] = SetStaticInputs({1});
+    set_attributes_map["ArgMax"] = SetStaticInputs({1});
+    set_attributes_map["ArgMin"] = SetStaticInputs({1});
+    set_attributes_map["AvgPoolGrad"] = SetStaticInputs({0});
+    set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
+    set_attributes_map["CombinedNonMaxSuppression"] =
+        SetStaticInputs({2, 3, 4, 5});
+    set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
+    set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
+    set_attributes_map["ExpandDims"] = SetStaticInputs({1});
+    set_attributes_map["Fill"] = SetStaticInputs({0});
+    set_attributes_map["GatherV2"] = SetStaticInputs({2});
+    set_attributes_map["Max"] = SetStaticInputs({1});
+    set_attributes_map["Mean"] = SetStaticInputs({1});
+    set_attributes_map["Min"] = SetStaticInputs({1});
+    set_attributes_map["NonMaxSuppressionV4"] = SetStaticInputs({2, 3, 4});
+    set_attributes_map["OneHot"] = SetStaticInputs({1});
+    set_attributes_map["Pad"] = SetStaticInputs({1});
+    set_attributes_map["Prod"] = SetStaticInputs({1});
+
+    set_attributes_map["QuantizeAndDequantizeV2"] = SetStaticInputs({1, 2});
+    set_attributes_map["QuantizedConcat"] = [](Node* n) {
+      SetStaticInputs(n, {0});  // the axis
+      auto num_of_tensors_to_concat = (n->num_inputs() - 1) / 3;
+      // mark all mins and maxes static
+      for (int idx = num_of_tensors_to_concat + 1; idx < n->num_inputs();
+            idx++) {
+        SetStaticInputs(n, {idx});
+      }
+      return Status::OK();
+    };
+    set_attributes_map["QuantizedConcatV2"] = [](Node* n) {
+      auto num_of_tensors_to_concat = (n->num_inputs() - 1) / 3;
+      // mark axis, all mins and maxes static
+      std::vector<int> static_input_vec;
+      for (int idx = num_of_tensors_to_concat; idx < n->num_inputs(); idx++) {
+        static_input_vec.push_back(idx);
+      }
+      SetStaticInputs(n, static_input_vec);
+      return Status::OK();
+    };
+    set_attributes_map["RandomUniform"] = SetStaticInputs({0});
+    set_attributes_map["Reshape"] = SetStaticInputs({1});
+    set_attributes_map["Slice"] = SetStaticInputs({1, 2});
+    set_attributes_map["Split"] = SetStaticInputs({0});
+    set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
+    set_attributes_map["StridedSlice"] = SetStaticInputs({1, 2, 3});
+    set_attributes_map["Sum"] = SetStaticInputs({1});
+    set_attributes_map["TopKV2"] = SetStaticInputs({1});
+    set_attributes_map["Tile"] = SetStaticInputs({1});
+    set_attributes_map["Transpose"] = SetStaticInputs({1});
+    set_attributes_map["UnsortedSegmentSum"] = SetStaticInputs({2});
+    initialized = true;
+  }
+  return set_attributes_map;
+}
+
 //
 // Main entry point for the marking pass.
 //
@@ -201,23 +280,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   static std::map<std::string, ConfirmationFunction> confirmation_function_map;
 
-  //
-  // A map of op types (e.g. "Add") to set_attribute functions. These can be
-  // used to set any additional attributes. For example:
-  //
-  //    confirmation_function_map["MyOp"] = [](Node* n) {
-  //     if(n->condition()){
-  //        int dummy=5;
-  //        n->AddAttr("_ngraph_dummy_attr", dummy);
-  //      }
-  //
-  //      vector<int32> static_input_index =5;
-  //      n->AddAttr("_ngraph_static_inputs", static_input_index);
-  //      return Status::OK();
-  //    };
-  //
-
-  static std::map<std::string, SetAttributesFunction> set_attributes_map;
 
   // Constant Op, ReluGrad Op do not have default Constructor
   // in ngraph, so passing a dummy node
@@ -571,6 +633,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   mutex init_mu;
   static bool initialized = false;
+
+  auto set_attributes_map = GetAttributeSetters();
 
   // If the type constraint and confirmation function maps have not been
   // initialized, initialize them.
@@ -990,60 +1054,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
           NGraphIndexDTypes();
 
-      // Set Additional Attributes (if any)
-      set_attributes_map["Any"] = SetStaticInputs({1});
-      set_attributes_map["All"] = SetStaticInputs({1});
-      set_attributes_map["ArgMax"] = SetStaticInputs({1});
-      set_attributes_map["ArgMin"] = SetStaticInputs({1});
-      set_attributes_map["AvgPoolGrad"] = SetStaticInputs({0});
-      set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
-      set_attributes_map["CombinedNonMaxSuppression"] =
-          SetStaticInputs({2, 3, 4, 5});
-      set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
-      set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
-      set_attributes_map["ExpandDims"] = SetStaticInputs({1});
-      set_attributes_map["Fill"] = SetStaticInputs({0});
-      set_attributes_map["GatherV2"] = SetStaticInputs({2});
-      set_attributes_map["Max"] = SetStaticInputs({1});
-      set_attributes_map["Mean"] = SetStaticInputs({1});
-      set_attributes_map["Min"] = SetStaticInputs({1});
-      set_attributes_map["NonMaxSuppressionV4"] = SetStaticInputs({2, 3, 4});
-      set_attributes_map["OneHot"] = SetStaticInputs({1});
-      set_attributes_map["Pad"] = SetStaticInputs({1});
-      set_attributes_map["Prod"] = SetStaticInputs({1});
-
-      set_attributes_map["QuantizeAndDequantizeV2"] = SetStaticInputs({1, 2});
-      set_attributes_map["QuantizedConcat"] = [](Node* n) {
-        SetStaticInputs(n, {0});  // the axis
-        auto num_of_tensors_to_concat = (n->num_inputs() - 1) / 3;
-        // mark all mins and maxes static
-        for (int idx = num_of_tensors_to_concat + 1; idx < n->num_inputs();
-             idx++) {
-          SetStaticInputs(n, {idx});
-        }
-        return Status::OK();
-      };
-      set_attributes_map["QuantizedConcatV2"] = [](Node* n) {
-        auto num_of_tensors_to_concat = (n->num_inputs() - 1) / 3;
-        // mark axis, all mins and maxes static
-        std::vector<int> static_input_vec;
-        for (int idx = num_of_tensors_to_concat; idx < n->num_inputs(); idx++) {
-          static_input_vec.push_back(idx);
-        }
-        SetStaticInputs(n, static_input_vec);
-        return Status::OK();
-      };
-      set_attributes_map["RandomUniform"] = SetStaticInputs({0});
-      set_attributes_map["Reshape"] = SetStaticInputs({1});
-      set_attributes_map["Slice"] = SetStaticInputs({1, 2});
-      set_attributes_map["Split"] = SetStaticInputs({0});
-      set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
-      set_attributes_map["StridedSlice"] = SetStaticInputs({1, 2, 3});
-      set_attributes_map["Sum"] = SetStaticInputs({1});
-      set_attributes_map["TopKV2"] = SetStaticInputs({1});
-      set_attributes_map["Tile"] = SetStaticInputs({1});
-      set_attributes_map["Transpose"] = SetStaticInputs({1});
-      set_attributes_map["UnsortedSegmentSum"] = SetStaticInputs({2});
+      
       initialized = true;
     }
   }

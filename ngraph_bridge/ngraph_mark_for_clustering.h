@@ -38,6 +38,12 @@ void GetStaticInputs(const Node* node, std::vector<int32>* inputs);
 bool InputIsStatic(const Node* node, int index);
 Status GetNodeBackend(const Node* node, string* backend_name);
 void SetNodeBackend(Node* node, const string& backend_name);
+
+using SetAttributesFunction = std::function<Status(Node*)>;
+
+
+const std::map<std::string, SetAttributesFunction>& GetAttributeSetters();
+
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
 
