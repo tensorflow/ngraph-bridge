@@ -1048,7 +1048,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
                          const string& current_backend) {
   const TypeConstraintMap& type_constraint_map = GetTypeConstraints();
 
-  std::map<std::string, ConfirmationFunction> confirmation_function_map =
+  // confirmation_function_map is non-const unlike the other maps
+  static std::map<std::string, ConfirmationFunction> confirmation_function_map =
       GetConfirmationMap();
 
   const std::map<std::string, SetAttributesFunction>& set_attributes_map =
@@ -1069,7 +1070,17 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   static std::set<string> disabled_ops_set = {};
 
+  static bool initialized = false;
+
   std::set<string> disabled_ops_set_current = config::GetDisabledOps();
+
+  bool op_set_support_has_changed =
+      disabled_ops_set_current != disabled_ops_set;
+
+  if (!initialized || op_set_support_has_changed) {
+    confirmation_function_map = GetConfirmationMap();
+    initialized = true;
+  }
 
   // Right now it cannot be inside the if(!initialized) block, because it is
   // backend dependent, which might change with different sess.run()s
@@ -1088,9 +1099,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     *result = (config_map.at("ngraph_backend") == "NNPI");
     return Status::OK();
   };
-
-  bool op_set_support_has_changed =
-      disabled_ops_set_current != disabled_ops_set;
 
   if (op_set_support_has_changed) {
     NGRAPH_VLOG(5) << "Changing op support";
