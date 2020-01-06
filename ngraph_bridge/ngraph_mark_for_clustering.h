@@ -44,7 +44,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters();
 
 using TypeConstraintMap =
     std::map<std::string, std::map<std::string, gtl::ArraySlice<DataType>>>;
-const TypeConstraintMap& GetTypeConstraints();
+const TypeConstraintMap& GetTypeConstraintMap();
 
 using ConfirmationFunction = std::function<Status(Node*, bool*)>;
 const std::map<std::string, ConfirmationFunction>& GetConfirmationMap();

@@ -470,7 +470,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
   return confirmation_function_map;
 }
 
-const TypeConstraintMap& GetTypeConstraints() {
+const TypeConstraintMap& GetTypeConstraintMap() {
   //
   // A map of op types (e.g. "Add") to type constraint maps. For (fake)
   // example:
@@ -1049,7 +1049,7 @@ GetTFToNgOpMap() {
 //
 Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
                          const string& current_backend) {
-  const TypeConstraintMap& type_constraint_map = GetTypeConstraints();
+  const TypeConstraintMap& type_constraint_map = GetTypeConstraintMap();
 
   // confirmation_function_map is non-const unlike the other maps
   static std::map<std::string, ConfirmationFunction> confirmation_function_map =
