@@ -3323,8 +3323,17 @@ static Status TranslateQuantizeAndDequantizeV2Op(
       op->name(), ng_r_et, ng::Shape(), std::vector<float>({scale}));
   auto ng_offset = ConstructNgNode<ng::op::Constant>(
       op->name(), ng_q_et, ng::Shape(), std::vector<int>({0}));
-  ng::op::Quantize::RoundMode ng_round_mode =
-      ng::op::Quantize::RoundMode::ROUND_NEAREST_TOWARD_INFINITY;
+  ng::op::Quantize::RoundMode ng_round_mode;
+  string round_mode_string;
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(op->attrs(), "round_mode", &round_mode_string));
+  if (round_mode_string == "HALF_UP") {
+    ng_round_mode = ng::op::Quantize::RoundMode::ROUND_NEAREST_UPWARD;
+  } else if (round_mode_string == "HALF_TO_EVEN") {
+    ng_round_mode = ng::op::Quantize::RoundMode::ROUND_NEAREST_TOWARD_EVEN;
+  } else {
+    return errors::Internal("Tensorflow Rounding Mode not supported by Ngraph");
+  }
   auto ng_quant = ConstructNgNode<ng::op::Quantize>(
       op->name(), ng_input, ng_scale, ng_offset, ng_q_et, ng::AxisSet(),
       ng_round_mode);
@@ -3604,10 +3613,17 @@ static Status TranslateQuantizeV2Op(const Node* op,
   ng::element::Type ng_et;
   TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
 
-  // TODO: Only RoundMode = ROUND_NEAREST_TOWARD_EVEN is supported, for now.
-  // Support other modes later
-  ng::op::Quantize::RoundMode ng_round_mode =
-      ng::op::Quantize::RoundMode::ROUND_NEAREST_TOWARD_EVEN;
+  ng::op::Quantize::RoundMode ng_round_mode;
+  string round_mode_string;
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(op->attrs(), "round_mode", &round_mode_string));
+  if (round_mode_string == "HALF_UP") {
+    ng_round_mode = ng::op::Quantize::RoundMode::ROUND_NEAREST_UPWARD;
+  } else if (round_mode_string == "HALF_TO_EVEN") {
+    ng_round_mode = ng::op::Quantize::RoundMode::ROUND_NEAREST_TOWARD_EVEN;
+  } else {
+    return errors::Internal("Tensorflow Rounding Mode not supported by Ngraph");
+  }
 
   auto ng_node = ng::builder::QuantizeBuilder(ng_input, ng_min, ng_max, ng_et,
                                               ng::AxisSet(), ng_round_mode);
@@ -3732,8 +3748,15 @@ static Status TranslateReshapeOp(
 static Status TranslateResizeBilinearOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> images, size;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &images, &size));
+  shared_ptr<ng::Node> images;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &images, nullptr));
+
+  std::vector<int32> size_vector;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 1, static_input_map, &size_vector));
+
+  auto size_int64 = ConstructNgNode<ng::op::Constant>(
+      op->name(), ngraph::element::i64, ng::Shape{2}, size_vector);
 
   bool align_corners;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "align_corners", &align_corners));
@@ -3748,8 +3771,6 @@ static Status TranslateResizeBilinearOp(
   attrs.axes = {1, 2};
   // TODO: pads_begin and pads_end are not populated. Check correctness
 
-  auto size_int64 =
-      ConstructNgNode<ng::op::Convert>(op->name(), size, ngraph::element::i64);
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Interpolate>(
                                       op->name(), images, size_int64, attrs));
 
