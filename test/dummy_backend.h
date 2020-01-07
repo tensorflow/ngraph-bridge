@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //*****************************************************************************
+#ifndef NGRAPH_TF_BRIDGE_DUMMYBACKEND_H_
+#define NGRAPH_TF_BRIDGE_DUMMYBACKEND_H_
 
 #pragma once
 
@@ -70,3 +72,5 @@ class ng::runtime::dummy::DummyExecutable : public ng::runtime::Executable {
       const std::vector<std::shared_ptr<ng::runtime::Tensor>>& outputs,
       const std::vector<std::shared_ptr<ng::runtime::Tensor>>& inputs) override;
 };
+
+#endif  // NGRAPH_TF_BRIDGE_DUMMYBACKEND_H_

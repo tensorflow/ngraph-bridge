@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ namespace ngraph_bridge {
 namespace testing {
 
 // Test is_supported API
-TEST(DummyBackend, Test_is_supported) {
+TEST(DummyBackend, IsSupported) {
   ngraph::runtime::dummy::DummyBackend db;
   auto add = std::make_shared<ngraph::op::Add>();
   ASSERT_EQ(db.is_supported(*add), false);

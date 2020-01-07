@@ -15,9 +15,6 @@
 //*****************************************************************************
 
 #include "ngraph/descriptor/layout/dense_tensor_layout.hpp"
-#include "ngraph/except.hpp"
-#include "ngraph/op/convert.hpp"
-#include "ngraph/op/select.hpp"
 #include "ngraph/op/util/binary_elementwise_comparison.hpp"
 #include "ngraph/pass/assign_layout.hpp"
 #include "ngraph/pass/like_replacement.hpp"
@@ -34,9 +31,7 @@ namespace ng = ngraph;
 namespace ngraph {
 
 using descriptor::layout::DenseTensorLayout;
-runtime::dummy::DummyBackend::DummyBackend() {
-  cout << "Dummy Backend constructor called " << endl;
-}
+runtime::dummy::DummyBackend::DummyBackend() {}
 
 shared_ptr<runtime::Tensor> runtime::dummy::DummyBackend::create_tensor(
     const ng::element::Type& type, const ng::Shape& shape) {
@@ -59,9 +54,7 @@ bool runtime::dummy::DummyBackend::is_supported(const Node& node) const {
   return false;
 }
 
-runtime::dummy::DummyBackend::~DummyBackend() {
-  cout << "Dummy Backend destructor called " << endl;
-}
+runtime::dummy::DummyBackend::~DummyBackend() {}
 
 runtime::dummy::DummyExecutable::DummyExecutable(
     shared_ptr<ng::Function> function,
