@@ -352,9 +352,6 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
       bool found = false;
       for (auto itr : TFtoNgraphOpSet) {
         found = n->is_same_op_type(itr);
-        // TODO: remove this cout later
-        cout << test_op_type_ << ": " << n->get_name() << " --- "
-             << itr->get_name() << " " << found << "\n";
         if (found) break;
       }
       ASSERT_TRUE(found) << "After translation found ngraph op "
