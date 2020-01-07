@@ -76,7 +76,7 @@ static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     std::unordered_map<std::string, std::string> device_config,
-    AOTInfo aot_info, bool analysis_pass) {
+    const AOTInfo& aot_info, bool analysis_pass) {
   // A map from cluster indices to the expected device name for nodes
   // in that cluster.
   std::map<int, std::string> device_name_map;
@@ -309,6 +309,81 @@ Status EncapsulateClusters(
     }
   }
 
+    // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
+  // rewiring the inputs in their NodeDefs as we go.
+  // In both analysis or rewriting, this pass is needed. It copies the subgraphs
+  // to cluster manager
+  std::set<int> cluster_indices_for_this_graph;
+  for (auto node : graph->op_nodes()) {
+    int cluster_idx;
+
+    if (GetNodeAttr(node->attrs(), "_ngraph_cluster", &cluster_idx) !=
+        Status::OK()) {
+      continue;
+    }
+
+    // Because the input names may have changed from the original node def,
+    // we will need to borrow some code from Graph::ToGraphDefSubRange in
+    // tensorflow/core/graph/graph.cc that rewrites the node's input list.
+
+    // begin code copied and pasted (and modified) from graph.cc...
+    NodeDef original_def = node->def();
+
+    // Get the inputs for this Node.  We make sure control inputs are
+    // after data inputs, as required by GraphDef.
+    std::vector<const Edge*> inputs;
+    inputs.resize(node->num_inputs(), nullptr);
+    for (const Edge* edge : node->in_edges()) {
+      if (edge->IsControlEdge()) {
+        inputs.push_back(edge);
+      } else {
+        CHECK(inputs[edge->dst_input()] == nullptr)
+            << "Edge " << edge->src()->DebugString() << ":"
+            << edge->dst()->DebugString() << " with dst_input "
+            << edge->dst_input() << " and had pre-existing input edge "
+            << inputs[edge->dst_input()]->src()->DebugString() << ":"
+            << inputs[edge->dst_input()]->dst()->DebugString();
+
+        inputs[edge->dst_input()] = edge;
+      }
+    }
+    original_def.clear_input();
+    original_def.mutable_input()->Reserve(inputs.size());
+
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      const Edge* edge = inputs[i];
+      if (edge == nullptr) {
+        if (i < node->requested_inputs().size()) {
+          original_def.add_input(node->requested_inputs()[i]);
+        } else {
+          original_def.add_input("");
+        }
+      } else {
+        const Node* src = edge->src();
+        if (!src->IsOp()) continue;
+        AddInput(&original_def, src->name(), edge->src_output());
+      }
+    }
+    // ...end code copied and pasted (and modified) from graph.cc
+
+    auto node_def =
+        NGraphClusterManager::GetClusterGraph(cluster_idx)->add_node();
+    cluster_indices_for_this_graph.insert(cluster_idx);
+    *node_def = original_def;
+
+    for (auto& input : *(node_def->mutable_input())) {
+      TensorId tensor_id = ParseTensorName(input);
+
+      string tensor_name(tensor_id.first);
+      auto it = input_rename_map.find(
+          std::make_tuple(cluster_idx, tensor_name, tensor_id.second));
+
+      if (it != input_rename_map.end()) {
+        input = it->second;
+      }
+    }
+  }
+
   // Pass 3: Create encapsulation nodes for all clusters.
   if (!analysis_pass) {
   for (auto& kv : device_name_map) {
@@ -424,81 +499,6 @@ Status EncapsulateClusters(
   }
   }
 
-  // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
-  // rewiring the inputs in their NodeDefs as we go.
-  // In both analysis or rewriting, this pass is needed. It copies the subgraphs
-  // to cluster manager
-  std::set<int> cluster_indices_for_this_graph;
-  for (auto node : graph->op_nodes()) {
-    int cluster_idx;
-
-    if (GetNodeAttr(node->attrs(), "_ngraph_cluster", &cluster_idx) !=
-        Status::OK()) {
-      continue;
-    }
-
-    // Because the input names may have changed from the original node def,
-    // we will need to borrow some code from Graph::ToGraphDefSubRange in
-    // tensorflow/core/graph/graph.cc that rewrites the node's input list.
-
-    // begin code copied and pasted (and modified) from graph.cc...
-    NodeDef original_def = node->def();
-
-    // Get the inputs for this Node.  We make sure control inputs are
-    // after data inputs, as required by GraphDef.
-    std::vector<const Edge*> inputs;
-    inputs.resize(node->num_inputs(), nullptr);
-    for (const Edge* edge : node->in_edges()) {
-      if (edge->IsControlEdge()) {
-        inputs.push_back(edge);
-      } else {
-        CHECK(inputs[edge->dst_input()] == nullptr)
-            << "Edge " << edge->src()->DebugString() << ":"
-            << edge->dst()->DebugString() << " with dst_input "
-            << edge->dst_input() << " and had pre-existing input edge "
-            << inputs[edge->dst_input()]->src()->DebugString() << ":"
-            << inputs[edge->dst_input()]->dst()->DebugString();
-
-        inputs[edge->dst_input()] = edge;
-      }
-    }
-    original_def.clear_input();
-    original_def.mutable_input()->Reserve(inputs.size());
-
-    for (size_t i = 0; i < inputs.size(); ++i) {
-      const Edge* edge = inputs[i];
-      if (edge == nullptr) {
-        if (i < node->requested_inputs().size()) {
-          original_def.add_input(node->requested_inputs()[i]);
-        } else {
-          original_def.add_input("");
-        }
-      } else {
-        const Node* src = edge->src();
-        if (!src->IsOp()) continue;
-        AddInput(&original_def, src->name(), edge->src_output());
-      }
-    }
-    // ...end code copied and pasted (and modified) from graph.cc
-
-    auto node_def =
-        NGraphClusterManager::GetClusterGraph(cluster_idx)->add_node();
-    cluster_indices_for_this_graph.insert(cluster_idx);
-    *node_def = original_def;
-
-    for (auto& input : *(node_def->mutable_input())) {
-      TensorId tensor_id = ParseTensorName(input);
-
-      string tensor_name(tensor_id.first);
-      auto it = input_rename_map.find(
-          std::make_tuple(cluster_idx, tensor_name, tensor_id.second));
-
-      if (it != input_rename_map.end()) {
-        input = it->second;
-      }
-    }
-  }
-
   // Pass 6: Remove clustered nodes from the graph.
   if (!analysis_pass) {
   std::vector<Node*> nodes_to_remove;
@@ -538,6 +538,40 @@ Status EncapsulateClusters(
   }
 
   // Pass 8:
+  TF_RETURN_IF_ERROR(PerformAOTOnEncapsulates(graph, aot_info));
+
+  } // end of if (!analysis_pass)
+
+  // Pass 9 (optional, only run if environment variable
+  // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and
+  // make sure we can construct a graph from it.
+  if (std::getenv("NGRAPH_TF_DUMP_CLUSTERS")) {
+    for (auto& kv : device_name_map) {
+      int cluster_idx = kv.first;
+      TF_RETURN_IF_ERROR(graph::ValidateGraphDef(
+          *NGraphClusterManager::GetClusterGraph(cluster_idx),
+          *OpRegistry::Global()));
+
+      Graph g(OpRegistry::Global());
+      GraphConstructorOptions opts;
+      opts.allow_internal_ops = true;
+      TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
+          opts, *NGraphClusterManager::GetClusterGraph(cluster_idx), &g));
+
+      std::stringstream ss;
+      ss << "ngraph_cluster_" << cluster_idx;
+      std::string filename_prefix = ss.str();
+
+      GraphToPbTextFile(&g, filename_prefix + ".pbtxt");
+      GraphToDotFile(&g, filename_prefix + ".dot",
+                     "nGraph Cluster Dump: " + filename_prefix);
+    }
+  }
+
+  return Status::OK();
+}
+
+Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
   bool aot_requested;
   set<string> performed_aot_on_enc;
   std::set<std::map<std::string, vector<int>>> node_shapes_hints_sets;
@@ -885,34 +919,6 @@ Status EncapsulateClusters(
       }
     }
   }  // end of if (aot_requested)
-  } // end of if (!analysis_pass)
-
-  // Pass 9 (optional, only run if environment variable
-  // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and
-  // make sure we can construct a graph from it.
-  if (std::getenv("NGRAPH_TF_DUMP_CLUSTERS")) {
-    for (auto& kv : device_name_map) {
-      int cluster_idx = kv.first;
-      TF_RETURN_IF_ERROR(graph::ValidateGraphDef(
-          *NGraphClusterManager::GetClusterGraph(cluster_idx),
-          *OpRegistry::Global()));
-
-      Graph g(OpRegistry::Global());
-      GraphConstructorOptions opts;
-      opts.allow_internal_ops = true;
-      TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
-          opts, *NGraphClusterManager::GetClusterGraph(cluster_idx), &g));
-
-      std::stringstream ss;
-      ss << "ngraph_cluster_" << cluster_idx;
-      std::string filename_prefix = ss.str();
-
-      GraphToPbTextFile(&g, filename_prefix + ".pbtxt");
-      GraphToDotFile(&g, filename_prefix + ".dot",
-                     "nGraph Cluster Dump: " + filename_prefix);
-    }
-  }
-
   return Status::OK();
 }
 

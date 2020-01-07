@@ -49,7 +49,9 @@ typedef std::pair<bool, std::set<ShapeHintMap>> AOTInfo;
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     std::unordered_map<std::string, std::string> device_config,
-    AOTInfo aot_info, bool analysis_pass);
+    const AOTInfo& aot_info, bool analysis_pass);
+
+Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
