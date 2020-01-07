@@ -48,8 +48,48 @@ typedef std::pair<bool, std::set<ShapeHintMap>> AOTInfo;
 /// subgraphs, but not perform the rewriting.
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
-    std::unordered_map<std::string, std::string> device_config,
+    const std::unordered_map<std::string, std::string>& device_config,
     const AOTInfo& aot_info, bool analysis_pass);
+
+
+class Encapsulator {
+    public:
+    Encapsulator(Graph* g);
+    Status AnalysisPass();
+    Status RewritePass(FunctionDefLibrary* fdeflib, int graph_id, const std::unordered_map<std::string, std::string>& device_config);
+    std::vector<int> NewClusterIds();
+    private:
+    Graph* graph;
+    // boolean to indicate if analysis has been done
+    // If not rewritepass should not be called
+    bool analysis_done;
+    // A map from cluster indices to the expected device name for nodes
+    // in that cluster.
+    std::map<int, std::string> device_name_map;
+
+    // We *should* eventually have a way of monitoring the device and the backend
+    // together
+    std::map<int, std::string> backend_name_map;
+
+    // As we build the graph we will be tracking the.. TODO(amprocte): finish
+    // this comment.
+    std::map<std::tuple<int, int>, std::tuple<int, int>> output_remap_map;
+    std::map<std::tuple<int, int, int>, int> input_remap_map;
+    std::map<std::tuple<int, std::string, int>, string> input_rename_map;
+
+    // A map from cluster indices to a vector of input data types.
+    std::map<int, std::vector<std::tuple<int, int, DataType>>> cluster_input_map;
+    // A map from cluster indices to a vector of output data types.
+    std::map<int, std::vector<DataType>> cluster_output_dt_map;
+
+    // A map from cluster indices to corresponding NGraphEncapsulate nodes.
+    std::map<int, Node*> cluster_node_map;
+
+    std::set<int> cluster_indices_for_this_graph;
+
+    static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot);
+
+};
 
 Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info);
 
