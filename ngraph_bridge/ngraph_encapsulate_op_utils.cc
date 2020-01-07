@@ -154,6 +154,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
         NGRAPH_VLOG(2) << "[PREFETCH] COMPUTE: Using device tensors";
       }
       shared_data->IncrSkipCount();
+      shared_data->Unref();
     }
   }
 
