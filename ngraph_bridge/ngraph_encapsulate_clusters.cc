@@ -76,7 +76,7 @@ static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     std::unordered_map<std::string, std::string> device_config,
-    AOTInfo aot_info) {
+    AOTInfo aot_info, bool analysis_pass) {
   // A map from cluster indices to the expected device name for nodes
   // in that cluster.
   std::map<int, std::string> device_name_map;
@@ -310,6 +310,7 @@ Status EncapsulateClusters(
   }
 
   // Pass 3: Create encapsulation nodes for all clusters.
+  if (!analysis_pass) {
   for (auto& kv : device_name_map) {
     int cluster_idx = kv.first;
     string cluster_backend = backend_name_map[cluster_idx];
@@ -359,12 +360,14 @@ Status EncapsulateClusters(
 
     cluster_node_map[cluster_idx] = n;
   }
+  }
 
   // Pass 4: Remap all non-clustered inputs that are reading from
   // encapsulated edges, and all control edges that cross cluster
   // boundaries.
 
   // Copy the edge pointers, so as not to invalidate the iterator.
+  if (!analysis_pass) {
   std::vector<Edge*> edges;
   for (auto edge : graph->edges()) {
     edges.push_back(edge);
@@ -419,9 +422,12 @@ Status EncapsulateClusters(
       TF_RETURN_IF_ERROR(status);
     }
   }
+  }
 
   // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
   // rewiring the inputs in their NodeDefs as we go.
+  // In both analysis or rewriting, this pass is needed. It copies the subgraphs
+  // to cluster manager
   std::set<int> cluster_indices_for_this_graph;
   for (auto node : graph->op_nodes()) {
     int cluster_idx;
@@ -494,6 +500,7 @@ Status EncapsulateClusters(
   }
 
   // Pass 6: Remove clustered nodes from the graph.
+  if (!analysis_pass) {
   std::vector<Node*> nodes_to_remove;
   for (auto node : graph->op_nodes()) {
     int cluster_idx;
@@ -878,6 +885,7 @@ Status EncapsulateClusters(
       }
     }
   }  // end of if (aot_requested)
+  } // end of if (!analysis_pass)
 
   // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and

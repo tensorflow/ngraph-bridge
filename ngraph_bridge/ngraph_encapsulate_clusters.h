@@ -35,10 +35,21 @@ typedef std::map<std::string, std::vector<int>> ShapeHintMap;
 // the integer represent AOT level requested.
 typedef std::pair<bool, std::set<ShapeHintMap>> AOTInfo;
 
+// TODO: an optimization would be to separate the analysis and rewriting passes
+// cleanly, so that analysis pass is run in mark_for_clustering, and its
+// information is reused here instead of recalculating
+
+// TODO separate the AOT part out to a new function
+
+/// Takes a TF graph where ngraph_cluster attributes has been marked in a
+/// preceeding pass (assign_clusters), then replaces TF subgraphs and inserts
+/// encapsulate ops in their place. Optionally can perform ahead of time
+/// compilation. Optionally it can be used as an analysis pass to get the TF
+/// subgraphs, but not perform the rewriting.
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     std::unordered_map<std::string, std::string> device_config,
-    AOTInfo aot_info);
+    AOTInfo aot_info, bool analysis_pass);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
