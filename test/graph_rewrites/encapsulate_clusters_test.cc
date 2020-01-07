@@ -32,7 +32,7 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-  //                abs
+//                abs
 //                 |
 // const(0) ---> add(1) <---const(1)
 // This test check that with analysis_pass the graph is not rewritten, but we
@@ -205,7 +205,8 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   ASSERT_EQ(g.num_edges(), 6);
   ASSERT_EQ(g.num_op_nodes(), 3);
   ASSERT_EQ(g.num_nodes(), 5);
-  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map, {0, {}}, false));
+  ASSERT_OK(
+      EncapsulateClusters(&g, 0, fdeflib_new, config_map, {0, {}}, false));
 
   ASSERT_EQ(g.num_edges(), 3);
   ASSERT_EQ(g.num_op_nodes(), 1);

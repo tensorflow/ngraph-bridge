@@ -73,24 +73,19 @@ void Encapsulator::AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 }
 // ...end code copied and pasted (and modified) from graph.cc
 
-
-
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     const std::unordered_map<std::string, std::string>& device_config,
     const AOTInfo& aot_info, bool analysis_pass) {
-  
+  Encapsulator enc(graph);
+  TF_RETURN_IF_ERROR(enc.AnalysisPass());
 
-      auto enc = Encapsulator(graph);
-      TF_RETURN_IF_ERROR(enc.AnalysisPass());
-
-
-    if (!analysis_pass) {
-      TF_RETURN_IF_ERROR(enc.RewritePass(fdeflib, graph_id, device_config));
-      TF_RETURN_IF_ERROR(PerformAOTOnEncapsulates(graph, aot_info));
-    }
-    vector<int> newly_created_cluster_ids = enc.NewClusterIds();
-
+  if (!analysis_pass) {
+    TF_RETURN_IF_ERROR(enc.RewritePass(fdeflib, graph_id, device_config));
+    TF_RETURN_IF_ERROR(PerformAOTOnEncapsulates(graph, aot_info));
+  }
+  vector<int> newly_created_cluster_ids;
+  TF_RETURN_IF_ERROR(enc.NewClusterIds(newly_created_cluster_ids));
 
   // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and
@@ -471,11 +466,19 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
   return Status::OK();
 }
 
-Encapsulator::Encapsulator(Graph* g) : graph(g) {}
+Encapsulator::Encapsulator(Graph* g) : graph(g), analysis_done(false) {}
 
 Status Encapsulator::AnalysisPass() {
+  if (rewrite_done) {
+    return errors::Internal(
+        "In Encapsulator, AnalysisPass called after RewritePass was already "
+        "done");
+  }
 
-
+  if (analysis_done) {
+    return errors::Internal(
+        "In Encapsulator, AnalysisPass called more than once");
+  }
   // Pass 1: Populate the cluster-index-to-device name map for each existing
   // cluster. PIGGYBACKING BACKEND TEST HERE, THEY WILL GET COMBINED INTO ONE
   for (auto node : graph->op_nodes()) {
@@ -686,7 +689,6 @@ Status Encapsulator::AnalysisPass() {
     }
   }
 
-
   // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
   // rewiring the inputs in their NodeDefs as we go.
 
@@ -760,13 +762,22 @@ Status Encapsulator::AnalysisPass() {
     }
   }
 
-  return Status::OK();
+  analysis_done = false;
 
+  return Status::OK();
 }
 
-
-Status Encapsulator::RewritePass(FunctionDefLibrary* fdeflib, int graph_id, const std::unordered_map<std::string, std::string>& device_config) {
-
+Status Encapsulator::RewritePass(
+    FunctionDefLibrary* fdeflib, int graph_id,
+    const std::unordered_map<std::string, std::string>& device_config) {
+  if (!analysis_done) {
+    return errors::Internal(
+        "In Encapsulator, called RewritePass without calling AnalysisPass");
+  }
+  if (rewrite_done) {
+    return errors::Internal(
+        "In Encapsulator, called RewritePass more than once");
+  }
   // Pass 3: Create encapsulation nodes for all clusters.
   for (auto& kv : device_name_map) {
     int cluster_idx = kv.first;
@@ -817,7 +828,6 @@ Status Encapsulator::RewritePass(FunctionDefLibrary* fdeflib, int graph_id, cons
 
     cluster_node_map[cluster_idx] = n;
   }
-  
 
   // Pass 4: Remap all non-clustered inputs that are reading from
   // encapsulated edges, and all control edges that cross cluster
@@ -878,7 +888,6 @@ Status Encapsulator::RewritePass(FunctionDefLibrary* fdeflib, int graph_id, cons
       TF_RETURN_IF_ERROR(status);
     }
   }
-  
 
   // Pass 6: Remove clustered nodes from the graph.
   std::vector<Node*> nodes_to_remove;
@@ -919,12 +928,17 @@ Status Encapsulator::RewritePass(FunctionDefLibrary* fdeflib, int graph_id, cons
   return Status::OK();
 }
 
-vector<int> Encapsulator::NewClusterIds() {
-  vector<int> v(device_name_map.size());
-  for(auto it = device_name_map.begin(); it != device_name_map.end(); ++it) {
-    v.push_back(it->first);
+Status Encapsulator::NewClusterIds(vector<int>& result) {
+  if (!rewrite_done) {
+    return errors::Internal(
+        "In Encapsulator, called NewClusterIds without calling RewritePass");
   }
-  return v;
+  result.clear();
+  result.resize(device_name_map.size());
+  for (auto it = device_name_map.begin(); it != device_name_map.end(); ++it) {
+    result[std::distance(device_name_map.begin(), it)] = it->first;
+  }
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge
