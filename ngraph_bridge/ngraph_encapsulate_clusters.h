@@ -51,8 +51,8 @@ Status EncapsulateClusters(
     const std::unordered_map<std::string, std::string>& device_config,
     const AOTInfo& aot_info, bool analysis_pass);
 
-
-// TODO Encapsulator is dependent on ClusterManager. They could be made independent.
+// TODO Encapsulator is dependent on ClusterManager. They could be made
+// independent.
 class Encapsulator {
  public:
   Encapsulator(Graph* g);

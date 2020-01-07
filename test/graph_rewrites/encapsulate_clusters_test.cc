@@ -32,6 +32,14 @@ namespace ngraph_bridge {
 
 namespace testing {
 
+TEST(EncapsulateClusters, Encapsulator) {
+  Encapsulator enc{nullptr};
+  std::unordered_map<std::string, std::string> device_config;
+  ASSERT_NOT_OK(enc.RewritePass(nullptr, 0, device_config));
+  vector<int> result;
+  ASSERT_NOT_OK(enc.NewClusterIds(result));
+}
+
 //                abs
 //                 |
 // const(0) ---> add(1) <---const(1)

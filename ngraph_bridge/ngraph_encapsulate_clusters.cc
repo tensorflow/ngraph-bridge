@@ -466,7 +466,8 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
   return Status::OK();
 }
 
-Encapsulator::Encapsulator(Graph* g) : graph(g), analysis_done(false) {}
+Encapsulator::Encapsulator(Graph* g)
+    : graph(g), analysis_done(false), rewrite_done(false) {}
 
 Status Encapsulator::AnalysisPass() {
   if (rewrite_done) {
@@ -925,6 +926,7 @@ Status Encapsulator::RewritePass(
         subgraph, strings::StrCat("ngraph_cluster_", to_string(cluster_idx)),
         fdef));
   }
+  rewrite_done = true;
   return Status::OK();
 }
 
