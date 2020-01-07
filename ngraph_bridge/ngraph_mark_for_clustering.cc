@@ -941,7 +941,7 @@ GetTFToNgOpMap() {
             {constant, std::make_shared<ngraph::op::RandomUniform>()},
         },
         {"Rank", {constant}},
-        {"RealDiv", {std::make_shared<ngraph::op::Divide>()}},
+        {"RealDiv", {std::make_shared<ngraph::op::Divide>(), std::make_shared<ngraph::op::Broadcast>()}},
         {"Reciprocal", {constant, std::make_shared<ngraph::op::Power>()}},
         {"Relu", {std::make_shared<ngraph::op::Relu>()}},
         {"Relu6",
