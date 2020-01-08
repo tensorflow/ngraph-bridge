@@ -88,7 +88,7 @@ http_archive(
 http_archive(
         name = "mkl_dnn",
         build_file = "//:bazel/mkl_dnn.BUILD",
-        sha256 = "ed56652dd237deb86ee9bf102c18de5f2625c059e5ab1d7512c8dc01e316b694",
+        sha256 = "",
         strip_prefix = "mkl-dnn-1.0.4",
         urls = [
             "http://mirror.tensorflow.org/github.com/intel/mkl-dnn/archive/v1.0.4.tar.gz",
