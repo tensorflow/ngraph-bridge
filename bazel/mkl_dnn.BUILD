@@ -52,6 +52,18 @@ template_rule(
     },
 )
 
+template_rule(
+    name = "mkldnn_config_h",
+    src = "include/mkldnn_config.h.in",
+    out = "include/mkldnn_config.h",
+    substitutions = {
+        "@MKLDNN_VERSION_MAJOR@": "1",
+        "@MKLDNN_VERSION_MINOR@": "0",
+        "@MKLDNN_VERSION_PATCH@": "4",
+        "@MKLDNN_VERSION_HASH@": "N/A",
+    },
+)
+
 cc_library(
     name = "mkl_dnn",
     srcs = glob([
@@ -70,7 +82,7 @@ cc_library(
         "src/cpu/rnn/*.cpp",
         "src/cpu/rnn/*.hpp",
         "src/cpu/xbyak/*.h",
-    ]) + [":mkldnn_version_h"],
+    ]) + [":mkldnn_version_h"] + [":mkldnn_config_h"],
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",
@@ -140,7 +152,7 @@ cc_library(
         "src/cpu/rnn/*.cpp",
         "src/cpu/rnn/*.hpp",
         "src/cpu/xbyak/*.h",
-    ]) + [":mkldnn_version_h"],
+    ]) + [":mkldnn_version_h"] + [":mkldnn_config_h"],
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",
