@@ -365,7 +365,7 @@ add_subdirectory(experimental/ngraph_device)
 add_subdirectory(examples)
 if (DEFINED TF_SRC_DIR)
     message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
-    add_subdirectory(examples/cpp)
+    # add_subdirectory(examples/cpp)
 else()
     message(
         STATUS 
@@ -390,7 +390,7 @@ if (UNIT_TEST_ENABLE)
         set(TF_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TF_SRC_DIR})
     endif()
 
-    add_subdirectory(test)
+    # add_subdirectory(test)
     message(STATUS "unit tests enabled")
 endif()
 

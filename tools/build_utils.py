@@ -287,7 +287,7 @@ def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
     cmd = [
         "bazel", "build", "--config=opt", "--config=noaws", "--config=nohdfs",
         "--config=noignite", "--config=nokafka", "--config=nonccl",
-        "//tensorflow:libtensorflow_cc.so.1"
+        "//tensorflow:libtensorflow_cc.so.2"
     ]
     command_executor(cmd)
     copy_tf_cc_lib_to_artifacts(artifacts_dir, None)
@@ -297,7 +297,7 @@ def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
 
 
 def copy_tf_cc_lib_to_artifacts(artifacts_dir, tf_prebuilt):
-    tf_cc_lib_name = 'libtensorflow_cc.so.1'
+    tf_cc_lib_name = 'libtensorflow_cc.so.2'
     #if (platform.system() == 'Darwin'):
     #tf_cc_lib_name = 'libtensorflow_cc.1.dylib'
     try:
@@ -327,11 +327,11 @@ def locate_tf_whl(tf_whl_loc):
 
 
 def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
-    tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
+    tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
     if (platform.system() == 'Darwin'):
         tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
     try:
-        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.1")
+        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.2")
         os.unlink(doomed_file)
         doomed_file = os.path.join(artifacts_dir, tf_fmwk_lib_name)
         os.unlink(doomed_file)
@@ -341,10 +341,10 @@ def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
 
     # Now copy the TF libraries
     if tf_prebuilt is None:
-        tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.1"
+        tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.2"
         tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
     else:
-        tf_cc_lib_file = os.path.abspath(tf_prebuilt + '/libtensorflow_cc.so.1')
+        tf_cc_lib_file = os.path.abspath(tf_prebuilt + '/libtensorflow_cc.so.2')
         tf_cc_fmwk_file = os.path.abspath(tf_prebuilt + '/' + tf_fmwk_lib_name)
     print("PWD: ", os.getcwd())
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
