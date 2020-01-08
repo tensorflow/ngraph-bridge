@@ -35,7 +35,6 @@ namespace testing {
 // Test that calls the functions of encapsulator in the wrong order
 // Non-OK statuses are axpected
 TEST(EncapsulateClusters, EncapsulatorFail) {
-  return;
   Encapsulator enc{nullptr};
   std::unordered_map<std::string, std::string> device_config;
   ASSERT_NOT_OK(enc.RewritePass(nullptr, 0, device_config));
@@ -45,7 +44,6 @@ TEST(EncapsulateClusters, EncapsulatorFail) {
 
 TEST(EncapsulateClusters, EncapsulatorPass) {
   NGraphClusterManager::EvictAllClusters();
-  return;
   Graph g(OpRegistry::Global());
 
   Tensor t_input_0(DT_FLOAT, TensorShape{2, 3});

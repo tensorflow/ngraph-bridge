@@ -73,15 +73,19 @@ void Encapsulator::AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 }
 // ...end code copied and pasted (and modified) from graph.cc
 
+// TODO: remove the "bool analysis_pass" from EncapsulateClusters
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     const std::unordered_map<std::string, std::string>& device_config,
     const AOTInfo& aot_info, bool analysis_pass) {
   Encapsulator enc(graph);
+  NGRAPH_VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
   TF_RETURN_IF_ERROR(enc.AnalysisPass());
 
   if (!analysis_pass) {
+    NGRAPH_VLOG(3) << "Running RewritePass in EncapsulateClusters";
     TF_RETURN_IF_ERROR(enc.RewritePass(fdeflib, graph_id, device_config));
+    NGRAPH_VLOG(3) << "Performing AOT in EncapsulateClusters";
     TF_RETURN_IF_ERROR(PerformAOTOnEncapsulates(graph, aot_info));
   }
   vector<int> newly_created_cluster_ids;
@@ -763,7 +767,7 @@ Status Encapsulator::AnalysisPass() {
     }
   }
 
-  analysis_done = false;
+  analysis_done = true;
 
   return Status::OK();
 }
