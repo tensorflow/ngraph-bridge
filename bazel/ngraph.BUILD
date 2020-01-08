@@ -115,6 +115,7 @@ cc_library(
         '-D NGRAPH_VERSION=\\"v0.27.1-rc.3\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
+        '-D NGRAPH_USE_LEGACY_MKLDNN',
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
@@ -275,6 +276,7 @@ cc_library(
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE',
+        '-D NGRAPH_USE_LEGACY_MKLDNN',
         "-march=native",
         "-mtune=native",
         "-Wall",
