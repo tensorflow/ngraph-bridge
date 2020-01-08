@@ -230,9 +230,9 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-    auto status = EncapsulateClusters(options.graph->get(), idx,
-                                      fdeflib_new, config_map, {0, {}});
-    if(status != Status::OK()){
+    auto status = EncapsulateClusters(options.graph->get(), idx, fdeflib_new,
+                                      config_map, {0, {}});
+    if (status != Status::OK()) {
       delete (fdeflib_new);
       return status;
     }
