@@ -45,9 +45,9 @@ template_rule(
     src = "include/mkldnn_version.h.in",
     out = "include/mkldnn_version.h",
     substitutions = {
-        "@MKLDNN_VERSION_MAJOR@": "0",
-        "@MKLDNN_VERSION_MINOR@": "21",
-        "@MKLDNN_VERSION_PATCH@": "2",
+        "@MKLDNN_VERSION_MAJOR@": "1",
+        "@MKLDNN_VERSION_MINOR@": "0",
+        "@MKLDNN_VERSION_PATCH@": "4",
         "@MKLDNN_VERSION_HASH@": "N/A",
     },
 )

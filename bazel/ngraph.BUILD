@@ -242,6 +242,7 @@ cc_library(
         "src/ngraph/runtime/cpu/pass/cpu_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_horizontal_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_layout.cpp",
+        "src/ngraph/runtime/cpu/pass/cpu_mkldnn_primitive_build.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_loop_kernel_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_mat_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_memory_assignment.cpp",
