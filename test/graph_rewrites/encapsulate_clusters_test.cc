@@ -43,6 +43,7 @@ TEST(EncapsulateClusters, EncapsulatorFail) {
 }
 
 //                abs
+//                 ^
 //                 |
 // const(0) ---> add(1) <---const(1)
 TEST(EncapsulateClusters, EncapsulatorPass) {

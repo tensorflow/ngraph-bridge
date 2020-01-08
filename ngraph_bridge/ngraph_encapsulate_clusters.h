@@ -38,14 +38,13 @@ typedef std::pair<bool, std::set<ShapeHintMap>> AOTInfo;
 // TODO: an optimization would be to separate the analysis and rewriting passes
 // cleanly, so that analysis pass is run in mark_for_clustering, and its
 // information is reused here instead of recalculating
-
-// TODO separate the AOT part out to a new function
+// To do that an Encapsulator object with AnalysisPass run can be created in
+// MarkForClustering, and that can be passed to EncapsulateClusters
 
 /// Takes a TF graph where ngraph_cluster attributes has been marked in a
 /// preceeding pass (assign_clusters), then replaces TF subgraphs and inserts
 /// encapsulate ops in their place. Optionally can perform ahead of time
-/// compilation. Optionally it can be used as an analysis pass to get the TF
-/// subgraphs, but not perform the rewriting.
+/// compilation.
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     const std::unordered_map<std::string, std::string>& device_config,
@@ -53,10 +52,21 @@ Status EncapsulateClusters(
 
 // TODO Encapsulator is dependent on ClusterManager. They could be made
 // independent.
+
+// A class to perform analysis (identify subgraphs)
+// and rewriting (create encapsulates and splice them in)
+// Order of calling: construction -> AnalysisPass -> RewritePass
+//                                       |
+//                                       v
+//                                 NewClusterIds
+// Any other order of calling will generate errors
+// Cannot be copied/moved or reset
 class Encapsulator {
  public:
   Encapsulator(Graph* g);
+  // Populate ClusterManager with the subgraphs for each potential encapsulate
   Status AnalysisPass();
+  // Perform the actual graph surgery
   Status RewritePass(
       FunctionDefLibrary* fdeflib, int graph_id,
       const std::unordered_map<std::string, std::string>& device_config);
