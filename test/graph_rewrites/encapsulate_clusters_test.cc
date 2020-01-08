@@ -66,7 +66,7 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   t_input_1.flat<int32>().data()[0] = 3;
   t_input_1.flat<int32>().data()[1] = 2;
 
-  int cluster_idx_0 = 0;
+  int cluster_idx_0 = NGraphClusterManager::NewCluster();;
 
   Node* node1;
   ASSERT_OK(NodeBuilder("node1", "Const")
@@ -77,7 +77,9 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                 .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node1));
 
-  int cluster_idx_1 = 1;
+  int cluster_idx_1 = NGraphClusterManager::NewCluster();
+  ASSERT_EQ(num_graphs_in_cluster_manager(), 2);
+
   Node* node2;
   ASSERT_OK(NodeBuilder("node2", "Const")
                 .Attr("dtype", DT_FLOAT)
@@ -109,9 +111,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
   g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
 
-  std::unordered_map<std::string, std::string> config_map;
-  config_map["ngraph_device_id"] = "";
-  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
   ASSERT_EQ(g.num_edges(), 7);
   ASSERT_EQ(g.num_op_nodes(), 4);
   ASSERT_EQ(g.num_nodes(), 6);
@@ -119,32 +118,38 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   Encapsulator enc(&g);
 
   // Initially ClusterManager is empty
-  ASSERT_EQ(num_graphs_in_cluster_manager(), 0);
+  for (int i = 0; i < 2; i++) {
+    ASSERT_EQ(NGraphClusterManager::GetClusterGraph(i)->node_size(), 0);
+  }
   ASSERT_OK(enc.AnalysisPass());
   // After AnalysisPass ClusterManager is populated
+  // const and retval
+  ASSERT_EQ(NGraphClusterManager::GetClusterGraph(0)->node_size(), 2);
+  // arg, const, add and retval
+  ASSERT_EQ(NGraphClusterManager::GetClusterGraph(1)->node_size(), 4);
   // But the graph structure stays same. No rewriting yet
   ASSERT_EQ(g.num_edges(), 7);
   ASSERT_EQ(g.num_op_nodes(), 4);
   ASSERT_EQ(g.num_nodes(), 6);
 
-  // After analysis pass, we expect to see 3 newly created clusters
-
-  ASSERT_EQ(num_graphs_in_cluster_manager(), 3);
-
   set<int> newly_created_cluster_ids;
   ASSERT_OK(enc.NewClusterIds(newly_created_cluster_ids));
-  set<int> expected{0,1,2};
+  set<int> expected{0,1};
   ASSERT_EQ(newly_created_cluster_ids, expected);
-
-  ASSERT_OK(enc.RewritePass(fdeflib_new, 0, config_map));
 
   auto subgraph_0 = NGraphClusterManager::GetClusterGraph(0);
   auto subgraph_1 = NGraphClusterManager::GetClusterGraph(1);
   auto subgraph_2 = NGraphClusterManager::GetClusterGraph(2);
+  // Assert that there are only 2 subgraphs
+  ASSERT_EQ(subgraph_2, nullptr);
 
   int num_encapsulates = 0;
   int num_tf_nodes = 0;
-  for (auto itr : g.nodes()) {
+
+  // count number of nodes and encapsulates
+  auto node_counter = [](Graph* g) {
+    int num_encapsulates = 0, num_tf_nodes = 0; 
+    for (auto itr : g->nodes()) {
     auto node_type = itr->type_string();
     num_encapsulates += (node_type == "NGraphEncapsulate" ? 1 : 0);
     num_tf_nodes +=
@@ -152,23 +157,23 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
              ? 1
              : 0);
   }
+  return make_pair(num_encapsulates, num_tf_nodes);
+  };
 
-  // Number of encapsulates == number of functions == 0
-  ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
-  ASSERT_EQ(num_encapsulates, 0);
-
-  // Assert that there are only 2 subgraphs
-  ASSERT_EQ(subgraph_2, nullptr);
+  std::tie(num_encapsulates, num_tf_nodes) = node_counter(&g);
 
   // All the Add/Const/Abs nodes are left in the graph, since it is an analysis
   // pass
   ASSERT_EQ(num_tf_nodes, 4);
-  free(fdeflib_new);
+
+  // Number of encapsulates == number of functions == 0
+  ASSERT_EQ(num_encapsulates, 0);
 
   // In analysis pass cluster manager should be populated with the subgraphs
   // Now analyse subgraph_0 and subgraph_1, which we got from ClusterManager
   ASSERT_EQ(subgraph_0->node_size(), 2);
   ASSERT_EQ(subgraph_1->node_size(), 4);
+
 
   // helper function to get nodes and their types from a graphdef
   auto get_node_name_and_types =
@@ -188,6 +193,31 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                                        {"ngraph_output_0", "_Retval"},
                                        {"node2", "Const"},
                                        {"node3", "Add"}}));
+
+
+  // Now perform the actual rewrite
+  std::unordered_map<std::string, std::string> config_map;
+  config_map["ngraph_device_id"] = "";
+  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+  ASSERT_OK(enc.RewritePass(fdeflib_new, 0, config_map));
+
+  std::tie(num_encapsulates, num_tf_nodes) = node_counter(&g);
+  ASSERT_EQ(num_tf_nodes, 1); // Only Abs is left
+  ASSERT_EQ(num_encapsulates, 2);
+  // Number of encapsulates == number of functions
+  ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
+
+  // After RewritePass, the number of clusters is still 2 and it contains populated graphdefs
+  ASSERT_EQ(num_graphs_in_cluster_manager(), 2);
+  ASSERT_EQ(NGraphClusterManager::GetClusterGraph(0)->node_size(), 2);
+  ASSERT_EQ(NGraphClusterManager::GetClusterGraph(1)->node_size(), 4);
+
+  // The graph structure should have changed after RewritePass
+  ASSERT_EQ(g.num_edges(), 6);
+  ASSERT_EQ(g.num_op_nodes(), 3);
+  ASSERT_EQ(g.num_nodes(), 5);
+
+  free(fdeflib_new);  
 }
 
 // const(0) ---> add(0) <---const(0)
