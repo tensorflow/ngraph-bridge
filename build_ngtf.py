@@ -21,14 +21,14 @@ from tools.build_utils import *
 def version_check(use_prebuilt_tensorflow):
     # Check pre-requisites
     # if use_prebuilt_tensorflow:
-        # Check if the gcc version is 4.8
-        # if (platform.system() != 'Darwin'):
-        #    gcc_ver = get_gcc_version()
-        #    if '4.8' not in gcc_ver:
-        #        raise Exception(
-        #            "Need GCC 4.8 to build using prebuilt TensorFlow\n"
-        #            "Gcc version installed: " + gcc_ver + "\n"
-        #            "To build from source ommit `use_prebuilt_tensorflow`")
+    # Check if the gcc version is 4.8
+    # if (platform.system() != 'Darwin'):
+    #    gcc_ver = get_gcc_version()
+    #    if '4.8' not in gcc_ver:
+    #        raise Exception(
+    #            "Need GCC 4.8 to build using prebuilt TensorFlow\n"
+    #            "Gcc version installed: " + gcc_ver + "\n"
+    #            "To build from source ommit `use_prebuilt_tensorflow`")
     # Check cmake version
     cmake_ver = get_cmake_version()
     if (int(cmake_ver[0]) < 3 or int(cmake_ver[1]) < 4):
