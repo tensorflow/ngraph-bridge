@@ -46,10 +46,10 @@ TEST(EncapsulateClusters, EncapsulatorFail) {
 //                 |
 // const(0) ---> add(1) <---const(1)
 TEST(EncapsulateClusters, EncapsulatorPass) {
-  auto num_graphs_in_cluster_manager = [](){
+  auto num_graphs_in_cluster_manager = []() {
     int num = 0;
-    while(true) {
-      if (NGraphClusterManager::GetClusterGraph(num) == nullptr){
+    while (true) {
+      if (NGraphClusterManager::GetClusterGraph(num) == nullptr) {
         break;
       } else {
         num++;
@@ -66,7 +66,8 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   t_input_1.flat<int32>().data()[0] = 3;
   t_input_1.flat<int32>().data()[1] = 2;
 
-  int cluster_idx_0 = NGraphClusterManager::NewCluster();;
+  int cluster_idx_0 = NGraphClusterManager::NewCluster();
+  ;
 
   Node* node1;
   ASSERT_OK(NodeBuilder("node1", "Const")
@@ -134,7 +135,7 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
 
   set<int> newly_created_cluster_ids;
   ASSERT_OK(enc.NewClusterIds(newly_created_cluster_ids));
-  set<int> expected{0,1};
+  set<int> expected{0, 1};
   ASSERT_EQ(newly_created_cluster_ids, expected);
 
   auto subgraph_0 = NGraphClusterManager::GetClusterGraph(0);
@@ -148,16 +149,16 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
 
   // count number of nodes and encapsulates
   auto node_counter = [](Graph* g) {
-    int num_encapsulates = 0, num_tf_nodes = 0; 
+    int num_encapsulates = 0, num_tf_nodes = 0;
     for (auto itr : g->nodes()) {
-    auto node_type = itr->type_string();
-    num_encapsulates += (node_type == "NGraphEncapsulate" ? 1 : 0);
-    num_tf_nodes +=
-        ((node_type == "Add" || node_type == "Const" || node_type == "Abs")
-             ? 1
-             : 0);
-  }
-  return make_pair(num_encapsulates, num_tf_nodes);
+      auto node_type = itr->type_string();
+      num_encapsulates += (node_type == "NGraphEncapsulate" ? 1 : 0);
+      num_tf_nodes +=
+          ((node_type == "Add" || node_type == "Const" || node_type == "Abs")
+               ? 1
+               : 0);
+    }
+    return make_pair(num_encapsulates, num_tf_nodes);
   };
 
   std::tie(num_encapsulates, num_tf_nodes) = node_counter(&g);
@@ -173,7 +174,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   // Now analyse subgraph_0 and subgraph_1, which we got from ClusterManager
   ASSERT_EQ(subgraph_0->node_size(), 2);
   ASSERT_EQ(subgraph_1->node_size(), 4);
-
 
   // helper function to get nodes and their types from a graphdef
   auto get_node_name_and_types =
@@ -194,7 +194,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                                        {"node2", "Const"},
                                        {"node3", "Add"}}));
 
-
   // Now perform the actual rewrite
   std::unordered_map<std::string, std::string> config_map;
   config_map["ngraph_device_id"] = "";
@@ -202,12 +201,13 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   ASSERT_OK(enc.RewritePass(fdeflib_new, 0, config_map));
 
   std::tie(num_encapsulates, num_tf_nodes) = node_counter(&g);
-  ASSERT_EQ(num_tf_nodes, 1); // Only Abs is left
+  ASSERT_EQ(num_tf_nodes, 1);  // Only Abs is left
   ASSERT_EQ(num_encapsulates, 2);
   // Number of encapsulates == number of functions
   ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
 
-  // After RewritePass, the number of clusters is still 2 and it contains populated graphdefs
+  // After RewritePass, the number of clusters is still 2 and it contains
+  // populated graphdefs
   ASSERT_EQ(num_graphs_in_cluster_manager(), 2);
   ASSERT_EQ(NGraphClusterManager::GetClusterGraph(0)->node_size(), 2);
   ASSERT_EQ(NGraphClusterManager::GetClusterGraph(1)->node_size(), 4);
@@ -217,7 +217,7 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   ASSERT_EQ(g.num_op_nodes(), 3);
   ASSERT_EQ(g.num_nodes(), 5);
 
-  free(fdeflib_new);  
+  free(fdeflib_new);
 }
 
 // const(0) ---> add(0) <---const(0)
@@ -273,8 +273,7 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   ASSERT_EQ(g.num_edges(), 6);
   ASSERT_EQ(g.num_op_nodes(), 3);
   ASSERT_EQ(g.num_nodes(), 5);
-  ASSERT_OK(
-      EncapsulateClusters(&g, 0, fdeflib_new, config_map, {0, {}}));
+  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map, {0, {}}));
 
   ASSERT_EQ(g.num_edges(), 3);
   ASSERT_EQ(g.num_op_nodes(), 1);
