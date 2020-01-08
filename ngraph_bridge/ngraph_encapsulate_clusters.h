@@ -49,7 +49,7 @@ typedef std::pair<bool, std::set<ShapeHintMap>> AOTInfo;
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     const std::unordered_map<std::string, std::string>& device_config,
-    const AOTInfo& aot_info, bool analysis_pass);
+    const AOTInfo& aot_info);
 
 // TODO Encapsulator is dependent on ClusterManager. They could be made
 // independent.
@@ -60,7 +60,7 @@ class Encapsulator {
   Status RewritePass(
       FunctionDefLibrary* fdeflib, int graph_id,
       const std::unordered_map<std::string, std::string>& device_config);
-  Status NewClusterIds(std::vector<int>& result);
+  Status NewClusterIds(std::set<int>& result);
 
   Encapsulator(const Encapsulator&) = delete;
   Encapsulator(Encapsulator&&) = delete;

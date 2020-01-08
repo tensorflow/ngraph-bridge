@@ -73,22 +73,19 @@ void Encapsulator::AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 }
 // ...end code copied and pasted (and modified) from graph.cc
 
-// TODO: remove the "bool analysis_pass" from EncapsulateClusters
 Status EncapsulateClusters(
     Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
     const std::unordered_map<std::string, std::string>& device_config,
-    const AOTInfo& aot_info, bool analysis_pass) {
+    const AOTInfo& aot_info) {
   Encapsulator enc(graph);
   NGRAPH_VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
   TF_RETURN_IF_ERROR(enc.AnalysisPass());
+  NGRAPH_VLOG(3) << "Running RewritePass in EncapsulateClusters";
+  TF_RETURN_IF_ERROR(enc.RewritePass(fdeflib, graph_id, device_config));
+  NGRAPH_VLOG(3) << "Performing AOT in EncapsulateClusters";
+  TF_RETURN_IF_ERROR(PerformAOTOnEncapsulates(graph, aot_info));
 
-  if (!analysis_pass) {
-    NGRAPH_VLOG(3) << "Running RewritePass in EncapsulateClusters";
-    TF_RETURN_IF_ERROR(enc.RewritePass(fdeflib, graph_id, device_config));
-    NGRAPH_VLOG(3) << "Performing AOT in EncapsulateClusters";
-    TF_RETURN_IF_ERROR(PerformAOTOnEncapsulates(graph, aot_info));
-  }
-  vector<int> newly_created_cluster_ids;
+  set<int> newly_created_cluster_ids;
   TF_RETURN_IF_ERROR(enc.NewClusterIds(newly_created_cluster_ids));
 
   // Pass 9 (optional, only run if environment variable
@@ -934,15 +931,14 @@ Status Encapsulator::RewritePass(
   return Status::OK();
 }
 
-Status Encapsulator::NewClusterIds(vector<int>& result) {
-  if (!rewrite_done) {
+Status Encapsulator::NewClusterIds(set<int>& result) {
+  if (!analysis_done) {
     return errors::Internal(
-        "In Encapsulator, called NewClusterIds without calling RewritePass");
+        "In Encapsulator, called NewClusterIds without calling AnalysisPass");
   }
   result.clear();
-  result.resize(device_name_map.size());
   for (auto it = device_name_map.begin(); it != device_name_map.end(); ++it) {
-    result[std::distance(device_name_map.begin(), it)] = it->first;
+    result.insert(it->first);
   }
   return Status::OK();
 }
