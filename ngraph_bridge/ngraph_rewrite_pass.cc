@@ -232,7 +232,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
     auto status = EncapsulateClusters(options.graph->get(), idx,
                                       fdeflib_new, config_map, {0, {}});
-    if(status != Status::OK){
+    if(status != Status::OK()){
       delete (fdeflib_new);
       return status;
     }
