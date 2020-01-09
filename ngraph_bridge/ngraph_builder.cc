@@ -857,10 +857,10 @@ static Status TranslateBatchMatMulOp(
       ng::AxisVector tmp_axes = {0, 1, 2};
 
       std::shared_ptr<ng::Node> lhs_reshape =
-          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, ng_lhs_axes,
+          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_lhs, get_default_order(ng_lhs->get_shape()),
                                                tmp_lhs_shape);
       std::shared_ptr<ng::Node> rhs_reshape =
-          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, ng_rhs_axes,
+          ConstructNgNode<ngraph::op::Reshape>(op->name(), ng_rhs, get_default_order(ng_rhs->get_shape()),
                                                tmp_rhs_shape);
       std::shared_ptr<ng::Node> batchmatmul =
           ConstructNgNode<ngraph::op::BatchMatMul>(op->name(), lhs_reshape,
