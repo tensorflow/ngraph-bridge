@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "c101988a125bd151d98239d151a258f5388205e9"  # r0.27.1
+    ngraph_version = "fbd99f340d162705a47014339134aea79f9ca3ed"  # master Katarzyna Mitrus Add provenance tags to ONNX importer
     tf_version = "v1.14.0"
 
     # Command line parser options
