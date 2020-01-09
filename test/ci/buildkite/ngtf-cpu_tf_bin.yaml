@@ -3,7 +3,7 @@
       virtualenv -p /usr/bin/python3 /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv 
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install -U yapf==0.26.0
-      pip install -U tensorflow==v1.14.0-rc0
+      pip install -U tensorflow==v1.15.0
       
     label: ":gear: Setup"
     timeout_in_minutes: 30

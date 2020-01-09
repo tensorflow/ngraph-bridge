@@ -39,7 +39,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 
 1. Install TensorFlow:
 
-        pip install -U tensorflow==1.14.0
+        pip install -U tensorflow==1.15.0
 
 2. Install `ngraph-tensorflow-bridge`:
 
@@ -126,10 +126,10 @@ Verify that `ngraph-bridge` installed correctly:
 
     This will produce something like this:
 
-        TensorFlow version:  <1.14.0>
+        TensorFlow version:  <1.15.0>
         nGraph bridge version: <b'0.14.0'>
         nGraph version used for this build: b'0.18.0+c5d52f1'
-        TensorFlow version used for this build: <v1.14.0-...>
+        TensorFlow version used for this build: <v1.15.0-...>
         CXX11_ABI flag used for this build: 0
         nGraph bridge built with Grappler: False
         nGraph bridge built with Variables and Optimizers Enablement: False
