@@ -100,10 +100,9 @@ Status GetPipelinedIOTensorsReadyForExecution(
 
       if (current_iter_pipeline_depth != (!next_io_tensor_bundle.Id)) {
         delete shared_data;
-        return errors::Internal("Current Pipeline Depth is ",
-                                current_iter_pipeline_depth,
-                                " and next iter pipeline depth is also  ",
-                                next_io_tensor_bundle.Id);
+        return errors::Internal(
+            "Current Pipeline Depth is ", current_iter_pipeline_depth,
+            " and next iter pipeline depth is also ", next_io_tensor_bundle.Id);
       }
 
       shared_data->AddNextIOTensorBundleForDeviceTransfer(
