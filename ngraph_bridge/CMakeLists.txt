@@ -59,6 +59,10 @@ set(SRC
    ngraph_tracked_variable.cc
    ngraph_var.cc
    ngraph_utils.cc
+   experimental/ngraph_device/ngraph_device.cc
+   experimental/ngraph_device/ngraph_ops.cc
+   experimental/ngraph_device/ngraph_send_recv_ops.cc
+   experimental/ngraph_device/ngraph_optimization_pass.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
    prefetch_autotuner.cc
@@ -68,6 +72,7 @@ set(SRC
 )
 
 message(STATUS "NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS: ${NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS}")
+#add_subdirectory(experimental/ngraph_device)
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     # common files

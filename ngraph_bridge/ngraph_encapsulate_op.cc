@@ -1042,7 +1042,7 @@ int NGraphEncapsulateImpl::s_instance_count = 0;
 
 }  // namespace ngraph_bridge
 
-REGISTER_KERNEL_BUILDER(Name("NGraphEncapsulate").Device(DEVICE_CPU),
+REGISTER_KERNEL_BUILDER(Name("NGraphEncapsulate").Device("NGRAPH"),
                         ngraph_bridge::NGraphEncapsulateOp);
 
 }  // namespace tensorflow

@@ -71,6 +71,7 @@ mutex NGraphRewritePass::s_serial_counter_mutex;
 //
 class NGraphVariableCapturePass : public NGraphRewritePass {
  public:
+
   Status Run(const GraphOptimizationPassOptions& options) override {
     // If we don't get a main graph, log that fact and bail.
     if (options.graph == nullptr) {
@@ -153,6 +154,19 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
 //
 class NGraphEncapsulationPass : public NGraphRewritePass {
  public:
+	 char* const DEVICE_NGRAPH = "NGRAPH";
+	 bool IsNGraphNode(const Node* node) {
+  DeviceNameUtils::ParsedName parsed;
+
+  if (!DeviceNameUtils::ParseFullName(node->assigned_device_name(),
+                                          &parsed)) {
+    std::cout<<"Assigned Device name is "<< node->assigned_device_name() <<"Unable to parse"<<std::endl;
+    return false;
+  }
+  std::cout<<"Assigned Device name is "<<node->assigned_device_name()<<" Parsed Type is "<<parsed.type<<std::endl;
+  return (parsed.has_type && parsed.type == DEVICE_NGRAPH);
+}
+
   Status Run(const GraphOptimizationPassOptions& options) override {
     // If we don't get a main graph, log that fact and bail.
     if (options.graph == nullptr) {
@@ -209,6 +223,25 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
+    for (auto edge : options.graph->get()->edges()) {
+      Node* src = edge->src();
+      Node* dst = edge->dst();
+
+      if (!IsNGraphNode(src) || !IsNGraphNode(dst)) {
+	if(!IsNGraphNode(src))
+	{
+	 skip_these_nodes.insert(src->name());
+	 NGRAPH_VLOG(5) << "Skipping: " << src->name();
+	}
+	if(!IsNGraphNode(dst))
+	{
+          skip_these_nodes.insert(dst->name());	
+	  NGRAPH_VLOG(5) << "Skipping: " << dst->name();
+	}
+        continue;
+      }
+    }
+
     TF_RETURN_IF_ERROR(MarkForClustering(options.graph->get(), skip_these_nodes,
                                          backend_creation_string));
     if (DumpMarkedGraphs()) {
@@ -220,7 +253,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     if (DumpClusteredGraphs()) {
       DumpGraphs(options, idx, "clustered", "Graph with Clusters Assigned");
     }
-
+     NGRAPH_VLOG(5) << "ARE youuuuuuuuuuuuuuuu  thrteeeeeeeeeeeeeeeeeeeeeeeeeeee";
     // 3. Deassign trivial clusters then, if requested, dump the graphs.
     TF_RETURN_IF_ERROR(DeassignClusters(options.graph->get()));
     if (DumpDeclusteredGraphs()) {
