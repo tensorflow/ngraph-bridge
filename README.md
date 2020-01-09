@@ -3,7 +3,7 @@
   <img src="images/ngraph-logo.png">
 </p>
 
-# Intel(R) nGraph(TM) Compiler and Runtime for TensorFlow*
+#  Intel(R) nGraph(TM) Compiler and Runtime for TensorFlow*
 
 This repository contains the code needed to enable Intel(R) nGraph(TM) Compiler and 
 runtime engine for TensorFlow. Use it to speed up your TensorFlow training and 
