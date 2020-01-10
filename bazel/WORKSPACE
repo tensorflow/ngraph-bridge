@@ -55,7 +55,7 @@ tf_workspace(path_prefix = "", tf_repo_name = "org_tensorflow")
 http_archive(
     name = "ngraph",
     build_file = "//:bazel/ngraph.BUILD",
-    sha256 = "265fa69c423bde3c8c56e5b2ec3860428d0eb63eaf9faba59fdd8261d44753f9",
+    sha256 = "",
     strip_prefix = "ngraph-master",
     urls = [
         "https://mirror.bazel.build/github.com/NervanaSystems/ngraph/archive/master.tar.gz",
