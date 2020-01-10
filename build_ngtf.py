@@ -37,13 +37,10 @@ def version_check(use_prebuilt_tensorflow):
 
     # Check bazel version
     bazel_ver = get_bazel_version()
-    got_correct_bazel_version = False
-    if (int(bazel_ver[1]) >= 24 and int(bazel_ver[1]) <= 25):
-        if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
-            got_correct_bazel_version = True
+    got_correct_bazel_version = int(bazel_ver[1]) == 25 and int(bazel_ver[2]) == 2
 
     if not got_correct_bazel_version:
-        raise Exception("Need bazel 0.24.1 < version < 0.25.2 \n" + "Got: " +
+        raise Exception("Need bazel version 0.25.2 \n" + "Got: " +
                         '.'.join(bazel_ver))
 
 
