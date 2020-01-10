@@ -5,11 +5,11 @@
 
 # Intel(R) nGraph(TM) Compiler and Runtime for TensorFlow*
 
-This repository contains the code needed to enable Intel(R) nGraph(TM) Compiler and 
-runtime engine for TensorFlow. Use it to speed up your TensorFlow training and 
-inference workloads. The nGraph Library and runtime suite can also be used to 
-customize and deploy Deep Learning inference models that will "just work" with 
-a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the 
+This repository contains the code needed to enable Intel(R) nGraph(TM) Compiler and
+runtime engine for TensorFlow. Use it to speed up your TensorFlow training and
+inference workloads. The nGraph Library and runtime suite can also be used to
+customize and deploy Deep Learning inference models that will "just work" with
+a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 [Intel(R) Nervana(TM) NNP](https://itpeernetwork.intel.com/inteldcisummit-artificial-intelligence/).
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/tensorflow/ngraph-bridge/blob/master/LICENSE)
@@ -26,9 +26,10 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 |Python 3| Python 3|
 |TensorFlow v1.14|GCC 4.8 (Ubuntu), Clang/LLVM (macOS)|
 |        |`cmake` 3.4 or higher|
-|        |Bazel 0.25.2|
+|        |Bazel 0.24.1 - 0.25.2|
 |        |`virtualenv` 16.0.0|
 |        ||
+Note, we only test builds using Bazel v0.24.1.
 
 
 ### Use pre-built packages
@@ -44,11 +45,11 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 2. Install `ngraph-tensorflow-bridge`:
 
         pip install -U ngraph-tensorflow-bridge
-   
+
 ### Build nGraph from source
 
 To use the latest version of nGraph Library, complete the following steps to
-build nGraph bridge from source. 
+build nGraph bridge from source.
 
 #### Note to macOS users
 
@@ -59,26 +60,26 @@ Pyenv. Some users prefer Anaconda/Miniconda. Before building nGraph, ensure that
 you can successfully build TensorFlow on macOS with a suitable Python
 environment.
 
-The requirements for building nGraph bridge are identical to the requirements for building TensorFlow from source. For more information, review the [TensorFlow configuration] details. 
+The requirements for building nGraph bridge are identical to the requirements for building TensorFlow from source. For more information, review the [TensorFlow configuration] details.
 
 ##### Prepare your build environment
 
 Install the following requirements before building
- `nGraph-bridge`. 
- 
+ `nGraph-bridge`.
+
 Tensorflow uses a build system called "bazel". For the current
  version of `bazel`, use [bazel version].
 
 Install `bazel`:
 
-        wget https://github.com/bazelbuild/bazel/releases/download/0.25.2/bazel-0.25.2-installer-linux-x86_64.sh      
+        wget https://github.com/bazelbuild/bazel/releases/download/0.25.2/bazel-0.25.2-installer-linux-x86_64.sh
         bash bazel-0.25.2-installer-linux-x86_64.sh --user
 
 Add and source the `bin` path to your `~/.bashrc` file to call
 bazel:
 
         export PATH=$PATH:~/bin
-        source ~/.bashrc   
+        source ~/.bashrc
 
 Install `cmake`, `virtualenv`, and `gcc 4.8`.
 
@@ -94,7 +95,7 @@ Run the following Python script to build TensorFlow, nGraph, and the bridge. Use
 
         python3 build_ngtf.py --use_prebuilt_tensorflow
 
-When the build finishes, a new `virtualenv` directory is created in `build_cmake/venv-tf-py3`. Build artifacts (i.e., the `ngraph_tensorflow_bridge-<VERSION>-py2.py3-none-manylinux1_x86_64.whl`) are created in the `build_cmake/artifacts` directory. 
+When the build finishes, a new `virtualenv` directory is created in `build_cmake/venv-tf-py3`. Build artifacts (i.e., the `ngraph_tensorflow_bridge-<VERSION>-py2.py3-none-manylinux1_x86_64.whl`) are created in the `build_cmake/artifacts` directory.
 
 Add the following flags to build PlaidML and Intel GPU backends (optional):
 
@@ -102,22 +103,22 @@ Add the following flags to build PlaidML and Intel GPU backends (optional):
         --build_intelgpu_backend
 
 For more build options:
-        
+
         python3 build_ngtf.py --help
 
 Test the installation:
-      
+
         python3 test_ngtf.py
 
 This command runs all C++ and Python unit tests from the `ngraph-bridge` source tree. It also runs various TensorFlow Python tests using nGraph.
 
-To use the `ngraph-tensorflow-bridge`, activate the following `virtualenv` to start using nGraph with TensorFlow. 
+To use the `ngraph-tensorflow-bridge`, activate the following `virtualenv` to start using nGraph with TensorFlow.
 
         source build_cmake/venv-tf-py3/bin/activate
- 
+
 Alternatively, you can also install the TensorFlow and nGraph bridge outside of a `virtualenv`. The Python `whl` files are located in the `build_cmake/artifacts/` and `build_cmake/artifacts/tensorflow` directories, respectively.
 
-Select the help option of `build_ngtf.py` script to learn more about various build options and how to build other backends. 
+Select the help option of `build_ngtf.py` script to learn more about various build options and how to build other backends.
 
 Verify that `ngraph-bridge` installed correctly:
 
@@ -135,15 +136,15 @@ This will produce something like this:
     nGraph bridge built with Variables and Optimizers Enablement: False
 
 
-Note: The version of the ngraph-tensorflow-bridge is not going to be exactly 
-the same as when you build from source. This is due to delay in the source 
-release and publishing the corresponding Python wheel. 
+Note: The version of the ngraph-tensorflow-bridge is not going to be exactly
+the same as when you build from source. This is due to delay in the source
+release and publishing the corresponding Python wheel.
 
 ## Classify an image
 
-Once you have installed nGraph bridge, you can use TensorFlow to train a neural network or run inference using a trained model. 
+Once you have installed nGraph bridge, you can use TensorFlow to train a neural network or run inference using a trained model.
 
-Use TensorFlow with nGraph to classify an image using a [frozen model]. 
+Use TensorFlow with nGraph to classify an image using a [frozen model].
 
 Download the Inception v3 trained model and labels file:
 
@@ -152,22 +153,22 @@ Download the Inception v3 trained model and labels file:
 Extract the frozen model and labels file from the tarball:
 
     tar xvf inception_v3_2016_08_28_frozen.pb.tar.gz
-        
-Download the image file: 
+
+Download the image file:
 
     wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/data/grace_hopper.jpg
 
 Download the TensorFlow script:
 
    wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/label_image.py
-       
+
 Modify the downloaded TensorFlow script to run TensorFlow with nGraph optimizations:
 
     import ngraph_bridge
     ...
     config = tf.ConfigProto()
     config_ngraph_enabled = ngraph_bridge.update_config(config)
-    sess = tf.Session(config=config_ngraph_enabled) 
+    sess = tf.Session(config=config_ngraph_enabled)
 
 Run the classification:
 
@@ -175,7 +176,7 @@ Run the classification:
         --image grace_hopper.jpg --input_layer=input \
         --output_layer=InceptionV3/Predictions/Reshape_1 \
         --input_height=299 --input_width=299 \
-        --labels imagenet_slim_labels.txt 
+        --labels imagenet_slim_labels.txt
 
 This will print the following results:
 
@@ -185,7 +186,7 @@ This will print the following results:
     pickelhaube 0.008008157
     bulletproof vest 0.005350913
 
-The above instructions are derived from the [TensorFlow C++ and Python Image Recognition Demo]. 
+The above instructions are derived from the [TensorFlow C++ and Python Image Recognition Demo].
 
 All of the above commands are available in the [nGraph TensorFlow examples] directory. To classify your own images, modify the `infer_image.py` file in this directory.
 
@@ -195,17 +196,17 @@ Adding runtime options for a CPU backend applies to training and inference.
 
 By default nGraph runs with a CPU backend. To get the best performance of the CPU backend, add the following option:
 
-    OMP_NUM_THREADS=<num_cores> KMP_AFFINITY=granularity=fine,compact,1,0 \ 
-    python label_image.py --graph inception_v3_2016_08_28_frozen.pb 
+    OMP_NUM_THREADS=<num_cores> KMP_AFFINITY=granularity=fine,compact,1,0 \
+    python label_image.py --graph inception_v3_2016_08_28_frozen.pb
         --image grace_hopper.jpg --input_layer=input \
         --output_layer=InceptionV3/Predictions/Reshape_1 \
         --input_height=299 --input_width=299 \
-        --labels imagenet_slim_labels.txt 
+        --labels imagenet_slim_labels.txt
 
-Where `<num_cores>` equals the number of cores in your processor. 
+Where `<num_cores>` equals the number of cores in your processor.
 
 #### Measure the time
-nGraph is a Just In Time (JIT) compiler meaning that the TensorFlow computation graph is compiled to nGraph during the first instance of the execution. From the second time onwards, the execution speeds up significantly. 
+nGraph is a Just In Time (JIT) compiler meaning that the TensorFlow computation graph is compiled to nGraph during the first instance of the execution. From the second time onwards, the execution speeds up significantly.
 
 Add the following Python code to measure the computation time:
 
@@ -218,7 +219,7 @@ import time
 start = time.time()
 results = sess.run(output_operation.outputs[0], {
         input_operation.outputs[0]: t
-        })      
+        })
 elapsed = time.time() - start
 print('Time elapsed: %f seconds' % elapsed)
 ```
@@ -236,7 +237,7 @@ To determine what backends are available on your system, use the following API:
 
 More detailed examples on how to use ngraph_bridge are located in the [examples] directory.
 
-## Debugging 
+## Debugging
 
 During the build, often there are missing configuration steps for building TensorFlow. If you run into build issues, first ensure that you can build TensorFlow. For debugging run time issues, see the instructions provided in the [diagnostics] directory.
 
@@ -246,7 +247,7 @@ Please submit your questions, feature requests and bug reports via [GitHub issue
 
 ## How to Contribute
 
-We welcome community contributions to nGraph. If you have an idea for how to 
+We welcome community contributions to nGraph. If you have an idea for how to
 improve it:
 
 * Share your proposal via [GitHub issues].
@@ -261,7 +262,7 @@ improve it:
 ## About Intel(R) nGraph(TM)
 
 See the full documentation here:  <https://ngraph.nervanasys.com/docs/latest>
- 
+
 [linux-based install instructions on the TensorFlow website]:https://www.tensorflow.org/install/install_linux
 [tensorflow]:https://github.com/tensorflow/tensorflow.git
 [open-source C++ library, compiler and runtime]: https://ngraph.nervanasys.com/docs/latest/
@@ -273,7 +274,7 @@ See the full documentation here:  <https://ngraph.nervanasys.com/docs/latest>
 [diagnostics]:diagnostics/README.md
 [examples]:examples/README.md
 [ops]:https://ngraph.nervanasys.com/docs/latest/ops/index.html
-[nGraph]:https://github.com/NervanaSystems/ngraph 
+[nGraph]:https://github.com/NervanaSystems/ngraph
 [ngraph-bridge]:https://github.com/tensorflow/ngraph-bridge.git
 [frozen model]: https://www.tensorflow.org/guide/extend/model_files#freezing
 [TensorFlow C++ and Python Image Recognition Demo]: https://github.com/tensorflow/tensorflow/tree/master/tensorflow/examples/label_image
