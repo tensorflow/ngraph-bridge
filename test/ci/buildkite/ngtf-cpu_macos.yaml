@@ -14,7 +14,7 @@
   - command: |
       source /usr/local/var/buildkite-agent/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       python3 build_ngtf.py --artifacts /usr/local/var/buildkite-agent/artifacts/$BUILDKITE_BUILD_ID \
-        --use_tensorflow_from_location  /usr/local/var/buildkite-agent/tf_1.14.0_install
+        --use_tensorflow_from_location  /usr/local/var/buildkite-agent/tf_2.0.0_install
       
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
