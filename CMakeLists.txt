@@ -365,7 +365,7 @@ add_subdirectory(experimental/ngraph_device)
 add_subdirectory(examples)
 if (DEFINED TF_SRC_DIR)
     message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
-    # add_subdirectory(examples/cpp)
+    add_subdirectory(examples/cpp)
 else()
     message(
         STATUS 
