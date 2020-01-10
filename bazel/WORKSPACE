@@ -42,7 +42,7 @@ http_archive(
 
 http_archive(
     name = "org_tensorflow",
-    sha256 = "a5d49c00a175a61da7431a9b289747d62339be9cf37600330ad63b611f7f5dc9"
+    sha256 = "a5d49c00a175a61da7431a9b289747d62339be9cf37600330ad63b611f7f5dc9",
     strip_prefix = "tensorflow-1.15.0",
     urls = [
         "http://mirror.tensorflow.org/github.com/tensorflow/tensorflow/archive/v1.15.0.tar.gz",
