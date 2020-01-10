@@ -4008,6 +4008,7 @@ static Status TranslateSliceOp(
 
   std::vector<size_t> l(lower_vec.begin(), lower_vec.end());
   std::vector<size_t> u(upper_vec.begin(), upper_vec.end());
+
   auto ng_slice = ConstructNgNode<ng::op::Slice>(op->name(), ng_input, l, u);
   SaveNgOp(ng_op_map, op->name(), ng_slice);
   return Status::OK();
@@ -4835,6 +4836,42 @@ static Status TranslateSelectOp(const Node* op,
   return Status::OK();
 }
 
+static Status TranslateWhereOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  shared_ptr<ngraph::Node> ng_input;
+
+  // Only allow condition input
+  // When x,y input is given, it goes to Select op
+  TF_RETURN_IF_ERROR(ValidateInputCount(op, 1));
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
+
+  std::string backend_name;
+  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
+
+  // split and check the first part only, since the node attribute contains
+  // the full backend creation string
+  auto config_map = BackendManager::GetBackendAttributeValues(backend_name);
+  if (config_map.at("ngraph_backend") != "NNPI") {
+    return errors::Internal("In translating Where op ", op->name(),
+                            " found requested backend ", backend_name,
+                            " which is unsupported");
+  }
+
+  ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
+
+  shared_ptr<ng::Node> ng_where = backend->get_backend_op("Where", &ng_input);
+
+  if (ng_where == nullptr) {
+    return errors::Internal("In translating Where op ", op->name(),
+                            " backend could not return valid ngraph node");
+  }
+  Builder::SetTracingInfo(op->name(), ng_where);
+  SaveNgOp(ng_op_map, op->name(), ng_where);
+
+  return Status::OK();
+}
+
 static Status TranslateZerosLikeOp(const Node* op,
                                    const std::vector<const Tensor*>&,
                                    Builder::OpMap& ng_op_map) {
@@ -4965,7 +5002,7 @@ const static std::map<
       {"Tanh", TranslateUnaryOp<ngraph::op::Tanh>},
       {"TanhGrad", TranslateTanhGradOp}, {"Tile", TranslateTileOp},
       {"TopKV2", TranslateTopKV2Op}, {"Transpose", TranslateTransposeOp},
-      {"Unpack", TranslateUnpackOp}, {
+      {"Unpack", TranslateUnpackOp}, {"Where", TranslateWhereOp}, {
     "ZerosLike", TranslateZerosLikeOp
   }
 };
