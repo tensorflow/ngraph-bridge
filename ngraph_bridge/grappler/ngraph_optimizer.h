@@ -51,7 +51,7 @@ class NgraphOptimizer : public tensorflow::grappler::CustomGraphOptimizer {
 
   string name() const override { return "NgraphOptimizer"; };
 
-  Status bool UsesFunctionLibrary() override;
+  bool UsesFunctionLibrary() const override { return true; }
 
   Status Init(
       const tensorflow::RewriterConfig_CustomGraphOptimizer* config) override;

@@ -40,8 +40,6 @@ using namespace std;
 namespace tensorflow {
 namespace ngraph_bridge {
 
-Status bool NgraphOptimizer::UsesFunctionLibrary() { return true; }
-
 Status NgraphOptimizer::Init(
     const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
   const auto params = config->parameter_map();
