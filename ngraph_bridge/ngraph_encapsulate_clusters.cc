@@ -715,7 +715,14 @@ Status Encapsulator::AnalysisPass() {
     inputs.resize(node->num_inputs(), nullptr);
     for (const Edge* edge : node->in_edges()) {
       if (edge->IsControlEdge()) {
-        inputs.push_back(edge);
+        int src_cluster_idx;
+        auto ctrl_src = edge->src();
+        auto st = GetNodeCluster(ctrl_src, &src_cluster_idx);
+        if (st.ok()) {
+          if (src_cluster_idx == cluster_idx) {
+            inputs.push_back(edge);
+          }
+        }
       } else {
         CHECK(inputs[edge->dst_input()] == nullptr)
             << "Edge " << edge->src()->DebugString() << ":"
