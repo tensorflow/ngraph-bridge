@@ -153,8 +153,9 @@ tf_cc_binary(
         "examples/cpp/hello_tf.cpp",
     ],
     deps = [
-        "@org_tensorflow//tensorflow/cc:client_session",
         "@org_tensorflow//tensorflow/cc:ops",
+        "@org_tensorflow//tensorflow/cc:client_session",
+        "@org_tensorflow//tensorflow/cc:cc_ops",
         "@org_tensorflow//tensorflow/core:tensorflow",
         ":ngraph_bridge_lib",
         "@ngraph//:cpu_backend",
