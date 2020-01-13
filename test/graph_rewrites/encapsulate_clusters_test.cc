@@ -33,7 +33,7 @@ namespace ngraph_bridge {
 namespace testing {
 
 // Test that calls the functions of encapsulator in the wrong order
-// Non-OK statuses are axpected
+// Non-OK statuses are expected
 TEST(EncapsulateClusters, EncapsulatorFail) {
   Encapsulator enc{nullptr};
   std::unordered_map<std::string, std::string> device_config;
