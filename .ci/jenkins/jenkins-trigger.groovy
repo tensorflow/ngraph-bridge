@@ -11,7 +11,7 @@ timestamps {
     node("trigger") {
 
         deleteDir()  // Clear the workspace before starting
-        println("CI job completed")
+        println("INFO: CI job completed")
 
     }  // End:  node
 }  // End:  timestamps
