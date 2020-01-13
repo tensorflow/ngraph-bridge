@@ -27,12 +27,15 @@
 #include "tensorflow/core/platform/tensor_coding.h"
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
 
-#include "ngraph/event_tracing.hpp"
+#include "ngraph/runtime/chrome_trace.hpp"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
 
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
+
+#define NG_TRACE(name, category) \
+  ngraph::runtime::event::Duration dx__ { name, category }
 
 namespace ng = ngraph;
 using namespace std;
