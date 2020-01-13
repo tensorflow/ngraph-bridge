@@ -29,6 +29,8 @@ import platform
 import shlex
 import grp, pwd
 
+appuserHome = "/home/appuser"
+workingDirectory = "/home/appuser/ngraph-bridge"
 
 def get_tf_cxxabi():
     import tensorflow as tf
@@ -541,18 +543,22 @@ def has_group(user, group_name):
 
 
 def set_proxy(arg):
-    proxy = ""
+    proxy = []
     if "ALL_PROXY" in os.environ:
-        proxy += arg + " ALL_PROXY=" + os.environ["ALL_PROXY"] + " "
+        proxy.extend([arg, "ALL_PROXY=" + os.environ["ALL_PROXY"]])
     if "http_proxy" in os.environ:
-        proxy += arg + " http_proxy=" + os.environ["http_proxy"] + " "
+        proxy.extend([arg, "http_proxy=" + os.environ["http_proxy"]])
     if "HTTP_PROXY" in os.environ:
-        proxy += arg + " HTTP_PROXY=" + os.environ["HTTP_PROXY"] + " "
+        proxy.extend([arg, "HTTP_PROXY=" + os.environ["HTTP_PROXY"]])
     if "https_proxy" in os.environ:
-        proxy += arg + " https_proxy=" + os.environ["https_proxy"] + " "
+        proxy.extend([arg, "https_proxy=" + os.environ["https_proxy"]])
     if "HTTPS_PROXY" in os.environ:
-        proxy += arg + " HTTPS_PROXY=" + os.environ["HTTPS_PROXY"] + " "
-    return proxy
+        proxy.extend([arg, "HTTPS_PROXY=" + os.environ["HTTPS_PROXY"]])
+    if "NO_PROXY" in os.environ:
+        proxy.extend([arg, "NO_PROXY=" + os.environ["NO_PROXY"]])
+    if "no_proxy" in os.environ:
+        proxy.extend([arg, "no_proxy=" + os.environ["no_proxy"]])
+    return " ".join(proxy)
 
 
 def build_base(args):
@@ -575,99 +581,118 @@ def build_base(args):
     command_executor(cmd, verbose=verbose)
 
 
-def start_container(workingdir, args):
-    vargs = vars(args)
+def start_container(image, **kwargs):
     verbose = False
-    if 'verbose_build' in vargs:
-        verbose = vargs['verbose_build']
+    if 'verbose_build' in kwargs:
+        verbose = kwargs['verbose_build']
     pwd = os.getcwd()
     u = os.getuid()
     g = os.getgid()
     home = os.getenv("HOME")
     user = os.getenv("USER")
-    cachedir = ".cache/bazel"
-    parentdir = os.path.dirname(cachedir)
-    abscachedir = os.path.abspath(cachedir)
-    if os.path.isdir(abscachedir) == False:
-        os.makedirs(abscachedir)
+    imageName = "ngtf-" + user
     f = open("/tmp/passwd", "w")
     f.write(user + ":*:" + str(u) + ":" + str(g) + ":User " + user +
-            ":/:/bin/bash")
+            ":" + appuserHome + ":/bin/bash")
     f.close()
     start = [
-        "docker", "run", "--name", "ngtf", "-u",
-        str(u) + ":" + str(g), "-v", pwd + ":/ngtf", "-v", pwd + "/tf:/tf",
-        "-v", pwd + "/" + parentdir + ":/bazel/" + parentdir, "-v",
-        "/tmp/passwd:/etc/passwd", "-v", home + "/.gitconfig:/.gitconfig", "-v",
-        home + "/.ssh:/.ssh", "-w", workingdir, "-d", "-t", "ngtf"
+        "docker", "run",
+        "--rm",
+        "--name", imageName,
+        "-u", str(u) + ":" + str(g),
+        "-v", pwd + ":" + appuserHome + "/ngraph-bridge",
+        "-v", "/tmp/passwd:/etc/passwd",
+        "-v", home + "/.gitconfig" + ":" + appuserHome + "/.gitconfig",
+        "-v", home + "/.ssh" + ":" + appuserHome + "/.ssh"
     ]
+    if 'use_tensorflow_from_location' in kwargs:
+        path = kwargs['use_tensorflow_from_location']
+        base = os.path.basename(path)
+        containerPath = appuserHome + "/" + base
+        kwargs['use_tensorflow_from_location'] = containerPath
+        start.extend(["-v", path + ":" + containerPath])
+    if 'ngraph_src_dir' in kwargs:
+        path = kwargs['ngraph_src_dir']
+        base = os.path.basename(path)
+        containerPath = appuserHome + "/" + base
+        kwargs['ngraph_src_dir'] = containerPath
+        start.extend(["-v", path + ":" + containerPath])
+    start.extend(["-w", workingDirectory, "-dt", image, "sleep infinity"])
     try:
         command_executor(start,
                          verbose=verbose,
                          stdout=open(os.devnull, "w"),
                          stderr=open(os.devnull, "w"))
+        return kwargs
     except Exception as exc:
         msg = str(exc)
         print("caught exception: " + msg)
 
 
-def check_container():
+def check_container(container_name=None):
+    if container_name == None:
+        container_name = "ngtf-"+os.getenv("USER")
     exitcode, out, err = get_exitcode_stdout_stderr(
-        "docker inspect -f '{{.State.Running}}' ngtf")
+        "docker inspect -f '{{.State.Running}}' "+container_name)
     if exitcode == 0:
-        return True
+        decoded = out.decode('utf-8')
+        running = str(decoded).strip()
+        if running == "true" or running == "false":
+            return True
     return False
 
 
-def stop_container(args):
-    vargs = vars(args)
+def stop_container(container_name=None, **kwargs):
+    #docker container ls -a --no-trunc --format 'table {{.Names}}\t{{.Image}}\t{{.Command}}'|grep ngtf|awk '{print $1}'|xargs docker container rm
     verbose = False
-    if 'verbose_build' in vargs:
-        verbose = vargs['verbose_build']
+    if container_name == None:
+        container_name = "ngtf-"+os.getenv("USER")
+    if 'verbose_build' in kwargs:
+        verbose = kwargs['verbose_build']
     try:
-        stop = ["docker", "stop", "ngtf"]
+        stop = ["docker", "container", "stop", container_name]
         command_executor(stop,
                          verbose=verbose,
                          stdout=open(os.devnull, "w"),
                          stderr=open(os.devnull, "w"))
-        rm = ["docker", "rm", "ngtf"]
-        command_executor(rm,
-                         verbose=verbose,
-                         stdout=open(os.devnull, "w"),
-                         stderr=open(os.devnull, "w"))
+    except Exception as exc:
+        print(str(exc))
+
+
+def run_in_container(buildcmd, **kwargs):
+    u = os.getuid()
+    g = os.getgid()
+    proxy = set_proxy("-e")
+    cmd = [
+        "docker", "exec", proxy,
+        "-e" "IN_DOCKER=true",
+        "-e", "TEST_TMPDIR="+workingDirectory+"/bazel/.cache/bazel",
+        "-u", str(u) + ":" + str(g),
+        "-it", "ngtf-"+os.getenv("USER")
+    ]
+    for arg in kwargs:
+        if arg not in ["use_image", "use_container"]:
+            if arg == "use_tensorflow_from_location":
+                if kwargs[arg] != '':
+                    buildcmd += " --" + arg + "=" + str(kwargs[arg])
+            elif arg == "ngraph_src_dir":
+                if kwargs[arg] != '':
+                    buildcmd += " --" + arg + "=" + str(kwargs[arg])
+            elif arg == "use_venv":
+                if kwargs[arg] != '':
+                    buildcmd += " --" + arg + "=" + str(kwargs[arg])
+            elif kwargs[arg] in [False, None]:
+                pass
+            elif kwargs[arg] == True:
+                buildcmd += " --" + arg
+            else:
+                buildcmd += " --" + arg + "=" + str(kwargs[arg])
+    cmd.append(buildcmd)
+    try:
+        command_executor(cmd, verbose='verbose_build' in kwargs)
     except Exception as exc:
         msg = str(exc)
         print("caught exception: " + msg)
-
-
-def run_in_docker(buildcmd, args):
-    pwd = os.getcwd()
-    u = os.getuid()
-    g = os.getgid()
-    proxy = set_proxy(" -e")
-    cmd = [
-        "docker", "exec", proxy, "-e"
-        "IN_DOCKER=true", "-e", "USER=" + os.getlogin(), "-e",
-        "TEST_TMPDIR=/bazel/.cache/bazel", "-u",
-        str(u) + ":" + str(g), "ngtf"
-    ]
-    vargs = vars(args)
-    for arg in vargs:
-        if arg not in ["run_in_docker", "build_base", "stop_container"]:
-            if arg == "use_tensorflow_from_location":
-                if vargs[arg] != '':
-                    buildcmd += " --" + arg + "=/" + str(vargs[arg])
-            elif vargs[arg] in [False, None]:
-                pass
-            elif vargs[arg] == True:
-                buildcmd += " --" + arg
-            else:
-                buildcmd += " --" + arg + "=" + str(vargs[arg])
-    cmd.append(buildcmd)
-    verbose = False
-    if 'verbose_build' in vargs:
-        verbose = True
-    command_executor(cmd, verbose=verbose)
 
 
 def get_gcc_version():

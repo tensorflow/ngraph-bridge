@@ -168,35 +168,39 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        '--stop_container',
-        help="Stops the docker container\n",
-        action="store_true")
+        '--use_container',
+        help="use a running container\n",
+        action="store",
+        default='')
 
     parser.add_argument(
-        '--run_in_docker',
-        help="Runs build_ngtf.py in a Dockerfile\n",
-        action="store_true")
+        '--use_image',
+        help="use an existing image in the docker registry\n",
+        action="store",
+        default='')
+
+    parser.add_argument(
+        '--use_venv',
+        type=str,
+        help="use an existing virtualenv in the container\n",
+        action="store",
+        default='')
 
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
 
-    if arguments.build_base:
-        build_base(arguments)
-        return
-
-    if arguments.start_container:
-        start_container("/ngtf", arguments)
-        return
-
-    if arguments.stop_container:
-        stop_container(arguments)
-        return
-
-    if arguments.run_in_docker:
+    if arguments.use_image != '':
+        args = vars(arguments)
         if check_container() == True:
-            stop_container(arguments)
-        start_container("/ngtf", arguments)
-        run_in_docker("/ngtf/build_ngtf.py", arguments)
+            stop_container(**args)
+        args = start_container(arguments.use_image, **args)
+        run_in_container("./build_ngtf.py", **args)
+        return
+
+    if arguments.use_container != '':
+        args = vars(arguments)
+        if check_container(arguments.use_container) == True:
+            run_in_container("./build_ngtf.py", **args)
         return
 
     if (arguments.debug_build):
