@@ -125,14 +125,11 @@ def run_mnist(_):
             x_test = x_test.astype(np.float32) / 255
             y_test = to_categorical(y_test, num_classes=10)
             if not mon_sess.should_stop():
-                print(
-                    "Accuracy: ",
-                    mon_sess.run(
-                        accuracy,
-                        feed_dict={
-                            x: x_test,
-                            y_: y_test
-                        }))
+                print("Accuracy: ",
+                      mon_sess.run(accuracy, feed_dict={
+                          x: x_test,
+                          y_: y_test
+                      }))
 
         end = time.time()
 
