@@ -203,7 +203,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
 
   // Create nGraph backend
   string ng_backend_type;
-  BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
+  TF_CHECK_OK(BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
 
   Status status = BackendManager::CreateBackend(ng_backend_type);
   if (!status.ok()) {
