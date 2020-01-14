@@ -7,9 +7,9 @@
                 "num_nodes_marked_for_clustering": 0
             },
             "1": {
-                "num_ng_clusters": 28,
-                "num_nodes_in_graph": 448,
-                "num_nodes_marked_for_clustering": 330
+                "num_ng_clusters": 21,
+                "num_nodes_in_graph": 478,
+                "num_nodes_marked_for_clustering": 359
             }
         },
         "time": 13
@@ -22,9 +22,9 @@
                 "num_nodes_marked_for_clustering": 0
             },
             "1": {
-                "num_ng_clusters": 19,
-                "num_nodes_in_graph": 479,
-                "num_nodes_marked_for_clustering": 392
+                "num_ng_clusters": 21,
+                "num_nodes_in_graph": 478,
+                "num_nodes_marked_for_clustering": 359
             }
         },
         "time": 13
