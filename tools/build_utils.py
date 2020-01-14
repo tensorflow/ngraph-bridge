@@ -493,6 +493,8 @@ def download_repo(target_name, repo, version):
 
 
 def apply_patch(patch_file):
+    # IF patching TensorFlow unittests is done through an automation system,
+    # please ensure the latest `libdvdnav-dev` or `libdvdnav-devel` is installed.
     cmd = subprocess.Popen(
         'patch -p1 -N -i ' + patch_file, shell=True, stdout=subprocess.PIPE)
     printed_lines = cmd.communicate()
