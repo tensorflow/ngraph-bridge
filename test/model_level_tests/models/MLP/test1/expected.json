@@ -7,12 +7,12 @@
                 "num_nodes_marked_for_clustering": 0
             },
             "1": {
-                "num_ng_clusters": 15,
-                "num_nodes_in_graph": 311,
-                "num_nodes_marked_for_clustering": 249
+                "num_ng_clusters": 22,
+                "num_nodes_in_graph": 309,
+                "num_nodes_marked_for_clustering": 235
             }
         },
-        "time": 10
+        "time": 11
     },
     "grappler": {
         "logparse": {
