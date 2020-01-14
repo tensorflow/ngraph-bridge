@@ -40,7 +40,7 @@ class NgraphTest(object):
                                         tname)
 
     def import_pbtxt(self, pb_filename):
-        graph_def = tf.GraphDef()
+        graph_def = tf.compat.v1.GraphDef()
         with open(pb_filename, "r") as f:
             text_format.Merge(f.read(), graph_def)
 
