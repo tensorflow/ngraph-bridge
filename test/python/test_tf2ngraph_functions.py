@@ -25,6 +25,7 @@ import os
 import numpy as np
 import shutil
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import ngraph_bridge
 
 from tools.build_utils import command_executor

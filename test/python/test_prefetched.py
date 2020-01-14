@@ -38,7 +38,7 @@ import ngraph_bridge
 class TestPrefetched(NgraphTest):
 
     def build_data_pipeline(self, input_array, map_function, batch_size):
-        dataset = (tf.data.Dataset.from_tensor_slices(
+        dataset = (tf.compat.v1.data.Dataset.from_tensor_slices(
             (tf.constant(input_array)
             )).map(map_function).batch(batch_size).prefetch(1))
 
@@ -78,7 +78,7 @@ class TestPrefetched(NgraphTest):
 
         outputs = []
 
-        sess = tf.Session()
+        sess = tf.compat.v1.Session()
 
         # Initialize the globals and the dataset
         sess.run(iterator.initializer)
