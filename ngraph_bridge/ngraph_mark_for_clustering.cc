@@ -19,7 +19,12 @@
 #include "ngraph/runtime/backend.hpp"
 #include "ngraph/runtime/backend_manager.hpp"
 #include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/ngraph_deassign_clusters.h"
+#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+#include "ngraph_bridge/ngraph_mark_backend_support.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/ngraph_version_utils.h"
@@ -135,32 +140,6 @@ static ConfirmationFunction SimpleConfirmationFunction() {
   };
   return cf;
 };
-
-// Check if op is supported by backend using is_supported API
-Status IsSupportedByBackend(
-    const Node* node, const ng::runtime::Backend* op_backend,
-    const std::map<std::string, std::set<shared_ptr<ng::Node>>>&
-        TFtoNgraphOpMap,
-    bool& is_supported) {
-  is_supported = true;
-
-  auto ng_op = TFtoNgraphOpMap.find(node->type_string());
-  if (ng_op == TFtoNgraphOpMap.end()) {
-    return errors::Internal("TF Op is not found in the map: ",
-                            node->type_string());
-  }
-
-  // Loop through the ngraph op list to query
-  for (auto it = ng_op->second.begin(); it != ng_op->second.end(); it++) {
-    // Pass ngraph node to check if backend supports this op
-    auto ret = op_backend->is_supported(**it);
-    if (!ret) {
-      is_supported = false;
-      return Status::OK();
-    }
-  }
-  return Status::OK();
-}
 
 const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
   //
@@ -1089,9 +1068,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   const std::map<std::string, SetAttributesFunction>& set_attributes_map =
       GetAttributeSetters();
 
-  const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
-      TFtoNgraphOpMap = GetTFToNgOpMap();
-
   //
   // IF YOU ARE ADDING A NEW OP IMPLEMENTATION, YOU MUST ADD A CONFIRMATION
   // FUNCTION, TYPE CONTRAINTS (IF ANY) AND STATIC INPUTS INDEXES (IF ANY) FOR
@@ -1156,13 +1132,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   std::unordered_map<string, int> fail_constraint_histogram;
   vector<Node*> nodes_marked_for_clustering;
   vector<Node*> variable_type_nodes;
-  string ng_backend_type;
-  // Create nGraph backend
-  BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
-  // Create backend to query is_supported
-  TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
-  ng::runtime::Backend* op_backend =
-      BackendManager::GetBackend(ng_backend_type);
 
   for (auto node : graph->op_nodes()) {
     bool mark_for_clustering = false;
@@ -1219,18 +1188,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
         break;
       }
 
-      // Check if op is supported by backend
-      bool is_supported = false;
-      TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend, TFtoNgraphOpMap,
-                                              is_supported));
-
-      if (!is_supported) {
-        NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
-                       << node->type_string()
-                       << " is not supported by backend: " << ng_backend_type;
-        break;
-      }
-
       // if all constraints are met, mark for clustering
       mark_for_clustering = true;
     } while (false);
@@ -1247,9 +1204,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     }
   }
 
-  // Release backend created to query is_supported
-  BackendManager::ReleaseBackend(ng_backend_type);
-
   if (config::IsLoggingPlacement()) {
     std::cout << "\n=============New sub-graph logs=============\n";
     // print summary for nodes failed to be marked
@@ -1264,15 +1218,101 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     std::cout << "\n";
   }
 
-  for (auto node : nodes_marked_for_clustering) {
-    // TODO(amprocte): move attr name to a constant
-    node->AddAttr("_ngraph_marked_for_clustering", true);
-    SetNodeBackend(node, current_backend);
-    auto it = set_attributes_map.find(node->type_string());
-    if (it != set_attributes_map.end()) {
-      TF_RETURN_IF_ERROR(it->second(node));
+  // At this point we have the "initial" graph that could be supported by a
+  // generic backend such as CPU
+  // We want to query the existing backend as well to find if it can support all
+  // the nodes that think we can support
+
+  // TODO: this is slightly fragile. We have to exactly replicate the steps that
+  // rewrite_pass is doing here.
+  // Maybe this should be packaged into a function that we can call here, and in
+  // rewrite_pass
+
+
+  // Create backend to query is_supported
+  string ng_backend_type;
+  TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
+  ng::runtime::Backend* op_backend =
+      BackendManager::GetBackend(ng_backend_type);
+  // BackendManager::SetConfig(ng_backend_type, ??);
+
+  // TODO have this section marked of by a flag to enable/disable it
+  bool changed = false;
+  while (true) {
+    for (auto node : nodes_marked_for_clustering) {
+      // TODO(amprocte): move attr name to a constant
+      // Set marking, backend and static input nodes
+      node->AddAttr("_ngraph_marked_for_clustering", true);
+      SetNodeBackend(node, current_backend);
+      auto it = set_attributes_map.find(node->type_string());
+      if (it != set_attributes_map.end()) {
+        TF_RETURN_IF_ERROR(it->second(node));
+      }
+    }
+
+    TF_RETURN_IF_ERROR(AssignClusters(graph));
+    TF_RETURN_IF_ERROR(DeassignClusters(graph));
+    // Call EncapsulateClusters in analysis pass mode
+    // Calling with graph_id=0, since it will not matter for an analysis pass
+    Encapsulator enc(graph);
+    NGRAPH_VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
+    TF_RETURN_IF_ERROR(enc.AnalysisPass());
+    // TODO. Can pass this half-done computation (in the form of the "enc" object to encapsulateClusters instead of fully recomputing.)
+
+    int graphdef_idx = 0;
+    GraphDef* gdef;
+
+    while (true) {
+      gdef = NGraphClusterManager::GetClusterGraph(graphdef_idx);
+      map<string, bool> tf_node_support_map;
+      if (gdef == nullptr) {
+        // We iterate over ClusterManager one by one and once its out of valid graphdefs, it returns a nullptr
+        break;
+      } else {
+        // TODO: in AOT case pass shape hints in
+        TF_RETURN_IF_ERROR(GetBackendSupportInfoForTFSubgraph(
+            op_backend, gdef, tf_node_support_map));
+        graphdef_idx++;
+      }
+
+      for (auto node : graph->nodes()) {
+        auto itr = tf_node_support_map.find(node->name());
+        if (itr != tf_node_support_map.end()) {
+          if (!itr->second) {
+            NGRAPH_VLOG(5) << "Detected that node " << node->name()
+                           << " of type " << node->type_string()
+                           << " is not supportable by current backend "
+                           << ng_backend_type << ", hence rejecting it";
+            changed = true;
+            node->ClearAttr("_ngraph_marked_for_clustering");
+            node->ClearAttr("_ngraph_backend");
+            node->ClearAttr("_ngraph_static_inputs");
+            nodes_marked_for_clustering.erase(
+                std::find(nodes_marked_for_clustering.begin(),
+                          nodes_marked_for_clustering.end(), node));
+          }
+        }
+      }
+    }
+    // TODO add tests for this section. Use the dummy backend to test it
+
+    // run till all nodes we suggest are indeed supportable.
+    if (!changed) {
+      break;
+    } else {
+      NGraphClusterManager::EvictAllClusters();
+      ResetMarkForClustering(graph);
+      ResetAssignClusters(graph);
+      changed = false;
     }
   }
+
+  // Release backend created to query is_supported
+  BackendManager::ReleaseBackend(ng_backend_type);
+
+  // TODO: assert that clustermanager is empty? and assert that num nodes and
+  // num edges before and after are same (no rewriting has happened)
+
 
   for (auto node : variable_type_nodes) {
     SetNodeBackend(node, current_backend);

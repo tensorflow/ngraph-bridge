@@ -30,11 +30,6 @@ Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes,
                          const string& current_backend);
 // remove marking, backend and static input nodes attributes
 void ResetMarkForClustering(Graph* graph);
-Status IsSupportedByBackend(
-    const Node* node, const ngraph::runtime::Backend* op_backend,
-    const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
-        TFtoNgraphOpMap,
-    bool& is_supported);
 bool NodeIsMarkedForClustering(const Node* node);
 void GetStaticInputs(const Node* node, std::vector<int32>* inputs);
 bool InputIsStatic(const Node* node, int index);
