@@ -34,7 +34,6 @@ import tempfile
 import getpass
 import time
 
-# from tensorflow.examples.tutorials.mnist import input_data
 from keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
 
@@ -154,9 +153,6 @@ def train_mnist_cnn(FLAGS):
     supported_optimizers = ["adam", "sgd", "momentum"]
 
     assert (FLAGS.optimizer in supported_optimizers), "Optimizer not supported"
-
-    # Import data
-    # mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
 
     # Create the model
     x = tf.placeholder(tf.float32, [None, 784])

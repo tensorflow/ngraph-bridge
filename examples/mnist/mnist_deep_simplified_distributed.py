@@ -52,10 +52,14 @@ import tempfile
 import getpass
 import time
 
-from tensorflow.examples.tutorials.mnist import input_data
+from keras.datasets import mnist
+from keras.utils.np_utils import to_categorical
 
 import tensorflow as tf
 import ngraph_bridge
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
+import numpy as np
 import horovod.tensorflow as hvd
 
 FLAGS = None
@@ -156,9 +160,6 @@ def train_mnist_cnn(FLAGS):
     # The OMP_NUM_THREADS number should correspond to the number of
     # cores in the system
 
-    # Import data
-    mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
-
     # Create the model
     x = tf.placeholder(tf.float32, [None, 784])
 
@@ -216,9 +217,15 @@ def train_mnist_cnn(FLAGS):
 
         loss_values = []
         test_accuracy = []
+        (x_train, y_train), (x_test, y_test) = mnist.load_data()
+        x_train = np.reshape(x_train, (60000, 784))
+        x_train = x_train.astype(np.float32) / 255
+        y_train = to_categorical(y_train, num_classes=10)
         while not sess.should_stop():
-            batch = mnist.train.next_batch(FLAGS.batch_size)
-            sess.run(train_step, feed_dict={x: batch[0], y_: batch[1]})
+            index = np.random.choice(60000, FLAGS.batch_size)
+            x_random = x_train[index]
+            y_random = y_train[index]
+            sess.run(train_step, feed_dict={x: x_random, y_: y_random})
             step += 1
             if step % 10 == 0:
                 t = time.time()
@@ -227,14 +234,14 @@ def train_mnist_cnn(FLAGS):
                           (step,
                            sess.run(
                                accuracy, feed_dict={
-                                   x: batch[0],
-                                   y_: batch[1]
+                                   x: x_random,
+                                   y_: y_random
                                }), time.time() - t))
             t = time.time()
             _, summary, loss = sess.run([train_step, merged, cross_entropy],
                                         feed_dict={
-                                            x: batch[0],
-                                            y_: batch[1],
+                                            x: x_random,
+                                            y_: y_random,
                                             keep_prob: 0.5
                                         })
             loss_values.append(loss)
@@ -244,6 +251,9 @@ def train_mnist_cnn(FLAGS):
             train_writer.add_summary(summary, step)
 
             if step == (train_loops // hvd.size() - 1) and hvd.rank() == 0:
+                x_test = np.reshape(x_test, (10000, 784))
+                x_test = x_test.astype(np.float32) / 255
+                y_test = to_categorical(y_test, num_classes=10)
                 x_test = mnist.test.images[:num_test_images]
                 y_test = mnist.test.labels[:num_test_images]
                 print('test accuracy: ',
