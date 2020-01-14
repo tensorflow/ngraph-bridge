@@ -37,13 +37,13 @@ from common import NgraphTest
 class Testtf2ngraphHelperFunctions(NgraphTest):
 
     def test_config_updater_api(self):
-        config = update_config_to_include_custom_config(tf.ConfigProto(), 'CPU',
-                                                        '0', {
-                                                            'abc': '1',
-                                                            'def': '2'
-                                                        }, [{
-                                                            'x': [1]
-                                                        }], True)
+        config = update_config_to_include_custom_config(
+            tf.compat.v1.ConfigProto(), 'CPU', '0', {
+                'abc': '1',
+                'def': '2'
+            }, [{
+                'x': [1]
+            }], True)
         assert config.HasField('graph_options')
         assert config.graph_options.HasField('rewrite_options')
         custom_opts = config.graph_options.rewrite_options.custom_optimizers

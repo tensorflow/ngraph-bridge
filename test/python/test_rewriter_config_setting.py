@@ -49,7 +49,7 @@ class TestRewriterConfigBackendSetting(NgraphTest):
         b = tf.compat.v1.placeholder(tf.float32, shape=(dim1, dim2), name='y')
         axpy = (a * x) + b
 
-        config = tf.ConfigProto()
+        config = tf.compat.v1.ConfigProto()
         rewriter_options = rewriter_config_pb2.RewriterConfig()
         rewriter_options.meta_optimizer_iterations = (
             rewriter_config_pb2.RewriterConfig.ONE)
@@ -73,7 +73,7 @@ class TestRewriterConfigBackendSetting(NgraphTest):
         for k in extra_params:
             ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
         config.MergeFrom(
-            tf.ConfigProto(
+            tf.compat.v1.ConfigProto(
                 graph_options=tf.GraphOptions(
                     rewrite_options=rewriter_options)))
 

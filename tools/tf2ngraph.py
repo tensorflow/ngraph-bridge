@@ -140,8 +140,9 @@ def update_config_to_include_custom_config(config, backend, device_id,
     ngraph_optimizer.parameter_map["aot_requested"].s = str(
         ("0", "1")[do_aot]).encode()
     config.MergeFrom(
-        tf.ConfigProto(
-            graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
+        tf.compat.v1.ConfigProto(
+            graph_options=tf.compat.v1.GraphOptions(
+                rewrite_options=rewriter_options)))
     return config
 
 
@@ -166,7 +167,7 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     grappler_meta_graph_def.collection_def["train_op"].CopyFrom(
         output_collection)
 
-    session_config = tf.ConfigProto()
+    session_config = tf.compat.v1.ConfigProto()
     # Pass backend and backend_optional_params to grappler through rewriter config by updating the config
     # TODO: move update_config_to_include_custom_config to ngraph_bridge
     session_config = update_config_to_include_custom_config(
@@ -181,14 +182,14 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
 
 
 def get_gdef_from_savedmodel(export_dir):
-    with tf.Session(graph=tf.Graph()) as sess:
+    with tf.compat.v1.Session(graph=tf.compat.v1.Graph()) as sess:
         tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING],
                                    export_dir)
         return sess.graph.as_graph_def()
 
 
 def get_gdef_from_protobuf(pb_filename):
-    graph_def = tf.GraphDef()
+    graph_def = tf.compat.v1.GraphDef()
     if pb_filename.endswith("pbtxt"):
         with open(pb_filename, "r") as f:
             text_format.Merge(f.read(), graph_def)
