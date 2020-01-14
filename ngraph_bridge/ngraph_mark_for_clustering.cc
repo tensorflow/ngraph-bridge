@@ -1231,6 +1231,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   // Create backend to query is_supported
   string ng_backend_type;
+  / TODO: get backend name
   TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
   ng::runtime::Backend* op_backend =
       BackendManager::GetBackend(ng_backend_type);
