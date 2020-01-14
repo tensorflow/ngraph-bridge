@@ -35,10 +35,14 @@ import getpass
 import time
 import numpy as np
 
-from tensorflow.examples.tutorials.mnist import input_data
+from keras.datasets import mnist
+from keras.utils.np_utils import to_categorical
 
 import tensorflow as tf
 import ngraph_bridge
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
+import numpy as np
 
 FLAGS = None
 
@@ -138,9 +142,6 @@ def train_mnist_cnn(FLAGS):
     # The OMP_NUM_THREADS number should correspond to the number of
     # cores in the system
 
-    # Import data
-    mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
-
     # Create the model
     x = tf.placeholder(tf.float32, [None, 784])
 
@@ -170,14 +171,20 @@ def train_mnist_cnn(FLAGS):
         #sess.run(tf.global_variables_initializer())
         test_accuracy_final = 0
         num_eval_cycles = FLAGS.num_eval_cycles
+        (x_train, y_train), (x_test, y_test) = mnist.load_data()
+        x_train = np.reshape(x_train, (60000, 784))
+        x_train = x_train.astype(np.float32) / 255
+        y_train = to_categorical(y_train, num_classes=10)
 
         for i in range(num_eval_cycles):
-            batch = mnist.test.next_batch(FLAGS.batch_size)
+            index = np.random.choice(60000, FLAGS.batch_size)
+            x_random = x_train[index]
+            y_random = y_train[index]
             t = time.time()
             summary, test_accuracy = sess.run([merged, accuracy],
                                               feed_dict={
-                                                  x: batch[0],
-                                                  y_: batch[1],
+                                                  x: x_random,
+                                                  y_: y_random,
                                                   keep_prob: 0.5
                                               })
             test_accuracy_final = test_accuracy_final + test_accuracy

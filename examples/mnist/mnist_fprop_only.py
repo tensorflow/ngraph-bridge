@@ -24,10 +24,14 @@ import argparse
 import sys
 import time
 
-from tensorflow.examples.tutorials.mnist import input_data
+from keras.datasets import mnist
+from keras.utils.np_utils import to_categorical
 
 import tensorflow as tf
 import ngraph_bridge
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
+import numpy as np
 
 FLAGS = None
 
@@ -37,8 +41,6 @@ def main(_):
 
 
 def run_mnist(_):
-    # Import data
-    mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
 
     # Create the model
     x = tf.placeholder(tf.float32, [None, 784])
@@ -72,12 +74,18 @@ def run_mnist(_):
 
     sess = tf.Session(config=config_ngraph_enabled)
     tf.global_variables_initializer().run(session=sess)
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    x_train = np.reshape(x_train, (60000, 784))
+    x_train = x_train.astype(np.float32) / 255
+    y_train = to_categorical(y_train, num_classes=10)
     # Train
     train_loops = FLAGS.train_loop_count
     for i in range(train_loops):
+        index = np.random.choice(60000, 100)
+        batch_xs = x_train[index]
+        batch_ys = y_train[index]
         if (i == 1):
             start = time.time()
-        batch_xs, batch_ys = mnist.train.next_batch(100)
         sess.run(y, feed_dict={x: batch_xs, y_: batch_ys})
         print("Step: ", i)
 
