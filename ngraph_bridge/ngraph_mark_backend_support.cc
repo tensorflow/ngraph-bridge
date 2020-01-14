@@ -38,17 +38,19 @@ Status GetBackendSupportInfoForTFSubgraph(
     // TODO
     return errors::Internal("Unimplemented: Call TranslateGraph");
   } else {
-      // If we cannot call TranslateGraph, we do the conservative thing and use the static, hand-populated map
+    // If we cannot call TranslateGraph, we do the conservative thing and use
+    // the static, hand-populated map
     unique_ptr<Graph> graph_ptr(new Graph(OpRegistry::Global()));
     GraphConstructorOptions opts;
     opts.allow_internal_ops = true;
     TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(opts, *g, graph_ptr.get()));
     bool supported_op;
     for (auto node : graph_ptr->nodes()) {
-        if (NodeIsMarkedForClustering(node)){
-            TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend, supported_op));
-            result_map.insert({node->name(), supported_op});
-        }
+      if (NodeIsMarkedForClustering(node)) {
+        TF_RETURN_IF_ERROR(
+            IsSupportedByBackend(node, op_backend, supported_op));
+        result_map.insert({node->name(), supported_op});
+      }
     }
   }
   return Status::OK();
@@ -95,7 +97,6 @@ Status IsSupportedByBackend(const Node* node,
                             bool& is_supported) {
   return IsSupportedByBackend(node, op_backend, GetTFToNgOpMap(), is_supported);
 }
-
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

@@ -1228,10 +1228,10 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   // Maybe this should be packaged into a function that we can call here, and in
   // rewrite_pass
 
-
   // Create backend to query is_supported
   string ng_backend_type;
-  TF_RETURN_IF_ERROR(BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
+  TF_RETURN_IF_ERROR(
+      BackendManager::GetCurrentlySetBackendName(&ng_backend_type));
   TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
   ng::runtime::Backend* op_backend =
       BackendManager::GetBackend(ng_backend_type);
@@ -1258,7 +1258,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     Encapsulator enc(graph);
     NGRAPH_VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
     TF_RETURN_IF_ERROR(enc.AnalysisPass());
-    // TODO. Can pass this half-done computation (in the form of the "enc" object to encapsulateClusters instead of fully recomputing.)
+    // TODO. Can pass this half-done computation (in the form of the "enc"
+    // object to encapsulateClusters instead of fully recomputing.)
 
     int graphdef_idx = 0;
     GraphDef* gdef;
@@ -1267,7 +1268,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       gdef = NGraphClusterManager::GetClusterGraph(graphdef_idx);
       map<string, bool> tf_node_support_map;
       if (gdef == nullptr) {
-        // We iterate over ClusterManager one by one and once its out of valid graphdefs, it returns a nullptr
+        // We iterate over ClusterManager one by one and once its out of valid
+        // graphdefs, it returns a nullptr
         break;
       } else {
         // TODO: in AOT case pass shape hints in
@@ -1313,7 +1315,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   // TODO: assert that clustermanager is empty? and assert that num nodes and
   // num edges before and after are same (no rewriting has happened)
-
 
   for (auto node : variable_type_nodes) {
     SetNodeBackend(node, current_backend);
