@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.27.1-rc.1"
+    ngraph_version = "v0.28.0-rc.0"
     tf_version = "v1.14.0"
 
     # Command line parser options
@@ -412,6 +412,7 @@ def main():
 
     if (arguments.use_ngraph_staticlibs):
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE=TRUE"])
+
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
