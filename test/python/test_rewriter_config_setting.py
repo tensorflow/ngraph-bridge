@@ -25,6 +25,7 @@ import os
 import numpy as np
 import shutil
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 from tensorflow.core.protobuf import rewriter_config_pb2
 import ngraph_bridge
 
@@ -43,9 +44,9 @@ class TestRewriterConfigBackendSetting(NgraphTest):
     def test_config_updater_api(self, backend):
         dim1 = 3
         dim2 = 4
-        a = tf.placeholder(tf.float32, shape=(dim1, dim2), name='a')
-        x = tf.placeholder(tf.float32, shape=(dim1, dim2), name='x')
-        b = tf.placeholder(tf.float32, shape=(dim1, dim2), name='y')
+        a = tf.compat.v1.placeholder(tf.float32, shape=(dim1, dim2), name='a')
+        x = tf.compat.v1.placeholder(tf.float32, shape=(dim1, dim2), name='x')
+        b = tf.compat.v1.placeholder(tf.float32, shape=(dim1, dim2), name='y')
         axpy = (a * x) + b
 
         config = tf.ConfigProto()

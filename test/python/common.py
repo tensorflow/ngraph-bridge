@@ -19,6 +19,7 @@ import platform
 import random
 
 import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.core.protobuf import rewriter_config_pb2
 
 from google.protobuf import text_format

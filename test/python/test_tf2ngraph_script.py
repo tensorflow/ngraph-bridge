@@ -25,6 +25,7 @@ import os
 import numpy as np
 import shutil
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import ngraph_bridge
 from subprocess import Popen, PIPE
 
@@ -175,7 +176,7 @@ class Testtf2ngraph(NgraphTest):
         tf2ngraph_out_loc = 'temp_pytest_pbtxt_tf2ngraph.pbtxt'
 
         with tf.Session() as sess:
-            x = tf.placeholder(tf.float32, [None, 784], name="input")
+            x = tf.compat.v1.placeholder(tf.float32, [None, 784], name="input")
             W = tf.constant(np.zeros([784, 10]), tf.float32)
             b = tf.constant(np.zeros([10]), tf.float32)
             linear = tf.matmul(x, W) + b
@@ -257,7 +258,7 @@ class Testtf2ngraph(NgraphTest):
         # tf2ngraph is expected to fail,
         # since it does not support graphs with variables
         export_dir = 'saved_model'
-        x = tf.placeholder(tf.float32, [None, 784], name='x')
+        x = tf.compat.v1.placeholder(tf.float32, [None, 784], name='x')
         W = tf.Variable(tf.zeros([784, 10]))
         matmul = tf.matmul(x, W, name='mm')
         with tf.Session() as sess:

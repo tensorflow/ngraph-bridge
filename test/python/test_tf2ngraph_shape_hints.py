@@ -25,6 +25,7 @@ import os
 import numpy as np
 import shutil
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import ngraph_bridge
 import json
 
@@ -44,8 +45,8 @@ def get_pbtxt_name(tag, p0_shape, p1_shape):
 def create_graph(p0_shape, p1_shape):
     temp_pbtxt_name = get_pbtxt_name('temp_graph_in_', p0_shape, p1_shape)
     with tf.Session() as sess:
-        x = tf.placeholder(tf.float32, shape=p0_shape, name='x')
-        y = tf.placeholder(tf.float32, shape=p1_shape, name='y')
+        x = tf.compat.v1.placeholder(tf.float32, shape=p0_shape, name='x')
+        y = tf.compat.v1.placeholder(tf.float32, shape=p1_shape, name='y')
         z = tf.add(tf.abs(x), tf.abs(y), name="z")
         tf.io.write_graph(sess.graph, '.', temp_pbtxt_name, as_text=True)
     return x, y, z, temp_pbtxt_name

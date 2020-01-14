@@ -71,7 +71,7 @@ class TestVariableStaticInputs(NgraphTest):
 
     def __run_test(self, sess):
         # Var is initialized by var_init
-        var = tf.get_variable('var', [1], dtype=tf.int32)
+        var = tf.compat.v1.get_variable('var', [1], dtype=tf.int32)
         var_init = tf.constant([0])
         var_initialize = var.assign(var_init)
 
@@ -122,7 +122,7 @@ class TestVariableStaticInputs(NgraphTest):
         # Reset Graph
         # It is necessary to reset the graph because of the variables
         # TF thinks you want to reuse the variables
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
         # Run on TF
         tf_var_init_val, tf_mean_values, tf_var_final = self.without_ngraph(
@@ -160,7 +160,7 @@ class TestVariableStaticInputs(NgraphTest):
         # Reset Graph
         # It is necessary to reset the graph because of the variables
         # TF thinks you want to reuse the variables
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
         # Run on TF
         tf_var_init_val, tf_mean_values, tf_var_final = self.without_ngraph(

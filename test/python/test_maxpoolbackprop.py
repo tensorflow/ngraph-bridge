@@ -24,6 +24,7 @@ import pytest
 import numpy as np
 
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 from tensorflow.python.ops.gen_nn_ops import max_pool_grad
 
 from common import NgraphTest
@@ -67,9 +68,9 @@ class TestMaxPoolBackpropInput(NgraphTest):
         output = self.output_nhwc[padding]
         g_nhwc = self.grad_nhwc[padding]
         if padding == "VALID":
-            grad = tf.placeholder(tf.float32, shape=(128, 112, 74, 3))
+            grad = tf.compat.v1.placeholder(tf.float32, shape=(128, 112, 74, 3))
         elif padding == "SAME":
-            grad = tf.placeholder(tf.float32, shape=(128, 112, 75, 3))
+            grad = tf.compat.v1.placeholder(tf.float32, shape=(128, 112, 75, 3))
         out = max_pool_grad(
             self.input_nhwc,
             output,
@@ -89,9 +90,9 @@ class TestMaxPoolBackpropInput(NgraphTest):
         output = self.output_nchw[padding]
         g_nchw = self.grad_nchw[padding]
         if padding == "VALID":
-            grad = tf.placeholder(tf.float32, shape=(128, 3, 112, 74))
+            grad = tf.compat.v1.placeholder(tf.float32, shape=(128, 3, 112, 74))
         elif padding == "SAME":
-            grad = tf.placeholder(tf.float32, shape=(128, 3, 112, 75))
+            grad = tf.compat.v1.placeholder(tf.float32, shape=(128, 3, 112, 75))
 
         def test_on_ng(sess):
             a = max_pool_grad(
