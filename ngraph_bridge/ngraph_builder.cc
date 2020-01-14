@@ -4164,16 +4164,26 @@ static Status TranslateSoftmaxOp(const Node* op,
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
 
-  auto ng_input_shape = ng_input->get_shape();
-  ng::AxisSet ng_axes_softmax;
-  auto shape_size = ng_input_shape.size();
-  if (shape_size < 1) {
-    return errors::InvalidArgument("TF Softmax logits must be >=1 dimension");
+  // Get ng_input's Output-handle[0]'s shape; returns PartialShape&
+  //auto ng_input_shape = ng_input->get_partial_output_shape(0);
+  ng::Output<ng::Node> ng_input_outhndl = ng_input->output(0);
+  const ng::PartialShape& ng_input_shape = ng_input_outhndl.get_partial_shape();
+
+  if(ng_input_shape.is_static()) {
+    ng::AxisSet ng_axes_softmax;
+    auto shape_size = ng_input_shape.to_shape().size();
+    if (shape_size < 1) {
+      return errors::InvalidArgument("TF Softmax logits must be >=1 dimension");
+    }
+    auto rank = ng_input->get_shape().size();
+    ng_axes_softmax.insert(rank - 1);
+    SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Softmax>(
+                                        op->name(), ng_input, ng_axes_softmax));
+  } else { // input has Dynamic Shape
+    SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Softmax>(
+                                        op->name(), ng_input, ng_input_outhndl));
   }
-  auto rank = ng_input->get_shape().size();
-  ng_axes_softmax.insert(rank - 1);
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Softmax>(
-                                      op->name(), ng_input, ng_axes_softmax));
+
   return Status::OK();
 }
 
