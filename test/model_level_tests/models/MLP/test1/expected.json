@@ -8,11 +8,11 @@
             },
             "1": {
                 "num_ng_clusters": 22,
-                "num_nodes_in_graph": 328,
-                "num_nodes_marked_for_clustering": 253
+                "num_nodes_in_graph": 309,
+                "num_nodes_marked_for_clustering": 235
             }
         },
-        "time": 11
+        "time": 10
     },
     "grappler": {
         "logparse": {
