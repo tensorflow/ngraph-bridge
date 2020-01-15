@@ -252,16 +252,6 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
               op_backend_name));  // Created a backend here. must free it
           // TranslateGraph must be called AFTER CreateBackend because some TF
           // ops like CNMS and gather use backend specific nodes
-
-          string signature;
-          std::shared_ptr<ngraph::Function> ng_function;
-          TF_RETURN_IF_ERROR(
-              PerformTranslation(node, inputs_node_shapes_for_compilation,
-                                 signature, ng_function));
-          int json_indentation = 4;
-          string serialized_ngfunc(
-              ngraph::serialize(ng_function, json_indentation));
-
           std::unordered_map<std::string, std::string> additional_attribute_map;
           for (auto itr : node->attrs()) {
             // Find the optional attributes to be sent to the backend.
@@ -281,6 +271,18 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
             }
           }
           BackendManager::SetConfig(op_backend_name, additional_attribute_map);
+
+          // Backend has been created and setup. Now translate
+          string signature;
+          std::shared_ptr<ngraph::Function> ng_function;
+          TF_RETURN_IF_ERROR(
+              PerformTranslation(node, inputs_node_shapes_for_compilation,
+                                 signature, ng_function));
+          int json_indentation = 4;
+          string serialized_ngfunc(
+              ngraph::serialize(ng_function, json_indentation));
+
+          // Translation done, now compile
           ng::runtime::Backend* op_backend = nullptr;
           try {
             op_backend = BackendManager::GetBackend(op_backend_name);
@@ -307,6 +309,7 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
           BackendManager::UnlockBackend(op_backend_name);
           BackendManager::ReleaseBackend(op_backend_name);
 
+          // Compilation done, now serialize and attach as attribute
           stringstream exec_dump;
           ng_exec->save(exec_dump);
           // ng function attached as debugging information
