@@ -56,6 +56,7 @@ set(SRC
     test_index_library.cpp
     test_ngraph_data_cache.cpp
     test_utilities.cpp
+    test_image_ops.cpp
     test_math_ops.cpp
     test_nn_ops.cpp
     test_array_ops.cpp
@@ -68,6 +69,8 @@ set(SRC
     test_ngraph_tensor_manager.cpp
     test_capture_prefetch.cpp
     test_pipelined_tensor_store.cc
+    dummy_backend.cpp
+    test_dummy_backend.cpp
 )
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
@@ -135,6 +138,10 @@ add_custom_command(
 
 if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
+endif()
+
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)

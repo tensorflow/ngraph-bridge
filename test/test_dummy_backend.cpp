@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,33 @@
  * limitations under the License.
  *******************************************************************************/
 
-#ifndef NGRAPH_TF_BRIDGE_ASSIGN_CLUSTERS_H_
-#define NGRAPH_TF_BRIDGE_ASSIGN_CLUSTERS_H_
-#pragma once
+#include "gtest/gtest.h"
 
-#include "tensorflow/core/graph/graph.h"
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/public/session.h"
+
+#include "logging/tf_graph_writer.h"
+#include "test/dummy_backend.h"
+#include "test/test_utilities.h"
+
+using namespace std;
+namespace ng = ngraph;
 
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status AssignClusters(Graph* graph);
-// reset the effect of AssignClusters
-void ResetAssignClusters(Graph* graph);
-Status GetNodeCluster(const Node* node, int* cluster);
+namespace testing {
 
+// Test is_supported API
+TEST(DummyBackend, IsSupported) {
+  ngraph::runtime::dummy::DummyBackend db;
+  auto add = std::make_shared<ngraph::op::Add>();
+  ASSERT_EQ(db.is_supported(*add), false);
+}
+
+}  // namespace testing
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
-
-#endif  // NGRAPH_TF_BRIDGE_ASSIGN_CLUSTERS_H_
