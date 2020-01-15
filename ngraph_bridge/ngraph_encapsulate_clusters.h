@@ -115,6 +115,7 @@ class Encapsulator {
   static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot);
 };
 
+// Translates TF subgraph to ng function then compiles it
 Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info);
 
 std::string HintAsString(ShapeHintMap single_hint);
