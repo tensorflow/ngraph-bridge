@@ -37,6 +37,8 @@ from mnist_deep_simplified import *
 
 class TestMnistTraining(NgraphTest):
 
+    #Todo: Unskip this test
+    @pytest.mark.skip(reason="Does not work with tf2.0")
     @pytest.mark.parametrize(("optimizer"), ("adam", "sgd", "momentum"))
     def test_mnist_training(self, optimizer):
 
@@ -54,7 +56,7 @@ class TestMnistTraining(NgraphTest):
                 self.optimizer = optimizer
 
         data_dir = '/tmp/' + getpass.getuser() + 'tensorflow/mnist/input_data'
-        train_loop_count = 20
+        train_loop_count = 50
         batch_size = 50
         test_image_count = None
         make_deterministic = True
