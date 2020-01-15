@@ -4166,7 +4166,8 @@ static Status TranslateSoftmaxOp(const Node* op,
 
   // Get ng_input's Output-handle[0]'s shape; returns PartialShape&
   ng::Output<ng::Node> ng_input_outhndl = ng_input->output(0);
-  const ng::PartialShape& ng_input_shape = ng_input_outhndl.get_partial_shape();
+  // const ng::PartialShape& ng_input_shape =
+  // ng_input_outhndl.get_partial_shape();
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Softmax>(
                                       op->name(), ng_input, ng_input_outhndl));
 
