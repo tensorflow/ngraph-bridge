@@ -26,6 +26,8 @@
 #include <iostream>
 #include "tensorflow/core/graph/graph.h"
 
+#include "ngraph/ngraph.hpp"
+
 #include "ngraph_bridge/ngraph_partial_shapes.h"
 
 namespace tensorflow {
@@ -129,6 +131,12 @@ PartialShape CombineNodeInfoAndHint(Node* node,
 // from the TF graph
 std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
     Graph* graph, const string& input_node_type);
+
+Status PerformTranslation(Node* node,
+                          const std::map<std::string, std::vector<int>>&
+                              inputs_node_shapes_for_compilation,
+                          std::string& signature,
+                          std::shared_ptr<ngraph::Function> ng_function);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

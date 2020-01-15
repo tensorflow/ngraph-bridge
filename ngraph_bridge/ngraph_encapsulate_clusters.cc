@@ -210,8 +210,13 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
       }
 
       if (!can_aot) {
-        return errors::Internal("AOT requested, but could not perform AOT");
+        return errors::Internal(
+            "AOT requested, but could not perform AOT for hint = ",
+            HintAsString(single_hint));
       }
+
+      // At this point we have collected all the AOT information and now we are
+      // ready to translate and compile
       for (auto node : graph->op_nodes()) {
         if (node->type_string() == "NGraphEncapsulate") {
           // Check inputs of the encapsulates. They can only be fed by fully
@@ -226,61 +231,7 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
                 "that is not supported");
           }
 
-          std::vector<TensorShape> input_shapes;
-          std::stringstream signature_ss;
-          for (auto in_node : node->in_nodes()) {
-            if (!in_node->IsSource()) {
-              auto itr_shape =
-                  inputs_node_shapes_for_compilation.find(in_node->name());
-              if (itr_shape == inputs_node_shapes_for_compilation.end()) {
-                // TODO: this error could potentially happen due to 2 reasons:
-                // 1. Enough valid shape hints were not passed
-                // 2. It is an encapsulate that has atleast 1 input fed by a
-                // non-placeholder (like another TF node or another
-                // encapsulate)
-                // Later provide more explicit debug message (reason 1 or 2 or
-                // anything else)
-                return errors::Internal(
-                    "AOT requested. Found an encapsulate that has a "
-                    "non-concrete input");
-              } else {
-                std::vector<int64> converted_to_int64(itr_shape->second.begin(),
-                                                      itr_shape->second.end());
-                input_shapes.push_back(TensorShape(converted_to_int64));
-                for (auto itr1 : itr_shape->second) {
-                  signature_ss << itr1 << ",";
-                }
-                signature_ss << ";";
-              }
-            }
-          }
-
-          signature_ss << "/";
-          string signature = signature_ss.str();
-          NGRAPH_VLOG(3) << "Performing AOT for " << node->name()
-                         << " for signature = " << signature << "\n";
-
-          std::vector<const Tensor*> static_input_map;
-          std::shared_ptr<ngraph::Function> ng_function;
-          int cluster_idx;
-          TF_RETURN_IF_ERROR(
-              GetNodeAttr(node->attrs(), "ngraph_cluster", &cluster_idx));
-          GraphDef* gdef_for_current_encapsulate;
-          gdef_for_current_encapsulate =
-              NGraphClusterManager::GetClusterGraph(cluster_idx);
-          GraphConstructorOptions opts;
-          opts.allow_internal_ops = true;
-          Graph graph_for_current_encapsulate(OpRegistry::Global());
-          TF_RETURN_IF_ERROR(
-              ConvertGraphDefToGraph(opts, *gdef_for_current_encapsulate,
-                                     &graph_for_current_encapsulate));
-
           // get backend.
-          // TODO: Note that this is code duplication of some stuff present
-          // in NGraphEncapsulateOp
-          // Once NGraphEncapsulateOp is refactored, this code should be
-          // removed and a common function should be used
-
           // TODO: these sections can be hoisted out of the main loop
           std::string backend_name;
           TF_RETURN_IF_ERROR(
@@ -288,7 +239,6 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
           std::string device_id;
           TF_RETURN_IF_ERROR(
               GetNodeAttr(node->attrs(), "ngraph_device_id", &device_id));
-
           string op_backend_name;
           try {
             op_backend_name = BackendManager::GetBackendCreationString(
@@ -302,12 +252,16 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
               op_backend_name));  // Created a backend here. must free it
           // TranslateGraph must be called AFTER CreateBackend because some TF
           // ops like CNMS and gather use backend specific nodes
-          TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-              input_shapes, static_input_map, &graph_for_current_encapsulate,
-              ng_function));
+
+          string signature;
+          std::shared_ptr<ngraph::Function> ng_function;
+          TF_RETURN_IF_ERROR(
+              PerformTranslation(node, inputs_node_shapes_for_compilation,
+                                 signature, ng_function));
           int json_indentation = 4;
           string serialized_ngfunc(
               ngraph::serialize(ng_function, json_indentation));
+
           std::unordered_map<std::string, std::string> additional_attribute_map;
           for (auto itr : node->attrs()) {
             // Find the optional attributes to be sent to the backend.
@@ -964,6 +918,74 @@ std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
     }
   }
   return node_partial_shape_map;
+}
+
+Status PerformTranslation(Node* node, const std::map<std::string, vector<int>>&
+                                          inputs_node_shapes_for_compilation,
+                          string& signature,
+                          std::shared_ptr<ngraph::Function> ng_function) {
+  if (node->type_string() == "NGraphEncapsulate") {
+    return errors::Internal(
+        "This function should only be called on an NGraphEncapsulate, but was "
+        "called on ",
+        node->name(), " which is of type ", node->type_string());
+  }
+  std::vector<TensorShape> input_shapes;
+  std::stringstream signature_ss;
+  for (auto in_node : node->in_nodes()) {
+    if (!in_node->IsSource()) {
+      auto itr_shape = inputs_node_shapes_for_compilation.find(in_node->name());
+      if (itr_shape == inputs_node_shapes_for_compilation.end()) {
+        // TODO: this error could potentially happen due to 2 reasons:
+        // 1. Enough valid shape hints were not passed
+        // 2. It is an encapsulate that has atleast 1 input fed by a
+        // non-placeholder (like another TF node or another
+        // encapsulate)
+        // Later provide more explicit debug message (reason 1 or 2 or
+        // anything else)
+        return errors::Internal(
+            "AOT requested. Found an encapsulate that has a "
+            "non-concrete input");
+      } else {
+        std::vector<int64> converted_to_int64(itr_shape->second.begin(),
+                                              itr_shape->second.end());
+        input_shapes.push_back(TensorShape(converted_to_int64));
+        for (auto itr1 : itr_shape->second) {
+          signature_ss << itr1 << ",";
+        }
+        signature_ss << ";";
+      }
+    }
+  }
+
+  signature_ss << "/";
+  signature = signature_ss.str();
+  NGRAPH_VLOG(3) << "Performing AOT for " << node->name()
+                 << " for signature = " << signature << "\n";
+  std::vector<const Tensor*> static_input_map;
+
+  int cluster_idx;
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(node->attrs(), "ngraph_cluster", &cluster_idx));
+  GraphDef* gdef_for_current_encapsulate;
+  gdef_for_current_encapsulate =
+      NGraphClusterManager::GetClusterGraph(cluster_idx);
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  Graph graph_for_current_encapsulate(OpRegistry::Global());
+  TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(opts, *gdef_for_current_encapsulate,
+                                            &graph_for_current_encapsulate));
+
+  // TODO: Note that this is code duplication of some stuff present
+  // in NGraphEncapsulateOp
+  // Once NGraphEncapsulateOp is refactored, this code should be
+  // removed and a common function should be used
+
+  TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
+                                             &graph_for_current_encapsulate,
+                                             ng_function));
+
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge
