@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.28.0-rc.0"
+    ngraph_version = "v0.28.0-rc.1"
     tf_version = "v2.0.0"
 
     # Command line parser options
