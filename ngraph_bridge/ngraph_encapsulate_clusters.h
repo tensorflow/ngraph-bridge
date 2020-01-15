@@ -132,6 +132,8 @@ PartialShape CombineNodeInfoAndHint(Node* node,
 std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
     Graph* graph, const string& input_node_type);
 
+// Given an encapsulate node, and the input shapes,
+// performs TranslateGraph and returns an ng function and a signature
 Status PerformTranslation(Node* node,
                           const std::map<std::string, std::vector<int>>&
                               inputs_node_shapes_for_compilation,
