@@ -117,9 +117,18 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info);
 
 std::string HintAsString(ShapeHintMap single_hint);
 
+// Given a node, partialshape info from TF (present in the .pb itself) and a
+// shape hint, combine all that information
 PartialShape CombineNodeInfoAndHint(Node* node,
                                     PartialShape partial_shape_from_node,
                                     const ShapeHintMap& single_hint);
+
+// Given a TF graph, it scans it for inputs and finds what TF is saying about
+// their shapes (in the .pb itself)
+// Creates a map between input node names and PartialShape information we get
+// from the TF graph
+std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
+    Graph* graph, const string& input_node_type);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

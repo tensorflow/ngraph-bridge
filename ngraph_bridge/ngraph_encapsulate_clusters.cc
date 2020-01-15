@@ -134,57 +134,35 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
     // in normal pass its args. unless shapes are provided there is no chance of
     // reading shapes from args.
 
-    std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
     // map between node name and the PartialShape it contains
-    std::map<std::string, PartialShape> node_partial_shape_map;
-    // This is a map of placeholder names and the shapes we can infer from them
-    std::map<std::string, vector<int>> shape_from_placeholders_as_hints;
-    for (auto node : graph->op_nodes()) {
-      if (node->type_string() == input_node_type) {
-        NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
-                       << node->type_string()
-                       << "): " << node->attrs().SummarizeNode();
-        // TODO: need to confirm if its _output_shapes or shape
-        auto shape_field = node->attrs().Find("_output_shapes");
-        if (shape_field == nullptr) {
-          shape_field = node->attrs().Find("shape");
-        }
-        // It seems that _output_shapes is not found and hence the shape is
-        // inferred only from the hints. however if "shape" is present, it is
-        // empty, and in that case the empty shape and the rank!=0 hint fuse
-        // to give an invalid shape according to our current logic. have to
-        // modify that
-        PartialShape partial_shape_from_node;
-        if (shape_field != nullptr) {
-          // Get shape from the node
-          partial_shape_from_node = PartialShape(shape_field->shape());
-        }
-        NGRAPH_VLOG(5) << "For node " << node->name()
-                       << " got shape from nose: "
-                       << partial_shape_from_node.to_string();
-        node_partial_shape_map.insert({node->name(), partial_shape_from_node});
-        shape_from_placeholders_as_hints.insert(
-            {node->name(), partial_shape_from_node.get_shape_vector()});
-      }
-    }
+    std::map<std::string, PartialShape> node_partial_shape_map =
+        GetShapesFromTFInputnodes(graph, input_node_type);
 
     // If no shape hints are provided but the placeholders contain complete
     // shape, then we still need to enter the for loop below to compute AOT.
     // Hence adding the shapes from placeholders as hints.
+
     if (node_shapes_hints_sets.size() == 0) {
       NGRAPH_VLOG(5) << "Using shapes from placeholders as hint";
+
+      std::map<std::string, vector<int>> shape_from_placeholders_as_hints;
+      for (auto itr : node_partial_shape_map) {
+        shape_from_placeholders_as_hints.insert(
+            {itr.first, itr.second.get_shape_vector()});
+      }
       node_shapes_hints_sets.insert(shape_from_placeholders_as_hints);
     }
     // TODO: .....CHECK ABOVE IF
 
+    std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
     // Iterate over each shape hint and see if they can be used
     for (ShapeHintMap single_hint : node_shapes_hints_sets) {
       // A boolean to determine if we can AOT for this single_hint
       bool can_aot = true;
 
       for (auto itr_single_hint : single_hint) {
-        if (shape_from_placeholders_as_hints.find(itr_single_hint.first) ==
-            shape_from_placeholders_as_hints.end()) {
+        if (node_partial_shape_map.find(itr_single_hint.first) ==
+            node_partial_shape_map.end()) {
           return errors::Internal("Passed hint for node ",
                                   itr_single_hint.first,
                                   " but there is no input with that name");
@@ -954,6 +932,38 @@ PartialShape CombineNodeInfoAndHint(Node* node,
     }
   }
   return combined_shape_info;
+}
+
+std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
+    Graph* graph, const string& input_node_type) {
+  // map between node name and the PartialShape it contains
+  std::map<std::string, PartialShape> node_partial_shape_map;
+  for (auto node : graph->op_nodes()) {
+    if (node->type_string() == input_node_type) {
+      NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
+                     << node->type_string()
+                     << "): " << node->attrs().SummarizeNode();
+      // TODO: need to confirm if its _output_shapes or shape
+      auto shape_field = node->attrs().Find("_output_shapes");
+      if (shape_field == nullptr) {
+        shape_field = node->attrs().Find("shape");
+      }
+      // It seems that _output_shapes is not found and hence the shape is
+      // inferred only from the hints. however if "shape" is present, it is
+      // empty, and in that case the empty shape and the rank!=0 hint fuse
+      // to give an invalid shape according to our current logic. have to
+      // modify that
+      PartialShape partial_shape_from_node;
+      if (shape_field != nullptr) {
+        // Get shape from the node
+        partial_shape_from_node = PartialShape(shape_field->shape());
+      }
+      NGRAPH_VLOG(5) << "For node " << node->name() << " got shape from nose: "
+                     << partial_shape_from_node.to_string();
+      node_partial_shape_map.insert({node->name(), partial_shape_from_node});
+    }
+  }
+  return node_partial_shape_map;
 }
 
 }  // namespace ngraph_bridge
