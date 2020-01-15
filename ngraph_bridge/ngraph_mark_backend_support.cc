@@ -26,7 +26,8 @@ namespace ngraph_bridge {
 // TODO use TranslateGraph
 Status GetBackendSupportInfoForTFSubgraph(
     const ng::runtime::Backend* op_backend, GraphDef* g,
-    std::map<std::string, bool>& result_map) {
+    std::map<std::string, bool>& result_map,
+    const std::set<ShapeHintMap>& hints) {
   result_map.clear();
   // TODO: fill this function
   // Call translate graph. Then call GetBackendSupportInfoForNgfunction

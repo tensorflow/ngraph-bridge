@@ -239,8 +239,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   NGRAPH_VLOG(0) << "NGraph using backend: " << backend_creation_string;
 
   // 1. Mark for clustering then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(
-      MarkForClustering(&graph, skip_these_nodes, backend_creation_string));
+  TF_RETURN_IF_ERROR(MarkForClustering(
+      &graph, skip_these_nodes, backend_creation_string, aot_info.second));
   if (DumpMarkedGraphs()) {
     DumpGraphs(graph, idx, "marked", "Graph Marked for Clustering");
   }

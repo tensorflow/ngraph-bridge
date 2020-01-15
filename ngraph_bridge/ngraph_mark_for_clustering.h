@@ -22,12 +22,15 @@
 
 #include "ngraph/ngraph.hpp"
 
+#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+
 namespace tensorflow {
 
 namespace ngraph_bridge {
 
 Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes,
-                         const string& current_backend);
+                         const string& current_backend,
+                         const std::set<ShapeHintMap>& hints);
 // remove marking, backend and static input nodes attributes
 void ResetMarkForClustering(Graph* graph);
 bool NodeIsMarkedForClustering(const Node* node);

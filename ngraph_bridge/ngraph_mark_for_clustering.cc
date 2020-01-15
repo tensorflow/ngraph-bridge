@@ -1058,7 +1058,8 @@ GetTFToNgOpMap() {
 // Main entry point for the marking pass.
 //
 Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
-                         const string& current_backend) {
+                         const string& current_backend,
+                         const std::set<ShapeHintMap>& hints) {
   const TypeConstraintMap& type_constraint_map = GetTypeConstraintMap();
 
   // confirmation_function_map is non-const unlike the other maps
@@ -1274,7 +1275,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
       } else {
         // TODO: in AOT case pass shape hints in
         TF_RETURN_IF_ERROR(GetBackendSupportInfoForTFSubgraph(
-            op_backend, gdef, tf_node_support_map));
+            op_backend, gdef, tf_node_support_map, hints));
         graphdef_idx++;
       }
 

@@ -55,7 +55,8 @@ Status GetBackendSupportInfoForNgfunction(
 
 Status GetBackendSupportInfoForTFSubgraph(const ng::runtime::Backend*,
                                           GraphDef*,
-                                          std::map<std::string, bool>&);
+                                          std::map<std::string, bool>&,
+                                          const std::set<ShapeHintMap>& hints);
 
 Status IsSupportedByBackend(const Node* node,
                             const ng::runtime::Backend* op_backend,

@@ -153,7 +153,7 @@ TEST(BackendManager, BackendAssignment) {
   std::set<string> skip_these_nodes = {};
 
   string dummy_backend = "DUMMY";
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, dummy_backend));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, dummy_backend, {}));
   std::map<std::string, Node*> node_map;
   for (auto node : graph.op_nodes()) {
     node_map[node->name()] = node;
@@ -184,7 +184,7 @@ TEST(BackendManager, BackendClustering) {
 
   string dummy_backendA = "DUMMYA";
   string dummy_backendB = "DUMMYB";
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, dummy_backendA));
+  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, dummy_backendA, {}));
 
   std::map<std::string, Node*> node_map;
   for (auto node : graph.op_nodes()) {

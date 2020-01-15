@@ -78,7 +78,7 @@ TEST(MarkForClustering, SimpleTest) {
   if (ng_backend_env_value != nullptr) {
     expected_backend = std::string(ng_backend_env_value);
   }
-  ASSERT_OK(MarkForClustering(&g, {}, expected_backend));
+  ASSERT_OK(MarkForClustering(&g, {}, expected_backend, {}));
 
   string backend;
   const set<string> nodes_expected_to_be_marked{"node1", "node2", "node3",
