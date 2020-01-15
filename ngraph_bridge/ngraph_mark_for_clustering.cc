@@ -1287,6 +1287,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
                            << " is not supportable by current backend "
                            << ng_backend_type << ", hence rejecting it";
             changed = true;
+            // The _ngraph_marked_for_clustering removal is probably not needed
+            // its cleared by the ResetMarkForClustering call later
             node->ClearAttr("_ngraph_marked_for_clustering");
             node->ClearAttr("_ngraph_backend");
             node->ClearAttr("_ngraph_static_inputs");

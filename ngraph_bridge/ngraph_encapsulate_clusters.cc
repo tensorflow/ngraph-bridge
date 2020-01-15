@@ -134,22 +134,6 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
     // in normal pass its args. unless shapes are provided there is no chance of
     // reading shapes from args.
 
-    auto get_shape_for_node_from_shape_hint = [](Node* node,
-                                                 ShapeHintMap single_hint) {
-      auto find_itr = single_hint.find(node->name());
-      return find_itr == single_hint.end() ? PartialShape()
-                                           : PartialShape(find_itr->second);
-    };
-
-    auto hint_as_string = [](ShapeHintMap single_hint) {
-      string hint_str;
-      for (auto itr_node : single_hint) {
-        hint_str +=
-            ((itr_node.first) + ":[" + ng::join(itr_node.second) + "],");
-      }
-      return hint_str;
-    };
-
     std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
     // map between node name and the PartialShape it contains
     std::map<std::string, PartialShape> node_partial_shape_map;
@@ -212,52 +196,8 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
           PartialShape partial_shape_from_node =
               node_partial_shape_map.at(node->name());
 
-          PartialShape shape_hint_for_node =
-              get_shape_for_node_from_shape_hint(node, single_hint);
-
-          // If a shape has been found in the input node, match with
-          // shape_hints if they exist
-          PartialShape combined_shape_info;
-          if (shape_hint_for_node.is_valid()) {
-            NGRAPH_VLOG(5) << "For node " << node->name() << " shape hint (",
-                hint_as_string(single_hint),
-                ") for node is valid and is: " +
-                    shape_hint_for_node.to_string();
-            if (partial_shape_from_node.is_valid()) {
-              NGRAPH_VLOG(5) << "Partial shape from node is also valid. So "
-                                "will attempt to concretize if possible";
-              if (partial_shape_from_node.size() == 0) {
-                // TODO: revisit this if-else
-                NGRAPH_VLOG(5) << "Partial shape from node is empty, so will "
-                                  "use shape from hint";
-                combined_shape_info = shape_hint_for_node;
-              } else {
-                NGRAPH_VLOG(5) << "Concretizing shape " +
-                                      partial_shape_from_node.to_string() +
-                                      "from node with hint for node, " +
-                                      shape_hint_for_node.to_string();
-                partial_shape_from_node.concretize(shape_hint_for_node);
-                combined_shape_info = partial_shape_from_node;
-              }
-            } else {
-              NGRAPH_VLOG(5) << "Partial shape from node is invalid. So using "
-                                "hint for the node as shape";
-              combined_shape_info = shape_hint_for_node;
-            }
-          } else {
-            NGRAPH_VLOG(5) << "For node " << node->name()
-                           << " shape hint (" + hint_as_string(single_hint) +
-                                  ") for node is invalid";
-            if (partial_shape_from_node.is_valid()) {
-              // No shape hints found. But the node itself has some shape info
-              NGRAPH_VLOG(5) << "Partial shape from node is valid and is: " +
-                                    partial_shape_from_node.to_string();
-              combined_shape_info = partial_shape_from_node;
-            } else {
-              NGRAPH_VLOG(5) << "Partial shape from node is invalid";
-              combined_shape_info = PartialShape();
-            }
-          }
+          PartialShape combined_shape_info = CombineNodeInfoAndHint(
+              node, partial_shape_from_node, single_hint);
 
           can_aot = combined_shape_info.is_valid() &&
                     combined_shape_info.is_concrete();
@@ -272,7 +212,7 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
                      ? (node->name() + " could not be concretized")
                      : "it is invalid for " + node->name());
             return errors::Internal("Cannot AOT using this hint (",
-                                    hint_as_string(single_hint), ") as ",
+                                    HintAsString(single_hint), ") as ",
                                     fail_reason);
             break;
           }
@@ -286,7 +226,7 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
           can_aot = false;
           // TODO: print "this" hint
           return errors::Internal("Cannot AOT using this hint (",
-                                  hint_as_string(single_hint), ") for ",
+                                  HintAsString(single_hint), ") for ",
                                   (itr.first), " was not concretized");
         }
       }
@@ -948,6 +888,72 @@ Status Encapsulator::NewClusterIds(set<int>& result) {
     result.insert(it->first);
   }
   return Status::OK();
+}
+
+std::string HintAsString(ShapeHintMap single_hint) {
+  string hint_str;
+  for (auto itr_node : single_hint) {
+    hint_str += ((itr_node.first) + ":[" + ng::join(itr_node.second) + "],");
+  }
+  return hint_str;
+}
+
+PartialShape CombineNodeInfoAndHint(Node* node,
+                                    PartialShape partial_shape_from_node,
+                                    const ShapeHintMap& single_hint) {
+  auto get_shape_for_node_from_shape_hint = [](Node* node,
+                                               ShapeHintMap single_hint) {
+    auto find_itr = single_hint.find(node->name());
+    return find_itr == single_hint.end() ? PartialShape()
+                                         : PartialShape(find_itr->second);
+  };
+
+  PartialShape shape_hint_for_node =
+      get_shape_for_node_from_shape_hint(node, single_hint);
+
+  // If a shape has been found in the input node, match with
+  // shape_hints if they exist
+  PartialShape combined_shape_info;
+  if (shape_hint_for_node.is_valid()) {
+    NGRAPH_VLOG(5) << "For node " << node->name() << " shape hint (",
+        HintAsString(single_hint),
+        ") for node is valid and is: " + shape_hint_for_node.to_string();
+    if (partial_shape_from_node.is_valid()) {
+      NGRAPH_VLOG(5) << "Partial shape from node is also valid. So "
+                        "will attempt to concretize if possible";
+      if (partial_shape_from_node.size() == 0) {
+        // TODO: revisit this if-else
+        NGRAPH_VLOG(5) << "Partial shape from node is empty, so will "
+                          "use shape from hint";
+        combined_shape_info = shape_hint_for_node;
+      } else {
+        NGRAPH_VLOG(5) << "Concretizing shape " +
+                              partial_shape_from_node.to_string() +
+                              "from node with hint for node, " +
+                              shape_hint_for_node.to_string();
+        partial_shape_from_node.concretize(shape_hint_for_node);
+        combined_shape_info = partial_shape_from_node;
+      }
+    } else {
+      NGRAPH_VLOG(5) << "Partial shape from node is invalid. So using "
+                        "hint for the node as shape";
+      combined_shape_info = shape_hint_for_node;
+    }
+  } else {
+    NGRAPH_VLOG(5) << "For node " << node->name()
+                   << " shape hint (" + HintAsString(single_hint) +
+                          ") for node is invalid";
+    if (partial_shape_from_node.is_valid()) {
+      // No shape hints found. But the node itself has some shape info
+      NGRAPH_VLOG(5) << "Partial shape from node is valid and is: " +
+                            partial_shape_from_node.to_string();
+      combined_shape_info = partial_shape_from_node;
+    } else {
+      NGRAPH_VLOG(5) << "Partial shape from node is invalid";
+      combined_shape_info = PartialShape();
+    }
+  }
+  return combined_shape_info;
 }
 
 }  // namespace ngraph_bridge

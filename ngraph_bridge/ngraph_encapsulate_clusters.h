@@ -26,6 +26,8 @@
 #include <iostream>
 #include "tensorflow/core/graph/graph.h"
 
+#include "ngraph_bridge/ngraph_partial_shapes.h"
+
 namespace tensorflow {
 
 namespace ngraph_bridge {
@@ -112,6 +114,12 @@ class Encapsulator {
 };
 
 Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info);
+
+std::string HintAsString(ShapeHintMap single_hint);
+
+PartialShape CombineNodeInfoAndHint(Node* node,
+                                    PartialShape partial_shape_from_node,
+                                    const ShapeHintMap& single_hint);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
