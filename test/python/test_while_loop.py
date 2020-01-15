@@ -44,4 +44,4 @@ class TestWhileLoop(NgraphTest):
         with tf.compat.v1.Session(config=cfg) as sess:
             sess_fn = lambda sess: sess.run((r,))
             result = self.with_ngraph(sess_fn)
-            assert result[0] == 10
+            assert result[0] == [10]
