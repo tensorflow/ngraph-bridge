@@ -139,7 +139,7 @@ Status PerformTranslation(Node* node,
                           const std::map<std::string, std::vector<int>>&
                               inputs_node_shapes_for_compilation,
                           std::string& signature,
-                          std::shared_ptr<ngraph::Function> ng_function);
+                          std::shared_ptr<ngraph::Function>& ng_function);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

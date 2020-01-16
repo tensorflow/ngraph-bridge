@@ -926,7 +926,7 @@ std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
 Status PerformTranslation(Node* node, const std::map<std::string, vector<int>>&
                                           inputs_node_shapes_for_compilation,
                           string& signature,
-                          std::shared_ptr<ngraph::Function> ng_function) {
+                          std::shared_ptr<ngraph::Function>& ng_function) {
   if (node->type_string() != "NGraphEncapsulate") {
     return errors::Internal(
         "This function should only be called on an NGraphEncapsulate, but was "
