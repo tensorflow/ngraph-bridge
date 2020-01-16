@@ -43,8 +43,6 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
-
 // Test(TestCaseName, TestName)
 // Please ensure
 // Neither TestCaseName nor TestName should contain underscore
@@ -1530,6 +1528,35 @@ TEST(NNOps, Softmax3D) {
 
   std::vector<Output> sess_run_fetchoutputs = {R};
   OpExecuter opexecuter(root, "Softmax", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// Computes softmax cross entropy cost and gradients to backpropagate.
+TEST(NNOps, SoftmaxCrossEntropyWithLogits) {
+  Scope root = Scope::NewRootScope();
+  int batch = 10;
+  int num_of_classes = 10;
+
+  Tensor A(DT_FLOAT, TensorShape({batch, num_of_classes}));  // logits/features
+  Tensor B(
+      DT_FLOAT,
+      TensorShape({batch, num_of_classes}));  // labels with a valid Prob Distr
+
+  AssignInputValuesRandom<float>(A, -200.0f, 200.0f);
+  AssignInputValuesRandom<float>(B, 0.0f, 1.0f);
+  // TODO: To make B a valid prob distr, let's ensure that the sum of each row
+  // is 1, using a Softmax
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::SoftmaxCrossEntropyWithLogits(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R.loss, R.backprop};
+  OpExecuter opexecuter(root, "SoftmaxCrossEntropyWithLogits",
+                        static_input_indexes, output_datatypes,
                         sess_run_fetchoutputs);
 
   opexecuter.RunTest();

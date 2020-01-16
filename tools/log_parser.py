@@ -101,7 +101,8 @@ def parse_logs(log_lines, verbose=False):
             elif verbose and 'Types of edges::' in line:
                 line = line[len("NGTF_SUMMARY: Types of edges:: "):]
                 edge_types = dict([i.strip() for i in item.split(":")] for item in line.split(","))
-                curr_result["types_of_edges"] = edge_types
+                curr_result["types_of_edges"] = edge_type
+                s
             elif verbose and 'Op_not_supported' in line:
                 curr_result["op_not_supported"] = \
                     [i.strip() for i in line[len("NGTF_SUMMARY: Op_not_supported:  "):].split(",")]

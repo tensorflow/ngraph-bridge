@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
-licenses(["notice"])  
+licenses(["notice"])
 exports_files(["LICENSE"])
 
 load("@ngraph_bridge//:cxx_abi_option.bzl", "CXX_ABI")
@@ -22,7 +22,8 @@ cc_library(
     name = "ngraph_headers",
     hdrs = glob([
         "src/ngraph/**/*.hpp",
-        "src/ngraph/*.hpp"
+        "src/ngraph/*.hpp",
+        "src/ngraph/**/*.h"
     ]),
     visibility = ["//visibility:public"],
 )
@@ -37,26 +38,9 @@ cc_library(
         "src/ngraph/descriptor/layout/*.cpp",
         "src/ngraph/op/*.cpp",
         "src/ngraph/op/fused/*.cpp",
-        "src/ngraph/op/experimental/batch_mat_mul.cpp",
-        "src/ngraph/op/experimental/compiled_kernel.cpp",
-        "src/ngraph/op/experimental/dyn_broadcast.cpp",
-        "src/ngraph/op/experimental/dyn_replace_slice.cpp",
-        "src/ngraph/op/experimental/dyn_pad.cpp",
-        "src/ngraph/op/experimental/dyn_reshape.cpp",
-        "src/ngraph/op/experimental/dyn_slice.cpp",
-        "src/ngraph/op/experimental/generate_mask.cpp",
-        "src/ngraph/op/experimental/quantized_avg_pool.cpp",
-        "src/ngraph/op/experimental/quantized_concat.cpp",
-        "src/ngraph/op/experimental/quantized_conv.cpp",
-        "src/ngraph/op/experimental/quantized_conv_bias.cpp",
-        "src/ngraph/op/experimental/quantized_conv_relu.cpp",
-        "src/ngraph/op/experimental/quantized_max_pool.cpp",
-        "src/ngraph/op/experimental/shape_of.cpp",
-        "src/ngraph/op/experimental/range.cpp",
-        "src/ngraph/op/experimental/quantized_dot.cpp",
-        "src/ngraph/op/experimental/quantized_dot_bias.cpp",
-        "src/ngraph/op/experimental/tile.cpp",
-        "src/ngraph/op/experimental/transpose.cpp",
+        "src/ngraph/op/experimental/*.cpp",
+        "src/ngraph/op/experimental/layers/*.cpp",
+        "src/ngraph/op/experimental/layers/*.hpp",
         "src/ngraph/op/util/*.cpp",
         "src/ngraph/pattern/*.cpp",
         "src/ngraph/pattern/*.hpp",
@@ -84,10 +68,21 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"v0.25.1-rc.2\\"',
+        '-D NGRAPH_VERSION=\\"v0.28.0-rc.1\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
-        '-D NGRAPH_STATIC_LIB_ENABLE'
+        '-D NGRAPH_STATIC_LIB_ENABLE',
+        '-D NGRAPH_DYNAMIC_COMPONENTS_ENABLE',
+        '-D NGRAPH_ENABLE_CPU_CONV_AUTO',
+        '-D NGRAPH_USE_LEGACY_MKLDNN',
+        "-march=native",
+        "-mtune=native",
+        "-Wall",
+        "-Wno-unknown-pragmas",
+        "-fvisibility=internal",
+        "-Wmissing-field-initializers",
+        "-Wno-strict-overflow",
+        "-O3",
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
@@ -117,9 +112,10 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"v0.25.1-rc.2\\"',
+        '-D NGRAPH_VERSION=\\"v0.28.0-rc.1\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
+        '-D NGRAPH_USE_LEGACY_MKLDNN',
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
@@ -129,6 +125,9 @@ cc_library(
     visibility = ["//visibility:public"],
     alwayslink = 1,
 )
+# TODO: If we update to mkl_dnn v1.0 in future, we should include
+# the source file "src/ngraph/runtime/cpu/pass/cpu_mkldnn_primitive_build.cpp"
+# Currently we use legacy mkl_dnn, NGRAPH_USE_LEGACY_MKLDNN is set to TRUE by default
 
 cc_library(
     name = 'cpu_backend',
@@ -153,6 +152,7 @@ cc_library(
         "src/ngraph/runtime/cpu/cpu_tensor_view.cpp",
         "src/ngraph/runtime/cpu/cpu_tracing.cpp",
         "src/ngraph/runtime/cpu/cpu_visualize_tree.cpp",
+        "src/ngraph/runtime/cpu/builder/cum_sum.cpp",
         "src/ngraph/runtime/cpu/cpu_cse.cpp",
         "src/ngraph/runtime/cpu/cpu_debugger.cpp",
         "src/ngraph/runtime/cpu/builder/add.cpp",
@@ -168,6 +168,7 @@ cc_library(
         "src/ngraph/runtime/cpu/builder/convert.cpp",
         "src/ngraph/runtime/cpu/builder/convert_layout.cpp",
         "src/ngraph/runtime/cpu/builder/convolution.cpp",
+        "src/ngraph/runtime/cpu/builder/cum_sum.cpp",
         "src/ngraph/runtime/cpu/builder/dot.cpp",
         "src/ngraph/runtime/cpu/builder/dropout.cpp",
         "src/ngraph/runtime/cpu/builder/embedding_lookup.cpp",
@@ -188,12 +189,10 @@ cc_library(
         "src/ngraph/runtime/cpu/builder/reduce_function.cpp",
         "src/ngraph/runtime/cpu/builder/replace_slice.cpp",
         "src/ngraph/runtime/cpu/builder/quantization.cpp",
-        "src/ngraph/runtime/cpu/builder/quantized_avg_pool.cpp",
         "src/ngraph/runtime/cpu/builder/quantized_conv.cpp",
         "src/ngraph/runtime/cpu/builder/quantized_concat.cpp",
         "src/ngraph/runtime/cpu/builder/quantized_dot.cpp",
         "src/ngraph/runtime/cpu/builder/quantized_matmul.cpp",
-        "src/ngraph/runtime/cpu/builder/quantized_max_pool.cpp",
         "src/ngraph/runtime/cpu/builder/reshape.cpp",
         "src/ngraph/runtime/cpu/builder/reverse.cpp",
         "src/ngraph/runtime/cpu/builder/reverse_sequence.cpp",
@@ -207,9 +206,12 @@ cc_library(
         "src/ngraph/runtime/cpu/builder/softmax.cpp",
         "src/ngraph/runtime/cpu/builder/get_output_element.cpp",
         "src/ngraph/runtime/cpu/builder/sum.cpp",
+        "src/ngraph/runtime/cpu/builder/cum_sum.cpp",
         "src/ngraph/runtime/cpu/builder/topk.cpp",
         "src/ngraph/runtime/cpu/builder/tile.cpp",
         "src/ngraph/runtime/cpu/builder/update_slice.cpp",
+        "src/ngraph/runtime/cpu/builder/random_uniform.cpp",
+        "src/ngraph/runtime/cpu/builder/gelu.cpp",
         "src/ngraph/runtime/cpu/kernel/pad.cpp",
         "src/ngraph/runtime/cpu/kernel/reduce_max.cpp",
         "src/ngraph/runtime/cpu/kernel/reduce_sum.cpp",
@@ -235,6 +237,7 @@ cc_library(
         "src/ngraph/runtime/cpu/op/quantized_matmul.cpp",
         "src/ngraph/runtime/cpu/op/rnn.cpp",
         "src/ngraph/runtime/cpu/op/sigmoid_mul.cpp",
+        "src/ngraph/runtime/cpu/op/gelu_backprop.cpp",
         "src/ngraph/runtime/cpu/op/update_slice.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_assignment.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_collapse_dims.cpp",
@@ -245,17 +248,17 @@ cc_library(
         "src/ngraph/runtime/cpu/pass/cpu_mat_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_memory_assignment.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_memory_optimization.cpp",
-        "src/ngraph/runtime/cpu/pass/cpu_mkldnn_primitive_build.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_post_layout_optimizations.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_rnn_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_workspace_insertion.cpp",
         "src/ngraph/runtime/cpu/ngraph_version.cpp",
-        "src/ngraph/state/rng_state.cpp", 
+        "src/ngraph/state/rng_state.cpp",
+        "src/ngraph/state/bernoulli_rng_state.cpp",
+        "src/ngraph/state/uniform_rng_state.cpp",
     ]),
     deps = [
         ":ngraph_headers",
         ":ngraph_core",
-        "@tbb",
         "@eigen",
         "@mkl_dnn",
     ],
@@ -269,11 +272,19 @@ cc_library(
         "-fstack-protector-all",
         '-D SHARED_LIB_PREFIX=\\"lib\\"',
         '-D SHARED_LIB_SUFFIX=\\".so\\"',
-        '-D NGRAPH_VERSION=\\"0.25.1-rc.2\\"',
+        '-D NGRAPH_VERSION=\\"v0.28.0-rc.1\\"',
         "-D NGRAPH_DEX_ONLY",
-        "-D NGRAPH_TBB_ENABLE",
         '-D PROJECT_ROOT_DIR=\\"\\"',
-        '-D NGRAPH_CPU_STATIC_LIB_ENABLE'
+        '-D NGRAPH_CPU_STATIC_LIB_ENABLE',
+        '-D NGRAPH_USE_LEGACY_MKLDNN=\\"TRUE\\"',
+        "-march=native",
+        "-mtune=native",
+        "-Wall",
+        "-Wno-unknown-pragmas",
+        "-fvisibility=internal",
+        "-Wmissing-field-initializers",
+        "-Wno-strict-overflow",
+        "-O3",
     ] + CXX_ABI,
     linkopts = [
         "-Wl,-z,noexecstack",
@@ -286,4 +297,3 @@ cc_library(
     visibility = ["//visibility:public"],
     alwayslink = 1,
 )
-
