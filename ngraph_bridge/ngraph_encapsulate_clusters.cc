@@ -569,6 +569,15 @@ Status Encapsulator::AnalysisPass() {
   // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
   // rewiring the inputs in their NodeDefs as we go.
 
+  // Originally Pass 5 ran after Pass 4 ofcourse. But now calling it right after
+  // Pass 2 in the Analysis Phase.
+  // Pass 4 took care of removing some inter-cluster control edges, so by the
+  // time Pass 5 was run, those control inputs would have been removed
+  // But now since Pass 5 is running before Pass 4, we must take special care to
+  // not add inter-cluster (or TF to cluster) control edges in the graphdef we
+  // copy into the ClusterManager
+  // This is taken care of in the "if (edge->IsControlEdge())" line in the for
+  // loop over all edges
   for (auto node : graph->op_nodes()) {
     int cluster_idx;
 
