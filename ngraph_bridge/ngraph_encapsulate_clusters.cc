@@ -86,7 +86,7 @@ Status EncapsulateClusters(
   TF_RETURN_IF_ERROR(PerformAOTOnEncapsulates(graph, aot_info));
 
   set<int> newly_created_cluster_ids;
-  TF_RETURN_IF_ERROR(enc.NewClusterIds(newly_created_cluster_ids));
+  TF_RETURN_IF_ERROR(enc.GetNewClusterIDs(newly_created_cluster_ids));
 
   // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and
@@ -822,10 +822,11 @@ Status Encapsulator::RewritePass(
   return Status::OK();
 }
 
-Status Encapsulator::NewClusterIds(set<int>& result) {
+Status Encapsulator::GetNewClusterIDs(set<int>& result) {
   if (!analysis_done) {
     return errors::Internal(
-        "In Encapsulator, called NewClusterIds without calling AnalysisPass");
+        "In Encapsulator, called GetNewClusterIDs without calling "
+        "AnalysisPass");
   }
   result.clear();
   for (auto it = device_name_map.begin(); it != device_name_map.end(); ++it) {

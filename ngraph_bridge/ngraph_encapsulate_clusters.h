@@ -77,7 +77,7 @@ class Encapsulator {
   // Returns the newly created cluster ids after AnalysisPass is done
   // Needed because ClusterManager (CM) might have contained old stuff,
   // so it might not be possible to query the CM itself to get this
-  Status NewClusterIds(std::set<int>& result);
+  Status GetNewClusterIDs(std::set<int>& result);
 
   Encapsulator(const Encapsulator&) = delete;
   Encapsulator(Encapsulator&&) = delete;
