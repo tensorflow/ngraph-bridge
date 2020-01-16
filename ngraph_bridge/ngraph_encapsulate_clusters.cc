@@ -915,7 +915,7 @@ std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
         // Get shape from the node
         partial_shape_from_node = PartialShape(shape_field->shape());
       }
-      NGRAPH_VLOG(5) << "For node " << node->name() << " got shape from nose: "
+      NGRAPH_VLOG(5) << "For node " << node->name() << " got shape from node: "
                      << partial_shape_from_node.to_string();
       node_partial_shape_map.insert({node->name(), partial_shape_from_node});
     }

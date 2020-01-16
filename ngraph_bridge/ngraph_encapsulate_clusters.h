@@ -74,6 +74,9 @@ class Encapsulator {
   Status RewritePass(
       FunctionDefLibrary* fdeflib, int graph_id,
       const std::unordered_map<std::string, std::string>& device_config);
+  // Returns the newly created cluster ids after AnalysisPass is done
+  // Needed because ClusterManager (CM) might have contained old stuff,
+  // so it might not be possible to query the CM itself to get this
   Status NewClusterIds(std::set<int>& result);
 
   Encapsulator(const Encapsulator&) = delete;
