@@ -1979,7 +1979,8 @@ static Status TranslateFloorDivOp(
     Builder::OpMap& ng_op_map) {
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "T", &dtype));
-  if(dtype == DT_INT32) {
+  std::initializer_list<DataType> int_types = { DT_INT8, DT_UINT16, DT_INT16, DT_INT32, DT_INT64 };
+  if(std::find(int_types.begin(), int_types.end(), dtype) != int_types.end()) {
     auto ng_div = [&op](std::shared_ptr<ng::Node> ng_input1,
                             std::shared_ptr<ng::Node> ng_input2) {
       return ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2);
