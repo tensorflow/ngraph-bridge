@@ -1979,15 +1979,15 @@ static Status TranslateFloorDivOp(
     Builder::OpMap& ng_op_map) {
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "T", &dtype));
-  if(dtype == DT_INT32) {
+  if (dtype == DT_INT32) {
     auto ng_div = [&op](std::shared_ptr<ng::Node> ng_input1,
-                            std::shared_ptr<ng::Node> ng_input2) {
+                        std::shared_ptr<ng::Node> ng_input2) {
       return ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2);
     };
     return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_div);
   } else {
     auto ng_floordiv = [&op](std::shared_ptr<ng::Node> ng_input1,
-                            std::shared_ptr<ng::Node> ng_input2) {
+                             std::shared_ptr<ng::Node> ng_input2) {
       return ConstructNgNode<ng::op::Floor>(
           op->name(),
           ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2));
