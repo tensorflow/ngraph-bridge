@@ -187,8 +187,10 @@ def run_tensorflow_pytests(venv_dir, build_dir, ngraph_tf_src_dir, tf_src_dir):
     # Next patch the TensorFlow so that the tests run using ngraph_bridge
     pwd = os.getcwd()
 
-    # Go to the site-packages
-    os.chdir(glob.glob(venv_dir_absolute + "/lib/py*/site-packages")[0])
+    # Go to the site-packages/tensorflow_core_python/framework
+    os.chdir(
+        glob.glob(venv_dir_absolute +
+                  "/lib/py*/site-packages/tensorflow_core/python/framework")[0])
     print("CURRENT DIR: " + os.getcwd())
 
     print("Patching TensorFlow using: %s" % patch_file)
@@ -246,7 +248,7 @@ def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
     # Go to the location of TesorFlow install directory
     import tensorflow as tf
     tf_dir = tf.sysconfig.get_lib()
-    os.chdir(os.path.join(tf_dir, '../'))
+    os.chdir(tf_dir + '/python/framework')
     print("CURRENT DIR: " + os.getcwd())
 
     print("Patching TensorFlow using: %s" % patch_file)
