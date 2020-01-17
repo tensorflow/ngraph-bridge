@@ -284,7 +284,8 @@ const gtl::ArraySlice<DataType>& NGraphIndexDTypes() {
 }
 
 const gtl::ArraySlice<DataType>& NGraphIntDTypes() {
-  static gtl::ArraySlice<DataType> result{DT_INT8, DT_UINT16, DT_INT16, DT_INT32, DT_INT64};
+  static gtl::ArraySlice<DataType> result{DT_INT8, DT_UINT16, DT_INT16,
+                                          DT_INT32, DT_INT64};
   return result;
 }
 

@@ -1980,22 +1980,23 @@ static Status TranslateFloorDivOp(
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "T", &dtype));
   auto int_types = NGraphIntDTypes();
-  if(std::find(int_types.begin(), int_types.end(), dtype) != int_types.end()) {
-    auto ng_div = [&op](std::shared_ptr<ng::Node> ng_input1,
-                            std::shared_ptr<ng::Node> ng_input2) {
+  std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>,
+                                          std::shared_ptr<ng::Node>)>
+      ng_bin_fn;
+  if (std::find(int_types.begin(), int_types.end(), dtype) != int_types.end()) {
+    ng_bin_fn = [&op](std::shared_ptr<ng::Node> ng_input1,
+                      std::shared_ptr<ng::Node> ng_input2) {
       return ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2);
     };
-    return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_div);
   } else {
-    auto ng_floordiv = [&op](std::shared_ptr<ng::Node> ng_input1,
-                            std::shared_ptr<ng::Node> ng_input2) {
+    ng_bin_fn = [&op](std::shared_ptr<ng::Node> ng_input1,
+                      std::shared_ptr<ng::Node> ng_input2) {
       return ConstructNgNode<ng::op::Floor>(
           op->name(),
           ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2));
     };
-    return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_floordiv);
   }
-  return errors::Internal("We should never reach this part in translating floordiv");
+  return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_bin_fn);
 }
 
 static Status TranslateFloorModOp(
