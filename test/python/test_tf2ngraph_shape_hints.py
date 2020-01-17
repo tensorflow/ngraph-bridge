@@ -57,16 +57,16 @@ def get_inputs(p_shape):
 
 
 def run_pbtxt(pbtxt_filename, inp0, inp1):
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
     gdef = graph_pb2.GraphDef()
     with open(pbtxt_filename, 'r') as f:
         raw_contents = f.read()
     text_format.Parse(raw_contents, gdef)
     with tf.compat.v1.Session() as sess:
         tf.import_graph_def(gdef, name='')
-        x = tf.get_default_graph().get_tensor_by_name("x:0")
-        y = tf.get_default_graph().get_tensor_by_name("y:0")
-        z = tf.get_default_graph().get_tensor_by_name("z:0")
+        x = tf.compat.v1.get_default_graph().get_tensor_by_name("x:0")
+        y = tf.compat.v1.get_default_graph().get_tensor_by_name("y:0")
+        z = tf.compat.v1.get_default_graph().get_tensor_by_name("z:0")
         return sess.run(z, feed_dict={x: inp0, y: inp1})
 
 

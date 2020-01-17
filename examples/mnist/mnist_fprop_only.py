@@ -29,8 +29,7 @@ from keras.utils.np_utils import to_categorical
 
 import tensorflow as tf
 import ngraph_bridge
-import tensorflow.compat.v1 as tf
-tf.disable_eager_execution()
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 
 FLAGS = None
@@ -43,13 +42,13 @@ def main(_):
 def run_mnist(_):
 
     # Create the model
-    x = tf.placeholder(tf.float32, [None, 784])
+    x = tf.compat.v1.placeholder(tf.float32, [None, 784])
     W = tf.Variable(tf.zeros([784, 10]))
     b = tf.Variable(tf.zeros([10]))
     y = tf.matmul(x, W) + b
 
     # Define loss and optimizer
-    y_ = tf.placeholder(tf.float32, [None, 10])
+    y_ = tf.compat.v1.placeholder(tf.float32, [None, 10])
 
     # The raw formulation of cross-entropy,
     #
@@ -66,14 +65,14 @@ def run_mnist(_):
     train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
     '''
     # Enable soft placement and tracing as needed
-    config = tf.ConfigProto(
+    config = tf.compat.v1.ConfigProto(
         allow_soft_placement=True,
         log_device_placement=True,
         inter_op_parallelism_threads=1)
     config_ngraph_enabled = ngraph_bridge.update_config(config)
 
-    sess = tf.Session(config=config_ngraph_enabled)
-    tf.global_variables_initializer().run(session=sess)
+    sess = tf.compat.v1.Session(config=config_ngraph_enabled)
+    tf.compat.v1.global_variables_initializer().run(session=sess)
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train = np.reshape(x_train, (60000, 784))
     x_train = x_train.astype(np.float32) / 255
@@ -93,7 +92,10 @@ def run_mnist(_):
 
     # Save the TF graph as pdf
     tf.train.write_graph(
-        tf.get_default_graph(), '.', 'mnist_fprop_py.pbtxt', as_text=True)
+        tf.compat.v1.get_default_graph(),
+        '.',
+        'mnist_fprop_py.pbtxt',
+        as_text=True)
 
     print("Inference time: %f seconds" % (end - start))
 

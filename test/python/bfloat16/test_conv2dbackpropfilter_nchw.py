@@ -78,7 +78,7 @@ def ng_model(padding):
     t1 = tf.compat.v1.placeholder(
         dtype=tf.float32, shape=input_sizes_nchw, name='t1')
     t2 = tf.constant(filter_size_hwio, dtype=tf.int32, name='t2')
-    t3 = tf.placeholder(
+    t3 = tf.compat.v1.placeholder(
         dtype=tf.float32, shape=out_backprop_in_sizes[padding], name='t3')
 
     filt = nn_ops.conv2d_backprop_filter(
@@ -101,7 +101,7 @@ def test_conv2dbackpropfilter_nchw(padding):
     t_np_inp = np.transpose(n_np_inp, (0, 2, 3, 1))
     t_np_out = np.transpose(n_np_out, (0, 2, 3, 1))
 
-    with tf.Session(config=config) as sess_tf:
+    with tf.compat.v1.Session(config=config) as sess_tf:
         ngraph_bridge.disable()
         tf_out, input_data, out_backprop = tf_model(padding)
         feed_dict = {input_data: t_np_inp, out_backprop: t_np_out}

@@ -39,8 +39,7 @@ from keras.utils.np_utils import to_categorical
 
 import tensorflow as tf
 import ngraph_bridge
-import tensorflow.compat.v1 as tf
-tf.disable_eager_execution()
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 
 FLAGS = None
@@ -101,7 +100,7 @@ def deepnn(x):
 
         # y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
         y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
-    return y_conv, tf.placeholder(tf.float32)
+    return y_conv, tf.compat.v1.placeholder(tf.float32)
 
 
 def conv2d(x, W):
@@ -129,7 +128,7 @@ def bias_variable(shape):
 
 def train_mnist_cnn(FLAGS):
     # Config
-    config = tf.ConfigProto(
+    config = tf.compat.v1.ConfigProto(
         allow_soft_placement=True,
         log_device_placement=False,
         inter_op_parallelism_threads=1)
@@ -155,10 +154,10 @@ def train_mnist_cnn(FLAGS):
     assert (FLAGS.optimizer in supported_optimizers), "Optimizer not supported"
 
     # Create the model
-    x = tf.placeholder(tf.float32, [None, 784])
+    x = tf.compat.v1.placeholder(tf.float32, [None, 784])
 
     # Define loss and optimizer
-    y_ = tf.placeholder(tf.float32, [None, 10])
+    y_ = tf.compat.v1.placeholder(tf.float32, [None, 10])
 
     # Build the graph for the deep net
     y_conv, keep_prob = deepnn(x)
@@ -183,21 +182,21 @@ def train_mnist_cnn(FLAGS):
         correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
         correct_prediction = tf.cast(correct_prediction, tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
-    tf.summary.scalar('Training accuracy', accuracy)
-    tf.summary.scalar('Loss function', cross_entropy)
+    tf.compat.v1.summary.scalar('Training accuracy', accuracy)
+    tf.compat.v1.summary.scalar('Loss function', cross_entropy)
 
     graph_location = "/tmp/" + getpass.getuser(
     ) + "/tensorboard-logs/mnist-convnet"
     print('Saving graph to: %s' % graph_location)
 
-    merged = tf.summary.merge_all()
-    train_writer = tf.summary.FileWriter(graph_location)
-    train_writer.add_graph(tf.get_default_graph())
+    merged = tf.compat.v1.summary.merge_all()
+    train_writer = tf.compat.v1.summary.FileWriter(graph_location)
+    train_writer.add_graph(tf.compat.v1.get_default_graph())
 
-    saver = tf.train.Saver()
+    saver = tf.compat.v1.train.Saver()
 
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
+    with tf.compat.v1.Session(config=config) as sess:
+        sess.run(tf.compat.v1.global_variables_initializer())
         train_loops = FLAGS.train_loop_count
         loss_values = []
         (x_train, y_train), (x_test, y_test) = mnist.load_data()

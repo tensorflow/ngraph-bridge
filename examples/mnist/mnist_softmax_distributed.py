@@ -38,7 +38,7 @@ from keras.utils.np_utils import to_categorical
 import tensorflow as tf
 import ngraph_bridge
 import tensorflow.compat.v1 as tf
-tf.disable_eager_execution()
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 import horovod.tensorflow as hvd
 
@@ -54,13 +54,13 @@ def main(_):
 def run_mnist(_):
     # Create the model
     with tf.name_scope("mnist_placholder"):
-        x = tf.placeholder(tf.float32, [None, 784])
+        x = tf.compat.v1.placeholder(tf.float32, [None, 784])
         W = tf.Variable(tf.zeros([784, 10]))
         b = tf.Variable(tf.zeros([10]))
         y = tf.matmul(x, W) + b
 
         # Define loss and optimizer
-        y_ = tf.placeholder(tf.float32, [None, 10])
+        y_ = tf.compat.v1.placeholder(tf.float32, [None, 10])
 
     # The raw formulation of cross-entropy,
     #
@@ -92,14 +92,14 @@ def run_mnist(_):
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     # Enable soft placement and tracing as needed
-    config = tf.ConfigProto(
+    config = tf.compat.v1.ConfigProto(
         allow_soft_placement=True,
         log_device_placement=True,
         inter_op_parallelism_threads=1)
     config_ngraph_enabled = ngraph_bridge.update_config(config)
 
     #config.graph_options.optimizer_options.global_jit_level = jit_level
-    run_metadata = tf.RunMetadata()
+    run_metadata = tf.compat.v1.RunMetadata()
 
     #init_op = tf.global_variables_initializer()
     print("Variables initialized ...")
@@ -108,7 +108,8 @@ def run_mnist(_):
     with tf.train.MonitoredTrainingSession(
             hooks=hooks, config=config_ngraph_enabled) as mon_sess:
         start = time.time()
-        train_writer = tf.summary.FileWriter(FLAGS.log_dir, mon_sess.graph)
+        train_writer = tf.compat.v1.summary.FileWriter(FLAGS.log_dir,
+                                                       mon_sess.graph)
         (x_train, y_train), (x_test, y_test) = mnist.load_data()
         x_train = np.reshape(x_train, (60000, 784))
         x_train = x_train.astype(np.float32) / 255

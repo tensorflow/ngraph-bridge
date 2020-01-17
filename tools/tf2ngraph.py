@@ -16,6 +16,7 @@
 
 import argparse
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 from google.protobuf import text_format
 from tensorflow.core.protobuf import meta_graph_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
@@ -152,7 +153,7 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
     graph = tf.Graph()
     with graph.as_default():
         tf.import_graph_def(input_gdef, name="")
-    grappler_meta_graph_def = tf.train.export_meta_graph(
+    grappler_meta_graph_def = tf.compat.v1.train.export_meta_graph(
         graph_def=graph.as_graph_def(add_shapes=True), graph=graph)
 
     _to_bytes = lambda s: s.encode("utf-8", errors="surrogateescape")
@@ -184,7 +185,7 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
 def get_gdef_from_savedmodel(export_dir):
     with tf.compat.v1.Session(graph=tf.compat.v1.Graph()) as sess:
         tf.compat.v1.saved_model.loader.load(
-            sess, [tf.saved_model.tag_constants.SERVING], export_dir)
+            sess, [tf.compat.v1.saved_model.tag_constants.SERVING], export_dir)
         return sess.graph.as_graph_def()
 
 
@@ -306,14 +307,15 @@ def filter_dict(prefix, dictionary):
 
 
 def save_gdef_to_savedmodel(gdef, location):
-    builder = tf.saved_model.builder.SavedModelBuilder(location)
+    builder = tf.compat.v1.saved_model.builder.SavedModelBuilder(location)
     with tf.Graph().as_default() as graph:
         tf.import_graph_def(gdef, name="")
         with tf.compat.v1.Session(graph=graph) as sess:
             builder.add_meta_graph_and_variables(
-                sess, [tf.saved_model.tag_constants.TRAINING])
-            builder.add_meta_graph([tf.saved_model.tag_constants.SERVING],
-                                   strip_default_attrs=True)
+                sess, [tf.compat.v1.saved_model.tag_constants.TRAINING])
+            builder.add_meta_graph(
+                [tf.compat.v1.saved_model.tag_constants.SERVING],
+                strip_default_attrs=True)
         builder.save()
 
 
@@ -432,11 +434,11 @@ def infer_output_nodes(inp_format, inp_loc):
     or try to guess the outputs from the graphdef
     '''
     if inp_format == 'savedmodel':
-        with tf.comapt.v1.Session(graph=tf.compat.v1.Graph()) as sess:
+        with tf.compat.v1.Session(graph=tf.compat.v1.Graph()) as sess:
             # load the saved model
-            imported = tf.saved_model.load(
+            imported = tf.compat.v1.saved_model.load(
                 sess,
-                tags=[tf.saved_model.tag_constants.SERVING],
+                tags=[tf.compat.v1.saved_model.tag_constants.SERVING],
                 export_dir=inp_loc)
             try:
                 # Check if the saved model has outputs specified

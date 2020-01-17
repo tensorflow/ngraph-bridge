@@ -100,7 +100,7 @@ class TestPrefetched(NgraphTest):
                                      self.build_model1)
 
         # Reset Graph
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
         # Run on TF
         disable_tf = "NGRAPH_TF_DISABLE"

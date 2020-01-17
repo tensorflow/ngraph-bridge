@@ -70,7 +70,7 @@ class TestMnistTraining(NgraphTest):
         ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
         ng_values = ng_loss_values + [ng_test_accuracy]
         # Reset the Graph
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
         # disable ngraph-tf
         ngraph_bridge.disable()

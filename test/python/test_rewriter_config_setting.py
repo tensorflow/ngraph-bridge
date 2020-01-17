@@ -74,10 +74,10 @@ class TestRewriterConfigBackendSetting(NgraphTest):
             ngraph_optimizer.parameter_map[k].s = extra_params[k].encode()
         config.MergeFrom(
             tf.compat.v1.ConfigProto(
-                graph_options=tf.GraphOptions(
+                graph_options=tf.compat.v1.GraphOptions(
                     rewrite_options=rewriter_options)))
 
-        with tf.Session(config=config) as sess:
+        with tf.compat.v1.Session(config=config) as sess:
             outval = sess.run(
                 axpy,
                 feed_dict={
