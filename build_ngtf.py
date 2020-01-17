@@ -496,7 +496,7 @@ def main():
 
     if base_dir != None:
         command_executor([
-            'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
+            'rsync', '-l', base_dir + '/tensorflow/tensorflow/python',
             os.path.join(artifacts_location, "tensorflow")
         ],
                          verbose=True)
