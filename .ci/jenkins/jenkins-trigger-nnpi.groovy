@@ -22,7 +22,7 @@
 // original script -- we only need to provide this new trigger hook.
 //
 
-String JENKINS_BRANCH = "lam/NGVALID-1339"
+String JENKINS_BRANCH = "lam/update_SPH"
 String TIMEOUTTIME = "3600"
 
 // Constants
