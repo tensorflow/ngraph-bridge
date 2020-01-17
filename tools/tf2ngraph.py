@@ -183,8 +183,8 @@ def run_ngraph_grappler_optimizer(input_gdef, output_nodes, ng_backend,
 
 def get_gdef_from_savedmodel(export_dir):
     with tf.compat.v1.Session(graph=tf.compat.v1.Graph()) as sess:
-        tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.SERVING],
-                                   export_dir)
+        tf.compat.v1.saved_model.loader.load(
+            sess, [tf.saved_model.tag_constants.SERVING], export_dir)
         return sess.graph.as_graph_def()
 
 
@@ -309,7 +309,7 @@ def save_gdef_to_savedmodel(gdef, location):
     builder = tf.saved_model.builder.SavedModelBuilder(location)
     with tf.Graph().as_default() as graph:
         tf.import_graph_def(gdef, name="")
-        with tf.Session(graph=graph) as sess:
+        with tf.compat.v1.Session(graph=graph) as sess:
             builder.add_meta_graph_and_variables(
                 sess, [tf.saved_model.tag_constants.TRAINING])
             builder.add_meta_graph([tf.saved_model.tag_constants.SERVING],
@@ -432,7 +432,7 @@ def infer_output_nodes(inp_format, inp_loc):
     or try to guess the outputs from the graphdef
     '''
     if inp_format == 'savedmodel':
-        with tf.Session(graph=tf.Graph()) as sess:
+        with tf.comapt.v1.Session(graph=tf.compat.v1.Graph()) as sess:
             # load the saved model
             imported = tf.saved_model.load(
                 sess,

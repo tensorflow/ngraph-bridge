@@ -110,7 +110,6 @@ def main():
         run_bazel_build()
     elif (arguments.test_tf_python):
         os.environ['NGRAPH_TF_LOG_0_DISABLED'] = '1'
-        print("HIIIIII")
         run_tensorflow_pytests_from_artifacts(
             arguments.backend, './',
             arguments.artifacts_dir + '/tensorflow/python', False)

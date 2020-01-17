@@ -222,7 +222,7 @@ if ngraph_classic_loaded:
             ngraph_optimizer.name = opt_name
             ngraph_optimizer.parameter_map["ngraph_backend"].s = backend_name.encode()
             ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
-            config.MergeFrom(tf.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
+            config.MergeFrom(tf.compat.v1.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
             # For reference, if we want to provide configuration support(backend parameters)
             # in a python script using the ngraph-optimizer
             # rewriter_options = rewriter_config_pb2.RewriterConfig()
@@ -234,7 +234,7 @@ if ngraph_classic_loaded:
             # ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
             # ngraph_optimizer.parameter_map["max_batch_size"].s = b'64'
             # ngraph_optimizer.parameter_map["ice_cores"].s = b'12'
-            # config.MergeFrom(tf.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
+            # config.MergeFrom(tf.compat.v1.ConfigProto(graph_options=tf.GraphOptions(rewrite_options=rewriter_options)))
         return config
 
     def are_variables_enabled():

@@ -44,7 +44,7 @@ def get_pbtxt_name(tag, p0_shape, p1_shape):
 
 def create_graph(p0_shape, p1_shape):
     temp_pbtxt_name = get_pbtxt_name('temp_graph_in_', p0_shape, p1_shape)
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
         x = tf.compat.v1.placeholder(tf.float32, shape=p0_shape, name='x')
         y = tf.compat.v1.placeholder(tf.float32, shape=p1_shape, name='y')
         z = tf.add(tf.abs(x), tf.abs(y), name="z")
@@ -62,7 +62,7 @@ def run_pbtxt(pbtxt_filename, inp0, inp1):
     with open(pbtxt_filename, 'r') as f:
         raw_contents = f.read()
     text_format.Parse(raw_contents, gdef)
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
         tf.import_graph_def(gdef, name='')
         x = tf.get_default_graph().get_tensor_by_name("x:0")
         y = tf.get_default_graph().get_tensor_by_name("y:0")
