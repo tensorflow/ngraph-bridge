@@ -87,8 +87,6 @@ class TestPrefetched(NgraphTest):
 
         return outputs
 
-    #todo : fix and unskip this
-    @pytest.mark.skip(reason="Seg fault for tf2.0")
     def test_prefetch1(self):
         # set flags
         prefetch_env = "NGRAPH_TF_USE_PREFETCH"
