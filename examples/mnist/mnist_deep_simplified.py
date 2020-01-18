@@ -116,7 +116,7 @@ def max_pool_2x2(x):
 
 def weight_variable(shape, name):
     """weight_variable generates a weight variable of a given shape."""
-    weight_var = tf.get_variable(name, shape)
+    weight_var = tf.compat.v1.get_variable(name, shape)
     return weight_var
 
 
@@ -146,7 +146,7 @@ def train_mnist_cnn(FLAGS):
 
     if FLAGS.make_deterministic:
         seed = 1
-        tf.random.set_random_seed(seed)
+        tf.compat.v1.random.set_random_seed(seed)
         shuffle_batch = False
 
     supported_optimizers = ["adam", "sgd", "momentum"]
@@ -170,12 +170,12 @@ def train_mnist_cnn(FLAGS):
     optimizer_scope = FLAGS.optimizer + "_optimizer"
     with tf.name_scope(optimizer_scope):
         if FLAGS.optimizer == "adam":
-            train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+            train_step = tf.compat.v1.train.AdamOptimizer(1e-4).minimize(cross_entropy)
         elif FLAGS.optimizer == "sgd":
-            train_step = tf.train.GradientDescentOptimizer(5e-2).minimize(
+            train_step = tf.compat.v1.train.GradientDescentOptimizer(5e-2).minimize(
                 cross_entropy)
         elif FLAGS.optimizer == "momentum":
-            train_step = tf.train.MomentumOptimizer(1e-4,
+            train_step = tf.compat.v1.train.MomentumOptimizer(1e-4,
                                                     0.9).minimize(cross_entropy)
 
     with tf.name_scope('accuracy'):
