@@ -508,7 +508,7 @@ def apply_patch(patch_file):
 
 def get_gcc_version():
     cmd = subprocess.Popen(
-        'gcc -dumpversion',
+        'gcc -dumpfullversion',
         shell=True,
         stdout=subprocess.PIPE,
         bufsize=1,
