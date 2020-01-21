@@ -31,8 +31,7 @@ import ngraph_bridge
 
 
 class TestModelTester(NgraphTest):
-    #Todo: Unskip this test when keras has a working version with TF2.0
-    @pytest.mark.skip(reason="Does not work with tf2.0 because of keras")
+
     @pytest.mark.skipif(platform.system() == 'Darwin', reason='Only for Linux')
     def test_MLP(self):
         cwd = os.getcwd()

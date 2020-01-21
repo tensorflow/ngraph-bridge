@@ -13,7 +13,7 @@ index cba180ff..750d1d84 100644
 +config = tf.compat.v1.ConfigProto()
 +config = ngraph_bridge.update_config(config)
 +sess = tf.compat.v1.Session(config=config)
-+set_session(sess)
++tf.compat.v1.keras.backend.set_session(sess)
  
  batch_size = 128
  num_classes = 10
