@@ -539,11 +539,11 @@ def get_bazel_version():
         universal_newlines=True)
     # The bazel version format is a multi line output:
     #
-    # Build label: 0.24.1
-    # Build target: bazel-out/k8-opt/bin/src/main/java/com/...
-    # Build time: Tue Apr 2 16:29:26 2019 (1554222566)
-    # Build timestamp: 1554222566
-    # Build timestamp as int: 1554222566
+    # Build label: 0.25.2
+    # Build target: bazel-out/k8-opt/bin/src/main/java/com/google/devtools/build/lib/bazel/BazelServer_deploy.jar
+    # Build time: Fri May 10 20:47:48 2019 (1557521268)
+    # Build timestamp: 1557521268
+    # Build timestamp as int: 1557521268
     #
     output = cmd.communicate()[0].splitlines()[0].strip()
     output = output.split(':')[1].strip()
