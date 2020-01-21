@@ -170,13 +170,14 @@ def train_mnist_cnn(FLAGS):
     optimizer_scope = FLAGS.optimizer + "_optimizer"
     with tf.name_scope(optimizer_scope):
         if FLAGS.optimizer == "adam":
-            train_step = tf.compat.v1.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-        elif FLAGS.optimizer == "sgd":
-            train_step = tf.compat.v1.train.GradientDescentOptimizer(5e-2).minimize(
+            train_step = tf.compat.v1.train.AdamOptimizer(1e-4).minimize(
                 cross_entropy)
+        elif FLAGS.optimizer == "sgd":
+            train_step = tf.compat.v1.train.GradientDescentOptimizer(
+                5e-2).minimize(cross_entropy)
         elif FLAGS.optimizer == "momentum":
-            train_step = tf.compat.v1.train.MomentumOptimizer(1e-4,
-                                                    0.9).minimize(cross_entropy)
+            train_step = tf.compat.v1.train.MomentumOptimizer(
+                1e-4, 0.9).minimize(cross_entropy)
 
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
