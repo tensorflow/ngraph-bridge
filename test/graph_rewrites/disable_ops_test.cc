@@ -31,9 +31,6 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
-#define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
-
 // Set using C API, get using C API
 TEST(DisableOps, SimpleSettingAndGetting1) {
   char disabled_list[] = "Add,Sub";
@@ -117,9 +114,7 @@ TEST(DisableOps, DisableTest) {
       GetNodeAttr(node3->attrs(), "_ngraph_marked_for_clustering", &marked));
   ASSERT_TRUE(marked);
 
-  node1->ClearAttr("_ngraph_marked_for_clustering");
-  node2->ClearAttr("_ngraph_marked_for_clustering");
-  node3->ClearAttr("_ngraph_marked_for_clustering");
+  ResetMarkForClustering(&g);
 
   // Add is disabled
   config::ngraph_set_disabled_ops("Add,Mul");
@@ -135,9 +130,7 @@ TEST(DisableOps, DisableTest) {
   ASSERT_NOT_OK(
       GetNodeAttr(node3->attrs(), "_ngraph_marked_for_clustering", &marked));
 
-  node1->ClearAttr("_ngraph_marked_for_clustering");
-  node2->ClearAttr("_ngraph_marked_for_clustering");
-  node3->ClearAttr("_ngraph_marked_for_clustering");
+  ResetMarkForClustering(&g);
 
   // Add,Add,Mul,Add should work too
   config::ngraph_set_disabled_ops("Add,Add,Mul,Add");
@@ -153,9 +146,7 @@ TEST(DisableOps, DisableTest) {
   ASSERT_NOT_OK(
       GetNodeAttr(node3->attrs(), "_ngraph_marked_for_clustering", &marked));
 
-  node1->ClearAttr("_ngraph_marked_for_clustering");
-  node2->ClearAttr("_ngraph_marked_for_clustering");
-  node3->ClearAttr("_ngraph_marked_for_clustering");
+  ResetMarkForClustering(&g);
 
   // Resetting it. So Add should be accepted now
   config::ngraph_set_disabled_ops("");
@@ -172,9 +163,7 @@ TEST(DisableOps, DisableTest) {
       GetNodeAttr(node3->attrs(), "_ngraph_marked_for_clustering", &marked));
   ASSERT_TRUE(marked);
 
-  node1->ClearAttr("_ngraph_marked_for_clustering");
-  node2->ClearAttr("_ngraph_marked_for_clustering");
-  node3->ClearAttr("_ngraph_marked_for_clustering");
+  ResetMarkForClustering(&g);
 
   // Invalid op name should trigger an error
   config::ngraph_set_disabled_ops("Add,_InvalidOp");

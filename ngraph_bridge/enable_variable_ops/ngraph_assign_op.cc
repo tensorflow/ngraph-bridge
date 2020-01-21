@@ -25,11 +25,11 @@
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
 
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_var.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_freshness_tracker.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/ngraph_var.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -47,7 +47,6 @@ namespace ngraph_bridge {
 // Computes *input[0] = input[1]
 class NGraphAssignOp : public OpKernel {
  private:
-  bool is_tf_just_looking_;
   bool copy_to_tf_;
   int ng_graph_id_;
   bool just_looking_;
@@ -66,15 +65,12 @@ class NGraphAssignOp : public OpKernel {
   }
 
   explicit NGraphAssignOp(OpKernelConstruction* context)
-      : OpKernel(context), is_tf_just_looking_(false), copy_to_tf_(false) {
-    OP_REQUIRES_OK(
-        context, context->GetAttr("is_tf_just_looking", &is_tf_just_looking_));
+      : OpKernel(context), copy_to_tf_(false) {
     OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
     OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
     OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Constructor called for: " << def().name()
-                   << ", is_tf_just_looking " << PrintBool(is_tf_just_looking_)
                    << ", just_looking " << PrintBool(just_looking_)
                    << ", copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
                    << ng_graph_id_;
@@ -87,11 +83,10 @@ class NGraphAssignOp : public OpKernel {
 
   void Compute(OpKernelContext* context) override {
     std::ostringstream oss;
-    oss << "Execute: Assign_" << my_instance_id << ": " << name();
+    oss << "NGAssign::Compute::" << name();
     ngraph::Event event_compute(oss.str(), name(), "");
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Compute called for: " << def().name()
-                   << ", is_tf_just_looking " << PrintBool(is_tf_just_looking_)
                    << ", just_looking " << PrintBool(just_looking_)
                    << ", copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
                    << ng_graph_id_;
@@ -102,7 +97,6 @@ class NGraphAssignOp : public OpKernel {
     std::stringstream copy_log_str;
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
                  << " ,copy-to-tf " << PrintBool(copy_to_tf_)
-                 << ", is_tf_just_looking " << PrintBool(is_tf_just_looking_)
                  << ", just_looking " << PrintBool(just_looking_) << "\n";
     int number_of_copies = 0;
 
@@ -154,12 +148,6 @@ class NGraphAssignOp : public OpKernel {
       if (var->copy_ng_to_tf()) {
         number_of_copies++;
         copy_log_str << " COPY_TO_TF ";
-      }
-
-      if (!is_tf_just_looking_) {
-        // Some tf op might update the ng-tensor value so mark it stale
-        copy_log_str << " SET_SYNC ";
-        var->set_sync_ng_tensor(true);
       }
     }
 

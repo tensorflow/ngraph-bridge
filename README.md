@@ -71,8 +71,8 @@ details.
 
 Install the following requirements before building the `ngraph-bridge`. 
 
-TensorFlow uses a build system called "bazel". For the current
- version of `bazel`, use [bazel version].
+TensorFlow uses a build system called "bazel". For the current version of `bazel`, 
+use [bazel version].
 
 Install `bazel`:
 
@@ -93,7 +93,7 @@ Once TensorFlow's dependencies are installed, clone the `ngraph-bridge` repo:
 
         git clone https://github.com/tensorflow/ngraph-bridge.git
         cd ngraph-bridge
-        git checkout v0.19.0-rc1
+        git checkout v0.22.0-rc3
 
 Run the following Python script to build TensorFlow, nGraph, and the bridge. Use Python 3.5:
 
@@ -138,6 +138,7 @@ This will produce something like this:
     CXX11_ABI flag used for this build: 0
     nGraph bridge built with Grappler: False
     nGraph bridge built with Variables and Optimizers Enablement: False
+
 
 
 Note: The version of the ngraph-tensorflow-bridge is not going to be exactly 
