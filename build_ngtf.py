@@ -21,12 +21,12 @@ from tools.build_utils import *
 def version_check(use_prebuilt_tensorflow):
     # Check pre-requisites
     if use_prebuilt_tensorflow:
-        # Check if the gcc version is 4.8
+        # Check if the gcc version is 7.3
         if (platform.system() != 'Darwin'):
             gcc_ver = get_gcc_version()
-            if '4.8' not in gcc_ver:
+            if '7' not in gcc_ver and gcc_ver < '7.3':
                 raise Exception(
-                    "Need GCC 4.8 to build using prebuilt TensorFlow\n"
+                    "Need GCC 7.3 or newer to build using prebuilt TensorFlow\n"
                     "Gcc version installed: " + gcc_ver + "\n"
                     "To build from source ommit `use_prebuilt_tensorflow`")
     # Check cmake version
@@ -38,12 +38,12 @@ def version_check(use_prebuilt_tensorflow):
     # Check bazel version
     bazel_ver = get_bazel_version()
     got_correct_bazel_version = False
-    if (int(bazel_ver[1]) >= 24 and int(bazel_ver[1]) <= 25):
+    if (int(bazel_ver[1]) > 24 and int(bazel_ver[1]) <= 25):
         if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
             got_correct_bazel_version = True
 
     if not got_correct_bazel_version:
-        raise Exception("Need bazel 0.24.1 < version < 0.25.2 \n" + "Got: " +
+        raise Exception("Need bazel 0.24.1 < version <= 0.25.2 \n" + "Got: " +
                         '.'.join(bazel_ver))
 
 
@@ -237,9 +237,9 @@ def main():
     print("Target Arch: %s" % target_arch)
 
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
-    # For gcc 4.8 - this flag is set to 0 and newer ones, this is set to 1
+    # For gcc 7.3 - this flag is set to 0 and newer ones, this is set to 1
     # The specific value is determined from the TensorFlow build
-    # Normally the shipped TensorFlow is built with gcc 4.8 and thus this
+    # Normally the shipped TensorFlow is built with gcc 7.3 and thus this
     # flag is set to 0
     cxx_abi = "0"
 
@@ -332,7 +332,7 @@ def main():
                                 verbosity)
 
             # Install tensorflow to our own virtual env
-            # Note that if gcc 4.8 is used for building TensorFlow this flag
+            # Note that if gcc 7.3 is used for building TensorFlow this flag
             # will be 0
             cxx_abi = install_tensorflow(venv_dir, artifacts_location)
 

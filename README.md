@@ -24,7 +24,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 |Using pre-built packages| Building from source|
 | -----------------------|-------------------|
 |Python 3| Python 3|
-|TensorFlow v1.14|GCC 4.8 (Ubuntu), Clang/LLVM (macOS)|
+|TensorFlow v1.15.0|GCC 7.3 (Ubuntu), Clang/LLVM (macOS)|
 |        |`cmake` 3.4 or higher|
 |        |Bazel 0.25.2|
 |        |`virtualenv` 16.0.0|
@@ -80,7 +80,7 @@ bazel:
         export PATH=$PATH:~/bin
         source ~/.bashrc   
 
-Install `cmake`, `virtualenv`, and `gcc 4.8`.
+Install `cmake`, `virtualenv`, and `gcc 7.3`.
 
 ##### Build an nGraph bridge
 
