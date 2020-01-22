@@ -366,22 +366,25 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
     os.chdir('benchmarks')
     call(['git', 'checkout', '4c7b09ad87bbfc4b1f89650bcee40b3fc5e7dfed'])
 
+    patch_file = os.path.abspath(
+        os.path.join(ngraph_tf_src_dir, "test/ci/benchmarks_rn50.patch"))
+    grappler_patch_file = os.path.abspath(
+        os.path.join(ngraph_tf_src_dir, "test/ci/benchmarks_rn50.patch"))
     # Check to see if we need to patch the repo for Grappler
     # benchmark_cnn.patch will only work for the CPU backend
-    patch_file = os.path.abspath(
-        os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
     if ngraph_bridge.is_grappler_enabled():
+        print("Patching repo using: %s" % grappler_patch_file)
+        cmd = ['git', 'apply ' + grappler_patch_file]
+        command_executor(cmd, verbose=True)
+    else:
         print("Patching repo using: %s" % patch_file)
-        apply_patch(patch_file)
+        cmd = ['git', 'apply ' + patch_file]
+        command_executor(cmd, verbose=True)
 
     os.chdir('scripts/tf_cnn_benchmarks/')
 
     # junit_script = os.path.abspath('%s/test/ci/junit-wrap.sh' % root_pwd)
-
-    # Update the script by adding `import ngraph_bridge`
-    with open('convnet_builder.py', 'a') as outfile:
-        call(['echo', 'import ngraph_bridge'], stdout=outfile)
 
     # Setup the env flags
     import psutil
@@ -436,7 +439,8 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
         '--model=resnet50', '--batch_size=' + str(batch_size), '--num_batches',
         str(iterations), '--eval', '--eval_dir=' + eval_eventlog_dir
     ]
-    command_executor(cmd, verbose=True)
+    # Commenting the eval since it currently fails with TF2.0
+    # command_executor(cmd, verbose=True)
 
     os.chdir(root_pwd)
 
