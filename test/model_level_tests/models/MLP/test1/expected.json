@@ -31,15 +31,20 @@
     },
     "grappler": {
         "logparse": {
+            "0": {
+                "num_nodes_in_graph": 56,
+                "num_nodes_marked_for_clustering": 0,
+                "num_ng_clusters": 0
+            },
             "1": {
-                "num_nodes_in_graph": 330,
-                "num_nodes_marked_for_clustering": 269,
-                "num_ng_clusters": 15
+                "num_nodes_in_graph": 67,
+                "num_nodes_marked_for_clustering": 28,
+                "num_ng_clusters": 3
             },
             "2": {
-                "num_nodes_in_graph": 72,
-                "num_nodes_marked_for_clustering": 51,
-                "num_ng_clusters": 3
+                "num_nodes_in_graph": 12,
+                "num_nodes_marked_for_clustering": 0,
+                "num_ng_clusters": 0
             }
         },
         "time": 10
