@@ -440,7 +440,7 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
         str(iterations), '--eval', '--eval_dir=' + eval_eventlog_dir
     ]
     # Commenting the eval since it currently fails with TF2.0
-    # command_executor(cmd, verbose=True)
+    command_executor(cmd, verbose=True)
 
     os.chdir(root_pwd)
 
