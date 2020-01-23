@@ -33,6 +33,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.client import timeline
 import json
+import pytest
 
 import ngraph_bridge
 import os
