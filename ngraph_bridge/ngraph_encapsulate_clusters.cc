@@ -86,7 +86,7 @@ Status EncapsulateClusters(
   TF_RETURN_IF_ERROR(PerformAOTOnEncapsulates(graph, aot_info));
 
   set<int> newly_created_cluster_ids;
-  TF_RETURN_IF_ERROR(enc.NewClusterIds(newly_created_cluster_ids));
+  TF_RETURN_IF_ERROR(enc.GetNewClusterIDs(newly_created_cluster_ids));
 
   // Pass 9 (optional, only run if environment variable
   // NGRAPH_TF_DUMP_CLUSTERS is set): validate the graph def, and
@@ -569,6 +569,15 @@ Status Encapsulator::AnalysisPass() {
   // Pass 5: Make copies of all clustered nodes inside the cluster graphs,
   // rewiring the inputs in their NodeDefs as we go.
 
+  // Originally Pass 5 ran after Pass 4 ofcourse. But now calling it right after
+  // Pass 2 in the Analysis Phase.
+  // Pass 4 took care of removing some inter-cluster control edges, so by the
+  // time Pass 5 was run, those control inputs would have been removed
+  // But now since Pass 5 is running before Pass 4, we must take special care to
+  // not add inter-cluster (or TF to cluster) control edges in the graphdef we
+  // copy into the ClusterManager
+  // This is taken care of in the "if (edge->IsControlEdge())" line in the for
+  // loop over all edges
   for (auto node : graph->op_nodes()) {
     int cluster_idx;
 
@@ -813,10 +822,11 @@ Status Encapsulator::RewritePass(
   return Status::OK();
 }
 
-Status Encapsulator::NewClusterIds(set<int>& result) {
+Status Encapsulator::GetNewClusterIDs(set<int>& result) {
   if (!analysis_done) {
     return errors::Internal(
-        "In Encapsulator, called NewClusterIds without calling AnalysisPass");
+        "In Encapsulator, called GetNewClusterIDs without calling "
+        "AnalysisPass");
   }
   result.clear();
   for (auto it = device_name_map.begin(); it != device_name_map.end(); ++it) {
@@ -915,7 +925,7 @@ std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
         // Get shape from the node
         partial_shape_from_node = PartialShape(shape_field->shape());
       }
-      NGRAPH_VLOG(5) << "For node " << node->name() << " got shape from nose: "
+      NGRAPH_VLOG(5) << "For node " << node->name() << " got shape from node: "
                      << partial_shape_from_node.to_string();
       node_partial_shape_map.insert({node->name(), partial_shape_from_node});
     }
@@ -926,8 +936,8 @@ std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
 Status PerformTranslation(Node* node, const std::map<std::string, vector<int>>&
                                           inputs_node_shapes_for_compilation,
                           string& signature,
-                          std::shared_ptr<ngraph::Function> ng_function) {
-  if (node->type_string() == "NGraphEncapsulate") {
+                          std::shared_ptr<ngraph::Function>& ng_function) {
+  if (node->type_string() != "NGraphEncapsulate") {
     return errors::Internal(
         "This function should only be called on an NGraphEncapsulate, but was "
         "called on ",

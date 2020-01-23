@@ -74,7 +74,10 @@ class Encapsulator {
   Status RewritePass(
       FunctionDefLibrary* fdeflib, int graph_id,
       const std::unordered_map<std::string, std::string>& device_config);
-  Status NewClusterIds(std::set<int>& result);
+  // Returns the newly created cluster ids after AnalysisPass is done
+  // Needed because ClusterManager (CM) might have contained old stuff,
+  // so it might not be possible to query the CM itself to get this
+  Status GetNewClusterIDs(std::set<int>& result);
 
   Encapsulator(const Encapsulator&) = delete;
   Encapsulator(Encapsulator&&) = delete;
@@ -139,7 +142,7 @@ Status PerformTranslation(Node* node,
                           const std::map<std::string, std::vector<int>>&
                               inputs_node_shapes_for_compilation,
                           std::string& signature,
-                          std::shared_ptr<ngraph::Function> ng_function);
+                          std::shared_ptr<ngraph::Function>& ng_function);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

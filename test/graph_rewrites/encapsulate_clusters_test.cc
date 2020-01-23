@@ -39,7 +39,7 @@ TEST(EncapsulateClusters, EncapsulatorFail) {
   std::unordered_map<std::string, std::string> device_config;
   ASSERT_NOT_OK(enc.RewritePass(nullptr, 0, device_config));
   set<int> result;
-  ASSERT_NOT_OK(enc.NewClusterIds(result));
+  ASSERT_NOT_OK(enc.GetNewClusterIDs(result));
 }
 
 //                abs
@@ -135,7 +135,7 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   ASSERT_EQ(g.num_nodes(), 6);
 
   set<int> newly_created_cluster_ids;
-  ASSERT_OK(enc.NewClusterIds(newly_created_cluster_ids));
+  ASSERT_OK(enc.GetNewClusterIDs(newly_created_cluster_ids));
   set<int> expected{0, 1};
   ASSERT_EQ(newly_created_cluster_ids, expected);
 
