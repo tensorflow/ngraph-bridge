@@ -106,7 +106,8 @@ class TestVariableStaticInputs(NgraphTest):
         return var_init_value, mean_values, var_final_val
 
     #todo : fix and unskip this
-    # @pytest.mark.skip(reason="Fails with TF2.0")
+    @pytest.mark.skipif(
+        not ngraph_bridge.are_variables_enabled(), reason='Fails with TF2.0')
     def test_variable_static_input_variables_dont_share_buffer(self):
         # This test is not applicable for CPU as NGVariable's NG and TF Tensors
         # share buffer on CPU. To simulate other backend's non buffer sharing

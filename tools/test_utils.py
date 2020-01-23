@@ -369,7 +369,8 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/ci/benchmarks_rn50.patch"))
     grappler_patch_file = os.path.abspath(
-        os.path.join(ngraph_tf_src_dir, "test/ci/benchmarks_rn50.patch"))
+        os.path.join(ngraph_tf_src_dir,
+                     "test/ci/benchmarks_rn50_grappler.patch"))
     # Check to see if we need to patch the repo for Grappler
     # benchmark_cnn.patch will only work for the CPU backend
     import ngraph_bridge
