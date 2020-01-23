@@ -18,6 +18,9 @@ project (ngraph_tensorflow_bridge CXX)
 # set directory where the custom finders live
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+# add -fPIC compiler option
+# set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # set(CMAKE_CXX_COMPILER "clang++")
 include(ExternalProject)
 include(CMakeDependentOption)
