@@ -19,6 +19,7 @@
 #include "tensorflow/core/graph/node_builder.h"
 
 #include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "test/test_utilities.h"
 
@@ -63,6 +64,9 @@ TEST(DisableOps, SimpleSettingAndGetting3) {
 // Multiple tests of setting and getting executed on a graph that adds 2 consts
 // Also a unit test for MarkForClustering
 TEST(DisableOps, DisableTest) {
+  list<string> env_vars{"NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS"};
+  auto env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", "1");
   Graph g(OpRegistry::Global());
 
   config::ngraph_set_disabled_ops("");
@@ -115,6 +119,7 @@ TEST(DisableOps, DisableTest) {
   ASSERT_TRUE(marked);
 
   ResetMarkForClustering(&g);
+  NGraphClusterManager::EvictAllClusters();
 
   // Add is disabled
   config::ngraph_set_disabled_ops("Add,Mul");
@@ -131,6 +136,7 @@ TEST(DisableOps, DisableTest) {
       GetNodeAttr(node3->attrs(), "_ngraph_marked_for_clustering", &marked));
 
   ResetMarkForClustering(&g);
+  NGraphClusterManager::EvictAllClusters();
 
   // Add,Add,Mul,Add should work too
   config::ngraph_set_disabled_ops("Add,Add,Mul,Add");
@@ -147,6 +153,7 @@ TEST(DisableOps, DisableTest) {
       GetNodeAttr(node3->attrs(), "_ngraph_marked_for_clustering", &marked));
 
   ResetMarkForClustering(&g);
+  NGraphClusterManager::EvictAllClusters();
 
   // Resetting it. So Add should be accepted now
   config::ngraph_set_disabled_ops("");
@@ -164,6 +171,7 @@ TEST(DisableOps, DisableTest) {
   ASSERT_TRUE(marked);
 
   ResetMarkForClustering(&g);
+  NGraphClusterManager::EvictAllClusters();
 
   // Invalid op name should trigger an error
   config::ngraph_set_disabled_ops("Add,_InvalidOp");
@@ -177,6 +185,11 @@ TEST(DisableOps, DisableTest) {
 
   // Clean up
   config::ngraph_set_disabled_ops("");
+
+  NGraphClusterManager::EvictAllClusters();
+
+  UnsetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS");
+  RestoreEnv(env_map);
 }
 }
 }
