@@ -1012,7 +1012,6 @@ static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "DstT", &dtype));
 
-  cout << "data type " << DataType_Name(dtype) << endl;
   ng::element::Type ng_et;
   TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
 

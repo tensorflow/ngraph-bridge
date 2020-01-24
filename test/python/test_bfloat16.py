@@ -28,15 +28,13 @@ import os
 
 from common import NgraphTest
 
-#This test is just a sample test to test bf16 dtype
-#This fails, should enable and expand once CPU backend adds bfloat16 support
-
 np.random.seed(5)
 
 
 class TestBfloat16(NgraphTest):
 
-    @pytest.mark.skip(reason="CPU backend does not support dtype bf16")
+    @pytest.mark.skip(
+        reason="CPU backend does not support dtype bf16 for MatMul/Dot Op")
     def test_matmul_bfloat16(self):
         a = tf.placeholder(tf.bfloat16, [2, 3], name='a')
         x = tf.placeholder(tf.bfloat16, [3, 4], name='x')
@@ -48,6 +46,39 @@ class TestBfloat16(NgraphTest):
             return sess.run((out,), feed_dict={a: a_inp, x: x_inp})
 
         assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
+
+    def test_conv2d_bfloat16(self):
+        # inputs
+        input_shape_nhwc = (1, 8, 8, 1)
+        filter_shape_hwio = (3, 3, 1, 2)
+        input_pl = tf.placeholder(tf.bfloat16, input_shape_nhwc, name="inp_pl")
+        filter_shape_pl = tf.placeholder(
+            tf.bfloat16, filter_shape_hwio, name="filter_pl")
+        input_values = np.arange(64).reshape(
+            input_shape_nhwc)  #np.random.rand(*input_shape_nhwc)
+        filter_values = np.arange(18).reshape(
+            filter_shape_hwio)  # np.random.rand(*filter_shape_hwio)
+
+        padding = "VALID"
+        strides = [1, 1, 1, 1]
+        conv_op = tf.nn.conv2d(
+            input_pl,
+            filter_shape_pl,
+            strides,
+            padding,
+            data_format='NHWC',
+            dilations=None,
+            name=None)
+
+        def run_test(sess):
+            return sess.run((conv_op,),
+                            feed_dict={
+                                input_pl: input_values,
+                                filter_shape_pl: filter_values
+                            })
+
+        assert np.allclose(
+            self.with_ngraph(run_test), self.without_ngraph(run_test))
 
     def test_conv2d_cast_bfloat16(self):
         # inputs
@@ -76,40 +107,7 @@ class TestBfloat16(NgraphTest):
         out = tf.cast(conv_op, dtype=tf.float32)
 
         def run_test(sess):
-            return sess.run((conv_op,),
-                            feed_dict={
-                                input_pl: input_values,
-                                filter_shape_pl: filter_values
-                            })
-
-        assert np.allclose(
-            self.with_ngraph(run_test), self.without_ngraph(run_test))
-
-    def test_conv2d_bfloat16(self):
-        # inputs
-        input_shape_nhwc = (1, 8, 8, 1)
-        filter_shape_hwio = (3, 3, 1, 2)
-        input_pl = tf.placeholder(tf.bfloat16, input_shape_nhwc, name="inp_pl")
-        filter_shape_pl = tf.placeholder(
-            tf.bfloat16, filter_shape_hwio, name="filter_pl")
-        input_values = np.arange(64).reshape(
-            input_shape_nhwc)  #np.random.rand(*input_shape_nhwc)
-        filter_values = np.arange(18).reshape(
-            filter_shape_hwio)  # np.random.rand(*filter_shape_hwio)
-
-        padding = "VALID"
-        strides = [1, 1, 1, 1]
-        conv_op = tf.nn.conv2d(
-            input_pl,
-            filter_shape_pl,
-            strides,
-            padding,
-            data_format='NHWC',
-            dilations=None,
-            name=None)
-
-        def run_test(sess):
-            return sess.run((conv_op,),
+            return sess.run((out,),
                             feed_dict={
                                 input_pl: input_values,
                                 filter_shape_pl: filter_values
