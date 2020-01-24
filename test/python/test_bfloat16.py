@@ -60,7 +60,6 @@ class TestBfloat16(NgraphTest):
             input_shape_nhwc)  #np.random.rand(*input_shape_nhwc)
         filter_values = np.arange(18).reshape(
             filter_shape_hwio)  # np.random.rand(*filter_shape_hwio)
-        print(filter_values)
         # cast to bloat
         input_cast = tf.cast(input_pl, dtype=tf.bfloat16)
         filter_cast = tf.cast(filter_shape_pl, dtype=tf.bfloat16)
@@ -75,6 +74,39 @@ class TestBfloat16(NgraphTest):
             dilations=None,
             name=None)
         out = tf.cast(conv_op, dtype=tf.float32)
+
+        def run_test(sess):
+            return sess.run((conv_op,),
+                            feed_dict={
+                                input_pl: input_values,
+                                filter_shape_pl: filter_values
+                            })
+
+        assert np.allclose(
+            self.with_ngraph(run_test), self.without_ngraph(run_test))
+
+    def test_conv2d_bfloat16(self):
+        # inputs
+        input_shape_nhwc = (1, 8, 8, 1)
+        filter_shape_hwio = (3, 3, 1, 2)
+        input_pl = tf.placeholder(tf.bfloat16, input_shape_nhwc, name="inp_pl")
+        filter_shape_pl = tf.placeholder(
+            tf.bfloat16, filter_shape_hwio, name="filter_pl")
+        input_values = np.arange(64).reshape(
+            input_shape_nhwc)  #np.random.rand(*input_shape_nhwc)
+        filter_values = np.arange(18).reshape(
+            filter_shape_hwio)  # np.random.rand(*filter_shape_hwio)
+
+        padding = "VALID"
+        strides = [1, 1, 1, 1]
+        conv_op = tf.nn.conv2d(
+            input_pl,
+            filter_shape_pl,
+            strides,
+            padding,
+            data_format='NHWC',
+            dilations=None,
+            name=None)
 
         def run_test(sess):
             return sess.run((conv_op,),
