@@ -1523,16 +1523,16 @@ TEST(ArrayOps, StridedSliceGradTest1) {
   Scope root_scope = Scope::NewRootScope();
 
   // original shape
-  vector<int64> c_original_shape = {3, 8, 8};
+  vector<int64> c_original_shape = {3, 4, 4};
   Tensor original_shape(DT_INT64, TensorShape{static_cast<int>(c_original_shape.size())});
   AssignInputValues<int64>(original_shape, c_original_shape);
 
   // begin, end, stride
-  vector<int64> cstart = {0, 0, 0};
+  vector<int64> cstart = {1, 0, 0};
   Tensor begin(DT_INT64, TensorShape({static_cast<int>(cstart.size())}));
   AssignInputValues<int64>(begin, cstart);
 
-  vector<int64> cend = {1, 8, 8};
+  vector<int64> cend = {2, 4, 4};
   Tensor end(DT_INT64, TensorShape({static_cast<int>(cend.size())}));
   AssignInputValues<int64>(end, cend);
 
@@ -1540,9 +1540,10 @@ TEST(ArrayOps, StridedSliceGradTest1) {
   Tensor strides(DT_INT64, TensorShape({static_cast<int>(cstride.size())}));
   AssignInputValues<int64>(strides, cstride);
 
-  // 4 dy
-  std::vector<int64> dy_shape = {1, 8, 8};
-  Tensor dy_data(DT_FLOAT, TensorShape(dy_shape));
+  // dy
+  std::vector<int64> dy_shape = {1, 4, 4};
+  Tensor ones(DT_FLOAT, TensorShape(dy_shape));
+  auto dy_data = ops::OnesLike(root_scope, ones);
 
   ops::StridedSlice::Attrs attrs;
   attrs.begin_mask_ = 0;
