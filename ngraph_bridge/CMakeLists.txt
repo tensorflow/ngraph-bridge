@@ -60,7 +60,7 @@ set(SRC
    ngraph_var.cc
    ngraph_utils.cc
    experimental/ngraph_device/ngraph_device.cc
-   experimental/ngraph_device/ngraph_ops.cc
+   experimental/ngraph_device/ngraph_stub_ops.cc
    experimental/ngraph_device/ngraph_send_recv_ops.cc
    experimental/ngraph_device/ngraph_optimization_pass.cc
    tf_graphcycles.cc

@@ -24,6 +24,7 @@
 #include "tensorflow/core/framework/device_base.h"
 #include "tensorflow/core/public/session_options.h"
 
+#include "logging/ngraph_log.h"
 namespace tensorflow {
 
 class NGraphDeviceContext : public DeviceContext {
@@ -34,8 +35,7 @@ class NGraphDeviceContext : public DeviceContext {
   void CopyCPUTensorToDevice(const Tensor* cpu_tensor, Device* device,
                              Tensor* device_tensor, StatusCallback done,
                              bool sync_dst_compute) const override {
-    std::cout << "CopyCPUTensorToDevice: DEVICE: " << device->name()
-              << std::endl;
+    NGRAPH_VLOG(4) << "CopyCPUTensorToDevice: DEVICE: " << device->name();
 
     *device_tensor = *cpu_tensor;
     done(Status::OK());
@@ -44,8 +44,8 @@ class NGraphDeviceContext : public DeviceContext {
   void CopyDeviceTensorToCPU(const Tensor* device_tensor, StringPiece edge_name,
                              Device* device, Tensor* cpu_tensor,
                              StatusCallback done) override {
-    std::cout << "CopyDeviceTensorToCPU: DEVICE: " << device->name()
-              << " Edge: " << edge_name << std::endl;
+    NGRAPH_VLOG(4) << "CopyDeviceTensorToCPU: DEVICE: " << device->name()
+              << " Edge: " << edge_name;
 
     *cpu_tensor = *device_tensor;
     done(Status::OK());
@@ -54,8 +54,7 @@ class NGraphDeviceContext : public DeviceContext {
   void CopyTensorInSameDevice(const Tensor* input_tensor, Device* device,
                               Tensor* output_tensor,
                               StatusCallback done) const override {
-    std::cout << "CopyTensorInSameDevice: DEVICE: " << device->name()
-              << std::endl;
+    NGRAPH_VLOG(4) << "CopyTensorInSameDevice: DEVICE: " << device->name();
     *output_tensor = *input_tensor;
     done(Status::OK());
   }
@@ -73,7 +72,7 @@ class NGraphDevice : public LocalDevice {
   NGraphDevice(const SessionOptions& options,
                const DeviceAttributes& attributes)
       : LocalDevice(options, attributes) {
-    std::cout << "NGraphDevice::ctor CALLED" << std::endl;
+    NGRAPH_VLOG(4) << "NGraphDevice::ctor CALLED";
   }
 
   Status Sync() override { return Status::OK(); }

@@ -20,6 +20,7 @@
 
 #include "tensorflow/core/platform/default/logging.h"
 
+#include "logging/ngraph_log.h"
 namespace ngraph_bridge {
 const char* const DEVICE_NGRAPH_CPU = "NGRAPH";
 }
@@ -101,7 +102,7 @@ class NGraphRecv : public AsyncOpKernel {
  public:
   explicit NGraphRecv(OpKernelConstruction* ctx) : AsyncOpKernel(ctx) {
     auto node_def = ctx->def();
-    VLOG(99) << "NGraphRecv::ctor(): Node: " << node_def.name()
+    NGRAPH_VLOG(4) << "NGraphRecv::ctor(): Node: " << node_def.name()
              << " Op: " << node_def.op();
 
     string send_device;
@@ -141,7 +142,7 @@ class NGraphRecv : public AsyncOpKernel {
   //  ComputeAsync
   //-----------------------------------------------------------------------------
   void ComputeAsync(OpKernelContext* ctx, DoneCallback done) override {
-    VLOG(99) << "NGraphRecv: Step: " << ctx->step_id()
+    NGRAPH_VLOG(4) << "NGraphRecv: Step: " << ctx->step_id()
              << " Op: " << ctx->op_kernel().name();
     OP_REQUIRES_ASYNC(
         ctx, ctx->rendezvous() != nullptr,
@@ -152,18 +153,18 @@ class NGraphRecv : public AsyncOpKernel {
     args.device_context = ctx->op_device_context();
     args.alloc_attrs = ctx->output_alloc_attr(0);
 
-    VLOG(99) << "ComputeAsync: DEV-CTX: " << args.device_context;
+    NGRAPH_VLOG(99) << "ComputeAsync: DEV-CTX: " << args.device_context;
 
     tf::FrameAndIter frame_iter = GetFrameAndIter(ctx, hostmem_sendrecv_);
     if (frame_iter == FrameAndIter(0, 0)) {
-      VLOG(99) << "ComputeAsync::Recv " << parsed_key_.FullKey();
+      NGRAPH_VLOG(4) << "ComputeAsync::Recv " << parsed_key_.FullKey();
       ctx->rendezvous()->RecvAsync(parsed_key_, args,
                                    make_recv_callback(ctx, std::move(done)));
     } else {
       Rendezvous::ParsedKey in_loop_parsed;
       string key;
       GetRendezvousKey(key_prefix_, frame_iter, &key);
-      VLOG(99) << "ComputeAsync::Recv " << in_loop_parsed.FullKey();
+      NGRAPH_VLOG(4) << "ComputeAsync::Recv " << in_loop_parsed.FullKey();
       OP_REQUIRES_OK_ASYNC(ctx, Rendezvous::ParseKey(key, &in_loop_parsed),
                            done);
       ctx->rendezvous()->RecvAsync(in_loop_parsed, args,
@@ -184,7 +185,7 @@ class NGraphSend : public OpKernel {
  public:
   explicit NGraphSend(OpKernelConstruction* ctx) : OpKernel(ctx) {
     auto node_def = ctx->def();
-    VLOG(99) << "NGraphSend::ctor(): Node: " << node_def.name()
+    NGRAPH_VLOG(4) << "NGraphSend::ctor(): Node: " << node_def.name()
              << " Op: " << node_def.op();
     string send_device;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("send_device", &send_device));
@@ -211,7 +212,7 @@ class NGraphSend : public OpKernel {
   //  NGraphSend::Compute
   //-----------------------------------------------------------------------------
   void Compute(OpKernelContext* ctx) override {
-    VLOG(99) << "NGraphSend: Step: " << ctx->step_id()
+    NGRAPH_VLOG(4) << "NGraphSend: Step: " << ctx->step_id()
              << " Op: " << ctx->op_kernel().name();
     OP_REQUIRES(ctx, ctx->rendezvous() != nullptr,
                 tf::errors::Internal(
