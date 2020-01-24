@@ -17,6 +17,8 @@
 #include <iostream>
 #include <string>
 
+#include "tensorflow/core/public/version.h"
+
 #include "ngraph/ngraph.hpp"
 
 #include "ngraph_bridge/version.h"
@@ -80,6 +82,8 @@ bool ngraph_tf_is_distributed_enabled() {
   return false;
 #endif
 }
+
+const char* tf_version() { return (TF_VERSION_STRING); }
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
