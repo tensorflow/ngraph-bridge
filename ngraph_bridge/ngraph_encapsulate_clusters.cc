@@ -717,7 +717,7 @@ Status Encapsulator::RewritePass(
     }
     Status status = nb.Finalize(graph, &n);
     TF_RETURN_IF_ERROR(status);
-    n->set_assigned_device_name(device_name_map[cluster_idx]);
+    n->set_assigned_device_name("/job:localhost/replica:0/task:0/device:CPU:0");
 
     cluster_node_map[cluster_idx] = n;
   }
