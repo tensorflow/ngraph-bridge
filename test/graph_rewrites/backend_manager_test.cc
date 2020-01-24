@@ -24,6 +24,7 @@
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "test/test_utilities.h"
 
@@ -167,6 +168,8 @@ TEST(BackendManager, BackendAssignment) {
   ASSERT_EQ(bA, bB);
   ASSERT_EQ(bA, bR);
   ASSERT_EQ(bA, dummy_backend);
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Test Backend Clustering
@@ -201,6 +204,8 @@ TEST(BackendManager, BackendClustering) {
 
   ASSERT_EQ(A_cluster, R_cluster);
   ASSERT_NE(A_cluster, B_cluster);
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Test GetBackendAttributeValues API

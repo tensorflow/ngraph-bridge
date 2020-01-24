@@ -90,6 +90,7 @@ TEST(RemoveNGraphAssigns, Graph1) {
   for (auto node : graph.op_nodes()) {
     ASSERT_NE(node->type_string(), "NGraphAssign");
   }
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Var       Const
@@ -193,6 +194,7 @@ TEST(RemoveNGraphAssigns, Graph2) {
       ASSERT_EQ(add_in_1, edge->dst());
     }
   }
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Var       Const
@@ -292,6 +294,7 @@ TEST(RemoveNGraphAssigns, Graph3) {
       ASSERT_EQ(assign_in_1, edge->dst());
     }
   }
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Var       Const
@@ -404,6 +407,7 @@ TEST(RemoveNGraphAssigns, Graph4) {
       ASSERT_EQ(add_in_1, edge->dst());
     }
   }
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Var       Const
@@ -458,6 +462,8 @@ TEST(RemoveNGraphAssigns, Graph5) {
 
   // Call RemoveNGraphAssign, throws error
   ASSERT_NOT_OK(RemoveNGraphAssigns(&graph));
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Graph with 2 Variables

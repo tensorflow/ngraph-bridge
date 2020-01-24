@@ -93,7 +93,9 @@ TEST(CatalogTest, SmallGraph1) {
   }
 
   // Clean up
+
   NGraphCatalog::ClearCatalog();
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Graph with Assign ops, one of which should not
@@ -141,6 +143,7 @@ TEST(CatalogTest, SmallGraph2) {
 
   // Clean up
   NGraphCatalog::ClearCatalog();
+  NGraphClusterManager::EvictAllClusters();
 }
 
 //  Const   Var_A      Const     Var_B
@@ -235,6 +238,7 @@ TEST(CatalogTest, SmallGraph3) {
 
   // Clean up
   NGraphCatalog::ClearCatalog();
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Test to check if correct information is being added to the
@@ -292,6 +296,7 @@ TEST(CatalogTest, SmallGraph4) {
   }
   // Clean up
   NGraphCatalog::ClearCatalog();
+  NGraphClusterManager::EvictAllClusters();
 }
 
 }  // namespace testing

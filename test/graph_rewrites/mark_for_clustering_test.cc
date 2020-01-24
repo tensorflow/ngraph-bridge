@@ -20,6 +20,7 @@
 #include "tensorflow/core/graph/node_builder.h"
 
 #include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
@@ -96,6 +97,7 @@ TEST(MarkForClustering, SimpleTest) {
     ASSERT_NOT_OK(GetNodeBackend(node, &backend));
     ASSERT_FALSE(NodeIsMarkedForClustering(node));
   }
+  NGraphClusterManager::EvictAllClusters();
 }
 }
 }

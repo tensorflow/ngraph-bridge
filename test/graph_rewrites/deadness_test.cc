@@ -31,6 +31,7 @@
 
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
@@ -115,6 +116,8 @@ TEST(DeadnessCheck, livedead1) {
 
   // M and D cannot be in the same cluster
   ASSERT_NE(M_cluster, D_cluster);
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Graph 1
@@ -156,6 +159,8 @@ TEST(DeadnessCheck, DTestG1) {
   // A1, N1 and N2 are in same cluster
   ASSERT_EQ(N1_Add_cluster, N2_Sub_cluster);
   ASSERT_EQ(N1_Add_cluster, A1_cluster);
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Graph 2
@@ -211,6 +216,8 @@ TEST(DeadnessCheck, DTestG2) {
   ASSERT_NE(N1_Add_cluster, A1_cluster);
   ASSERT_NE(N2_Sub_cluster, A1_cluster);
   ASSERT_NE(N2_Sub_cluster, N1_Add_cluster);
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Graph 3
@@ -267,6 +274,8 @@ TEST(DeadnessCheck, DTestG3) {
   ASSERT_EQ(N3_Mul_cluster, N4_Sub_cluster);
   ASSERT_EQ(A1_cluster, N1_Add_cluster);
   ASSERT_EQ(N1_Add_cluster, N3_Mul_cluster);
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Graph 4
@@ -336,6 +345,8 @@ TEST(DeadnessCheck, DISABLED_DTestG4) {
   ASSERT_NE(A1_cluster, B1_cluster);
   ASSERT_NE(A1_cluster, N4_Sub_cluster);
   ASSERT_NE(B1_cluster, N4_Sub_cluster);
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // There will be 4 clusters after the new change
@@ -403,6 +414,8 @@ TEST(DeadnessCheck, DTestG4New) {
           << ") were assigned the same cluster " << representative_group_id[i];
     }
   }
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 // Graph 5
@@ -492,6 +505,8 @@ TEST(DeadnessCheck, DTestG5) {
   ASSERT_NE(A_cluster, N1_Add_cluster);
   ASSERT_NE(A_cluster, N3_Sub_cluster);
   ASSERT_NE(A_cluster, N5_Add_cluster);
+
+  NGraphClusterManager::EvictAllClusters();
 }
 
 }  // namespace testing
