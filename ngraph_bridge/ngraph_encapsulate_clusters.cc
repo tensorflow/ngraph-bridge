@@ -345,6 +345,64 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
 Encapsulator::Encapsulator(Graph* g)
     : graph(g), analysis_done(false), rewrite_done(false) {}
 
+// Finds the Device and Backend that needs to
+// be assigned to each cluster (NGraphEncapsulateOp)
+// And stores it into the device_name_map and backend_name_map
+Status Encapsulator::AssignClusterDeviceAndBackend() {
+  string DEVICE_CPU = "CPU";
+  string DEVICE_XLA_CPU = "XLA_CPU";
+  set<string> allowed_device_types = {DEVICE_CPU, DEVICE_XLA_CPU};
+
+  for (auto node : graph->op_nodes()) {
+    int cluster_idx;
+    if (GetNodeCluster(node, &cluster_idx) != Status::OK()) {
+      continue;
+    }
+
+    string node_backend;
+    if (GetNodeBackend(node, &node_backend) != Status::OK()) {
+      continue;
+    }
+
+    DeviceNameUtils::ParsedName parsed;
+    if (!DeviceNameUtils::ParseFullName(node->assigned_device_name(),
+                                        &parsed)) {
+      return errors::Internal("Could not parse the device name ",
+                              node->assigned_device_name(),
+                              " assigned to node ", node->name());
+    } else {
+      if (allowed_device_types.find(parsed.type) ==
+          allowed_device_types.end()) {
+        return errors::Internal("Node ", node->name(), " assigned cluster ",
+                                cluster_idx, " has been assigned device ",
+                                node->assigned_device_name(),
+                                " which is not supported.");
+      } else {
+        device_name_map[cluster_idx] = node->assigned_device_name();
+      }
+    }
+
+    // backend
+    auto itr = backend_name_map.find(cluster_idx);
+    if (itr != backend_name_map.end()) {
+      if (itr->second != node_backend) {
+        std::stringstream ss_err;
+        ss_err << "Node " << node->name() << " in cluster " << cluster_idx
+               << " has assigned backend " << node_backend
+               << " but another node with assigned backend " << itr->second
+               << " has already been seen in the same cluster";
+
+        return errors::Internal(ss_err.str());
+      }
+    } else {
+      NGRAPH_VLOG(3) << "setting cluster " << cluster_idx
+                     << " requested backend to '" << node_backend << "'";
+      backend_name_map[cluster_idx] = node_backend;
+    }
+  }
+  return Status::OK();
+}
+
 Status Encapsulator::AnalysisPass() {
   if (rewrite_done) {
     return errors::Internal(
@@ -358,55 +416,7 @@ Status Encapsulator::AnalysisPass() {
   }
   // Pass 1: Populate the cluster-index-to-device name map for each existing
   // cluster. PIGGYBACKING BACKEND TEST HERE, THEY WILL GET COMBINED INTO ONE
-  for (auto node : graph->op_nodes()) {
-    int cluster_idx;
-
-    if (GetNodeCluster(node, &cluster_idx) != Status::OK()) {
-      continue;
-    }
-
-    string node_backend;
-    if (GetNodeBackend(node, &node_backend) != Status::OK()) {
-      continue;
-    }
-
-    auto it = device_name_map.find(cluster_idx);
-
-    if (it != device_name_map.end()) {
-      if (it->second != node->assigned_device_name()) {
-        std::stringstream ss_err;
-        ss_err << "Node " << node->name() << " in cluster " << cluster_idx
-               << " has assigned device " << node->assigned_device_name()
-               << " but another node with assigned device " << it->second
-               << " has already been seen in the same cluster";
-
-        // return errors::Internal(ss_err.str());
-      }
-    } else {
-      NGRAPH_VLOG(3) << "setting cluster " << cluster_idx
-                     << " requested device to '" << node->assigned_device_name()
-                     << "'";
-      device_name_map[cluster_idx] = node->assigned_device_name();
-    }
-
-    auto itr = backend_name_map.find(cluster_idx);
-
-    if (itr != backend_name_map.end()) {
-      if (itr->second != node_backend) {
-        std::stringstream ss_err;
-        ss_err << "Node " << node->name() << " in cluster " << cluster_idx
-               << " has assigned backend " << node_backend
-               << " but another node with assigned backend " << it->second
-               << " has already been seen in the same cluster";
-
-        return errors::Internal(ss_err.str());
-      }
-    } else {
-      NGRAPH_VLOG(3) << "setting cluster " << cluster_idx
-                     << " requested backend to '" << node_backend << "'";
-      backend_name_map[cluster_idx] = node_backend;
-    }
-  }
+  TF_RETURN_IF_ERROR(AssignClusterDeviceAndBackend());
 
   // Pass 2: Find all nodes that are feeding into/out of each cluster, and
   // add inputs for them to the corresponding FunctionDef(s).

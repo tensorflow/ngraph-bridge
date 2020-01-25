@@ -116,6 +116,8 @@ class Encapsulator {
   std::set<int> cluster_indices_for_this_graph;
 
   static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot);
+
+  Status AssignClusterDeviceAndBackend();
 };
 
 // Translates TF subgraph to ng function then compiles it

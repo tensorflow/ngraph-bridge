@@ -28,6 +28,8 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
+#include "tensorflow/core/graph/graph_constructor.h"
+// #include "tensorflow/compiler/tf2xla/xla_op_registry.h" //:DEVICE_XLA_CPU
 
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
@@ -1043,6 +1045,8 @@ int NGraphEncapsulateImpl::s_instance_count = 0;
 }  // namespace ngraph_bridge
 
 REGISTER_KERNEL_BUILDER(Name("NGraphEncapsulate").Device(DEVICE_CPU),
+                        ngraph_bridge::NGraphEncapsulateOp);
+REGISTER_KERNEL_BUILDER(Name("NGraphEncapsulate").Device("XLA_CPU"),
                         ngraph_bridge::NGraphEncapsulateOp);
 
 }  // namespace tensorflow
