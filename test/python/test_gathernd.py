@@ -31,15 +31,15 @@ from common import NgraphTest
 
 class TestGatherNDOperations(NgraphTest):
 
-
     def test_gather_nd(self):
-        val = tf.placeholder(tf.float32, shape=(5,10))
-        indices = np.zeros([1,3,3,1], dtype=np.int32)
-        out = tf.gather_nd(val, indices, batch_dims=0, name = 'output')
+        val = tf.placeholder(tf.float32, shape=(5, 10))
+        indices = np.zeros([1, 3, 3, 1], dtype=np.int32)
+        out = tf.gather_nd(val, indices, batch_dims=0, name='output')
 
         def run_test(sess):
             return sess.run((out,),
                             feed_dict={val: np.arange(50).reshape([5, 10])})[0]
+
         self.with_ngraph(run_test)
 
         assert (
