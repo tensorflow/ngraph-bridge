@@ -110,6 +110,7 @@ cc_library(
         "@org_tensorflow//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
         "@org_tensorflow//tensorflow/core:framework_headers_lib",
         "@org_tensorflow//tensorflow/core:protos_all_cc",
+        "@org_tensorflow//tensorflow/core:lib",
         "@ngraph//:ngraph_headers",
         "@ngraph//:ngraph_core",
         "@ngraph//:ngraph_version",
