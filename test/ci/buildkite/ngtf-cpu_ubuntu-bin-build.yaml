@@ -5,19 +5,20 @@
     label: ":gear: Setup"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
     parallelism: 1
 
   - wait
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
+      python3 build_ngtf.py --use_tensorflow_from_location /localdisk/buildkite-agent/prebuilt_tensorflow_1_15_0
       python3 build_ngtf.py --use_prebuilt_tensorflow  --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
       
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
     parallelism: 1
 
   - wait
@@ -31,7 +32,7 @@
     label: ":bazel: Bazel Build"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
 
   - wait
 
@@ -45,12 +46,12 @@
     label: ":bar_chart: ResNet50"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
 
   - wait: ~
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
 
