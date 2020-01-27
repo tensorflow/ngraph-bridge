@@ -62,7 +62,7 @@ Status EncapsulateClusters(
 // Order of calling: construction -> AnalysisPass -> RewritePass
 //                                       |
 //                                       v
-//                                 NewClusterIds
+//                                 GetNewClusterIDs
 // Any other order of calling will generate errors
 // Cannot be copied/moved or reset
 class Encapsulator {

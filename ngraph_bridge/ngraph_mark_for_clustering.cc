@@ -1262,22 +1262,16 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     // TODO. Can pass this half-done computation (in the form of the "enc"
     // object to encapsulateClusters instead of fully recomputing.)
 
-    int graphdef_idx = 0;
     GraphDef* gdef;
 
-    while (true) {
+    set<int> newly_created_cluster_ids;
+    ASSERT_OK(NGraphClusterManager::GetNewClusterIDs());
+
+    for (auto graphdef_idx : newly_created_cluster_ids) {
       gdef = NGraphClusterManager::GetClusterGraph(graphdef_idx);
       map<string, bool> tf_node_support_map;
-      if (gdef == nullptr) {
-        // We iterate over ClusterManager one by one and once its out of valid
-        // graphdefs, it returns a nullptr
-        break;
-      } else {
-        // TODO: in AOT case pass shape hints in
-        TF_RETURN_IF_ERROR(GetBackendSupportInfoForTFSubgraph(
-            op_backend, gdef, tf_node_support_map, hints));
-        graphdef_idx++;
-      }
+      TF_RETURN_IF_ERROR(GetBackendSupportInfoForTFSubgraph(
+          op_backend, gdef, tf_node_support_map, hints));
 
       for (auto node : graph->nodes()) {
         auto itr = tf_node_support_map.find(node->name());
