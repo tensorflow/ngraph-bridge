@@ -128,32 +128,34 @@ Status ValuesFromConstNode(const NodeDef& node,
       n_elements *= shape.dim(i).size();
     }
     values->resize(n_elements);
+    auto val_lastsaved = (T)0;  // cast
     for (auto i = 0; i < n_elements; i++) {
       auto& tensor = node.attr().at("value").tensor();
       auto dt = node.attr().at("dtype").type();
+      int64 val_size = 0;
+      auto val_i = (T)0;  // cast
       switch (dt) {
         // TODO(amprocte/NGRAPH-2502): there are more element types to support
         // here
         case DT_INT32:
-          (*values)[i] = (tensor.int_val_size() == 1 ? tensor.int_val()[0]
-                                                     : tensor.int_val()[i]);
+          val_size = tensor.int_val_size();
+          if (val_size > i) val_i = tensor.int_val()[i];
           break;
         case DT_INT64:
-          (*values)[i] = (tensor.int64_val_size() == 1 ? tensor.int64_val()[0]
-                                                       : tensor.int64_val()[i]);
+          val_size = tensor.int64_val_size();
+          if (val_size > i) val_i = tensor.int64_val()[i];
           break;
         case DT_FLOAT:
-          (*values)[i] = (tensor.float_val_size() == 1 ? tensor.float_val()[0]
-                                                       : tensor.float_val()[i]);
+          val_size = tensor.float_val_size();
+          if (val_size > i) val_i = tensor.float_val()[i];
           break;
         case DT_BOOL:
-          (*values)[i] = (tensor.bool_val_size() == 1 ? tensor.bool_val()[0]
-                                                      : tensor.bool_val()[i]);
+          val_size = tensor.bool_val_size();
+          if (val_size > i) val_i = tensor.bool_val()[i];
           break;
         case DT_DOUBLE:
-          (*values)[i] =
-              (tensor.double_val_size() == 1 ? tensor.double_val()[0]
-                                             : tensor.double_val()[i]);
+          val_size = tensor.double_val_size();
+          if (val_size > i) val_i = tensor.double_val()[i];
           break;
         default:
           NGRAPH_VLOG(0)
@@ -164,6 +166,14 @@ Status ValuesFromConstNode(const NodeDef& node,
           return errors::Unimplemented("Encountered unknown element type ",
                                        DataType_Name(dt),
                                        " on an empty tensor");
+      }
+      if (val_size == 0) {
+        return errors::InvalidArgument("Empty values vector");
+      } else if (i < val_size) {
+        (*values)[i] = val_i;
+        val_lastsaved = val_i;
+      } else {
+        (*values)[i] = val_lastsaved;
       }
     }
   } else {
@@ -284,6 +294,9 @@ const gtl::ArraySlice<DataType>& NGraphNumericAndQuantizedDTypes();
 // Returns an ArraySlice containing all data types that can be used for
 // axis/tensor indices.
 const gtl::ArraySlice<DataType>& NGraphIndexDTypes();
+
+// Returns an ArraySlice containing all data integer types.
+const gtl::ArraySlice<DataType>& NGraphIntDTypes();
 
 // Returns an ArraySlice containing supported data types in the quantized domain
 const gtl::ArraySlice<DataType>& NGraphSupportedQuantizedDTypes();

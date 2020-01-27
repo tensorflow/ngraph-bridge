@@ -977,10 +977,10 @@ static Status TranslateBatchMatMulV2Op(
           "for each dimension. Failed to match dimension ",
           i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
           ng_rhs_shape[i]);
-    } else if ((ng_lhs_shape[i] == 1) || (ng_rhs_shape[i] == 1)) {
+    } else if (ng_lhs_shape[i] != ng_lhs_shape[i]) {
       return errors::Unimplemented(
           "ng_lhs_shape and ng_rhs_shape must be the same for each dimension, "
-          "for current implementation of BatchMatMulV2."
+          "for current implementation of BatchMatMulV2. "
           "Failed to match dimension ",
           i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
           ng_rhs_shape[i]);
@@ -1977,13 +1977,26 @@ static Status TranslateFillOp(
 static Status TranslateFloorDivOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  auto ng_floordiv = [&op](std::shared_ptr<ng::Node> ng_input1,
-                           std::shared_ptr<ng::Node> ng_input2) {
-    return ConstructNgNode<ng::op::Floor>(
-        op->name(),
-        ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2));
-  };
-  return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_floordiv);
+  DataType dtype;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "T", &dtype));
+  auto int_types = NGraphIntDTypes();
+  std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>,
+                                          std::shared_ptr<ng::Node>)>
+      ng_bin_fn;
+  if (std::find(int_types.begin(), int_types.end(), dtype) != int_types.end()) {
+    ng_bin_fn = [&op](std::shared_ptr<ng::Node> ng_input1,
+                      std::shared_ptr<ng::Node> ng_input2) {
+      return ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2);
+    };
+  } else {
+    ng_bin_fn = [&op](std::shared_ptr<ng::Node> ng_input1,
+                      std::shared_ptr<ng::Node> ng_input2) {
+      return ConstructNgNode<ng::op::Floor>(
+          op->name(),
+          ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2));
+    };
+  }
+  return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_bin_fn);
 }
 
 static Status TranslateFloorModOp(

@@ -223,7 +223,8 @@ if [ -z "${tf_dir}" ] ; then
     # If installing into the OS, use:
     # sudo --preserve-env --set-home pip install --ignore-installed ${PIP_INSTALL_EXTRA_ARGS:-} "${WHEEL_FILE}"
     # Here we are installing into a virtual environment, so DO NOT USE SUDO!!!
-    pip install -U tensorflow==1.14.0
+    pip install -U tensorflow==1.15.0
+    pip install -U pip==19.3.1
     set +x
 
 else 
