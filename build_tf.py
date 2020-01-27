@@ -41,6 +41,12 @@ def main():
         help=
         "Architecture flag to use (e.g., haswell, core-avx2 etc. Default \'native\'\n",
         default="native")
+    parser.add_argument(
+        '--use_venv',
+        type=str,
+        help="use an existing virtualenv\n",
+        action="store",
+        default='')
     arguments = parser.parse_args()
 
     assert not os.path.isdir(

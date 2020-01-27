@@ -182,7 +182,7 @@ def main():
     parser.add_argument(
         '--use_venv',
         type=str,
-        help="use an existing virtualenv in the container\n",
+        help="use an existing virtualenv\n",
         action="store",
         default='')
 
@@ -259,7 +259,6 @@ def main():
     build_dir_abs = os.path.abspath(build_dir)
     os.chdir(build_dir)
 
-    venv_dir = 'venv-tf-py3'
     artifacts_location = 'artifacts'
     if arguments.artifacts_dir:
         artifacts_location = os.path.abspath(arguments.artifacts_dir)
@@ -272,13 +271,15 @@ def main():
         os.mkdir(artifacts_location)
 
     #install virtualenv
-    install_virtual_env(venv_dir)
+    if arguments.use_venv != '':
+        venv_dir = 'venv-tf-py3'
+        install_virtual_env(venv_dir)
 
-    # Load the virtual env
-    load_venv(venv_dir)
+        # Load the virtual env
+        load_venv(venv_dir)
 
-    # Setup the virtual env
-    setup_venv(venv_dir)
+        # Setup the virtual env
+        setup_venv(venv_dir)
 
     target_arch = 'native'
     if (arguments.target_arch):

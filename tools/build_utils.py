@@ -591,42 +591,49 @@ def start_container(image, **kwargs):
     home = os.getenv("HOME")
     user = os.getenv("USER")
     imageName = "ngtf-" + user
-    f = open("/tmp/passwd", "w")
-    f.write(user + ":*:" + str(u) + ":" + str(g) + ":User " + user +
-            ":" + appuserHome + ":/bin/bash")
-    f.close()
-    start = [
-        "docker", "run",
-        "--rm",
-        "--name", imageName,
-        "-u", str(u) + ":" + str(g),
-        "-v", pwd + ":" + appuserHome + "/ngraph-bridge",
-        "-v", "/tmp/passwd:/etc/passwd",
-        "-v", home + "/.gitconfig" + ":" + appuserHome + "/.gitconfig",
-        "-v", home + "/.ssh" + ":" + appuserHome + "/.ssh"
-    ]
-    if 'use_tensorflow_from_location' in kwargs:
-        path = kwargs['use_tensorflow_from_location']
-        base = os.path.basename(path)
-        containerPath = appuserHome + "/" + base
-        kwargs['use_tensorflow_from_location'] = containerPath
-        start.extend(["-v", path + ":" + containerPath])
-    if 'ngraph_src_dir' in kwargs:
-        path = kwargs['ngraph_src_dir']
-        base = os.path.basename(path)
-        containerPath = appuserHome + "/" + base
-        kwargs['ngraph_src_dir'] = containerPath
-        start.extend(["-v", path + ":" + containerPath])
-    start.extend(["-w", workingDirectory, "-dt", image, "sleep infinity"])
+
+    path = "/tmp/" + user + "/passwd"
     try:
-        command_executor(start,
-                         verbose=verbose,
-                         stdout=open(os.devnull, "w"),
-                         stderr=open(os.devnull, "w"))
-        return kwargs
-    except Exception as exc:
-        msg = str(exc)
-        print("caught exception: " + msg)
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+
+    with open(path, "w") as f:
+        f.write(user + ":*:" + str(u) + ":" + str(g) + ":User " + user +
+            ":" + appuserHome + ":/bin/bash")
+        start = [
+            "docker", "run",
+            "--rm",
+            "--name", imageName,
+            "-u", str(u) + ":" + str(g),
+            "-v", pwd + ":" + appuserHome + "/ngraph-bridge",
+            "-v", "/tmp/passwd:/etc/passwd",
+            "-v", home + "/.gitconfig" + ":" + appuserHome + "/.gitconfig",
+            "-v", home + "/.ssh" + ":" + appuserHome + "/.ssh"
+        ]
+        if 'use_tensorflow_from_location' in kwargs:
+            path = kwargs['use_tensorflow_from_location']
+            base = os.path.basename(path)
+            containerPath = appuserHome + "/" + base
+            kwargs['use_tensorflow_from_location'] = containerPath
+            start.extend(["-v", path + ":" + containerPath])
+        if 'ngraph_src_dir' in kwargs:
+            path = kwargs['ngraph_src_dir']
+            base = os.path.basename(path)
+            containerPath = appuserHome + "/" + base
+            kwargs['ngraph_src_dir'] = containerPath
+            start.extend(["-v", path + ":" + containerPath])
+        start.extend(["-w", workingDirectory, "-dt", image, "sleep infinity"])
+        try:
+            command_executor(start,
+                             verbose=verbose,
+                             stdout=open(os.devnull, "w"),
+                             stderr=open(os.devnull, "w"))
+            return kwargs
+        except Exception as exc:
+            msg = str(exc)
+            print("caught exception: " + msg)
 
 
 def check_container(container_name=None):
