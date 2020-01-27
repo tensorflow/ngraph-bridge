@@ -26,6 +26,8 @@ To run nGraph in Docker, choose one of two ways to create your container:
 - When the multi-stage docker build is complete, you will be able to run a container with Tensorflow and nGraph using the `ngraph-bridge:ngtf` image:
 
         docker run -it --name ngtf ngraph-bridge:ngtf
+        
+  Note: If running behind a proxy, you will need to set `-e http_proxy=<http_proxy>` and `-e https_proxy=<https_proxy>` variables in order to run the test script.
 
 - After running the container, you can perform an inference test by running: 
 

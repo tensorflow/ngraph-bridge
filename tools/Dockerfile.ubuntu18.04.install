@@ -17,36 +17,26 @@
 ARG base_image
 
 FROM $base_image as base
-ARG http_proxy
-ARG https_proxy
 ARG ngtf_build_options
 
 RUN git clone https://github.com/tensorflow/ngraph-bridge.git /ngraph-bridge
 
 WORKDIR /ngraph-bridge
 
-ENV http_proxy=$http_proxy
-ENV https_proxy=$https_proxy
-
 RUN echo "Using build options: $ngtf_build_options" && ./build_ngtf.py $ngtf_build_options
 
 FROM ubuntu:18.04
 
-ARG http_proxy
-ARG https_proxy
-
-ENV http_proxy=$http_proxy
-ENV https_proxy=$https_proxy
-
 ENV PATH="/ngraph-bridge/build_cmake/venv-tf-py3/bin:$PATH"
 
-RUN apt-get update &&  apt-get install -y \
-    vim \
+RUN apt-get update && apt-get install -y --no-install-recommends --fix-missing \
+    git \
     python3-distutils \
     python3-pip \
-    git \
-    unzip zip wget \
-    sudo
+    unzip \
+    vim \
+    wget \
+    zip
 
 # Copy virtual environment from the previous layer
 COPY --from=base /ngraph-bridge/build_cmake/venv-tf-py3 /ngraph-bridge/build_cmake/venv-tf-py3

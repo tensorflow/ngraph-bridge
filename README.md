@@ -141,7 +141,7 @@ release and publishing the corresponding Python wheel.
 
 ### Build and run nGraph in Docker
 
-A shell script and dockerfiles are provided in the `tools` directory for easy setup in a Docker container. 
+A shell script and dockerfiles are provided in the [`tools`](/tools) directory for easy setup in a Docker container. 
 See [this README](/tools) if you want to use Docker.
 
 ## Classify an image
