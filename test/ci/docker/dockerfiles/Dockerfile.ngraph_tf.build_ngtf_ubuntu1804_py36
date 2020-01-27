@@ -87,7 +87,7 @@ RUN  mkdir -p .cache/bazel && chmod -R 777 .cache
 RUN echo 'export PYENV_ROOT="/home/appuser/.pyenv"' >> /etc/profile
 RUN echo 'export PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"' >> /etc/profile
 RUN curl https://pyenv.run | bash -l
-RUN chmod 777 /home/appuser/.pyenv
+RUN chgrp -R users /home/appuser/.pyenv && chmod -R g+w /home/appuser/.pyenv
 RUN echo 'eval "$(pyenv init -)"' >> /etc/profile
 RUN echo 'eval "$(pyenv virtualenv-init -)"' >> /etc/profile
 RUN pyenv install 3.6.9
@@ -95,7 +95,7 @@ RUN chmod 777 /home/appuser/.pyenv/shims
 RUN . /etc/profile && \
   pyenv virtualenv 3.6.9 tensorflow && \
   pyenv activate tensorflow && \
-  pip install --upgrade pip==19.3.1 && \
+  pip install --upgrade pip==20.0.2 && \
   pip install six numpy wheel setuptools mock 'future>=0.17.1' && \
   pip install keras_applications --no-deps && \
   pip install keras_preprocessing --no-deps
