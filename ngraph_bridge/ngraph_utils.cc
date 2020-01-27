@@ -48,6 +48,15 @@ vector<int> FindComplement(const int& max_element,
   vector<int> superset(max_element);
   iota(begin(superset), end(superset), 0);
 
+  return FindComplement(superset, element_set);
+}
+
+// Finds the complement of element_set
+// From the superset
+// Finds: superset - element_set
+// Assumes superset and element_superset are sorted
+vector<int> FindComplement(const vector<int>& superset,
+                           const vector<int>& element_set) {
   // max size of complement is superset
   vector<int> complement(superset.size());
   vector<int>::iterator it = set_difference(
@@ -337,6 +346,12 @@ const gtl::ArraySlice<DataType>& NGraphIndexDTypes() {
   return result;
 }
 
+const gtl::ArraySlice<DataType>& NGraphIntDTypes() {
+  static gtl::ArraySlice<DataType> result{DT_INT8, DT_UINT16, DT_INT16,
+                                          DT_INT32, DT_INT64};
+  return result;
+}
+
 const gtl::ArraySlice<DataType>& NGraphSupportedQuantizedDTypes() {
   static gtl::ArraySlice<DataType> result{DT_QINT8, DT_QUINT8};
   return result;
@@ -473,6 +488,41 @@ std::string GraphFilenamePrefix(std::string kind, int idx, int sub_idx) {
   return ss.str();
 }
 
+void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
+                std::string filename_prefix, std::string title) {
+  // If we have a "main" graph, dump that.
+  if (options.graph != nullptr) {
+    auto dot_filename = DotFilename(filename_prefix, idx);
+    auto pbtxt_filename = PbtxtFilename(filename_prefix, idx);
+    NGRAPH_VLOG(0) << "Dumping main graph to " << dot_filename;
+    NGRAPH_VLOG(0) << "Dumping main graph to " << pbtxt_filename;
+
+    GraphToDotFile(options.graph->get(), dot_filename, title);
+    GraphToPbTextFile(options.graph->get(), pbtxt_filename);
+  }
+
+  // If we have partition graphs (we shouldn't), dump those.
+  if (options.partition_graphs != nullptr) {
+    int sub_idx = 0;
+
+    for (auto& kv : *options.partition_graphs) {
+      auto dot_filename = DotFilename(filename_prefix, idx, sub_idx);
+      auto pbtxt_filename = PbtxtFilename(filename_prefix, idx, sub_idx);
+      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
+                     << dot_filename;
+      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
+                     << pbtxt_filename;
+
+      Graph* pg = kv.second.get();
+
+      GraphToDotFile(pg, dot_filename, title);
+      GraphToPbTextFile(pg, pbtxt_filename);
+
+      sub_idx++;
+    }
+  }
+}
+
 bool DumpAllGraphs() { return std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr; }
 
 bool DumpPrecaptureGraphs() {
@@ -554,6 +604,15 @@ bool IsProcessedByNgraphPass(Graph* g) {
     if (node->type_string() == "NGraphEncapsulate") return true;
   }
   return false;
+}
+
+void ClearAttribute(Graph* g,
+                    const std::set<string>& attributes_to_be_cleared) {
+  for (auto node : g->nodes()) {
+    for (const auto& attr : attributes_to_be_cleared) {
+      node->ClearAttr(attr);
+    }
+  }
 }
 
 }  // namespace ngraph_bridge

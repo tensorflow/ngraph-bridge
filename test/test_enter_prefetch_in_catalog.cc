@@ -45,21 +45,13 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 namespace testing {
-Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph) {
-  // Read the graph
-  tensorflow::GraphDef graph_def;
-  auto load_graph_status = ReadTextProto(Env::Default(), pb_file, &graph_def);
-  if (!load_graph_status.ok()) {
-    return load_graph_status;
-  }
-
-  GraphConstructorOptions opts;
-  opts.allow_internal_ops = true;
-  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph);
-  return status;
-}
-
 TEST(PrefetchCatalogTest, SmallGraph1) {
+  // Set flag to enable prefetch
+  list<string> env_vars{"NGRAPH_TF_USE_PREFETCH"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_USE_PREFETCH", "1");
+
+  // Create Graph
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
   Graph input_graph(OpRegistry::Global());
@@ -77,18 +69,26 @@ TEST(PrefetchCatalogTest, SmallGraph1) {
       NGraphCatalog::ExistsInPrefetchedInputIndexMap("0_ngraph_cluster_4"));
   ASSERT_TRUE(
       NGraphCatalog::ExistsInPrefetchedInputIndexMap(0, "ngraph_cluster_4"));
-  std::unordered_set<int> expected;
-  expected.insert(0);
-  std::unordered_set<int> indexes;
-  indexes = NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
+  std::map<int, int> expected;
+  expected.insert({0, 0});
+  std::map<int, int> indexes_map;
+  indexes_map = NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
       0, "ngraph_cluster_4");
-  ASSERT_EQ(indexes, expected);
+  ASSERT_EQ(indexes_map, expected);
 
   // Clean up
   NGraphCatalog::ClearCatalog();
+  // Unset, Restore env flga
+  UnsetEnvVariable("NGRAPH_TF_USE_PREFETCH");
+  RestoreEnv(env_map);
 }
 
 TEST(PrefetchCatalogTest, SmallGraph2) {
+  // Set flag to enable prefetch
+  list<string> env_vars{"NGRAPH_TF_USE_PREFETCH"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_USE_PREFETCH", "1");
+
   GraphConstructorOptions opts;
   opts.allow_internal_ops = true;
   Graph input_graph(OpRegistry::Global());
@@ -102,16 +102,19 @@ TEST(PrefetchCatalogTest, SmallGraph2) {
       NGraphCatalog::ExistsInPrefetchedInputIndexMap("0_ngraph_cluster_340"));
   ASSERT_TRUE(
       NGraphCatalog::ExistsInPrefetchedInputIndexMap(0, "ngraph_cluster_340"));
-  std::unordered_set<int> expected;
-  expected.insert(2);
-  expected.insert(3);
-  std::unordered_set<int> indexes;
+  std::map<int, int> expected;
+  expected.insert({2, 1});
+  expected.insert({3, 0});
+  std::map<int, int> indexes;
   indexes = NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
       0, "ngraph_cluster_340");
   ASSERT_EQ(indexes, expected);
 
   // Clean up
   NGraphCatalog::ClearCatalog();
+  // Unset, restore env flags
+  UnsetEnvVariable("NGRAPH_TF_USE_PREFETCH");
+  RestoreEnv(env_map);
 }
 
 }  // namespace testing

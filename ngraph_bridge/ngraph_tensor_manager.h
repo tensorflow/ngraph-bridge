@@ -24,7 +24,10 @@
 
 #include "tensorflow/core/common_runtime/dma_helper.h"
 
+#include "ngraph/ngraph.hpp"
+
 using namespace std;
+namespace ng = ngraph;
 namespace tensorflow {
 
 namespace ngraph_bridge {
@@ -38,6 +41,12 @@ class NGraphTensorManager {
                                const int number_of_outputs);
 
   ~NGraphTensorManager();
+
+  string GetName() { return m_ng_encap_node_name; }
+
+  int GetClusterId() { return m_ng_encap_cluster_id; }
+
+  int GetGraphId() { return m_ng_encap_graph_id; }
 
   const int& GetNumberOfInputs() { return m_number_of_inputs; }
 
@@ -63,9 +72,44 @@ class NGraphTensorManager {
     return m_pipelined_output_indexes;
   }
 
+  // wrt to all inputs
   const vector<int>& GetPrefetchedInputIndexes() {
     return m_prefetched_input_indexes;
   }
+
+  // wrt to all inputs
+  const vector<int>& GetPipelinedButNotPrefetchedInputIndexes() {
+    return m_pipelined_not_prefetched_input_indexes;
+  }
+
+  // wrt to pipelined inputs
+  const vector<int>& GetPipelinedInputIndexesThatArePrefetched() {
+    return m_pipelined_input_indexes_that_are_prefetched;
+  }
+
+  // wrt to pipelined inputs
+  const vector<int>& GetPipelinedInputIndexesThatAreNotPrefetched() {
+    return m_pipelined_input_indexes_that_are_not_prefetched;
+  }
+
+  // wrt to pipelined inputs
+  const map<int, int>& GetInputIndexesForPrefetchSharedObject() {
+    return m_prefetch_iterator_encap_index_map;
+  }
+
+  // input ng-variable shared name
+  Status GetInputVariableSharedName(const int& input_index,
+                                    string* input_var_shared_name);
+
+  // output ng-variable shared name
+  Status GetOutputVariableSharedName(const int& output_index,
+                                     string* output_var_shared_name);
+
+  // does output ng-variable's host-TF tensor needs to be updated
+  Status GetOutputVariableCopyToTF(const int& output_index,
+                                   bool* output_var_copy_to_tf);
+
+  void Print();
 
  private:
   void Initialize();
@@ -76,16 +120,36 @@ class NGraphTensorManager {
   int m_number_of_outputs;
 
   // Book-keeping for weights-on-device optimizations
+  // indexes wrt all inputs/outputs
   vector<int> m_input_indexes_from_variables;
   vector<int> m_output_indexes_assigning_variable;
   vector<int> m_output_indexes_that_need_copy;
 
-  // All indexes that are not for from/to variables
+  // All indexes that are not from/to variables
+  // Book-keeping primarily for data pipelining
+  // These are pipelined, some of these are also prefetched
+
+  // indexes wrt all inputs/outputs
   vector<int> m_pipelined_input_indexes;
   vector<int> m_pipelined_output_indexes;
 
-  //[TODO] Book-keeping for prefetched inputs
+  // indexes wrt pipelined inputs
+  vector<int> m_pipelined_input_indexes_that_are_prefetched;
+  vector<int> m_pipelined_input_indexes_that_are_not_prefetched;
+
+  // indexes wrt all inputs
   vector<int> m_prefetched_input_indexes;
+  vector<int> m_pipelined_not_prefetched_input_indexes;
+
+  // Map of
+  // key : index of the pipelined input tensors that are prefetched
+  // value: index of the IteratorGetNext feeding into this input of NGEncap Op
+  // Used to create prefetch shared data by NGEncap Op
+  map<int, int> m_prefetch_iterator_encap_index_map;
+
+  // Book-keeping for weights-on-device optimizations
+  unordered_map<int, string> input_variable_shared_name_map;
+  unordered_map<int, tuple<string, bool>> output_variable_info_map;
 };
 
 }  // namespace ngraph_bridge
