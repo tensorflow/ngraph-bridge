@@ -1265,7 +1265,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     GraphDef* gdef;
 
     set<int> newly_created_cluster_ids;
-    ASSERT_OK(NGraphClusterManager::GetNewClusterIDs());
+    TF_RETURN_IF_ERROR(enc.GetNewClusterIDs(newly_created_cluster_ids));
 
     for (auto graphdef_idx : newly_created_cluster_ids) {
       gdef = NGraphClusterManager::GetClusterGraph(graphdef_idx);
