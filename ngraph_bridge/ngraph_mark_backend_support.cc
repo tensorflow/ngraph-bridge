@@ -79,7 +79,6 @@ Status IsSupportedByBackend(
     return errors::Internal("TF Op is not found in the map: ",
                             node->type_string());
   }
-
   // Loop through the ngraph op list to query
   for (auto it = ng_op->second.begin(); it != ng_op->second.end(); it++) {
     // Pass ngraph node to check if backend supports this op
