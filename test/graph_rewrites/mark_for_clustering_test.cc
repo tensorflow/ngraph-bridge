@@ -334,7 +334,8 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest8) {
   db.set_supported_behaviour({std::make_shared<ngraph::op::Abs>(),
                               std::make_shared<ngraph::op::Exp>(),
                               std::make_shared<ngraph::op::Subtract>(),
-                              std::make_shared<ngraph::op::Multiply>()});
+                              std::make_shared<ngraph::op::Multiply>(),
+                              std::make_shared<ngraph::op::Broadcast>()});
 
   vector<Node*> nodes_marked_for_clustering;
   for (auto node : g.nodes()) {
