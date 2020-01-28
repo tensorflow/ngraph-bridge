@@ -96,6 +96,7 @@ RUN . /etc/profile && \
   pyenv virtualenv 3.6.9 tensorflow && \
   pyenv activate tensorflow && \
   pip install --upgrade pip==20.0.2 && \
-  pip install six numpy wheel setuptools mock 'future>=0.17.1' && \
-  pip install keras_applications --no-deps && \
-  pip install keras_preprocessing --no-deps
+  pip install 'six>=1.10.0' 'numpy>=1.13.3' 'wheel>=0.26' 'setuptools>=41.0.0' mock 'future>=0.17.1' psutil && \
+  pip install 'absl-py>=0.1.6' 'astor>=0.6.0' 'google_pasta>=0.1.1' 'termcolor>=1.1.0' 'protobuf>=3.6.1' 'yapf==0.26.0' && \
+  pip install 'keras_applications>=1.0.6' --no-deps && \
+  pip install 'keras_preprocessing>=1.0.5' --no-deps

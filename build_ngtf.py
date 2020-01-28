@@ -271,7 +271,7 @@ def main():
         os.mkdir(artifacts_location)
 
     #install virtualenv
-    if arguments.use_venv != '':
+    if arguments.use_venv == '':
         venv_dir = 'venv-tf-py3'
         install_virtual_env(venv_dir)
 
