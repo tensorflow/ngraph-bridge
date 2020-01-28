@@ -83,17 +83,18 @@ class ng::runtime::dummy::DummyExecutable : public ng::runtime::Executable {
 
 class ng::runtime::dummy::DummyBackend2
     : public ng::runtime::dummy::DummyBackend {
-public:
+ public:
   bool is_supported(const ngraph::Node& node) const override;
 };
 
 class ng::runtime::dummy::DummyBackend3
     : public ng::runtime::dummy::DummyBackend {
-std::set<std::shared_ptr<Node>> supported_nodes = {};
-public:
+  std::set<std::shared_ptr<Node>> supported_nodes = {};
+
+ public:
   bool is_supported(const ngraph::Node& node) const override;
 
- // Utility function for tests. Set the nodes that this mock backend supports
+  // Utility function for tests. Set the nodes that this mock backend supports
   void set_supported_behaviour(std::set<std::shared_ptr<Node>> supported_nodes);
 };
 

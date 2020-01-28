@@ -41,10 +41,8 @@ TEST(DummyBackend, IsSupported) {
   ASSERT_EQ(db.is_supported(*add), false);
   // TODO add a test where we compile and get an executable
 
-
   ngraph::runtime::dummy::DummyBackend2 db2;
   ASSERT_EQ(db2.is_supported(*add), true);
-
 
   ngraph::runtime::dummy::DummyBackend3 db3;
   ASSERT_EQ(db3.is_supported(*add), false);

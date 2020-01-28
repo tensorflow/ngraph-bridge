@@ -259,10 +259,8 @@ TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest6) {
 TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest7) {
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend3 db;
-  db.set_supported_behaviour({
-      std::make_shared<ngraph::op::Abs>(),
-      std::make_shared<ngraph::op::Add>()
-  });
+  db.set_supported_behaviour({std::make_shared<ngraph::op::Abs>(),
+                              std::make_shared<ngraph::op::Add>()});
 
   vector<Node*> nodes_marked_for_clustering;
   for (auto node : g.nodes()) {
