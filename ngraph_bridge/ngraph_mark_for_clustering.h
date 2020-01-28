@@ -31,7 +31,11 @@ namespace ngraph_bridge {
 Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes,
                          const string& current_backend,
                          const std::set<ShapeHintMap>& hints);
-Status QueryBackendForSupport(Graph* graph, ngraph::runtime::Backend* op_backend, const string& current_backend, const std::set<ShapeHintMap>& hints, std::vector<Node*>& nodes_marked_for_clustering);
+Status QueryBackendForSupport(Graph* graph,
+                              ngraph::runtime::Backend* op_backend,
+                              const string& current_backend,
+                              const std::set<ShapeHintMap>& hints,
+                              std::vector<Node*>& nodes_marked_for_clustering);
 // remove marking, backend and static input nodes attributes
 void ResetMarkForClustering(Graph* graph);
 bool NodeIsMarkedForClustering(const Node* node);

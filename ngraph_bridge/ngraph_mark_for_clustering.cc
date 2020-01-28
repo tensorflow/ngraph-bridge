@@ -1236,9 +1236,9 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   // TODO: we should also be calling SetConfig
   // BackendManager::SetConfig(ng_backend_type, ??);
 
-  TF_RETURN_IF_ERROR(QueryBackendForSupport(graph,op_backend, current_backend, hints, nodes_marked_for_clustering));
+  TF_RETURN_IF_ERROR(QueryBackendForSupport(
+      graph, op_backend, current_backend, hints, nodes_marked_for_clustering));
 
-  
   // Release backend created to query is_supported
   BackendManager::ReleaseBackend(ng_backend_type);
 
@@ -1293,8 +1293,10 @@ void ResetMarkForClustering(Graph* graph) {
                          "_ngraph_static_inputs"});
 }
 
-Status QueryBackendForSupport(Graph* graph, ng::runtime::Backend* op_backend, const string& current_backend, const std::set<ShapeHintMap>& hints, vector<Node*>& nodes_marked_for_clustering) {
-
+Status QueryBackendForSupport(Graph* graph, ng::runtime::Backend* op_backend,
+                              const string& current_backend,
+                              const std::set<ShapeHintMap>& hints,
+                              vector<Node*>& nodes_marked_for_clustering) {
   const std::map<std::string, SetAttributesFunction>& set_attributes_map =
       GetAttributeSetters();
 
