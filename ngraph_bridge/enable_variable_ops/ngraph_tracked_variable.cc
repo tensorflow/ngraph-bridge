@@ -120,7 +120,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
 
   std::ostringstream oss;
   oss << "NGVariable::Compute::" << name();
-  NG_TRACE(oss.str(), name());
+  NG_TRACE(oss.str(), name(), "");
 
   bool log_copies = false;
   OP_REQUIRES_OK(ctx,

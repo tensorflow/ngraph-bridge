@@ -84,7 +84,7 @@ class NGraphAssignOp : public OpKernel {
   void Compute(OpKernelContext* context) override {
     std::ostringstream oss;
     oss << "NGAssign::Compute::" << name();
-    NG_TRACE(oss.str(), name());
+    NG_TRACE(oss.str(), name(), "");
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Compute called for: " << def().name()
                    << ", just_looking " << PrintBool(just_looking_)

@@ -204,7 +204,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                      << output_tensors_bytes_free / (1024 * 1024) << " MB";
     }  // cache eviction if cache size greater than cache depth
 
-    NG_TRACE("Compile nGraph", m_name);
+    NG_TRACE("Compile nGraph", m_name, "");
     BackendManager::LockBackend(m_op_backend_name);
     try {
       if (m_do_aot) {
@@ -341,7 +341,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
             current_ng_tensor->get_element_count() * ng_element_type.size();
         string event_name =
             "Input_" + to_string(i) + "_" + to_string(copy_size);
-        NG_TRACE(event_name, m_name);
+        NG_TRACE(event_name, m_name, "");
         current_ng_tensor->write(
             current_src_ptr,
             current_ng_tensor->get_element_count() * ng_element_type.size());

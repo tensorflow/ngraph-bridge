@@ -34,8 +34,8 @@
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
 
-#define NG_TRACE(name, category) \
-  ngraph::runtime::event::Duration dx__ { name, category }
+#define NG_TRACE(name, category, args) \
+  ngraph::runtime::event::Duration dx__ { name, category, args }
 
 namespace ng = ngraph;
 using namespace std;

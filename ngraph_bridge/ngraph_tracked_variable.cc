@@ -108,7 +108,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   mutex_lock l(init_mu_);
   std::ostringstream oss;
   oss << "NGVariable::Compute::" << name();
-  NG_TRACE(oss.str(), name());
+  NG_TRACE(oss.str(), name(), "");
 
   if (!initialized_) {
     OP_REQUIRES_OK(ctx, cinfo_.Init(ctx->resource_manager(), def(),

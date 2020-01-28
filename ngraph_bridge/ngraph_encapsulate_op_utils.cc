@@ -159,7 +159,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
   }
 
   // Allocate the input/
-  NG_TRACE("Copy Pipelined Input Tensors", "");
+  NG_TRACE("Copy Pipelined Input Tensors", "", "");
   if (!skip_tf2ng_copy) {
     // All pipelined inputs are copied
 
@@ -171,7 +171,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
       void* current_src_ptr =
           (void*)DMAHelper::base(&tf_input_tensors[tf_index]);
 
-      NG_TRACE("H2D_Input_" + std::to_string(tf_index), "");
+      NG_TRACE("H2D_Input_" + std::to_string(tf_index), "", "");
 
       try {
         ng_pipelined_inputs[i]->write(
@@ -206,7 +206,7 @@ Status GetPipelinedIOTensorsReadyForExecution(
           tf_input_tensors[tf_index].dtype(), &ng_element_type));
       void* current_src_ptr =
           (void*)DMAHelper::base(&tf_input_tensors[tf_index]);
-      NG_TRACE("H2D_Input_" + to_string(tf_index), "");
+      NG_TRACE("H2D_Input_" + to_string(tf_index), "", "");
       try {
         ng_pipelined_inputs[ng_index]->write(
             current_src_ptr,

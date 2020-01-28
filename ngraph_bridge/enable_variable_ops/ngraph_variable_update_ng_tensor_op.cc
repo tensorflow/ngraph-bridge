@@ -65,7 +65,7 @@ NGraphVariableUpdateNGTensorOp::~NGraphVariableUpdateNGTensorOp() {
 void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
   std::ostringstream oss;
   oss << "NGVariableUpdateNGTensor::Compute::" << name();
-  NG_TRACE(oss.str(), "");
+  NG_TRACE(oss.str(), "", "");
   bool log_copies = false;
   OP_REQUIRES_OK(context,
                  IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));

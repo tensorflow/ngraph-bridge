@@ -286,7 +286,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
 
     Status Consume(IteratorContext* ctx, std::vector<Tensor>* out_tensors,
                    bool* end_of_sequence) EXCLUSIVE_LOCKS_REQUIRED(mu_) {
-      NG_TRACE("Prefetch_Consume", "Prefetch_Consume");
+      NG_TRACE("Prefetch_Consume", "Prefetch_Consume", "");
 
       const auto& stats_aggregator = ctx->stats_aggregator();
       if (stats_aggregator) {
@@ -362,7 +362,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
       // Keep track of where we are in an iteration "burst"
       int num_produced = 0;
       while (true) {
-        NG_TRACE("Prefetch_Produce", "Prefetch_Produce");
+        NG_TRACE("Prefetch_Produce", "Prefetch_Produce", "");
 
         // 1. Wait for a slot in the buffer.
         {
@@ -419,7 +419,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
           auto ng_prefetch_input_indexes_map =
               shared_data->GetPrefetchInputIndexesMap();
           NG_TRACE("Prf Dev Copy: Pipe_Ind_" + to_string(ng_input_tensor_bundle.Id),
-              "Copy");
+              "Copy", "");
           int number_of_buffer_elements = buffer_element.value.size();
           if (number_of_buffer_elements !=
               ng_prefetch_input_indexes_map.size()) {
@@ -441,7 +441,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
 
             void* current_src_ptr =
                 (void*)DMAHelper::base(&buffer_element.value[tf_index]);
-            NG_TRACE("H2D_PrefetchInput_" + std::to_string(tf_index), "Copy");
+            NG_TRACE("H2D_PrefetchInput_" + std::to_string(tf_index), "Copy", "");
             try {
               NGRAPH_VLOG(2)
                   << "[PREFETCH] INPUT tensor being written by Prefetch: "
