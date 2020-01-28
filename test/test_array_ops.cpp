@@ -1556,11 +1556,15 @@ TEST(ArrayOps, StridedSliceGradTest1) {
   vector<DataType> output_datatypes = {DT_FLOAT};
   vector<Output> sess_run_fetchoutputs = {R};
 
-  vector<int> static_input_indexes = {1, 2, 3};
+  vector<int> static_input_indexes = {0, 1, 2, 3};
   OpExecuter opexecuter(root_scope, "StridedSliceGrad", static_input_indexes, 
                         output_datatypes, sess_run_fetchoutputs);
 
-  opexecuter.RunTest();
+  // opexecuter.RunTest();
+  vector<Tensor> ngraph_outputs;
+  opexecuter.ExecuteOnNGraph(ngraph_outputs);
+  cout << ngraph_outputs[0].DebugString() << endl;
+  cout << ngraph_outputs[0].tensor<float, 3>() << endl;
 } // end of test op StridedSliceGrad
 
 // Test SplitNegativeAxis op
