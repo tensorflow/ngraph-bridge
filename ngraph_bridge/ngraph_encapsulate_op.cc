@@ -29,7 +29,6 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/graph/graph_constructor.h"
-// #include "tensorflow/compiler/tf2xla/xla_op_registry.h" //:DEVICE_XLA_CPU
 
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
