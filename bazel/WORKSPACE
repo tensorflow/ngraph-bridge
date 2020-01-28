@@ -88,21 +88,22 @@ http_archive(
 http_archive(
         name = "mkl_dnn",
         build_file = "//:bazel/mkl_dnn.BUILD",
-        sha256 = "ed56652dd237deb86ee9bf102c18de5f2625c059e5ab1d7512c8dc01e316b694",
-        strip_prefix = "mkl-dnn-0.21.2",
+        sha256 = "0e9bcbc86cc215a84a5455a395ce540c68e255eaa586e37222fff622b9b17df7",
+        strip_prefix = "mkl-dnn-1.1.3",
         urls = [
-            "http://mirror.tensorflow.org/github.com/intel/mkl-dnn/archive/v0.21.2.tar.gz",
-            "https://github.com/intel/mkl-dnn/archive/v0.21.2.tar.gz",
+            # TODO: No official v1.x release have been posted to http://mirror.tensorflow.org yet
+            # "http://mirror.tensorflow.org/github.com/intel/mkl-dnn/archive/v1.1.3.tar.gz",
+            "https://github.com/intel/mkl-dnn/archive/v1.1.3.tar.gz",
         ],
     )
 
 http_archive(
-        name = "mkl_linux",
+        name = "dnnl_lnx",
         build_file = "//:bazel/mkl.BUILD",
-        sha256 = "a936d6b277a33d2a027a024ea8e65df62bd2e162c7ca52c48486ed9d5dc27160",
-        strip_prefix = "mklml_lnx_2019.0.5.20190502",
+        sha256 = "312fbf6cb86194ac2606a9f65621c2b7fcef3cd991491386c54f4dddca73017d",
+        strip_prefix = "dnnl_lnx_1.1.3_cpu_gomp",
         urls = [
-            "http://mirror.tensorflow.org/github.com/intel/mkl-dnn/releases/download/v0.20/mklml_lnx_2019.0.5.20190502.tgz",
-            "https://github.com/intel/mkl-dnn/releases/download/v0.20/mklml_lnx_2019.0.5.20190502.tgz",
+            "http://mirror.tensorflow.org/github.com/intel/mkl-dnn/releases/download/v1.1.3/dnnl_lnx_1.1.3_cpu_gomp.tgz",
+            "https://github.com/intel/mkl-dnn/releases/download/v1.1.3/dnnl_lnx_1.1.3_cpu_gomp.tgz",
         ],
     )

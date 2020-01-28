@@ -276,7 +276,7 @@ cc_library(
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
         '-D NGRAPH_CPU_STATIC_LIB_ENABLE',
-        '-D NGRAPH_USE_LEGACY_MKLDNN=\\"TRUE\\"',
+        '-D NGRAPH_USE_LEGACY_MKLDNN=\\"FALSE\\"',
         "-march=native",
         "-mtune=native",
         "-Wall",
