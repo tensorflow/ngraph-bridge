@@ -36,7 +36,7 @@ namespace ngraph_bridge {
 namespace testing {
 
 class MarkForClusteringTestBase : public ::testing::Test {
-protected:
+ protected:
   size_t NumNodesMarkedForClustering() {
     size_t ctr = 0;
     for (auto node : g.nodes()) {
@@ -46,7 +46,6 @@ protected:
   }
 
   Graph g{OpRegistry::Global()};
-
 };
 
 class MarkForClusteringTest1 : public MarkForClusteringTestBase {
@@ -81,7 +80,7 @@ class MarkForClusteringTest1 : public MarkForClusteringTestBase {
                   .Finalize(&g, &node4));
 
     // Add edges from SRC to node1 and node2
-    // Add edge from node3 to SINK
+    // Add edge from node4 to SINK
     // The graph is disconnected without these edges
     Node* source = g.source_node();
     Node* sink = g.sink_node();
@@ -89,8 +88,6 @@ class MarkForClusteringTest1 : public MarkForClusteringTestBase {
     g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
     g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
   }
-
-  
 };
 
 TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest1) {
@@ -223,6 +220,103 @@ TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest5) {
 
   NGraphClusterManager::EvictAllClusters();
 }
+
+// Mark const, add and abs for clustering, but backend only supports const and
+// add. Forms a trivial cluster const->add<-const, which is deassigned
+TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest6) {
+  string current_backend = "dummy";
+  ngraph::runtime::dummy::DummyBackend3 db;
+  db.set_supported_behaviour({
+      std::make_shared<ngraph::op::Add>(),
+      ngraph::op::Constant::create(ngraph::element::f32, ngraph::Shape{},
+                                   {2.0f}),
+  });
+
+  vector<Node*> nodes_marked_for_clustering;
+  for (auto node : g.nodes()) {
+    if (node->type_string() == "Const" || node->type_string() == "Add" ||
+        node->type_string() == "Abs") {
+      nodes_marked_for_clustering.push_back(node);
+    }
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
+
+  ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
+                                   nodes_marked_for_clustering));
+
+  // This dummy backend supports Add and const but not abs
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
+  ASSERT_EQ(NumNodesMarkedForClustering(), 0);
+
+  NGraphClusterManager::EvictAllClusters();
+}
+
+// Mark const, add and abs for clustering, but backend only supports abs and
+// add. Forms one cluster
+TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest7) {
+  string current_backend = "dummy";
+  ngraph::runtime::dummy::DummyBackend3 db;
+  db.set_supported_behaviour({
+      std::make_shared<ngraph::op::Abs>(),
+      std::make_shared<ngraph::op::Add>()
+  });
+
+  vector<Node*> nodes_marked_for_clustering;
+  for (auto node : g.nodes()) {
+    if (node->type_string() == "Const" || node->type_string() == "Add" ||
+        node->type_string() == "Abs") {
+      nodes_marked_for_clustering.push_back(node);
+    }
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
+
+  ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
+                                   nodes_marked_for_clustering));
+
+  // This dummy backend supports Add and abs but not const
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
+  ASSERT_EQ(NumNodesMarkedForClustering(), 2);
+
+  NGraphClusterManager::EvictAllClusters();
+}
+
+class MarkForClusteringTest2 : public MarkForClusteringTestBase {
+ protected:
+  void SetUp() override {
+    Node* node1;
+    ASSERT_OK(NodeBuilder("node1", "Placeholder")
+                  .Attr("dtype", DT_FLOAT)
+                  .Finalize(&g, &node1));
+
+    Node* node2;
+    ASSERT_OK(NodeBuilder("node2", "Softplus")
+                  .Input(node1, 0)
+                  .Attr("T", DT_FLOAT)
+                  .Finalize(&g, &node2));
+
+    Node* node3;
+    ASSERT_OK(NodeBuilder("node3", "SquaredDifference")
+                  .Input(node2, 0)
+                  .Attr("T", DT_FLOAT)
+                  .Finalize(&g, &node3));
+
+    // Add edges from SRC to node1
+    // Add edge from node3 to SINK
+    // The graph is disconnected without these edges
+    Node* source = g.source_node();
+    Node* sink = g.sink_node();
+    g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
+    g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+  }
+};
+
+// TODO add tests to check the "loop" case: A->BC->D
 
 TEST(MarkForClustering, SimpleTest) {
   Graph g(OpRegistry::Global());

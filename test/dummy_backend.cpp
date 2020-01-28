@@ -15,6 +15,7 @@
 //*****************************************************************************
 
 #include "ngraph/descriptor/layout/dense_tensor_layout.hpp"
+#include "ngraph/ngraph.hpp"
 #include "ngraph/op/util/binary_elementwise_comparison.hpp"
 #include "ngraph/pass/assign_layout.hpp"
 #include "ngraph/pass/like_replacement.hpp"
@@ -74,6 +75,17 @@ bool runtime::dummy::DummyExecutable::call(
 
 bool runtime::dummy::DummyBackend2::is_supported(const Node& node) const {
   return true;
+}
+
+bool runtime::dummy::DummyBackend3::is_supported(const Node& node) const {
+  return std::any_of(
+      supported_nodes.begin(), supported_nodes.end(),
+      [&node](std::shared_ptr<Node> n) { return node.is_same_op_type(n); });
+}
+
+void runtime::dummy::DummyBackend3::set_supported_behaviour(
+    std::set<std::shared_ptr<Node>> supported_nodes) {
+  this->supported_nodes = supported_nodes;
 }
 
 }  // namespace ngraph

@@ -19,6 +19,7 @@
 #pragma once
 
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -42,6 +43,9 @@ class DummyExecutable;
 
 // This backend returns true for is_supported for any node
 class DummyBackend2;
+
+// This backend has complex behaviour for is_supported
+class DummyBackend3;
 }
 }
 }
@@ -80,6 +84,16 @@ class ng::runtime::dummy::DummyExecutable : public ng::runtime::Executable {
 class ng::runtime::dummy::DummyBackend2
     : public ng::runtime::dummy::DummyBackend {
   bool is_supported(const ngraph::Node& node) const override;
+};
+
+class ng::runtime::dummy::DummyBackend3
+    : public ng::runtime::dummy::DummyBackend {
+  bool is_supported(const ngraph::Node& node) const override;
+
+  std::set<std::shared_ptr<Node>> supported_nodes = {};
+
+ public:
+  void set_supported_behaviour(std::set<std::shared_ptr<Node>> supported_nodes);
 };
 
 #endif  // NGRAPH_TF_BRIDGE_DUMMYBACKEND_H_
