@@ -25,7 +25,7 @@ import numpy as np
 
 import tensorflow as tf
 import os
-
+import sys
 from common import NgraphTest
 
 np.random.seed(5)
@@ -48,13 +48,14 @@ class TestBfloat16(NgraphTest):
         assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
 
     def test_conv2d_bfloat16(self):
+
         # inputs
-        input_shape_nhwc = (1, 8, 8, 1)
+        input_shape_nhwc = (1, 4, 4, 1)
         filter_shape_hwio = (3, 3, 1, 2)
         input_pl = tf.placeholder(tf.bfloat16, input_shape_nhwc, name="inp_pl")
         filter_shape_pl = tf.placeholder(
             tf.bfloat16, filter_shape_hwio, name="filter_pl")
-        input_values = np.arange(64).reshape(
+        input_values = np.arange(16).reshape(
             input_shape_nhwc)  #np.random.rand(*input_shape_nhwc)
         filter_values = np.arange(18).reshape(
             filter_shape_hwio)  # np.random.rand(*filter_shape_hwio)
@@ -77,17 +78,19 @@ class TestBfloat16(NgraphTest):
                                 filter_shape_pl: filter_values
                             })
 
-        assert np.allclose(
-            self.with_ngraph(run_test), self.without_ngraph(run_test))
+        ng_val = self.with_ngraph(run_test)
+        expected_val = np.reshape(
+            np.array([516, 560, 588, 640, 804, 884, 876, 968]), (1, 2, 2, 2))
+        assert np.allclose(ng_val, expected_val)
 
     def test_conv2d_cast_bfloat16(self):
         # inputs
-        input_shape_nhwc = (1, 8, 8, 1)
+        input_shape_nhwc = (1, 4, 4, 1)
         filter_shape_hwio = (3, 3, 1, 2)
         input_pl = tf.placeholder(tf.float32, input_shape_nhwc, name="inp_pl")
         filter_shape_pl = tf.placeholder(
             tf.float32, filter_shape_hwio, name="filter_pl")
-        input_values = np.arange(64).reshape(
+        input_values = np.arange(16).reshape(
             input_shape_nhwc)  #np.random.rand(*input_shape_nhwc)
         filter_values = np.arange(18).reshape(
             filter_shape_hwio)  # np.random.rand(*filter_shape_hwio)
@@ -113,5 +116,7 @@ class TestBfloat16(NgraphTest):
                                 filter_shape_pl: filter_values
                             })
 
-        assert np.allclose(
-            self.with_ngraph(run_test), self.without_ngraph(run_test))
+        ng_val = self.with_ngraph(run_test)
+        expected_val = np.reshape(
+            np.array([516, 560, 588, 640, 804, 884, 876, 968]), (1, 2, 2, 2))
+        assert np.allclose(ng_val, expected_val)

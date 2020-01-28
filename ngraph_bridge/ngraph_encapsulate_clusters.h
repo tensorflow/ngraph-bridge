@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,8 +116,6 @@ class Encapsulator {
   std::set<int> cluster_indices_for_this_graph;
 
   static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot);
-
-  Status AssignClusterDeviceAndBackend();
 };
 
 // Translates TF subgraph to ng function then compiles it

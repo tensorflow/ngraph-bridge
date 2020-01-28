@@ -161,6 +161,37 @@ class NGraphAssignAddOp : public OpKernel {
 REGISTER_KERNEL_BUILDER(Name("NGraphAssignAdd").Device(DEVICE_CPU),
                         NGraphAssignAddOp);
 
+/* -------------------------------------------------
+//
+// NGraphConv2DOp
+//
+---------------------------------------------------*/
+
+class NGConv2DOp : public OpKernel {
+ public:
+  explicit NGConv2DOp(OpKernelConstruction* context) : OpKernel(context) {
+    OP_REQUIRES(context, false,
+                errors::Internal("This constructor should not get called",
+                                 name(), "\n"));
+  }
+
+  void Compute(OpKernelContext* context) override {
+    OP_REQUIRES(
+        context, false,
+        errors::Internal("This kernel should not get called", name(), "\n"));
+  }
+
+ private:
+  ~NGConv2DOp() override {}
+};
+
+// REGISTER_KERNEL_BUILDER(Name("Conv2D").Device(DEVICE_CPU),
+//                         NGraphAssignAddOp);
+
+REGISTER_KERNEL_BUILDER(
+    Name("Conv2D").Device(DEVICE_CPU).TypeConstraint<bfloat16>("T"),
+    NGConv2DOp);
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow
