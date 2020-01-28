@@ -164,8 +164,6 @@ class Testtf2ngraph(NgraphTest):
             # Comparing with expected value
             assert np.isclose(res1, exp).all()
 
-    #Todo: Unskip this test
-    @pytest.mark.skip(reason="Does not work with tf2.0")
     def test_output_node_inference_for_saved_model(self):
         # The saved model we create in this pytest
         # has input and output specified,
@@ -212,7 +210,7 @@ class Testtf2ngraph(NgraphTest):
         assert "Please supply one or more output node in --output_nodes\n" in output.decode(
         )
         assert "Name: `output` Type: `Softmax`" in output.decode()
-        assert "Name: `add` Type: `Add`" in output.decode()
+        assert "Name: `add` Type: `AddV2`" in output.decode()
 
         # Since no output nodes were provided, we expect the test to fail with this error
         assert 'No output node name provided in --output_nodes' in err.decode()
