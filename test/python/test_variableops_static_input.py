@@ -30,7 +30,8 @@ import getpass
 import ctypes
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 from tensorflow.python.client import timeline
 import json
 import pytest
@@ -72,7 +73,7 @@ class TestVariableStaticInputs(NgraphTest):
 
     def __run_test(self, sess):
         # Var is initialized by var_init
-        var = tf.compat.v1.get_variable('var', [1], dtype=tf.int32)
+        var = tf.get_variable('var', [1], dtype=tf.int32)
         var_init = tf.constant([0])
         var_initialize = var.assign(var_init)
 
@@ -106,8 +107,11 @@ class TestVariableStaticInputs(NgraphTest):
         var_final_val = var.eval(sess)
         return var_init_value, mean_values, var_final_val
 
-    #todo : fix and unskip this
-    @pytest.mark.skip(reason="Fails with TF2.0 for var build")
+    # With TF2.0 the VariableV2 has been replaced with the VarHandleOp
+    # But, when built with --enable_variables_and_optimizers option
+    # looks for and captures VariableV2 and this test when run will not
+    # work as intended. Hence, we are disabling TF2.0 behaviour and
+    # and running it.
     def test_variable_static_input_variables_dont_share_buffer(self):
         # This test is not applicable for CPU as NGVariable's NG and TF Tensors
         # share buffer on CPU. To simulate other backend's non buffer sharing
@@ -125,7 +129,7 @@ class TestVariableStaticInputs(NgraphTest):
         # Reset Graph
         # It is necessary to reset the graph because of the variables
         # TF thinks you want to reuse the variables
-        tf.compat.v1.reset_default_graph()
+        tf.reset_default_graph()
 
         # Run on TF
         tf_var_init_val, tf_mean_values, tf_var_final = self.without_ngraph(
@@ -163,7 +167,7 @@ class TestVariableStaticInputs(NgraphTest):
         # Reset Graph
         # It is necessary to reset the graph because of the variables
         # TF thinks you want to reuse the variables
-        tf.compat.v1.reset_default_graph()
+        tf.reset_default_graph()
 
         # Run on TF
         tf_var_init_val, tf_mean_values, tf_var_final = self.without_ngraph(
