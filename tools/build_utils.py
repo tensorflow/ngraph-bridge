@@ -414,12 +414,13 @@ def install_tensorflow(venv_dir, artifacts_dir):
     return str(cxx_abi)
 
 
-def build_ngraph_tf(build_dir, artifacts_location, ngtf_src_loc, venv_dir,
+def build_ngraph_tf(args, build_dir, artifacts_location, ngtf_src_loc, venv_dir,
                     cmake_flags, verbose):
     pwd = os.getcwd()
 
-    # Load the virtual env
-    load_venv(venv_dir)
+    if not "use_venv" in args:
+        # Load the virtual env
+        load_venv(venv_dir)
 
     cmdpart = ["pip"]
     if os.getenv("IN_DOCKER") != None:

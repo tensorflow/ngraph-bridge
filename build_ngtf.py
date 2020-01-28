@@ -270,7 +270,8 @@ def main():
     if not os.path.isdir(artifacts_location):
         os.mkdir(artifacts_location)
 
-    #install virtualenv
+    #virtualenv
+    venv_dir = ''
     if arguments.use_venv == '':
         venv_dir = 'venv-tf-py3'
         install_virtual_env(venv_dir)
@@ -280,6 +281,8 @@ def main():
 
         # Setup the virtual env
         setup_venv(venv_dir)
+    elif "PYENV_VIRTUAL_ENV" in os.environ:
+        venv_dir = os.environ["PYENV_VIRTUAL_ENV"]
 
     target_arch = 'native'
     if (arguments.target_arch):
@@ -528,7 +531,8 @@ def main():
     ])
 
     # Now build the bridge
-    ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,
+    args = vars(arguments)
+    ng_tf_whl = build_ngraph_tf(vars(arguments), build_dir, artifacts_location,
                                 ngraph_tf_src_dir, venv_dir,
                                 ngraph_tf_cmake_flags, verbosity)
 
