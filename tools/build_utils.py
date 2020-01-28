@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ def load_venv(venv_dir):
     exec(
         compile(
             open(activate_this_file, "rb").read(), activate_this_file, 'exec'),
-        dict(__file__=activate_this_file), dict(__file__=activate_this_file))
+        dict(__file__=activate_this_file))
 
     return venv_dir
 
