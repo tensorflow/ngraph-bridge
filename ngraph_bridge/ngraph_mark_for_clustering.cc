@@ -1066,9 +1066,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   static std::map<std::string, ConfirmationFunction> confirmation_function_map =
       GetConfirmationMap();
 
-  const std::map<std::string, SetAttributesFunction>& set_attributes_map =
-      GetAttributeSetters();
-
   //
   // IF YOU ARE ADDING A NEW OP IMPLEMENTATION, YOU MUST ADD A CONFIRMATION
   // FUNCTION, TYPE CONTRAINTS (IF ANY) AND STATIC INPUTS INDEXES (IF ANY) FOR
@@ -1236,77 +1233,12 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
   ng::runtime::Backend* op_backend =
       BackendManager::GetBackend(ng_backend_type);
+  // TODO: we should also be calling SetConfig
   // BackendManager::SetConfig(ng_backend_type, ??);
 
-  // TODO have this section marked of by a flag to enable/disable it
-  bool changed = false;
-  while (true) {
-    for (auto node : nodes_marked_for_clustering) {
-      // TODO(amprocte): move attr name to a constant
-      // Set marking, backend and static input nodes
-      node->AddAttr("_ngraph_marked_for_clustering", true);
-      SetNodeBackend(node, current_backend);
-      auto it = set_attributes_map.find(node->type_string());
-      if (it != set_attributes_map.end()) {
-        TF_RETURN_IF_ERROR(it->second(node));
-      }
-    }
+  TF_RETURN_IF_ERROR(QueryBackendForSupport(graph,op_backend, current_backend, hints, nodes_marked_for_clustering));
 
-    TF_RETURN_IF_ERROR(AssignClusters(graph));
-    TF_RETURN_IF_ERROR(DeassignClusters(graph));
-    // Call EncapsulateClusters in analysis pass mode
-    // Calling with graph_id=0, since it will not matter for an analysis pass
-    Encapsulator enc(graph);
-    NGRAPH_VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
-    TF_RETURN_IF_ERROR(enc.AnalysisPass());
-    // TODO. Can pass this half-done computation (in the form of the "enc"
-    // object to encapsulateClusters instead of fully recomputing.)
-
-    GraphDef* gdef;
-
-    set<int> newly_created_cluster_ids;
-    TF_RETURN_IF_ERROR(enc.GetNewClusterIDs(newly_created_cluster_ids));
-
-    for (auto graphdef_idx : newly_created_cluster_ids) {
-      gdef = NGraphClusterManager::GetClusterGraph(graphdef_idx);
-      map<string, bool> tf_node_support_map;
-      TF_RETURN_IF_ERROR(GetBackendSupportInfoForTFSubgraph(
-          op_backend, gdef, tf_node_support_map, hints));
-
-      for (auto node : graph->nodes()) {
-        auto itr = tf_node_support_map.find(node->name());
-        if (itr != tf_node_support_map.end()) {
-          if (!itr->second) {
-            NGRAPH_VLOG(5) << "Detected that node " << node->name()
-                           << " of type " << node->type_string()
-                           << " is not supportable by current backend "
-                           << ng_backend_type << ", hence rejecting it";
-            changed = true;
-            // The _ngraph_marked_for_clustering removal is probably not needed
-            // its cleared by the ResetMarkForClustering call later
-            node->ClearAttr("_ngraph_marked_for_clustering");
-            node->ClearAttr("_ngraph_backend");
-            node->ClearAttr("_ngraph_static_inputs");
-            nodes_marked_for_clustering.erase(
-                std::find(nodes_marked_for_clustering.begin(),
-                          nodes_marked_for_clustering.end(), node));
-          }
-        }
-      }
-    }
-    // TODO add tests for this section. Use the dummy backend to test it
-
-    // run till all nodes we suggest are indeed supportable.
-    if (!changed) {
-      break;
-    } else {
-      NGraphClusterManager::EvictAllClusters();
-      ResetMarkForClustering(graph);
-      ResetAssignClusters(graph);
-      changed = false;
-    }
-  }
-
+  
   // Release backend created to query is_supported
   BackendManager::ReleaseBackend(ng_backend_type);
 
@@ -1359,6 +1291,81 @@ void SetNodeBackend(Node* node, const string& backend_name) {
 void ResetMarkForClustering(Graph* graph) {
   ClearAttribute(graph, {"_ngraph_marked_for_clustering", "_ngraph_backend",
                          "_ngraph_static_inputs"});
+}
+
+Status QueryBackendForSupport(Graph* graph, ng::runtime::Backend* op_backend, const string& current_backend, const std::set<ShapeHintMap>& hints, vector<Node*>& nodes_marked_for_clustering) {
+
+  const std::map<std::string, SetAttributesFunction>& set_attributes_map =
+      GetAttributeSetters();
+
+  // TODO have this section marked of by a flag to enable/disable it
+  bool changed = false;
+  while (true) {
+    for (auto node : nodes_marked_for_clustering) {
+      // TODO(amprocte): move attr name to a constant
+      // Set marking, backend and static input nodes
+      node->AddAttr("_ngraph_marked_for_clustering", true);
+      SetNodeBackend(node, current_backend);
+      auto it = set_attributes_map.find(node->type_string());
+      if (it != set_attributes_map.end()) {
+        TF_RETURN_IF_ERROR(it->second(node));
+      }
+    }
+
+    TF_RETURN_IF_ERROR(AssignClusters(graph));
+    TF_RETURN_IF_ERROR(DeassignClusters(graph));
+    // Call EncapsulateClusters in analysis pass mode
+    // Calling with graph_id=0, since it will not matter for an analysis pass
+    Encapsulator enc(graph);
+    NGRAPH_VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
+    TF_RETURN_IF_ERROR(enc.AnalysisPass());
+    // TODO. Can pass this half-done computation (in the form of the "enc"
+    // object to encapsulateClusters instead of fully recomputing.)
+
+    GraphDef* gdef;
+
+    set<int> newly_created_cluster_ids;
+    TF_RETURN_IF_ERROR(enc.GetNewClusterIDs(newly_created_cluster_ids));
+
+    for (auto graphdef_idx : newly_created_cluster_ids) {
+      gdef = NGraphClusterManager::GetClusterGraph(graphdef_idx);
+      map<string, bool> tf_node_support_map;
+      TF_RETURN_IF_ERROR(GetBackendSupportInfoForTFSubgraph(
+          op_backend, gdef, tf_node_support_map, hints));
+
+      for (auto node : graph->nodes()) {
+        auto itr = tf_node_support_map.find(node->name());
+        if (itr != tf_node_support_map.end()) {
+          if (!itr->second) {
+            NGRAPH_VLOG(5) << "Detected that node " << node->name()
+                           << " of type " << node->type_string()
+                           << " is not supportable by current backend ";
+            changed = true;
+            // The _ngraph_marked_for_clustering removal is probably not needed
+            // its cleared by the ResetMarkForClustering call later
+            node->ClearAttr("_ngraph_marked_for_clustering");
+            node->ClearAttr("_ngraph_backend");
+            node->ClearAttr("_ngraph_static_inputs");
+            nodes_marked_for_clustering.erase(
+                std::find(nodes_marked_for_clustering.begin(),
+                          nodes_marked_for_clustering.end(), node));
+          }
+        }
+      }
+    }
+    // TODO add tests for this section. Use the dummy backend to test it
+
+    // run till all nodes we suggest are indeed supportable.
+    if (!changed) {
+      break;
+    } else {
+      NGraphClusterManager::EvictAllClusters();
+      ResetMarkForClustering(graph);
+      ResetAssignClusters(graph);
+      changed = false;
+    }
+  }
+  return Status::OK();
 }
 
 }  // namespace ngraph_bridge
