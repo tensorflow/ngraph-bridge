@@ -96,7 +96,6 @@ TEST_F(MarkForClusteringTest, QueryBackendForSupportTest1) {
   NGraphClusterManager::EvictAllClusters();
 
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
-
   ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
                                    nodes_marked_for_clustering));
 
@@ -150,7 +149,6 @@ TEST_F(MarkForClusteringTest, QueryBackendForSupportTest3) {
 
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
 
-  // We have marked source/sink (all ops for marking). We expect it to fail
   ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
                                    nodes_marked_for_clustering));
 
@@ -178,14 +176,43 @@ TEST_F(MarkForClusteringTest, QueryBackendForSupportTest4) {
 
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
 
-  // We have marked source/sink (all ops for marking). We expect it to fail
   ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
                                    nodes_marked_for_clustering));
 
-  // The dummy backend does not support anything, so nothing should have been
-  // marked
+  // This dummy backend supports everything
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
   ASSERT_EQ(NumNodesMarkedForClustering(), 4);
+
+  NGraphClusterManager::EvictAllClusters();
+}
+
+TEST_F(MarkForClusteringTest, QueryBackendForSupportTest5) {
+  string current_backend = "dummy";
+  ngraph::runtime::dummy::DummyBackend2 db;
+
+  vector<Node*> nodes_marked_for_clustering;
+  for (auto node : g.nodes()) {
+    if (node->type_string() == "Const" || node->type_string() == "Add") {
+      nodes_marked_for_clustering.push_back(node);
+    }
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
+
+  ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
+                                   nodes_marked_for_clustering));
+
+  // This dummy backend supports everything
+  // AssignClusters creates a cluster since an initial cluster is proposed but
+  // it is deassigned. However the ClusterManager contains an (empty) entry
+  // TODO if we make ClusterManager a map instead of a vector, we can get rid of
+  // this. Then Deassign pass would clear up ClusterManager
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
+  // Though const and Add are marked for clustering, nothing gets clustered
+  // since the trivial cluster of const->add<-const is deassigned
+  ASSERT_EQ(NumNodesMarkedForClustering(), 0);
 
   NGraphClusterManager::EvictAllClusters();
 }
