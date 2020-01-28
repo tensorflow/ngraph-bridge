@@ -30,6 +30,7 @@ class NGraphClusterManager {
   static size_t NewCluster();
   static tensorflow::GraphDef* GetClusterGraph(size_t idx);
   static void EvictAllClusters();
+  static int GetNumClusters() { return s_cluster_graphs.size(); };
 
  private:
   static std::vector<tensorflow::GraphDef*> s_cluster_graphs;
