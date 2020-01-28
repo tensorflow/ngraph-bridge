@@ -301,20 +301,62 @@ class MarkForClusteringTest2 : public MarkForClusteringTestBase {
     Node* node3;
     ASSERT_OK(NodeBuilder("node3", "SquaredDifference")
                   .Input(node2, 0)
+                  .Input(node2, 0)
                   .Attr("T", DT_FLOAT)
                   .Finalize(&g, &node3));
 
+    Node* node4;
+    ASSERT_OK(NodeBuilder("node4", "Abs")
+                  .Input(node3, 0)
+                  .Attr("T", DT_FLOAT)
+                  .Finalize(&g, &node4));
+
     // Add edges from SRC to node1
-    // Add edge from node3 to SINK
+    // Add edge from node4 to SINK
     // The graph is disconnected without these edges
     Node* source = g.source_node();
     Node* sink = g.sink_node();
     g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
-    g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
+    g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
   }
 };
 
 // TODO add tests to check the "loop" case: A->BC->D
+
+// Rejection because of partial support:
+// In this case some nodes of "softplus" are supported, some not, so softplus
+// will not be supported
+// All nodes of squareddifference and abs are supported, so they will form a
+// cluster
+TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest8) {
+  string current_backend = "dummy";
+  ngraph::runtime::dummy::DummyBackend3 db;
+  db.set_supported_behaviour({std::make_shared<ngraph::op::Abs>(),
+                              std::make_shared<ngraph::op::Exp>(),
+                              std::make_shared<ngraph::op::Subtract>(),
+                              std::make_shared<ngraph::op::Multiply>()});
+
+  vector<Node*> nodes_marked_for_clustering;
+  for (auto node : g.nodes()) {
+    if (node->type_string() == "Softplus" ||
+        node->type_string() == "SquaredDifference" ||
+        node->type_string() == "Abs") {
+      nodes_marked_for_clustering.push_back(node);
+    }
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
+
+  ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
+                                   nodes_marked_for_clustering));
+
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
+  ASSERT_EQ(NumNodesMarkedForClustering(), 2);
+
+  NGraphClusterManager::EvictAllClusters();
+}
 
 TEST(MarkForClustering, SimpleTest) {
   Graph g(OpRegistry::Global());
