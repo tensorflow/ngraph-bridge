@@ -35,7 +35,21 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-class MarkForClusteringTest : public ::testing::Test {
+class MarkForClusteringTestBase : public ::testing::Test {
+protected:
+  size_t NumNodesMarkedForClustering() {
+    size_t ctr = 0;
+    for (auto node : g.nodes()) {
+      ctr += (NodeIsMarkedForClustering(node) ? 1 : 0);
+    }
+    return ctr;
+  }
+
+  Graph g{OpRegistry::Global()};
+
+};
+
+class MarkForClusteringTest1 : public MarkForClusteringTestBase {
  protected:
   void SetUp() override {
     Tensor t_input_0(DT_FLOAT, TensorShape{2, 3});
@@ -76,18 +90,10 @@ class MarkForClusteringTest : public ::testing::Test {
     g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
   }
 
-  size_t NumNodesMarkedForClustering() {
-    size_t ctr = 0;
-    for (auto node : g.nodes()) {
-      ctr += (NodeIsMarkedForClustering(node) ? 1 : 0);
-    }
-    return ctr;
-  }
-
-  Graph g{OpRegistry::Global()};
+  
 };
 
-TEST_F(MarkForClusteringTest, QueryBackendForSupportTest1) {
+TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest1) {
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend db;
 
@@ -107,7 +113,7 @@ TEST_F(MarkForClusteringTest, QueryBackendForSupportTest1) {
   NGraphClusterManager::EvictAllClusters();
 }
 
-TEST_F(MarkForClusteringTest, QueryBackendForSupportTest2) {
+TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest2) {
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend db;
 
@@ -133,7 +139,7 @@ TEST_F(MarkForClusteringTest, QueryBackendForSupportTest2) {
   NGraphClusterManager::EvictAllClusters();
 }
 
-TEST_F(MarkForClusteringTest, QueryBackendForSupportTest3) {
+TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest3) {
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend db;
 
@@ -160,7 +166,7 @@ TEST_F(MarkForClusteringTest, QueryBackendForSupportTest3) {
   NGraphClusterManager::EvictAllClusters();
 }
 
-TEST_F(MarkForClusteringTest, QueryBackendForSupportTest4) {
+TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest4) {
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend2 db;
 
@@ -186,7 +192,8 @@ TEST_F(MarkForClusteringTest, QueryBackendForSupportTest4) {
   NGraphClusterManager::EvictAllClusters();
 }
 
-TEST_F(MarkForClusteringTest, QueryBackendForSupportTest5) {
+// Deassigning cluster
+TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest5) {
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend2 db;
 
