@@ -28,7 +28,6 @@
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
-#include "tensorflow/core/graph/graph_constructor.h"
 
 #include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"

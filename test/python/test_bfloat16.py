@@ -48,8 +48,7 @@ class TestBfloat16(NgraphTest):
         assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
 
     def test_conv2d_bfloat16(self):
-
-        # inputs
+        # Graph
         input_shape_nhwc = (1, 4, 4, 1)
         filter_shape_hwio = (3, 3, 1, 2)
         input_pl = tf.placeholder(tf.bfloat16, input_shape_nhwc, name="inp_pl")
@@ -59,7 +58,6 @@ class TestBfloat16(NgraphTest):
             input_shape_nhwc)  #np.random.rand(*input_shape_nhwc)
         filter_values = np.arange(18).reshape(
             filter_shape_hwio)  # np.random.rand(*filter_shape_hwio)
-
         padding = "VALID"
         strides = [1, 1, 1, 1]
         conv_op = tf.nn.conv2d(
@@ -84,7 +82,7 @@ class TestBfloat16(NgraphTest):
         assert np.allclose(ng_val, expected_val)
 
     def test_conv2d_cast_bfloat16(self):
-        # inputs
+        # Graph
         input_shape_nhwc = (1, 4, 4, 1)
         filter_shape_hwio = (3, 3, 1, 2)
         input_pl = tf.placeholder(tf.float32, input_shape_nhwc, name="inp_pl")
@@ -107,6 +105,7 @@ class TestBfloat16(NgraphTest):
             data_format='NHWC',
             dilations=None,
             name=None)
+        # cast to float
         out = tf.cast(conv_op, dtype=tf.float32)
 
         def run_test(sess):
