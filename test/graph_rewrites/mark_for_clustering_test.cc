@@ -162,6 +162,34 @@ TEST_F(MarkForClusteringTest, QueryBackendForSupportTest3) {
   NGraphClusterManager::EvictAllClusters();
 }
 
+TEST_F(MarkForClusteringTest, QueryBackendForSupportTest4) {
+  string current_backend = "dummy";
+  ngraph::runtime::dummy::DummyBackend2 db;
+
+  vector<Node*> nodes_marked_for_clustering;
+  for (auto node : g.nodes()) {
+    if (node->type_string() == "Const" || node->type_string() == "Add" ||
+        node->type_string() == "Abs") {
+      nodes_marked_for_clustering.push_back(node);
+    }
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
+
+  // We have marked source/sink (all ops for marking). We expect it to fail
+  ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
+                                   nodes_marked_for_clustering));
+
+  // The dummy backend does not support anything, so nothing should have been
+  // marked
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
+  ASSERT_EQ(NumNodesMarkedForClustering(), 4);
+
+  NGraphClusterManager::EvictAllClusters();
+}
+
 TEST(MarkForClustering, SimpleTest) {
   Graph g(OpRegistry::Global());
 

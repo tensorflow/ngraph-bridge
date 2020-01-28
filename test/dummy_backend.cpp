@@ -72,4 +72,8 @@ bool runtime::dummy::DummyExecutable::call(
   return true;
 }
 
+bool runtime::dummy::DummyBackend2::is_supported(const Node& node) const {
+  return true;
+}
+
 }  // namespace ngraph

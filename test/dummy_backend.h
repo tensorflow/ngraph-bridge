@@ -36,8 +36,12 @@ namespace runtime {
 
 namespace dummy {
 
+// This backend return false for is_supported for any node
 class DummyBackend;
 class DummyExecutable;
+
+// This backend returns true for is_supported for any node
+class DummyBackend2;
 }
 }
 }
@@ -71,6 +75,11 @@ class ng::runtime::dummy::DummyExecutable : public ng::runtime::Executable {
   bool call(
       const std::vector<std::shared_ptr<ng::runtime::Tensor>>& outputs,
       const std::vector<std::shared_ptr<ng::runtime::Tensor>>& inputs) override;
+};
+
+class ng::runtime::dummy::DummyBackend2
+    : public ng::runtime::dummy::DummyBackend {
+  bool is_supported(const ngraph::Node& node) const override;
 };
 
 #endif  // NGRAPH_TF_BRIDGE_DUMMYBACKEND_H_

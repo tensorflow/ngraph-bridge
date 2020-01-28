@@ -39,6 +39,7 @@ TEST(DummyBackend, IsSupported) {
   ngraph::runtime::dummy::DummyBackend db;
   auto add = std::make_shared<ngraph::op::Add>();
   ASSERT_EQ(db.is_supported(*add), false);
+  // TODO add a test where we compile and get an executable
 }
 
 }  // namespace testing
