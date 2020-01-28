@@ -251,6 +251,7 @@ cc_library(
         "src/ngraph/runtime/cpu/pass/cpu_post_layout_optimizations.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_rnn_fusion.cpp",
         "src/ngraph/runtime/cpu/pass/cpu_workspace_insertion.cpp",
+        "src/ngraph/runtime/cpu/pass/cpu_mkldnn_primitive_build.cpp",
         "src/ngraph/runtime/cpu/ngraph_version.cpp",
         "src/ngraph/state/rng_state.cpp",
         "src/ngraph/state/bernoulli_rng_state.cpp",
