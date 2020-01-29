@@ -105,6 +105,7 @@ class ng::runtime::dummy::DummyBackend3
 class ng::runtime::dummy::DummyBackend4
     : public ng::runtime::dummy::DummyBackend {
  public:
+ static int first_call;
   bool is_supported(const ngraph::Node& node) const override;
 };
 

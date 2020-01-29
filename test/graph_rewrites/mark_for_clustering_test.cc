@@ -391,6 +391,7 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest8) {
 TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend4 db;
+  ngraph::runtime::dummy::DummyBackend4::first_call = 0;
 
   vector<Node*> nodes_marked_for_clustering;
   for (auto node : g.nodes()) {
@@ -428,6 +429,7 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest10) {
 
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend4 db;
+  ngraph::runtime::dummy::DummyBackend4::first_call = 0;
 
   vector<Node*> nodes_marked_for_clustering;
   for (auto node : g.nodes()) {
