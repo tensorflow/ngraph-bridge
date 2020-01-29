@@ -41,13 +41,13 @@ class NGStubOp : public OpKernel {
   ~NGStubOp() override;
 };
 
-#define REGISTER_NGRAPH_STUB_KERNEL(optype)                          \
+#define REGISTER_NGRAPH_STUB_KERNEL(optype) \
+  REGISTER_KERNEL_BUILDER(Name(optype).Device(DEVICE_CPU), NGStubOp);
+
+#define REGISTER_NGRAPH_STUB_BFLOAT_KERNEL(optype)                   \
   REGISTER_KERNEL_BUILDER(                                           \
       Name(optype).Device(DEVICE_CPU).TypeConstraint<bfloat16>("T"), \
       NGStubOp);
-
-#define REGISTER_NGRAPH_STUB_BFLOAT_KERNEL(optype) \
-  REGISTER_KERNEL_BUILDER(Name(optype).Device(DEVICE_CPU), NGStubOp);
 
 }  // namespace ngraph_bridge
 

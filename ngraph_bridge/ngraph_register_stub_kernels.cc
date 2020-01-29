@@ -65,7 +65,7 @@ NGStubOp::~NGStubOp() {}
 // These Stub Kernels/Op will never get called
 
 // Keep them in alphabetical order
-REGISTER_NGRAPH_STUB_KERNEL("Conv2D")
+REGISTER_NGRAPH_STUB_BFLOAT_KERNEL("Conv2D")
 
 }  // namespace ngraph_bridge
 
