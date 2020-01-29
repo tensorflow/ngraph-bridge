@@ -419,6 +419,95 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
 }
 
 
+// Similar to QueryBackendForSupportTest9, but we do not deassign
+TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest10) {
+  list<string> env_vars{"NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", "1");
+
+  string current_backend = "dummy";
+  ngraph::runtime::dummy::DummyBackend4 db;
+
+  vector<Node*> nodes_marked_for_clustering;
+  for (auto node : g.nodes()) {
+    if (node->type_string() == "Softplus" ||
+        node->type_string() == "SquaredDifference" ||
+        node->type_string() == "Abs") {
+      nodes_marked_for_clustering.push_back(node);
+    }
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
+
+  ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
+                                   nodes_marked_for_clustering));
+
+  // One cluster containing the abs
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
+  
+  ASSERT_EQ(NumNodesMarkedForClustering(), 2);
+  // Only the 2 abs nodes are marked for clustering
+  for (auto node : g.nodes()) {
+    ASSERT_EQ((node->type_string() == "Abs"), NodeIsMarkedForClustering(node));
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+  UnsetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS");
+  RestoreEnv(env_map);
+}
+
+// Similar to QueryBackendForSupportTest9, but using DummyBackend3
+// In this case we expect softplus to be clustered
+TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest11) {
+  list<string> env_vars{"NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+  SetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", "1");
+
+  auto constant = ngraph::op::Constant::create(ngraph::element::f32,
+                                               ngraph::Shape{}, {2.0f});
+
+  string current_backend = "dummy";
+  ngraph::runtime::dummy::DummyBackend3 db;
+  db.set_supported_behaviour({std::make_shared<ngraph::op::Abs>(),
+                              std::make_shared<ngraph::op::Exp>(),
+                              std::make_shared<ngraph::op::Log>(),
+                              std::make_shared<ngraph::op::Add>(),
+                              constant
+                              });
+
+  vector<Node*> nodes_marked_for_clustering;
+  for (auto node : g.nodes()) {
+    if (node->type_string() == "Softplus" ||
+        node->type_string() == "SquaredDifference" ||
+        node->type_string() == "Abs") {
+      nodes_marked_for_clustering.push_back(node);
+    }
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 0);
+
+  ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
+                                   nodes_marked_for_clustering));
+
+  // One cluster containing the abs and one containing softplus
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 2);
+  
+  ASSERT_EQ(NumNodesMarkedForClustering(), 3);
+  // Only the 2 abs nodes and softplus are marked for clustering
+  for (auto node : g.nodes()) {
+    ASSERT_EQ((node->type_string() == "Abs" || node->type_string() == "Softplus"), NodeIsMarkedForClustering(node));
+  }
+
+  NGraphClusterManager::EvictAllClusters();
+  UnsetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS");
+  RestoreEnv(env_map);
+}
+
+
 
 
 TEST(MarkForClustering, SimpleTest) {
