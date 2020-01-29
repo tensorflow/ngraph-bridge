@@ -51,6 +51,7 @@ class MarkForClusteringTestBase : public ::testing::Test {
 class MarkForClusteringTest1 : public MarkForClusteringTestBase {
  protected:
   void SetUp() override {
+    unsetenv("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS");
     Tensor t_input_0(DT_FLOAT, TensorShape{2, 3});
     Tensor t_input_1(DT_FLOAT, TensorShape{2, 3});
 
@@ -287,6 +288,7 @@ TEST_F(MarkForClusteringTest1, QueryBackendForSupportTest7) {
 class MarkForClusteringTest2 : public MarkForClusteringTestBase {
  protected:
   void SetUp() override {
+    unsetenv("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS");
     Node* node1;
     ASSERT_OK(NodeBuilder("node1", "Placeholder")
                   .Attr("dtype", DT_FLOAT)
