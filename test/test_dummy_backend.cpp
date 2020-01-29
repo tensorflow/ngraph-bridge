@@ -36,8 +36,11 @@ namespace testing {
 
 // Test is_supported API
 TEST(DummyBackend, IsSupported) {
-  ngraph::runtime::dummy::DummyBackend db;
   auto add = std::make_shared<ngraph::op::Add>();
+  auto mult = std::make_shared<ngraph::op::Multiply>();
+  auto lg = std::make_shared<ngraph::op::Log>();
+
+  ngraph::runtime::dummy::DummyBackend db;
   ASSERT_EQ(db.is_supported(*add), false);
   // TODO add a test where we compile and get an executable
 
@@ -46,10 +49,16 @@ TEST(DummyBackend, IsSupported) {
 
   ngraph::runtime::dummy::DummyBackend3 db3;
   ASSERT_EQ(db3.is_supported(*add), false);
+  ASSERT_EQ(db3.is_supported(*mult), false);
   db3.set_supported_behaviour({std::make_shared<ngraph::op::Add>()});
   ASSERT_EQ(db3.is_supported(*add), true);
+  ASSERT_EQ(db3.is_supported(*mult), false);
 
-  // TODO add test for dummybackend4
+  ngraph::runtime::dummy::DummyBackend4 db4;
+  ASSERT_EQ(db4.is_supported(*add), true);
+  ASSERT_EQ(db4.is_supported(*mult), false);
+  ASSERT_EQ(db4.is_supported(*lg), true);
+  ASSERT_EQ(db4.is_supported(*lg), false);
 }
 
 }  // namespace testing
