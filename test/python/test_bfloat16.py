@@ -47,6 +47,11 @@ class TestBfloat16(NgraphTest):
 
         assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
 
+    # For testing, we usually run the same graph on TF by disabling NGraph Rewrites.
+    # However, in this case as we register CPU bfloat dummy kernels, TF assigns device CPU
+    # to bfloat ops and hits the asserts in the dummy kernel.
+    # So, we are testing with expected values.
+    # For an ideal run on TF, we need to run on vanilla TF w/o importing ngraph-bridge
     def test_conv2d_bfloat16(self):
         # Graph
         input_shape_nhwc = (1, 4, 4, 1)
@@ -81,6 +86,11 @@ class TestBfloat16(NgraphTest):
             np.array([516, 560, 588, 640, 804, 884, 876, 968]), (1, 2, 2, 2))
         assert np.allclose(ng_val, expected_val)
 
+    # For testing, we usually run the same graph on TF by disabling NGraph Rewrites.
+    # However, in this case as we register CPU bfloat dummy kernels, TF assigns device CPU
+    # to bfloat ops and hits the asserts in the dummy kernel.
+    # So, we are testing with expected values.
+    # For an ideal run on TF, we need to run on vanilla TF w/o importing ngraph-bridge
     def test_conv2d_cast_bfloat16(self):
         # Graph
         input_shape_nhwc = (1, 4, 4, 1)
