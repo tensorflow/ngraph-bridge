@@ -224,7 +224,9 @@ Status TensorToStream(std::ostream& ostream, const Tensor& tensor) {
       TensorDataToStream<bool>(ostream, n_elements, data);
       break;
     case DT_BFLOAT16:
-      TensorDataToStream<bool>(ostream, n_elements, data);
+      return errors::Internal(
+          "TensorToStream got data type bfloat16. No compatible standard C++ "
+          "data type.");
       break;
     default:
       return errors::Internal("TensorToStream got unsupported data type ",
