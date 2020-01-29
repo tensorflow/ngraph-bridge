@@ -327,7 +327,6 @@ class MarkForClusteringTest2 : public MarkForClusteringTestBase {
   }
 };
 
-
 // Rejection because of partial support:
 // In this case some nodes of "softplus" are supported, some not, so softplus
 // will not be supported
@@ -336,12 +335,12 @@ class MarkForClusteringTest2 : public MarkForClusteringTestBase {
 TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest8) {
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend3 db;
-  db.set_supported_behaviour({std::make_shared<ngraph::op::Abs>(),
-                              std::make_shared<ngraph::op::Exp>(),
-                              std::make_shared<ngraph::op::Subtract>(),
-                              std::make_shared<ngraph::op::Multiply>(),
-                              std::make_shared<ngraph::op::Broadcast>(),
-                              });
+  db.set_supported_behaviour({
+      std::make_shared<ngraph::op::Abs>(), std::make_shared<ngraph::op::Exp>(),
+      std::make_shared<ngraph::op::Subtract>(),
+      std::make_shared<ngraph::op::Multiply>(),
+      std::make_shared<ngraph::op::Broadcast>(),
+  });
 
   vector<Node*> nodes_marked_for_clustering;
   for (auto node : g.nodes()) {
@@ -365,26 +364,29 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest8) {
   NGraphClusterManager::EvictAllClusters();
 }
 
-
 // An example where 2 passes were needed to get the right mark_for_clustering
 // Tf node A --> X->Y
 // Tf node B-> M->N
 // A->B translates to X->Y->M->N
-// Y and M are not supported by backend, but after fusion YM is supported (X->YM->N).
+// Y and M are not supported by backend, but after fusion YM is supported
+// (X->YM->N).
 // But N is not supported.
-// So From X->Y->M->N, we get markings: X(T)->Y(T)->M(T)->N(F)  (T means true (supported) and viceversa)
+// So From X->Y->M->N, we get markings: X(T)->Y(T)->M(T)->N(F)  (T means true
+// (supported) and viceversa)
 // but because N is not supported, TF node B will not be marked.
 // So we get a ng function X->Y
-// But now we have to submit this again to the backend for inspection. Now the backend will say, oh wait, Y does not lead to M, hence I cannot support it. So now both A and B fall back to TF.
+// But now we have to submit this again to the backend for inspection. Now the
+// backend will say, oh wait, Y does not lead to M, hence I cannot support it.
+// So now both A and B fall back to TF.
 
-// To simulate the above scenario the is_supported of the test dummy backend will say it does not support "Multiply" the first time it is called
+// To simulate the above scenario the is_supported of the test dummy backend
+// will say it does not support "Multiply" the first time it is called
 // every other ng node is marked supported the first time is_supported is called
 // Then squareddifference is not be supported,
 // Then we reject squareddifference and only mark softplus for clustering.
 // but now in the second time, is_supported will say it does not support log
 // Now softplus will be rejected as well
 // Only the 2 Abs will be clustered.
-
 
 TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
   string current_backend = "dummy";
@@ -408,7 +410,7 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
 
   // One actual cluster and one deassigned (softplus)
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 2);
-  
+
   ASSERT_EQ(NumNodesMarkedForClustering(), 2);
   // Only the 2 abs nodes are marked for clustering
   for (auto node : g.nodes()) {
@@ -417,7 +419,6 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
 
   NGraphClusterManager::EvictAllClusters();
 }
-
 
 // Similar to QueryBackendForSupportTest9, but we do not deassign
 TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest10) {
@@ -446,7 +447,7 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest10) {
 
   // One cluster containing the abs
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
-  
+
   ASSERT_EQ(NumNodesMarkedForClustering(), 2);
   // Only the 2 abs nodes are marked for clustering
   for (auto node : g.nodes()) {
@@ -473,9 +474,7 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest11) {
   db.set_supported_behaviour({std::make_shared<ngraph::op::Abs>(),
                               std::make_shared<ngraph::op::Exp>(),
                               std::make_shared<ngraph::op::Log>(),
-                              std::make_shared<ngraph::op::Add>(),
-                              constant
-                              });
+                              std::make_shared<ngraph::op::Add>(), constant});
 
   vector<Node*> nodes_marked_for_clustering;
   for (auto node : g.nodes()) {
@@ -495,20 +494,19 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest11) {
 
   // One cluster containing the abs and one containing softplus
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 2);
-  
+
   ASSERT_EQ(NumNodesMarkedForClustering(), 3);
   // Only the 2 abs nodes and softplus are marked for clustering
   for (auto node : g.nodes()) {
-    ASSERT_EQ((node->type_string() == "Abs" || node->type_string() == "Softplus"), NodeIsMarkedForClustering(node));
+    ASSERT_EQ(
+        (node->type_string() == "Abs" || node->type_string() == "Softplus"),
+        NodeIsMarkedForClustering(node));
   }
 
   NGraphClusterManager::EvictAllClusters();
   UnsetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS");
   RestoreEnv(env_map);
 }
-
-
-
 
 TEST(MarkForClustering, SimpleTest) {
   Graph g(OpRegistry::Global());

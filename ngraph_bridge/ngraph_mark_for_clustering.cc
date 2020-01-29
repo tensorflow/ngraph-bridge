@@ -1341,7 +1341,8 @@ Status QueryBackendForSupport(Graph* graph, ng::runtime::Backend* op_backend,
           if (!itr->second) {
             NGRAPH_VLOG(5) << "Detected that node " << node->name()
                            << " of type " << node->type_string()
-                           << " is not supportable by current backend " << current_backend << "\n";
+                           << " is not supportable by current backend "
+                           << current_backend << "\n";
             changed = true;
             // The _ngraph_marked_for_clustering removal is probably not needed
             // its cleared by the ResetMarkForClustering call later
