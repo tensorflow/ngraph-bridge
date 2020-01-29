@@ -24,7 +24,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 |Using pre-built packages| Building from source|
 | -----------------------|-------------------|
 |Python 3| Python 3|
-|TensorFlow v1.15.0|GCC 7.3 (Ubuntu), Clang/LLVM (macOS)|
+|TensorFlow v1.15.2|GCC 7.3 (Ubuntu), Clang/LLVM (macOS)|
 |        |`cmake` 3.4 or higher|
 |        |Bazel 0.25.2|
 |        |`virtualenv` 16.0.0|
@@ -43,7 +43,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 
 2. Install TensorFlow:
 
-        pip install -U tensorflow==1.15.0
+        pip install -U tensorflow==1.15.2
 
 3. Install `ngraph-tensorflow-bridge`:
 
@@ -131,10 +131,10 @@ Verify that `ngraph-bridge` installed correctly:
 
 This will produce something like this:
 
-        TensorFlow version:  <1.15.0>
+        TensorFlow version:  <1.15.2>
         nGraph bridge version: <b'0.14.0'>
         nGraph version used for this build: b'0.18.0+c5d52f1'
-        TensorFlow version used for this build: <v1.15.0-...>
+        TensorFlow version used for this build: <v1.15.2-...>
         CXX11_ABI flag used for this build: 0
         nGraph bridge built with Grappler: False
         nGraph bridge built with Variables and Optimizers Enablement: False
