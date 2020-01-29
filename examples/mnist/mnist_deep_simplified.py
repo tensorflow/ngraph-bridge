@@ -141,13 +141,10 @@ def train_mnist_cnn(FLAGS):
     # The OMP_NUM_THREADS number should correspond to the number of
     # cores in the system
 
-    # Set Seed
-    shuffle_batch = True
-
     if FLAGS.make_deterministic:
         seed = 1
         tf.compat.v1.random.set_random_seed(seed)
-        shuffle_batch = False
+        np.random.seed(seed)
 
     supported_optimizers = ["adam", "sgd", "momentum"]
 
