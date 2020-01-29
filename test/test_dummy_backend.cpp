@@ -59,6 +59,7 @@ TEST(DummyBackend, IsSupported) {
   ASSERT_EQ(db4.is_supported(*mult), false);
   ASSERT_EQ(db4.is_supported(*lg), true);
   ASSERT_EQ(db4.is_supported(*lg), false);
+  ASSERT_EQ(db4.is_supported(*lg), false);
 }
 
 }  // namespace testing

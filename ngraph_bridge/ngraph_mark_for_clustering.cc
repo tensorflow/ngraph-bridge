@@ -1357,7 +1357,6 @@ Status QueryBackendForSupport(Graph* graph, ng::runtime::Backend* op_backend,
         }
       }
     }
-    // TODO add tests for this section. Use the dummy backend to test it
 
     // run till all nodes we suggest are indeed supportable.
     if (!changed) {
