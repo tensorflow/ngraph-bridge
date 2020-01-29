@@ -88,4 +88,16 @@ void runtime::dummy::DummyBackend3::set_supported_behaviour(
   this->supported_nodes = supported_nodes;
 }
 
+bool runtime::dummy::DummyBackend4::is_supported(const Node& node) const {
+  static int num_times_log_is_called = 0;
+  if (node.is_same_op_type(std::make_shared<ngraph::op::Multiply>())) {
+    return false;
+  } else if (node.is_same_op_type(std::make_shared<ngraph::op::Log>())) {
+    num_times_log_is_called++;
+    return (num_times_log_is_called==1);
+  } else {
+    return true;
+  }
+}
+
 }  // namespace ngraph

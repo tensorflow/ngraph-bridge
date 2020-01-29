@@ -48,6 +48,8 @@ TEST(DummyBackend, IsSupported) {
   ASSERT_EQ(db3.is_supported(*add), false);
   db3.set_supported_behaviour({std::make_shared<ngraph::op::Add>()});
   ASSERT_EQ(db3.is_supported(*add), true);
+
+  // TODO add test for dummybackend4
 }
 
 }  // namespace testing

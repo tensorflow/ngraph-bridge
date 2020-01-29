@@ -1303,9 +1303,11 @@ Status QueryBackendForSupport(Graph* graph, ng::runtime::Backend* op_backend,
   // TODO have this section marked of by a flag to enable/disable it
   bool changed = false;
   while (true) {
+    cout << "ENTER WHILE\n";
     for (auto node : nodes_marked_for_clustering) {
       // TODO(amprocte): move attr name to a constant
       // Set marking, backend and static input nodes
+      cout << "Marking: " << node->name() << "\n";
       node->AddAttr("_ngraph_marked_for_clustering", true);
       SetNodeBackend(node, current_backend);
       auto it = set_attributes_map.find(node->type_string());

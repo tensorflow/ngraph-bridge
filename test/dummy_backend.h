@@ -44,8 +44,12 @@ class DummyExecutable;
 // This backend returns true for is_supported for any node
 class DummyBackend2;
 
-// This backend has complex behaviour for is_supported
+// You can set the supported nodes for this backend
+// TODO refactor DummyBackend in terms of DummyBackend3
 class DummyBackend3;
+
+// This backend has complex behaviour for is_supported
+class DummyBackend4;
 }
 }
 }
@@ -96,6 +100,12 @@ class ng::runtime::dummy::DummyBackend3
 
   // Utility function for tests. Set the nodes that this mock backend supports
   void set_supported_behaviour(std::set<std::shared_ptr<Node>> supported_nodes);
+};
+
+class ng::runtime::dummy::DummyBackend4
+    : public ng::runtime::dummy::DummyBackend {
+ public:
+  bool is_supported(const ngraph::Node& node) const override;
 };
 
 #endif  // NGRAPH_TF_BRIDGE_DUMMYBACKEND_H_
