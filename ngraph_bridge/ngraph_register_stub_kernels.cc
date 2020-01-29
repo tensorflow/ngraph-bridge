@@ -57,11 +57,9 @@ NGStubOp::~NGStubOp() {}
 
 // TF Ops that work on bfloat DataType get assigned Device XLA_CPU
 // Since nGraph-bridge OPs work on TF DEVICE_CPU we are registering stub
-// bfloat16
-// kernels here. The expectation is when we register the stub kernels for
-// bfloat16
-// TF is going to assign DEVICE_CPU to the respective Ops and we will
-// encapsulate them
+// bfloat16 kernels here. The expectation is when we register the stub kernels
+// for bfloat16 TF is going to assign DEVICE_CPU to the respective Ops and
+// we will encapsulate them
 // These Stub Kernels/Op will never get called
 
 // Keep them in alphabetical order
