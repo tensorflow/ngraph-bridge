@@ -311,13 +311,19 @@ class MarkForClusteringTest2 : public MarkForClusteringTestBase {
                   .Attr("T", DT_FLOAT)
                   .Finalize(&g, &node4));
 
+    Node* node5;
+    ASSERT_OK(NodeBuilder("node5", "Abs")
+                  .Input(node4, 0)
+                  .Attr("T", DT_FLOAT)
+                  .Finalize(&g, &node5));
+
     // Add edges from SRC to node1
-    // Add edge from node4 to SINK
+    // Add edge from node5 to SINK
     // The graph is disconnected without these edges
     Node* source = g.source_node();
     Node* sink = g.sink_node();
     g.AddEdge(source, Graph::kControlSlot, node1, Graph::kControlSlot);
-    g.AddEdge(node4, Graph::kControlSlot, sink, Graph::kControlSlot);
+    g.AddEdge(node5, Graph::kControlSlot, sink, Graph::kControlSlot);
   }
 };
 
@@ -334,6 +340,7 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest8) {
                               std::make_shared<ngraph::op::Exp>(),
                               std::make_shared<ngraph::op::Subtract>(),
                               std::make_shared<ngraph::op::Multiply>(),
+                              std::make_shared<ngraph::op::Broadcast>(),
                               });
 
   vector<Node*> nodes_marked_for_clustering;
@@ -353,7 +360,7 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest8) {
                                    nodes_marked_for_clustering));
 
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
-  ASSERT_EQ(NumNodesMarkedForClustering(), 2);
+  ASSERT_EQ(NumNodesMarkedForClustering(), 3);
 
   NGraphClusterManager::EvictAllClusters();
 }
@@ -376,13 +383,10 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest8) {
 // Then we reject squareddifference and only mark softplus for clustering.
 // but now in the second time, is_supported will say it does not support log
 // Now softplus will be rejected as well
-// Only Abs is clustered. (note we turn of disabledeassign here since abs is a trivial cluster)
+// Only the 2 Abs will be clustered.
 
 
 TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
-  list<string> env_vars{"NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS"};
-  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
-  SetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", "1");
   string current_backend = "dummy";
   ngraph::runtime::dummy::DummyBackend4 db;
 
@@ -406,8 +410,6 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
   ASSERT_EQ(NumNodesMarkedForClustering(), 1); // Only abs
 
   NGraphClusterManager::EvictAllClusters();
-  UnsetEnvVariable("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS");
-  RestoreEnv(env_map);
 }
 
 
