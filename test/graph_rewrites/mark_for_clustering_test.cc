@@ -406,7 +406,9 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
   ASSERT_OK(QueryBackendForSupport(&g, &db, current_backend, {},
                                    nodes_marked_for_clustering));
 
-  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
+  // One actual cluster and one deassigned (softplus)
+  ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 2);
+  
   ASSERT_EQ(NumNodesMarkedForClustering(), 2);
   // Only the 2 abs nodes are marked for clustering
   for (auto node : g.nodes()) {
