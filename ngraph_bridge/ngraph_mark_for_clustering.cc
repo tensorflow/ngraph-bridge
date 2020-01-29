@@ -446,7 +446,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
         SimpleConfirmationFunction();
     confirmation_function_map["Squeeze"] = SimpleConfirmationFunction();
     confirmation_function_map["StridedSlice"] = SimpleConfirmationFunction();
-    confirmation_function_map["StridedSliceGrad"] = 
+    confirmation_function_map["StridedSliceGrad"] =
         SimpleConfirmationFunction();
     confirmation_function_map["Pack"] = SimpleConfirmationFunction();
     confirmation_function_map["Sub"] = SimpleConfirmationFunction();
@@ -1050,9 +1050,8 @@ GetTFToNgOpMap() {
          {std::make_shared<ngraph::op::Reverse>(),
           std::make_shared<ngraph::op::Slice>(),
           std::make_shared<ngraph::op::Reshape>()}},
-        {"StridedSliceGrad", 
-         {constant,
-         std::make_shared<ngraph::op::ReplaceSlice>()}},
+        {"StridedSliceGrad",
+         {constant, std::make_shared<ngraph::op::ReplaceSlice>()}},
         {"Sub", {std::make_shared<ngraph::op::Subtract>()}},
         {"Sum",
          {std::make_shared<ngraph::op::Sum>(),

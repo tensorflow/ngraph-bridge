@@ -1522,7 +1522,8 @@ TEST(ArrayOps, StridedSliceGradTest1) {
 
   // original shape
   vector<int64> c_original_shape = {3, 4, 4};
-  Tensor original_shape(DT_INT64, TensorShape{static_cast<int>(c_original_shape.size())});
+  Tensor original_shape(DT_INT64,
+                        TensorShape{static_cast<int>(c_original_shape.size())});
   AssignInputValues<int64>(original_shape, c_original_shape);
 
   // begin, end, stride
@@ -1550,7 +1551,8 @@ TEST(ArrayOps, StridedSliceGradTest1) {
   attrs.new_axis_mask_ = 0;
   attrs.shrink_axis_mask_ = 0;
 
-  auto R = ops::StridedSliceGrad(root_scope, original_shape, begin, end, strides, dy_data);
+  auto R = ops::StridedSliceGrad(root_scope, original_shape, begin, end,
+                                 strides, dy_data);
   vector<DataType> output_datatypes = {DT_FLOAT};
   vector<Output> sess_run_fetchoutputs = {R};
 
@@ -1567,7 +1569,8 @@ TEST(ArrayOps, StridedSliceGradTest2) {
 
   // original shape
   vector<int64> c_original_shape = {3, 4, 4};
-  Tensor original_shape(DT_INT64, TensorShape{static_cast<int>(c_original_shape.size())});
+  Tensor original_shape(DT_INT64,
+                        TensorShape{static_cast<int>(c_original_shape.size())});
   AssignInputValues<int64>(original_shape, c_original_shape);
 
   // begin, end, stride
@@ -1595,16 +1598,17 @@ TEST(ArrayOps, StridedSliceGradTest2) {
   attrs.new_axis_mask_ = 0;
   attrs.shrink_axis_mask_ = 0;
 
-  auto R = ops::StridedSliceGrad(root_scope, original_shape, begin, end, strides, dy_data);
+  auto R = ops::StridedSliceGrad(root_scope, original_shape, begin, end,
+                                 strides, dy_data);
   vector<DataType> output_datatypes = {DT_FLOAT};
   vector<Output> sess_run_fetchoutputs = {R};
 
   vector<int> static_input_indexes = {0, 1, 2, 3};
-  OpExecuter opexecuter(root_scope, "StridedSliceGrad", static_input_indexes, 
+  OpExecuter opexecuter(root_scope, "StridedSliceGrad", static_input_indexes,
                         output_datatypes, sess_run_fetchoutputs);
 
   opexecuter.RunTest();
-} // end of test op StridedSliceGrad
+}  // end of test op StridedSliceGrad
 
 // Test SplitNegativeAxis op
 TEST(ArrayOps, SplitNegativeAxis) {

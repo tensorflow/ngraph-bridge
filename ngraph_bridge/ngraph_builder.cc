@@ -4729,10 +4729,11 @@ static Status TranslateStridedSliceGradOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   std::vector<int64> original_shape;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 0, static_input_map, &original_shape));
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 0, static_input_map, &original_shape));
   std::vector<size_t> t_o_s(original_shape.begin(), original_shape.end());
   ng::Shape ng_original_shape(t_o_s);
-  NGRAPH_VLOG(5) << "Original shape: " <<ng::join(ng_original_shape);
+  NGRAPH_VLOG(5) << "Original shape: " << ng::join(ng_original_shape);
 
   shared_ptr<ng::Node> ng_delta;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 4, &ng_delta));
@@ -4740,7 +4741,6 @@ static Status TranslateStridedSliceGradOp(
   auto zeros = ConstructNgNode<ng::op::Constant>(
       op->name(), ng_delta->get_element_type(), ng_original_shape,
       std::vector<float>{0});
-
 
   std::vector<int64> begin_vec;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &begin_vec));
@@ -4756,7 +4756,7 @@ static Status TranslateStridedSliceGradOp(
   std::vector<size_t> stride(stride_vec.begin(), stride_vec.end());
 
   auto ng_result = ConstructNgNode<ng::op::ReplaceSlice>(
-      op->name(), zeros, ng_delta, begin, end, stride); 
+      op->name(), zeros, ng_delta, begin, end, stride);
   SaveNgOp(ng_op_map, op->name(), ng_result);
   return Status::OK();
 }
