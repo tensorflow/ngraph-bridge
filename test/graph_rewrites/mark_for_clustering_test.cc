@@ -407,7 +407,11 @@ TEST_F(MarkForClusteringTest2, QueryBackendForSupportTest9) {
                                    nodes_marked_for_clustering));
 
   ASSERT_EQ(NGraphClusterManager::GetNumClusters(), 1);
-  ASSERT_EQ(NumNodesMarkedForClustering(), 1); // Only abs
+  ASSERT_EQ(NumNodesMarkedForClustering(), 2);
+  // Only the 2 abs nodes are marked for clustering
+  for (auto node : g.nodes()) {
+    ASSERT_EQ((node->type_string() == "Abs"), NodeIsMarkedForClustering(node));
+  }
 
   NGraphClusterManager::EvictAllClusters();
 }
