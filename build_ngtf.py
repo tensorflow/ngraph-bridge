@@ -206,6 +206,7 @@ def main():
 
     pwd = os.getcwd()
     ngraph_tf_src_dir = os.path.abspath(pwd)
+    print("NGTF SRC DIR: " + ngraph_tf_src_dir)
     build_dir_abs = os.path.abspath(build_dir)
     os.chdir(build_dir)
 
@@ -278,7 +279,7 @@ def main():
     else:
         if arguments.use_prebuilt_tensorflow:
             print("Using existing TensorFlow")
-            # Frst download the source. This will create the tensorfow directory as needed
+            # First download the source. This will create the tensorfow directory as needed
             tf_src_dir = os.path.join(artifacts_location, "tensorflow")
             print("TF_SRC_DIR: ", tf_src_dir)
             # Download
@@ -323,6 +324,17 @@ def main():
                           "https://github.com/tensorflow/tensorflow.git",
                           tf_version)
             tf_src_dir = os.path.join(os.getcwd(), "tensorflow")
+            print("TF_SRC_DIR: ", tf_src_dir)
+
+            # For building TF 2.0 we need to apply the following patch
+            patch_file = os.path.abspath(
+                os.path.join(ngraph_tf_src_dir, "tf2update.patch"))
+            pwd = os.getcwd()
+            os.chdir(tf_src_dir + "/tensorflow/lite/experimental/ruy")
+            print("CURRENT DIR: " + os.getcwd())
+            apply_patch(patch_file)
+            os.chdir(pwd)
+
             # Build TensorFlow
             build_tensorflow(venv_dir, "tensorflow", artifacts_location,
                              target_arch, verbosity)
