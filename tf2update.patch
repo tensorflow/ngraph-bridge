@@ -1,29 +1,21 @@
-*** platform.h	2020-01-30 11:42:38.662817446 -0800
---- new_platform.h	2020-01-30 11:42:18.709151448 -0800
-***************
-*** 53,64 ****
-  // compilation.
-  //
-  // TODO(b/138433137) Select AVX-512 at runtime rather than via compile options.
-! #if defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512CD__) && \
-      defined(__AVX512BW__) && defined(__AVX512VL__)
-! #define RUY_DONOTUSEDIRECTLY_AVX512 1
-! #else
-  #define RUY_DONOTUSEDIRECTLY_AVX512 0
-! #endif
-  
-  // Detect APPLE
-  #ifdef __APPLE__
---- 53,64 ----
-  // compilation.
-  //
-  // TODO(b/138433137) Select AVX-512 at runtime rather than via compile options.
-! //#if defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512CD__) && \
-      defined(__AVX512BW__) && defined(__AVX512VL__)
-! //#define RUY_DONOTUSEDIRECTLY_AVX512 1
-! //#else
-  #define RUY_DONOTUSEDIRECTLY_AVX512 0
-! //#endif
-  
-  // Detect APPLE
-  #ifdef __APPLE__
+diff --git a/tensorflow/lite/experimental/ruy/platform.h b/tensorflow/lite/experimental/ruy/platform.h
+index 7a83173acb..79971842f0 100644
+--- a/tensorflow/lite/experimental/ruy/platform.h
++++ b/tensorflow/lite/experimental/ruy/platform.h
+@@ -53,12 +53,12 @@ limitations under the License.
+ // compilation.
+ //
+ // TODO(b/138433137) Select AVX-512 at runtime rather than via compile options.
+-#if defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512CD__) && \
++//#if defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512CD__) && \
+     defined(__AVX512BW__) && defined(__AVX512VL__)
+-#define RUY_DONOTUSEDIRECTLY_AVX512 1
+-#else
++//#define RUY_DONOTUSEDIRECTLY_AVX512 1
++//else
+ #define RUY_DONOTUSEDIRECTLY_AVX512 0
+-#endif
++//#endif
+ 
+ // Detect APPLE
+ #ifdef __APPLE__

@@ -330,7 +330,7 @@ def main():
             patch_file = os.path.abspath(
                 os.path.join(ngraph_tf_src_dir, "tf2update.patch"))
             pwd = os.getcwd()
-            os.chdir(tf_src_dir + "/tensorflow/lite/experimental/ruy")
+            os.chdir(tf_src_dir)
             print("CURRENT DIR: " + os.getcwd())
             apply_patch(patch_file)
             os.chdir(pwd)
