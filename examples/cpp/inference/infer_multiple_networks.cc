@@ -218,24 +218,24 @@ int main(int argc, char** argv) {
   {
     NG_TRACE("Compilation", "Compilation", "");
 
-  //
-  // Warm-up i.e., Call it onces to get the nGraph compilation done
-  //
-  Tensor next_image;
-  TF_CHECK_OK(inference_engine.GetNextImage(next_image));
-  // Run inference once. This will trigger a compilation
-  tf::ngraph_bridge::Timer compilation_time;
-  TF_CHECK_OK(session_one->Run({{input_layer, next_image}}, {output_layer}, {},
-                               &outputs));
-  TF_CHECK_OK(session_two->Run({{input_layer, next_image}}, {output_layer}, {},
-                               &outputs));
-  TF_CHECK_OK(session_three->Run({{input_layer, next_image}}, {output_layer},
+    //
+    // Warm-up i.e., Call it onces to get the nGraph compilation done
+    //
+    Tensor next_image;
+    TF_CHECK_OK(inference_engine.GetNextImage(next_image));
+    // Run inference once. This will trigger a compilation
+    tf::ngraph_bridge::Timer compilation_time;
+    TF_CHECK_OK(session_one->Run({{input_layer, next_image}}, {output_layer},
                                  {}, &outputs));
-  compilation_time.Stop();
+    TF_CHECK_OK(session_two->Run({{input_layer, next_image}}, {output_layer},
+                                 {}, &outputs));
+    TF_CHECK_OK(session_three->Run({{input_layer, next_image}}, {output_layer},
+                                   {}, &outputs));
+    compilation_time.Stop();
 
-  cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
-       << endl;
-}
+    cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
+         << endl;
+  }
   //
   // Add these sessions to the queue
   //
@@ -287,10 +287,10 @@ int main(int argc, char** argv) {
       //
       {
         NG_TRACE("Run Session", string("Iteration") + to_string(i), "");
-      TF_CHECK_OK(next_available_session->Run({{input_layer, next_image}},
-                                              {output_layer}, {},
-                                              &output_each_thread));
-}
+        TF_CHECK_OK(next_available_session->Run({{input_layer, next_image}},
+                                                {output_layer}, {},
+                                                &output_each_thread));
+      }
       Session* next_session_ptr = next_available_session.get();
       session_queue.Add(move(next_available_session));
       execute_inference_timer.Stop();

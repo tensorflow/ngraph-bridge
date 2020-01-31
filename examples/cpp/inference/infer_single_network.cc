@@ -200,17 +200,17 @@ int main(int argc, char** argv) {
   {
     NG_TRACE("Compilation", "Compilation", "");
 
-  // Call it onces to get the nGraph compilation done
-  TF_CHECK_OK(inference_engine.GetNextImage(next_image));
-  // Run inference once. This will trigger a compilation
-  tf::ngraph_bridge::Timer compilation_time;
-  TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer}, {},
-                               &outputs));
-  compilation_time.Stop();
+    // Call it onces to get the nGraph compilation done
+    TF_CHECK_OK(inference_engine.GetNextImage(next_image));
+    // Run inference once. This will trigger a compilation
+    tf::ngraph_bridge::Timer compilation_time;
+    TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer},
+                                 {}, &outputs));
+    compilation_time.Stop();
 
-  cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
-       << endl;
-}
+    cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
+         << endl;
+  }
 
   atomic<int> total_time_in_ms{0};
   atomic<int> total_images_processed{0};

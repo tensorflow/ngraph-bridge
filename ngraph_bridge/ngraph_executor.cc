@@ -27,8 +27,8 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
-#include "ngraph/runtime/chrome_trace.hpp"
 #include "ngraph/runtime/backend.hpp"
+#include "ngraph/runtime/chrome_trace.hpp"
 
 #if defined NGRAPH_DISTRIBUTED
 #include "ngraph/distributed.hpp"

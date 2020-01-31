@@ -49,13 +49,15 @@ TEST(ThreadSafeQueue, Simple) {
   // Create two threads
   auto consumer = [&]() {
     while (item_count < 3) {
-      ngraph::runtime::event::Duration evt_consumer_do_wait("Consumer", "Do Wait");
+      ngraph::runtime::event::Duration evt_consumer_do_wait("Consumer",
+                                                            "Do Wait");
       while (consumer_do_wait) {
         // cout << "\033[1;32mConsumer waiting\033[0m\n";
         absl::SleepFor(absl::Milliseconds(1));
       }
       evt_consumer_do_wait.stop();
-      ngraph::runtime::event::Duration evt_consumer_waiting_for_item("Consumer", "Waiting");
+      ngraph::runtime::event::Duration evt_consumer_waiting_for_item("Consumer",
+                                                                     "Waiting");
       consumer_state = WAITING_FOR_ITEM;
       // cout << "\033[1;32mWaiting\033[0m" << endl;
       queue.GetNextAvailable();

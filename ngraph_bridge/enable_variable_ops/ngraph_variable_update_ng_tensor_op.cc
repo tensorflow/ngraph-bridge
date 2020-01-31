@@ -105,7 +105,7 @@ void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
   // Hence, Unref var here:
   var->Unref();
 
-  }  // end compute
+}  // end compute
 
 }  // namespace ngraph_bridge
 REGISTER_KERNEL_BUILDER(Name("NGraphVariableUpdateNGTensor").Device(DEVICE_CPU),

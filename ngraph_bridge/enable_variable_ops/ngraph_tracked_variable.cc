@@ -20,8 +20,8 @@
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/default/logging.h"
 
-#include "ngraph/runtime/chrome_trace.hpp"
 #include "ngraph/runtime/backend.hpp"
+#include "ngraph/runtime/chrome_trace.hpp"
 
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_catalog.h"
