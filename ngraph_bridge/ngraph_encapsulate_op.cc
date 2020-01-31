@@ -499,8 +499,8 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                           get<2>(pipelined_io_tensors), ng_inputs, ng_outputs));
 }
   // And execute
-  ngraph::Event event_execute_graph(
-      "Execute Graph Pipeline Indx" + to_string(current_iter_pipeline_depth),
+  {
+    NG_TRACE("Execute Graph Pipeline Indx" + to_string(current_iter_pipeline_depth),
       "", "");
 
   BackendManager::LockBackend(m_parallel_executor->GetOpBackendName());
@@ -531,16 +531,15 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
     OP_REQUIRES(ctx, false, errors::Internal(status_string));
   }
   BackendManager::UnlockBackend(m_parallel_executor->GetOpBackendName());
-  event_execute_graph.Stop();
-  ngraph::Event::write_trace(event_execute_graph);
+}
 
   // Now prepare the output
   // Allocate TF Tensors
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute Allocating TF Output Tensors "
                  << m_parallel_executor->GetNgraphClusterId();
 
-  ngraph::Event event_prepare_tf_output_tensors("Prepare TF Output Tensor", "",
-                                                "");
+  {
+    NG_TRACE("Prepare TF Output Tensor", "", "");
   vector<Tensor*> tf_output_tensors;
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
     auto ng_element = ng_exec->get_results()[i];
@@ -582,8 +581,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
         dst_ptr, ng_outputs[output_index]->get_element_count() *
                      ng_outputs[output_index]->get_element_type().size());
   }
-  event_prepare_tf_output_tensors.Stop();
-  ngraph::Event::write_trace(event_prepare_tf_output_tensors);
+}
 
   // Synch Var Output Tensors as required
   NGRAPH_VLOG(4)
@@ -617,23 +615,23 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
   std::lock_guard<std::mutex> lock(m_compute_lock_);
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
                  << ng_encap_impl_.GetNgraphCluster();
-
-  ngraph::Event event_func_maybe_create("FunctionMaybeCreate", name(), "");
+  int time_func_create_or_lookup;
   Timer function_lookup_or_create;
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   ng::runtime::Backend* op_backend;
-
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;
-
+  int step_id;
+  {
+    NG_TRACE("FunctionMaybeCreate", name(), "");
   for (int i = 0; i < ctx->num_inputs(); i++) {
     tf_input_tensors.push_back(ctx->input(i));
   }
 
-  int step_id = ctx->step_id();
+  step_id = ctx->step_id();
 
   // Get ngraph executable and inputs information
   OP_REQUIRES_OK(ctx, ng_encap_impl_.GetNgExecutable(
@@ -645,8 +643,8 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
       << ng_encap_impl_.GetNgraphCluster();
 
-  int time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
-  event_func_maybe_create.Stop();
+  time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
+}
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
                  << ng_encap_impl_.GetNgraphCluster();
@@ -1001,7 +999,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                  << " Execute: " << time_execute_function
                  << " Copy-outputs-to-host: "
                  << time_copy_output_tensors_to_host;
-  ngraph::Event::write_trace(event_func_maybe_create);
   ngraph::Event::write_trace(event_alloc_output);
   ngraph::Event::write_trace(event_alloc_input);
   ngraph::Event::write_trace(event_execute_function);
