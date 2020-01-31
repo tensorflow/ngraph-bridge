@@ -33,11 +33,12 @@
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
-#include "ngraph/event_tracing.hpp"
+#include "ngraph/runtime/chrome_trace.hpp"
 
 #include "inference_engine.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_timer.h"
+#include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
 
 using namespace std;
@@ -194,12 +195,13 @@ int main(int argc, char** argv) {
   TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
                                                         "0", the_session));
 
-  ngraph::Event evt_compilation("Compilation", "Compilation", "");
+  Tensor next_image;
+  std::vector<Tensor> outputs;
+  {
+    NG_TRACE("Compilation", "Compilation", "");
 
   // Call it onces to get the nGraph compilation done
-  Tensor next_image;
   TF_CHECK_OK(inference_engine.GetNextImage(next_image));
-  std::vector<Tensor> outputs;
   // Run inference once. This will trigger a compilation
   tf::ngraph_bridge::Timer compilation_time;
   TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer}, {},
@@ -208,8 +210,7 @@ int main(int argc, char** argv) {
 
   cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
        << endl;
-  evt_compilation.Stop();
-  ngraph::Event::write_trace(evt_compilation);
+}
 
   atomic<int> total_time_in_ms{0};
   atomic<int> total_images_processed{0};
@@ -218,7 +219,7 @@ int main(int argc, char** argv) {
     ostringstream oss;
     oss << "Worker_" << worker_id;
     for (int i = 0; i < iteration_count; i++) {
-      ngraph::Event evt_run(oss.str(), to_string(i), "");
+      NG_TRACE(oss.str(), to_string(i), "");
       tf::ngraph_bridge::Timer iteration_timer;
       // Get the image
       Tensor next_image;
@@ -234,8 +235,6 @@ int main(int argc, char** argv) {
       cout << "Iteration: " << i << " Time: " << iteration_timer.ElapsedInMS()
            << endl;
       total_images_processed++;
-      evt_run.Stop();
-      ngraph::Event::write_trace(evt_run);
     }
   };
 

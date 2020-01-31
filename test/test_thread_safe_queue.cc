@@ -44,7 +44,6 @@ TEST(ThreadSafeQueue, Simple) {
   atomic<bool> consumer_do_wait{true};
   atomic<int> item_count{0};
 
-  //ngraph::Event::enable_event_tracing();
   ngraph::runtime::event::Manager::enable_event_tracing();
 
   // Create two threads
