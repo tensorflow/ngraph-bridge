@@ -30,6 +30,7 @@
 #include "tensorflow/core/graph/graph_constructor.h"
 
 #include "ngraph/event_tracing.hpp"
+#include "ngraph/runtime/chrome_trace.hpp"
 #include "ngraph/runtime/backend.hpp"
 
 #if defined NGRAPH_DISTRIBUTED
@@ -187,7 +188,7 @@ void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx,
   std::ostringstream oss;
   oss << "Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": " << name();
 
-  ngraph::Event event(oss.str(), name(), "");
+  NG_TRACE(oss.str(), name(), "");
 
   NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << ng_encap_impl_.GetInstanceId()
                  << " Name: " << name();
@@ -307,9 +308,6 @@ void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx,
   }
   NGRAPH_VLOG(5) << "Executable can " << (exec_can_create_tensor ? "" : "not")
                  << " create tensors";
-
-  event.Stop();
-  ngraph::Event::write_trace(event);
 }
 
 //---------------------------------------------------------------------------
@@ -319,7 +317,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   std::ostringstream oss;
   oss << "Destroy Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
       << name();
-  ngraph::Event event(oss.str(), name(), "");
+  NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
 
   if (m_use_parallel_executor) {
@@ -389,15 +387,13 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   // Release the backend
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
   BackendManager::ReleaseBackend(ng_encap_impl_.GetOpBackend());
-  event.Stop();
-  ngraph::Event::write_trace(event);
 }
 
 //---------------------------------------------------------------------------
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
-  ngraph::Event event_compute("NGEncap::Compute::" + name(), name(), "");
+  NG_TRACE("NGEncap::Compute::" + name(), name(), "");
 
   if (m_use_parallel_executor) {
     NGRAPH_VLOG(1) << "NGraphEncapsulateOp::Compute: Using Parallel Executor";
@@ -406,9 +402,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     NGRAPH_VLOG(1) << "NGraphEncapsulateOp::Compute: Using Legacy Executor";
     ComputeUsingLegacyExecutor(ctx);
   }
-
-  event_compute.Stop();
-  ngraph::Event::write_trace(event_compute);
 }
 
 //---------------------------------------------------------------------------
@@ -429,12 +422,13 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   }
 
   // Get ngraph executable,function and Pipelined Tensor Store
-  ngraph::Event event_get_ng_item("GetExecutableAndTensors", "", "");
+  
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
   std::string serialized_ng_function;
   shared_ptr<PipelinedTensorsStore> pipelined_tensor_store;
   bool cache_hit;
-
+{
+    NG_TRACE("GetExecutableAndTensors", "", "");
   OP_REQUIRES_OK(ctx, m_parallel_executor->GetExecutableFunctionAndTensors(
                           tf_input_tensors, ng_exec, serialized_ng_function,
                           pipelined_tensor_store, cache_hit));
@@ -445,9 +439,7 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       << "NGraphEncapsulateOp::Compute got ngraph executable for cluster id: "
       << m_parallel_executor->GetNgraphClusterId();
 
-  event_get_ng_item.Stop();
-  ngraph::Event::write_trace(event_get_ng_item);
-
+}
   // Error check for pipelined tensors and pipeline depth
   OP_REQUIRES(ctx, m_parallel_executor->GetTensorPipelineDepth() == 2,
               errors::Internal("Pipeline Depth is not 2, got ",
@@ -583,17 +575,11 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
       tensor_manager->GetOutputIndexesThatNeedCopy();
   for (auto output_index : output_indexes_to_be_copied) {
     // Copy the nGraph Tensor to Host Tensor
-    std::unique_ptr<ngraph::Event> event_copy_d2h(new ngraph::Event(
-        "D2H_Output_" + std::to_string(output_index), "", ""));
+    NG_TRACE("D2H_Output_" + std::to_string(output_index), "", "");
     void* dst_ptr = (void*)DMAHelper::base(tf_output_tensors[output_index]);
     ng_outputs[output_index]->read(
         dst_ptr, ng_outputs[output_index]->get_element_count() *
                      ng_outputs[output_index]->get_element_type().size());
-    event_copy_d2h->Stop();
-    output_copy_events.push_back(std::move(event_copy_d2h));
-  }
-  for (auto& next : output_copy_events) {
-    ngraph::Event::write_trace(*next.get());
   }
   event_prepare_tf_output_tensors.Stop();
   ngraph::Event::write_trace(event_prepare_tf_output_tensors);
@@ -602,20 +588,17 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute Sync NG Output Variable Tensors "
       << m_parallel_executor->GetNgraphClusterId();
-  ngraph::Event event_update_ngvar_tensors("Update NGVar Tensors", "", "");
+  {
+    NG_TRACE("Update NGVar Tensors", "", "");
   OP_REQUIRES_OK(ctx, SyncOutputVarTensors(ctx, tensor_manager));
-  event_update_ngvar_tensors.Stop();
-  ngraph::Event::write_trace(event_update_ngvar_tensors);
-
+}
   // Now return them to the cache
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Returning Tensors "
                  << m_parallel_executor->GetNgraphClusterId();
-  ngraph::Event event_return_tensor("Return Tensor", "", "");
+  {
+    NG_TRACE("Return Tensor", "", "");
   pipelined_tensor_store->return_tensors(current_iter_pipeline_depth);
-
-  event_return_tensor.Stop();
-  ngraph::Event::write_trace(event_return_tensor);
-
+}
   NGRAPH_VLOG(2) << "COMPUTE: Done " << name();
 }
 
@@ -627,7 +610,7 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
   std::ostringstream oss;
   oss << "Execute: Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
       << name();
-  ngraph::Event event(oss.str(), name(), "");
+  NG_TRACE(oss.str(), name(), "");
 
   Timer compute_time;
   std::lock_guard<std::mutex> lock(m_compute_lock_);
@@ -894,7 +877,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
 
   try {
     size_t output_tensor_count = output_caches.size();
-    std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     if (ng_encap_impl_.GetNumberOfOutputs() == -1) {
       NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
@@ -949,12 +931,9 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
             dst_ng_tensor->get_element_count() * ng_element_type.size();
         string event_name =
             "Output_" + to_string(i) + "_" + to_string(copy_size);
-        std::unique_ptr<ngraph::Event> event_copy_output_next(
-            new ngraph::Event(event_name, name(), ""));
+        NG_TRACE(event_name, name(), "");
         dst_ng_tensor->read(dst_ptr, dst_ng_tensor->get_element_count() *
                                          ng_element_type.size());
-        event_copy_output_next->Stop();
-        output_copy_events.push_back(std::move(event_copy_output_next));
       }
     }
 #else
@@ -964,22 +943,15 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
         std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
         std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
         auto ng_element_type = dst_ng_tensor->get_element_type();
-        std::unique_ptr<ngraph::Event> event_copy_output_next(new ngraph::Event(
-            ("Output_" + std::to_string(i) + "_" +
+        NG_TRACE(("Output_" + std::to_string(i) + "_" +
              std::to_string(dst_ng_tensor->get_element_count() *
                             ng_element_type.size())),
-            name(), ""));
+            name(), "");
         dst_ng_tensor->read(dst_ptr, dst_ng_tensor->get_element_count() *
                                          ng_element_type.size());
-        event_copy_output_next->Stop();
-        output_copy_events.push_back(std::move(event_copy_output_next));
       }
     }
 #endif
-    // Now write the events back
-    for (auto& next : output_copy_events) {
-      ngraph::Event::write_trace(*next.get());
-    }
   } catch (const std::exception& exp) {
     OP_REQUIRES(ctx, false,
                 errors::Internal(
@@ -1028,13 +1000,11 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                  << " Execute: " << time_execute_function
                  << " Copy-outputs-to-host: "
                  << time_copy_output_tensors_to_host;
-  event.Stop();
   ngraph::Event::write_trace(event_func_maybe_create);
   ngraph::Event::write_trace(event_alloc_output);
   ngraph::Event::write_trace(event_alloc_input);
   ngraph::Event::write_trace(event_execute_function);
   ngraph::Event::write_trace(event_copy_output);
-  ngraph::Event::write_trace(event);
 
 }  // end compute
 
