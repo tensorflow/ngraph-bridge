@@ -446,8 +446,13 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                                m_parallel_executor->GetTensorPipelineDepth()));
 
   // Get Tensor Manager and some error checking
-  ngraph::Event event_prepare_ng_tensors("Prepare NG In/Out Tensors", "", "");
-  auto tensor_manager = m_parallel_executor->GetTensorManager();
+  int current_iter_pipeline_depth;
+  vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
+  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+  shared_ptr<NGraphTensorManager> tensor_manager;
+  {
+    NG_TRACE("Prepare NG In/Out Tensors", "", "");
+  tensor_manager = m_parallel_executor->GetTensorManager();
   int num_of_inputs = tensor_manager->GetNumberOfInputs();
   int num_of_outputs = tensor_manager->GetNumberOfOutputs();
   OP_REQUIRES(ctx, num_of_inputs == ctx->num_inputs(),
@@ -483,18 +488,16 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
                           ctx, tf_input_tensors, pipelined_tensor_store,
                           tensor_manager, pipelined_io_tensors));
 
-  int current_iter_pipeline_depth = get<0>(pipelined_io_tensors);
-  vector<shared_ptr<ng::runtime::Tensor>> ng_inputs(num_of_inputs);
-  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs(num_of_outputs);
+  current_iter_pipeline_depth = get<0>(pipelined_io_tensors);
+  ng_inputs.resize(num_of_inputs);
+  ng_outputs.resize(num_of_outputs);
 
   // Prepare NG Input Output Tensors
   // Assemble Variable tensors and pipelined tensors to ng_input and ng_outputs
   OP_REQUIRES_OK(ctx, GetIOTensorsReadyForExecution(
                           ctx, tensor_manager, get<1>(pipelined_io_tensors),
                           get<2>(pipelined_io_tensors), ng_inputs, ng_outputs));
-  event_prepare_ng_tensors.Stop();
-  ngraph::Event::write_trace(event_prepare_ng_tensors);
-
+}
   // And execute
   ngraph::Event event_execute_graph(
       "Execute Graph Pipeline Indx" + to_string(current_iter_pipeline_depth),
@@ -568,8 +571,6 @@ void NGraphEncapsulateOp::ComputeUsingParallelExecutor(OpKernelContext* ctx) {
   // Copy Tensors that are required
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute Read NG Output Tensors "
                  << m_parallel_executor->GetNgraphClusterId();
-
-  std::vector<std::unique_ptr<ngraph::Event>> output_copy_events;
 
   auto output_indexes_to_be_copied =
       tensor_manager->GetOutputIndexesThatNeedCopy();
