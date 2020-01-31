@@ -29,7 +29,6 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
-#include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/chrome_trace.hpp"
 #include "ngraph/runtime/backend.hpp"
 
@@ -742,9 +741,8 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                     "from resource manager "
                  << ng_encap_impl_.GetNgraphCluster();
 
-  ngraph::Event event_output_check_in_catalog(
-      "Get Variable Outputs from Resource Manager", name(), "");
-
+  {
+    NG_TRACE("Get Variable Outputs from Resource Manager", name(), "");
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
     void* current_dst_ptr = DMAHelper::base(tf_output_tensors[i]);
     std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
@@ -778,15 +776,13 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
     var->Unref();
     ng_outputs[i] = current_ng_tensor;
   }
-  event_output_check_in_catalog.Stop();
-  ngraph::Event::write_trace(event_output_check_in_catalog);
-
+  }
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
                     "from resource manager "
                  << ng_encap_impl_.GetNgraphCluster();
 
-  ngraph::Event event_input_check_in_catalog(
-      "Get Variable Inputs from Resource Manager", name(), "");
+  {
+    NG_TRACE("Get Variable Inputs from Resource Manager", name(), "");
 
   // Dealing with the input from Variable nodes here
   for (int input_index = 0; input_index < input_shapes.size(); input_index++) {
@@ -815,15 +811,15 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
 
     var->Unref();
   }
-
-  event_input_check_in_catalog.Stop();
-  ngraph::Event::write_trace(event_input_check_in_catalog);
+}
 #endif
 
   int time_create_or_lookup_tensors = create_or_lookup_tensors.ElapsedInMS();
 
   // Execute the nGraph function.
-  ngraph::Event event_execute_function("Execute nGraph", name(), "");
+  int time_execute_function;
+  {
+    NG_TRACE("Execute nGraph", name(), "");
   Timer execute_function;
   {
     BackendManager::LockBackend(ng_encap_impl_.GetOpBackend());
@@ -853,8 +849,8 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
     }
     BackendManager::UnlockBackend(ng_encap_impl_.GetOpBackend());
   }
-  int time_execute_function = execute_function.ElapsedInMS();
-  event_execute_function.Stop();
+  time_execute_function = execute_function.ElapsedInMS();
+}
 
   long vm, rss;
   MemoryProfile(vm, rss);
@@ -870,9 +866,9 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                  << ng_encap_impl_.GetNgraphCluster();
 
   // Copy value to host if backend is not CPU
-  ngraph::Event event_copy_output("Output - copy back", name(), "");
-  Timer copy_output_tensors_to_host;
-
+   Timer copy_output_tensors_to_host;
+  {
+    NG_TRACE("Output - copy back", name(), "");
   try {
     size_t output_tensor_count = output_caches.size();
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
@@ -959,8 +955,7 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
     OP_REQUIRES(ctx, false, errors::Internal(
                                 "Error in transferring tensor data to host\n"));
   }
-  event_copy_output.Stop();
-
+}
 #if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
   std::stringstream str;
   str << " Number of copies " << ng_encap_impl_.GetNumberOfCopies() << "\n";
@@ -998,9 +993,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                  << " Execute: " << time_execute_function
                  << " Copy-outputs-to-host: "
                  << time_copy_output_tensors_to_host;
-  ngraph::Event::write_trace(event_execute_function);
-  ngraph::Event::write_trace(event_copy_output);
-
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;
