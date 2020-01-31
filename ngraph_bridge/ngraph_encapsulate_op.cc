@@ -680,26 +680,25 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
       << ng_encap_impl_.GetNgraphCluster();
 
   // Allocate tensors for input arguments.
-  ngraph::Event event_alloc_input("Input: maybe create", name(), "");
-
   vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
-
-  OP_REQUIRES_OK(ctx, ng_encap_impl_.AllocateNGInputTensors(
+  {
+    NG_TRACE("Input: maybe create", name(), "");
+    OP_REQUIRES_OK(ctx, ng_encap_impl_.AllocateNGInputTensors(
                           tf_input_tensors, ng_exec, inp_group_from_pipeline,
                           op_backend, ng_inputs));
-
-  event_alloc_input.Stop();
+}
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                     "for cluster "
                  << ng_encap_impl_.GetNgraphCluster();
   // Allocate tensors for the output results.
-  ngraph::Event event_alloc_output("Output: maybe create", name(), "");
   vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
   std::vector<Tensor*> tf_output_tensors;
-
+  std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>> output_caches;
+{
+  NG_TRACE("Output: maybe create", name(), "");
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
     auto ng_element = ng_exec->get_results()[i];
     auto ng_shape = ng_element->get_shape();
@@ -730,9 +729,9 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
   OP_REQUIRES_OK(ctx, ng_encap_impl_.AllocateNGOutputTensors(
                           tf_output_tensors, ng_exec, out_group_from_pipeline,
                           op_backend, ng_outputs));
-  auto output_caches = ng_encap_impl_.GetNgExecOutputCacheMap(ng_exec);
+  output_caches = ng_encap_impl_.GetNgExecOutputCacheMap(ng_exec);
 
-  event_alloc_output.Stop();
+}
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << ng_encap_impl_.GetNgraphCluster();
@@ -999,8 +998,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                  << " Execute: " << time_execute_function
                  << " Copy-outputs-to-host: "
                  << time_copy_output_tensors_to_host;
-  ngraph::Event::write_trace(event_alloc_output);
-  ngraph::Event::write_trace(event_alloc_input);
   ngraph::Event::write_trace(event_execute_function);
   ngraph::Event::write_trace(event_copy_output);
 
