@@ -112,7 +112,7 @@ def main():
         os.environ['NGRAPH_TF_LOG_0_DISABLED'] = '1'
         run_tensorflow_pytests_from_artifacts(
             arguments.backend, './',
-            arguments.artifacts_dir + '/tensorflow/python', False)
+            arguments.artifacts_dir + 'tensorflow/python', False)
     elif (arguments.test_resnet):
         if get_os_type() == 'Darwin':
             run_resnet50_forward_pass_from_artifacts(

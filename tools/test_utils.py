@@ -252,7 +252,15 @@ def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
     print("CURRENT DIR: " + os.getcwd())
 
     print("Patching TensorFlow using: %s" % patch_file)
-    apply_patch(patch_file)
+    cmd = subprocess.Popen(
+        'patch -N -i ' + patch_file, shell=True, stdout=subprocess.PIPE)
+    printed_lines = cmd.communicate()
+    # Check if the patch is being applied for the first time, in which case
+    # cmd.returncode will be 0 or if the patch has already been applied, in
+    # which case the string will be found, in all other cases the assertion
+    # will fail
+    assert cmd.returncode == 0 or 'patch detected!  Skipping patch' in str(
+        printed_lines[0]), "Error applying the patch."
     os.chdir(pwd)
 
     # Now run the TensorFlow python tests
