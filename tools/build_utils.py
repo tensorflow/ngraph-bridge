@@ -329,7 +329,7 @@ def locate_tf_whl(tf_whl_loc):
 def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
     tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
     if (platform.system() == 'Darwin'):
-        tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
+        tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
     try:
         doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.2")
         os.unlink(doomed_file)
