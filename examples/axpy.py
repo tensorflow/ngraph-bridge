@@ -55,6 +55,7 @@ config_ngraph_enabled = ngraph_bridge.update_config(config)
 # Create session and run
 with tf.Session(config=config_ngraph_enabled) as sess:
     print("Python: Running with Session")
+    print("PALADIN.....................................PALADIN")
     options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
     run_metadata = tf.RunMetadata()
 
