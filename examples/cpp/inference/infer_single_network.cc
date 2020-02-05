@@ -33,8 +33,6 @@
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
-#include "ngraph/runtime/chrome_trace.hpp"
-
 #include "inference_engine.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_timer.h"
