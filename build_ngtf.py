@@ -37,10 +37,9 @@ def version_check(use_prebuilt_tensorflow):
 
     # Check bazel version
     bazel_ver = get_bazel_version()
-    print(bazel_ver)
     if (bazel_ver < "0.24.1" or bazel_ver >= "1.0.0"):
         raise Exception("Need minimum bazel version >= 0.24.1 and <1.0.0\n" +
-                "Got: " + bazel_ver)
+                        "Got: " + bazel_ver)
 
 
 def main():
