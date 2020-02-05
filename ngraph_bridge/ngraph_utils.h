@@ -34,8 +34,10 @@
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
 
+// Activates event logging until the end of the current code-block scoping;
+// Automatically writes log data as soon as the the current scope expires.
 #define NG_TRACE(name, category, args) \
-  ngraph::runtime::event::Duration dx__ { name, category, args }
+  ngraph::runtime::event::Duration dx__ { (name), (category), (args) }
 
 namespace ng = ngraph;
 using namespace std;
