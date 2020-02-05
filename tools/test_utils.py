@@ -590,7 +590,7 @@ def run_bazel_build_test(venv_dir, build_dir):
     root_pwd = os.getcwd()
 
     # Now run the configure
-    command_executor(['bash', 'configure_bazel.sh 1'])
+    command_executor(['bash', 'configure_bazel.sh'])
 
     # Build the cpp app - hello_tf
     command_executor(['bazel', 'build', 'hello_tf'])
@@ -610,7 +610,7 @@ def run_bazel_build():
     root_pwd = os.getcwd()
 
     # Now run the configure
-    command_executor(['bash', 'configure_bazel.sh 1'])
+    command_executor(['bash', 'configure_bazel.sh'])
 
     # Build the cpp app - hello_tf
     command_executor(['bazel', 'build', 'hello_tf'])
