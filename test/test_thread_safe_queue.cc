@@ -22,7 +22,6 @@
 #include "tensorflow/core/public/session.h"
 
 #include "gtest/gtest.h"
-#include "ngraph/runtime/chrome_trace.hpp"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/thread_safe_queue.h"
 
@@ -44,8 +43,6 @@ TEST(ThreadSafeQueue, Simple) {
   atomic<CONSUMER_STATE> consumer_state{INIT};
   atomic<bool> consumer_do_wait{true};
   atomic<int> item_count{0};
-
-  ngraph::runtime::event::Manager::enable_event_tracing();
 
   // Create two threads
   auto consumer = [&]() {

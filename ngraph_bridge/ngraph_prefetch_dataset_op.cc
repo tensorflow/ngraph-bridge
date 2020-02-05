@@ -50,8 +50,6 @@ File: tensorflow/core/kernels/data/prefetch_dataset_op.cc
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 
-#include "ngraph/runtime/chrome_trace.hpp"
-
 #include "ngraph_bridge/ngraph_prefetch_shared_data.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/stats_utils.h"
