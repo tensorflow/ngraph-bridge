@@ -715,6 +715,9 @@ Status Encapsulator::RewritePass(
         nb.Attr(i.first, i.second);
       }
     }
+
+    // Find Static Inputs And Add as an attribute
+
     Status status = nb.Finalize(graph, &n);
     TF_RETURN_IF_ERROR(status);
     n->set_assigned_device_name(device_name_map[cluster_idx]);

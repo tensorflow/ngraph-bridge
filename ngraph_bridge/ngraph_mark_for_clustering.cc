@@ -1296,9 +1296,42 @@ void GetStaticInputs(const Node* node, std::vector<int32>* inputs) {
 }
 
 bool InputIsStatic(const Node* node, int index) {
+  cout << "Looking for static input for node " << node->name() << endl;
   std::vector<int32> inputs;
   GetStaticInputs(node, &inputs);
+  for (int index : inputs) {
+    cout << "Found static input " << index << " for node " << node->name()
+         << endl;
+  }
   return std::find(inputs.begin(), inputs.end(), index) != inputs.end();
+}
+
+Status GetStaticInputs(Graph* graph, std::vector<int32>* static_input_indexes) {
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == "_Arg") {
+      int32 index;
+      auto status = GetNodeAttr(node->attrs(), "index", &index);
+      if (status != Status::OK()) {
+        throw std::runtime_error("error getting node attribute index");
+      }
+
+      for (auto edge : node->out_edges()) {
+        if (edge->IsControlEdge() || !edge->dst()->IsOp()) {
+          continue;
+        }
+
+        NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
+                       << edge->DebugString();
+
+        if (InputIsStatic(edge->dst(), edge->dst_input())) {
+          NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
+          static_input_indexes->push_back(index);
+          break;
+        }
+      }
+    }
+  }
+  return Status::OK();
 }
 
 Status GetNodeBackend(const Node* node, string* backend_name) {

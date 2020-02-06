@@ -86,81 +86,62 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
     throw std::runtime_error(string("Requested backend: '") +
                              m_op_backend_name + string("' not available."));
   }
+
+  // Create Tensor Manager
+  int number_of_inputs = FindNumberOfNodes(m_graph.get(), "_Arg");
+  int number_of_outputs = FindNumberOfNodes(m_graph.get(), "_Retval");
+
+  m_tensor_manager = make_shared<NGraphTensorManager>(
+      GetNgraphClusterName(), GetNgraphClusterId(), GetGraphId(),
+      number_of_inputs, number_of_outputs);
+
   // Initialize the "m_input_is_static" vector as follows:
-  // (1) create m_input_is_static with n+1 elements, where n is the max arg
-  //     index
-  // (2) for each _Arg node n, set m_input_is_static[n.index] to true if n
+  // (1) for each _Arg node n, set m_input_is_static[n.index] to true if n
   //     is driving any static input; else set it to false.
   //
-
   // Create the vector.
-  int32 max_arg_index = -1;
-  std::vector<const Node*> arg_nodes;
+  m_input_is_static.resize(number_of_inputs);
 
   for (auto node : m_graph->nodes()) {
     if (node->type_string() == "_Arg") {
-      arg_nodes.push_back(node);
-
       int32 index;
       auto status = GetNodeAttr(node->attrs(), "index", &index);
       if (status != Status::OK()) {
         throw std::runtime_error("error getting node attribute index");
       }
 
-      if (index > max_arg_index) {
-        max_arg_index = index;
+      bool is_static = false;
+      for (auto edge : node->out_edges()) {
+        if (edge->IsControlEdge() || !edge->dst()->IsOp()) {
+          continue;
+        }
+
+        NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
+                       << edge->DebugString();
+
+        if (InputIsStatic(edge->dst(), edge->dst_input())) {
+          NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
+          is_static = true;
+          break;
+        }
       }
+      NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
+      m_input_is_static[index] = is_static;
     }
   }
 
-  int size = max_arg_index + 1;
-  m_input_is_static.resize(size);
-
-  for (int i = 0; i < size; i++) {
-    m_input_is_static[i] = false;
-  }
-
-  // Fill the vector.
-  for (auto node : arg_nodes) {
-    int32 index;
-    auto status = GetNodeAttr(node->attrs(), "index", &index);
-    if (status != Status::OK()) {
-      throw std::runtime_error("error getting node attribute index");
-    }
-
-    bool is_static = false;
-    for (auto edge : node->out_edges()) {
-      if (edge->IsControlEdge() || !edge->dst()->IsOp()) {
-        continue;
-      }
-
-      NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
-                     << edge->DebugString();
-
-      if (InputIsStatic(edge->dst(), edge->dst_input())) {
-        NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
-        is_static = true;
-        break;
-      }
-    }
-    NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
-    m_input_is_static[index] = is_static;
-  }
-
-  // Some error checking before refactoring the above code
-  int number_of_inputs = FindNumberOfNodes(m_graph.get(), "_Arg");
-  int number_of_outputs = FindNumberOfNodes(m_graph.get(), "_Retval");
-
-  if (number_of_inputs != size) {
-    throw std::runtime_error(
-        "Found discrepancy in no of Args in encapsulated graph and the "
-        "max_index, num_of_inputs/Args " +
-        to_string(number_of_inputs) + " size via arg index " + to_string(size));
-  }
-
-  m_tensor_manager = make_shared<NGraphTensorManager>(
-      GetNgraphClusterName(), GetNgraphClusterId(), GetGraphId(),
-      number_of_inputs, number_of_outputs);
+  // If the Static Input is coming from a Variable Op that uses the --enable_var
+  // optimizations we throw an error. That case is not supported yet.
+  // To support it, NGVariable 's TF Tensor needs to be synced from NG Tensor
+  // before computing the signature for executable[Graph Translation]
+  // Variables would most likely not be a static input. So it is unlikely
+  // to hit this assert. But depends on how the script is written
+  // for(auto var_input_index:
+  // m_tensor_manager->GetInputIndexesFedByVariables()){
+  //     if(m_input_is_static[var_input_index]){
+  //       throw std::runtime_error("Got static Input from Variable.");
+  //     }
+  // }
 }
 
 //---------------------------------------------------------------------------
