@@ -43,7 +43,7 @@ config_setting(
 template_rule(
     name = "mkldnn_version_h",
     src = "include/dnnl_version.h.in",
-    out = "include/dnnl_version.h",
+    out = "include/mkldnn_version.h",
     substitutions = {
         "@MKLDNN_VERSION_MAJOR@": "1",
         "@MKLDNN_VERSION_MINOR@": "1",
@@ -53,7 +53,27 @@ template_rule(
 )
 
 template_rule(
+name = "dnnl_version_h",
+src = "include/dnnl_version.h.in",
+out = "include/dnnl_version.h",
+substitutions = {
+    "@MKLDNN_VERSION_MAJOR@": "1",
+    "@MKLDNN_VERSION_MINOR@": "1",
+    "@MKLDNN_VERSION_PATCH@": "1",
+    "@MKLDNN_VERSION_HASH@": "N/A",
+},
+)
+
+template_rule(
     name = "mkldnn_config_h",
+    src = "include/dnnl_config.h.in",
+    out = "include/mkldnn_config.h",
+    substitutions = {
+    },
+)
+
+template_rule(
+    name = "dnnl_config_h",
     src = "include/dnnl_config.h.in",
     out = "include/dnnl_config.h",
     substitutions = {
@@ -78,7 +98,7 @@ cc_library(
         "src/cpu/rnn/*.cpp",
         "src/cpu/rnn/*.hpp",
         "src/cpu/xbyak/*.h",
-    ]) + [":mkldnn_version_h"] + [":mkldnn_config_h"],
+    ]) + [":mkldnn_version_h", ":dnnl_version_h", ":mkldnn_config_h", ":dnnl_config_h"],
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",
@@ -148,7 +168,7 @@ cc_library(
         "src/cpu/rnn/*.cpp",
         "src/cpu/rnn/*.hpp",
         "src/cpu/xbyak/*.h",
-    ]) + [":mkldnn_version_h", ":mkldnn_config_h"],
+    ]) + [":mkldnn_version_h", ":dnnl_version_h", ":mkldnn_config_h", ":dnnl_config_h"],
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",
