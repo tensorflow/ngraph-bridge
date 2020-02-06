@@ -73,7 +73,7 @@ Status IsSupportedByBackend(
 
 Status GetTFNodeSupportInfo(const shared_ptr<ng::Function>& ng_function,
                             std::map<std::string, bool>& result_map,
-                            std::map<std::string, bool>& ng_result_map);
+                            const std::map<std::string, bool>& ng_result_map);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
