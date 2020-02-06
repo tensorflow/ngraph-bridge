@@ -4725,6 +4725,9 @@ static Status TranslateStridedSliceOp(
   return Status::OK();
 }
 
+// For StridedSliceGradOp, see
+// .../tensorflow/core/kernels/strided_slice_op.cc
+// and .../tensorflow/core/api_def/base_api/api_def_StridedSliceGrad.pbtxt
 static Status TranslateStridedSliceGradOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
