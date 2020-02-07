@@ -12,7 +12,6 @@
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
-      python3 build_ngtf.py --use_tensorflow_from_location /localdisk/buildkite-agent/prebuilt_tensorflow_1_15_0
       python3 build_ngtf.py --use_prebuilt_tensorflow  --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
       
     label: ":hammer_and_wrench: Build"
@@ -51,6 +50,8 @@
     - "queue=cpu"
 
   - wait: ~
+    continue_on_failure: true
+
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
