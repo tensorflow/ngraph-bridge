@@ -717,6 +717,19 @@ Status Encapsulator::RewritePass(
     }
 
     // Find Static Inputs And Add as an attribute
+    vector<int> static_input_indexes;
+    GraphDef* gdef_for_current_encapsulate;
+    gdef_for_current_encapsulate =
+        NGraphClusterManager::GetClusterGraph(cluster_idx);
+    GraphConstructorOptions opts;
+    opts.allow_internal_ops = true;
+    Graph graph_for_current_encapsulate(OpRegistry::Global());
+    TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
+        opts, *gdef_for_current_encapsulate, &graph_for_current_encapsulate));
+
+    TF_RETURN_IF_ERROR(
+        GetStaticInputs(&graph_for_current_encapsulate, &static_input_indexes));
+    nb.Attr("_ngraph_static_inputs", static_input_indexes);
 
     Status status = nb.Finalize(graph, &n);
     TF_RETURN_IF_ERROR(status);

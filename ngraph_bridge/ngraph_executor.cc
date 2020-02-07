@@ -95,53 +95,13 @@ NGraphExecutor::NGraphExecutor(int instance_id, int cluster_id, int graph_id,
       GetNgraphClusterName(), GetNgraphClusterId(), GetGraphId(),
       number_of_inputs, number_of_outputs);
 
-  // Initialize the "m_input_is_static" vector as follows:
-  // (1) for each _Arg node n, set m_input_is_static[n.index] to true if n
-  //     is driving any static input; else set it to false.
-  //
-  // Create the vector.
+  // Initialize the "m_input_is_static" vector
   m_input_is_static.resize(number_of_inputs);
-
-  for (auto node : m_graph->nodes()) {
-    if (node->type_string() == "_Arg") {
-      int32 index;
-      auto status = GetNodeAttr(node->attrs(), "index", &index);
-      if (status != Status::OK()) {
-        throw std::runtime_error("error getting node attribute index");
-      }
-
-      bool is_static = false;
-      for (auto edge : node->out_edges()) {
-        if (edge->IsControlEdge() || !edge->dst()->IsOp()) {
-          continue;
-        }
-
-        NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
-                       << edge->DebugString();
-
-        if (InputIsStatic(edge->dst(), edge->dst_input())) {
-          NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
-          is_static = true;
-          break;
-        }
-      }
-      NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
-      m_input_is_static[index] = is_static;
-    }
+  vector<int> static_input_indexes;
+  Status st = GetStaticInputs(m_graph.get(), &static_input_indexes);
+  for (auto inp_index : static_input_indexes) {
+    m_input_is_static[inp_index] = true;
   }
-
-  // If the Static Input is coming from a Variable Op that uses the --enable_var
-  // optimizations we throw an error. That case is not supported yet.
-  // To support it, NGVariable 's TF Tensor needs to be synced from NG Tensor
-  // before computing the signature for executable[Graph Translation]
-  // Variables would most likely not be a static input. So it is unlikely
-  // to hit this assert. But depends on how the script is written
-  // for(auto var_input_index:
-  // m_tensor_manager->GetInputIndexesFedByVariables()){
-  //     if(m_input_is_static[var_input_index]){
-  //       throw std::runtime_error("Got static Input from Variable.");
-  //     }
-  // }
 }
 
 //---------------------------------------------------------------------------

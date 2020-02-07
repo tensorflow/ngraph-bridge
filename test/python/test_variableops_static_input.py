@@ -20,7 +20,7 @@ Var
 |   Encap 
 |   /
 Assign (or removed)
-* The input to Encap is a static input from Variable
+* The input to Encap is a static input
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -38,11 +38,11 @@ import ngraph_bridge
 import os
 
 # Tests the scenario when Variable Op is a static input to Encapsulate
-# **: The input to Encap is a static input from Variable
+# *: The input to Encap is a static input
 #
 #    Const     NGraphVar     Const
 #      \       /   |   \     /
-#      _\|  **|/_   |   _\| |/_
+#      _\|  *|/_   |   _\| |/_
 #         Mean     |    Add
 #                  |     /
 #                 \|/  |/_
@@ -52,7 +52,7 @@ import os
 #
 #            NGraphVar
 #             /   |   \
-#          **|/_   |   _\|
+#          *|/_   |   _\|
 #     NGEncap1    |   NGEncap2
 #                 |     /
 #                \|/  |/_
@@ -135,35 +135,35 @@ class TestVariableStaticInputs(NgraphTest):
         self.restore_env_variables(env_var_map)
 
     # Tests when buffer sharing is enabled
-    # def test_variable_static_input_variables_share_buffer(self):
-    #     # set env variable to enable NGraphVariable's buffer sharing
-    #     buffer_sharing_env = "NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"
-    #     env_var_map = self.store_env_variables([buffer_sharing_env])
-    #     self.set_env_variable(buffer_sharing_env, "1")
+    def test_variable_static_input_variables_share_buffer(self):
+        # set env variable to enable NGraphVariable's buffer sharing
+        buffer_sharing_env = "NGRAPH_TF_NGVARIABLE_BUFFER_SHARING"
+        env_var_map = self.store_env_variables([buffer_sharing_env])
+        self.set_env_variable(buffer_sharing_env, "1")
 
-    #     # Run on nGraph
-    #     ng_var_init_val, ng_mean_values, ng_var_final = self.with_ngraph(
-    #         self.__run_test)
+        # Run on nGraph
+        ng_var_init_val, ng_mean_values, ng_var_final = self.with_ngraph(
+            self.__run_test)
 
-    #     # Reset Graph
-    #     # It is necessary to reset the graph because of the variables
-    #     # TF thinks you want to reuse the variables
-    #     tf.reset_default_graph()
+        # Reset Graph
+        # It is necessary to reset the graph because of the variables
+        # TF thinks you want to reuse the variables
+        tf.reset_default_graph()
 
-    #     # Run on TF
-    #     tf_var_init_val, tf_mean_values, tf_var_final = self.without_ngraph(
-    #         self.__run_test)
+        # Run on TF
+        tf_var_init_val, tf_mean_values, tf_var_final = self.without_ngraph(
+            self.__run_test)
 
-    #     # Compare Values
-    #     # initial Var value will match
-    #     assert np.allclose(ng_var_init_val, tf_var_init_val)
+        # Compare Values
+        # initial Var value will match
+        assert np.allclose(ng_var_init_val, tf_var_init_val)
 
-    #     # mean value matches for all iterations
-    #     assert np.allclose(ng_mean_values, tf_mean_values)
+        # mean value matches for all iterations
+        assert np.allclose(ng_mean_values, tf_mean_values)
 
-    #     # Final Var value will match
-    #     assert np.allclose(ng_var_final, tf_var_final)
+        # Final Var value will match
+        assert np.allclose(ng_var_final, tf_var_final)
 
-    #     # clean up
-    #     self.unset_env_variable(buffer_sharing_env)
-    #     self.restore_env_variables(env_var_map)
+        # clean up
+        self.unset_env_variable(buffer_sharing_env)
+        self.restore_env_variables(env_var_map)

@@ -1307,12 +1307,13 @@ bool InputIsStatic(const Node* node, int index) {
 }
 
 Status GetStaticInputs(Graph* graph, std::vector<int32>* static_input_indexes) {
+  static_input_indexes->clear();
   for (auto node : graph->nodes()) {
     if (node->type_string() == "_Arg") {
       int32 index;
       auto status = GetNodeAttr(node->attrs(), "index", &index);
       if (status != Status::OK()) {
-        throw std::runtime_error("error getting node attribute index");
+        return errors::Internal("error getting node attribute index");
       }
 
       for (auto edge : node->out_edges()) {
