@@ -64,27 +64,19 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
             update_tf_tensor = true;
             break;
           } else {
-            cout << "Checking out edge " << edge->DebugString() << endl;
-            cout << "Checking static input " << edge->dst()->name()
-                 << " inp index " << edge->dst_input() << endl;
             // check if this edge is a static input to the Op
             if (InputIsStatic(edge->dst(), edge->dst_input())) {
               NGRAPH_VLOG(5) << "Found static input from Var "
                              << edge->DebugString();
               // As it is a static input NG-Var 's TF Tensor needs to be updated
               update_tf_tensor = true;
-              cout << "Found static input from var " << edge->dst_input()
-                   << endl;
               break;
             } else {
               update_tf_tensor = false;
-              cout << "Not Found static input from var " << edge->dst_input()
-                   << endl;
             }
           }
         }
       }
-
       // 1. If any of the nodes reading from this Variable node read the data as
       // reference then we dont track it, else we do, determined by just_looking
       // attribute
@@ -151,6 +143,7 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
   }    // end of looping through the nodes in the graph
 
   for (auto node : replaced_nodes) {
+    NGRAPH_VLOG(4) << "Removing node " << node->name();
     graph->RemoveNode(node);
   }
 
@@ -180,7 +173,6 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
         TF_RETURN_IF_ERROR(status);
         sync_node->set_assigned_device_name(
             edge->src()->assigned_device_name());
-
         // If the input edge is going to index 0 of the TF op,
         // then move output edges from the TF op
         // since that is the output we want.
@@ -198,7 +190,6 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
             }
           }
         }
-
         // Add a control edge from the TF optimizer node
         // to the sync node making sure that the sync node
         // is executed after the TF optimizer

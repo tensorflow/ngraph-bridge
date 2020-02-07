@@ -1296,13 +1296,8 @@ void GetStaticInputs(const Node* node, std::vector<int32>* inputs) {
 }
 
 bool InputIsStatic(const Node* node, int index) {
-  cout << "Looking for static input for node " << node->name() << endl;
   std::vector<int32> inputs;
   GetStaticInputs(node, &inputs);
-  for (int index : inputs) {
-    cout << "Found static input " << index << " for node " << node->name()
-         << endl;
-  }
   return std::find(inputs.begin(), inputs.end(), index) != inputs.end();
 }
 
