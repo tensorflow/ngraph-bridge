@@ -57,7 +57,8 @@ class TestBfloat16(NgraphTest):
         # Graph
         input_shape_nhwc = (1, 4, 4, 1)
         filter_shape_hwio = (3, 3, 1, 2)
-        input_pl = tf.compat.v1.placeholder(tf.bfloat16, input_shape_nhwc, name="inp_pl")
+        input_pl = tf.compat.v1.placeholder(
+            tf.bfloat16, input_shape_nhwc, name="inp_pl")
         filter_shape_pl = tf.compat.v1.placeholder(
             tf.bfloat16, filter_shape_hwio, name="filter_pl")
         input_values = np.arange(16).reshape(
@@ -96,7 +97,8 @@ class TestBfloat16(NgraphTest):
         # Graph
         input_shape_nhwc = (1, 4, 4, 1)
         filter_shape_hwio = (3, 3, 1, 2)
-        input_pl = tf.compat.v1.placeholder(tf.float32, input_shape_nhwc, name="inp_pl")
+        input_pl = tf.compat.v1.placeholder(
+            tf.float32, input_shape_nhwc, name="inp_pl")
         filter_shape_pl = tf.compat.v1.placeholder(
             tf.float32, filter_shape_hwio, name="filter_pl")
         input_values = np.arange(16).reshape(
