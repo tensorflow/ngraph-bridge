@@ -28,6 +28,32 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+// returns true if all the output nodes of this node
+// are implemented on bridge
+bool AreOutputsNGSupported(Node* node) {
+  for (auto edge : node->out_edges()) {
+    if (edge->dst()->IsOp() && !edge->IsControlEdge() &&
+        !IsNGSupportedType(edge->dst()->type_string())) {
+      NGRAPH_VLOG(5) << "ngraph does not support dst node "
+                     << edge->DebugString();
+      return false;
+    }
+  }
+  return true;
+}
+
+// returns true if this node is a static input to any of its output nodes
+bool NodeIsStaticInput(Node* node) {
+  for (auto edge : node->out_edges()) {
+    if (edge->dst()->IsOp() && !edge->IsControlEdge() &&
+        InputIsStatic(edge->dst(), edge->dst_input())) {
+      NGRAPH_VLOG(5) << "ngraph does not support dst node ";
+      return true;
+    }
+  }
+  return false;
+}
+
 //
 // Main entry point for rewrite-for-tracking.
 //
@@ -53,34 +79,14 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
       // Update is required in two cases
       // 1. If any of the outputs of this Op is feeding into a TF Op
       // 2. If this is a static input to NGraphEncapsulate
-      bool update_tf_tensor = false;
-      for (auto edge : node->out_edges()) {
-        auto dst = edge->dst();
-        NGRAPH_VLOG(5) << "dst node " << DebugNode(dst);
-        if (dst->IsOp() && !edge->IsControlEdge()) {
-          // if feef
-          if (!IsNGSupportedType(dst->type_string())) {
-            NGRAPH_VLOG(5) << "ngraph does not support dst node ";
-            update_tf_tensor = true;
-            break;
-          } else {
-            // check if this edge is a static input to the Op
-            if (InputIsStatic(edge->dst(), edge->dst_input())) {
-              NGRAPH_VLOG(5) << "Found static input from Var "
-                             << edge->DebugString();
-              // As it is a static input NG-Var 's TF Tensor needs to be updated
-              update_tf_tensor = true;
-              break;
-            } else {
-              update_tf_tensor = false;
-            }
-          }
-        }
-      }
-      // 1. If any of the nodes reading from this Variable node read the data as
-      // reference then we dont track it, else we do, determined by just_looking
-      // attribute
-      // 2. Determine which Ops need to be followed by a
+      bool update_tf_tensor =
+          !AreOutputsNGSupported(node) || NodeIsStaticInput(node);
+
+      // The below loop does the following
+      // 1. If any of the nodes reading from this Variable node read the data
+      // as reference then we dont track it, else we do, determined by
+      // just_looking attribute
+      // 2. Determine which Ops need to be followed by
       // NGraphVariableUpdateNGTensor Op
       bool just_looking = true;
       for (auto edge : node->out_edges()) {
