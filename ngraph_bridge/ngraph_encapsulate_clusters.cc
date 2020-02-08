@@ -679,6 +679,7 @@ Status Encapsulator::RewritePass(
     std::stringstream ss;
     ss << "ngraph_cluster_" << cluster_idx;
 
+    string encap_node_name = ss.str();
     std::vector<DataType> input_types;
     std::vector<NodeBuilder::NodeOut> inputs;
 
@@ -696,7 +697,7 @@ Status Encapsulator::RewritePass(
 
     Node* n;
     NodeBuilder nb =
-        NodeBuilder(ss.str(), "NGraphEncapsulate")
+        NodeBuilder(encap_node_name, "NGraphEncapsulate")
             .Attr("ngraph_cluster", cluster_idx)
             .Attr("ngraph_backend",
                   BackendManager::GetBackendAttributeValues(cluster_backend)
@@ -721,6 +722,11 @@ Status Encapsulator::RewritePass(
     GraphDef* gdef_for_current_encapsulate;
     gdef_for_current_encapsulate =
         NGraphClusterManager::GetClusterGraph(cluster_idx);
+    if (gdef_for_current_encapsulate == nullptr) {
+      return errors::Internal(
+          "Did not find encapsulated graph in cluster manager for node ",
+          encap_node_name);
+    }
     GraphConstructorOptions opts;
     opts.allow_internal_ops = true;
     Graph graph_for_current_encapsulate(OpRegistry::Global());
