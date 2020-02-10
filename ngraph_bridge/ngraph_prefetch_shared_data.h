@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,13 +38,13 @@ namespace ngraph_bridge {
 
 class NGraphPrefetchSharedResouce : public ResourceBase {
  public:
-  explicit NGraphPrefetchSharedResouce(const std::string& ng_enc_op_name,
-                                       const std::string& backend_name,
-                                       int cluster_id, int graph_id)
+  explicit NGraphPrefetchSharedResouce(
+      const std::string& ng_enc_op_name, int cluster_id, int graph_id,
+      const map<int, int>& prefetch_input_index_map)
       : m_ng_enc_op_name(ng_enc_op_name),
-        m_backend_name(backend_name),
         m_graph_id(graph_id),
-        m_cluster_id(cluster_id) {}
+        m_cluster_id(cluster_id),
+        m_prefetch_input_index_map(prefetch_input_index_map) {}
 
   // Returns a debug string for *this.
   string DebugString() const override { return "NGraphPrefetchSharedResouce"; }
@@ -52,7 +52,6 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
   // Returns memory used by this resource.
   int64 MemoryUsed() const override { return 0; }
   std::string GetName() const { return m_ng_enc_op_name; }
-  std::string GetBackendName() const { return m_backend_name; }
   int GetGraphId() const { return m_graph_id; }
   int GetClusterId() const { return m_cluster_id; }
 
@@ -61,49 +60,76 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
   static constexpr const char* NGRAPH_TF_USE_PREFETCH =
       "NGRAPH_TF_USE_PREFETCH";
 
-  struct IoTensorBundle {
+  struct IOTensorBundle {
     int Id;
     std::vector<shared_ptr<ng::runtime::Tensor>> Inputs;
     std::vector<shared_ptr<ng::runtime::Tensor>> Outputs;
   };
 
-  // Adds the given nGraph tensor pair to write to
+  // Adds the given nGraph input output tensors to write to
+  // Uses m_prefetch_input_indexes to figure out which input tensors
+  // are prefetched and writes into them
   // This is called by the NGraphEncapOp
-  void AddNextIoTensorsForDeviceTransfer(IoTensorBundle next) {
+  void AddNextIOTensorBundleForDeviceTransfer(IOTensorBundle next) {
     m_tf_2_ng.Add(std::move(next));
   }
 
-  // Returns the IO tensors to be used top copy TF tensors to NG device
+  // Returns the Input output tensors to be used to copy TF tensors to NG device
   // This will be called by the prefetcher
-  IoTensorBundle GetNextIoTensorsForDeviceTransfer() {
+  IOTensorBundle GetNextIOTensorBundleForDeviceTransfer() {
     return std::move(m_tf_2_ng.GetNextAvailable());
   }
 
-  // Adds the given nGraph tensor pair to write to
+  // Adds the given nGraph input output tensors to write to
   // This is called by the prefetcher to add Tensors that are copied
   // from TF tensor and are now ready for the next iteration
-  void AddNextIoTensorsReadyForDeviceExecution(IoTensorBundle next) {
+  void AddNextIOTensorBundleReadyForDeviceExecution(IOTensorBundle next) {
     m_ng_2_tf.Add(std::move(next));
   }
 
-  // Returns the IO tensors to be ready to be executed by NG device
+  // Returns the Input output tensors ready to be executed by NG device
   // This will be called by the NGEncOp
-  IoTensorBundle GetNextIoTensorsReadyForDeviceExecution() {
+  IOTensorBundle GetNextIOTensorBundleReadyForDeviceExecution() {
     return std::move(m_ng_2_tf.GetNextAvailable());
   }
 
-  void SetBufferDepth(int depth) { m_prefetch_buffer_depth = depth; }
-  int GetBufferDepth() { return m_prefetch_buffer_depth; }
+  void SetBufferDepth(int depth) {
+    m_mutex.Lock();
+    // TODO assert m_prefetch_buffer_depth == -1 || m_prefetch_buffer_depth ==
+    // depth
+    // To make sure we never try to set a different depth once it is set
+    m_prefetch_buffer_depth = depth;
+    m_cv.SignalAll();
+    m_mutex.Unlock();
+  }
+  int GetBufferDepth() {
+    // Locking GetBufferDepth till SetBufferDepth is called
+    // In case of races where Get is called before Set,
+    // We want to ensure Set finishes before Get returns
+    m_mutex.ReaderLock();
+    while (m_prefetch_buffer_depth == -1) {
+      m_cv.Wait(&m_mutex);
+    }
+    m_mutex.ReaderUnlock();
+    return m_prefetch_buffer_depth;
+  }
 
   void IncrSkipCount() { m_skip_count++; }
   int GetSkipCount() { return m_skip_count; }
 
+  const map<int, int>& GetPrefetchInputIndexesMap() {
+    return m_prefetch_input_index_map;
+  }
+
  private:
   const std::string m_ng_enc_op_name;
-  const std::string m_backend_name;
   const int m_graph_id;
   const int m_cluster_id;
 
+  // Map of
+  // Key : indexes of IOTensorBundle.Inputs that are prefetched
+  // Value : corresponding index for TF PrefetchBuffer
+  const map<int, int> m_prefetch_input_index_map;
   // We need to maintain two queues as follows:
   // ----------+------------+------------+------------------------------------+
   // Queue     | Writer     | Reader     | Comments                           |
@@ -115,21 +141,25 @@ class NGraphPrefetchSharedResouce : public ResourceBase {
   //
   // The interaction is as follows:
   // Iteration  Action
-  // 1          NGEncOp pushes the IO tensors to m_ng_2_tf queue
+  // 1          NGEncOp pushes the Input/Output tensors to m_ng_2_tf queue
   // 2
-  //            Prefetcher pulls IO tensors out of m_ng_2_tf queue and copies TF
-  //            data
+  //            Prefetcher pulls Input/Output tensors out of m_ng_2_tf queue and
+  //            and copies TF data to the prefetched inputs
   //            Prefetcher pushes this item to the m_tf_2_ng queue
-  //            NGEncOp pushes the IO tensors to m_ng_2_tf queue
-  //            NGEncOp pulls IO tensors from m_tf_2_ng (from previous
+  //            NGEncOp pushes the Input/Output tensors to m_ng_2_tf queue
+  //            NGEncOp pulls Input/Output tensors from m_tf_2_ng (from previous
   //            iteration) and executes
   // 3          Repeat
 
-  ThreadSafeQueue<IoTensorBundle> m_tf_2_ng;
-  ThreadSafeQueue<IoTensorBundle> m_ng_2_tf;
+  ThreadSafeQueue<IOTensorBundle> m_tf_2_ng;
+  ThreadSafeQueue<IOTensorBundle> m_ng_2_tf;
 
-  int m_prefetch_buffer_depth{0};
+  int m_prefetch_buffer_depth{-1};
   int m_skip_count{0};
+
+  // Mutex and cond var to control m_prefetch_buffer_depth
+  absl::CondVar m_cv;
+  absl::Mutex m_mutex;
 };
 
 }  // namespace ngraph_bridge

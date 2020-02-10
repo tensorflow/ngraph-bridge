@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Nervana Systems Inc.
+# Copyright 2018-2020 Intel Corporation
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -37,21 +37,28 @@ set(SRC
    ngraph_builder.cc
    ngraph_backend_manager.cc
    ngraph_capture_variables.cc
+   ngraph_find_replace_prefetchdataset.cc
+   ngraph_catalog.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
+   ngraph_enter_prefetch_in_catalog.cc
    ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
    ngraph_executor.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
+   ngraph_encapsulate_op_utils.cc
    ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc
+   ngraph_register_stub_kernels.cc   
    ngraph_rewrite_for_tracking.cc
    ngraph_rewrite_pass.cc
+   ngraph_tensor_manager.cc
    ngraph_tracked_variable.cc
+   ngraph_var.cc
    ngraph_utils.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
@@ -82,7 +89,6 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 
     # new files
     list(APPEND SRC enable_variable_ops/ngraph_assign_op.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)
     list(APPEND SRC enable_variable_ops/ngraph_remove_ngraphassigns.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_op_utilities.cc)
@@ -91,6 +97,18 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
     
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+endif()
+
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+endif()
+
+if(NGRAPH_CPU_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_CPU_STATIC_LIB_ENABLE)
+endif()
+
+if(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
 endif()
 
 

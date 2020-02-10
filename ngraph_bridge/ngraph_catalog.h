@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,14 +73,28 @@ class NGraphCatalog {
   // Value : 3 element tuple
   //  string : NGraphAssign‘s variable shared_name
   //  bool : NGraphAssign‘s copy_to_tf attribute ‘s value
-  //  bool : NGraphAssign‘s is_tf_just_looking_
-  static unordered_map<string, tuple<string, bool, bool>>
-      encap_output_info_map_;
+  static unordered_map<string, tuple<string, bool>> encap_output_info_map_;
+
+  // Map keeps track of encap nodes whose input is from an IteratorGenNext Op.
+  // This is a map from the node to
+  //     Another map of indexes, whose
+  //      - Key is the input indexes of the encapsulate node that are prefetched
+  //      - Value is the output indexes of the IteratorGetNext node that feed
+  //      these inputs
+  // Will be used by NGraphEncapsulate Op.
+  // Map of
+  // Key
+  //      string : GraphId + _ + nodename
+  // Value : Map of {encap input indices, iteratorgetnext output indices}
+
+  static unordered_map<string, map<int, int>> prefetched_input_index_map_;
 
  public:
   // Utility to create key to query the maps
   static string CreateNodeKey(const int& graph_id, const string& node_name,
                               const int& index);
+  static string CreateNodeKey(const int& graph_id, const string& node_name);
+
   // Clear all the maps
   static void ClearCatalog();
 
@@ -118,25 +132,39 @@ class NGraphCatalog {
 
   // Functions for EncapOutputInfo Map
   static void AddToEncapOutputInfoMap(const string& key,
-                                      const tuple<string, bool, bool>& val);
+                                      const tuple<string, bool>& val);
   static void AddToEncapOutputInfoMap(const string& key,
                                       const string& shared_name,
-                                      const bool& copy_to_tf,
-                                      const bool& is_tf_just_looking);
+                                      const bool& copy_to_tf);
   static bool ExistsInEncapOutputInfoMap(const string& key);
   static bool ExistsInEncapOutputInfoMap(const int& graphid,
                                          const string& node_name,
-                                         const int& input_index);
-  static const tuple<string, bool, bool>& GetInfoFromEncapOutputInfoMap(
+                                         const int& output_index);
+  static const tuple<string, bool>& GetInfoFromEncapOutputInfoMap(
       const string& key);
+
+  static const tuple<string, bool>& GetInfoFromEncapOutputInfoMap(
+      const int& graphid, const string& node_name, const int& output_index);
+
   static const string& GetVariableSharedNameFromEncapOutputInfoMap(
       const string& key);
   static const bool& GetCopyToTFFromEncapOutputInfoMap(const string& key);
-  static const bool& GetIsTFJustLookingFromEncapOutputInfoMap(
-      const string& key);
   static void DeleteFromEncapOutputInfoMap(const string& key);
   static void ClearEncapOutputInfoMap();
   static void PrintEncapOutputInfoMap();
+
+  // Functions for PrefetedInputs Map
+  static void AddToPrefetchedInputIndexMap(
+      const int& graphid, const string& node_name,
+      const map<int, int>& encap_inp_index_map);
+  static bool ExistsInPrefetchedInputIndexMap(const int& graphid,
+                                              const string& node_name);
+  static bool ExistsInPrefetchedInputIndexMap(const string& key);
+  static const map<int, int>& GetIndexesFromPrefetchedInputIndexMap(
+      const int& graphid, const string& node_name);
+
+  static void ClearPrefetchedInputIndexMap();
+  static void PrintPrefetchedInputIndexMap();
 };
 
 }  // ngraph_bridge

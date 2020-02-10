@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,40 @@ namespace ng = ngraph;
 namespace tensorflow {
 
 namespace ngraph_bridge {
+
+vector<int> FindComplement(const int& max_element,
+                           const vector<int>& element_set) {
+  vector<int> superset(max_element);
+  iota(begin(superset), end(superset), 0);
+
+  return FindComplement(superset, element_set);
+}
+
+// Finds the complement of element_set
+// From the superset
+// Finds: superset - element_set
+// Assumes superset and element_superset are sorted
+vector<int> FindComplement(const vector<int>& superset,
+                           const vector<int>& element_set) {
+  // max size of complement is superset
+  vector<int> complement(superset.size());
+  vector<int>::iterator it = set_difference(
+      superset.begin(), superset.begin() + superset.size(), element_set.begin(),
+      element_set.begin() + element_set.size(), complement.begin());
+  complement.resize(it - complement.begin());
+  return complement;
+}
+
+int FindNumberOfNodes(const Graph* graph, const string op_type) {
+  int count = 0;
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == op_type) {
+      count++;
+    }
+  }
+
+  return count;
+}
 
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled) {
@@ -115,8 +149,8 @@ void ReadNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                   Tensor* tf_tensor) {
   ngraph::Event event_sync_ng_tf_tensors("Tensor Read D2H", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
-  ng_tensor->read(tf_src_ptr, 0, ng_tensor->get_element_count() *
-                                     ng_tensor->get_element_type().size());
+  ng_tensor->read(tf_src_ptr, ng_tensor->get_element_count() *
+                                  ng_tensor->get_element_type().size());
   event_sync_ng_tf_tensors.Stop();
   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
@@ -126,8 +160,8 @@ void WriteNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                    Tensor* tf_tensor) {
   ngraph::Event event_sync_ng_tf_tensors("Tensor Write H2D", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
-  ng_tensor->write(tf_src_ptr, 0, ng_tensor->get_element_count() *
-                                      ng_tensor->get_element_type().size());
+  ng_tensor->write(tf_src_ptr, ng_tensor->get_element_count() *
+                                   ng_tensor->get_element_type().size());
   event_sync_ng_tf_tensors.Stop();
   ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
@@ -189,6 +223,11 @@ Status TensorToStream(std::ostream& ostream, const Tensor& tensor) {
     case DT_BOOL:
       TensorDataToStream<bool>(ostream, n_elements, data);
       break;
+    case DT_BFLOAT16:
+      return errors::Internal(
+          "TensorToStream got data type bfloat16. No compatible standard C++ "
+          "data type.");
+      break;
     default:
       return errors::Internal("TensorToStream got unsupported data type ",
                               DataType_Name(tensor.dtype()));
@@ -238,6 +277,8 @@ Status TFDataTypeToNGraphElementType(DataType tf_dt,
       break;
     case DataType::DT_QINT32:
       *ng_et = ng::element::i32;
+    case DataType::DT_BFLOAT16:
+      *ng_et = ng::element::bf16;
       break;
     default:
       return errors::Unimplemented("Unsupported TensorFlow data type: ",
@@ -288,15 +329,16 @@ void print_node_histogram(const std::unordered_map<string, int>& histogram,
 
 const gtl::ArraySlice<DataType>& NGraphDTypes() {
   static gtl::ArraySlice<DataType> result{
-      DT_FLOAT,  DT_DOUBLE, DT_INT8,   DT_INT16, DT_INT32, DT_INT64, DT_UINT8,
-      DT_UINT16, DT_UINT32, DT_UINT64, DT_BOOL,  DT_QINT8, DT_QUINT8};
+      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,   DT_INT32,
+      DT_INT64, DT_UINT8,  DT_UINT16, DT_UINT32,  DT_UINT64,
+      DT_BOOL,  DT_QINT8,  DT_QUINT8, DT_BFLOAT16};
   return result;
 }
 
 const gtl::ArraySlice<DataType>& NGraphNumericDTypes() {
   static gtl::ArraySlice<DataType> result{
-      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,  DT_INT32,
-      DT_INT64, DT_UINT8,  DT_UINT16, DT_UINT32, DT_UINT64};
+      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,  DT_INT32,   DT_INT64,
+      DT_UINT8, DT_UINT16, DT_UINT32, DT_UINT64, DT_BFLOAT16};
   return result;
 }
 
@@ -312,13 +354,19 @@ const gtl::ArraySlice<DataType>& NGraphIndexDTypes() {
   return result;
 }
 
+const gtl::ArraySlice<DataType>& NGraphIntDTypes() {
+  static gtl::ArraySlice<DataType> result{DT_INT8, DT_UINT16, DT_INT16,
+                                          DT_INT32, DT_INT64};
+  return result;
+}
+
 const gtl::ArraySlice<DataType>& NGraphSupportedQuantizedDTypes() {
   static gtl::ArraySlice<DataType> result{DT_QINT8, DT_QUINT8};
   return result;
 }
 
 const gtl::ArraySlice<DataType>& NGraphRealDTypes() {
-  static gtl::ArraySlice<DataType> result{DT_FLOAT, DT_DOUBLE};
+  static gtl::ArraySlice<DataType> result{DT_FLOAT, DT_DOUBLE, DT_BFLOAT16};
   return result;
 }
 
@@ -448,6 +496,41 @@ std::string GraphFilenamePrefix(std::string kind, int idx, int sub_idx) {
   return ss.str();
 }
 
+void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
+                std::string filename_prefix, std::string title) {
+  // If we have a "main" graph, dump that.
+  if (options.graph != nullptr) {
+    auto dot_filename = DotFilename(filename_prefix, idx);
+    auto pbtxt_filename = PbtxtFilename(filename_prefix, idx);
+    NGRAPH_VLOG(0) << "Dumping main graph to " << dot_filename;
+    NGRAPH_VLOG(0) << "Dumping main graph to " << pbtxt_filename;
+
+    GraphToDotFile(options.graph->get(), dot_filename, title);
+    GraphToPbTextFile(options.graph->get(), pbtxt_filename);
+  }
+
+  // If we have partition graphs (we shouldn't), dump those.
+  if (options.partition_graphs != nullptr) {
+    int sub_idx = 0;
+
+    for (auto& kv : *options.partition_graphs) {
+      auto dot_filename = DotFilename(filename_prefix, idx, sub_idx);
+      auto pbtxt_filename = PbtxtFilename(filename_prefix, idx, sub_idx);
+      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
+                     << dot_filename;
+      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
+                     << pbtxt_filename;
+
+      Graph* pg = kv.second.get();
+
+      GraphToDotFile(pg, dot_filename, title);
+      GraphToPbTextFile(pg, pbtxt_filename);
+
+      sub_idx++;
+    }
+  }
+}
+
 bool DumpAllGraphs() { return std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr; }
 
 bool DumpPrecaptureGraphs() {
@@ -490,6 +573,11 @@ bool DumpTrackedGraphs() {
          std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
 }
 
+bool DumpCatalogedGraphs() {
+  return DumpAllGraphs() ||
+         std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
+}
+
 #if defined(NGRAPH_DISTRIBUTED)
 void OpControlOrder(const std::shared_ptr<ngraph::Function>& ng_function,
                     const std::string& op_name) {
@@ -524,6 +612,15 @@ bool IsProcessedByNgraphPass(Graph* g) {
     if (node->type_string() == "NGraphEncapsulate") return true;
   }
   return false;
+}
+
+void ClearAttribute(Graph* g,
+                    const std::set<string>& attributes_to_be_cleared) {
+  for (auto node : g->nodes()) {
+    for (const auto& attr : attributes_to_be_cleared) {
+      node->ClearAttr(attr);
+    }
+  }
 }
 
 }  // namespace ngraph_bridge

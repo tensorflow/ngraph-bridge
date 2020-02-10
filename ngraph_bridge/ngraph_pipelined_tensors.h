@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,8 +132,6 @@ class PipelinedTensorsStore {
   PipelinedTensorMatrix m_in_tensors;
   PipelinedTensorMatrix m_out_tensors;
   size_t m_depth;
-  size_t m_num_inputs;
-  size_t m_num_outputs;
   shared_ptr<IndexLibrary> idx_lib;
 
   // Get the i'th depth tensors for inputs if is_input is true, else for outputs

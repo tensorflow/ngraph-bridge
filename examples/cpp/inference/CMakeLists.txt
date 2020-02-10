@@ -1,5 +1,5 @@
 # ******************************************************************************
-# Copyright 2018-2019 Intel Corporation
+# Copyright 2018-2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -59,6 +59,10 @@ add_executable(
 if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
     add_definitions(-DTEST_SINGLE_INSTANCE)
+endif()
+
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)

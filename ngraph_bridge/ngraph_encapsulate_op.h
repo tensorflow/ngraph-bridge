@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ class NGraphEncapsulateOp : public OpKernel {
 
   static int s_instance_id;
   NGraphEncapsulateImpl ng_encap_impl_;
-  bool m_use_parallel_executor;
+  bool m_use_parallel_executor = false;
   std::mutex m_compute_lock_;
   unique_ptr<NGraphExecutor> m_parallel_executor;
 };

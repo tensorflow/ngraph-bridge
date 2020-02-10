@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,6 @@ class NGraphVar : public ResourceBase {
  private:
   mutex mu_;
   Tensor tensor_;
-
   ~NGraphVar() override {}
 };
 
@@ -108,7 +107,7 @@ NGraphVariableOp::~NGraphVariableOp() { tracker_->Unref(); }
 void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   mutex_lock l(init_mu_);
   std::ostringstream oss;
-  oss << "NGraphVariable: " << my_instance_id << ": " << name();
+  oss << "NGVariable::Compute::" << name();
   ngraph::Event event_compute(oss.str(), name(), "");
 
   if (!initialized_) {
@@ -182,6 +181,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
     ctx->record_persistent_memory_allocation(var->tensor()->AllocatedBytes());
   }
   var->Unref();
+  event_compute.Stop();
   ngraph::Event::write_trace(event_compute);
 }
 

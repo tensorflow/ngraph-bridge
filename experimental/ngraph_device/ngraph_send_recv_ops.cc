@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2018 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -174,7 +174,7 @@ class NGraphRecv : public AsyncOpKernel {
  private:
   string key_prefix_;
   tf::Rendezvous::ParsedKey parsed_key_;
-  bool hostmem_sendrecv_;
+  bool hostmem_sendrecv_ = false;
 };
 
 //-----------------------------------------------------------------------------
@@ -248,7 +248,7 @@ class NGraphSend : public OpKernel {
  private:
   string key_prefix_;
   tf::Rendezvous::ParsedKey parsed_key_;
-  bool hostmem_sendrecv_;
+  bool hostmem_sendrecv_ = false;
 };
 
 REGISTER_KERNEL_BUILDER(Name("_Recv").Device(ngraph_bridge::DEVICE_NGRAPH_CPU),

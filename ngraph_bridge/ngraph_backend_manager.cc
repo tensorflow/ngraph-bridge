@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,14 @@ Status BackendManager::SetBackendName(const string& backend_name) {
 }
 
 Status BackendManager::CreateBackend(const string& backend_name) {
+// Register backends for static linking
+#if defined(NGRAPH_CPU_STATIC_LIB_ENABLE)
+  ngraph_register_cpu_backend();
+#endif
+#if defined(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
+  ngraph_register_interpreter_backend();
+#endif
+
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
   auto itr = BackendManager::ng_backend_map_.find(backend_name);
   // if backend does not exist create it
@@ -126,10 +134,24 @@ void BackendManager::UnlockBackend(const string& backend_name) {
 
 // Returns the nGraph supported backend names
 vector<string> BackendManager::GetSupportedBackendNames() {
+// Register backends for static linking
+#if defined(NGRAPH_CPU_STATIC_LIB_ENABLE)
+  ngraph_register_cpu_backend();
+#endif
+#if defined(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
+  ngraph_register_interpreter_backend();
+#endif
   return ng::runtime::BackendManager::get_registered_backends();
 }
 
 size_t BackendManager::GetNumOfSupportedBackends() {
+// Register backends for static linking
+#if defined(NGRAPH_CPU_STATIC_LIB_ENABLE)
+  ngraph_register_cpu_backend();
+#endif
+#if defined(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
+  ngraph_register_interpreter_backend();
+#endif
   return ng::runtime::BackendManager::get_registered_backends().size();
 }
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,8 @@
 #include "ngraph/serializer.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_enter_in_catalog.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
@@ -57,8 +58,12 @@ Status GetSharedName(Node* node, string* shared_name) {
   return GetSharedName(input_0, shared_name);
 }
 
-// 1. Populate the input_variable_map
+// 1. Populate the NGraphCatalog
+//    - input_variable_map
+//    - encap_output_info_map_
+//    - encap_output_copy_indexes_map_
 // 2. Attach Graph Ids to the node
+
 Status EnterInCatalog(Graph* graph, int graph_id) {
   // Topological Sort
   vector<Node*> ordered;
@@ -80,10 +85,6 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
         bool copy_to_tf;
         TF_RETURN_IF_ERROR(
             GetNodeAttr(node->attrs(), "copy_to_tf", &copy_to_tf));
-        // get attribute is_tf_just_looking
-        bool is_tf_just_looking;
-        TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "is_tf_just_looking",
-                                       &is_tf_just_looking));
         // populate encap_output_info_map_
         const Edge* edge;
         TF_RETURN_IF_ERROR(node->input_edge(1, &edge));
@@ -92,12 +93,10 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
         string key = NGraphCatalog::CreateNodeKey(graph_id, input_1->name(),
                                                   output_index);
 
-        tuple<string, bool, bool> value =
-            make_tuple(shared_name, copy_to_tf, is_tf_just_looking);
+        tuple<string, bool> value = make_tuple(shared_name, copy_to_tf);
         NGRAPH_VLOG(4) << "Adding to EncapOutputInfoMap ";
         NGRAPH_VLOG(4) << "Key: " << key;
-        NGRAPH_VLOG(4) << "Value: " << get<0>(value) << " " << get<1>(value)
-                       << " " << get<2>(value);
+        NGRAPH_VLOG(4) << "Value: " << get<0>(value) << " " << get<1>(value);
         try {
           NGraphCatalog::AddToEncapOutputInfoMap(key, value);
         } catch (const std::exception& exp) {
@@ -161,15 +160,12 @@ Status EnterInCatalog(Graph* graph, int graph_id) {
         }
       }
 
-      // are there indexes that need copy
-      if (op_index_to_copy.size() > 0) {
-        try {
-          NGraphCatalog::AddToEncapOutputCopyIndexesMap(graph_id, node->name(),
-                                                        op_index_to_copy);
-        } catch (const std::exception& exp) {
-          return errors::Internal(
-              "Caught exception while entering in catalog: ", exp.what(), "\n");
-        }
+      try {
+        NGraphCatalog::AddToEncapOutputCopyIndexesMap(graph_id, node->name(),
+                                                      op_index_to_copy);
+      } catch (const std::exception& exp) {
+        return errors::Internal("Caught exception while entering in catalog: ",
+                                exp.what(), "\n");
       }
 
     }  // end of node is type NGraphEncapsulate

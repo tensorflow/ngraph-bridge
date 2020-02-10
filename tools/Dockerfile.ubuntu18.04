@@ -1,6 +1,6 @@
 
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -17,10 +17,6 @@
 # Docker file to setup build envrionment for nGraph-TensorFlow
 
 FROM ubuntu:18.04
-
-# Setup the environment
-ENV https_proxy http://proxy-chain.intel.com:912
-ENV http_proxy http://proxy-chain.intel.com:911
 
 RUN apt-get update &&  apt-get install -y \
     vim \

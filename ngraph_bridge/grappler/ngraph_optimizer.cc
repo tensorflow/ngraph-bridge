@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -260,9 +260,13 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  TF_RETURN_IF_ERROR(
-      // TODO: right now _ngraph_aot_requested is passed along in config_map.
-      EncapsulateClusters(&graph, idx, fdeflib_new, config_map, aot_info));
+  // TODO: right now _ngraph_aot_requested is passed along in config_map.
+  auto status =
+      EncapsulateClusters(&graph, idx, fdeflib_new, config_map, aot_info);
+  if (status != Status::OK()) {
+    delete (fdeflib_new);
+    return status;
+  }
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
   }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,6 +163,13 @@ int main(int argc, char** argv) {
     std::cout << "Error: Unknown argument " << argv[1] << "\n" << usage;
     return -1;
   }
+
+// Register cpu backend for static linking
+// [TODO]: Revisit this to see if we can remove registering here and register
+// only in BackendManager.
+#if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+  ngraph_register_cpu_backend();
+#endif
 
   const char* backend = "CPU";
   if (SetNGraphBackend(backend) != tf::Status::OK()) {

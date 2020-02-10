@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 licenses(["notice"])
 
 exports_files(["LICENSE"])
-
 
 load(
     "@//tf_configure:tf_configure.bzl",
@@ -46,8 +45,8 @@ template_rule(
     out = "include/mkldnn_version.h",
     substitutions = {
         "@MKLDNN_VERSION_MAJOR@": "0",
-        "@MKLDNN_VERSION_MINOR@": "20",
-        "@MKLDNN_VERSION_PATCH@": "2",
+        "@MKLDNN_VERSION_MINOR@": "21",
+        "@MKLDNN_VERSION_PATCH@": "3",
         "@MKLDNN_VERSION_HASH@": "N/A",
     },
 )
@@ -80,10 +79,10 @@ cc_library(
         "-Wall",
         "-Wno-unknown-pragmas",
         "-fvisibility=internal",
-        "-Wformat", 
+        "-Wformat",
         "-Wformat-security",
         "-Wmissing-field-initializers",
-        "-Wno-strict-overflow", 
+        "-Wno-strict-overflow",
         "-std=c++11",
         "-D_FORTIFY_SOURCE=2",
         "-fopenmp",
@@ -96,15 +95,15 @@ cc_library(
         "-DMKLDNN_DLL",
         "-DMKLDNN_DLL_EXPORTS",
         "-O3",
-    #] + select({
-    #   "@org_tensorflow//tensorflow:linux_x86_64": [
-            "-fopenmp",  # only works with gcc
-    #    ],
+        #] + select({
+        #   "@org_tensorflow//tensorflow:linux_x86_64": [
+        "-fopenmp",  # only works with gcc
+        #    ],
         # TODO(ibiryukov): enable openmp with clang by including libomp as a
         # dependency.
-    #    ":clang_linux_x86_64": [],
-    #    "//conditions:default": [],
-    #}),
+        #    ":clang_linux_x86_64": [],
+        #    "//conditions:default": [],
+        #}),
     ],
     includes = [
         "include",
@@ -117,9 +116,9 @@ cc_library(
     nocopts = "-fno-exceptions",
     visibility = ["//visibility:public"],
     deps = [
-            "@mkl_linux//:mkl_headers",
-            "@mkl_linux//:mkl_libs_linux",
-        ],
+        "@mkl_linux//:mkl_headers",
+        "@mkl_linux//:mkl_libs_linux",
+    ],
 )
 
 cc_library(
@@ -156,4 +155,3 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
-

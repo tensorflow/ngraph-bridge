@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.25.1-rc.8"
+    ngraph_version = "v0.28.0-rc.1"
     tf_version = "v1.14.0"
 
     # Command line parser options
@@ -412,6 +412,7 @@ def main():
 
     if (arguments.use_ngraph_staticlibs):
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE=TRUE"])
+
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 

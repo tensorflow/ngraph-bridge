@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,23 +28,21 @@ namespace ngraph_bridge {
 Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
                         const string replacement_node_name,
                         const string replacement_op_type,
-                        const bool just_looking, const bool is_tf_just_looking,
+                        const bool just_looking,
                         const bool outputs_ng_supported, const int graph_id,
                         const bool is_backend_set);
 
 Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
                      const string replacement_node_name,
                      const string replacement_op_type, const bool just_looking,
-                     const bool is_tf_just_looking,
                      const bool outputs_ng_supported, const int graph_id,
                      const bool is_backend_set);
 
 Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
                        const string replacement_node_name,
                        const string replacement_op_type,
-                       const bool just_looking, const bool is_tf_just_looking,
-                       const bool outputs_ng_supported, const int graph_id,
-                       const bool is_backend_set);
+                       const bool just_looking, const bool outputs_ng_supported,
+                       const int graph_id, const bool is_backend_set);
 
 // Adds the edges that are incoming control edges to the original node
 // as incoming control edges to the replacement node

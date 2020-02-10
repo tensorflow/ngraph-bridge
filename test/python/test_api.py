@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -37,10 +37,6 @@ class TestNgraphAPI(NgraphTest):
 
     def test_backends_len(self):
         assert ngraph_bridge.backends_len()
-
-    def test_set_backend(self):
-        ngraph_bridge.set_backend('CPU')
-        assert ngraph_bridge.get_currently_set_backend_name() == "CPU"
 
     def test_set_backend_invalid(self):
         try:

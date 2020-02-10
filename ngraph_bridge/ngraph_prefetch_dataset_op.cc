@@ -22,7 +22,7 @@ File: tensorflow/core/kernels/data/prefetch_dataset_op.cc
 *******************************************************************************/
 
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -415,25 +415,47 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
             ngraph_bridge::NGraphPrefetchSharedResouce::RESOURCE_NAME,
             &shared_data);
         if (s.ok()) {
-          ngraph::Event evt_dev_cp("Prf Dev Copy", "Copy", "");
           shared_data->SetBufferDepth(m_buffer_size);
-          auto ng_io_tensors = shared_data->GetNextIoTensorsForDeviceTransfer();
 
+          auto ng_input_tensor_bundle =
+              shared_data->GetNextIOTensorBundleForDeviceTransfer();
+          auto ng_prefetch_input_indexes_map =
+              shared_data->GetPrefetchInputIndexesMap();
+          ngraph::Event evt_dev_cp(
+              "Prf Dev Copy: Pipe_Ind_" + to_string(ng_input_tensor_bundle.Id),
+              "Copy", "");
+          int number_of_buffer_elements = buffer_element.value.size();
+          if (number_of_buffer_elements !=
+              ng_prefetch_input_indexes_map.size()) {
+            throw std::runtime_error(
+                "Prefetch buffer elements size " +
+                to_string(number_of_buffer_elements) +
+                " does not match the number of prefetch inputs expected by "
+                "encap " +
+                to_string(ng_prefetch_input_indexes_map.size()));
+          }
+          std::vector<std::unique_ptr<ngraph::Event>>
+              prefetch_input_write_events;
           // Write to these tensors
-          for (auto i = 0; i < buffer_element.value.size(); i++) {
+          for (auto itr : ng_prefetch_input_indexes_map) {
+            int ng_index = itr.first;
+            int tf_index = itr.second;
+
             ng::element::Type ng_element_type;
             auto status = ngraph_bridge::TFDataTypeToNGraphElementType(
-                buffer_element.value[i].dtype(), &ng_element_type);
+                buffer_element.value[tf_index].dtype(), &ng_element_type);
 
             void* current_src_ptr =
-                (void*)DMAHelper::base(&buffer_element.value[i]);
+                (void*)DMAHelper::base(&buffer_element.value[tf_index]);
+            std::unique_ptr<ngraph::Event> event_copy_h2d(new ngraph::Event(
+                "H2D_PrefetchInput_" + std::to_string(tf_index), "Copy", ""));
             try {
               NGRAPH_VLOG(2)
                   << "[PREFETCH] INPUT tensor being written by Prefetch: "
-                  << " Value: " << buffer_element.value[i].DebugString();
-              ng_io_tensors.Inputs[i]->write(
-                  current_src_ptr, 0,
-                  ng_io_tensors.Inputs[i]->get_element_count() *
+                  << " Value: " << buffer_element.value[tf_index].DebugString();
+              ng_input_tensor_bundle.Inputs[ng_index]->write(
+                  current_src_ptr,
+                  ng_input_tensor_bundle.Inputs[ng_index]->get_element_count() *
                       ng_element_type.size());
             } catch (const std::exception& exp) {
               throw exp;
@@ -441,10 +463,17 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
               throw std::runtime_error(
                   "Error copying TF tensor to device tensor");
             }
+            event_copy_h2d->Stop();
+            prefetch_input_write_events.push_back(std::move(event_copy_h2d));
+          }
+
+          for (auto& next : prefetch_input_write_events) {
+            ngraph::Event::write_trace(*next.get());
           }
 
           // Now add them back to the other queue
-          shared_data->AddNextIoTensorsReadyForDeviceExecution(ng_io_tensors);
+          shared_data->AddNextIOTensorBundleReadyForDeviceExecution(
+              ng_input_tensor_bundle);
           shared_data->Unref();
           evt_dev_cp.Stop();
           ngraph::Event::write_trace(evt_dev_cp);

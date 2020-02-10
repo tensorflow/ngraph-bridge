@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 
 #include "ngraph/ngraph.hpp"
 
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -30,7 +30,7 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-// 1. Populate the NGraphCatalog
+// 1. Populate the input_variable_map
 // 2. Attach Graph Ids to the node
 
 // Some terms:
@@ -52,8 +52,7 @@ namespace ngraph_bridge {
 //
 // 2. If the input to NGraphAssign Op is from NGraphEncapsulate Op
 // We add mapping of
-// {graphId_encapnodename_OutputIndex : tuple:{Variable_Shared_Name, CopyToTF,
-// IsTFJustLooking}}
+// {graphId_encapnodename_OutputIndex : tuple:{Variable_Shared_Name, CopyToTF}}
 // to the EncapOutputInfoMap
 // We attach "_ngraph_remove" attribute to this NGraphAssign node
 //
@@ -63,7 +62,6 @@ namespace ngraph_bridge {
 // We add mapping of {encapnodename : set of OutputIndexes that need a copy} to
 // the EncapsulateOutputCopyIndexesMap
 //
-
 Status EnterInCatalog(Graph* graph, int graph_id);
 
 }  // ngraph_bridge

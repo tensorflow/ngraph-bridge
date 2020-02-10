@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -109,7 +109,7 @@ class NgraphTest(object):
 
     # unset the env variable
     def unset_env_variable(self, env_var):
-        os.environ.pop(env_var, None)
+        os.unsetenv(env_var)
         print("Unset env variable ", env_var)
 
     # get the env variable

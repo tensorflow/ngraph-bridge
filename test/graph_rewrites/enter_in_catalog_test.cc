@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,13 +23,13 @@
 #include "tensorflow/core/public/session.h"
 
 #include "logging/tf_graph_writer.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_enter_in_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
+#include "ngraph_bridge/ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"

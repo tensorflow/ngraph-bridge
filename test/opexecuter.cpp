@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -342,6 +342,25 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
                                     ng_function))
       << "Failed to TranslateGraph";
 
+  std::set<std::shared_ptr<ngraph::Node>> TFtoNgraphOpSet =
+      GetTFToNgOpMap().at(test_op_type_);
+
+  for (auto n : ng_function->get_ops()) {
+    auto ng_node = dynamic_pointer_cast<ng::op::Result>(n);
+    bool is_result = (ng_node != nullptr);
+    if (!is_result && !(n->is_parameter())) {
+      bool found = false;
+      for (auto itr : TFtoNgraphOpSet) {
+        found = n->is_same_op_type(itr);
+        if (found) break;
+      }
+      ASSERT_TRUE(found) << "After translation found ngraph op "
+                         << (n->get_name())
+                         << " which was not found in map. To fix this issue "
+                            "check GetTFToNgOpMap";
+    }
+  }
+
   // ng function should get same number of outputs
   ASSERT_EQ(expected_output_datatypes_.size(), ng_function->get_output_size())
       << "Number of outputs of requested outputs and ngraph function outputs "
@@ -377,7 +396,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     std::shared_ptr<ngraph::runtime::Tensor> result;
     if (ng_backend_type != "CPU") {
       result = backend->create_tensor(ng_et, ng_shape);
-      result->write(src_ptr, 0, result->get_element_count() * ng_et.size());
+      result->write(src_ptr, result->get_element_count() * ng_et.size());
     } else {
       result = backend->create_tensor(ng_et, ng_shape, src_ptr);
     }
@@ -438,7 +457,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     // Convert to tf tensor
     Tensor output_tensor(expected_output_datatypes_[i], tf_op_shapes[i]);
     void* dst_ptr = DMAHelper::base(&output_tensor);
-    ng_op_tensors[i]->read(dst_ptr, 0, output_tensor.TotalBytes());
+    ng_op_tensors[i]->read(dst_ptr, output_tensor.TotalBytes());
     ngraph_outputs.push_back(output_tensor);
     NGRAPH_VLOG(5) << " NGRAPH op " << i << ngraph_outputs[i].DebugString();
   }
