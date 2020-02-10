@@ -116,10 +116,61 @@ Status EncapsulateClusters(
   return Status::OK();
 }
 
+Status CanCombineNodeInfoAndHint(
+    Graph* graph, string input_node_type,
+    std::map<std::string, PartialShape> node_partial_shape_map,
+    ShapeHintMap single_hint,
+    ShapeHintMap& inputs_node_shapes_for_compilation) {
+  for (auto itr_single_hint : single_hint) {
+    if (node_partial_shape_map.find(itr_single_hint.first) ==
+        node_partial_shape_map.end()) {
+      return errors::Internal("Passed hint for node ", itr_single_hint.first,
+                              " but there is no input with that name");
+    }
+  }
+
+  for (auto node : graph->op_nodes()) {
+    if (node->type_string() == input_node_type) {
+      PartialShape partial_shape_from_node =
+          node_partial_shape_map.at(node->name());
+
+      PartialShape combined_shape_info =
+          CombineNodeInfoAndHint(node, partial_shape_from_node, single_hint);
+
+      if (combined_shape_info.is_valid() && combined_shape_info.is_concrete()) {
+        inputs_node_shapes_for_compilation[node->name()] =
+            combined_shape_info.get_shape_vector();
+      } else {
+        // TODO: necessarily break? Maybe some things can be AOT, others
+        // maybe not
+        string fail_reason = (combined_shape_info.is_valid()
+                                  ? (node->name() + " could not be concretized")
+                                  : "it is invalid for " + node->name());
+        return errors::Internal("Cannot use this hint (",
+                                HintAsString(single_hint), ") as ",
+                                fail_reason);
+        break;
+      }
+    }  // end of if (node->type_string() == input_node_type)
+  }    // End of for loop that goes through all nodes
+
+  // Did we manage to concretize all input shapes?
+  for (auto itr : node_partial_shape_map) {  // iterate over all inputs
+    if (inputs_node_shapes_for_compilation.find(itr.first) ==
+        inputs_node_shapes_for_compilation.end()) {
+      // TODO: print "this" hint
+      return errors::Internal("Cannot use this hint (",
+                              HintAsString(single_hint), ") for ", (itr.first),
+                              " was not concretized");
+    }
+  }
+  return Status::OK();
+}
+
 Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
   bool aot_requested;
   set<string> performed_aot_on_enc;
-  std::set<std::map<std::string, vector<int>>> node_shapes_hints_sets;
+  std::set<ShapeHintMap> node_shapes_hints_sets;
   std::tie(aot_requested, node_shapes_hints_sets) = aot_info;
   if (aot_requested) {
     NGRAPH_VLOG(3) << "AOT requested";
@@ -145,7 +196,7 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
     if (node_shapes_hints_sets.size() == 0) {
       NGRAPH_VLOG(5) << "Using shapes from placeholders as hint";
 
-      std::map<std::string, vector<int>> shape_from_placeholders_as_hints;
+      ShapeHintMap shape_from_placeholders_as_hints;
       for (auto itr : node_partial_shape_map) {
         shape_from_placeholders_as_hints.insert(
             {itr.first, itr.second.get_shape_vector()});
@@ -154,66 +205,12 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
     }
     // TODO: .....CHECK ABOVE IF
 
-    std::map<std::string, vector<int>> inputs_node_shapes_for_compilation;
+    ShapeHintMap inputs_node_shapes_for_compilation;
     // Iterate over each shape hint and see if they can be used
     for (ShapeHintMap single_hint : node_shapes_hints_sets) {
-      // A boolean to determine if we can AOT for this single_hint
-      bool can_aot = true;
-
-      for (auto itr_single_hint : single_hint) {
-        if (node_partial_shape_map.find(itr_single_hint.first) ==
-            node_partial_shape_map.end()) {
-          return errors::Internal("Passed hint for node ",
-                                  itr_single_hint.first,
-                                  " but there is no input with that name");
-        }
-      }
-
-      for (auto node : graph->op_nodes()) {
-        if (node->type_string() == input_node_type) {
-          PartialShape partial_shape_from_node =
-              node_partial_shape_map.at(node->name());
-
-          PartialShape combined_shape_info = CombineNodeInfoAndHint(
-              node, partial_shape_from_node, single_hint);
-
-          can_aot = combined_shape_info.is_valid() &&
-                    combined_shape_info.is_concrete();
-          if (can_aot) {
-            inputs_node_shapes_for_compilation[node->name()] =
-                combined_shape_info.get_shape_vector();
-          } else {
-            // TODO: necessarily break? Maybe some things can be AOT, others
-            // maybe not
-            string fail_reason =
-                (combined_shape_info.is_valid()
-                     ? (node->name() + " could not be concretized")
-                     : "it is invalid for " + node->name());
-            return errors::Internal("Cannot AOT using this hint (",
-                                    HintAsString(single_hint), ") as ",
-                                    fail_reason);
-            break;
-          }
-        }  // end of if (node->type_string() == input_node_type)
-      }    // End of for loop that goes through all nodes
-
-      // Did we manage to concretize all input shapes?
-      for (auto itr : node_partial_shape_map) {  // iterate over all inputs
-        if (inputs_node_shapes_for_compilation.find(itr.first) ==
-            inputs_node_shapes_for_compilation.end()) {
-          can_aot = false;
-          // TODO: print "this" hint
-          return errors::Internal("Cannot AOT using this hint (",
-                                  HintAsString(single_hint), ") for ",
-                                  (itr.first), " was not concretized");
-        }
-      }
-
-      if (!can_aot) {
-        return errors::Internal(
-            "AOT requested, but could not perform AOT for hint = ",
-            HintAsString(single_hint));
-      }
+      TF_RETURN_IF_ERROR(CanCombineNodeInfoAndHint(
+          graph, input_node_type, node_partial_shape_map, single_hint,
+          inputs_node_shapes_for_compilation));
 
       // At this point we have collected all the AOT information and now we are
       // ready to translate and compile
@@ -907,7 +904,7 @@ std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
   std::map<std::string, PartialShape> node_partial_shape_map;
   for (auto node : graph->op_nodes()) {
     if (node->type_string() == input_node_type) {
-      NGRAPH_VLOG(5) << "Checking input for AOT: " << node->name() << "("
+      NGRAPH_VLOG(5) << "Checking input: " << node->name() << "("
                      << node->type_string()
                      << "): " << node->attrs().SummarizeNode();
       // TODO: need to confirm if its _output_shapes or shape
@@ -924,6 +921,8 @@ std::map<std::string, PartialShape> GetShapesFromTFInputnodes(
       if (shape_field != nullptr) {
         // Get shape from the node
         partial_shape_from_node = PartialShape(shape_field->shape());
+      } else {
+        partial_shape_from_node = PartialShape(vector<int>{});
       }
       NGRAPH_VLOG(5) << "For node " << node->name() << " got shape from node: "
                      << partial_shape_from_node.to_string();

@@ -1254,6 +1254,7 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 bool NodeIsMarkedForClustering(const Node* node) {
   bool is_marked;
   // TODO(amprocte): move attr name to a constant
+  GetNodeAttr(node->attrs(), "_ngraph_marked_for_clustering", &is_marked);
   return (GetNodeAttr(node->attrs(), "_ngraph_marked_for_clustering",
                       &is_marked) == Status::OK() &&
           is_marked);

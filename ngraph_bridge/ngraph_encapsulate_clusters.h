@@ -118,7 +118,15 @@ class Encapsulator {
   static void AddInput(NodeDef* dst, StringPiece src_name, int src_slot);
 };
 
+// Check if enough information is available to be be able to perform
+// TranslateGraph.
+Status CanCombineNodeInfoAndHint(
+    Graph* graph, string input_node_type,
+    std::map<std::string, PartialShape> node_partial_shape_map,
+    ShapeHintMap single_hint, ShapeHintMap& inputs_node_shapes_for_compilation);
+
 // Translates TF subgraph to ng function then compiles it
+// Calls CanTranslate().
 Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info);
 
 std::string HintAsString(ShapeHintMap single_hint);
