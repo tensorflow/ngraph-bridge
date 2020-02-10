@@ -34,7 +34,7 @@ bool AreOutputsNGSupported(Node* node) {
   for (auto edge : node->out_edges()) {
     if (edge->dst()->IsOp() && !edge->IsControlEdge() &&
         !IsNGSupportedType(edge->dst()->type_string())) {
-      NGRAPH_VLOG(5) << "ngraph does not support dst node "
+      NGRAPH_VLOG(5) << "dst node is not implemented by bridge "
                      << edge->DebugString();
       return false;
     }
@@ -47,7 +47,7 @@ bool NodeIsStaticInput(Node* node) {
   for (auto edge : node->out_edges()) {
     if (edge->dst()->IsOp() && !edge->IsControlEdge() &&
         InputIsStatic(edge->dst(), edge->dst_input())) {
-      NGRAPH_VLOG(5) << "ngraph does not support dst node ";
+      NGRAPH_VLOG(5) << "dst node has static inputs " << edge->DebugString();
       return true;
     }
   }
@@ -79,6 +79,9 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
       // Update is required in two cases
       // 1. If any of the outputs of this Op is feeding into a TF Op
       // 2. If this is a static input to NGraphEncapsulate
+      // NGraphEncapsulate uses static inputs' TF Tensors' data to compute
+      // signature and translate graph. Hence, if NGVar is a static input we
+      // updated its TF Tensor
       bool update_tf_tensor =
           !AreOutputsNGSupported(node) || NodeIsStaticInput(node);
 
