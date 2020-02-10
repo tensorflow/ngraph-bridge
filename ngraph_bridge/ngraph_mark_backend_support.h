@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2020 Intel Corporation
+ * Copyright 2019 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,14 +21,10 @@
 
 #include <string>
 
+#include "ngraph/ngraph.hpp"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
-#include "ngraph/ngraph.hpp"
-
-#include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_backend_manager.h"
-#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 
 namespace ng = ngraph;
@@ -60,7 +56,7 @@ Status GetBackendSupportInfoForNgfunction(
 Status GetBackendSupportInfoForTFSubgraph(const ng::runtime::Backend*,
                                           GraphDef*,
                                           std::map<std::string, bool>&,
-                                          std::set<ShapeHintMap> hints);
+                                          const std::set<ShapeHintMap>& hints);
 
 Status IsSupportedByBackend(const Node* node,
                             const ng::runtime::Backend* op_backend,
@@ -70,10 +66,6 @@ Status IsSupportedByBackend(
     const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
         TFtoNgraphOpMap,
     bool& is_supported);
-
-Status GetTFNodeSupportInfo(const shared_ptr<ng::Function>& ng_function,
-                            std::map<std::string, bool>& result_map,
-                            std::map<std::string, bool>& ng_result_map);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
