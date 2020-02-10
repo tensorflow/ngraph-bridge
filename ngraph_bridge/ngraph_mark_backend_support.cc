@@ -55,14 +55,14 @@ Status GetBackendSupportInfoForTFSubgraph(
   }
 
   ShapeHintMap inputs_node_shapes_for_compilation;
-  bool use_conservative_map = true;
+  bool can_translate = false;
   // Iterate over each shape hint and see if they can be used
   for (ShapeHintMap single_hint : hints) {
     Status status = CanCombineNodeInfoAndHint(
         graph_ptr.get(), input_node_type, node_partial_shape_map, single_hint,
         inputs_node_shapes_for_compilation);
     if (status.ok()) {
-      use_conservative_map = false;
+      can_translate = true;
       // At this point we have collected all the information and now we are
       // ready to translate
       for (auto node : graph_ptr.get()->op_nodes()) {
@@ -120,11 +120,11 @@ Status GetBackendSupportInfoForTFSubgraph(
         }
       }
     } else {
-      use_conservative_map = true;
+      can_translate = false;
       break;
     }
   }
-  if (use_conservative_map) {
+  if (!can_translate) {
     // If we cannot call TranslateGraph, we do the conservative thing and use
     // the static, hand-populated map
     bool supported_op;
@@ -158,7 +158,7 @@ Status GetBackendSupportInfoForNgfunction(
 
 Status GetTFNodeSupportInfo(const shared_ptr<ng::Function>& ng_function,
                             std::map<std::string, bool>& result_map,
-                            const std::map<std::string, bool>& ng_result_map) {
+                            std::map<std::string, bool>& ng_result_map) {
   bool is_supported;
   for (auto n : ng_function->get_ops()) {
     auto itr = ng_result_map.find(n->get_name());

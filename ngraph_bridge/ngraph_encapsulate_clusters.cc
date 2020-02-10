@@ -159,7 +159,7 @@ Status CanCombineNodeInfoAndHint(
     if (inputs_node_shapes_for_compilation.find(itr.first) ==
         inputs_node_shapes_for_compilation.end()) {
       // TODO: print "this" hint
-      return errors::Internal("Cannot use this hint (",
+      return errors::Internal("Cannot AOT using this hint (",
                               HintAsString(single_hint), ") for ", (itr.first),
                               " was not concretized");
     }
