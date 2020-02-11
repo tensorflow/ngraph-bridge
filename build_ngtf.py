@@ -22,7 +22,7 @@ def version_check(use_prebuilt_tensorflow):
     # Check pre-requisites
     if use_prebuilt_tensorflow:
         # Check if the gcc version is at least 5.4.0
-        if (platform.system() != 'Darwin'):
+        if False:  # (platform.system() != 'Darwin'):
             gcc_ver = get_gcc_version()
             if gcc_ver < '5.4.0':
                 raise Exception(
