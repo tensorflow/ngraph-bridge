@@ -280,6 +280,25 @@ Status TFDataTypeToNGraphElementType(DataType tf_dt,
   return Status::OK();
 }
 
+
+Status TFTensorShapeToNGraphPartialShape(const TensorShape& tf_shape,
+                                  ngraph::PartialShape* ng_partial_shape) {
+
+  if(tf_shape.unknown_rank()) {
+    *ng_partial_shape = ngraph::PartialShape::dynamic();
+  } else {
+    auto rank = tf_shape.dims();
+    std::vector<ngraph::Dimension> dims(rank);
+    for (int i = 0; i < rank; i++) {
+      auto dimsize_i = tf_shape.dim_size(i);
+      dims[i] = (dimsize_i < 0) ? (ngraph::Dimension::dynamic()) : (dimsize_i);
+    }
+    *ng_partial_shape = ngraph::PartialShape(dims);
+  }
+  
+  return Status::OK();
+}
+
 Status TFTensorShapeToNGraphShape(const TensorShape& tf_shape,
                                   ngraph::Shape* ng_shape) {
   for (int i = 0; i < tf_shape.dims(); i++) {

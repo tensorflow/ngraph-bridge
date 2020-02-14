@@ -5227,13 +5227,20 @@ Status Builder::TranslateGraph(
     ng::element::Type ng_et;
     TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
 
-    ng::Shape ng_shape;
-    TF_RETURN_IF_ERROR(TFTensorShapeToNGraphShape(inputs[index], &ng_shape));
+    // ng::Shape ng_shape;
+    //TF_RETURN_IF_ERROR(TFTensorShapeToNGraphShape(inputs[index], &ng_shape));
+    // if(inputs[index].IsFullyDefined()) {
+    //   TF_RETURN_IF_ERROR(TFTensorShapeToNGraphShape(inputs[index], &ng_shape));
+    // } else {
+    //   TF_RETURN_IF_ERROR(TFTensorShapeToNGraphPartialShape(inputs[index], &ng_partial_shape));
+    // }
+    ng::PartialShape ng_partial_shape;
+    TF_RETURN_IF_ERROR(TFTensorShapeToNGraphPartialShape(inputs[index], &ng_partial_shape));
 
     string prov_tag;
     GetNodeAttr(parm->attrs(), "_prov_tag", &prov_tag);
     auto ng_param =
-        ConstructNgNode<ng::op::Parameter>(prov_tag, ng_et, ng_shape);
+        ConstructNgNode<ng::op::Parameter>(prov_tag, ng_et, ng_partial_shape);
     SaveNgOp(ng_op_map, parm->name(), ng_param);
     ng_parameter_list[index] = ng_param;
   }

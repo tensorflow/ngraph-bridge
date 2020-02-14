@@ -293,6 +293,10 @@ Status TFDataTypeToNGraphElementType(DataType tf_dt,
 Status TFTensorShapeToNGraphShape(const TensorShape& tf_shape,
                                   ngraph::Shape* ng_shape);
 
+// Converts a TensorFlow TensorShape to an nGraph PartialShape.
+Status TFTensorShapeToNGraphPartialShape(const TensorShape& tf_shape,
+                                  ngraph::PartialShape* ng_shape);
+
 // Returns an ArraySlice containing all TensorFlow dtypes supported by the
 // nGraph bridge.
 const gtl::ArraySlice<DataType>& NGraphDTypes();
