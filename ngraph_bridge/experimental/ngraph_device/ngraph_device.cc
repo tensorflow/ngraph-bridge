@@ -19,6 +19,7 @@
 
 #include "tensorflow/core/common_runtime/device.h"
 #include "tensorflow/core/common_runtime/device_factory.h"
+#include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/common_runtime/local_device.h"
 #include "tensorflow/core/common_runtime/process_state.h"
 #include "tensorflow/core/framework/device_base.h"
@@ -35,20 +36,50 @@ class NGraphDeviceContext : public DeviceContext {
   void CopyCPUTensorToDevice(const Tensor* cpu_tensor, Device* device,
                              Tensor* device_tensor, StatusCallback done,
                              bool sync_dst_compute) const override {
-    NGRAPH_VLOG(4) << "CopyCPUTensorToDevice: DEVICE: " << device->name();
+  if (cpu_tensor->NumElements() > 0) {
+	        NGRAPH_VLOG(3) << "CopyCPUTensorToDevice "
+			                     << reinterpret_cast<const void*>(
+							                                 cpu_tensor->tensor_data().data())
+					                          << " " << reinterpret_cast<const void*>(
+										                                     device_tensor->tensor_data().data())
+								                       << " " << cpu_tensor->NumElements();
 
-    *device_tensor = *cpu_tensor;
-    done(Status::OK());
+		      void* src_ptr = const_cast<void*>(DMAHelper::base(cpu_tensor));
+		            const int64 total_bytes = cpu_tensor->TotalBytes();
+			          void* dst_ptr = DMAHelper::base(device_tensor);
+				        memcpy(dst_ptr, src_ptr, total_bytes);
+
+					      NGRAPH_VLOG(3) << "CPU Tensor: " << cpu_tensor->DebugString();
+	  done(Status::OK());
+	  return;
+  }
+  NGRAPH_VLOG(3) << "CopyCPUTensorToDevice empty tensor";
+  NGRAPH_VLOG(3) << cpu_tensor->DebugString();
+  done(Status::OK());
   }
 
   void CopyDeviceTensorToCPU(const Tensor* device_tensor, StringPiece edge_name,
                              Device* device, Tensor* cpu_tensor,
                              StatusCallback done) override {
-    NGRAPH_VLOG(4) << "CopyDeviceTensorToCPU: DEVICE: " << device->name()
-              << " Edge: " << edge_name;
+  if (device_tensor->NumElements() > 0) {
+	        NGRAPH_VLOG(3) << "CopyDeviceTensorToCPU "
+			                     << reinterpret_cast<const void*>(
+							                                 device_tensor->tensor_data().data())
+					                          << " " << reinterpret_cast<const void*>(
+										                                     cpu_tensor->tensor_data().data())
+								                       << device_tensor->NumElements();
+		      NGRAPH_VLOG(3) << device_tensor->DebugString();
+		      void* src_ptr = const_cast<void*>(DMAHelper::base(device_tensor));
+		            const int64 total_bytes = device_tensor->TotalBytes();
+			          void* dst_ptr = DMAHelper::base(cpu_tensor);
+				        memcpy(dst_ptr, src_ptr, total_bytes);
 
-    *cpu_tensor = *device_tensor;
-    done(Status::OK());
+					      done(Status::OK());
+					            return;
+						        }
+                       NGRAPH_VLOG(3) << "CopyDeviceTensorToCPU empty tensor";
+		           NGRAPH_VLOG(3) << device_tensor->DebugString();
+			       done(Status::OK());
   }
 
   void CopyTensorInSameDevice(const Tensor* input_tensor, Device* device,
