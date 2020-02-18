@@ -372,13 +372,9 @@ def install_tensorflow(venv_dir, artifacts_dir):
     # Get the name of the TensorFlow pip package
     tf_wheel_files = glob.glob("tensorflow-*.whl")
     if (len(tf_wheel_files) < 1):
-        raise Exception(
-            "no tensorflow wheels found"
-        )
-    elif(len(tf_wheel_files) > 1):
-        raise Exception(
-            "more than 1 version of tensorflow wheels found"
-            )
+        raise Exception("no tensorflow wheels found")
+    elif (len(tf_wheel_files) > 1):
+        raise Exception("more than 1 version of tensorflow wheels found")
     command_executor(["pip", "install", "-U", tf_wheel_files[0]])
 
     cxx_abi = "0"
