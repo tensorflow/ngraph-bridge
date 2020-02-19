@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,12 +27,17 @@
 #include "tensorflow/core/platform/tensor_coding.h"
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
 
-#include "ngraph/event_tracing.hpp"
 #include "ngraph/ngraph.hpp"
+#include "ngraph/runtime/chrome_trace.hpp"
 #include "ngraph/serializer.hpp"
 
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
+
+// Activates event logging until the end of the current code-block scoping;
+// Automatically writes log data as soon as the the current scope expires.
+#define NG_TRACE(name, category, args) \
+  ngraph::runtime::event::Duration dx__ { (name), (category), (args) }
 
 namespace ng = ngraph;
 using namespace std;
@@ -308,6 +313,9 @@ const gtl::ArraySlice<DataType>& NGraphNumericAndQuantizedDTypes();
 // Returns an ArraySlice containing all data types that can be used for
 // axis/tensor indices.
 const gtl::ArraySlice<DataType>& NGraphIndexDTypes();
+
+// Returns an ArraySlice containing all data integer types.
+const gtl::ArraySlice<DataType>& NGraphIntDTypes();
 
 // Returns an ArraySlice containing supported data types in the quantized domain
 const gtl::ArraySlice<DataType>& NGraphSupportedQuantizedDTypes();

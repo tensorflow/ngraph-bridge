@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Nervana Systems Inc.
+# Copyright 2018-2020 Intel Corporation
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -53,6 +53,7 @@ set(SRC
    ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc
+   ngraph_register_stub_kernels.cc   
    ngraph_rewrite_for_tracking.cc
    ngraph_rewrite_pass.cc
    ngraph_tensor_manager.cc

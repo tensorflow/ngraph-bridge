@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -114,6 +114,13 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
   // If Prefetch is requested
   if (std::getenv(NGraphPrefetchSharedResouce::NGRAPH_TF_USE_PREFETCH) !=
       nullptr) {
+    if (make_iterator_nodes.size() == 0) {
+      // No MakeIterator Op found in the Graph
+      make_iterator_nodes.clear();
+      nodes_to_capture.clear();
+      return Status::OK();
+    }
+
     if (make_iterator_nodes.size() > 1) {
       return errors::Internal(
           "Found more than 1 MakeIterator nodes. This case is not supported.");

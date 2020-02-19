@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -147,23 +147,19 @@ bool IsNGSupportedType(string node_type) {
 // Read from this ng_tensor into tf_tensor
 void ReadNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                   Tensor* tf_tensor) {
-  ngraph::Event event_sync_ng_tf_tensors("Tensor Read D2H", "", "");
+  NG_TRACE("Tensor Read D2H", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
   ng_tensor->read(tf_src_ptr, ng_tensor->get_element_count() *
                                   ng_tensor->get_element_type().size());
-  event_sync_ng_tf_tensors.Stop();
-  ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
 
 // Write into this ng_tensor from tf_tensor
 void WriteNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                    Tensor* tf_tensor) {
-  ngraph::Event event_sync_ng_tf_tensors("Tensor Write H2D", "", "");
+  NG_TRACE("Tensor Write H2D", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
   ng_tensor->write(tf_src_ptr, ng_tensor->get_element_count() *
                                    ng_tensor->get_element_type().size());
-  event_sync_ng_tf_tensors.Stop();
-  ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
 
 void SummarizeOp(OpKernelConstruction* ctx, std::ostream& out) {
@@ -223,6 +219,11 @@ Status TensorToStream(std::ostream& ostream, const Tensor& tensor) {
     case DT_BOOL:
       TensorDataToStream<bool>(ostream, n_elements, data);
       break;
+    case DT_BFLOAT16:
+      return errors::Internal(
+          "TensorToStream got data type bfloat16. No compatible standard C++ "
+          "data type.");
+      break;
     default:
       return errors::Internal("TensorToStream got unsupported data type ",
                               DataType_Name(tensor.dtype()));
@@ -272,6 +273,8 @@ Status TFDataTypeToNGraphElementType(DataType tf_dt,
       break;
     case DataType::DT_QINT32:
       *ng_et = ng::element::i32;
+    case DataType::DT_BFLOAT16:
+      *ng_et = ng::element::bf16;
       break;
     default:
       return errors::Unimplemented("Unsupported TensorFlow data type: ",
@@ -322,15 +325,16 @@ void print_node_histogram(const std::unordered_map<string, int>& histogram,
 
 const gtl::ArraySlice<DataType>& NGraphDTypes() {
   static gtl::ArraySlice<DataType> result{
-      DT_FLOAT,  DT_DOUBLE, DT_INT8,   DT_INT16, DT_INT32, DT_INT64, DT_UINT8,
-      DT_UINT16, DT_UINT32, DT_UINT64, DT_BOOL,  DT_QINT8, DT_QUINT8};
+      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,   DT_INT32,
+      DT_INT64, DT_UINT8,  DT_UINT16, DT_UINT32,  DT_UINT64,
+      DT_BOOL,  DT_QINT8,  DT_QUINT8, DT_BFLOAT16};
   return result;
 }
 
 const gtl::ArraySlice<DataType>& NGraphNumericDTypes() {
   static gtl::ArraySlice<DataType> result{
-      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,  DT_INT32,
-      DT_INT64, DT_UINT8,  DT_UINT16, DT_UINT32, DT_UINT64};
+      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,  DT_INT32,   DT_INT64,
+      DT_UINT8, DT_UINT16, DT_UINT32, DT_UINT64, DT_BFLOAT16};
   return result;
 }
 
@@ -346,13 +350,19 @@ const gtl::ArraySlice<DataType>& NGraphIndexDTypes() {
   return result;
 }
 
+const gtl::ArraySlice<DataType>& NGraphIntDTypes() {
+  static gtl::ArraySlice<DataType> result{DT_INT8, DT_UINT16, DT_INT16,
+                                          DT_INT32, DT_INT64};
+  return result;
+}
+
 const gtl::ArraySlice<DataType>& NGraphSupportedQuantizedDTypes() {
   static gtl::ArraySlice<DataType> result{DT_QINT8, DT_QUINT8};
   return result;
 }
 
 const gtl::ArraySlice<DataType>& NGraphRealDTypes() {
-  static gtl::ArraySlice<DataType> result{DT_FLOAT, DT_DOUBLE};
+  static gtl::ArraySlice<DataType> result{DT_FLOAT, DT_DOUBLE, DT_BFLOAT16};
   return result;
 }
 

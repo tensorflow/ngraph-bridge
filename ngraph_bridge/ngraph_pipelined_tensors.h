@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 #define NGRAPH_TF_BRIDGE_PIPELINED_TENSORS_H_
 #pragma once
 
-#include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
 
 // Consider an ng executable, which has a inputs and b outputs. Let d_input[i]

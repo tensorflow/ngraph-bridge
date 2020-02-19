@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1299,6 +1299,35 @@ bool InputIsStatic(const Node* node, int index) {
   std::vector<int32> inputs;
   GetStaticInputs(node, &inputs);
   return std::find(inputs.begin(), inputs.end(), index) != inputs.end();
+}
+
+Status GetStaticInputs(Graph* graph, std::vector<int32>* static_input_indexes) {
+  static_input_indexes->clear();
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == "_Arg") {
+      int32 index;
+      auto status = GetNodeAttr(node->attrs(), "index", &index);
+      if (status != Status::OK()) {
+        return errors::Internal("error getting node attribute index");
+      }
+
+      for (auto edge : node->out_edges()) {
+        if (edge->IsControlEdge() || !edge->dst()->IsOp()) {
+          continue;
+        }
+
+        NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
+                       << edge->DebugString();
+
+        if (InputIsStatic(edge->dst(), edge->dst_input())) {
+          NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
+          static_input_indexes->push_back(index);
+          break;
+        }
+      }
+    }
+  }
+  return Status::OK();
 }
 
 Status GetNodeBackend(const Node* node, string* backend_name) {

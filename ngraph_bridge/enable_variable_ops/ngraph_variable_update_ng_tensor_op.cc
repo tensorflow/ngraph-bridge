@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use thi0s file except in compliance with the License.
@@ -21,8 +21,6 @@
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/default/logging.h"
-
-#include "ngraph/event_tracing.hpp"
 
 #include "ngraph_bridge/enable_variable_ops/ngraph_variable_update_ng_tensor_op.h"
 #include "ngraph_bridge/ngraph_timer.h"
@@ -66,9 +64,8 @@ NGraphVariableUpdateNGTensorOp::~NGraphVariableUpdateNGTensorOp() {
 //---------------------------------------------------------------------------
 void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
   std::ostringstream oss;
-  // Start event tracing
   oss << "NGVariableUpdateNGTensor::Compute::" << name();
-  ngraph::Event event_compute(oss.str(), name(), "");
+  NG_TRACE(oss.str(), name(), "");
   bool log_copies = false;
   OP_REQUIRES_OK(context,
                  IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
@@ -107,11 +104,6 @@ void NGraphVariableUpdateNGTensorOp::Compute(OpKernelContext* context) {
   // https://github.com/tensorflow/tensorflow/blob/5448f25041ed5d32b8aee08250e8ec66e7353593/tensorflow/core/framework/resource_mgr.cc#L187
   // Hence, Unref var here:
   var->Unref();
-
-  // Stop event tracing
-  event_compute.Stop();
-
-  ngraph::Event::write_trace(event_compute);
 
 }  // end compute
 

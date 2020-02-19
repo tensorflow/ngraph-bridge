@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@
 // candidate such as v0.7.0-rc0
 // The code in master will always have the last released version number
 // with a suffix of '-master'
-#define NG_TF_VERSION_SUFFIX "-rc2"
+#define NG_TF_VERSION_SUFFIX "-rc3"
 
 #define VERSION_STR_HELPER(x) #x
 #define VERSION_STR(x) VERSION_STR_HELPER(x)

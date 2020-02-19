@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/default/logging.h"
 
-#include "ngraph/event_tracing.hpp"
 #include "ngraph/runtime/backend.hpp"
 
 #include "ngraph_bridge/ngraph_backend_manager.h"
