@@ -47,7 +47,6 @@ class NGraphAssignOp : public OpKernel {
  private:
   bool copy_to_tf_;
   int ng_graph_id_;
-  bool just_looking_;
   static int s_instance_count;
   int my_instance_id{0};
 
@@ -66,10 +65,8 @@ class NGraphAssignOp : public OpKernel {
       : OpKernel(context), copy_to_tf_(false) {
     OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
     OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
-    OP_REQUIRES_OK(context, context->GetAttr("just_looking", &just_looking_));
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Constructor called for: " << def().name()
-                   << ", just_looking " << PrintBool(just_looking_)
                    << ", copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
                    << ng_graph_id_;
 
@@ -85,7 +82,6 @@ class NGraphAssignOp : public OpKernel {
     NG_TRACE(oss.str(), name(), "");
 
     NGRAPH_VLOG(4) << "NGraphAssign:: Compute called for: " << def().name()
-                   << ", just_looking " << PrintBool(just_looking_)
                    << ", copy-to-tf " << PrintBool(copy_to_tf_) << " ,Graph ID "
                    << ng_graph_id_;
 
@@ -94,8 +90,7 @@ class NGraphAssignOp : public OpKernel {
                    IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
     std::stringstream copy_log_str;
     copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-                 << " ,copy-to-tf " << PrintBool(copy_to_tf_)
-                 << ", just_looking " << PrintBool(just_looking_) << "\n";
+                 << " ,copy-to-tf " << PrintBool(copy_to_tf_) << "\n";
     int number_of_copies = 0;
 
     bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
