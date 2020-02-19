@@ -50,7 +50,6 @@ set(SRC
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
    ngraph_encapsulate_op_utils.cc
-   ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc
    ngraph_register_stub_kernels.cc   
