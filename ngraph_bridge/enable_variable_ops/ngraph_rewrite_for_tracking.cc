@@ -60,11 +60,11 @@ bool NodeIsStaticInput(Node* node) {
 Status RewriteForTracking(Graph* graph, int graph_id) {
   const static std::map<
       const string,
-      const function<Status(
-          Graph * graph, Node * node, Node * *replacement,
-          const string replacement_node_name, const string replacement_op_type,
-          const bool just_looking, const bool update_tf_tensor,
-          const int graph_id, const bool is_backend_set)>>
+      const function<Status(Graph * graph, Node * node, Node * *replacement,
+                            const string replacement_node_name,
+                            const string replacement_op_type,
+                            const bool update_tf_tensor, const int graph_id,
+                            const bool is_backend_set)>>
       REWRITE_REPLACE_OP_MAP{{"NGraphAssign", ReplaceAssign},
                              {"NGraphVariable", ReplaceVariable}};
 
@@ -86,16 +86,11 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
           !AreOutputsNGSupported(node) || NodeIsStaticInput(node);
 
       // The below loop does the following
-      // 1. If any of the nodes reading from this Variable node read the data
-      // as reference then we dont track it, else we do, determined by
-      // just_looking attribute
-      // 2. Determine which Ops need to be followed by
-      // NGraphVariableUpdateNGTensor Op
-      bool just_looking = true;
+      // Determine which Ops need to be followed by NGraphVariableUpdateNGTensor
+      // Op
       for (auto edge : node->out_edges()) {
         if (edge->dst()->IsOp() && !edge->IsControlEdge() &&
             IsRefType(edge->dst()->input_type(edge->dst_input()))) {
-          just_looking = false;
           // if the output reference is read by NGraph supported ops, do not
           // add the sync node
           if (!IsNGVariableType(edge->dst()->type_string())) {
@@ -119,16 +114,10 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
         }
       }  // end of for loop
 
-      NGRAPH_VLOG(5) << "Just_Looking: " << PrintBool(just_looking);
       NGRAPH_VLOG(5) << " Update TF Tensor " << PrintBool(update_tf_tensor);
-      NGRAPH_VLOG(5) << "Requires Replacement "
-                     << PrintBool(update_tf_tensor || !just_looking);
 
       // Create and add the replacement node to the graph
       std::string node_new_name = node->name();
-      if (just_looking) {
-        node_new_name += "/peek";
-      }
 
       if (update_tf_tensor) {
         node_new_name += "/update_tf_tensor";
@@ -140,8 +129,8 @@ Status RewriteForTracking(Graph* graph, int graph_id) {
 
       Node* replacement;
       TF_RETURN_IF_ERROR((itr->second)(graph, node, &replacement, node_new_name,
-                                       node->type_string(), just_looking,
-                                       update_tf_tensor, graph_id, true));
+                                       node->type_string(), update_tf_tensor,
+                                       graph_id, true));
 
       TF_RETURN_IF_ERROR(ReplaceInputControlEdges(graph, node, replacement));
       TF_RETURN_IF_ERROR(ReplaceOutputEdges(graph, node, replacement));
