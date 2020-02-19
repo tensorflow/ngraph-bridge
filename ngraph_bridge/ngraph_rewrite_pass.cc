@@ -31,7 +31,6 @@
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/ngraph_enter_prefetch_in_catalog.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
-#include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 #if defined NGRAPH_DISTRIBUTED

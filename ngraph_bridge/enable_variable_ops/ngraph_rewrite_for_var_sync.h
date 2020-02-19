@@ -14,8 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
-#ifndef NGRAPH_TF_REWRITE_FOR_TRACKING_H_
-#define NGRAPH_TF_REWRITE_FOR_TRACKING_H_
+#ifndef NGRAPH_TF_REWRITE_FOR_VAR_SYNC_H_
+#define NGRAPH_TF_REWRITE_FOR_VAR_SYNC_H_
 #pragma once
 
 #include "tensorflow/core/graph/graph.h"
@@ -24,9 +24,9 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status RewriteForTracking(Graph* graph, int graph_id);
+Status RewriteForVarSync(Graph* graph, int graph_id);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
 
-#endif  // NGRAPH_TF_REWRITE_FOR_TRACKING_H_
+#endif  // NGRAPH_TF_REWRITE_FOR_VAR_SYNC_H_

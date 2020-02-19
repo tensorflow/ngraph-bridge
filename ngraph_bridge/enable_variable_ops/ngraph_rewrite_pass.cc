@@ -24,6 +24,7 @@
 #include "ngraph_bridge/enable_variable_ops/ngraph_enter_in_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_remove_ngraphassigns.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_rewrite_for_var_sync.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
@@ -32,7 +33,6 @@
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/ngraph_enter_prefetch_in_catalog.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
-#include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 #if defined NGRAPH_DISTRIBUTED
@@ -240,8 +240,12 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
                  "Graph with Clusters Encapsulated");
     }
 
-    // 5. Rewrite for tracking then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(RewriteForTracking(options.graph->get(), idx));
+    // 5. Rewrite for synchronization of variables
+    // 1. Assigns "update_tf_tensor" attribute.
+    //    Responsible for updating the NGraphVariable's TFTensor
+    // 2. Adds NGraphVariableUpdateNGTensor Nodes
+    // If requested, dump the graphs.
+    TF_RETURN_IF_ERROR(RewriteForVarSync(options.graph->get(), idx));
     if (DumpTrackedGraphs()) {
       DumpGraphs(options, idx, "tracked",
                  "Graph with Variables Rewritten for Tracking");
