@@ -383,8 +383,7 @@ ng::AxisSet ConvertMaskToAxes(const int mask) {
   return axes;
 };
 
-struct strided_slice_mask_attrs
-{
+struct strided_slice_mask_attrs {
   int begin;
   int end;
   int new_axis;
@@ -392,9 +391,8 @@ struct strided_slice_mask_attrs
   int ellipsis;
 };
 
-static Status GetStridedSliceAttrs(
-    const Node* op,
-    strided_slice_mask_attrs& attrs) {
+static Status GetStridedSliceAttrs(const Node* op,
+                                   strided_slice_mask_attrs& attrs) {
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "begin_mask", &attrs.begin));
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "end_mask", &attrs.end));
   TF_RETURN_IF_ERROR(
@@ -414,18 +412,15 @@ static Status GetStridedSliceAttrs(
   return Status::OK();
 }
 
-static Status GetSlicePlan(
-    const ng::Shape& shape, 
-    const std::vector<int64_t>& begin,
-    const std::vector<int64_t>& end,
-    const std::vector<int64_t>& stride,
-    const strided_slice_mask_attrs& mask_attrs,
-    ng::SlicePlan& slice_plan) {
+static Status GetSlicePlan(const ng::Shape& shape,
+                           const std::vector<int64_t>& begin,
+                           const std::vector<int64_t>& end,
+                           const std::vector<int64_t>& stride,
+                           const strided_slice_mask_attrs& mask_attrs,
+                           ng::SlicePlan& slice_plan) {
   slice_plan = ng::make_slice_plan(
-      shape, begin, end, stride,
-      ConvertMaskToAxes(mask_attrs.begin),
-      ConvertMaskToAxes(mask_attrs.end),
-      ConvertMaskToAxes(mask_attrs.new_axis),
+      shape, begin, end, stride, ConvertMaskToAxes(mask_attrs.begin),
+      ConvertMaskToAxes(mask_attrs.end), ConvertMaskToAxes(mask_attrs.new_axis),
       ConvertMaskToAxes(mask_attrs.shrink_axis),
       ConvertMaskToAxes(mask_attrs.ellipsis));
 
@@ -444,8 +439,8 @@ static Status GetSlicePlan(
     slice_plan.ends[i] = clamp(slice_plan.ends[i], 0, shape[i]);
   }
 
-  NGRAPH_VLOG(5) << "Slice_plan: begin: "
-                 << ng::join(slice_plan.begins) << ", end: " << ng::join(slice_plan.ends)
+  NGRAPH_VLOG(5) << "Slice_plan: begin: " << ng::join(slice_plan.begins)
+                 << ", end: " << ng::join(slice_plan.ends)
                  << ", stride: " << ng::join(slice_plan.strides)
                  << ", reshape input shape: " << slice_plan.reshape_in_shape
                  << ", reshape output shape: " << slice_plan.reshape_out_shape
@@ -4671,8 +4666,7 @@ static Status TranslateStridedSliceOp(
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
 
   strided_slice_mask_attrs mask_attrs;
-  TF_RETURN_IF_ERROR(
-      GetStridedSliceAttrs(op, mask_attrs));
+  TF_RETURN_IF_ERROR(GetStridedSliceAttrs(op, mask_attrs));
 
   std::vector<int64> begin_vec;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &begin_vec));
@@ -4716,8 +4710,9 @@ static Status TranslateStridedSliceOp(
   }
 
   ng::SlicePlan sp;
-  TF_RETURN_IF_ERROR(
-      GetSlicePlan(input_shape, begin_vec_longint, end_vec_longint, stride_vec_longint, mask_attrs, sp));
+  TF_RETURN_IF_ERROR(GetSlicePlan(input_shape, begin_vec_longint,
+                                  end_vec_longint, stride_vec_longint,
+                                  mask_attrs, sp));
 
   // Need to convert int64_t to size_t
   std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
@@ -4758,8 +4753,7 @@ static Status TranslateStridedSliceGradOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   strided_slice_mask_attrs mask_attrs;
-  TF_RETURN_IF_ERROR(
-      GetStridedSliceAttrs(op, mask_attrs));
+  TF_RETURN_IF_ERROR(GetStridedSliceAttrs(op, mask_attrs));
 
   // get original shape
   std::vector<int64> original_shape;
@@ -4787,8 +4781,9 @@ static Status TranslateStridedSliceGradOp(
   std::vector<int64_t> stride_vec_longint(stride_vec.begin(), stride_vec.end());
 
   ng::SlicePlan sp;
-  TF_RETURN_IF_ERROR(
-      GetSlicePlan(ng_original_shape, begin_vec_longint, end_vec_longint, stride_vec_longint, mask_attrs, sp));
+  TF_RETURN_IF_ERROR(GetSlicePlan(ng_original_shape, begin_vec_longint,
+                                  end_vec_longint, stride_vec_longint,
+                                  mask_attrs, sp));
 
   // Need to convert int64_t to size_t
   std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
