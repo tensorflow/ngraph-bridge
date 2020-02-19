@@ -564,16 +564,6 @@ bool DumpEncapsulatedGraphs() {
          std::getenv("NGRAPH_TF_DUMP_ENCAPSULATED_GRAPHS") != nullptr;
 }
 
-bool DumpTrackedGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
-}
-
-bool DumpCatalogedGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
-}
-
 #if defined(NGRAPH_DISTRIBUTED)
 void OpControlOrder(const std::shared_ptr<ngraph::Function>& ng_function,
                     const std::string& op_name) {

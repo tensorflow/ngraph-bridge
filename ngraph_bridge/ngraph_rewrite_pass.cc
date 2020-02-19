@@ -136,8 +136,7 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
 //   2. Cluster Assignment [ngraph_assign_clusters.cc]
 //   3. Cluster Deassignment [ngraph_deassign_clusters.cc]
 //   4. Cluster Encapsulation [ngraph_encapsulate_clusters.cc]
-//   5. Rewrite Variable Type Ops for Tracking [ngraph_rewrite_for_tracking.cc]
-//   6. Enter In Catalog  [ngraph_enter_in_catalog.cc]
+//   5. Enter Prefetch In Catalog  [ngraph_enter_prefetch_in_catalog.cc]
 //
 // Between phases, graph dumps (in both .dot and .pbtxt format) may be
 // requested by setting the following environment variables:
@@ -147,8 +146,6 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
 //   NGRAPH_TF_DUMP_CLUSTERED_GRAPHS=1     dumps graphs after phase 2
 //   NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS=1   dumps graphs after phase 3
 //   NGRAPH_TF_DUMP_ENCAPSULATED_GRAPHS=1  dumps graphs after phase 4
-//   NGRAPH_TF_DUMP_TRACKED_GRAPHS=1       dumps graphs after phase 5
-//   NGRAPH_TF_DUMP_CATALOGED_GRAPHS=1     dumps graphs after phase 6
 //   NGRAPH_TF_DUMP_GRAPHS=1               all of the above
 //
 class NGraphEncapsulationPass : public NGraphRewritePass {
@@ -243,19 +240,10 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
                  "Graph with Clusters Encapsulated");
     }
 
-    // 5. Rewrite for tracking then, if requested, dump the graphs.
-    // TF_RETURN_IF_ERROR(RewriteForTracking(options.graph->get(), idx));
-    // if (DumpTrackedGraphs()) {
-    //   DumpGraphs(options, idx, "tracked",
-    //              "Graph with Variables Rewritten for Tracking");
-    // }
-
-    // 6. Enter in catalog then.
+    // 5. Enter Prefetch Details in catalog then.
+    // No point dumping graph here as there is no change to the graph
+    // and only the catalog is populated here
     TF_RETURN_IF_ERROR(EnterPrefetchInCatalog(options.graph->get(), idx));
-    if (DumpCatalogedGraphs()) {
-      DumpGraphs(options, idx, "prefetch-cataloged",
-                 "Graph with Prefetched Inputs Entered in Catalog");
-    }
 
     return Status::OK();
   }
