@@ -49,7 +49,6 @@ Status ReplaceOptimizer(Graph* graph, Node* node, Node** replacement,
   }
 
   NodeBuilder nb = NodeBuilder(replacement_node_name, replacement_node_type)
-                       .Attr("just_looking", just_looking)
                        .Attr("copy_to_tf", update_tf_tensor)
                        .Attr("ngraph_graph_id", graph_id)
                        .Device(node->assigned_device_name());
@@ -106,7 +105,6 @@ Status ReplaceAssign(Graph* graph, Node* node, Node** replacement,
                          .Attr("validate_shape", true)
                          .Attr("use_locking", true)
                          .Attr("T", dtype)
-                         .Attr("just_looking", just_looking)
                          .Attr("copy_to_tf", update_tf_tensor)
                          .Attr("ngraph_graph_id", graph_id)
                          .Input(input_ref)
@@ -158,7 +156,6 @@ Status ReplaceVariable(Graph* graph, Node* node, Node** replacement,
           .Attr("container", container)
           .Attr("shared_name",
                 (shared_name.empty() ? node->name() : shared_name))
-          .Attr("just_looking", just_looking)
           .Attr("copy_to_tf", update_tf_tensor)
           .Attr("ngraph_graph_id", graph_id)
           .Device(node->assigned_device_name())

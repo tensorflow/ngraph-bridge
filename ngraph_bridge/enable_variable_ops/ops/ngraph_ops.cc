@@ -28,7 +28,6 @@ REGISTER_OP("NGraphApplyGradientDescent")
     .Output("out: Ref(T)")
     .Attr("T: numbertype")
     .Attr("use_locking: bool = false")
-    .Attr("just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 
@@ -44,7 +43,6 @@ REGISTER_OP("NGraphApplyMomentum")
     .Attr("T: numbertype")
     .Attr("use_locking: bool = false")
     .Attr("use_nesterov: bool = false")
-    .Attr("just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 // ------------------------------------------------------------------
@@ -55,7 +53,6 @@ REGISTER_OP("NGraphAssign")
     .Attr("T: type")
     .Attr("validate_shape: bool = true")
     .Attr("use_locking: bool = true")
-    .Attr("just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 
@@ -67,7 +64,6 @@ REGISTER_OP("NGraphAssignAdd")
     .Attr("T: type")
     .Attr("validate_shape: bool = true")
     .Attr("use_locking: bool = true")
-    .Attr("just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 
@@ -79,7 +75,6 @@ REGISTER_OP("NGraphAssignSub")
     .Attr("T: type")
     .Attr("validate_shape: bool = true")
     .Attr("use_locking: bool = true")
-    .Attr("just_looking: bool = false")
     .Attr("copy_to_tf: bool = false")
     .Attr("ngraph_graph_id: int");
 

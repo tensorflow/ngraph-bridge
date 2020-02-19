@@ -41,7 +41,6 @@ TEST(NGVarUpdateNGTensorOpTest, SimpleGraph1) {
   ASSERT_OK(NodeBuilder("var_node", "NGraphVariable")
                 .Attr("shape", varShape)
                 .Attr("dtype", DT_FLOAT)
-                .Attr("just_looking", false)
                 .Attr("copy_to_tf", false)
                 .Attr("container", "")
                 .Attr("shared_name", "node1")
