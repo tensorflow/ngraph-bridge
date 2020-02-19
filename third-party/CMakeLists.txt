@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Nervana Systems Inc.
+# Copyright 2018-2020 Intel Corporation
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -25,6 +25,7 @@ ExternalProject_Add(
     CMAKE_ARGS
         -DBUILD_TESTING=OFF
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        -DCMAKE_CXX_FLAGS=-fPIC
     SOURCE_DIR "${EXTERNAL_PROJECTS_ROOT}/abseil/src"
     BINARY_DIR "${EXTERNAL_PROJECTS_ROOT}/abseil/build"
     INSTALL_COMMAND ""
@@ -49,7 +50,7 @@ set(ABSL_BUILD_DIR "${ABSL_BUILD_DIR}")
 add_library(absl_algorithm IMPORTED STATIC GLOBAL)
 add_dependencies(absl_algorithm ext_abseil)
 
-# Set libgtest properties
+# Set library properties
 set_target_properties(absl_algorithm PROPERTIES
     "IMPORTED_LOCATION" "${ABSL_BUILD_DIR}/algorithm/libabsl_algorithm.a"
     "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
@@ -59,7 +60,7 @@ set_target_properties(absl_algorithm PROPERTIES
 add_library(absl_container IMPORTED STATIC GLOBAL)
 add_dependencies(absl_container ext_abseil)
 
-# Set libgtest properties
+# Set library properties
 set_target_properties(absl_container PROPERTIES
     "IMPORTED_LOCATION" "${ABSL_BUILD_DIR}/container/libabsl_container.a"
     "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
@@ -69,8 +70,18 @@ set_target_properties(absl_container PROPERTIES
 add_library(absl_strings IMPORTED STATIC GLOBAL)
 add_dependencies(absl_strings ext_abseil)
 
-# Set libgtest properties
+# Set library properties
 set_target_properties(absl_strings PROPERTIES
     "IMPORTED_LOCATION" "${ABSL_BUILD_DIR}/strings/libabsl_strings.a"
+    "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
+)
+
+# Create the absl libraries - synchronization
+add_library(absl_synchronization IMPORTED STATIC GLOBAL)
+add_dependencies(absl_synchronization ext_abseil)
+
+# Set library properties
+set_target_properties(absl_synchronization PROPERTIES
+    "IMPORTED_LOCATION" "${ABSL_BUILD_DIR}/synchronization/libabsl_synchronization.a"
     "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}"
 )

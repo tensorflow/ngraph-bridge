@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,25 +15,24 @@
  *******************************************************************************/
 
 #include "gtest/gtest.h"
-#include "opexecuter.h"
-#include "test_utilities.h"
 
-#include "ngraph_utils.h"
-#include "tf_graph_writer.h"
-
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
-
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
+
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/opexecuter.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -43,8 +42,6 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 namespace testing {
-
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 
 // Test(TestCaseName, TestName)
 // Please ensure
@@ -1536,6 +1533,35 @@ TEST(NNOps, Softmax3D) {
   opexecuter.RunTest();
 }
 
+// Computes softmax cross entropy cost and gradients to backpropagate.
+TEST(NNOps, SoftmaxCrossEntropyWithLogits) {
+  Scope root = Scope::NewRootScope();
+  int batch = 10;
+  int num_of_classes = 10;
+
+  Tensor A(DT_FLOAT, TensorShape({batch, num_of_classes}));  // logits/features
+  Tensor B(
+      DT_FLOAT,
+      TensorShape({batch, num_of_classes}));  // labels with a valid Prob Distr
+
+  AssignInputValuesRandom<float>(A, -200.0f, 200.0f);
+  AssignInputValuesRandom<float>(B, 0.0f, 1.0f);
+  // TODO: To make B a valid prob distr, let's ensure that the sum of each row
+  // is 1, using a Softmax
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::SoftmaxCrossEntropyWithLogits(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R.loss, R.backprop};
+  OpExecuter opexecuter(root, "SoftmaxCrossEntropyWithLogits",
+                        static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
 // The non softmax (non last) dim is zero
 TEST(NNOps, SoftmaxZeroDimTest1) {
   Scope root = Scope::NewRootScope();
@@ -1574,6 +1600,30 @@ TEST(NNOps, SoftmaxZeroDimTest2) {
                         sess_run_fetchoutputs);
 
   opexecuter.RunTest();
+}
+
+// Test Op :"Softplus"
+TEST(NNOps, Softplus) {
+  std::vector<std::vector<int64>> input_sizes = {
+      {3}, {3, 2}, {5, 6}, {3, 4, 5}, {2, 3, 4, 5}};
+
+  vector<int> static_input_indexes = {};
+
+  for (auto const& input_size : input_sizes) {
+    Scope root = Scope::NewRootScope();
+
+    Tensor input_data(DT_FLOAT, TensorShape(input_size));
+    AssignInputValuesRandom<float>(input_data, -2, 2);
+
+    auto R = ops::Softplus(root, input_data);
+    vector<DataType> output_datatypes = {DT_FLOAT};
+    std::vector<Output> sess_run_fetchoutputs = {R};
+
+    OpExecuter opexecuter(root, "Softplus", static_input_indexes,
+                          output_datatypes, sess_run_fetchoutputs);
+
+    opexecuter.RunTest();
+  }
 }
 
 // Computes softmax cross entropy cost and gradients to backpropagate.

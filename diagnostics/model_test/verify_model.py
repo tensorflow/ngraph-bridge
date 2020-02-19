@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -312,7 +312,8 @@ if __name__ == '__main__':
     assert (len(tf_skipped_tensors) == len(ngraph_skipped_tensors)) and all(
         [i == j for i, j in zip(tf_skipped_tensors, ngraph_skipped_tensors)])
 
-    print("Skipping comparison of the output tensors below:")
+    if len(tf_skipped_tensors) > 0:
+        print("Skipping comparison of the output tensor:")
     for tensor in tf_skipped_tensors:
         print("\n[" + tensor + "]")
 

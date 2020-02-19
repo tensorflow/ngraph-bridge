@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ def install_ngraph_bridge(artifacts_dir):
     # Determine the ngraph whl
     ngtf_wheel_files = glob.glob(artifacts_dir +
                                  "/ngraph_tensorflow_bridge-*.whl")
+
     if (len(ngtf_wheel_files) != 1):
         print("Multiple Python whl files exist. Please remove old wheels")
         for whl in ngtf_wheel_files:
@@ -107,7 +108,7 @@ def run_ngtf_pytests(venv_dir, build_dir):
     build_dir = os.path.abspath(build_dir)
     venv_dir = os.path.abspath(venv_dir)
     mnist_dir = os.path.abspath(build_dir + '/examples/mnist/')
-
+    axpy_dir = os.path.abspath(build_dir + '/examples/')
     test_dir = os.path.join(build_dir, "test")
     test_dir = os.path.join(test_dir, "python")
 
@@ -124,10 +125,13 @@ def run_ngtf_pytests(venv_dir, build_dir):
     command_executor(["pip", "install", "-U", "pytest"])
     command_executor(["pip", "install", "-U", "psutil"])
 
-    cmd = 'python -m pytest ' + ('--junitxml=%s/xunit_pytest.xml' % build_dir)
+    cmd = 'python -m pytest ' + (
+        '--junitxml=%s/xunit_pytest.xml' %
+        build_dir) + " --ignore=" + build_dir + "/test/python/bfloat16"
     env = os.environ.copy()
     new_paths = venv_dir + '/bin/python3:' + os.path.abspath(
-        build_dir) + ":" + os.path.abspath(mnist_dir)
+        build_dir) + ":" + os.path.abspath(axpy_dir) + ":" + os.path.abspath(
+            mnist_dir)
     if 'PYTHONPATH' in env:
         env["PYTHONPATH"] = new_paths + ":" + env["PYTHONPATH"]
     else:
@@ -159,7 +163,8 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
     command_executor(["pip", "install", "-U", "psutil"])
     command_executor([
         "python", "-m", "pytest",
-        ('--junitxml=%s/xunit_pytest.xml' % artifacts_dir)
+        ('--junitxml=%s/xunit_pytest.xml' % artifacts_dir),
+        "--ignore=" + artifacts_dir + "/test/python/bfloat16"
     ])
 
     os.chdir(root_pwd)
@@ -294,6 +299,7 @@ def run_resnet50(build_dir):
     junit_script = os.path.abspath('%s/test/ci/junit-wrap.sh' % root_pwd)
 
     # Check to see if we need to patch the repo for Grappler
+    # benchmark_cnn.patch will only work for the CPU backend
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
@@ -359,6 +365,7 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
     call(['git', 'checkout', '4c7b09ad87bbfc4b1f89650bcee40b3fc5e7dfed'])
 
     # Check to see if we need to patch the repo for Grappler
+    # benchmark_cnn.patch will only work for the CPU backend
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
@@ -446,6 +453,7 @@ def run_resnet50_forward_pass(build_dir):
     junit_script = os.path.abspath('%s/test/ci/junit-wrap.sh' % root_pwd)
 
     # Check to see if we need to patch the repo for Grappler
+    # benchmark_cnn.patch will only work for the CPU backend
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
@@ -494,6 +502,7 @@ def run_resnet50_forward_pass_from_artifacts(ngraph_tf_src_dir, artifact_dir,
     call(['git', 'checkout', '4c7b09ad87bbfc4b1f89650bcee40b3fc5e7dfed'])
 
     # Check to see if we need to patch the repo for Grappler
+    # benchmark_cnn.patch will only work for the CPU backend
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, "test/grappler/benchmark_cnn.patch"))
     import ngraph_bridge
@@ -585,11 +594,14 @@ def run_bazel_build_test(venv_dir, build_dir):
     # Now run the configure
     command_executor(['bash', 'configure_bazel.sh'])
 
-    # Build the bridge
-    command_executor(['bazel', 'build', 'libngraph_bridge.so'])
+    # Build the cpp app - hello_tf
+    command_executor(['bazel', 'build', 'hello_tf'])
 
-    # Build the backend
-    command_executor(['bazel', 'build', '@ngraph//:libinterpreter_backend.so'])
+    # Run the cpp app - hello_tf
+    command_executor(['bazel-bin/hello_tf'])
+
+    # Now built the bigger app
+    command_executor(['bazel', 'build', 'infer_multiple_networks'])
 
     # Return to the original directory
     os.chdir(root_pwd)
@@ -602,11 +614,14 @@ def run_bazel_build():
     # Now run the configure
     command_executor(['bash', 'configure_bazel.sh'])
 
-    # Build the bridge
-    command_executor(['bazel', 'build', 'libngraph_bridge.so'])
+    # Build the cpp app - hello_tf
+    command_executor(['bazel', 'build', 'hello_tf'])
 
-    # Build the backend
-    command_executor(['bazel', 'build', '@ngraph//:libinterpreter_backend.so'])
+    # Run the cpp app - hello_tf
+    command_executor(['bazel-bin/hello_tf'])
+
+    # Now built the bigger app
+    command_executor(['bazel', 'build', 'infer_multiple_networks'])
 
     # Return to the original directory
     os.chdir(root_pwd)

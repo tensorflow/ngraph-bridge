@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -86,6 +86,7 @@ def main():
         raise Exception("Need to specify --artifacts_dir")
 
     # Set the backend if specified
+    # NOTE: This way of backend setting will not work with grappler
     if (arguments.backend):
         os.environ['NGRAPH_TF_BACKEND'] = arguments.backend
 

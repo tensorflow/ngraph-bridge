@@ -1,5 +1,5 @@
 # ******************************************************************************
-# Copyright 2019 Intel Corporation
+# Copyright 2019-2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,4 +20,16 @@ execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/mnist/mnist_deep_simplified.py
         ${CMAKE_CURRENT_BINARY_DIR}/mnist/mnist_deep_simplified.py
+)
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/axpy_pipelined.py
+        ${CMAKE_CURRENT_BINARY_DIR}/axpy_pipelined.py
+)
+
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/axpy_var_pipelined.py
+        ${CMAKE_CURRENT_BINARY_DIR}/axpy_var_pipelined.py
 )

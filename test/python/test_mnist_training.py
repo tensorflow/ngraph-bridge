@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ from mnist_deep_simplified import *
 
 class TestMnistTraining(NgraphTest):
 
-    @pytest.mark.parametrize(("optimizer"), ("adam", "sgd"))
+    @pytest.mark.parametrize(("optimizer"), ("adam", "sgd", "momentum"))
     def test_mnist_training(self, optimizer):
 
         class mnist_training_flags:

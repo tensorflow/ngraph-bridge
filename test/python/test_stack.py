@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -50,4 +50,5 @@ class TestStackOperations(NgraphTest):
         a = tf.stack(placeholders, axis)
         sess_fn = lambda sess: sess.run(
             [a], feed_dict={p: v for p, v in zip(placeholders, values)})
-        np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
+        assert np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))

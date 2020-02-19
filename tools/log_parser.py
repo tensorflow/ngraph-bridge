@@ -1,5 +1,5 @@
 #==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -49,6 +49,10 @@ def parse_logs(log_lines):
                 curr_result['num_ng_clusters'] = int(
                     line.split(':')[-1].strip())
             # TODO: fill other information as needed
+
+    # add the last subgraph to all_results
+    all_results[str(ctr)] = curr_result
+
     return all_results
 
 
