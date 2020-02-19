@@ -373,6 +373,16 @@ Builder::PerformNgBroadcast(const string& prov_tag,
   return make_pair(ng_lhs_new, ng_rhs_new);
 }
 
+ng::AxisSet convert_mask_to_axes(const int mask) {
+  ng::AxisSet axes{};
+  for (auto i = 0; i < sizeof(int) * 8; ++i) {
+    if ((unsigned char)(mask >> i & 0x01) == 1) {
+      axes.emplace(i);
+    }
+  }
+  return axes;
+};
+
 // Helper function to translate a unary op.
 //
 // Parameters:
@@ -4628,16 +4638,6 @@ static Status TranslateStridedSliceOp(
   // Temporarily we are borrowing this implementation from nGraph-core until
   // ng::op::StridedSlice is released for use in ngraph-bridge
 
-  auto convert_mask_to_axes = [](const int mask) {
-    ng::AxisSet axes{};
-    for (auto i = 0; i < sizeof(int) * 8; ++i) {
-      if ((unsigned char)(mask >> i & 0x01) == 1) {
-        axes.emplace(i);
-      }
-    }
-    return axes;
-  };
-
   ng::Shape input_shape = ng_input->get_shape();
 
   std::vector<int64_t> begin_vec_longint(begin_vec.begin(), begin_vec.end());
@@ -4780,17 +4780,6 @@ static Status TranslateStridedSliceGradOp(
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 3, static_input_map, &stride_vec));
   std::vector<int64_t> stride_vec_longint(stride_vec.begin(), stride_vec.end());
-
-  // get slice plan
-  auto convert_mask_to_axes = [](const int mask) {
-    ng::AxisSet axes{};
-    for (auto i = 0; i < sizeof(int) * 8; ++i) {
-      if ((unsigned char)(mask >> i & 0x01) == 1) {
-        axes.emplace(i);
-      }
-    }
-    return axes;
-  };
 
   auto sp = ng::make_slice_plan(
       ng_original_shape, begin_vec_longint, end_vec_longint, stride_vec_longint,
