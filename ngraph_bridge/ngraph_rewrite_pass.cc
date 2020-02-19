@@ -244,11 +244,11 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
 
     // 5. Rewrite for tracking then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(RewriteForTracking(options.graph->get(), idx));
-    if (DumpTrackedGraphs()) {
-      DumpGraphs(options, idx, "tracked",
-                 "Graph with Variables Rewritten for Tracking");
-    }
+    // TF_RETURN_IF_ERROR(RewriteForTracking(options.graph->get(), idx));
+    // if (DumpTrackedGraphs()) {
+    //   DumpGraphs(options, idx, "tracked",
+    //              "Graph with Variables Rewritten for Tracking");
+    // }
 
     // 6. Enter in catalog then.
     TF_RETURN_IF_ERROR(EnterPrefetchInCatalog(options.graph->get(), idx));
