@@ -237,11 +237,12 @@ def main():
     print("Target Arch: %s" % target_arch)
 
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
-    # For gcc 7.3 - this flag is set to 0 and newer ones, this is set to 1
+    # For gcc older than 5.3, this flag is set to 0 and for newer ones,
+    # this is set to 1
     # The specific value is determined from the TensorFlow build
-    # Normally the shipped TensorFlow is built with gcc 7.3 and thus this
-    # flag is set to 0
-    cxx_abi = "0"
+    # Normally the shipped TensorFlow going forward is built with gcc 7.3
+    # and thus this flag is set to 1
+    cxx_abi = "1"
 
     if arguments.use_tensorflow_from_location != "":
         # Some asserts to make sure the directory structure of
