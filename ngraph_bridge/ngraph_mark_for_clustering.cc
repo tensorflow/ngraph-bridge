@@ -554,7 +554,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Less"]["T"] = NGraphDTypes();
     type_constraint_map["LessEqual"]["T"] = NGraphDTypes();
     type_constraint_map["Log"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["Log1p"]["T"] = NGraphNumericDTypes();
+    type_constraint_map["Log1p"]["T"] = NGraphRealDTypes();
     // LogicalAnd and LogicalNot have no type attributes ("T", if it existed,
     // would always be bool).
     type_constraint_map["MatMul"]["T"] = NGraphNumericDTypes();
