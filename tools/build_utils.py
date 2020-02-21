@@ -218,6 +218,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
         "bazel",
         "build",
         "--config=opt",
+        "--config=v1",
         "--config=noaws",
         "--config=nohdfs",
         "--config=noignite",
@@ -371,11 +372,10 @@ def install_tensorflow(venv_dir, artifacts_dir):
 
     # Get the name of the TensorFlow pip package
     tf_wheel_files = glob.glob("tensorflow-*.whl")
-    if (len(tf_wheel_files) != 1):
-        raise Exception(
-            "artifacts directory contains more than 1 version of tensorflow wheel"
-        )
-
+    if (len(tf_wheel_files) < 1):
+        raise Exception("no tensorflow wheels found")
+    elif (len(tf_wheel_files) > 1):
+        raise Exception("more than 1 version of tensorflow wheels found")
     command_executor(["pip", "install", "-U", tf_wheel_files[0]])
 
     cxx_abi = "0"
@@ -508,7 +508,7 @@ def apply_patch(patch_file):
 
 def get_gcc_version():
     cmd = subprocess.Popen(
-        'gcc -dumpfullversion',
+        'gcc -dumpfullversion -dumpversion',
         shell=True,
         stdout=subprocess.PIPE,
         bufsize=1,

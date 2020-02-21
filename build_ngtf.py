@@ -22,7 +22,7 @@ def version_check(use_prebuilt_tensorflow):
     # Check pre-requisites
     if use_prebuilt_tensorflow:
         # Check if the gcc version is at least 5.4.0
-        if False:  # (platform.system() != 'Darwin'):
+        if (platform.system() != 'Darwin'):
             gcc_ver = get_gcc_version()
             if gcc_ver < '5.4.0':
                 raise Exception(
@@ -237,11 +237,12 @@ def main():
     print("Target Arch: %s" % target_arch)
 
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
-    # For gcc 7.3 - this flag is set to 0 and newer ones, this is set to 1
+    # For gcc older than 5.3, this flag is set to 0 and for newer ones,
+    # this is set to 1
     # The specific value is determined from the TensorFlow build
-    # Normally the shipped TensorFlow is built with gcc 7.3 and thus this
-    # flag is set to 0
-    cxx_abi = "0"
+    # Normally the shipped TensorFlow going forward is built with gcc 7.3
+    # and thus this flag is set to 1
+    cxx_abi = "1"
 
     if arguments.use_tensorflow_from_location != "":
         # Some asserts to make sure the directory structure of
@@ -291,9 +292,16 @@ def main():
             os.chdir(pwd_now)
 
             # Next install the tensorflow python packge
-            command_executor(
-                ["pip", "install", "-U", "tensorflow==" + tf_version])
-            cxx_abi = get_tf_cxxabi()
+            if ('1.15' not in tf_version):
+                command_executor(
+                    ["pip", "install", "-U", "tensorflow==" + tf_version])
+                cxx_abi = get_tf_cxxabi()
+            else:
+                try:
+                    cxx_abi = install_tensorflow(venv_dir, artifacts_location)
+                except:
+                    raise Exception("Please build tensorflow from source "
+                                    "by running: pthon3 build_ngtf.py")
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
@@ -333,13 +341,8 @@ def main():
 
             # Install tensorflow to our own virtual env
             # Note that if gcc 7.3 is used for building TensorFlow this flag
-            # will be 0
+            # will be 1
             cxx_abi = install_tensorflow(venv_dir, artifacts_location)
-
-    if cxx_abi == 0:
-        if not arguments.use_prebuilt_tensorflow:
-            raise Exception(
-                "Expected cxx_abi to be 0 when using 'use_prebuilt_tensorflow'")
 
     # Download nGraph if required.
     ngraph_src_dir = './ngraph'
