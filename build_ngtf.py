@@ -300,16 +300,8 @@ def main():
                 try:
                     cxx_abi = install_tensorflow(venv_dir, artifacts_location)
                 except:
-                    os.chdir(pwd_now)
-                    print("Need to build tensorflow from source first")
-                    # Build TensorFlow
-                    build_tensorflow(venv_dir, tf_src_dir, artifacts_location,
-                                     target_arch, verbosity)
-
-                    # Now build the libtensorflow_cc.so - the C++ library
-                    build_tensorflow_cc(tf_src_dir, artifacts_location,
-                                        target_arch, verbosity)
-                    cxx_abi = install_tensorflow(venv_dir, artifacts_location)
+                    raise Exception("Please build tensorflow from source "
+                                    "by running: pthon3 build_ngtf.py")
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
