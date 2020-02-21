@@ -18,7 +18,7 @@
 #include "tensorflow/core/graph/types.h"
 
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_rewrite_for_var_sync.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_rewrite_for_variable_sync.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
@@ -57,7 +57,7 @@ bool NodeIsStaticInput(Node* node) {
 //
 // Main entry point for rewrite-for-var-sync.
 //
-Status RewriteForVarSync(Graph* graph, int graph_id) {
+Status RewriteForVariableSync(Graph* graph, int graph_id) {
   const static std::map<
       const string,
       const function<Status(Graph * graph, Node * node, Node * *replacement,

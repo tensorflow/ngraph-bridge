@@ -243,7 +243,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     //    Responsible for updating the NGraphVariable's TFTensor
     // 2. Adds NGraphVariableUpdateNGTensor Nodes
     // If requested, dump the graphs.
-    TF_RETURN_IF_ERROR(RewriteForVarSync(options.graph->get(), idx));
+    TF_RETURN_IF_ERROR(RewriteForVariableSync(options.graph->get(), idx));
     if (DumpTrackedGraphs()) {
       DumpGraphs(options, idx, "tracked",
                  "Graph with Variables Rewritten for Tracking");

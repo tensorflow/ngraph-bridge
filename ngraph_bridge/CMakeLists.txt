@@ -88,7 +88,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_remove_ngraphassigns.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_op_utilities.cc)
     list(APPEND SRC enable_variable_ops/ngraph_replace_variable_modifiers.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_rewrite_for_var_sync.cc)
+    list(APPEND SRC enable_variable_ops/ngraph_rewrite_for_variable_sync.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
 
