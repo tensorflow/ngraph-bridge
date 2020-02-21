@@ -24,7 +24,7 @@
 #include "ngraph_bridge/enable_variable_ops/ngraph_enter_in_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_remove_ngraphassigns.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
-#include "ngraph_bridge/enable_variable_ops/ngraph_rewrite_for_var_sync.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_rewrite_for_variable_sync.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_capture_variables.h"
@@ -243,10 +243,10 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     //    Responsible for updating the NGraphVariable's TFTensor
     // 2. Adds NGraphVariableUpdateNGTensor Nodes
     // If requested, dump the graphs.
-    TF_RETURN_IF_ERROR(RewriteForVarSync(options.graph->get(), idx));
+    TF_RETURN_IF_ERROR(RewriteForVariableSync(options.graph->get(), idx));
     if (DumpVarSyncedGraphs()) {
       DumpGraphs(options, idx, "rewrite_var_synced",
-                 "Graph updated with NGraphVariable Synchornization");
+                 "Graph with Variables Rewritten for Tracking");
     }
 
     // 6. Enter in catalog then.
