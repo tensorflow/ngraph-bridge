@@ -246,9 +246,9 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // 2. Adds NGraphVariableUpdateNGTensor Nodes
     // If requested, dump the graphs.
     TF_RETURN_IF_ERROR(RewriteForVarSync(options.graph->get(), idx));
-    if (DumpTrackedGraphs()) {
-      DumpGraphs(options, idx, "tracked",
-                 "Graph with Variables Rewritten for Tracking");
+    if (DumpVarSyncedGraphs()) {
+      DumpGraphs(options, idx, "rewrite_var_synced",
+                 "Graph updated with NGraphVariable Synchornization");
     }
 
     // 6. Enter in catalog then.
@@ -280,6 +280,11 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
   static bool DumpRemoveNGraphAssignsGraphs() {
     return DumpAllGraphs() ||
            std::getenv("NGRAPH_TF_DUMP_REMOVENGASSIGNS_GRAPHS") != nullptr;
+  }
+
+  static bool DumpVarSyncedGraphs() {
+    return DumpAllGraphs() ||
+           std::getenv("NGRAPH_TF_DUMP_REWRITEVARSYNC_GRAPHS") != nullptr;
   }
 };
 
