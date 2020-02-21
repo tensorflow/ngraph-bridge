@@ -858,11 +858,12 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                                   ctx->resource_manager()->default_container(),
                                   ref_var_name, &var));
 
-          if (NGraphCatalog::GetCopyToTFFromEncapOutputInfoMap(output_key)) {
+          if (NGraphCatalog::GetUpdateTFTensorFromEncapOutputInfoMap(
+                  output_key)) {
             if (var->copy_ng_to_tf()) {
               int copies = ng_encap_impl_.GetNumberOfCopies();
               ng_encap_impl_.SetNumberOfCopies(copies++);
-              ng_encap_impl_.AppendCopyLog(" COPY_TO_TF ");
+              ng_encap_impl_.AppendCopyLog(" UPDATE_TF_TENSOR ");
             }
           }
           var->Unref();

@@ -59,7 +59,7 @@ class NGraphVariableOp : public OpKernel {
  private:
   int ng_graph_id_;
   TensorShape shape_;
-  bool copy_to_tf_;
+  bool update_tf_tensor_;
   DataType dtype_;
   string ng_backend_name_;
   mutex init_mu_;
@@ -75,18 +75,19 @@ int NGraphVariableOp::s_instance_count = 0;
 
 NGraphVariableOp::NGraphVariableOp(OpKernelConstruction* context)
     : OpKernel(context),
-      copy_to_tf_(false),
+      update_tf_tensor_(false),
       dtype_(RemoveRefType(context->output_type(0))) {
   my_instance_id = s_instance_count;
   s_instance_count++;
 
   OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
-  OP_REQUIRES_OK(context, context->GetAttr("copy_to_tf", &copy_to_tf_));
+  OP_REQUIRES_OK(context,
+                 context->GetAttr("update_tf_tensor", &update_tf_tensor_));
   OP_REQUIRES_OK(context, context->GetAttr("ngraph_graph_id", &ng_graph_id_));
   OP_REQUIRES_OK(context,
                  context->GetAttr("_ngraph_backend", &ng_backend_name_));
   NGRAPH_VLOG(4) << "NGraphVariable:: Constructor called for: " << def().name()
-                 << " ,copy-to-tf " << copy_to_tf_ << " ,Graph ID "
+                 << " ,update_tf_tensor " << update_tf_tensor_ << " ,Graph ID "
                  << ng_graph_id_ << " ,backend_name " << ng_backend_name_;
 }
 
@@ -100,7 +101,7 @@ NGraphVariableOp::~NGraphVariableOp() {
 // constructor.)
 void NGraphVariableOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4) << "NGraphVariable:: Compute called for: " << def().name()
-                 << " ,copy-to-tf " << copy_to_tf_ << " ,Graph ID "
+                 << " ,update_tf_tensor " << update_tf_tensor_ << " ,Graph ID "
                  << ng_graph_id_ << " ,backend_name " << ng_backend_name_;
 
   std::ostringstream oss;
@@ -112,7 +113,7 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
                  IsNgraphTFLogTensorCopiesEnabled(ng_graph_id_, log_copies));
   std::stringstream copy_log_str;
   copy_log_str << "KERNEL[" << type_string() << "]: " << name()
-               << " ,copy-to-tf " << PrintBool(copy_to_tf_) << "\n";
+               << " ,update_tf_tensor " << PrintBool(update_tf_tensor_) << "\n";
   int number_of_copies = 0;
 
   mutex_lock l(init_mu_);
@@ -161,10 +162,10 @@ void NGraphVariableOp::Compute(OpKernelContext* ctx) {
                           cinfo_.container(), cinfo_.name(), &var, creator));
 
   // If TF needs the tensor
-  if (copy_to_tf_) {
+  if (update_tf_tensor_) {
     if (var->copy_ng_to_tf()) {
       number_of_copies++;
-      copy_log_str << " COPY_TO_TF ";
+      copy_log_str << " UPDATE_TF_TENSOR ";
     }
     NGRAPH_VLOG(4) << "Copying to TF Tensor";
   }

@@ -24,6 +24,14 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
+// Rewrite for synchronization of variables
+// 1. Assigns "update_tf_tensor: true" attribute to NGVariable and NGAssign Ops
+//    when the Variable is going to be used (read) by a TF Op
+//    Responsible for updating the NGraphVariable's TFTensor
+//    inside the kernel of NGVariable and NGAssign Op
+// 2. Adds NGraphVariableUpdateNGTensor Nodes
+//    when the variable has been updated (written to) by a TF Op
+//    Responsible for updating the NGraphVariable's NGTensor inside its kernel
 Status RewriteForVariableSync(Graph* graph, int graph_id);
 
 }  // namespace ngraph_bridge
