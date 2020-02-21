@@ -183,12 +183,10 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   std::set<string>& skip_these_nodes = nodes_to_preserve;
 
   //
-  // Variable capture: Part that replaces all instances of VariableV2 with the
+  // The variable capture pass replaces all instances of VariableV2 with the
   // NGraphVariable op. Making this replacement allows us to substitute in a
-  // kernel that tracks the freshness of variables (invalidating freshness when
-  // the reference is handed off to an "untrusted" op).
+  // kernel that disallows assigning the variable a new shape
   //
-
   // Do variable capture then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(CaptureVariables(&graph, skip_these_nodes));
   if (DumpCapturedGraphs()) {
@@ -269,13 +267,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
   if (DumpEncapsulatedGraphs()) {
     DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
-  }
-
-  // Rewrite for tracking then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(RewriteForTracking(&graph, idx));
-  if (DumpTrackedGraphs()) {
-    DumpGraphs(graph, idx, "tracked",
-               "Graph with Variables Rewritten for Tracking");
   }
 
   // Convert the graph back to Graphdef

@@ -68,9 +68,7 @@ mutex NGraphRewritePass::s_serial_counter_mutex;
 //
 // The variable capture pass replaces all instances of VariableV2 with the
 // NGraphVariable op. Making this replacement allows us to substitute in a
-// kernel that tracks the freshness of variables (invalidating freshness when
-// the reference is handed off to an "untrusted" op).
-//
+// kernel that disallows assigning the variable a new shape
 class NGraphVariableCapturePass : public NGraphRewritePass {
  public:
   Status Run(const GraphOptimizationPassOptions& options) override {
