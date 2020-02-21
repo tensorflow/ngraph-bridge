@@ -112,6 +112,17 @@ class NGraphVariableCapturePass : public NGraphRewritePass {
 
     return Status::OK();
   }
+
+ private:
+  bool DumpPrecaptureGraphs() {
+    return DumpAllGraphs() ||
+           std::getenv("NGRAPH_TF_DUMP_PRE_CAPTURED_GRAPHS") != nullptr;
+  }
+
+  bool DumpCapturedGraphs() {
+    return DumpAllGraphs() ||
+           std::getenv("NGRAPH_TF_DUMP_CAPTURED_GRAPHS") != nullptr;
+  }
 };
 
 //

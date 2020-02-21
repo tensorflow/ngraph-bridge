@@ -63,69 +63,6 @@ int NGraphRewritePass::s_serial_counter = 0;
 mutex NGraphRewritePass::s_serial_counter_mutex;
 
 //
-// The variable capture pass replaces all instances of VariableV2 with the
-// NGraphVariable op. Making this replacement allows us to substitute in a
-// kernel that disallows assigning the variable a new shape
-//
-class NGraphVariableCapturePass : public NGraphRewritePass {
- public:
-  Status Run(const GraphOptimizationPassOptions& options) override {
-    // If we don't get a main graph, log that fact and bail.
-    if (options.graph == nullptr) {
-      NGRAPH_VLOG(0) << "NGraphVariableCapturePass: options.graph == nullptr";
-      return Status::OK();
-    }
-
-    // For filename generation purposes, grab a fresh index. This is just an
-    // arbitrary integer to avoid filename collisions resulting from subsequent
-    // runs of this pass.
-    int idx = FreshIndex();
-
-    // If requested, dump pre-capture graphs.
-    if (DumpPrecaptureGraphs()) {
-      DumpGraphs(options, idx, "precapture", "Pre-Capture Graph");
-    }
-
-    // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
-    // we will not do anything; all subsequent
-    // passes become a no-op.
-    bool ngraph_not_enabled =
-        (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
-    bool already_processed = IsProcessedByNgraphPass(options.graph->get());
-    if (!already_processed && ngraph_not_enabled) {
-      NGRAPH_VLOG(0) << "NGraph is available but disabled.";
-    }
-    if (ngraph_not_enabled || already_processed) {
-      // In the case that we run a network with ngraph, cluster manager gets
-      // populated. Then we run a new network, it repopulates the cluster
-      // manager. This works under the assumption that whenever
-      // NGraphEncapsulate's Compute is run the rewrite passes (grappler or
-      // optimization passes) have also run (compute --> rewrite). Now that
-      // assumption is broken because now we support NGraphEncapsulate enabled
-      // graphs. Such graphs will not run the first rewrite pass, hence the
-      // cluster manager is not overwritten. Which would mean that cluster
-      // manager contains stale data from a previous run. Hence evicting cluster
-      // manager when rewrite passes are not run.
-      NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
-                            (already_processed ? "graph is already preprocessed"
-                                               : "ngraph is disabled");
-      NGraphClusterManager::EvictAllClusters();
-      return Status::OK();
-    }
-
-    // Do variable capture then, if requested, dump the graphs.
-    std::set<string> skip_these_nodes = {};
-    TF_RETURN_IF_ERROR(
-        CaptureVariables(options.graph->get(), skip_these_nodes));
-    if (DumpCapturedGraphs()) {
-      DumpGraphs(options, idx, "captured", "Graph With Variables Captured");
-    }
-
-    return Status::OK();
-  }
-};
-
-//
 // Pass that rewrites the graph for nGraph operation.
 //
 // The pass has several phases, each executed in sequence:
@@ -249,8 +186,6 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
 }  // namespace ngraph_bridge
 
-REGISTER_OPTIMIZATION(OptimizationPassRegistry::POST_PLACEMENT, 0,
-                      ngraph_bridge::NGraphVariableCapturePass);
 REGISTER_OPTIMIZATION(OptimizationPassRegistry::POST_REWRITE_FOR_EXEC, 0,
                       ngraph_bridge::NGraphEncapsulationPass);
 }  // namespace tensorflow

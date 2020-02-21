@@ -94,7 +94,6 @@ cc_library(
         "ngraph_bridge/ngraph_pipelined_tensors.cc",
         "ngraph_bridge/ngraph_register_stub_kernels.cc",
         "ngraph_bridge/ngraph_tensor_manager.cc",
-        "ngraph_bridge/ngraph_tracked_variable.cc",
         "ngraph_bridge/ngraph_utils.cc",
         "ngraph_bridge/ngraph_var.cc",
         "ngraph_bridge/ops/ngraph_ops.cc",
