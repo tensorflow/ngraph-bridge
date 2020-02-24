@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,25 +15,24 @@
  *******************************************************************************/
 
 #include "gtest/gtest.h"
-#include "opexecuter.h"
-#include "test_utilities.h"
 
-#include "ngraph_utils.h"
-#include "tf_graph_writer.h"
-
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/common_runtime/dma_helper.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
-
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/public/session.h"
+
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/opexecuter.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;
@@ -43,8 +42,6 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 namespace testing {
-
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
 
 // Test(TestCaseName, TestName)
 // Please ensure
@@ -369,7 +366,7 @@ TEST(ArrayOps, GatherNd3D) {
 // Test fails because of this error:
 // Not found: No attr named '_ngraph_backend' in NodeDef:
 // This is because op_executor does not go through mark_for_clustering
-TEST(ArrayOps, DISABLED_GatherV2Vector) {
+TEST(ArrayOps, GatherV2Vector) {
   int dim = 5;
 
   Tensor A(DT_FLOAT, TensorShape({dim}));
@@ -380,6 +377,54 @@ TEST(ArrayOps, DISABLED_GatherV2Vector) {
 
   Tensor C(DT_INT32, TensorShape({}));
   AssignInputValues<int>(C, 0);
+
+  vector<int> static_input_indexes = {1, 2};
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::GatherV2(root, A, B, C);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "GatherV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+
+}  // end of test op GatherV2
+
+TEST(ArrayOps, GatherV2Tensor) {
+  Tensor A(DT_FLOAT, TensorShape({5, 5, 5, 5}));
+  AssignInputValuesRandom(A);
+
+  Tensor B(DT_INT32, TensorShape({10}));
+  AssignInputValues<int>(B, {0, 4, 2, 2, 3, 1, 3, 0, 3, 3});
+
+  Tensor C(DT_INT32, TensorShape({}));
+  AssignInputValues<int>(C, 0);
+
+  vector<int> static_input_indexes = {1, 2};
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::GatherV2(root, A, B, C);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "GatherV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+
+}  // end of test op GatherV2
+
+TEST(ArrayOps, GatherV2TensorAxis2) {
+  Tensor A(DT_FLOAT, TensorShape({5, 5, 5, 5}));
+  AssignInputValuesRandom(A);
+
+  Tensor B(DT_INT32, TensorShape({10}));
+  AssignInputValues<int>(B, {0, 4, 2, 2, 3, 1, 3, 0, 3, 3});
+
+  Tensor C(DT_INT32, TensorShape({}));
+  AssignInputValues<int>(C, 2);
 
   vector<int> static_input_indexes = {1, 2};
   vector<DataType> output_datatypes = {DT_FLOAT};
@@ -798,7 +843,61 @@ TEST(ArrayOps, QuantizeAndDequantizeV2x8xtruexfalse) {
                         output_datatypes, sess_run_fetchoutputs);
 
   opexecuter.RunTest();
-}  // end of test op QuantizeAndDequantizeV2x8xtruexfalse
+}
+
+TEST(ArrayOps, QuantizeAndDequantizeV2RoundingMode1) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 3;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  AssignInputValues<float>(A, {0.9, 3.4, 2.6, 5.4, 4.2, 4.5});
+
+  auto attrs = ops::QuantizeAndDequantizeV2::Attrs();
+  attrs.num_bits_ = 8;
+  attrs.range_given_ = true;
+  attrs.signed_input_ = true;
+  attrs.round_mode_ = "HALF_UP";
+
+  vector<int> static_input_indexes = {1, 2};
+  ops::QuantizeAndDequantizeV2 R =
+      ops::QuantizeAndDequantizeV2(root, A, 0.0f, 127.0f, attrs);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R.output};
+  OpExecuter opexecuter(root, "QuantizeAndDequantizeV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, QuantizeAndDequantizeV2RoundingMode2) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 3;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  AssignInputValues<float>(A, {0.9, 3.4, 2.6, 5.4, 4.2, 4.5});
+
+  auto attrs = ops::QuantizeAndDequantizeV2::Attrs();
+  attrs.num_bits_ = 8;
+  attrs.range_given_ = true;
+  attrs.signed_input_ = true;
+  attrs.round_mode_ = "HALF_TO_EVEN";
+
+  vector<int> static_input_indexes = {1, 2};
+  ops::QuantizeAndDequantizeV2 R =
+      ops::QuantizeAndDequantizeV2(root, A, 0.0f, 127.0f, attrs);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R.output};
+  OpExecuter opexecuter(root, "QuantizeAndDequantizeV2", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op QuantizeAndDequantizeV2x8xtruextrue
 
 // CPU only supports QuantizedConcat with DT_QINT32 and DT_QUINT8
 TEST(ArrayOps, QuantizedConcat) {
@@ -902,6 +1001,94 @@ TEST(ArrayOps, Rank) {
 
   opexecuter.RunTest();
 }  // end of RankOp
+
+// Test op: ScatterNd Op
+TEST(ArrayOps, ScatterNd1D) {
+  Tensor indices(DT_INT32, TensorShape({4, 1}));
+  Tensor updates(DT_FLOAT, TensorShape({4}));
+
+  AssignInputValues<int>(indices, {{2}, {3}, {1}, {7}});
+  AssignInputValues<float>(updates, {9.1, 10.2, -11.3, 12.4});
+
+  vector<int> static_input_indexes = {2};
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::ScatterNd(root, indices, updates, {8});
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, ScatterNdRepeatIndices) {
+  Tensor indices(DT_INT32, TensorShape({4, 1}));
+  Tensor updates(DT_FLOAT, TensorShape({4}));
+
+  // the index "2" appears twice
+  AssignInputValues<int>(indices, {{2}, {3}, {2}, {7}});
+  AssignInputValues<float>(updates, {9.1, 10.2, -11.3, 12.4});
+
+  vector<int> static_input_indexes = {2};
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::ScatterNd(root, indices, updates, {10});
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, ScatterNdComplex) {
+  // indices.shape[-1] <= shape.rank
+  // updates.shape = indices.shape[:-1] + shape[indices.shape[-1]:]
+  // shape must be rank 1
+  Tensor indices(DT_INT32, TensorShape({2, 2, 2}));
+  Tensor updates(DT_FLOAT, TensorShape({2, 2, 2}));
+
+  AssignInputValuesRandom<int>(indices, 0, 1);
+  AssignInputValuesRandom<float>(updates, -10.0, 20.0f);
+
+  vector<int> static_input_indexes = {2};
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::ScatterNd(root, indices, updates, {2, 2, 2});
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, ScatterNd3D) {
+  Tensor indices(DT_INT32, TensorShape({2, 1}));
+  Tensor updates(DT_FLOAT, TensorShape({2, 4, 4}));
+
+  AssignInputValues<int>(indices, {{0}, {2}});
+  AssignInputValuesRandom<float>(updates, -10.0, 20.0f);
+
+  vector<int> static_input_indexes = {2};
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::ScatterNd(root, indices, updates, {4, 4, 4});
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "ScatterNd", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op ScatterNd
 
 // Test op: Shape, outputs the shape of a tensor
 TEST(ArrayOps, Shape2D) {

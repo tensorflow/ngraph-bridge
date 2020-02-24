@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,16 +21,14 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/public/session.h"
 
-#include "enable_variable_ops/ngraph_remove_ngraphassigns.h"
-#include "ngraph_api.h"
-#include "ngraph_assign_clusters.h"
-#include "ngraph_capture_variables.h"
-#include "ngraph_encapsulate_clusters.h"
-#include "ngraph_mark_for_clustering.h"
-
-#include "tf_graph_writer.h"
-
-#include "../test_utilities.h"
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_remove_ngraphassigns.h"
+#include "ngraph_bridge/ngraph_api.h"
+#include "ngraph_bridge/ngraph_assign_clusters.h"
+#include "ngraph_bridge/ngraph_capture_variables.h"
+#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 
@@ -39,9 +37,6 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 namespace testing {
-
-#define ASSERT_OK(x) ASSERT_EQ((x), ::tensorflow::Status::OK());
-#define ASSERT_NOT_OK(x) ASSERT_NE((x), ::tensorflow::Status::OK());
 
 // Assigns are removed when the new value is computed by the
 // Encapsulate Op.
@@ -72,7 +67,9 @@ TEST(RemoveNGraphAssigns, Graph1) {
   ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+  std::unordered_map<std::string, std::string> config_map;
+  config_map["ngraph_device_id"] = "";
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, config_map, {0, {}}));
 
   // Get all the nodes in map [utility]
   map<string, Node*> node_map;
@@ -128,7 +125,9 @@ TEST(RemoveNGraphAssigns, Graph2) {
   ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+  std::unordered_map<std::string, std::string> config_map;
+  config_map["ngraph_device_id"] = "";
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, config_map, {0, {}}));
 
   // clean up
   config::ngraph_set_disabled_ops("");
@@ -182,10 +181,18 @@ TEST(RemoveNGraphAssigns, Graph2) {
     edge_count++;
   }
 
+  // Assert on edges connected to add
   ASSERT_EQ(edge_count, 3);
   ASSERT_EQ(add_in_0, node_map.at("Var"));
   ASSERT_EQ(add_in_1, node_map.at(encap_op_name));
   ASSERT_EQ(add_in_ctrl, node_map.at(encap_op_name));
+
+  // Assert on control edge between Var and Encap
+  for (auto edge : add_in_0->out_edges()) {
+    if ((edge != nullptr) && (edge->IsControlEdge())) {
+      ASSERT_EQ(add_in_1, edge->dst());
+    }
+  }
 }
 
 // Var       Const
@@ -219,7 +226,9 @@ TEST(RemoveNGraphAssigns, Graph3) {
   ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+  std::unordered_map<std::string, std::string> config_map;
+  config_map["ngraph_device_id"] = "";
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, config_map, {0, {}}));
 
   // Get all the nodes in map [utility]
   map<string, Node*> node_map;
@@ -276,6 +285,13 @@ TEST(RemoveNGraphAssigns, Graph3) {
   ASSERT_EQ(assign_in_0, node_map.at("Var"));
   ASSERT_EQ(assign_in_1, node_map.at(encap_op_name));
   ASSERT_EQ(assign_in_ctrl, node_map.at(encap_op_name));
+
+  // Assert on control edge between Var and Encap
+  for (auto edge : assign_in_0->out_edges()) {
+    if ((edge != nullptr) && (edge->IsControlEdge())) {
+      ASSERT_EQ(assign_in_1, edge->dst());
+    }
+  }
 }
 
 // Var       Const
@@ -316,7 +332,9 @@ TEST(RemoveNGraphAssigns, Graph4) {
   ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+  std::unordered_map<std::string, std::string> config_map;
+  config_map["ngraph_device_id"] = "";
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, config_map, {0, {}}));
 
   // clean up
   config::ngraph_set_disabled_ops("");
@@ -379,6 +397,13 @@ TEST(RemoveNGraphAssigns, Graph4) {
   ASSERT_EQ(add_in_0, node_map.at("Var"));
   ASSERT_EQ(add_in_1, node_map.at(encap_op_name));
   ASSERT_EQ(add_in_ctrl, node_map.at(encap_op_name));
+
+  // Assert on control edge between Var and Encap
+  for (auto edge : add_in_0->out_edges()) {
+    if ((edge != nullptr) && (edge->IsControlEdge())) {
+      ASSERT_EQ(add_in_1, edge->dst());
+    }
+  }
 }
 
 // Var       Const
@@ -412,7 +437,9 @@ TEST(RemoveNGraphAssigns, Graph5) {
   ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
   ASSERT_OK(AssignClusters(&graph));
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, {}));
+  std::unordered_map<std::string, std::string> config_map;
+  config_map["ngraph_device_id"] = "";
+  ASSERT_OK(EncapsulateClusters(&graph, 0, fdeflib_new, config_map, {0, {}}));
 
   // Get all the nodes in map [utility]
   map<string, Node*> node_map;
@@ -431,6 +458,90 @@ TEST(RemoveNGraphAssigns, Graph5) {
 
   // Call RemoveNGraphAssign, throws error
   ASSERT_NOT_OK(RemoveNGraphAssigns(&graph));
+}
+
+// Graph with 2 Variables
+// This graph will throw an error
+//
+// Two NGraphVariables are being assigned the same value.
+// The ConstOp gets encapsulated and both the variables are being
+// assigned from the same output index of EncapsulateOp
+// Inside the encap op we create a vector of inputs and outputs
+// Technically, it is a single computed output that was designed to
+// be forwarded to two ops by TF.
+// On removing assigns, we directly pass the variable tensor as the output
+// tensor to enable the variable to be updated in place and avoid the copy
+// that is done later inside the Assign Op.
+// Since there is only one output, only one of the variable tensors
+// can be passed in the backend->call.
+// So only one of the variable gets updated, leading to functional
+// incorrectness.
+//
+// Few ideas to handle this:
+// 1. Do some additional bookeeping at the bridge in such cases
+// And update the other variables in the bridge
+// 2. Remove 1 assign, keep the assigns for other variables (might work)
+// 3. Manipulate the ng-function to mimic multiple outputs (if that is
+// possible).
+// We can then pass in all the variable tensors that need to be updated
+//
+// Right now we are throwing an error when we encounter a
+// scenario like this
+//
+// NGraphVariable1   Const      NGraphVariable2
+//   \               /  \            /
+//    \             /    \          /
+//    _\/         |/_     _\|     |/_
+//     NGraphAssign1       NGraphAssign2
+//         |                   |
+//        \|/                 \|/
+//        Retval1            Retval2
+//
+// The Const Op could be replaced with a computational subgraph
+// Const Op is used for demonstration purpose alone
+// Below is the graph after Assigns are removed
+//
+// NGraphVariabl1               NGraphVariable2
+//  \         \                    /
+//   \      ctrledge           ctrledge
+//    \        _\|               |/_
+//     \        NGraphEncapsulate
+//      \         /         \ 
+//       \     ctrledge     ctrledge
+//       _\|   \/_           _\|
+//        Retval1              Retval2
+//
+// Since NGraphEncapsulate can only update one tensor in place
+// we run into errors
+TEST(RemoveNGraphAssigns, Graph6) {
+  Scope root = Scope::NewRootScope();
+
+  PartialTensorShape varShape({2, 2});
+  auto var1 = ops::Variable(root.WithOpName("Var1"), varShape, DT_FLOAT);
+  auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto var1_assign =
+      ops::Assign(root.WithOpName("Var1_Assign"), var1, init_value);
+
+  auto var2 = ops::Variable(root.WithOpName("Var2"), varShape, DT_FLOAT);
+  auto init_value2 = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
+  auto var2_assign =
+      ops::Assign(root.WithOpName("Var2_Assign"), var2, init_value2);
+
+  // Turn off optimizations so that all the nodes are processed
+  tensorflow::SessionOptions options;
+  options.config.mutable_graph_options()
+      ->mutable_optimizer_options()
+      ->set_opt_level(tensorflow::OptimizerOptions_Level_L0);
+  options.config.mutable_graph_options()
+      ->mutable_rewrite_options()
+      ->set_constant_folding(tensorflow::RewriterConfig::OFF);
+
+  // Run on nGraph
+  ActivateNGraph();
+  ClientSession ng_session(root, options);
+  std::vector<tensorflow::Tensor> ng_outputs1;
+
+  ASSERT_NOT_OK(ng_session.Run({var1_assign, var2_assign}, &ng_outputs1));
 }
 
 }  // namespace testing

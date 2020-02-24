@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -52,4 +52,5 @@ class TestSigmoid(NgraphTest):
                                             y: y_np,
                                             z: z_np
                                         })
-        np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
+        assert np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))

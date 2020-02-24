@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +30,13 @@
 #include "tensorflow/core/public/session.h"
 
 #include "ngraph/ngraph.hpp"
-#include "ngraph_backend_manager.h"
-#include "ngraph_builder.h"
-#include "ngraph_utils.h"
-#include "test_utilities.h"
-#include "tf_graph_writer.h"
+
+#include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/ngraph_builder.h"
+#include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_utils.h"
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;

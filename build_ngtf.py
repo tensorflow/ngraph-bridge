@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "v0.23.0-rc.6"
+    ngraph_version = "v0.28.0-rc.1"
     tf_version = "v1.14.0"
 
     # Command line parser options
@@ -144,6 +144,11 @@ def main():
         "This location is expected to be populated by build_tf.py\n",
         action="store",
         default='')
+
+    parser.add_argument(
+        '--use_ngraph_staticlibs',
+        help="Builds and links ngraph statically\n",
+        action="store_true")
 
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
@@ -353,13 +358,17 @@ def main():
     # Now build nGraph
     ngraph_cmake_flags = [
         "-DNGRAPH_INSTALL_PREFIX=" + artifacts_location,
-        "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
-        "-DNGRAPH_DEX_ONLY=TRUE",
-        "-DNGRAPH_DEBUG_ENABLE=NO",
-        "-DNGRAPH_UNIT_TEST_ENABLE=NO",
+        "-DNGRAPH_USE_CXX_ABI=" + cxx_abi, "-DNGRAPH_DEX_ONLY=TRUE",
+        "-DNGRAPH_DEBUG_ENABLE=NO", "-DNGRAPH_UNIT_TEST_ENABLE=NO",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
-        "-DNGRAPH_TUNE_ARCH=" + target_arch,
+        "-DNGRAPH_TUNE_ARCH=" + target_arch, "-DNGRAPH_TBB_ENABLE=FALSE"
     ]
+
+    if arguments.use_ngraph_staticlibs:
+        ngraph_cmake_flags.extend(["-DNGRAPH_STATIC_LIB_ENABLE=TRUE"])
+        ngraph_cmake_flags.extend(["-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"])
+        ngraph_cmake_flags.extend(
+            ["-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE"])
 
     if arguments.debug_build:
         ngraph_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
@@ -400,6 +409,9 @@ def main():
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
         "-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location,
     ]
+
+    if (arguments.use_ngraph_staticlibs):
+        ngraph_tf_cmake_flags.extend(["-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE=TRUE"])
 
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
@@ -442,6 +454,7 @@ def main():
         "-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=" +
         flag_string_map[arguments.enable_variables_and_optimizers]
     ])
+
     ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=" +
         flag_string_map[arguments.use_grappler_optimizer]

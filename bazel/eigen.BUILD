@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -49,6 +49,20 @@ EIGEN_MPL2_HEADER_FILES = glob(
 cc_library(
     name = "eigen",
     hdrs = EIGEN_MPL2_HEADER_FILES,
+    copts = [
+        "-D_FORTIFY_SOURCE=2",
+        "-Wformat",
+        "-Wformat-security",
+        "-fstack-protector-all",
+        "-march=native",
+        "-mtune=native",
+        "-Wall",
+        "-Wno-unknown-pragmas",
+        "-fvisibility=internal",
+        "-Wmissing-field-initializers",
+        "-Wno-strict-overflow",
+        "-O3",
+    ],
     includes = ["."],
     visibility = ["//visibility:public"],
 )

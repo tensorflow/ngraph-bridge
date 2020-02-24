@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -35,8 +35,9 @@ class TestSignOperations(NgraphTest):
         val = tf.placeholder(tf.float32, shape=(1,))
         out = tf.sign(val)
         sess_fn = lambda sess: sess.run((out,), feed_dict={val: (test_input,)})
-        np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
-        np.allclose(self.with_ngraph(sess_fn), expected)
+        assert np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
+        assert np.allclose(self.with_ngraph(sess_fn), expected)
 
     def test_sign_2d(self):
         test_input = ((1.5, -2.5, -3.5), (-4.5, 5.5, 0))
@@ -44,5 +45,6 @@ class TestSignOperations(NgraphTest):
         val = tf.placeholder(tf.float32, shape=(2, 3))
         out = tf.sign(val)
         sess_fn = lambda sess: sess.run((out,), feed_dict={val: test_input})
-        np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
-        np.allclose(self.with_ngraph(sess_fn), expected)
+        assert np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
+        assert np.allclose(self.with_ngraph(sess_fn), expected)

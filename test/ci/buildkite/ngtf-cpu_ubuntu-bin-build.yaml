@@ -5,7 +5,7 @@
     label: ":gear: Setup"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu-centos"
+    - "queue=cpu_gcc_4.8"
     parallelism: 1
 
   - wait
@@ -17,7 +17,7 @@
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
     agents:
-    - "queue=cpu-centos"
+    - "queue=cpu_gcc_4.8"
     parallelism: 1
 
   - wait
@@ -26,29 +26,31 @@
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_bazel
+      bazel clean --expunge
     
     label: ":bazel: Bazel Build"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu-centos"
+    - "queue=cpu_gcc_4.8"
 
   - wait
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install psutil 
+      pip install -U pip==19.3.1
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_resnet
     label: ":bar_chart: ResNet50"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu-centos"
+    - "queue=cpu_gcc_4.8"
 
-  - wait
+  - wait: ~
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
     agents:
-    - "queue=cpu-centos"
+    - "queue=cpu_gcc_4.8"
 

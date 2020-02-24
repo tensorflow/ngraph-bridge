@@ -1,5 +1,5 @@
 # ******************************************************************************
-# Copyright 2019 Intel Corporation
+# Copyright 2019-2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,5 +14,4 @@
 # limitations under the License.
 # ******************************************************************************
 message(STATUS "C++ Examples will be built")
-add_subdirectory(infer_multiple_networks)
-add_subdirectory(infer_single)
+add_subdirectory(inference)

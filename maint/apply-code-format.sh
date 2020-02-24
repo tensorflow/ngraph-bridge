@@ -3,7 +3,7 @@ set -e
 set -u
 
 # ******************************************************************************
-# Copyright 2017-2019 Intel Corporation
+# Copyright 2017-2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ set -u
 # limitations under the License.
 # ******************************************************************************
 
-declare SRC_DIRS="src examples test logging tools diagnostics python"
+declare SRC_DIRS="ngraph_bridge examples experimental test logging tools diagnostics python"
 
 # NOTE: The results of `clang-format` depend _both_ of the following factors:
 # - The `.clang-format` file, and
