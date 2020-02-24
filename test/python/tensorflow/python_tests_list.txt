@@ -22,7 +22,7 @@ array_ops_test.StridedSliceTest.testTensorIndexing
 
 #array_ops_test.StridedSliceGradTest.testGradient
 array_ops_test.StridedSliceGradTest.testGradientZero
-#array_ops_test.StridedSliceGradTest.testInt64Indices
+array_ops_test.StridedSliceGradTest.testInt64Indices
 
 array_ops_test.ShapeSizeRankTest.testDenseShape
 array_ops_test.ShapeSizeRankTest.testSizeDtype
