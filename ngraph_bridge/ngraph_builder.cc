@@ -4761,10 +4761,21 @@ static Status TranslateStridedSliceGradOp(
       GetStaticInputVector(op, 0, static_input_map, &original_shape));
   ng::Shape ng_original_shape(
       std::vector<size_t>(original_shape.begin(), original_shape.end()));
+  NGRAPH_VLOG(5) << "Original shape rank " << ng_original_shape.size();
   NGRAPH_VLOG(5) << "Original shape: " << ng::join(ng_original_shape);
 
   shared_ptr<ng::Node> ng_delta;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 4, &ng_delta));
+  ng::Shape ng_delta_shape = ng_delta->get_shape();
+  NGRAPH_VLOG(5) << "delta shape rank " << ng_delta_shape.size();
+  if (ng_delta_shape.size() == 0) {
+    NGRAPH_VLOG(5) << "Need to broadcast the scalar.";
+    ng::AxisSet ng_axis_set = {0};
+    ng::Shape output_shape = {1};
+    ng_delta = ConstructNgNode<ng::op::Broadcast>(op->name(), ng_delta,
+                                                  output_shape, ng_axis_set);
+  }
+  NGRAPH_VLOG(5) << "Delta shape: " << ng::join(ng_delta->get_shape());
 
   // get begin, end, and stride
   std::vector<int64> begin_vec;
