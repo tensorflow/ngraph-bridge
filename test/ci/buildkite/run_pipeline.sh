@@ -35,4 +35,3 @@ else
    cat $SCRIPT_DIR/header.yaml  $SCRIPT_DIR/$STEPS_FILE | buildkite-agent pipeline upload
 fi
 fi
-

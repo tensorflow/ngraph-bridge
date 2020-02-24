@@ -47,7 +47,7 @@ def is_venv():
 def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
     '''
     Executes the command.
-    Example: 
+    Example:
       - command_executor('ls -lrt')
       - command_executor(['ls', '-lrt'])
     '''

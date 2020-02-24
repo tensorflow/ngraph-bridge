@@ -48,7 +48,7 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 3. Install `ngraph-tensorflow-bridge`:
 
         pip install -U ngraph-tensorflow-bridge
-   
+
 ### Build nGraph from source
 
 To use the latest version of nGraph Library, complete the following steps to
@@ -163,7 +163,7 @@ Download the Inception v3 trained model and labels file:
 Extract the frozen model and labels file from the tarball:
 
     tar xvf inception_v3_2016_08_28_frozen.pb.tar.gz
-        
+
 Download the image file: 
 
     wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/data/grace_hopper.jpg
@@ -171,7 +171,7 @@ Download the image file:
 Download the TensorFlow script:
 
    wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/label_image.py
-       
+
 Modify the downloaded TensorFlow script to run TensorFlow with nGraph optimizations:
 
     import ngraph_bridge

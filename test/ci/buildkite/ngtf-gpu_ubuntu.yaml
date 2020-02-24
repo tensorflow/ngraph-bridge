@@ -97,5 +97,3 @@
     label: ":wastebasket: Cleanup"
     agents:
     - "queue=gpu"
-
-

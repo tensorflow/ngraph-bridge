@@ -31,7 +31,7 @@ from tools.build_utils import download_repo
 
 def main():
     '''
-    Tests nGraph-TensorFlow Python 3. This script needs to be run after 
+    Tests nGraph-TensorFlow Python 3. This script needs to be run after
     running build_ngtf.py which builds the ngraph-tensorflow-bridge
     and installs it to a virtual environment that would be used by this script.
     '''

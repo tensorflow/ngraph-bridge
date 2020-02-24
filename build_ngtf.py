@@ -292,10 +292,19 @@ def main():
             os.chdir(pwd_now)
 
             # Next install the tensorflow python packge
+            # The TF wheel published by Google reports CXX11_ABI = 0 but we
+            # can't even build TF on GCC 4.8.5 since MLIR module contains
+            # code that requires c++14 or GCC 5 or better. That means
+            # CXX11_ABI = 1 when the wheel is correctly built.
             if ('1.15' not in tf_version):
                 command_executor(
                     ["pip", "install", "-U", "tensorflow==" + tf_version])
                 cxx_abi = get_tf_cxxabi()
+            # Now due to above reasoning, we can only use prebuilt TF wheel
+            # that has the right flags and was previously built by user,
+            # and usually stored under 'build_cmake/artifacts/tensorflow/'.
+            # So we try to search for that wheel and install it, otherwise
+            # the next call will fail and an exception is raised
             else:
                 try:
                     cxx_abi = install_tensorflow(venv_dir, artifacts_location)
