@@ -191,15 +191,23 @@ void Compare(Tensor& T1, Tensor& T2, float tol) {
   for (int k = 0; k < T_size; k++) {
     auto a = T1_data[k];
     auto b = T2_data[k];
-    if (!(std::isnan(a) && std::isnan(b)) &&
-        !(std::isinf(a) && std::isinf(b))) {
-      if (a == 0) {
-        EXPECT_NEAR(a, b, tol);
+
+    if (std::isnan(a) && std::isnan(b)) {
+      continue;
+    }
+    if (std::isinf(a) && std::isinf(b)) {
+      if ((a < 0 && b < 0) || (a > 0 && b > 0)) {
+        continue;
       } else {
-        auto rel = a - b;
-        auto rel_div = std::abs(rel / a);
-        EXPECT_TRUE(rel_div <= tol);
+        ASSERT_TRUE(false) << "Mismatch inf and -inf";
       }
+    }
+    if (a == 0) {
+      EXPECT_NEAR(a, b, tol);
+    } else {
+      auto rel = a - b;
+      auto rel_div = std::abs(rel / a);
+      EXPECT_TRUE(rel_div <= tol);
     }
   }
 }
@@ -252,8 +260,11 @@ static bool compare_integral_data(T a, T b) {
 }
 
 static bool compare_float_data(float a, float b, float rtol, float atol) {
-  if ((std::isnan(a) && std::isnan(b)) || (std::isinf(a) && std::isinf(b))) {
+  if (std::isnan(a) && std::isnan(b)) {
     return true;
+  }
+  if (std::isinf(a) && std::isinf(b)) {
+    return ((a < 0 && b < 0) || (a > 0 && b > 0));
   }
   return std::abs(a - b) <= (atol + rtol * std::abs(a));
 }
