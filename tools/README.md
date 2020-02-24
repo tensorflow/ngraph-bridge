@@ -28,7 +28,7 @@ sess = tf.Session(config=ngraph_bridge.update_config(tf.ConfigProto()))
 result = sess.run(out0, feed_dict = {in0:[2,3], in1:[4,5]})
 ```
 
-Notice the new line introduced here wrt the "normal" path. `config_updated = ngraph_bridge.update_config(config)` must now be passed during session construction to ensure `NgraphOptimizer` `grappler` pass is enabled. Like the "normal" path, in this script too the graph rewriting and actual execution happen when `session.run` is called.
+Notice the new line introduced here wrt the "normal" path. `config_updated = ngraph_bridge.update_config(config)` must now be passed during session construction to ensure `NgraphOptimizer` `grappler` pass is enabled. Without `grappler` build, we use `GraphOptimizationPass`, in which case just `import ngraph_bridge` was enough to plug in `ngraph`. But in a `grappler` build, the config needs to be modified to enable the pass that will plugin `ngraph`. Like the "normal" path, in this script too the graph rewriting and actual execution happen when `session.run` is called.
 
 
 ### tf2ngraph
@@ -58,7 +58,7 @@ Some features of `tf2ngraph:
 2. It supports 3 input formats: `pb`, `pbtxt` and `saved model`
 3. It supports 3 output formats: `pb`, `pbtxt` and `saved model`
 4. It requires the user to specify the output node names using `--outnodes`. For example: `--outnodes add:0,sub:0`
-5. Optionally one can also specify the backend along with config strings after colons `--ngbackend NNPI` or `--ngbackend GPU:0` etc. By default we use CPU
+5. Optionally one can also specify the backend along with config strings after colons `--ngbackend CPU` or `--ngbackend GPU:0` etc. By default we use CPU
 6. Its pytest/unit test is present [here]
 7. `tf2ngraph` can be used in 2 ways: CLI and python functional api. The CLI is well tested and recommended for now
 
