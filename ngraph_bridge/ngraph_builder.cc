@@ -4768,7 +4768,7 @@ static Status TranslateStridedSliceGradOp(
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 4, &ng_delta));
   ng::Shape ng_delta_shape = ng_delta->get_shape();
   NGRAPH_VLOG(5) << "delta shape rank " << ng_delta_shape.size();
-  if (ng_delta_shape.size() == 0) {
+  if (ng_original_shape.size() != 0 && ng_delta_shape.size() == 0) {
     NGRAPH_VLOG(5) << "Need to broadcast the scalar.";
     ng::AxisSet ng_axis_set = {0};
     ng::Shape output_shape = {1};
