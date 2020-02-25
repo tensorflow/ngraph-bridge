@@ -108,5 +108,3 @@
     label: ":wastebasket: Cleanup"
     agents:
     - "queue=cpu-centos"
-
-

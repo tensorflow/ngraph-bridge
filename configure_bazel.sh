@@ -46,4 +46,3 @@ echo "CXX_ABI = ['-D_GLIBCXX_USE_CXX11_ABI=$TF_CXX_ABI']" > cxx_abi_option.bzl
 ln -sf bazel/BUILD .
 ln -sf bazel/WORKSPACE .
 ln -sf bazel/tf_configure .
-

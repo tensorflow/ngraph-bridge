@@ -5,7 +5,7 @@
     label: ":gear: Setup"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
     parallelism: 1
 
   - wait
@@ -13,18 +13,25 @@
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       python3 build_ngtf.py --use_tensorflow_2 --use_prebuilt_tensorflow  \
-      --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
+        --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
+      # # We search inside cloned TensorFlow copy for a previously built version v1.15.0
+      # # so we do the clone here instead of later on and within tools/build_utils.py
+      # git clone https://github.com/tensorflow/tensorflow.git /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow
+      # # We don't need to copy the binary and a symlink is enought for 'build_ngtf.py --use_prebuilt_tensorflow' to use it
+      # ln -sf /localdisk/buildkite-agent/prebuilt_tensorflow_1_15_0/artifacts/tensorflow/tensorflow-1.15.0-cp36-cp36m-linux_x86_64.whl /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow
+      # python3 build_ngtf.py --use_prebuilt_tensorflow  --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
       
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
     parallelism: 1
 
   - wait
   
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
+      pip install -U /localdisk/buildkite-agent/prebuilt_tensorflow_1_15_0/artifacts/tensorflow/tensorflow-1.15.0-cp36-cp36m-linux_x86_64.whl
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_bazel
       bazel clean --expunge
@@ -32,7 +39,7 @@
     label: ":bazel: Bazel Build"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
 
   - wait
 
@@ -46,12 +53,11 @@
     label: ":bar_chart: ResNet50"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
 
   - wait: ~
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
     agents:
-    - "queue=cpu_gcc_4.8"
-
+    - "queue=cpu"

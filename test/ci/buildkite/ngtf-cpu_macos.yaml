@@ -14,7 +14,7 @@
   - command: |
       source /usr/local/var/buildkite-agent/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       python3 build_ngtf.py --use_tensorflow_2 \
-      --artifacts /usr/local/var/buildkite-agent/artifacts/$BUILDKITE_BUILD_ID \
+        --artifacts /usr/local/var/buildkite-agent/artifacts/$BUILDKITE_BUILD_ID \
         --use_tensorflow_from_location  /usr/local/var/buildkite-agent/tf_2.0.0_install
       
     label: ":hammer_and_wrench: Build"
@@ -93,4 +93,3 @@
     label: ":wastebasket: Cleanup"
     agents:
     - "queue=mac"
-
