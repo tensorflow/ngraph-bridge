@@ -412,13 +412,12 @@ static Status GetStridedSliceAttrs(const Node* op,
   return Status::OK();
 }
 
-static Status GetSlicePlan(const ng::Shape& shape,
+ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
                            const std::vector<int64_t>& begin,
                            const std::vector<int64_t>& end,
                            const std::vector<int64_t>& stride,
-                           const strided_slice_mask_attrs& mask_attrs,
-                           ng::SlicePlan& slice_plan) {
-  slice_plan = ng::make_slice_plan(
+                           const strided_slice_mask_attrs& mask_attrs) {
+  ng::SlicePlan slice_plan = ng::make_slice_plan(
       shape, begin, end, stride, ConvertMaskToAxes(mask_attrs.begin),
       ConvertMaskToAxes(mask_attrs.end), ConvertMaskToAxes(mask_attrs.new_axis),
       ConvertMaskToAxes(mask_attrs.shrink_axis),
@@ -446,7 +445,7 @@ static Status GetSlicePlan(const ng::Shape& shape,
                  << ", reshape output shape: " << slice_plan.reshape_out_shape
                  << ", reverse axis: " << slice_plan.reverse_axes;
 
-  return Status::OK();
+  return slice_plan;
 }
 
 // Helper function to translate a unary op.
@@ -4709,10 +4708,9 @@ static Status TranslateStridedSliceOp(
     }
   }
 
-  ng::SlicePlan sp;
-  TF_RETURN_IF_ERROR(GetSlicePlan(input_shape, begin_vec_longint,
-                                  end_vec_longint, stride_vec_longint,
-                                  mask_attrs, sp));
+  ng::SlicePlan sp =
+      GetSlicePlan(input_shape, begin_vec_longint, end_vec_longint,
+                   stride_vec_longint, mask_attrs);
 
   // Need to convert int64_t to size_t
   std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
@@ -4791,10 +4789,9 @@ static Status TranslateStridedSliceGradOp(
       GetStaticInputVector(op, 3, static_input_map, &stride_vec));
   std::vector<int64_t> stride_vec_longint(stride_vec.begin(), stride_vec.end());
 
-  ng::SlicePlan sp;
-  TF_RETURN_IF_ERROR(GetSlicePlan(ng_original_shape, begin_vec_longint,
-                                  end_vec_longint, stride_vec_longint,
-                                  mask_attrs, sp));
+  ng::SlicePlan sp =
+      GetSlicePlan(ng_original_shape, begin_vec_longint, end_vec_longint,
+                   stride_vec_longint, mask_attrs);
 
   // Need to convert int64_t to size_t
   std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
