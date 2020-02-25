@@ -18,6 +18,18 @@ from setuptools import setup
 from wheel.bdist_wheel import bdist_wheel
 import os
 
+class BinaryDistribution(Distribution):
+    def is_pure(self):
+        return False
+    def has_ext_modules(self):
+        return True
+
+from setuptools.command.install import install
+class InstallPlatlib(install):
+    def finalize_options(self):
+        install.finalize_options(self)
+        self.install_lib = self.install_platlib
+
 # https://stackoverflow.com/questions/45150304/how-to-force-a-python-wheel-to-be-platform-specific-when-building-it
 class BinaryBdistWheel(bdist_wheel):
     def finalize_options(self):
