@@ -402,7 +402,7 @@ static Status GetStridedSliceAttrs(const Node* op,
   TF_RETURN_IF_ERROR(
       GetNodeAttr(op->attrs(), "ellipsis_mask", &attrs.ellipsis));
 
-  NGRAPH_VLOG(5) << "Strieded Slice Mask Attributes: "
+  NGRAPH_VLOG(5) << "Strided Slice Mask Attributes: "
                  << "  begin mask: " << attrs.begin
                  << "  end mask: " << attrs.end
                  << "  new axis mask: " << attrs.new_axis
