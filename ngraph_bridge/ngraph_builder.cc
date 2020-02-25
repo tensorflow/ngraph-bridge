@@ -1927,6 +1927,11 @@ static Status TranslateFloorDivOp(
           ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2));
     };
   }
+
+  std::cout << " " << std::endl;
+  std::cout << "PALADIN :::: I am in FloorDivOp" << std::endl; // PALADIN TESTING
+  std::cout << " " << std::endl;
+
   return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_bin_fn);
 }
 
@@ -4933,6 +4938,107 @@ static Status TranslateUnpackOp(const Node* op,
   return Status::OK();
 }
 
+static Status TranslateXdivyOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  
+  shared_ptr<ng::Node> ng_input1, ng_input2, ng_input3;
+  TF_RETURN_IF_ERROR( GetInputNodes(ng_op_map, op, &ng_input1, &ng_input2));
+  
+  //std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>, std::shared_ptr<ng::Node>)> ng_xdivy_fn;
+
+  //auto const_zero = ConstructNgNode<ng::op::Constant>(
+  //        op->name(), ng_input1->get_element_type(), ng::Shape{},
+  //        std::vector<std::string>{"0"});
+
+  //auto ng_is_zero = ConstructNgNode<ng::op::v1::Equal>(op->name(),ng_input1, const_zero);
+  //auto ng_x_over_y = ConstructNgNode<ng::op::v1::Divide>(op->name(), ng_input1, ng_input2);
+  
+  
+  //auto ng_x_over_y = make_shared<ng::op::Divide>(ng_input1, ng_input2);
+  //auto ng_xdivy = ConstructNgNode<ng::op::Select>(op->name,ng_is_zero, ng_input1, ng_x_over_y);
+  //auto ng_xdivy = make_shared<ng::op::Select>(ng_is_zero, ng_input1, ng_x_over_y);
+
+  
+  
+  
+  std::cout << " " << std::endl;
+  std::cout << "cpp: PALADIN :::: I am in XdivyOp" << std::endl; // PALADIN TESTING
+  std::cout << " " << std::endl;
+  
+  //ng::Shape input_shape = ng_input1->get_shape();
+  //std::vector<std::string> const_values(ng::shape_size(input_shape), "0");
+  //auto ng_result = ConstructNgNode<ng::op::Constant>(
+  //    op->name(), ng_input1->get_element_type(), input_shape, const_values);
+  
+
+  
+  //ng_xdivy_fn = [&op](std::shared_ptr<ng::Node> ng_input1,
+  //                std::shared_ptr<ng::Node> ng_input2) {
+  //    return ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2);
+  //};
+  //return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_xdivy_fn);
+  
+  std::tie(ng_input1, ng_input2) = Builder::PerformNgBroadcast(op->name(),ng_input1, ng_input2);
+  //auto const_zero = ConstructNgNode<ng::op::Constant>( op->name(), ng_input1->get_element_type(), ng::Shape{}, std::vector<std::string>{"0"});
+  
+  ng::Shape input1_shape = ng_input1->get_shape();
+  std::vector<std::string> const_values(ng::shape_size(input1_shape), "0");
+  auto const_zero= ConstructNgNode<ng::op::Constant>( op->name(), ng_input1->get_element_type(), input1_shape, const_values); 
+  
+  
+  //std::tie(ng_input1, const_zero) = Builder::PerformNgBroadcast(op->name(),ng_input1, const_zero);
+
+  //auto ng_is_zero = ConstructNgNode<ng::op::v1::Equal>(op->name(),ng_input1, const_zero);
+  //auto ng_is_zero = ConstructNgNode<ng::op::Equal>(op->name(),ng_input1, const_zero);
+  auto ng_is_zero_char = ConstructNgNode<ng::op::Equal>(op->name(),ng_input1, const_zero);
+  auto  ng_is_zero= ConstructNgNode<ng::op::Convert>( op->name(), ng_is_zero_char, ng::element::boolean);
+  //auto ng_is_zero = ConstructNgNode<ng::op::Constant>( op->name(), ng::element::boolean, input1_shape, const_values); 
+  
+
+  //auto ng_node=ng_xdivy_fn(ng_input1, ng_input2);
+  
+  //auto ng_x_over_y = ConstructNgNode<ng::op::v1::Divide>(op->name(), ng_input1, ng_input2);
+  auto ng_x_over_y = ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2);
+  //auto ng_xdivy = make_shared<ng::op::Select>(ng_is_zero, ng_input1, ng_x_over_y);
+  
+  
+  
+  //std::tie(ng_is_zero, ng_input1) = Builder::PerformNgBroadcast(op->name(),ng_is_zero, ng_input1);
+  
+  auto ng_xdivy = ConstructNgNode<ng::op::Select>(op->name(),ng_is_zero, ng_input1, ng_x_over_y);
+  //auto ng_xdivy = ConstructNgNode<ng::op::Select>(op->name(),ng_is_zero, ng_x_over_y , ng_x_over_y);
+  //auto ng_xdivy = ConstructNgNode<ng::op::Add>(op->name(), ng_input1, ng_input2);
+  //auto ng_xdivy = ng_x_over_y;
+  
+  std::cout << "PALADIN  input1_shape = " << ( ng_input1->get_shape()) << std::endl;
+  std::cout << "PALADIN  input2_shape = " << ( ng_input2->get_shape()) << std::endl;
+  std::cout << "PALADIN  iszero_shape = " << ( ng_is_zero->get_shape()) << std::endl;
+  std::cout << "PALADIN  xovery_shape = " << (ng_x_over_y->get_shape()) << std::endl;
+  std::cout << "PALADIN  xdivy__shape = " << (ng_xdivy->get_shape()) << std::endl;
+  std::cout << "PALADIN  input1_type  = " << ( ng_input1->get_element_type()) << std::endl;
+  std::cout << "PALADIN  input2_type  = " << ( ng_input2->get_element_type()) << std::endl;
+  std::cout << "PALADIN  iszero_type  = " << ( ng_is_zero->get_element_type()) << std::endl;
+  std::cout << "PALADIN  xovery_type  = " << ( ng_x_over_y->get_element_type()) << std::endl;
+  std::cout << "PALADIN  c_zero_type  = " << ( const_zero->get_element_type()) << std::endl;
+
+  //return TranslateSelectOp(op, static_input_map, ng_op_map,ng_is_zero, ng_input1, ng_x_over_y);
+
+  //auto ng_node = ConstructNgNode<ng::op::Divide>(op->name(), ng_input1, ng_input2);
+  //auto ng_node1 = ConstructNgNode<ng::op::v1::Divide>(op->name(), ng_input1, ng_input2);
+  //auto &ng_node = ng_node1;
+  auto &ng_node = ng_xdivy;
+  //auto &ng_node = ng_x_over_y;
+  
+  
+  if(ng_node != ng_input1 && ng_node != ng_input2){
+      Builder::SetTracingInfo(op->name(), ng_node);
+  }
+
+  SaveNgOp(ng_op_map, op->name(), ng_node);
+  return Status::OK();
+}
+
 static Status TranslateUnsortedSegmentSumOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -5169,7 +5275,7 @@ const static std::map<
       {"TanhGrad", TranslateTanhGradOp}, {"Tile", TranslateTileOp},
       {"TopKV2", TranslateTopKV2Op}, {"Transpose", TranslateTransposeOp},
       {"UnsortedSegmentSum", TranslateUnsortedSegmentSumOp},
-      {"Unpack", TranslateUnpackOp}, {
+      {"Unpack", TranslateUnpackOp},{"Xdivy", TranslateXdivyOp}, {
     "ZerosLike", TranslateZerosLikeOp
   }
 };

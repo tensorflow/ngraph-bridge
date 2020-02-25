@@ -146,6 +146,18 @@ void OpExecuter::RunTest(const string& ng_backend_name, float rtol,
     atol = std::atof(std::getenv("NGRAPH_TF_UTEST_ATOL"));
   }
 
+  std::cout << "PALADIN....................................." << std::endl;
+  std::cout << "tf_output=" << std::endl;
+  for(int i=0;i<tf_outputs.size();i++){
+      std::cout << std::endl;
+      PrintTensor(tf_outputs[i]);
+  }
+  std::cout << "ngraph_output=" << std::endl;
+  for(int i=0;i<ngraph_outputs.size();i++){
+      PrintTensor(ngraph_outputs[i]);
+  }
+  std::cout << "PALADIN....................................." << std::endl;
+
   Compare(tf_outputs, ngraph_outputs, rtol, atol);
 }
 
