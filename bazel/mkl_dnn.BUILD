@@ -18,7 +18,6 @@ licenses(["notice"])
 
 exports_files(["LICENSE"])
 
-
 load(
     "@//tf_configure:tf_configure.bzl",
     "template_rule",
@@ -40,37 +39,39 @@ config_setting(
 # be set to NA.
 # TODO(agramesh1) Automatically get the version numbers from CMakeLists.txt.
 
+# template_rule(
+#     name = "mkldnn_version_h",
+#     src = "include/dnnl_version.h.in",
+#     out = "include/mkldnn_version.h",
+#     substitutions = {
+#         "@MKLDNN_VERSION_MAJOR@": "1",
+#         "@MKLDNN_VERSION_MINOR@": "1",
+#         "@MKLDNN_VERSION_PATCH@": "1",
+#         "@MKLDNN_VERSION_HASH@": "N/A",
+#     },
+# )
+
 template_rule(
-    name = "mkldnn_version_h",
+    name = "dnnl_version_h",
     src = "include/dnnl_version.h.in",
-    out = "include/mkldnn_version.h",
+    out = "include/dnnl_version.h",
     substitutions = {
         "@MKLDNN_VERSION_MAJOR@": "1",
         "@MKLDNN_VERSION_MINOR@": "1",
         "@MKLDNN_VERSION_PATCH@": "1",
         "@MKLDNN_VERSION_HASH@": "N/A",
+        "@DNNL_CPU_RUNTIME": "OMP",
+        "@DNNL_GPU_RUNTIME": "NONE",
     },
 )
 
-template_rule(
-name = "dnnl_version_h",
-src = "include/dnnl_version.h.in",
-out = "include/dnnl_version.h",
-substitutions = {
-    "@MKLDNN_VERSION_MAJOR@": "1",
-    "@MKLDNN_VERSION_MINOR@": "1",
-    "@MKLDNN_VERSION_PATCH@": "1",
-    "@MKLDNN_VERSION_HASH@": "N/A",
-},
-)
-
-template_rule(
-    name = "mkldnn_config_h",
-    src = "include/dnnl_config.h.in",
-    out = "include/mkldnn_config.h",
-    substitutions = {
-    },
-)
+# template_rule(
+#     name = "mkldnn_config_h",
+#     src = "include/dnnl_config.h.in",
+#     out = "include/mkldnn_config.h",
+#     substitutions = {
+#     },
+# )
 
 template_rule(
     name = "dnnl_config_h",
@@ -98,7 +99,12 @@ cc_library(
         "src/cpu/rnn/*.cpp",
         "src/cpu/rnn/*.hpp",
         "src/cpu/xbyak/*.h",
-    ]) + [":mkldnn_version_h", ":dnnl_version_h", ":mkldnn_config_h", ":dnnl_config_h"],
+    ]) + [
+        # ":mkldnn_version_h",
+        ":dnnl_version_h",
+        # ":mkldnn_config_h",
+        ":dnnl_config_h",
+    ],
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",
@@ -124,15 +130,15 @@ cc_library(
         "-DMKLDNN_DLL",
         "-DMKLDNN_DLL_EXPORTS",
         "-O3",
-    #] + select({
-    #   "@org_tensorflow//tensorflow:linux_x86_64": [
-            "-fopenmp",  # only works with gcc
-    #    ],
+        #] + select({
+        #   "@org_tensorflow//tensorflow:linux_x86_64": [
+        "-fopenmp",  # only works with gcc
+        #    ],
         # TODO(ibiryukov): enable openmp with clang by including libomp as a
         # dependency.
-    #    ":clang_linux_x86_64": [],
-    #    "//conditions:default": [],
-    #}),
+        #    ":clang_linux_x86_64": [],
+        #    "//conditions:default": [],
+        #}),
     ],
     includes = [
         "include",
@@ -145,9 +151,9 @@ cc_library(
     nocopts = "-fno-exceptions",
     visibility = ["//visibility:public"],
     deps = [
-            "@mkl_linux//:mkl_headers",
-            "@mkl_linux//:mkl_libs_linux",
-        ],
+        "@mkl_linux//:mkl_headers",
+        "@mkl_linux//:mkl_libs_linux",
+    ],
 )
 
 cc_library(
@@ -168,7 +174,12 @@ cc_library(
         "src/cpu/rnn/*.cpp",
         "src/cpu/rnn/*.hpp",
         "src/cpu/xbyak/*.h",
-    ]) + [":mkldnn_version_h", ":dnnl_version_h", ":mkldnn_config_h", ":dnnl_config_h"],
+    ]) + [
+        # ":mkldnn_version_h",
+        ":dnnl_version_h",
+        # ":mkldnn_config_h",
+        ":dnnl_config_h",
+    ],
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",

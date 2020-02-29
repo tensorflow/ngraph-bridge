@@ -57,8 +57,11 @@ MARK_AS_ADVANCED(
     CMAKE_SHARED_LINKER_FLAGS_SANITIZE)
 
 # These variables are undocumented but useful.
-set(CMAKE_DISABLE_SOURCE_CHANGES ON)
-set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+SET(CMAKE_DISABLE_SOURCE_CHANGES ON)
+SET(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+SET(DNNL_CPU_THREADING_RUNTIME "OMP")
+SET(DNNL_CPU_RUNTIME "OMP")
+SET(DNNL_GPU_RUNTIME "NONE")
 
 # Invoke a command to determine how many CPU cores we have, and set
 # NUM_MAKE_PROCESSES accordingly so we know what number to pass to make -j.
