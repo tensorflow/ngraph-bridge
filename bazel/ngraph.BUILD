@@ -273,7 +273,7 @@ cc_library(
         '-D NGRAPH_VERSION=\\"v0.28.0-rc.1\\"',
         "-D NGRAPH_DEX_ONLY",
         '-D PROJECT_ROOT_DIR=\\"\\"',
-        '-D NGRAPH_CPU_STATIC_LIB_ENABLE',
+        "-D NGRAPH_CPU_STATIC_LIB_ENABLE",
         '-D NGRAPH_USE_LEGACY_MKLDNN=\\"TRUE\\"',
         "-march=native",
         "-mtune=native",
