@@ -303,7 +303,7 @@ def main():
             # can't even build TF on GCC 4.8.5 since MLIR module contains
             # code that requires c++14 or GCC 5 or better. That means
             # CXX11_ABI = 1 when the wheel is correctly built.
-            if ('1.15' not in tf_version):
+            if ('1.15' not in tf_version and '2.0' not in tf_version):
                 command_executor(
                     ["pip", "install", "-U", "tensorflow==" + tf_version])
                 cxx_abi = get_tf_cxxabi()
