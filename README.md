@@ -131,10 +131,10 @@ Verify that `ngraph-bridge` installed correctly:
 
 This will produce something like this:
 
-        TensorFlow version:  1.15.2
+        TensorFlow version:  2.0.0
         nGraph bridge version: b'0.22.0-rc3'
         nGraph version used for this build: b'0.28.0-rc.1+d2cd873'
-        TensorFlow version used for this build: v1.15.2-0-g5d80e1e8e6
+        TensorFlow version used for this build: v2.0.0
         CXX11_ABI flag used for this build: 1
         nGraph bridge built with Grappler: False
         nGraph bridge built with Variables and Optimizers Enablement: False
