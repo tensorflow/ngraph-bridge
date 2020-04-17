@@ -65,7 +65,7 @@ mutex NGraphRewritePass::s_serial_counter_mutex;
 //
 // Pass that rewrites the graph for nGraph operation.
 //
-// The pass has several phases, each executed in the below sequence:
+// The pass has several phases, each executed in sequence:
 //
 //   1. Marking [ngraph_mark_for_clustering.cc]
 //   2. Cluster Assignment [ngraph_assign_clusters.cc]
