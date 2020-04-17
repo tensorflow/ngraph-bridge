@@ -47,7 +47,7 @@ def is_venv():
 def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
     '''
     Executes the command.
-    Example: 
+    Example:
       - command_executor('ls -lrt')
       - command_executor(['ls', '-lrt'])
     '''
@@ -218,7 +218,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
         "bazel",
         "build",
         "--config=opt",
-        "--config=v2",
+        "--config=v1",
         "--config=noaws",
         "--config=nohdfs",
         "--config=noignite",
@@ -286,9 +286,16 @@ def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
 
     # Now build the TensorFlow C++ library
     cmd = [
-        "bazel", "build", "--config=opt", "--config=noaws", "--config=nohdfs",
-        "--config=noignite", "--config=nokafka", "--config=nonccl",
-        "//tensorflow:libtensorflow_cc.so.1"
+        "bazel",
+        "build",
+        "--config=opt",
+        "--config=v2",
+        "--config=noaws",
+        "--config=nohdfs",
+        "--config=noignite",
+        "--config=nokafka",
+        "--config=nonccl",
+        "//tensorflow:libtensorflow_cc.so.1",
     ]
     command_executor(cmd)
     copy_tf_cc_lib_to_artifacts(artifacts_dir, None)
