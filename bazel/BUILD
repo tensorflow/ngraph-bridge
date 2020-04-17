@@ -180,14 +180,6 @@ tf_cc_binary(
     ] + CXX_ABI,
     linkstatic = True,
     visibility = ["//visibility:public"],
-    deps = [
-        "@org_tensorflow//tensorflow/cc:cc_ops",
-        "@org_tensorflow//tensorflow/cc:client_session",
-        "@org_tensorflow//tensorflow/cc:ops",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-        ":ngraph_bridge_lib",
-        "@ngraph//:cpu_backend",
-    ],
 )
 
 tf_cc_binary(
