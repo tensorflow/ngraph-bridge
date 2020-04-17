@@ -20,6 +20,10 @@ array_ops_test.StridedSliceTest.testShrink
 array_ops_test.StridedSliceTest.testTensorIndexing
 #array_ops_test.StridedSliceTest.test_basic_slice
 
+#array_ops_test.StridedSliceGradTest.testGradient
+array_ops_test.StridedSliceGradTest.testGradientZero
+array_ops_test.StridedSliceGradTest.testInt64Indices
+
 array_ops_test.ShapeSizeRankTest.testDenseShape
 array_ops_test.ShapeSizeRankTest.testSizeDtype
 array_ops_test.ShapeSizeRankTest.testSparseShape
@@ -249,6 +253,10 @@ math_ops_test.ReduceTest.testReduceAllDims
 math_ops_test.ReduceTest.testReduceExplicitAxes 
 
 math_ops_test.SquaredDifferenceTest.testSquaredDifference
+
+math_ops_test.Xlog1pyTest.testXlog1pyNoNeg1
+math_ops_test.Xlog1pyTest.testXlog1pyWithNegOne
+math_ops_test.Xlog1pyTest.testXlog1pyWithZeroBroadcast
 
 #nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradGradConfig1
 nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradGradConfig2
@@ -513,7 +521,9 @@ softmax_op_test.SoftmaxTest.testHalf
 #softmax_op_test.SoftmaxTest.testHalfGPU
 softmax_op_test.SoftmaxTest.testLargeDims
 
-spacetodepth_op_test.SpaceToDepthTest.testAgainstTranspose
+# Test fails due to DT_INT8 not implemented during TF v1.15.x upgrade
+# See here: https://buildkite.com/ngraph/ngtf-cpu-centos-grappler/builds/4191#c76e3d0c-75ac-4b4b-8f7d-48bc5addf53f
+# spacetodepth_op_test.SpaceToDepthTest.testAgainstTranspose
 spacetodepth_op_test.SpaceToDepthTest.testBasic
 spacetodepth_op_test.SpaceToDepthTest.testBatchSize0
 spacetodepth_op_test.SpaceToDepthTest.testBlockSize2Batch10

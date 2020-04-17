@@ -234,6 +234,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Split"] = SetStaticInputs({0});
     set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
     set_attributes_map["StridedSlice"] = SetStaticInputs({1, 2, 3});
+    set_attributes_map["StridedSliceGrad"] = SetStaticInputs({0, 1, 2, 3});
     set_attributes_map["Sum"] = SetStaticInputs({1});
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
@@ -355,6 +356,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Less"] = SimpleConfirmationFunction();
     confirmation_function_map["LessEqual"] = SimpleConfirmationFunction();
     confirmation_function_map["Log"] = SimpleConfirmationFunction();
+    confirmation_function_map["Log1p"] = SimpleConfirmationFunction();
     confirmation_function_map["LogicalAnd"] = SimpleConfirmationFunction();
     confirmation_function_map["LogicalNot"] = SimpleConfirmationFunction();
     confirmation_function_map["LogicalOr"] = SimpleConfirmationFunction();
@@ -445,6 +447,8 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
         SimpleConfirmationFunction();
     confirmation_function_map["Squeeze"] = SimpleConfirmationFunction();
     confirmation_function_map["StridedSlice"] = SimpleConfirmationFunction();
+    confirmation_function_map["StridedSliceGrad"] =
+        SimpleConfirmationFunction();
     confirmation_function_map["Pack"] = SimpleConfirmationFunction();
     confirmation_function_map["Sub"] = SimpleConfirmationFunction();
     confirmation_function_map["Sum"] = SimpleConfirmationFunction();
@@ -553,6 +557,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Less"]["T"] = NGraphDTypes();
     type_constraint_map["LessEqual"]["T"] = NGraphDTypes();
     type_constraint_map["Log"]["T"] = NGraphNumericDTypes();
+    type_constraint_map["Log1p"]["T"] = NGraphRealDTypes();
     // LogicalAnd and LogicalNot have no type attributes ("T", if it existed,
     // would always be bool).
     type_constraint_map["MatMul"]["T"] = NGraphNumericDTypes();
@@ -665,6 +670,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Squeeze"]["T"] = NGraphDTypes();
     type_constraint_map["StridedSlice"]["T"] = NGraphDTypes();
     type_constraint_map["StridedSlice"]["Index"] = NGraphIndexDTypes();
+    type_constraint_map["StridedSliceGrad"]["T"] = NGraphDTypes();
+    type_constraint_map["StridedSliceGrad"]["Index"] = NGraphIndexDTypes();
     type_constraint_map["Sub"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["Tidx"] = NGraphIndexDTypes();
@@ -838,6 +845,9 @@ GetTFToNgOpMap() {
         {"Less", {std::make_shared<ngraph::op::Less>()}},
         {"LessEqual", {std::make_shared<ngraph::op::LessEq>()}},
         {"Log", {std::make_shared<ngraph::op::Log>()}},
+        {"Log1p",
+         {constant, std::make_shared<ngraph::op::Add>(),
+          std::make_shared<ngraph::op::Log>()}},
         {"LogicalAnd", {std::make_shared<ngraph::op::And>()}},
         {"LogicalNot", {std::make_shared<ngraph::op::Not>()}},
         {"LogicalOr", {std::make_shared<ngraph::op::Or>()}},
@@ -1045,6 +1055,8 @@ GetTFToNgOpMap() {
          {std::make_shared<ngraph::op::Reverse>(),
           std::make_shared<ngraph::op::Slice>(),
           std::make_shared<ngraph::op::Reshape>()}},
+        {"StridedSliceGrad",
+         {constant, std::make_shared<ngraph::op::ReplaceSlice>()}},
         {"Sub", {std::make_shared<ngraph::op::Subtract>()}},
         {"Sum",
          {std::make_shared<ngraph::op::Sum>(),
@@ -1299,6 +1311,35 @@ bool InputIsStatic(const Node* node, int index) {
   std::vector<int32> inputs;
   GetStaticInputs(node, &inputs);
   return std::find(inputs.begin(), inputs.end(), index) != inputs.end();
+}
+
+Status GetStaticInputs(Graph* graph, std::vector<int32>* static_input_indexes) {
+  static_input_indexes->clear();
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == "_Arg") {
+      int32 index;
+      auto status = GetNodeAttr(node->attrs(), "index", &index);
+      if (status != Status::OK()) {
+        return errors::Internal("error getting node attribute index");
+      }
+
+      for (auto edge : node->out_edges()) {
+        if (edge->IsControlEdge() || !edge->dst()->IsOp()) {
+          continue;
+        }
+
+        NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
+                       << edge->DebugString();
+
+        if (InputIsStatic(edge->dst(), edge->dst_input())) {
+          NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
+          static_input_indexes->push_back(index);
+          break;
+        }
+      }
+    }
+  }
+  return Status::OK();
 }
 
 Status GetNodeBackend(const Node* node, string* backend_name) {

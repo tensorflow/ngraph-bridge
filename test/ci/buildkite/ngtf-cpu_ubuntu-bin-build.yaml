@@ -5,7 +5,7 @@
     label: ":gear: Setup"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
     parallelism: 1
 
   - wait
@@ -18,13 +18,14 @@
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
     parallelism: 1
 
   - wait
   
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
+      pip install -U /localdisk/buildkite-agent/prebuilt_tensorflow_1_15_2/artifacts/tensorflow/tensorflow-1.15.2-cp36-cp36m-linux_x86_64.whl
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_bazel
       bazel clean --expunge
@@ -32,7 +33,7 @@
     label: ":bazel: Bazel Build"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
 
   - wait
 
@@ -46,12 +47,12 @@
     label: ":bar_chart: ResNet50"
     timeout_in_minutes: 30
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
 
   - wait: ~
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
     agents:
-    - "queue=cpu_gcc_4.8"
+    - "queue=cpu"
 

@@ -20,15 +20,15 @@ from tools.build_utils import *
 
 def version_check(use_prebuilt_tensorflow):
     # Check pre-requisites
-    # if use_prebuilt_tensorflow:
-    # Check if the gcc version is 4.8
-    # if (platform.system() != 'Darwin'):
-    #    gcc_ver = get_gcc_version()
-    #    if '4.8' not in gcc_ver:
-    #        raise Exception(
-    #            "Need GCC 4.8 to build using prebuilt TensorFlow\n"
-    #            "Gcc version installed: " + gcc_ver + "\n"
-    #            "To build from source ommit `use_prebuilt_tensorflow`")
+    if use_prebuilt_tensorflow:
+        # Check if the gcc version is at least 5.3.0
+        if (platform.system() != 'Darwin'):
+            gcc_ver = get_gcc_version()
+            if gcc_ver < '5.3.0':
+                raise Exception(
+                    "Need GCC 5.3.0 or newer to build using prebuilt TensorFlow\n"
+                    "Gcc version installed: " + gcc_ver + "\n"
+                    "To build from source ommit `use_prebuilt_tensorflow`")
     # Check cmake version
     cmake_ver = get_cmake_version()
     if (int(cmake_ver[0]) < 3 or int(cmake_ver[1]) < 4):
@@ -38,12 +38,12 @@ def version_check(use_prebuilt_tensorflow):
     # Check bazel version
     bazel_ver = get_bazel_version()
     got_correct_bazel_version = False
-    if (int(bazel_ver[1]) >= 24 and int(bazel_ver[1]) <= 25):
+    if (int(bazel_ver[1]) > 24 and int(bazel_ver[1]) <= 25):
         if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
             got_correct_bazel_version = True
 
     if not got_correct_bazel_version:
-        raise Exception("Need bazel 0.24.1 < version < 0.25.2 \n" + "Got: " +
+        raise Exception("Need bazel 0.24.1 < version <= 0.25.2 \n" + "Got: " +
                         '.'.join(bazel_ver))
 
 
@@ -241,11 +241,12 @@ def main():
     print("Target Arch: %s" % target_arch)
 
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
-    # For gcc 4.8 - this flag is set to 0 and newer ones, this is set to 1
+    # For gcc older than 5.3, this flag is set to 0 and for newer ones,
+    # this is set to 1
     # The specific value is determined from the TensorFlow build
-    # Normally the shipped TensorFlow is built with gcc 4.8 and thus this
-    # flag is set to 0
-    cxx_abi = "0"
+    # Normally the shipped TensorFlow going forward is built with gcc 7.3
+    # and thus this flag is set to 1
+    cxx_abi = "1"
 
     if arguments.use_tensorflow_2:
         tf_version = "v2.0.0"
@@ -298,9 +299,25 @@ def main():
             os.chdir(pwd_now)
 
             # Next install the tensorflow python packge
-            command_executor(
-                ["pip", "install", "-U", "tensorflow==" + tf_version])
-            cxx_abi = get_tf_cxxabi()
+            # The TF wheel published by Google reports CXX11_ABI = 0 but we
+            # can't even build TF on GCC 4.8.5 since MLIR module contains
+            # code that requires c++14 or GCC 5 or better. That means
+            # CXX11_ABI = 1 when the wheel is correctly built.
+            if ('1.15' not in tf_version):
+                command_executor(
+                    ["pip", "install", "-U", "tensorflow==" + tf_version])
+                cxx_abi = get_tf_cxxabi()
+            # Now due to above reasoning, we can only use prebuilt TF wheel
+            # that has the right flags and was previously built by user,
+            # and usually stored under 'build_cmake/artifacts/tensorflow/'.
+            # So we try to search for that wheel and install it, otherwise
+            # the next call will fail and an exception is raised
+            else:
+                try:
+                    cxx_abi = install_tensorflow(venv_dir, artifacts_location)
+                except:
+                    raise Exception("Please build tensorflow from source "
+                                    "by running: python3 build_ngtf.py")
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
@@ -357,14 +374,9 @@ def main():
                                 verbosity)
 
             # Install tensorflow to our own virtual env
-            # Note that if gcc 4.8 is used for building TensorFlow this flag
-            # will be 0
+            # Note that if gcc 7.3 is used for building TensorFlow this flag
+            # will be 1
             cxx_abi = install_tensorflow(venv_dir, artifacts_location)
-
-    if cxx_abi == 0:
-        if not arguments.use_prebuilt_tensorflow:
-            raise Exception(
-                "Expected cxx_abi to be 0 when using 'use_prebuilt_tensorflow'")
 
     # Download nGraph if required.
     ngraph_src_dir = './ngraph'
