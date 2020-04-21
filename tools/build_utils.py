@@ -218,7 +218,7 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
         "bazel",
         "build",
         "--config=opt",
-        "--config=v1",
+        "--config=v2",
         "--config=noaws",
         "--config=nohdfs",
         "--config=noignite",

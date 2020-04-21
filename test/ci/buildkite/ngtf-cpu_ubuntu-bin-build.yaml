@@ -25,7 +25,7 @@
   
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
-      pip install -U /localdisk/buildkite-agent/prebuilt_tensorflow_1_15_2/artifacts/tensorflow/tensorflow-1.15.2-cp36-cp36m-linux_x86_64.whl
+      pip install -U /localdisk/buildkite-agent/prebuilt_tensorflow_2_0_0/artifacts/tensorflow/tensorflow-2.0.0-cp36-cp36m-linux_x86_64.whl
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_bazel
       bazel clean --expunge
