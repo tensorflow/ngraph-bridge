@@ -72,7 +72,7 @@ setup(
     package_data= package_data_dict,
     cmdclass={'bdist_wheel': BinaryBdistWheel},
     install_requires=[
-        "tensorflow==2.0.0",
+        "tensorflow==1.15.2",
     ],
     extras_require={
         'plaidml': ["plaidml>=0.6.3"],

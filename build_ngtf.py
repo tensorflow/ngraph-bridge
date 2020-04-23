@@ -54,7 +54,7 @@ def main():
 
     # Component versions
     ngraph_version = "v0.28.0-rc.1"
-    tf_version = "v2.0.0"
+    tf_version = "v1.15.2"
 
     # Command line parser options
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
@@ -281,7 +281,7 @@ def main():
             # This function copies the .so files from
             # use_tensorflow_from_location/artifacts/tensorflow to
             # artifacts/tensorflow
-            copy_tf_to_artifacts(tf_in_artifacts, tf_whl_loc)
+            copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc)
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow:
@@ -343,8 +343,8 @@ def main():
             shutil.copyfile(tf_lib_file, dst)
 
             # Now build the libtensorflow_cc.so - the C++ library
-            build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch,
-                                verbosity)
+            build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
+                                target_arch, verbosity)
 
         else:
             print("Building TensorFlow from source")
@@ -366,12 +366,12 @@ def main():
                 os.chdir(pwd)
 
             # Build TensorFlow
-            build_tensorflow(venv_dir, "tensorflow", artifacts_location,
-                             target_arch, verbosity)
+            build_tensorflow(tf_version, venv_dir, "tensorflow",
+                             artifacts_location, target_arch, verbosity)
 
             # Now build the libtensorflow_cc.so - the C++ library
-            build_tensorflow_cc(tf_src_dir, artifacts_location, target_arch,
-                                verbosity)
+            build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
+                                target_arch, verbosity)
 
             # Install tensorflow to our own virtual env
             # Note that if gcc 7.3 is used for building TensorFlow this flag
@@ -550,7 +550,8 @@ def main():
         command_executor(['ln', '-sf', link_src, link_dst], verbose=True)
 
     # Run a quick test
-    install_ngraph_tf(venv_dir, os.path.join(artifacts_location, ng_tf_whl))
+    install_ngraph_tf(tf_version, venv_dir,
+                      os.path.join(artifacts_location, ng_tf_whl))
 
     if arguments.use_grappler_optimizer:
         import tensorflow as tf
