@@ -250,6 +250,14 @@ def main():
 
     if arguments.use_tensorflow_2:
         tf_version = "v2.0.0"
+        # For building NGTF with TF2.0 we need to apply the following patch
+        patch_file = os.path.abspath(
+            os.path.join(ngraph_tf_src_dir, "tf2changes.patch"))
+        pwd = os.getcwd()
+        os.chdir(ngraph_tf_src_dir)
+        print("CURRENT DIR: " + os.getcwd())
+        apply_patch(patch_file)
+        os.chdir(pwd)
 
     if arguments.use_tensorflow_from_location != "":
         # Some asserts to make sure the directory structure of

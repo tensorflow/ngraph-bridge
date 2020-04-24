@@ -495,10 +495,7 @@ def install_ngraph_tf(tf_version, venv_dir, ngtf_pip_whl):
     # Load the virtual env
     load_venv(venv_dir)
 
-    command_executor([
-        "pip", "install", "-U", ngtf_pip_whl,
-        "--install-option=--tf_version=" + tf_version
-    ])
+    command_executor(["pip", "install", "-U", ngtf_pip_whl])
 
     import tensorflow as tf
     print('\033[1;34mVersion information\033[0m')
