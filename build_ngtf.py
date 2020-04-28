@@ -395,7 +395,7 @@ def main():
 
     flag_string_map = {True: 'YES', False: 'NO'}
     # Build nGraph if required.
-    if arguments.use_prebuilt_ngraph == "":
+    if not arguments.use_prebuilt_ngraph:
         ngraph_src_dir = './ngraph'
         if arguments.ngraph_src_dir:
             ngraph_src_dir = arguments.ngraph_src_dir
@@ -438,7 +438,6 @@ def main():
         if arguments.build_plaidml_backend:
             command_executor(["pip", "install", "-U", "plaidML"])
 
-        flag_string_map = {True: 'YES', False: 'NO'}
         ngraph_cmake_flags.extend([
             "-DNGRAPH_TOOLS_ENABLE=" +
             flag_string_map[platform.system() != 'Darwin']
@@ -466,7 +465,7 @@ def main():
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
     ]
 
-    if arguments.use_prebuilt_ngraph == "":
+    if not arguments.use_prebuilt_ngraph:
         ngraph_tf_cmake_flags.extend(
             ["-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location])
     else:
