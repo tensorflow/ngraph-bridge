@@ -103,7 +103,8 @@ def main():
     parser.add_argument(
         '--use_prebuilt_ngraph',
         type=str,
-        help="Skip building ngraph and use pre-built version from the specified directory.\n",
+        help=
+        "Skip building ngraph and use pre-built version from the specified directory.\n",
         action="store")
 
     parser.add_argument(
@@ -405,8 +406,9 @@ def main():
                 ngraph_version = arguments.ngraph_version
 
             print("nGraph Version: ", ngraph_version)
-            download_repo("ngraph", "https://github.com/NervanaSystems/ngraph.git",
-                        ngraph_version)
+            download_repo("ngraph",
+                          "https://github.com/NervanaSystems/ngraph.git",
+                          ngraph_version)
 
         # Now build nGraph
         ngraph_cmake_flags = [
@@ -441,8 +443,10 @@ def main():
             "-DNGRAPH_TOOLS_ENABLE=" +
             flag_string_map[platform.system() != 'Darwin']
         ])
-        ngraph_cmake_flags.extend(
-            ["-DNGRAPH_GPU_ENABLE=" + flag_string_map[arguments.build_gpu_backend]])
+        ngraph_cmake_flags.extend([
+            "-DNGRAPH_GPU_ENABLE=" +
+            flag_string_map[arguments.build_gpu_backend]
+        ])
         ngraph_cmake_flags.extend([
             "-DNGRAPH_PLAIDML_ENABLE=" +
             flag_string_map[arguments.build_plaidml_backend]
@@ -463,12 +467,12 @@ def main():
     ]
 
     if arguments.use_prebuilt_ngraph == "":
-        ngraph_tf_cmake_flags.extend([
-            "-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location
-        ])
+        ngraph_tf_cmake_flags.extend(
+            ["-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location])
     else:
         ngraph_tf_cmake_flags.extend([
-            "-DNGRAPH_ARTIFACTS_DIR=" + os.path.abspath(arguments.use_prebuilt_ngraph)
+            "-DNGRAPH_ARTIFACTS_DIR=" + os.path.abspath(
+                arguments.use_prebuilt_ngraph)
         ])
 
     if (arguments.use_ngraph_staticlibs):
