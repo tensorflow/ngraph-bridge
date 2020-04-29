@@ -301,38 +301,9 @@ def main():
     else:
         if arguments.use_prebuilt_tensorflow:
             print("Using existing TensorFlow")
-            # First download the source. This will create the tensorfow directory as needed
-            tf_src_dir = os.path.join(artifacts_location, "tensorflow")
-            print("TF_SRC_DIR: ", tf_src_dir)
-            # Download
-            pwd_now = os.getcwd()
-            os.chdir(artifacts_location)
-            print("DOWNLOADING TF: PWD", os.getcwd())
-            download_repo("tensorflow",
-                          "https://github.com/tensorflow/tensorflow.git",
-                          tf_version)
-            os.chdir(pwd_now)
-
-            # Next install the tensorflow python packge
-            # The TF wheel published by Google reports CXX11_ABI = 0 but we
-            # can't even build TF on GCC 4.8.5 since MLIR module contains
-            # code that requires c++14 or GCC 5 or better. That means
-            # CXX11_ABI = 1 when the wheel is correctly built.
-            if ('1.15' not in tf_version and '2.0' not in tf_version):
-                command_executor(
-                    ["pip", "install", "-U", "tensorflow==" + tf_version])
-                cxx_abi = get_tf_cxxabi()
-            # Now due to above reasoning, we can only use prebuilt TF wheel
-            # that has the right flags and was previously built by user,
-            # and usually stored under 'build_cmake/artifacts/tensorflow/'.
-            # So we try to search for that wheel and install it, otherwise
-            # the next call will fail and an exception is raised
-            else:
-                try:
-                    cxx_abi = install_tensorflow(venv_dir, artifacts_location)
-                except:
-                    raise Exception("Please build tensorflow from source "
-                                    "by running: python3 build_ngtf.py")
+            # Install TensorFlow
+            command_executor(
+                ["pip", "install", "-U", "tensorflow==" + tf_version])
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
@@ -356,11 +327,6 @@ def main():
 
             dst = os.path.join(dst_dir, tf_fmwk_lib_name)
             shutil.copyfile(tf_lib_file, dst)
-
-            # Now build the libtensorflow_cc.so - the C++ library
-            build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
-                                target_arch, verbosity)
-
         else:
             print("Building TensorFlow from source")
             # Download TensorFlow
@@ -460,7 +426,6 @@ def main():
     ngraph_tf_cmake_flags = [
         "-DNGRAPH_TF_INSTALL_PREFIX=" + artifacts_location,
         "-DUSE_PRE_BUILT_NGRAPH=ON",
-        "-DUNIT_TEST_ENABLE=ON",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
     ]
@@ -484,29 +449,15 @@ def main():
         if arguments.use_tensorflow_from_location:
             ngraph_tf_cmake_flags.extend([
                 "-DTF_SRC_DIR=" + os.path.abspath(
-                    arguments.use_tensorflow_from_location + '/tensorflow')
+                    arguments.use_tensorflow_from_location + '/tensorflow'),
+                "-DUNIT_TEST_ENABLE=ON"
             ])
         else:
-            ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
-        ngraph_tf_cmake_flags.extend([
-            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
-                                                    "tensorflow")
-        ])
-
-    # Next build CMAKE options for the bridge
-    if arguments.use_tensorflow_from_location:
-        ngraph_tf_cmake_flags.extend([
-            "-DTF_SRC_DIR=" + os.path.abspath(
-                arguments.use_tensorflow_from_location + '/tensorflow')
-        ])
-    else:
-        print("TF_SRC_DIR: ", tf_src_dir)
-        ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
-
-    ngraph_tf_cmake_flags.extend([
-        "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
-                                                "tensorflow")
-    ])
+            ngraph_tf_cmake_flags.extend([
+                "-DTF_SRC_DIR=" + tf_src_dir,
+                "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(
+                    artifacts_location, "tensorflow"), "-DUNIT_TEST_ENABLE=ON"
+            ])
 
     if ((arguments.distributed_build == "OMPI") or
         (arguments.distributed_build == "MLSL")):
