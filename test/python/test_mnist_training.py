@@ -38,7 +38,8 @@ from mnist_deep_simplified import *
 class TestMnistTraining(NgraphTest):
 
     #Todo: Unskip this test
-    @pytest.mark.skip(reason="Does not work with tf2.0")
+    @pytest.mark.skipif(
+        ngraph_bridge.is_tf2_enabled(), reason="Does not work with tf2.0")
     @pytest.mark.parametrize(("optimizer"), ("adam", "sgd", "momentum"))
     def test_mnist_training(self, optimizer):
 

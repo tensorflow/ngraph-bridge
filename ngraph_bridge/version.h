@@ -44,6 +44,9 @@ bool ngraph_tf_is_distributed_enabled();
 
 // Returns the tensorflow version
 const char* tf_version();
+
+// Returns true when nGraph is using tf2
+bool ngraph_tf_is_tf2_enabled();
 }
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
