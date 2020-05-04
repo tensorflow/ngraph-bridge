@@ -24,7 +24,7 @@ exports_files(["LICENSE"])
 #     "if_mkl_v1_open_source_only",
 # )
 load(
-    "@org_tensorflow//third_party:common.bzl",
+    "@//tf_configure:tf_configure.bzl",
     "template_rule",
 )
 
