@@ -31,6 +31,17 @@ config_setting(
     },
 )
 
+template_rule(
+    name = "dnnl_config_h",
+    src = "include/dnnl_config.h.in",
+    out = "include/dnnl_config.h",
+    substitutions = {
+        "#cmakedefine DNNL_CPU_THREADING_RUNTIME DNNL_RUNTIME_${DNNL_CPU_THREADING_RUNTIME}": "#define DNNL_CPU_THREADING_RUNTIME DNNL_RUNTIME_OMP",
+        "#cmakedefine DNNL_CPU_RUNTIME DNNL_RUNTIME_${DNNL_CPU_RUNTIME}": "#define DNNL_CPU_RUNTIME DNNL_RUNTIME_OMP",
+        "#cmakedefine DNNL_GPU_RUNTIME DNNL_RUNTIME_${DNNL_GPU_RUNTIME}": "#define DNNL_GPU_RUNTIME DNNL_RUNTIME_NONE",
+    },
+)
+
 # Create the file mkldnn_version.h with MKL-DNN version numbers.
 # Currently, the version numbers are hard coded here. If MKL-DNN is upgraded then
 # the version numbers have to be updated manually. The version numbers can be
@@ -40,14 +51,14 @@ config_setting(
 # TODO(agramesh1) Automatically get the version numbers from CMakeLists.txt.
 
 template_rule(
-    name = "mkldnn_version_h",
-    src = "include/mkldnn_version.h.in",
-    out = "include/mkldnn_version.h",
+    name = "dnnl_version_h",
+    src = "include/dnnl_version.h.in",
+    out = "include/dnnl_version.h",
     substitutions = {
-        "@MKLDNN_VERSION_MAJOR@": "0",
-        "@MKLDNN_VERSION_MINOR@": "21",
-        "@MKLDNN_VERSION_PATCH@": "3",
-        "@MKLDNN_VERSION_HASH@": "N/A",
+        "@DNNL_VERSION_MAJOR@": "1",
+        "@DNNL_VERSION_MINOR@": "4",
+        "@DNNL_VERSION_PATCH@": "0",
+        "@DNNL_VERSION_HASH@": "N/A",
     },
 )
 
@@ -58,6 +69,12 @@ cc_library(
         "src/common/*.hpp",
         "src/cpu/*.cpp",
         "src/cpu/*.hpp",
+        "src/cpu/jit_utils/*.cpp",
+        "src/cpu/jit_utils/*.hpp",
+        "src/cpu/jit_utils/**/*.cpp",
+        "src/cpu/jit_utils/**/*.hpp",
+        "src/cpu/eltwise/*.cpp",
+        "src/cpu/eltwise/*.hpp",
         "src/cpu/gemm/*.cpp",
         "src/cpu/gemm/*.hpp",
         "src/cpu/gemm/bf16/*.hpp",
@@ -69,7 +86,8 @@ cc_library(
         "src/cpu/rnn/*.cpp",
         "src/cpu/rnn/*.hpp",
         "src/cpu/xbyak/*.h",
-    ]) + [":mkldnn_version_h"],
+    ]) + [":dnnl_version_h",]
+    +[":dnnl_config_h"],
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",
@@ -128,6 +146,12 @@ cc_library(
         "src/common/*.hpp",
         "src/cpu/*.cpp",
         "src/cpu/*.hpp",
+        "src/cpu/jit_utils/*.cpp",
+        "src/cpu/jit_utils/*.hpp",
+        "src/cpu/jit_utils/**/*.cpp",
+        "src/cpu/jit_utils/**/*.hpp",
+        "src/cpu/eltwise/*.cpp",
+        "src/cpu/eltwise/*.hpp",
         "src/cpu/gemm/*.cpp",
         "src/cpu/gemm/*.hpp",
         "src/cpu/gemm/bf16/*.hpp",
@@ -139,7 +163,8 @@ cc_library(
         "src/cpu/rnn/*.cpp",
         "src/cpu/rnn/*.hpp",
         "src/cpu/xbyak/*.h",
-    ]) + [":mkldnn_version_h"],
+    ]) + [":dnnl_version_h",]
+    +[":dnnl_config_h"],
     hdrs = glob(["include/*"]),
     copts = [
         "-fexceptions",
