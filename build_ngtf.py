@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "08c20a3c91fb2d84c89c8434d79a98346318498c"  #Cyphers/opmove (#4560),pre-built dldt commit
+    ngraph_version = "8e37fbfaeb7ee827746d607d9688dc509a25fe77"  #adk9 - Upgrade v0::reshape to v1::reshape in opset1
     tf_version = "v1.15.2"
 
     # Command line parser options
