@@ -226,7 +226,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
       SetStaticInputs(n, static_input_vec);
       return Status::OK();
     };
-    //set_attributes_map["RandomUniform"] = SetStaticInputs({0});
+    // set_attributes_map["RandomUniform"] = SetStaticInputs({0});
     set_attributes_map["Reshape"] = SetStaticInputs({1});
     set_attributes_map["ResizeBilinear"] = SetStaticInputs({1});
     set_attributes_map["ScatterNd"] = SetStaticInputs({2});
@@ -378,7 +378,8 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["PreventGradient"] = SimpleConfirmationFunction();
     confirmation_function_map["Prod"] = SimpleConfirmationFunction();
     confirmation_function_map["Rank"] = SimpleConfirmationFunction();
-    //confirmation_function_map["RandomUniform"] = SimpleConfirmationFunction();
+    // confirmation_function_map["RandomUniform"] =
+    // SimpleConfirmationFunction();
     confirmation_function_map["QuantizeAndDequantizeV2"] = [](Node* n,
                                                               bool* result) {
       // accept only when num_bits == 8 and range is given
@@ -578,7 +579,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
         DT_FLOAT};  // TF allows half too
     type_constraint_map["OneHot"]["T"] = NGraphDTypes();
     type_constraint_map["Pack"]["T"] = NGraphDTypes();
-    //type_constraint_map["RandomUniform"]["T"] = NGraphDTypes();
+    // type_constraint_map["RandomUniform"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
