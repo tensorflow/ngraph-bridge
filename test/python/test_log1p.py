@@ -22,6 +22,7 @@ from __future__ import print_function
 
 import pytest
 
+import numpy as np
 import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
 import os
@@ -29,25 +30,20 @@ import os
 from common import NgraphTest
 
 
-class TestAbsOperations(NgraphTest):
+class TestLog1pOperations(NgraphTest):
 
-    @pytest.mark.parametrize("test_input", (1.4, -0.5, -1))
-    def test_abs_1d(self, test_input):
-        val = tf.compat.v1.placeholder(tf.float32, shape=(1,))
-        out = tf.abs(val)
-
-        def run_test(sess):
-            return sess.run((out,), feed_dict={val: (test_input,)})
-
-        assert self.with_ngraph(run_test) == self.without_ngraph(run_test)
-
-    def test_abs_2d(self):
-        test_input = ((1.5, -2.5, 0.0, -3.5), (-4.5, -5.5, 6.5, 1.0))
-        val = tf.compat.v1.placeholder(tf.float32, shape=(2, 4))
-        out = tf.abs(val)
+    def test_log1p(self):
+        test_input = (-3.0, -1.0, -0.5, 0.0, 0.25, 0.5, 1, 10)
+        val = tf.compat.v1.placeholder(tf.float32, shape=(8,))
+        out = tf.math.log1p(val)
 
         def run_test(sess):
             return sess.run(out, feed_dict={val: test_input})
 
-        assert (
-            self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
+        ng_result = self.with_ngraph(run_test)
+        tf_result = self.without_ngraph(run_test)
+
+        assert (len(ng_result) == len(tf_result))
+
+        for i, j in zip(ng_result, tf_result):
+            assert (i == j) or (np.isnan(i) and np.isnan(j))
