@@ -226,7 +226,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
       SetStaticInputs(n, static_input_vec);
       return Status::OK();
     };
-    set_attributes_map["RandomUniform"] = SetStaticInputs({0});
+    // set_attributes_map["RandomUniform"] = SetStaticInputs({0});
     set_attributes_map["Reshape"] = SetStaticInputs({1});
     set_attributes_map["ResizeBilinear"] = SetStaticInputs({1});
     set_attributes_map["ScatterNd"] = SetStaticInputs({2});
@@ -378,7 +378,8 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["PreventGradient"] = SimpleConfirmationFunction();
     confirmation_function_map["Prod"] = SimpleConfirmationFunction();
     confirmation_function_map["Rank"] = SimpleConfirmationFunction();
-    confirmation_function_map["RandomUniform"] = SimpleConfirmationFunction();
+    // confirmation_function_map["RandomUniform"] =
+    // SimpleConfirmationFunction();
     confirmation_function_map["QuantizeAndDequantizeV2"] = [](Node* n,
                                                               bool* result) {
       // accept only when num_bits == 8 and range is given
@@ -578,7 +579,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
         DT_FLOAT};  // TF allows half too
     type_constraint_map["OneHot"]["T"] = NGraphDTypes();
     type_constraint_map["Pack"]["T"] = NGraphDTypes();
-    type_constraint_map["RandomUniform"]["T"] = NGraphDTypes();
+    // type_constraint_map["RandomUniform"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
@@ -1231,17 +1232,19 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
         break;
       }
 
-      // Check if op is supported by backend
-      bool is_supported = false;
-      TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend, TFtoNgraphOpMap,
-                                              is_supported));
+      // // Check if op is supported by backend
+      // bool is_supported = false;
+      // TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend,
+      // TFtoNgraphOpMap,
+      //                                         is_supported));
 
-      if (!is_supported) {
-        NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
-                       << node->type_string()
-                       << " is not supported by backend: " << ng_backend_type;
-        break;
-      }
+      // if (!is_supported) {
+      //   NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
+      //                  << node->type_string()
+      //                  << " is not supported by backend: " <<
+      //                  ng_backend_type;
+      //   break;
+      // }
 
       // if all constraints are met, mark for clustering
       mark_for_clustering = true;
