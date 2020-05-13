@@ -708,7 +708,7 @@ GetTFToNgOpMap() {
   // Update this Map if a new TF Op translation is
   // implemented or a new Ngraph Op has been added
   static std::map<std::string, std::set<shared_ptr<ng::Node>>> TFtoNgraphOpMap {
-        {"Abs", {std::make_shared<ngraph::op::Abs>()}},
+    {"Abs", {std::make_shared<ngraph::op::Abs>()}},
         {"Add", {std::make_shared<ngraph::op::Add>()}},
         {"AddN", {std::make_shared<ngraph::op::Add>()}},
         {"AddV2",
