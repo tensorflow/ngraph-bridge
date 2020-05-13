@@ -890,8 +890,8 @@ static Status TranslateBatchMatMulOp(
 
   if (n_dims == 2) {
     SaveNgOp(ng_op_map, op->name(),
-             ConstructNgNode<ngraph::op::MatMul>(
-               op->name(), ng_lhs, ng_rhs, tf_adj_x, tf_adj_y));
+             ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs,
+                                                 tf_adj_x, tf_adj_y));
   } else if (n_dims == 3) {
     SaveNgOp(ng_op_map, op->name(),
              ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
@@ -2277,7 +2277,8 @@ static Status TranslateFusedMatMulOp(const Node* op,
 
   shared_ptr<ng::Node> ng_lhs, ng_rhs, ng_bias, ng_matmul;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs, &ng_bias));
-  ng_matmul = ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs, transpose_a, transpose_b);
+  ng_matmul = ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs,
+                                                  transpose_a, transpose_b);
 
   auto ng_matmul_shape = ng_matmul->get_shape();
   auto ng_bias_shape = ng_bias->get_shape();
@@ -2707,7 +2708,8 @@ static Status TranslateMatMulOp(const Node* op,
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "transpose_b", &transpose_b));
 
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs, transpose_a, transpose_b));
+           ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs,
+                                               transpose_a, transpose_b));
   return Status::OK();
 }
 
