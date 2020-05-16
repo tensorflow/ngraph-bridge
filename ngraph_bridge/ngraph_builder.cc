@@ -97,7 +97,7 @@ static void SaveNgOp(Builder::OpMap& ng_op_map, const std::string& op_name,
 
 void Builder::SetTracingInfo(const std::string& op_name,
                              const shared_ptr<ng::Node> ng_node) {
-  ng_node->set_friendly_name(op_name);
+  ng_node->set_friendly_name(op_name + "-" + ng_node->get_name());
   ng_node->add_provenance_tag(op_name);
   if (config::IsLoggingPlacement()) {
     cout << "TF_to_NG: " << op_name << " --> " << ng_node->get_name() << "\n";
