@@ -40,13 +40,11 @@ cc_library(
         "ngraph_bridge/ngraph_encapsulate_op_utils.h",
         "ngraph_bridge/ngraph_data_cache.h",
         "ngraph_bridge/ngraph_find_replace_prefetchdataset.h",
-        "ngraph_bridge/ngraph_freshness_tracker.h",
         "ngraph_bridge/ngraph_mark_for_clustering.h",
         "ngraph_bridge/ngraph_partial_shapes.h",
         "ngraph_bridge/ngraph_prefetch_shared_data.h",
         "ngraph_bridge/ngraph_pipelined_tensors.h",
         "ngraph_bridge/ngraph_register_stub_kernels.h",
-        "ngraph_bridge/ngraph_rewrite_for_tracking.h",
         "ngraph_bridge/ngraph_tensor_manager.h",
         "ngraph_bridge/ngraph_timer.h",
         "ngraph_bridge/ngraph_utils.h",
@@ -91,14 +89,11 @@ cc_library(
         "ngraph_bridge/ngraph_enter_prefetch_in_catalog.cc",
         "ngraph_bridge/ngraph_executor.cc",
         "ngraph_bridge/ngraph_find_replace_prefetchdataset.cc",
-        "ngraph_bridge/ngraph_freshness_tracker.cc",
         "ngraph_bridge/ngraph_mark_for_clustering.cc",
         "ngraph_bridge/ngraph_partial_shapes.cc",
         "ngraph_bridge/ngraph_pipelined_tensors.cc",
         "ngraph_bridge/ngraph_register_stub_kernels.cc",
-        "ngraph_bridge/ngraph_rewrite_for_tracking.cc",
         "ngraph_bridge/ngraph_tensor_manager.cc",
-        "ngraph_bridge/ngraph_tracked_variable.cc",
         "ngraph_bridge/ngraph_utils.cc",
         "ngraph_bridge/ngraph_var.cc",
         "ngraph_bridge/ops/ngraph_ops.cc",
@@ -158,6 +153,14 @@ tf_cc_binary(
     srcs = [
         "examples/cpp/hello_tf.cpp",
     ],
+    deps = [
+        "@org_tensorflow//tensorflow/cc:ops",
+        "@org_tensorflow//tensorflow/cc:client_session",
+        "@org_tensorflow//tensorflow/cc:cc_ops",
+        "@org_tensorflow//tensorflow/core:tensorflow",
+        ":ngraph_bridge_lib",
+        "@ngraph//:cpu_backend",
+    ],
     copts = [
         "-pthread",
         "-std=c++11",
@@ -172,14 +175,6 @@ tf_cc_binary(
     ] + CXX_ABI,
     linkstatic = True,
     visibility = ["//visibility:public"],
-    deps = [
-        "@org_tensorflow//tensorflow/cc:cc_ops",
-        "@org_tensorflow//tensorflow/cc:client_session",
-        "@org_tensorflow//tensorflow/cc:ops",
-        "@org_tensorflow//tensorflow/core:tensorflow",
-        ":ngraph_bridge_lib",
-        "@ngraph//:cpu_backend",
-    ],
 )
 
 tf_cc_binary(
