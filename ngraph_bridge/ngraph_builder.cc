@@ -2496,25 +2496,24 @@ static Status TranslateFusedConv2DOp(const Node* op,
           "Bias argument to BiasAdd does not have one dimension");
     }
 
-    ng::AxisSet ng_broadcast_axes;
+    auto conv_rank = ng_conv->get_output_partial_shape(0).rank().get_length();
+    std::vector<size_t> reshape_pattern_values(conv_rank, 1U);
 
     if (is_nhwc) {
-      for (size_t i = 0; i < ng_conv_shape.size() - 1; i++) {
-        ng_broadcast_axes.insert(i);
-      }
+      reshape_pattern_values[conv_rank-1] = ng_bias->get_shape().front();
     } else {
-      for (size_t i = 0; i < ng_conv_shape.size(); i++) {
-        if (i != 1) {
-          ng_broadcast_axes.insert(i);
-        }
-      }
+      reshape_pattern_values[1] = ng_bias->get_shape().front();
     }
 
-    auto ng_bias_broadcasted = ConstructNgNode<ng::op::Broadcast>(
-        op->name() + "_FusedConv2D_BiasAdd", ng_bias, ng_conv_shape,
-        ng_broadcast_axes);
-    auto ng_add = ConstructNgNode<ng::op::Add>(
-        op->name() + "_FusedConv2D_BiasAdd", ng_conv, ng_bias_broadcasted);
+    auto reshape_pattern = ConstructNgNode<ng::op::Constant>(
+      op->name() + "_FusedConv2D_Reshape_Pattern", ng::element::u64, ng::Shape{reshape_pattern_values.size()},
+      reshape_pattern_values);
+
+    auto reshaped_bias = ConstructNgNode<ng::op::v1::Reshape>(
+        op->name() + "_FusedConv2D_Reshape", ng_bias, reshape_pattern, false);
+
+    auto ng_add = ConstructNgNode<ng::op::v1::Add>(
+        op->name() + "_FusedConv2D_BiasAdd", ng_conv, reshaped_bias);
 
     if (VecStrCmp(fused_ops, {"BiasAdd", "Relu"})) {
       SaveNgOp(ng_op_map, op->name(),
