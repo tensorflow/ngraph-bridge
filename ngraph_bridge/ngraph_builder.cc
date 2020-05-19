@@ -460,29 +460,31 @@ ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
 //
 //    ng::Node bias *broadcasted_bias
 //                               - The broadcasted bias as output
-static Status BroadcastBias(const std::string& op_name, std::shared_ptr<ng::Node> bias,
-ng::Dimension::value_type broadcast_rank, bool is_nhwc, std::shared_ptr<ng::Node>* broadcasted_bias) {
-    auto ng_bias_shape = bias->get_shape();
-    if (ng_bias_shape.size() != 1) {
-      return errors::InvalidArgument(
-          "Bias argument does not have one dimension");
-    }
+static Status BroadcastBias(const std::string& op_name,
+                            std::shared_ptr<ng::Node> bias,
+                            ng::Dimension::value_type broadcast_rank,
+                            bool is_nhwc,
+                            std::shared_ptr<ng::Node>* broadcasted_bias) {
+  auto ng_bias_shape = bias->get_shape();
+  if (ng_bias_shape.size() != 1) {
+    return errors::InvalidArgument("Bias argument does not have one dimension");
+  }
 
-    std::vector<size_t> reshape_pattern_values(broadcast_rank, 1U);
-    if (is_nhwc) {
-      reshape_pattern_values[broadcast_rank-1] = bias->get_shape().front();
-    } else {
-      reshape_pattern_values[1] = bias->get_shape().front();
-    }
+  std::vector<size_t> reshape_pattern_values(broadcast_rank, 1U);
+  if (is_nhwc) {
+    reshape_pattern_values[broadcast_rank - 1] = bias->get_shape().front();
+  } else {
+    reshape_pattern_values[1] = bias->get_shape().front();
+  }
 
-    auto reshape_pattern = ConstructNgNode<ng::op::Constant>(
+  auto reshape_pattern = ConstructNgNode<ng::op::Constant>(
       op_name, ng::element::u64, ng::Shape{reshape_pattern_values.size()},
       reshape_pattern_values);
 
-    *broadcasted_bias = ConstructNgNode<ng::op::v1::Reshape>(
-        op_name, bias, reshape_pattern, false);
+  *broadcasted_bias = ConstructNgNode<ng::op::v1::Reshape>(
+      op_name, bias, reshape_pattern, false);
 
-    return Status::OK();
+  return Status::OK();
 }
 
 // Helper function to translate a unary op.
@@ -1026,11 +1028,13 @@ static Status TranslateBiasAddOp(
   }
 
   bool is_nhwc = (tf_data_format == "NHWC");
-  auto ng_input_rank = ng_input->get_output_partial_shape(0).rank().get_length();
+  auto ng_input_rank =
+      ng_input->get_output_partial_shape(0).rank().get_length();
   shared_ptr<ng::Node> ng_bias_broadcasted;
-  TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, ng_input_rank, is_nhwc, &ng_bias_broadcasted));
-  auto ng_add =
-      ConstructNgNode<ng::op::v1::Add>(op->name(), ng_input, ng_bias_broadcasted);
+  TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, ng_input_rank, is_nhwc,
+                                   &ng_bias_broadcasted));
+  auto ng_add = ConstructNgNode<ng::op::v1::Add>(op->name(), ng_input,
+                                                 ng_bias_broadcasted);
 
   SaveNgOp(ng_op_map, op->name(), ng_add);
   return Status::OK();
@@ -2296,14 +2300,16 @@ static Status TranslateFusedMatMulOp(const Node* op,
   ng_matmul = ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs,
                                                   transpose_a, transpose_b);
 
-
-  // TODO : _FusedMatMul doesn't have data_format attributes, broadcast as if it's NHWC for now.
-  auto broadcast_rank = ng_matmul->get_output_partial_shape(0).rank().get_length();
+  // TODO : _FusedMatMul doesn't have data_format attributes, broadcast as if
+  // it's NHWC for now.
+  auto broadcast_rank =
+      ng_matmul->get_output_partial_shape(0).rank().get_length();
   shared_ptr<ng::Node> ng_bias_broadcasted;
-  TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, broadcast_rank, true, &ng_bias_broadcasted));
+  TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, broadcast_rank, true,
+                                   &ng_bias_broadcasted));
 
-  auto ng_add =
-      ConstructNgNode<ng::op::v1::Add>(op->name(), ng_matmul, ng_bias_broadcasted);
+  auto ng_add = ConstructNgNode<ng::op::v1::Add>(op->name(), ng_matmul,
+                                                 ng_bias_broadcasted);
   if (fused_ops.size() == 1) {  // Only fusing BiasAdd
     SaveNgOp(ng_op_map, op->name(), ng_add);
   } else if (fused_ops.size() == 2) {  // Also has activation
@@ -2494,9 +2500,10 @@ static Status TranslateFusedConv2DOp(const Node* op,
 
     auto conv_rank = ng_conv->get_output_partial_shape(0).rank().get_length();
     shared_ptr<ng::Node> ng_bias_broadcasted;
-    TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, conv_rank, is_nhwc, &ng_bias_broadcasted));
-    auto ng_add = ConstructNgNode<ng::op::v1::Add>(
-        op->name(), ng_conv, ng_bias_broadcasted);
+    TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, conv_rank, is_nhwc,
+                                     &ng_bias_broadcasted));
+    auto ng_add = ConstructNgNode<ng::op::v1::Add>(op->name(), ng_conv,
+                                                   ng_bias_broadcasted);
 
     if (VecStrCmp(fused_ops, {"BiasAdd", "Relu"})) {
       SaveNgOp(ng_op_map, op->name(),
