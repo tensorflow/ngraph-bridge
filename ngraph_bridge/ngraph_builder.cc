@@ -448,31 +448,30 @@ ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
   return slice_plan;
 }
 
-// Helper function to broadcast a bias.
+// Helper function to add a bias.
 //
 // Parameters:
 //
 //    string op_name             - Op name for which bias is being broadcasted.
-//    ng::Node bias              - Bias node being broadcasted
-//    ng::Dimension::value_type broadcast_rank
-//                               - Rank to use for the broadcast.
+//    ng::Node input             - Input node to add bias too
+//    ng::Node bias              - Bias node being added
 //    bool is_nhwc               - Is the OP using NHWC or NCHW?
 //
-//    ng::Node bias *broadcasted_bias
-//                               - The broadcasted bias as output
-static Status BroadcastBias(const std::string& op_name,
+//    ng::Node bias *result      - The added bias as output
+static Status BiasAdd(const std::string& op_name,
+                            std::shared_ptr<ng::Node> input,
                             std::shared_ptr<ng::Node> bias,
-                            ng::Dimension::value_type broadcast_rank,
                             bool is_nhwc,
-                            std::shared_ptr<ng::Node>* broadcasted_bias) {
+                            std::shared_ptr<ng::Node>* result) {
+  auto rank = input->get_output_partial_shape(0).rank().get_length();
   auto ng_bias_shape = bias->get_shape();
   if (ng_bias_shape.size() != 1) {
     return errors::InvalidArgument("Bias argument does not have one dimension");
   }
 
-  std::vector<size_t> reshape_pattern_values(broadcast_rank, 1U);
+  std::vector<size_t> reshape_pattern_values(rank, 1U);
   if (is_nhwc) {
-    reshape_pattern_values[broadcast_rank - 1] = bias->get_shape().front();
+    reshape_pattern_values[rank - 1] = bias->get_shape().front();
   } else {
     reshape_pattern_values[1] = bias->get_shape().front();
   }
@@ -481,8 +480,11 @@ static Status BroadcastBias(const std::string& op_name,
       op_name, ng::element::u64, ng::Shape{reshape_pattern_values.size()},
       reshape_pattern_values);
 
-  *broadcasted_bias = ConstructNgNode<ng::op::v1::Reshape>(
-      op_name, bias, reshape_pattern, false);
+  auto ng_add = ConstructNgNode<ng::op::v1::Add>(op_name, input,
+                                            ConstructNgNode<ng::op::v1::Reshape>(
+      op_name, bias, reshape_pattern, false));
+
+  *result = ng_add;
 
   return Status::OK();
 }
@@ -1028,15 +1030,10 @@ static Status TranslateBiasAddOp(
   }
 
   bool is_nhwc = (tf_data_format == "NHWC");
-  auto ng_input_rank =
-      ng_input->get_output_partial_shape(0).rank().get_length();
-  shared_ptr<ng::Node> ng_bias_broadcasted;
-  TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, ng_input_rank, is_nhwc,
-                                   &ng_bias_broadcasted));
-  auto ng_add = ConstructNgNode<ng::op::v1::Add>(op->name(), ng_input,
-                                                 ng_bias_broadcasted);
-
-  SaveNgOp(ng_op_map, op->name(), ng_add);
+  shared_ptr<ng::Node> ng_bias_add;
+  TF_RETURN_IF_ERROR(BiasAdd(op->name(), ng_input, ng_bias, is_nhwc,
+                                   &ng_bias_add));
+  SaveNgOp(ng_op_map, op->name(), ng_bias_add);
   return Status::OK();
 }
 
@@ -2302,27 +2299,23 @@ static Status TranslateFusedMatMulOp(const Node* op,
 
   // TODO : _FusedMatMul doesn't have data_format attributes, broadcast as if
   // it's NHWC for now.
-  auto broadcast_rank =
-      ng_matmul->get_output_partial_shape(0).rank().get_length();
-  shared_ptr<ng::Node> ng_bias_broadcasted;
-  TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, broadcast_rank, true,
-                                   &ng_bias_broadcasted));
+  shared_ptr<ng::Node> ng_bias_add;
+  TF_RETURN_IF_ERROR(BiasAdd(op->name(), ng_matmul, ng_bias, true,
+                                   &ng_bias_add));
 
-  auto ng_add = ConstructNgNode<ng::op::v1::Add>(op->name(), ng_matmul,
-                                                 ng_bias_broadcasted);
   if (fused_ops.size() == 1) {  // Only fusing BiasAdd
-    SaveNgOp(ng_op_map, op->name(), ng_add);
+    SaveNgOp(ng_op_map, op->name(), ng_bias_add);
   } else if (fused_ops.size() == 2) {  // Also has activation
     if (fused_ops[1] == "Relu") {
       SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ng::op::Relu>(op->name(), ng_add));
+               ConstructNgNode<ng::op::Relu>(op->name(), ng_bias_add));
     } else if (fused_ops[1] == "Relu6") {
       // TODO fill
       auto constant_6 = ConstructNgNode<ng::op::Constant>(
-          op->name(), ng_add->get_element_type(), ng_add->get_shape(),
-          std::vector<std::string>(ng::shape_size(ng_add->get_shape()), "6"));
+          op->name(), ng_bias_add->get_element_type(), ng_bias_add->get_shape(),
+          std::vector<std::string>(ng::shape_size(ng_bias_add->get_shape()), "6"));
       auto relu6_op = ConstructNgNode<ng::op::Minimum>(
-          op->name(), ConstructNgNode<ng::op::Relu>(op->name(), ng_add),
+          op->name(), ConstructNgNode<ng::op::Relu>(op->name(), ng_bias_add),
           constant_6);
       SaveNgOp(ng_op_map, op->name(), relu6_op);
     } else {
@@ -2498,20 +2491,17 @@ static Status TranslateFusedConv2DOp(const Node* op,
 
     BatchToTensorflow(op->name(), is_nhwc, ng_conv);
 
-    auto conv_rank = ng_conv->get_output_partial_shape(0).rank().get_length();
-    shared_ptr<ng::Node> ng_bias_broadcasted;
-    TF_RETURN_IF_ERROR(BroadcastBias(op->name(), ng_bias, conv_rank, is_nhwc,
-                                     &ng_bias_broadcasted));
-    auto ng_add = ConstructNgNode<ng::op::v1::Add>(op->name(), ng_conv,
-                                                   ng_bias_broadcasted);
+    shared_ptr<ng::Node> ng_bias_add;
+    TF_RETURN_IF_ERROR(BiasAdd(op->name(), ng_conv, ng_bias, is_nhwc,
+                                     &ng_bias_add));
 
     if (VecStrCmp(fused_ops, {"BiasAdd", "Relu"})) {
       SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ng::op::Relu>(op->name(), ng_add));
+               ConstructNgNode<ng::op::Relu>(op->name(), ng_bias_add));
     } else if (VecStrCmp(fused_ops, {"BiasAdd", "Relu6"})) {
-      SaveNgOp(ng_op_map, op->name(), create_relu6(op->name(), ng_add));
+      SaveNgOp(ng_op_map, op->name(), create_relu6(op->name(), ng_bias_add));
     } else {
-      SaveNgOp(ng_op_map, op->name(), ng_add);
+      SaveNgOp(ng_op_map, op->name(), ng_bias_add);
     }
   } else if (VecStrCmp(fused_ops, {"FusedBatchNorm"}) ||
              VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu"}) ||
