@@ -459,10 +459,9 @@ ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
 //
 //    ng::Node bias *result      - The added bias as output
 static Status BiasAdd(const std::string& op_name,
-                            std::shared_ptr<ng::Node> input,
-                            std::shared_ptr<ng::Node> bias,
-                            bool is_nhwc,
-                            std::shared_ptr<ng::Node>* result) {
+                      std::shared_ptr<ng::Node> input,
+                      std::shared_ptr<ng::Node> bias, bool is_nhwc,
+                      std::shared_ptr<ng::Node>* result) {
   auto rank = input->get_output_partial_shape(0).rank().get_length();
   auto ng_bias_shape = bias->get_shape();
   if (ng_bias_shape.size() != 1) {
@@ -480,9 +479,9 @@ static Status BiasAdd(const std::string& op_name,
       op_name, ng::element::u64, ng::Shape{reshape_pattern_values.size()},
       reshape_pattern_values);
 
-  auto ng_add = ConstructNgNode<ng::op::v1::Add>(op_name, input,
-                                            ConstructNgNode<ng::op::v1::Reshape>(
-      op_name, bias, reshape_pattern, false));
+  auto ng_add = ConstructNgNode<ng::op::v1::Add>(
+      op_name, input, ConstructNgNode<ng::op::v1::Reshape>(
+                          op_name, bias, reshape_pattern, false));
 
   *result = ng_add;
 
@@ -1031,8 +1030,8 @@ static Status TranslateBiasAddOp(
 
   bool is_nhwc = (tf_data_format == "NHWC");
   shared_ptr<ng::Node> ng_bias_add;
-  TF_RETURN_IF_ERROR(BiasAdd(op->name(), ng_input, ng_bias, is_nhwc,
-                                   &ng_bias_add));
+  TF_RETURN_IF_ERROR(
+      BiasAdd(op->name(), ng_input, ng_bias, is_nhwc, &ng_bias_add));
   SaveNgOp(ng_op_map, op->name(), ng_bias_add);
   return Status::OK();
 }
@@ -2300,8 +2299,8 @@ static Status TranslateFusedMatMulOp(const Node* op,
   // TODO : _FusedMatMul doesn't have data_format attributes, broadcast as if
   // it's NHWC for now.
   shared_ptr<ng::Node> ng_bias_add;
-  TF_RETURN_IF_ERROR(BiasAdd(op->name(), ng_matmul, ng_bias, true,
-                                   &ng_bias_add));
+  TF_RETURN_IF_ERROR(
+      BiasAdd(op->name(), ng_matmul, ng_bias, true, &ng_bias_add));
 
   if (fused_ops.size() == 1) {  // Only fusing BiasAdd
     SaveNgOp(ng_op_map, op->name(), ng_bias_add);
@@ -2313,7 +2312,8 @@ static Status TranslateFusedMatMulOp(const Node* op,
       // TODO fill
       auto constant_6 = ConstructNgNode<ng::op::Constant>(
           op->name(), ng_bias_add->get_element_type(), ng_bias_add->get_shape(),
-          std::vector<std::string>(ng::shape_size(ng_bias_add->get_shape()), "6"));
+          std::vector<std::string>(ng::shape_size(ng_bias_add->get_shape()),
+                                   "6"));
       auto relu6_op = ConstructNgNode<ng::op::Minimum>(
           op->name(), ConstructNgNode<ng::op::Relu>(op->name(), ng_bias_add),
           constant_6);
@@ -2492,8 +2492,8 @@ static Status TranslateFusedConv2DOp(const Node* op,
     BatchToTensorflow(op->name(), is_nhwc, ng_conv);
 
     shared_ptr<ng::Node> ng_bias_add;
-    TF_RETURN_IF_ERROR(BiasAdd(op->name(), ng_conv, ng_bias, is_nhwc,
-                                     &ng_bias_add));
+    TF_RETURN_IF_ERROR(
+        BiasAdd(op->name(), ng_conv, ng_bias, is_nhwc, &ng_bias_add));
 
     if (VecStrCmp(fused_ops, {"BiasAdd", "Relu"})) {
       SaveNgOp(ng_op_map, op->name(),
