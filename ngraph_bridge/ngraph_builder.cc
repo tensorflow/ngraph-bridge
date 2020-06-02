@@ -4570,13 +4570,12 @@ static Status TranslateSquareOp(
 static Status TranslateSquaredDifferenceOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  return TranslateBinaryOp(
-      op, static_input_map, ng_op_map, [&op](std::shared_ptr<ng::Node> input1,
-                                             std::shared_ptr<ng::Node> input2) {
-        auto ng_diff =
-            ConstructNgNode<ng::op::Subtract>(op->name(), input1, input2);
-        return ConstructNgNode<ng::op::Multiply>(op->name(), ng_diff, ng_diff);
-      });
+  shared_ptr<ng::Node> input1;
+  shared_ptr<ng::Node> input2;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &input1, &input2));
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::SquaredDifference>(
+                                      op->name(), input1, input2));
+  return Status::OK();
 }
 
 static Status TranslateSqueezeOp(const Node* op,
@@ -5327,7 +5326,6 @@ Status Builder::TranslateGraph(
 
     const function<Status(const Node*, const std::vector<const Tensor*>&,
                           Builder::OpMap&)>* op_fun;
-
     try {
       op_fun = &(TRANSLATE_OP_MAP.at(op->type_string()));
     } catch (const std::out_of_range&) {
