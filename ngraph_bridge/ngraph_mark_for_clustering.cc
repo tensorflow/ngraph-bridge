@@ -1073,6 +1073,7 @@ GetTFToNgOpMap() {
         {"Unpack",
          {std::make_shared<ngraph::op::Slice>(),
           std::make_shared<ngraph::op::Reshape>()}},
+        {"Xor", {std::make_shared<ngraph::op::Xor>()}},
         {"ZerosLike", {constant}},
 #if defined NGRAPH_DISTRIBUTED
         {"HorovodAllreduce", {std::make_shared<ngraph::op::AllReduce>()}},

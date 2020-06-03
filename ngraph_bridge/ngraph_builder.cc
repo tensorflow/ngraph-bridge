@@ -5095,6 +5095,17 @@ static Status TranslateSelectOp(const Node* op,
   return Status::OK();
 }
 
+static Status TranslateXorOp(const Node* op,
+                             const std::vector<const Tensor*>& static_input_map,
+                             Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> input1;
+  shared_ptr<ng::Node> input2;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &input1, &input2));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::Xor>(op->name(), input1, input2));
+  return Status::OK();
+}
+
 static Status TranslateZerosLikeOp(const Node* op,
                                    const std::vector<const Tensor*>&,
                                    Builder::OpMap& ng_op_map) {
@@ -5231,7 +5242,7 @@ const static std::map<
       {"TanhGrad", TranslateTanhGradOp}, {"Tile", TranslateTileOp},
       {"TopKV2", TranslateTopKV2Op}, {"Transpose", TranslateTransposeOp},
       {"UnsortedSegmentSum", TranslateUnsortedSegmentSumOp},
-      {"Unpack", TranslateUnpackOp}, {
+      {"Unpack", TranslateUnpackOp}, {"LogicalXor", TranslateXorOp}, {
     "ZerosLike", TranslateZerosLikeOp
   }
 };
