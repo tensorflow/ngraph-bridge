@@ -5095,9 +5095,9 @@ static Status TranslateSelectOp(const Node* op,
   return Status::OK();
 }
 
-static Status TranslateXorOp(const Node* op,
-                             const std::vector<const Tensor*>& static_input_map,
-                             Builder::OpMap& ng_op_map) {
+static Status TranslateLogicalXorOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> input1;
   shared_ptr<ng::Node> input2;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &input1, &input2));
@@ -5177,7 +5177,7 @@ const static std::map<
       {"LogicalAnd", TranslateBinaryOp<ngraph::op::And>},
       {"LogicalNot", TranslateUnaryOp<ngraph::op::Not>},
       {"LogicalOr", TranslateBinaryOp<ngraph::op::Or>},
-      {"MatMul", TranslateMatMulOp},
+      {"LogicalXor", TranslateLogicalXorOp}, {"MatMul", TranslateMatMulOp},
       {"Max", TranslateDirectReduceOp<ng::op::Max>},
       {"Maximum", TranslateBinaryOp<ngraph::op::Maximum>},
       {"MaxPool", TranslateMaxPoolOp}, {"MaxPool3D", TranslateMaxPool3DOp},
@@ -5242,7 +5242,7 @@ const static std::map<
       {"TanhGrad", TranslateTanhGradOp}, {"Tile", TranslateTileOp},
       {"TopKV2", TranslateTopKV2Op}, {"Transpose", TranslateTransposeOp},
       {"UnsortedSegmentSum", TranslateUnsortedSegmentSumOp},
-      {"Unpack", TranslateUnpackOp}, {"LogicalXor", TranslateXorOp}, {
+      {"Unpack", TranslateUnpackOp}, {
     "ZerosLike", TranslateZerosLikeOp
   }
 };

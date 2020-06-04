@@ -468,6 +468,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Unpack"] = SimpleConfirmationFunction();
     confirmation_function_map["UnsortedSegmentSum"] =
         SimpleConfirmationFunction();
+    confirmation_function_map["LogicalXor"] = SimpleConfirmationFunction();
     confirmation_function_map["ZerosLike"] = SimpleConfirmationFunction();
     initialized = true;
   }
@@ -1073,7 +1074,7 @@ GetTFToNgOpMap() {
         {"Unpack",
          {std::make_shared<ngraph::op::Slice>(),
           std::make_shared<ngraph::op::Reshape>()}},
-        {"Xor", {std::make_shared<ngraph::op::Xor>()}},
+        {"LogicalXor", {std::make_shared<ngraph::op::Xor>()}},
         {"ZerosLike", {constant}},
 #if defined NGRAPH_DISTRIBUTED
         {"HorovodAllreduce", {std::make_shared<ngraph::op::AllReduce>()}},

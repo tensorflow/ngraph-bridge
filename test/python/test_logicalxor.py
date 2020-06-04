@@ -36,7 +36,7 @@ class TestXorOperations(NgraphTest):
         input_y = ((False, True, False, True))
         x = tf.compat.v1.placeholder(tf.bool, shape=(4,))
         y = tf.compat.v1.placeholder(tf.bool, shape=(4,))
-        out = tf.logical_xor(x, y)
+        out = tf.math.logical_xor(x, y)
 
         def run_test(sess):
             return sess.run((out,), feed_dict={x: input_x, y: input_y})
