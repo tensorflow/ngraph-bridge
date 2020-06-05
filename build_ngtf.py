@@ -53,7 +53,7 @@ def main():
     '''
 
     # Component versions
-    ngraph_version = "08c20a3c91fb2d84c89c8434d79a98346318498c"  #Cyphers/opmove (#4560),pre-built dldt commit
+    ngraph_version = "94456090176ad6abda633b496b89cc16157ed4b0"  #add codegen support to cpu backend (#4679) ,May 26
     tf_version = "v1.15.2"
 
     # Command line parser options
