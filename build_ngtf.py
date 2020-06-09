@@ -445,18 +445,18 @@ def main():
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
+    ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=ON"])
     if not arguments.use_prebuilt_tensorflow:
         if arguments.use_tensorflow_from_location:
             ngraph_tf_cmake_flags.extend([
                 "-DTF_SRC_DIR=" + os.path.abspath(
-                    arguments.use_tensorflow_from_location + '/tensorflow'),
-                "-DUNIT_TEST_ENABLE=ON"
+                    arguments.use_tensorflow_from_location + '/tensorflow')
             ])
         else:
             ngraph_tf_cmake_flags.extend([
                 "-DTF_SRC_DIR=" + tf_src_dir,
                 "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(
-                    artifacts_location, "tensorflow"), "-DUNIT_TEST_ENABLE=ON"
+                    artifacts_location, "tensorflow")
             ])
 
     if ((arguments.distributed_build == "OMPI") or
