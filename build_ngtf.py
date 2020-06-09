@@ -454,9 +454,8 @@ def main():
             ])
         else:
             ngraph_tf_cmake_flags.extend([
-                "-DTF_SRC_DIR=" + tf_src_dir,
-                "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(
-                    artifacts_location, "tensorflow")
+                "-DTF_SRC_DIR=" + tf_src_dir, "-DUNIT_TEST_TF_CC_DIR=" +
+                os.path.join(artifacts_location, "tensorflow")
             ])
 
     if ((arguments.distributed_build == "OMPI") or
