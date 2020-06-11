@@ -517,11 +517,9 @@ def main():
         dest_dir = os.path.join(artifacts_location, "tensorflow")
         if os.path.exists(dest_dir):
             shutil.rmtree(dest_dir)
-        command_executor([
-            'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
-            dest_dir
-        ],
-                         verbose=True)
+        command_executor(
+            ['cp', '-r', base_dir + '/tensorflow/tensorflow/python', dest_dir],
+            verbose=True)
     else:
         # Create a sym-link to
         link_src = os.path.join(artifacts_location,
