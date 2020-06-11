@@ -205,7 +205,7 @@ static Status GetInputNodes(const Builder::OpMap& ng_op_map, const Node* op,
 static Status GetStaticNodeTensor(
     const Node* node, const std::vector<const Tensor*>& static_input_map,
     Tensor* result) {
-  if (node->type_string() == "_Arg") {
+  if (node->IsArg()) {
     int arg_index;
     TF_RETURN_IF_ERROR(GetNodeAttr(node->attrs(), "index", &arg_index));
     const Tensor* source_tensor = static_input_map[arg_index];
@@ -323,7 +323,7 @@ static Status MakeConstOp(const Node* op, ng::element::Type et,
   TF_RETURN_IF_ERROR(TFTensorShapeToNGraphShape(const_shape, &ng_shape));
 
   *ng_node =
-      ConstructNgNode<ng::op::Constant>(op->name(), et, ng_shape, const_values);
+      ConstructNgNode<ng::opset3::Constant>(op->name(), et, ng_shape, const_values);
   return Status::OK();
 }
 
@@ -540,9 +540,6 @@ static Status TranslateBinaryOp(
         create_binary_op) {
   std::shared_ptr<ng::Node> ng_lhs, ng_rhs;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
-
-  std::tie(ng_lhs, ng_rhs) =
-      Builder::PerformNgBroadcast(op->name(), ng_lhs, ng_rhs);
 
   auto ng_node = create_binary_op(ng_lhs, ng_rhs);
   if (ng_node != ng_lhs && ng_node != ng_rhs) {
@@ -1937,18 +1934,19 @@ static Status TranslateExpandDimsOp(
   }
 
   auto& shape = ng_input->get_shape();
-  auto shape_size = shape.size();
   if (dim_vec[0] < 0) {
     // allow range [-rank(input) - 1, rank(input)]
     // where -1 append new axis at the end
-    dim_vec[0] = shape_size + dim_vec[0] + 1;
+    dim_vec[0] = shape.size() + dim_vec[0] + 1;
   }
   auto out_shape = shape;
   out_shape.insert(out_shape.begin() + size_t(dim_vec[0]), 1);
-  std::vector<size_t> shape_dimensions(shape.size());
-  std::iota(shape_dimensions.begin(), shape_dimensions.end(), 0);
-  std::shared_ptr<ng::Node> ng_expand_dim = ConstructNgNode<ng::op::Reshape>(
-      op->name(), ng_input, shape_dimensions, out_shape);
+
+  auto ng_shape = ConstructNgNode<ng::opset3::Constant>(
+    op->name(), ng::element::u64, ng::Shape{out_shape.size()}, out_shape);
+
+  std::shared_ptr<ng::Node> ng_expand_dim = ConstructNgNode<ng::opset3::Reshape>(
+      op->name(), ng_input, ng_shape, false);
 
   SaveNgOp(ng_op_map, op->name(), ng_expand_dim);
   return Status::OK();
@@ -2982,7 +2980,7 @@ static Status TranslateReduceOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map,
     std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>,
-                                            ng::AxisSet)>
+                                            std::shared_ptr<ng::Node>, const bool)>
         create_ng_node) {
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
@@ -3003,64 +3001,32 @@ static Status TranslateReduceOp(
   std::transform(
       axes.begin(), axes.end(), ng_reduction_axes_vect.begin(),
       [input_rank](int idx) { return idx + (idx < 0 ? (int)input_rank : 0); });
-  ng::AxisSet ng_reduction_axes(ng_reduction_axes_vect);
+  auto ng_reduction_axes = ConstructNgNode<ng::op::Constant>(
+     op->name(), ng::element::i64, ng::Shape{ng_reduction_axes_vect.size()},
+     ng_reduction_axes_vect);
 
   std::shared_ptr<ng::Node> ng_node =
-      create_ng_node(ng_input, ng_reduction_axes);
+      create_ng_node(ng_input, ng_reduction_axes, tf_keep_dims);
   Builder::SetTracingInfo(op->name(), ng_node);
-
-  // If keep_dims is specified we need to reshape to put back the reduced
-  // axes, with length 1.
-  if (tf_keep_dims) {
-    ng::Shape ng_result_shape_with_keep(input_rank);
-
-    for (size_t i = 0; i < input_rank; i++) {
-      ng_result_shape_with_keep[i] =
-          ng_reduction_axes.count(i) == 0 ? input_shape[i] : 1;
-    }
-
-    ng::AxisVector ng_axis_order(ng_node->get_shape().size());
-    std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
-
-    ng_node = ConstructNgNode<ng::op::Reshape>(
-        op->name(), ng_node, ng_axis_order, ng_result_shape_with_keep);
-  }
 
   SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
-}
-
-static Status TranslateMeanOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  string op_name = op->name();
-  return TranslateReduceOp(op, static_input_map, ng_op_map,
-                           [&op_name](std::shared_ptr<ng::Node> ng_input,
-                                      ng::AxisSet ng_reduction_axes) {
-                             auto mean_node =
-                                 ng::builder::mean(ng_input, ng_reduction_axes);
-                             Builder::SetTracingInfo(op_name, mean_node);
-                             return mean_node;
-                           });
 }
 
 template <typename T>
 static Status TranslateDirectReduceOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  // ensure its Any, All, Min, Max, Sum or Product
-  if (!(std::is_same<T, ng::op::Sum>::value ||
-        std::is_same<T, ng::op::Product>::value ||
-        std::is_same<T, ng::op::Max>::value ||
-        std::is_same<T, ng::op::Min>::value ||
+  // ensure its either an arithmetic or a logical reduction
+  if (!(std::is_base_of<ngraph::op::util::ArithmeticReduction, T>::value ||
         std::is_base_of<ngraph::op::util::LogicalReduction, T>::value)) {
     return errors::InvalidArgument(
-        "Expected node to be Any, All, Min, Max, Sum or Product type");
+        "Expected node to be either a valid logical or arithmetic reduction type");
   }
   return TranslateReduceOp(
       op, static_input_map, ng_op_map,
-      [&op](std::shared_ptr<ng::Node> ng_input, ng::AxisSet ng_reduction_axes) {
-        return ConstructNgNode<T>(op->name(), ng_input, ng_reduction_axes);
+      [&op](std::shared_ptr<ng::Node> ng_input, std::shared_ptr<ng::Node> ng_reduction_axes, const bool keep_dims) {
+        return ConstructNgNode<T>(op->name(), ng_input, ng_reduction_axes, keep_dims);
       });
 }
 
@@ -3766,57 +3732,12 @@ static Status TranslateReshapeOp(
 
   NGRAPH_VLOG(3) << "Requested result shape: " << ng::join(shape);
 
-  size_t output_rank = shape.size();
-  size_t num_input_elements = ng::shape_size(ng_input->get_shape());
-
-  //
-  // If there is a single "-1" in the result shape, we have to auto-infer
-  // the length of that dimension.
-  //
-  size_t inferred_pos;
-  size_t product_of_rest = 1;
-  bool seen_inferred = false;
-  for (size_t i = 0; i < output_rank; i++) {
-    if (shape[i] == -1) {
-      if (seen_inferred) {
-        return errors::InvalidArgument(
-            "Multiple -1 dimensions in result shape");
-      }
-      inferred_pos = i;
-      seen_inferred = true;
-    } else {
-      product_of_rest *= shape[i];
-    }
-  }
-
-  if (seen_inferred) {
-    if (num_input_elements % product_of_rest != 0) {
-      NGRAPH_VLOG(3) << "{" << ng::join(ng_input->get_shape()) << "}";
-      NGRAPH_VLOG(3) << "{" << ng::join(shape) << "}";
-      return errors::InvalidArgument(
-          "Product of known dimensions (", product_of_rest,
-          ") does not evenly divide the number of input elements (",
-          num_input_elements, ")");
-    }
-    shape[inferred_pos] = num_input_elements / product_of_rest;
-  }
-
-  //
-  // Convert the values from the constant into an nGraph::Shape, and
-  // construct the axis order while we are at it.
-  //
-  ng::Shape ng_shape(output_rank);
-
-  for (size_t i = 0; i < output_rank; i++) {
-    ng_shape[i] = shape[i];
-  }
-
-  ng::AxisVector ng_axis_order(ng_input->get_shape().size());
-  std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
+  auto ng_shape = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::u64, ng::Shape{shape.size()}, shape);
 
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::op::Reshape>(op->name(), ng_input, ng_axis_order,
-                                            ng_shape));
+           ConstructNgNode<ng::opset3::Reshape>(op->name(), ng_input, ng_shape,
+                                            false));
   return Status::OK();
 }
 
@@ -5129,8 +5050,8 @@ const static std::map<
       {"Add", TranslateBinaryOp<ngraph::opset3::Add>},
       {"AddN", TranslateAddNOp},
       {"AddV2", TranslateBinaryOp<ngraph::opset3::Add>},
-      {"Any", TranslateDirectReduceOp<ng::op::Any>},
-      {"All", TranslateDirectReduceOp<ng::op::All>},
+      {"Any", TranslateDirectReduceOp<ng::opset3::ReduceLogicalOr>},
+      {"All", TranslateDirectReduceOp<ng::opset3::ReduceLogicalAnd>},
       {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
       {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
       {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
@@ -5149,7 +5070,7 @@ const static std::map<
       {"Cumsum", TranslateCumsumOp}, {"DepthToSpace", TranslateDepthToSpaceOp},
       {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
       {"Dequantize", TranslateDequantizeOp},
-      {"Equal", TranslateBinaryOp<ngraph::op::Equal>},
+      {"Equal", TranslateBinaryOp<ngraph::opset3::Equal>},
       {"Exp", TranslateUnaryOp<ngraph::op::Exp>},
       {"ExpandDims", TranslateExpandDimsOp}, {"Fill", TranslateFillOp},
       {"Floor", TranslateUnaryOp<ngraph::op::Floor>},
@@ -5164,27 +5085,28 @@ const static std::map<
       {"_FusedConv2D", TranslateFusedConv2DOp},
       {"_FusedMatMul", TranslateFusedMatMulOp},
       {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
-      {"GreaterEqual", TranslateBinaryOp<ngraph::op::GreaterEq>},
+      {"GreaterEqual", TranslateBinaryOp<ngraph::opset3::GreaterEqual>},
 #if defined(NGRAPH_DISTRIBUTED)
       {"HorovodAllreduce", TranslateUnaryOp<ngraph::op::AllReduce>},
       {"HorovodBroadcast", TranslateUnaryOp<ngraph::op::BroadcastDistributed>},
 #endif
       {"Identity", TranslateIdentityOp}, {"IsFinite", TranslateIsFiniteOp},
       {"L2Loss", TranslateL2LossOp}, {"LogSoftmax", TranslateLogSoftmaxOp},
-      {"Less", TranslateBinaryOp<ngraph::op::Less>},
-      {"LessEqual", TranslateBinaryOp<ngraph::op::LessEq>},
+      {"Less", TranslateBinaryOp<ngraph::opset3::Less>},
+      {"LessEqual", TranslateBinaryOp<ngraph::opset3::LessEqual>},
       {"Log", TranslateUnaryOp<ngraph::op::Log>}, {"Log1p", TranslateLog1pOp},
       {"LogicalAnd", TranslateBinaryOp<ngraph::op::And>},
       {"LogicalNot", TranslateUnaryOp<ngraph::op::Not>},
       {"LogicalOr", TranslateBinaryOp<ngraph::op::Or>},
       {"MatMul", TranslateMatMulOp},
-      {"Max", TranslateDirectReduceOp<ng::op::Max>},
-      {"Maximum", TranslateBinaryOp<ngraph::op::Maximum>},
+      {"Max", TranslateDirectReduceOp<ng::opset3::ReduceMax>},
+      {"Maximum", TranslateBinaryOp<ngraph::opset3::Maximum>},
       {"MaxPool", TranslateMaxPoolOp}, {"MaxPool3D", TranslateMaxPool3DOp},
       {"MaxPoolGrad", TranslateMaxPoolGradOp},
       {"NonMaxSuppressionV4", TranslateNonMaxSuppressionV4Op},
-      {"Mean", TranslateMeanOp}, {"Min", TranslateDirectReduceOp<ng::op::Min>},
-      {"Minimum", TranslateBinaryOp<ngraph::op::Minimum>},
+      {"Mean", TranslateDirectReduceOp<ng::opset3::ReduceMean>},
+      {"Min", TranslateDirectReduceOp<ng::opset3::ReduceMin>},
+      {"Minimum", TranslateBinaryOp<ngraph::opset3::Minimum>},
       {"Mul", TranslateBinaryOp<ngraph::opset3::Multiply>},
       {"Neg", TranslateUnaryOp<ngraph::op::Negative>},
       // Do nothing! NoOps sometimes get placed on nGraph for bureaucratic
@@ -5195,7 +5117,7 @@ const static std::map<
       {"Pad", TranslatePadOp}, {"Pow", TranslateBinaryOp<ngraph::op::Power>},
       // PreventGradient is just Identity in data-flow terms, so reuse that.
       {"PreventGradient", TranslateIdentityOp},
-      {"Prod", TranslateDirectReduceOp<ng::op::Product>},
+      {"Prod", TranslateDirectReduceOp<ng::opset3::ReduceProd>},
       {"QuantizeAndDequantizeV2", TranslateQuantizeAndDequantizeV2Op},
       {"QuantizedAvgPool", TranslateQuantizedAvgPoolOp},
       {"QuantizedConcat", TranslateQuantizedConcatOp},
@@ -5237,7 +5159,7 @@ const static std::map<
       {"StridedSlice", TranslateStridedSliceOp},
       {"StridedSliceGrad", TranslateStridedSliceGradOp},
       {"Sub", TranslateBinaryOp<ngraph::opset3::Subtract>},
-      {"Sum", TranslateDirectReduceOp<ng::op::Sum>},
+      {"Sum", TranslateDirectReduceOp<ng::opset3::ReduceSum>},
       {"Tanh", TranslateUnaryOp<ngraph::op::Tanh>},
       {"TanhGrad", TranslateTanhGradOp}, {"Tile", TranslateTileOp},
       {"TopKV2", TranslateTopKV2Op}, {"Transpose", TranslateTransposeOp},
@@ -5277,9 +5199,9 @@ Status Builder::TranslateGraph(
           n->DebugString());
     }
 
-    if (n->type_string() == "_Arg") {
+    if (n->IsArg()) {
       tf_params.push_back(n);
-    } else if (n->type_string() == "_Retval") {
+    } else if (n->IsRetval()) {
       tf_ret_vals.push_back(n);
     } else {
       tf_ops.push_back(n);
