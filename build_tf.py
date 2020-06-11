@@ -43,13 +43,9 @@ def main():
         default="native")
     arguments = parser.parse_args()
 
-    assert not os.path.isdir(
-        arguments.output_dir), arguments.output_dir + " already exists"
-    os.makedirs(arguments.output_dir)
+    if not os.path.isdir(arguments.output_dir):
+        os.makedirs(arguments.output_dir)
     os.chdir(arguments.output_dir)
-    assert not is_venv(
-    ), "Please deactivate virtual environment before running this script"
-
     assert not is_venv(
     ), "Please deactivate virtual environment before running this script"
 

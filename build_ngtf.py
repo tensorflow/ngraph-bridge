@@ -514,9 +514,12 @@ def main():
         base_dir = arguments.use_tensorflow_from_location
 
     if base_dir != None:
+        dest_dir = os.path.join(artifacts_location, "tensorflow")
+        if os.path.exists(dest_dir):
+            shutil.rmtree(dest_dir)
         command_executor([
             'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
-            os.path.join(artifacts_location, "tensorflow")
+            dest_dir
         ],
                          verbose=True)
     else:
