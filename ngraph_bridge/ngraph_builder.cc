@@ -322,8 +322,8 @@ static Status MakeConstOp(const Node* op, ng::element::Type et,
   ng::Shape ng_shape;
   TF_RETURN_IF_ERROR(TFTensorShapeToNGraphShape(const_shape, &ng_shape));
 
-  *ng_node =
-      ConstructNgNode<ng::opset3::Constant>(op->name(), et, ng_shape, const_values);
+  *ng_node = ConstructNgNode<ng::opset3::Constant>(op->name(), et, ng_shape,
+                                                   const_values);
   return Status::OK();
 }
 
@@ -1943,10 +1943,11 @@ static Status TranslateExpandDimsOp(
   out_shape.insert(out_shape.begin() + size_t(dim_vec[0]), 1);
 
   auto ng_shape = ConstructNgNode<ng::opset3::Constant>(
-    op->name(), ng::element::u64, ng::Shape{out_shape.size()}, out_shape);
+      op->name(), ng::element::u64, ng::Shape{out_shape.size()}, out_shape);
 
-  std::shared_ptr<ng::Node> ng_expand_dim = ConstructNgNode<ng::opset3::Reshape>(
-      op->name(), ng_input, ng_shape, false);
+  std::shared_ptr<ng::Node> ng_expand_dim =
+      ConstructNgNode<ng::opset3::Reshape>(op->name(), ng_input, ng_shape,
+                                           false);
 
   SaveNgOp(ng_op_map, op->name(), ng_expand_dim);
   return Status::OK();
@@ -2979,8 +2980,8 @@ static Status TranslateNonMaxSuppressionV4Op(
 static Status TranslateReduceOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map,
-    std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>,
-                                            std::shared_ptr<ng::Node>, const bool)>
+    std::function<std::shared_ptr<ng::Node>(
+        std::shared_ptr<ng::Node>, std::shared_ptr<ng::Node>, const bool)>
         create_ng_node) {
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
@@ -3002,8 +3003,8 @@ static Status TranslateReduceOp(
       axes.begin(), axes.end(), ng_reduction_axes_vect.begin(),
       [input_rank](int idx) { return idx + (idx < 0 ? (int)input_rank : 0); });
   auto ng_reduction_axes = ConstructNgNode<ng::op::Constant>(
-     op->name(), ng::element::i64, ng::Shape{ng_reduction_axes_vect.size()},
-     ng_reduction_axes_vect);
+      op->name(), ng::element::i64, ng::Shape{ng_reduction_axes_vect.size()},
+      ng_reduction_axes_vect);
 
   std::shared_ptr<ng::Node> ng_node =
       create_ng_node(ng_input, ng_reduction_axes, tf_keep_dims);
@@ -3021,12 +3022,15 @@ static Status TranslateDirectReduceOp(
   if (!(std::is_base_of<ngraph::op::util::ArithmeticReduction, T>::value ||
         std::is_base_of<ngraph::op::util::LogicalReduction, T>::value)) {
     return errors::InvalidArgument(
-        "Expected node to be either a valid logical or arithmetic reduction type");
+        "Expected node to be either a valid logical or arithmetic reduction "
+        "type");
   }
   return TranslateReduceOp(
       op, static_input_map, ng_op_map,
-      [&op](std::shared_ptr<ng::Node> ng_input, std::shared_ptr<ng::Node> ng_reduction_axes, const bool keep_dims) {
-        return ConstructNgNode<T>(op->name(), ng_input, ng_reduction_axes, keep_dims);
+      [&op](std::shared_ptr<ng::Node> ng_input,
+            std::shared_ptr<ng::Node> ng_reduction_axes, const bool keep_dims) {
+        return ConstructNgNode<T>(op->name(), ng_input, ng_reduction_axes,
+                                  keep_dims);
       });
 }
 
@@ -3735,9 +3739,8 @@ static Status TranslateReshapeOp(
   auto ng_shape = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng::element::u64, ng::Shape{shape.size()}, shape);
 
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::opset3::Reshape>(op->name(), ng_input, ng_shape,
-                                            false));
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Reshape>(
+                                      op->name(), ng_input, ng_shape, false));
   return Status::OK();
 }
 
