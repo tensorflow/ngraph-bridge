@@ -249,6 +249,9 @@ static Status TensorDataToVector(const Tensor& tensor, std::vector<T>* vector) {
   // Else we have to convert.
   else {
     switch (dt) {
+      case DT_HALF:
+        ConvertTensorDataToVector<Eigen::half, T>(tensor, vector);
+        break;
       case DT_FLOAT:
         ConvertTensorDataToVector<float, T>(tensor, vector);
         break;
@@ -352,7 +355,7 @@ Builder::TF_NGRAPH_CONST_MAP() {
           {DataType::DT_BOOL,
            make_pair(MakeConstOp<bool, char>, ng::element::boolean)},
           {DataType::DT_HALF,
-           make_pair(MakeConstOp<Eigen::half, ng::float16>, ng::element::f16)}};
+           make_pair(MakeConstOp<float, ng::float16>, ng::element::f16)}};
   return the_map;
 }
 
