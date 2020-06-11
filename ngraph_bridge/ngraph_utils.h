@@ -103,7 +103,7 @@ Status ValuesFromConstNode(const NodeDef& node,
   }
 
   if (node.attr().count("dtype") == 0 || node.attr().count("value") == 0 ||
-    node.attr().at("dtype").type() != DataTypeToEnum<T>::value) {
+      node.attr().at("dtype").type() != DataTypeToEnum<T>::value) {
     std::stringstream ss;
     ss << "Invalid data type defined for Const. Defined: "
        << node.attr().at("dtype").type();
