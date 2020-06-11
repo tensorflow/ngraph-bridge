@@ -156,6 +156,10 @@ Status ValuesFromConstNode(const NodeDef& node,
       switch (dt) {
         // TODO(amprocte/NGRAPH-2502): there are more element types to support
         // here
+        case DT_HALF:
+          val_size = tensor.half_val_size();
+          if (val_size > 0) val_i = (T)tensor.half_val()[i];
+          break;
         case DT_INT32:
           val_size = tensor.int_val_size();
           if (val_size > 0) val_i = tensor.int_val()[i];
