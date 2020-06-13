@@ -766,7 +766,7 @@ GetTFToNgOpMap() {
           std::make_shared<ngraph::op::Abs>()}},
         {"Equal", {std::make_shared<ngraph::opset3::Equal>()}},
         {"Exp", {std::make_shared<ngraph::op::Exp>()}},
-        {"ExpandDims", {std::make_shared<ngraph::op::Reshape>()}},
+        {"ExpandDims", {constant, std::make_shared<ngraph::opset3::Reshape>()}},
         {"Fill", {std::make_shared<ngraph::op::Broadcast>()}},
         {"Floor", {std::make_shared<ngraph::op::Floor>()}},
         {"FloorDiv",

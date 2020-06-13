@@ -3002,7 +3002,7 @@ static Status TranslateReduceOp(
   std::transform(
       axes.begin(), axes.end(), ng_reduction_axes_vect.begin(),
       [input_rank](int idx) { return idx + (idx < 0 ? (int)input_rank : 0); });
-  auto ng_reduction_axes = ConstructNgNode<ng::op::Constant>(
+  auto ng_reduction_axes = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng::element::i64, ng::Shape{ng_reduction_axes_vect.size()},
       ng_reduction_axes_vect);
 
