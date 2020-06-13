@@ -3037,13 +3037,12 @@ static Status TranslateDirectReduceOp(
 static Status TranslateOneHotOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_features, ng_on, ng_off;
+  shared_ptr<ng::Node> ng_features, ng_on, ng_off, ng_depth;
   TF_RETURN_IF_ERROR(
       GetInputNodes(ng_op_map, op, &ng_features, nullptr, &ng_on, &ng_off));
 
   auto ng_features_shape = ng_features->get_shape();
   auto ng_features_rank = ng_features_shape.size();
-
   std::vector<int> depth;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &depth));
 
@@ -3053,34 +3052,14 @@ static Status TranslateOneHotOp(
         "OneHot Op: depth of one hot dimension must be scalar ", depth.size());
   }
 
+  auto const_depth = ConstructNgNode<ng::op::Constant>(
+      op->name(), ng::element::i64, ng::Shape{}, depth);
+
   int one_hot_axis;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "axis", &one_hot_axis));
 
-  ng::Shape output_shape(ng_features_shape);
-  auto pos = output_shape.begin();
-  if (one_hot_axis == -1) {
-    one_hot_axis = ng_features_rank;
-    pos = output_shape.end();
-  } else {
-    pos = output_shape.begin() + one_hot_axis;
-  }
-  output_shape.insert(pos, depth[0]);
-
-  auto ng_onehot_labels = ConstructNgNode<ng::op::OneHot>(
-      op->name(), ng_features, output_shape, one_hot_axis);
-
-  shared_ptr<ng::Node> ng_onehot_bool = ConstructNgNode<ng::op::Convert>(
-      op->name(), ng_onehot_labels, ng::element::boolean);
-
-  // broadcast to make all tensors same shape, as required by ngraph select op
-  std::tie(ng_onehot_bool, ng_on) =
-      Builder::PerformNgBroadcast(op->name(), ng_onehot_bool, ng_on);
-  std::tie(ng_onehot_bool, ng_off) =
-      Builder::PerformNgBroadcast(op->name(), ng_onehot_bool, ng_off);
-
-  auto ng_onehot = ConstructNgNode<ng::op::Select>(op->name(), ng_onehot_bool,
-                                                   ng_on, ng_off);
-
+  shared_ptr<ng::Node> ng_onehot = ConstructNgNode<ng::opset3::OneHot>(
+      op->name(), ng_features, const_depth, ng_on, ng_off, one_hot_axis);
   SaveNgOp(ng_op_map, op->name(), ng_onehot);
   return Status::OK();
 }
@@ -4974,57 +4953,9 @@ static Status TranslateSelectOp(const Node* op,
   shared_ptr<ng::Node> ng_input1, ng_input2, ng_input3;
   TF_RETURN_IF_ERROR(
       GetInputNodes(ng_op_map, op, &ng_input1, &ng_input2, &ng_input3));
-
-  if (ng_input2->get_shape() != ng_input3->get_shape()) {
-    return errors::InvalidArgument(
-        "Input tensors 2 and 3 should have same shape");
-  }
-
-  auto ng_input1_shape = ng_input1->get_shape();
-  auto ng_input2_shape = ng_input2->get_shape();
-
-  auto ng_input1_rank = ng_input1->get_shape().size();
-  auto ng_input2_rank = ng_input2->get_shape().size();
-
-  if (!((ng_input1_shape == ng_input2_shape) ||
-        ((ng_input1_rank == 1) && (ng_input2_rank > ng_input1_rank) &&
-         (ng_input2_shape[0] == ng_input1_shape[0])))) {
-    return errors::InvalidArgument(
-        "Input tensor may have the same shape as condition. If condition is "
-        "rank 1, input may have higher rank, but its first dimension must "
-        "match the size of condition.");
-  }
-
-  int length = 0;
-  shared_ptr<ng::Node> ng_input_new, ng_select;
-
-  // If input tensor has higher rank than condiiton, length will be > 0.
-  length = ng_input2_rank - ng_input1_rank;
-
-  if (length != 0) {
-    // Condition tensor will be modified to align the condition tensor
-    // shape with input tensor shape index and fill the rest of the vector
-    // with
-    // 1s
-    // Eg: condition tensor [7], input tensor [7, 3, 2, 1]
-    // After Reshape, condition tensor will be [7, 1 ,1 ,1] for auto
-    // broadcast.
-
-    std::vector<size_t> tmp_vector((ng_input2_rank), 1);
-    tmp_vector[0] = ng_input1_shape[0];
-
-    ng_input_new = ConstructNgNode<ng::op::Reshape>(
-        op->name(), ng_input1, ng::AxisVector{0}, tmp_vector);
-  }
-
-  std::tie(ng_input1, ng_input2) = Builder::PerformNgBroadcast(
-      op->name(), (length != 0 ? ng_input_new : ng_input1), ng_input2);
-  std::tie(ng_input2, ng_input3) =
-      Builder::PerformNgBroadcast(op->name(), ng_input2, ng_input3);
-
-  ng_select = ConstructNgNode<ng::op::Select>(op->name(), ng_input1, ng_input2,
-                                              ng_input3);
-
+  shared_ptr<ng::Node> ng_select;
+  ng_select = ConstructNgNode<ng::opset3::Select>(op->name(), ng_input1,
+                                                  ng_input2, ng_input3);
   SaveNgOp(ng_op_map, op->name(), ng_select);
   return Status::OK();
 }
