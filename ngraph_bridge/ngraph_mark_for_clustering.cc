@@ -823,7 +823,7 @@ GetTFToNgOpMap() {
           std::make_shared<ngraph::op::Add>(), constant,
           std::make_shared<ngraph::op::Minimum>(),
           std::make_shared<ngraph::op::Reshape>()}},
-        {"Greater", {std::make_shared<ngraph::op::Greater>()}},
+        {"Greater", {std::make_shared<ngraph::opset3::Greater>()}},
         {"GreaterEqual", {std::make_shared<ngraph::opset3::GreaterEqual>()}},
         {"Identity", {}}, {"IsFinite",
                            {constant, std::make_shared<ngraph::op::NotEqual>(),

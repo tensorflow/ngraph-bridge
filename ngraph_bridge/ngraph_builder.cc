@@ -5018,7 +5018,7 @@ const static std::map<
       {"GatherV2", TranslateGatherV2Op},
       {"_FusedConv2D", TranslateFusedConv2DOp},
       {"_FusedMatMul", TranslateFusedMatMulOp},
-      {"Greater", TranslateBinaryOp<ngraph::op::Greater>},
+      {"Greater", TranslateBinaryOp<ngraph::opset3::Greater>},
       {"GreaterEqual", TranslateBinaryOp<ngraph::opset3::GreaterEqual>},
 #if defined(NGRAPH_DISTRIBUTED)
       {"HorovodAllreduce", TranslateUnaryOp<ngraph::op::AllReduce>},
