@@ -61,11 +61,11 @@ tf_workspace(
 http_archive(
     name = "ngraph",
     build_file = "//:bazel/ngraph.BUILD",
-    sha256 = "",
-    strip_prefix = "ngraph-94456090176ad6abda633b496b89cc16157ed4b0",
+    sha256 = "24e723f7ed47e2c0068fb5868d8ca88542948a13c9de063d8108f2b67785b089",
+    strip_prefix = "ngraph-0.28.0-rc.1",
     urls = [
-        "https://mirror.bazel.build/github.com/NervanaSystems/ngraph/archive/94456090176ad6abda633b496b89cc16157ed4b0.tar.gz",
-        "https://github.com/NervanaSystems/ngraph/archive/94456090176ad6abda633b496b89cc16157ed4b0.tar.gz",
+        "https://mirror.bazel.build/github.com/NervanaSystems/ngraph/archive/v0.28.0-rc.1.tar.gz",
+        "https://github.com/NervanaSystems/ngraph/archive/v0.28.0-rc.1.tar.gz",
     ],
 )
 
@@ -94,11 +94,11 @@ http_archive(
 http_archive(
         name = "mkl_dnn",
         build_file = "//:bazel/mkl_dnn.BUILD",
-        sha256 = "54737bcb4dc1961d32ee75da3ecc529fa48198f8b2ca863a079e19a9c4adb70f",
-        strip_prefix = "oneDNN-1.4",
+        sha256 = "31e78581e59d7e60d4becaba3834fc6a5bf2dccdae3e16b7f70d89ceab38423f",
+        strip_prefix = "mkl-dnn-0.21.3",
         urls = [
-            "http://mirror.tensorflow.org/github.com/oneapi-src/oneDNN/archive/v1.4.tar.gz",
-            "https://github.com/oneapi-src/oneDNN/archive/v1.4.tar.gz",
+            "http://mirror.tensorflow.org/github.com/intel/mkl-dnn/archive/v0.21.3.tar.gz",
+            "https://github.com/intel/mkl-dnn/archive/v0.21.3.tar.gz",
         ],
     )
 
