@@ -175,11 +175,6 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
                  "Graph with Clusters Encapsulated");
     }
 
-    // 5. Enter Prefetch Details in catalog then.
-    // No point dumping graph here as there is no change to the graph
-    // and only the catalog is populated here
-    TF_RETURN_IF_ERROR(EnterPrefetchInCatalog(options.graph->get(), idx));
-
     return Status::OK();
   }
 };

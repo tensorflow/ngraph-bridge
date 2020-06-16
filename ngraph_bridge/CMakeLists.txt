@@ -36,7 +36,6 @@ set(SRC
    ngraph_assign_clusters.cc
    ngraph_builder.cc
    ngraph_backend_manager.cc
-   ngraph_capture_variables.cc
    ngraph_find_replace_prefetchdataset.cc
    ngraph_catalog.cc
    ngraph_cluster_manager.cc
@@ -69,9 +68,6 @@ message(STATUS "NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS: ${NGRAPH_TF_ENABLE_VA
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     # common files
-    list(REMOVE_ITEM SRC ngraph_capture_variables.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_capture_variables.cc)
-
     list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
     list(APPEND SRC enable_variable_ops/ngraph_rewrite_pass.cc)
 
@@ -88,7 +84,8 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_op.cc)
-
+    list(APPEND SRC enable_variable_ops/ngraph_capture_variables.cc)
+    
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 endif()
 

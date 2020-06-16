@@ -76,7 +76,6 @@ set(SRC
     test_thread_safe_queue.cc
     test_enter_prefetch_in_catalog.cc
     test_ngraph_tensor_manager.cpp
-    test_capture_prefetch.cpp
     test_pipelined_tensor_store.cc
     dummy_backend.cpp
     test_dummy_backend.cpp
@@ -89,6 +88,7 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC graph_rewrites/test_replace_optimizer.cpp)
     list(APPEND SRC tf_fake_input.cc)
     list(APPEND SRC test_ng_var_update_ng_tensor_kernel.cc)
+    list(APPEND SRC test_capture_prefetch.cpp)
     list(APPEND SRC graph_rewrites/test_ng_var_update_ng_tensor.cc)
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 endif()
