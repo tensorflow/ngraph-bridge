@@ -100,6 +100,26 @@ TEST(MathOps, Abs2D) {
   opexecuter.RunTest();
 }  // end of test op Abs
 
+// Test op: Acos
+TEST(MathOps, Acos2D) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 4;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Acos(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Acos", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of test op Acos
+
 // Test op: Add
 TEST(MathOps, Add) {
   Scope root = Scope::NewRootScope();

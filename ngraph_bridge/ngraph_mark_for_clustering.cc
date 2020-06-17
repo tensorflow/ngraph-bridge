@@ -273,6 +273,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     // Please keep these in alphabetical order by op name.
     //
     confirmation_function_map["Abs"] = SimpleConfirmationFunction();
+    confirmation_function_map["Acos"] = SimpleConfirmationFunction();
     confirmation_function_map["Add"] = SimpleConfirmationFunction();
     confirmation_function_map["AddN"] = SimpleConfirmationFunction();
     confirmation_function_map["AddV2"] = SimpleConfirmationFunction();
@@ -493,6 +494,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     // Initialize type constraint map.
     //
     type_constraint_map["Abs"]["T"] = NGraphNumericDTypes();
+    type_constraint_map["Acos"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Add"]["T"] = NGraphNumericDTypes();
     type_constraint_map["AddN"]["T"] = NGraphNumericDTypes();
     type_constraint_map["AddV2"]["T"] = NGraphNumericDTypes();
@@ -708,6 +710,7 @@ GetTFToNgOpMap() {
   // implemented or a new Ngraph Op has been added
   static std::map<std::string, std::set<shared_ptr<ng::Node>>> TFtoNgraphOpMap {
     {"Abs", {std::make_shared<ngraph::opset3::Abs>()}},
+        {"Acos", {std::make_shared<ngraph::opset3::Acos>()}},
         {"Add", {std::make_shared<ngraph::opset3::Add>()}},
         {"AddN", {std::make_shared<ngraph::opset3::Add>()}},
         {"AddV2",

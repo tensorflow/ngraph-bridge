@@ -4950,6 +4950,7 @@ const static std::map<
                           Builder::OpMap&)>>
     TRANSLATE_OP_MAP {
   {"Abs", TranslateUnaryOp<ngraph::opset3::Abs>},
+      {"Acos", TranslateUnaryOp<ngraph::opset3::Acos>},
       {"Add", TranslateBinaryOp<ngraph::opset3::Add>},
       {"AddN", TranslateAddNOp},
       {"AddV2", TranslateBinaryOp<ngraph::opset3::Add>},
