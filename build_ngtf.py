@@ -295,14 +295,12 @@ def main():
         os.chdir(tf_whl_loc)
         tf_in_artifacts = os.path.join(
             os.path.abspath(artifacts_location), "tensorflow")
-        if os.path.isdir(tf_in_artifacts):
-            print("TensorFlow already exists in artifacts. Using that")
-        else:
+        if not os.path.isdir(tf_in_artifacts):
             os.mkdir(tf_in_artifacts)
-            # This function copies the .so files from
-            # use_tensorflow_from_location/artifacts/tensorflow to
-            # artifacts/tensorflow
-            copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc)
+        # This function copies the .so files from
+        # use_tensorflow_from_location/artifacts/tensorflow to
+        # artifacts/tensorflow
+        copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc)
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow:
@@ -387,7 +385,6 @@ def main():
         ngraph_src_dir = './ngraph'
         if arguments.ngraph_src_dir:
             ngraph_src_dir = arguments.ngraph_src_dir
-
             print("Using local nGraph source in directory ", ngraph_src_dir)
         else:
             if arguments.ngraph_version:
@@ -467,18 +464,22 @@ def main():
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
+    if arguments.use_tensorflow_from_location:
+        ngraph_tf_cmake_flags.extend([
+            "-DTF_SRC_DIR=" + os.path.abspath(
+                arguments.use_tensorflow_from_location + '/tensorflow')
+        ])
+    else:
+        if not arguments.disable_cpp_api:
+            print("TF_SRC_DIR: ", tf_src_dir)
+            ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
+
     ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=ON"])
-    if not arguments.use_prebuilt_tensorflow:
-        if arguments.use_tensorflow_from_location:
-            ngraph_tf_cmake_flags.extend([
-                "-DTF_SRC_DIR=" + os.path.abspath(
-                    arguments.use_tensorflow_from_location + '/tensorflow')
-            ])
-        else:
-            ngraph_tf_cmake_flags.extend([
-                "-DTF_SRC_DIR=" + tf_src_dir, "-DUNIT_TEST_TF_CC_DIR=" +
-                os.path.join(artifacts_location, "tensorflow")
-            ])
+    if not arguments.disable_cpp_api:
+        ngraph_tf_cmake_flags.extend([
+            "-DUNIT_TEST_TF_CC_DIR=" +
+            os.path.join(artifacts_location, "tensorflow")
+        ])
 
     if ((arguments.distributed_build == "OMPI") or
         (arguments.distributed_build == "MLSL")):
@@ -537,8 +538,6 @@ def main():
 
     if base_dir != None:
         dest_dir = os.path.join(artifacts_location, "tensorflow")
-        if os.path.exists(dest_dir):
-            shutil.rmtree(dest_dir)
         command_executor(
             ['cp', '-r', base_dir + '/tensorflow/tensorflow/python', dest_dir],
             verbose=True)
