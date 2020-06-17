@@ -477,8 +477,8 @@ def main():
     ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=ON"])
     if not arguments.disable_cpp_api:
         ngraph_tf_cmake_flags.extend([
-            "-DUNIT_TEST_TF_CC_DIR=" +
-            os.path.join(artifacts_location, "tensorflow")
+            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
+                                                    "tensorflow")
         ])
 
     if ((arguments.distributed_build == "OMPI") or
