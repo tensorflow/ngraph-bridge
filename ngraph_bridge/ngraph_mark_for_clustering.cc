@@ -370,7 +370,8 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
     confirmation_function_map["Mul"] = SimpleConfirmationFunction();
     confirmation_function_map["Neg"] = SimpleConfirmationFunction();
-    confirmation_function_map["NonMaxSuppressionV4"] = SimpleConfirmationFunction();
+    confirmation_function_map["NonMaxSuppressionV4"] =
+        SimpleConfirmationFunction();
     confirmation_function_map["NoOp"] = SimpleConfirmationFunction();
     confirmation_function_map["OneHot"] = SimpleConfirmationFunction();
     confirmation_function_map["Pad"] = SimpleConfirmationFunction();
@@ -859,7 +860,8 @@ GetTFToNgOpMap() {
         {"Minimum", {std::make_shared<ngraph::opset3::Minimum>()}},
         {"Mul", {std::make_shared<ngraph::opset3::Multiply>()}},
         {"Neg", {std::make_shared<ngraph::op::Negative>()}},
-        {"NonMaxSuppressionV4", {std::make_shared<ngraph::opset3::NonMaxSuppression>(), constant}},
+        {"NonMaxSuppressionV4",
+         {std::make_shared<ngraph::opset3::NonMaxSuppression>(), constant}},
         {"OneHot", {std::make_shared<ngraph::opset3::OneHot>(), constant}},
         {"Pack",
          {std::make_shared<ngraph::op::Concat>(),

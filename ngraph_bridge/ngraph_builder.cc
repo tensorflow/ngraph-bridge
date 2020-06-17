@@ -2272,8 +2272,8 @@ static Status TranslateGatherV2Op(
                                    "), but got ", tf_axis[0]);
   }
 
-  auto gather_op = ConstructNgNode<ng::op::Gather>(
-      op->name(), ng_input, ng_input_coords, tf_axis[0]);
+  auto gather_op = ConstructNgNode<ng::op::Gather>(op->name(), ng_input,
+                                                   ng_input_coords, tf_axis[0]);
 
   SaveNgOp(ng_op_map, op->name(), gather_op);
   return Status::OK();
@@ -4844,9 +4844,8 @@ const static std::map<
       {"BatchMatMul", TranslateBatchMatMulOp},
       {"BatchMatMulV2", TranslateBatchMatMulV2Op},
       {"BiasAdd", TranslateBiasAddOp}, {"BiasAddGrad", TranslateBiasAddGradOp},
-      {"Cast", TranslateCastOp},
-      {"ConcatV2", TranslateConcatV2Op}, {"Const", TranslateConstOp},
-      {"Conv2D", TranslateConv2DOp},
+      {"Cast", TranslateCastOp}, {"ConcatV2", TranslateConcatV2Op},
+      {"Const", TranslateConstOp}, {"Conv2D", TranslateConv2DOp},
       {"Conv2DBackpropFilter", TranslateConv2DBackpropFilterOp},
       {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
       {"Conv3D", TranslateConv3DOp}, {"Cos", TranslateUnaryOp<ngraph::op::Cos>},
