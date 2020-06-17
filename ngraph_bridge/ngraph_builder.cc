@@ -540,7 +540,6 @@ static Status TranslateBinaryOp(
         create_binary_op) {
   std::shared_ptr<ng::Node> ng_lhs, ng_rhs;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
-
   auto ng_node = create_binary_op(ng_lhs, ng_rhs);
   if (ng_node != ng_lhs && ng_node != ng_rhs) {
     Builder::SetTracingInfo(op->name(), ng_node);
@@ -1992,7 +1991,7 @@ static Status TranslateFloorDivOp(
   } else {
     ng_bin_fn = [&op](std::shared_ptr<ng::Node> ng_input1,
                       std::shared_ptr<ng::Node> ng_input2) {
-      return ConstructNgNode<ng::op::Floor>(
+      return ConstructNgNode<ng::opset3::Floor>(
           op->name(), ConstructNgNode<ng::opset3::Divide>(op->name(), ng_input1,
                                                           ng_input2));
     };
@@ -2000,20 +1999,22 @@ static Status TranslateFloorDivOp(
   return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_bin_fn);
 }
 
-static Status TranslateFloorModOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  auto ng_floormod = [&op](std::shared_ptr<ng::Node> ng_input1,
-                           std::shared_ptr<ng::Node> ng_input2) {
-    auto floordiv = ConstructNgNode<ng::op::Floor>(
-        op->name(),
-        ConstructNgNode<ng::opset3::Divide>(op->name(), ng_input1, ng_input2));
-    return ConstructNgNode<ng::opset3::Subtract>(
-        op->name(), ng_input1,
-        ConstructNgNode<ng::opset3::Multiply>(op->name(), floordiv, ng_input2));
-  };
-  return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_floormod);
-}
+// static Status TranslateFloorModOp(
+//     const Node* op, const std::vector<const Tensor*>& static_input_map,
+//     Builder::OpMap& ng_op_map) {
+//   auto ng_floormod = [&op](std::shared_ptr<ng::Node> ng_input1,
+//                            std::shared_ptr<ng::Node> ng_input2) {
+//     auto floordiv = ConstructNgNode<ng::opset3::Floor>(
+//         op->name(),
+//         ConstructNgNode<ng::opset3::Divide>(op->name(), ng_input1,
+//         ng_input2));
+//     return ConstructNgNode<ng::opset3::Subtract>(
+//         op->name(), ng_input1,
+//         ConstructNgNode<ng::opset3::Multiply>(op->name(), floordiv,
+//         ng_input2));
+//   };
+//   return TranslateBinaryOp(op, static_input_map, ng_op_map, ng_floormod);
+// }
 
 static Status TranslateFusedBatchNormOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
@@ -5007,8 +5008,9 @@ const static std::map<
       {"Equal", TranslateBinaryOp<ngraph::opset3::Equal>},
       {"Exp", TranslateUnaryOp<ngraph::op::Exp>},
       {"ExpandDims", TranslateExpandDimsOp}, {"Fill", TranslateFillOp},
-      {"Floor", TranslateUnaryOp<ngraph::op::Floor>},
-      {"FloorDiv", TranslateFloorDivOp}, {"FloorMod", TranslateFloorModOp},
+      {"Floor", TranslateUnaryOp<ngraph::opset3::Floor>},
+      {"FloorDiv", TranslateFloorDivOp},
+      {"FloorMod", TranslateBinaryOp<ngraph::opset3::FloorMod>},
       {"FusedBatchNorm", TranslateFusedBatchNormOp},
       {"FusedBatchNormV2", TranslateFusedBatchNormOp},
       {"FusedBatchNormV3", TranslateFusedBatchNormOp},
@@ -5029,9 +5031,9 @@ const static std::map<
       {"Less", TranslateBinaryOp<ngraph::opset3::Less>},
       {"LessEqual", TranslateBinaryOp<ngraph::opset3::LessEqual>},
       {"Log", TranslateUnaryOp<ngraph::op::Log>}, {"Log1p", TranslateLog1pOp},
-      {"LogicalAnd", TranslateBinaryOp<ngraph::op::And>},
+      {"LogicalAnd", TranslateBinaryOp<ngraph::opset3::LogicalAnd>},
       {"LogicalNot", TranslateUnaryOp<ngraph::op::Not>},
-      {"LogicalOr", TranslateBinaryOp<ngraph::op::Or>},
+      {"LogicalOr", TranslateBinaryOp<ngraph::opset3::LogicalOr>},
       {"MatMul", TranslateMatMulOp},
       {"Max", TranslateDirectReduceOp<ng::opset3::ReduceMax>},
       {"Maximum", TranslateBinaryOp<ngraph::opset3::Maximum>},
@@ -5048,7 +5050,8 @@ const static std::map<
       {"NoOp", [](const Node*, const std::vector<const Tensor*>&,
                   Builder::OpMap&) { return Status::OK(); }},
       {"OneHot", TranslateOneHotOp}, {"Pack", TranslatePackOp},
-      {"Pad", TranslatePadOp}, {"Pow", TranslateBinaryOp<ngraph::op::Power>},
+      {"Pad", TranslatePadOp},
+      {"Pow", TranslateBinaryOp<ngraph::opset3::Power>},
       // PreventGradient is just Identity in data-flow terms, so reuse that.
       {"PreventGradient", TranslateIdentityOp},
       {"Prod", TranslateDirectReduceOp<ng::opset3::ReduceProd>},
