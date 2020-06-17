@@ -5034,6 +5034,7 @@ const static std::map<
       {"LogicalAnd", TranslateBinaryOp<ngraph::opset3::LogicalAnd>},
       {"LogicalNot", TranslateUnaryOp<ngraph::op::Not>},
       {"LogicalOr", TranslateBinaryOp<ngraph::opset3::LogicalOr>},
+      {"LogicalXor", TranslateBinaryOp<ngraph::opset3::LogicalXor>},
       {"MatMul", TranslateMatMulOp},
       {"Max", TranslateDirectReduceOp<ng::opset3::ReduceMax>},
       {"Maximum", TranslateBinaryOp<ngraph::opset3::Maximum>},

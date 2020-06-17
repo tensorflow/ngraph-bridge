@@ -362,6 +362,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["LogicalAnd"] = SimpleConfirmationFunction();
     confirmation_function_map["LogicalNot"] = SimpleConfirmationFunction();
     confirmation_function_map["LogicalOr"] = SimpleConfirmationFunction();
+    confirmation_function_map["LogicalXor"] = SimpleConfirmationFunction();
     confirmation_function_map["MatMul"] = SimpleConfirmationFunction();
     confirmation_function_map["Max"] = SimpleConfirmationFunction();
     confirmation_function_map["Maximum"] = SimpleConfirmationFunction();
@@ -844,6 +845,7 @@ GetTFToNgOpMap() {
         {"LogicalAnd", {std::make_shared<ngraph::opset3::LogicalAnd>()}},
         {"LogicalNot", {std::make_shared<ngraph::op::Not>()}},
         {"LogicalOr", {std::make_shared<ngraph::opset3::LogicalOr>()}},
+        {"LogicalXor", {std::make_shared<ngraph::opset3::LogicalXor>()}},
         {"MatMul",
          {std::make_shared<ngraph::op::Reshape>(),
           std::make_shared<ngraph::op::MatMul>()}},
