@@ -86,7 +86,7 @@ def run_ngtf_cpp_gtests(artifacts_dir, log_dir, filters):
     log_dir = os.path.abspath(log_dir)
 
     # Check if we can run C++ tests
-    if not os.path.exists(os.path.join(build_dir, "test/gtest_ngtf")):
+    if not os.path.exists(os.path.join(artifacts_dir, "test/gtest_ngtf")):
         print("gtest_ngtf not found. Skipping C++ unit tests...")
         return
 
