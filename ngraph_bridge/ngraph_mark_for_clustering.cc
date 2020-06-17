@@ -321,7 +321,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Fill"] = SimpleConfirmationFunction();
     confirmation_function_map["Floor"] = SimpleConfirmationFunction();
     confirmation_function_map["FloorDiv"] = SimpleConfirmationFunction();
-    confirmation_function_map["FloorMod"] = SimpleConfirmationFunction();
+    // confirmation_function_map["FloorMod"] = SimpleConfirmationFunction();
     confirmation_function_map["FusedBatchNorm"] = SimpleConfirmationFunction();
     confirmation_function_map["FusedBatchNormV2"] =
         SimpleConfirmationFunction();
@@ -531,7 +531,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["ExpandDims"]["T"] = NGraphDTypes();
     type_constraint_map["Floor"]["T"] = NGraphNumericDTypes();
     type_constraint_map["FloorDiv"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["FloorMod"]["T"] = NGraphNumericDTypes();
+    // type_constraint_map["FloorMod"]["T"] = NGraphNumericDTypes();
     type_constraint_map["FusedBatchNorm"]["T"] = NGraphNumericDTypes();
     // TODO (mingshan): FusedBatchNormV2, V3 supports DT_HALF,DT_BFLOAT16,
     // DT_FLOAT
@@ -775,7 +775,7 @@ GetTFToNgOpMap() {
          {std::make_shared<ngraph::opset3::Divide>(),
           std::make_shared<ngraph::opset3::Floor>(),
           std::make_shared<ngraph::op::Broadcast>()}},
-        {"FloorMod", {std::make_shared<ngraph::opset3::FloorMod>()}},
+        //{"FloorMod", {std::make_shared<ngraph::opset3::FloorMod>()}},
         {"FusedBatchNorm",
          {std::make_shared<ngraph::op::BatchNormTraining>(),
           std::make_shared<ngraph::op::GetOutputElement>(), constant,
