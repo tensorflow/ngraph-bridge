@@ -160,6 +160,11 @@ def main():
     parser.add_argument(
         '--use_tensorflow_2', help="Builds with TF 2.0\n", action="store_true")
 
+    parser.add_argument(
+        '--disable_cpp_api',
+        help="Disables C++ API, unit tests and examples\n",
+        action="store_true")
+
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
 
@@ -327,6 +332,22 @@ def main():
 
             dst = os.path.join(dst_dir, tf_fmwk_lib_name)
             shutil.copyfile(tf_lib_file, dst)
+
+            if not arguments.disable_cpp_api:
+                tf_src_dir = os.path.join(artifacts_location, "tensorflow")
+                print("TF_SRC_DIR: ", tf_src_dir)
+                # Download TF source
+                pwd_now = os.getcwd()
+                os.chdir(artifacts_location)
+                print("DOWNLOADING TF: PWD", os.getcwd())
+                download_repo("tensorflow",
+                              "https://github.com/tensorflow/tensorflow.git",
+                              tf_version)
+                os.chdir(pwd_now)
+
+                # Now build the libtensorflow_cc.so - the C++ library
+                build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
+                                    target_arch, verbosity)
         else:
             print("Building TensorFlow from source")
             # Download TensorFlow
