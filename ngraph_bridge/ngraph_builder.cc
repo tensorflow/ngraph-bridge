@@ -2835,9 +2835,12 @@ static Status TranslateNonMaxSuppressionV4Op(
         score_threshold.size());
   }
 
-  auto& ng_max_output_size = ng::opset3::Constant::create(ng::element::i64, ng::Shape{}, max_output_size[0]);
-  auto& ng_iou_threshold = ng::opset3::Constant::create(ng::element::f32, ng::Shape{}, iou_threshold[0]);
-  auto& ng_score_threshold = ng::opset3::Constant::create(ng::element::f32, ng::Shape{}, score_threshold[0]);
+  auto ng_max_output_size = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::i64, ng::Shape{}, max_output_size[0]);
+  auto ng_iou_threshold = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::f32, ng::Shape{}, iou_threshold[0]);
+  auto ng_score_threshold = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::f32, ng::Shape{}, score_threshold[0]);
 
   shared_ptr<ng::Node> ng_nmsv4 =
       ConstructNgNode<ng::opset3::NonMaxSuppression>(
