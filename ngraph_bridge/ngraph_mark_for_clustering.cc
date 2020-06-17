@@ -862,7 +862,7 @@ GetTFToNgOpMap() {
         {"Minimum", {std::make_shared<ngraph::opset3::Minimum>()}},
         {"Mul", {std::make_shared<ngraph::opset3::Multiply>()}},
         {"Neg", {std::make_shared<ngraph::op::Negative>()}},
-        {"NonMaxSuppressionV4", {std::make_shared<ngraph::opset3::NonMaxSuppression>(), constant, constant, constant}},
+        {"NonMaxSuppressionV4", {std::make_shared<ngraph::opset3::NonMaxSuppression>(), constant}},
         {"OneHot", {std::make_shared<ngraph::opset3::OneHot>(), constant}},
         {"Pack",
          {std::make_shared<ngraph::op::Concat>(),
