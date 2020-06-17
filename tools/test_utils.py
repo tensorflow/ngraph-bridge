@@ -85,6 +85,11 @@ def run_ngtf_cpp_gtests(artifacts_dir, log_dir, filters):
     artifacts_dir = os.path.abspath(artifacts_dir)
     log_dir = os.path.abspath(log_dir)
 
+    # Check if we can run C++ tests
+    if not os.path.exists(os.path.join(build_dir, "test/gtest_ngtf")):
+        print("gtest_ngtf not found. Skipping C++ unit tests...")
+        return
+
     os.environ['GTEST_OUTPUT'] = 'xml:%s/xunit_gtest.xml' % log_dir
 
     if not os.path.isdir(artifacts_dir):
