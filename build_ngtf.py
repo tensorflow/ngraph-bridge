@@ -18,7 +18,7 @@
 from tools.build_utils import *
 
 
-def version_check(use_prebuilt_tensorflow):
+def version_check(use_prebuilt_tensorflow, disable_cpp_api):
     # Check pre-requisites
     if use_prebuilt_tensorflow:
         # Check if the gcc version is at least 5.3.0
@@ -35,16 +35,17 @@ def version_check(use_prebuilt_tensorflow):
         raise Exception("Need minimum cmake version 3.4\n"
                         "Got: " + '.'.join(cmake_ver))
 
-    # Check bazel version
-    bazel_ver = get_bazel_version()
-    got_correct_bazel_version = False
-    if (int(bazel_ver[1]) > 24 and int(bazel_ver[1]) <= 25):
-        if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
-            got_correct_bazel_version = True
+    if not disable_cpp_api:
+        # Check bazel version
+        bazel_ver = get_bazel_version()
+        got_correct_bazel_version = False
+        if (int(bazel_ver[1]) > 24 and int(bazel_ver[1]) <= 25):
+            if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
+                got_correct_bazel_version = True
 
-    if not got_correct_bazel_version:
-        raise Exception("Need bazel 0.24.1 < version <= 0.25.2 \n" + "Got: " +
-                        '.'.join(bazel_ver))
+        if not got_correct_bazel_version:
+            raise Exception("Need bazel 0.24.1 < version <= 0.25.2 \n" +
+                            "Got: " + '.'.join(bazel_ver))
 
 
 def main():
@@ -180,7 +181,7 @@ def main():
     # Recipe
     #-------------------------------
 
-    version_check(arguments.use_prebuilt_tensorflow)
+    version_check(arguments.use_prebuilt_tensorflow, arguments.disable_cpp_api)
 
     # Default directories
     build_dir = 'build_cmake'
