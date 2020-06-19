@@ -142,7 +142,7 @@ class NGraphPrefetchDatasetOp::Dataset : public DatasetBase {
       }
     }
 
-    string BuildTraceMeName() override {
+    string BuildTraceMeName() {
       int64 buffer_limit;
       {
         tf_shared_lock l(mu_);

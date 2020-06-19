@@ -16,7 +16,6 @@
 
 #include "tensorflow/core/framework/tensor.pb.h"
 #include "tensorflow/core/framework/tensor_shape.pb.h"
-#include "tensorflow/core/framework/tensor_shape.pb_text.h"
 #include "tensorflow/core/graph/algorithm.h"
 #include "tensorflow/core/graph/edgeset.h"
 #include "tensorflow/core/lib/core/errors.h"
