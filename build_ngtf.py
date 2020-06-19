@@ -100,7 +100,7 @@ def main():
         help="Skip building TensorFlow and use the specified prebuilt version.\n"
         +
         "Note that in this case C++ API, unit tests and examples won't be build for nGraph-TF bridge",
-        const='v1.15.2',
+        const=tf_version,
         default='',
         nargs='?',
         action="store")
@@ -256,6 +256,17 @@ def main():
 
     print("Target Arch: %s" % target_arch)
 
+    use_tensorflow_2 = False
+    if arguments.use_tensorflow_2:
+        tf_version = "v2.0.0"
+        use_tensorflow_2 = True
+
+    if arguments.use_prebuilt_tensorflow != '':
+        tf_version = arguments.use_prebuilt_tensorflow
+
+    if tf_version.startswith("v2.") or tf_version.startswith("2."):
+        use_tensorflow_2 = True
+
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
     # For gcc older than 5.3, this flag is set to 0 and for newer ones,
     # this is set to 1
@@ -264,8 +275,7 @@ def main():
     # and thus this flag is set to 1
     cxx_abi = "1"
 
-    if arguments.use_tensorflow_2:
-        tf_version = "v2.0.0"
+    if use_tensorflow_2:
         # For building NGTF with TF2.0 we need to apply the following patch
         patch_file = os.path.abspath(
             os.path.join(ngraph_tf_src_dir, "tf2changes.patch"))
@@ -307,7 +317,6 @@ def main():
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow != '':
-            tf_version = arguments.use_prebuilt_tensorflow
             print("Using existing TensorFlow version", tf_version)
             # Install TensorFlow
             command_executor(
@@ -316,12 +325,12 @@ def main():
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
-            if tf_version.startswith("v2.") or tf_version.startswith("2."):
+            if use_tensorflow_2:
                 tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
             else:
                 tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
             if (platform.system() == 'Darwin'):
-                if tf_version.startswith("v2.") or tf_version.startswith("2."):
+                if use_tensorflow_2:
                     tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
                 else:
                     tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
@@ -361,7 +370,7 @@ def main():
             tf_src_dir = os.path.join(os.getcwd(), "tensorflow")
             print("TF_SRC_DIR: ", tf_src_dir)
 
-            if arguments.use_tensorflow_2:
+            if use_tensorflow_2:
                 # For building TF 2.0 we need to apply the following patch
                 patch_file = os.path.abspath(
                     os.path.join(ngraph_tf_src_dir, "tf2update.patch"))
@@ -503,10 +512,8 @@ def main():
         flag_string_map[arguments.use_grappler_optimizer]
     ])
 
-    ngraph_tf_cmake_flags.extend([
-        "-DNGRAPH_TF_USE_TENSORFLOW_2=" +
-        flag_string_map[arguments.use_tensorflow_2]
-    ])
+    ngraph_tf_cmake_flags.extend(
+        ["-DNGRAPH_TF_USE_TENSORFLOW_2=" + flag_string_map[use_tensorflow_2]])
 
     # Now build the bridge
     ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,
@@ -532,7 +539,7 @@ def main():
     # 4. use_tensorflow_from_location is defined
     if arguments.use_tensorflow_from_location == '':
         # Case 1
-        if arguments.use_prebuilt_tensorflow:
+        if arguments.use_prebuilt_tensorflow != '':
             # Case 2
             base_dir = None
         else:
