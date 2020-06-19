@@ -58,8 +58,9 @@ def main():
 
     if not os.path.isdir(os.path.join(arguments.output_dir, "tensorflow")):
         # Download TensorFlow
-        download_repo("tensorflow", "https://github.com/tensorflow/tensorflow.git",
-                    arguments.tf_version)
+        download_repo("tensorflow",
+                      "https://github.com/tensorflow/tensorflow.git",
+                      arguments.tf_version)
     else:
         pwd = os.getcwd()
         os.chdir(os.path.join(arguments.output_dir, "tensorflow"))
