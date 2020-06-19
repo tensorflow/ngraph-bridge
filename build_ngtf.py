@@ -308,6 +308,7 @@ def main():
             # Install TensorFlow
             command_executor(
                 ["pip", "install", "-U", "tensorflow==" + tf_version])
+            cxx_abi = get_tf_cxxabi()
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
