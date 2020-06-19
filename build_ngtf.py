@@ -28,7 +28,7 @@ def version_check(use_prebuilt_tensorflow, disable_cpp_api):
                 raise Exception(
                     "Need GCC 5.3.0 or newer to build using prebuilt TensorFlow\n"
                     "Gcc version installed: " + gcc_ver + "\n"
-                    "To build from source ommit `use_prebuilt_tensorflow`")
+                    "To build from source omit `use_prebuilt_tensorflow`")
     # Check cmake version
     cmake_ver = get_cmake_version()
     if (int(cmake_ver[0]) < 3 or int(cmake_ver[1]) < 4):
@@ -65,10 +65,9 @@ def main():
         help="Builds a debug version of the nGraph components\n",
         action="store_true")
 
-    parser.add_argument(
-        '--verbose_build',
-        help="Display verbose error messages\n",
-        action="store_true")
+    parser.add_argument('--verbose_build',
+                        help="Display verbose error messages\n",
+                        action="store_true")
 
     parser.add_argument(
         '--target_arch',
@@ -97,9 +96,14 @@ def main():
 
     parser.add_argument(
         '--use_prebuilt_tensorflow',
-        help="Skip building TensorFlow and use downloaded version.\n" +
-        "Note that in this case C++ unit tests won't be build for nGraph-TF bridge",
-        action="store_true")
+        type=str,
+        help="Skip building TensorFlow and use the specified prebuilt version.\n"
+        +
+        "Note that in this case C++ API, unit tests and examples won't be build for nGraph-TF bridge",
+        const='v1.15.2',
+        default='',
+        nargs='?',
+        action="store")
 
     parser.add_argument(
         '--use_prebuilt_ngraph',
@@ -125,11 +129,10 @@ def main():
         help="Use Grappler optimizer instead of the optimization passes\n",
         action="store_true")
 
-    parser.add_argument(
-        '--artifacts_dir',
-        type=str,
-        help="Copy the artifacts to the given directory\n",
-        action="store")
+    parser.add_argument('--artifacts_dir',
+                        type=str,
+                        help="Copy the artifacts to the given directory\n",
+                        action="store")
 
     parser.add_argument(
         '--ngraph_src_dir',
@@ -153,18 +156,17 @@ def main():
         action="store",
         default='')
 
-    parser.add_argument(
-        '--use_ngraph_staticlibs',
-        help="Builds and links ngraph statically\n",
-        action="store_true")
+    parser.add_argument('--use_ngraph_staticlibs',
+                        help="Builds and links ngraph statically\n",
+                        action="store_true")
 
-    parser.add_argument(
-        '--use_tensorflow_2', help="Builds with TF 2.0\n", action="store_true")
+    parser.add_argument('--use_tensorflow_2',
+                        help="Builds with TF 2.0\n",
+                        action="store_true")
 
-    parser.add_argument(
-        '--disable_cpp_api',
-        help="Disables C++ API, unit tests and examples\n",
-        action="store_true")
+    parser.add_argument('--disable_cpp_api',
+                        help="Disables C++ API, unit tests and examples\n",
+                        action="store_true")
 
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
@@ -181,14 +183,15 @@ def main():
     # Recipe
     #-------------------------------
 
-    version_check(arguments.use_prebuilt_tensorflow, arguments.disable_cpp_api)
+    version_check((arguments.use_prebuilt_tensorflow != ''),
+                  arguments.disable_cpp_api)
 
     # Default directories
     build_dir = 'build_cmake'
 
     assert not (
         arguments.use_tensorflow_from_location != '' and
-        arguments.use_prebuilt_tensorflow
+        arguments.use_prebuilt_tensorflow != ''
     ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\" "
     "cannot be used together."
 
@@ -293,8 +296,8 @@ def main():
         cxx_abi = get_tf_cxxabi()
         cwd = os.getcwd()
         os.chdir(tf_whl_loc)
-        tf_in_artifacts = os.path.join(
-            os.path.abspath(artifacts_location), "tensorflow")
+        tf_in_artifacts = os.path.join(os.path.abspath(artifacts_location),
+                                       "tensorflow")
         if not os.path.isdir(tf_in_artifacts):
             os.mkdir(tf_in_artifacts)
         # This function copies the .so files from
@@ -303,8 +306,9 @@ def main():
         copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc)
         os.chdir(cwd)
     else:
-        if arguments.use_prebuilt_tensorflow:
-            print("Using existing TensorFlow")
+        if arguments.use_prebuilt_tensorflow != '':
+            tf_version = arguments.use_prebuilt_tensorflow
+            print("Using existing TensorFlow version", tf_version)
             # Install TensorFlow
             command_executor(
                 ["pip", "install", "-U", "tensorflow==" + tf_version])
@@ -312,12 +316,12 @@ def main():
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
-            if arguments.use_tensorflow_2:
+            if tf_version.startswith("v2.") or tf_version.startswith("2."):
                 tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
             else:
                 tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
             if (platform.system() == 'Darwin'):
-                if arguments.use_tensorflow_2:
+                if tf_version.startswith("v2.") or tf_version.startswith("2."):
                     tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
                 else:
                     tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
@@ -455,8 +459,8 @@ def main():
             ["-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location])
     else:
         ngraph_tf_cmake_flags.extend([
-            "-DNGRAPH_ARTIFACTS_DIR=" + os.path.abspath(
-                arguments.use_prebuilt_ngraph)
+            "-DNGRAPH_ARTIFACTS_DIR=" +
+            os.path.abspath(arguments.use_prebuilt_ngraph)
         ])
 
     if (arguments.use_ngraph_staticlibs):
@@ -467,8 +471,9 @@ def main():
 
     if arguments.use_tensorflow_from_location:
         ngraph_tf_cmake_flags.extend([
-            "-DTF_SRC_DIR=" + os.path.abspath(
-                arguments.use_tensorflow_from_location + '/tensorflow')
+            "-DTF_SRC_DIR=" +
+            os.path.abspath(arguments.use_tensorflow_from_location +
+                            '/tensorflow')
         ])
     else:
         if not arguments.disable_cpp_api:
@@ -478,8 +483,8 @@ def main():
     ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=ON"])
     if not arguments.disable_cpp_api:
         ngraph_tf_cmake_flags.extend([
-            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
-                                                    "tensorflow")
+            "-DUNIT_TEST_TF_CC_DIR=" +
+            os.path.join(artifacts_location, "tensorflow")
         ])
 
     if ((arguments.distributed_build == "OMPI") or
