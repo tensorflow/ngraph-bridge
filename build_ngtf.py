@@ -36,9 +36,9 @@ def version_check(use_prebuilt_tensorflow):
                         "Got: " + '.'.join(cmake_ver))
 
     # Check bazel version
-    bazel_ver = get_bazel_version()
-    got_correct_bazel_version = False
-    if (int(bazel_ver[1]) > 24 and int(bazel_ver[1]) <= 25):
+    bazel_kind, bazel_ver = get_bazel_version()
+    got_correct_bazel_version = bazel_kind == 'Bazelisk version'
+    if (not got_correct_bazel_version and int(bazel_ver[1]) > 24 and int(bazel_ver[1]) <= 25):
         if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
             got_correct_bazel_version = True
 
