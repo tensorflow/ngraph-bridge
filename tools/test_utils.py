@@ -133,7 +133,7 @@ def run_ngtf_pytests(venv_dir, build_dir):
 
     # Next run the ngraph-tensorflow python tests
     command_executor(["pip", "install", "-U", "pytest"])
-    command_executor(["pip", "install", "-U", "keras"])
+    command_executor(["pip", "install", "-U", "keras==2.3.1"])
     command_executor(["pip", "install", "-U", "psutil"])
 
     cmd = 'python -m pytest ' + (
