@@ -66,9 +66,10 @@ def main():
         help="Builds a debug version of the nGraph components\n",
         action="store_true")
 
-    parser.add_argument('--verbose_build',
-                        help="Display verbose error messages\n",
-                        action="store_true")
+    parser.add_argument(
+        '--verbose_build',
+        help="Display verbose error messages\n",
+        action="store_true")
 
     parser.add_argument(
         '--target_arch',
@@ -125,10 +126,11 @@ def main():
         help="Use Grappler optimizer instead of the optimization passes\n",
         action="store_true")
 
-    parser.add_argument('--artifacts_dir',
-                        type=str,
-                        help="Copy the artifacts to the given directory\n",
-                        action="store")
+    parser.add_argument(
+        '--artifacts_dir',
+        type=str,
+        help="Copy the artifacts to the given directory\n",
+        action="store")
 
     parser.add_argument(
         '--ngraph_src_dir',
@@ -152,17 +154,18 @@ def main():
         action="store",
         default='')
 
-    parser.add_argument('--use_ngraph_staticlibs',
-                        help="Builds and links ngraph statically\n",
-                        action="store_true")
+    parser.add_argument(
+        '--use_ngraph_staticlibs',
+        help="Builds and links ngraph statically\n",
+        action="store_true")
 
-    parser.add_argument('--use_tensorflow_2',
-                        help="Builds with TF 2.0\n",
-                        action="store_true")
+    parser.add_argument(
+        '--use_tensorflow_2', help="Builds with TF 2.0\n", action="store_true")
 
-    parser.add_argument('--disable_cpp_api',
-                        help="Disables C++ API, unit tests and examples\n",
-                        action="store_true")
+    parser.add_argument(
+        '--disable_cpp_api',
+        help="Disables C++ API, unit tests and examples\n",
+        action="store_true")
 
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
@@ -291,8 +294,8 @@ def main():
         cxx_abi = get_tf_cxxabi()
         cwd = os.getcwd()
         os.chdir(tf_whl_loc)
-        tf_in_artifacts = os.path.join(os.path.abspath(artifacts_location),
-                                       "tensorflow")
+        tf_in_artifacts = os.path.join(
+            os.path.abspath(artifacts_location), "tensorflow")
         if not os.path.isdir(tf_in_artifacts):
             os.mkdir(tf_in_artifacts)
         # This function copies the .so files from
@@ -453,8 +456,8 @@ def main():
             ["-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location])
     else:
         ngraph_tf_cmake_flags.extend([
-            "-DNGRAPH_ARTIFACTS_DIR=" +
-            os.path.abspath(arguments.use_prebuilt_ngraph)
+            "-DNGRAPH_ARTIFACTS_DIR=" + os.path.abspath(
+                arguments.use_prebuilt_ngraph)
         ])
 
     if (arguments.use_ngraph_staticlibs):
@@ -465,9 +468,8 @@ def main():
 
     if arguments.use_tensorflow_from_location:
         ngraph_tf_cmake_flags.extend([
-            "-DTF_SRC_DIR=" +
-            os.path.abspath(arguments.use_tensorflow_from_location +
-                            '/tensorflow')
+            "-DTF_SRC_DIR=" + os.path.abspath(
+                arguments.use_tensorflow_from_location + '/tensorflow')
         ])
     else:
         if not arguments.disable_cpp_api:
@@ -477,8 +479,8 @@ def main():
     ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=ON"])
     if not arguments.disable_cpp_api:
         ngraph_tf_cmake_flags.extend([
-            "-DUNIT_TEST_TF_CC_DIR=" +
-            os.path.join(artifacts_location, "tensorflow")
+            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
+                                                    "tensorflow")
         ])
 
     if ((arguments.distributed_build == "OMPI") or
