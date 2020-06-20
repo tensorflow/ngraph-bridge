@@ -99,8 +99,9 @@ def main():
         '--use_prebuilt_tensorflow',
         type=str,
         help="Skip building TensorFlow and use the specified prebuilt version.\n"
-        +
-        "Note that in this case C++ API, unit tests and examples won't be build for nGraph-TF bridge",
+        + "If prebuilt version isn't specified, TF version " + tf_version +
+        " will be used.\n" +
+        "Note: in this case C++ API, unit tests and examples won't be build for nGraph-TF bridge",
         const=tf_version,
         default='',
         nargs='?',
