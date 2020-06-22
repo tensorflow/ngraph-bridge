@@ -1083,7 +1083,7 @@ static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
 
   try {
     SaveNgOp(ng_op_map, op->name(),
-             ConstructNgNode<ng::op::Convert>(op->name(), ng_input, ng_et));
+             ConstructNgNode<ng::opset3::Convert>(op->name(), ng_input, ng_et));
   } catch (const std::out_of_range&) {
     return errors::Unimplemented("Unsupported TensorFlow data type: ",
                                  DataType_Name(dtype));

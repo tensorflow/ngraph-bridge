@@ -744,7 +744,7 @@ GetTFToNgOpMap() {
          {std::make_shared<ngraph::opset3::Add>(),
           std::make_shared<ngraph::op::Broadcast>()}},
         {"BiasAddGrad", {std::make_shared<ngraph::op::Sum>(), constant}},
-        {"Cast", {std::make_shared<ngraph::op::Convert>()}},
+        {"Cast", {std::make_shared<ngraph::opset3::Convert>()}},
         {"ConcatV2", {std::make_shared<ngraph::op::Concat>()}},
         {"Const", {constant}}, {"Conv2D",
                                 {std::make_shared<ngraph::op::Reshape>(),
