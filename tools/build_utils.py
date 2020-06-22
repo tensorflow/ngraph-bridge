@@ -149,6 +149,7 @@ def setup_venv(venv_dir):
         "install",
         "-U",
         "pip",
+        "psutil",
         "six>=1.10.0",
         "numpy>=1.13.3",
         "wheel>=0.26",
