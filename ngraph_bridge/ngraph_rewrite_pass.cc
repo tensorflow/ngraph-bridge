@@ -57,10 +57,12 @@ class NGraphRewritePass : public GraphOptimizationPass {
 
   static int s_serial_counter GUARDED_BY(s_serial_counter_mutex);
   static mutex s_serial_counter_mutex;
+  static mutex s_rewrite_mutex;
 };
 
 int NGraphRewritePass::s_serial_counter = 0;
 mutex NGraphRewritePass::s_serial_counter_mutex;
+mutex NGraphRewritePass::s_rewrite_mutex;
 
 //
 // Pass that rewrites the graph for nGraph operation.
@@ -86,6 +88,8 @@ mutex NGraphRewritePass::s_serial_counter_mutex;
 class NGraphEncapsulationPass : public NGraphRewritePass {
  public:
   Status Run(const GraphOptimizationPassOptions& options) override {
+    mutex_lock l(s_rewrite_mutex);
+
     // If we don't get a main graph, log that fact and bail.
     if (options.graph == nullptr) {
       NGRAPH_VLOG(0) << "NGraphEncapsulationPass: options.graph == nullptr";
