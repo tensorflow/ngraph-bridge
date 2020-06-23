@@ -248,7 +248,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.28.0-rc.1
+        GIT_TAG 94456090176ad6abda633b496b89cc16157ed4b0
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
@@ -379,18 +379,23 @@ endif()
 
 if (UNIT_TEST_ENABLE)
     if (NOT DEFINED TF_SRC_DIR)
-        message(FATAL_ERROR "Provide TensorFlow source directory: -DTF_SRC_DIR=<directory>")
-    endif()
-    if (NOT EXISTS ${TensorFlow_SRC_DIR})
         message(
-            STATUS 
-            "TensorFlow source directory doesn't exist"
+            STATUS
+            "TensorFlow source directory not provided. "
+            "C++ unit tests won't be built"
         )
-    endif()
+    else()
+        if (NOT EXISTS ${TensorFlow_SRC_DIR})
+            message(
+                STATUS 
+                "TensorFlow source directory doesn't exist"
+            )
+        endif()
 
-    # Check if the path specified is ABSOLUTE or RELATVE
-    if (NOT IS_ABSOLUTE ${TF_SRC_DIR})
-        set(TF_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TF_SRC_DIR})
+        # Check if the path specified is ABSOLUTE or RELATVE
+        if (NOT IS_ABSOLUTE ${TF_SRC_DIR})
+            set(TF_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TF_SRC_DIR})
+        endif()
     endif()
 
     add_subdirectory(test)
