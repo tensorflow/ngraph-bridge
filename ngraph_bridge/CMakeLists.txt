@@ -60,7 +60,6 @@ set(SRC
    tf_graphcycles.cc
    tf_deadness_analysis.cc
    prefetch_autotuner.cc
-   ngraph_prefetch_dataset_op.cc
    stats_utils.cc
    version.cc
 )
@@ -165,7 +164,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${TensorFlow_FRAMEWORK_LIBRARY} 
         ngraph_lib
         lib_cpu_backend_static
-        lib_interpreter_backend_static 
+        lib_interpreter_backend_static
         ngraph_lib
         dl
         absl_algorithm
