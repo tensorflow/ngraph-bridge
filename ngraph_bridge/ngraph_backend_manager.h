@@ -139,5 +139,8 @@ class BackendManager {
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
 
+extern "C" void ngraph_register_cpu_backend();
+extern "C" void ngraph_register_interpreter_backend();
+
 #endif
 // NGRAPH_TF_BRIDGE_BACKEND_MANAGER_H

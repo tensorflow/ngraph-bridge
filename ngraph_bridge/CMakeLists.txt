@@ -96,15 +96,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 endif()
 
-if(NGRAPH_CPU_STATIC_LIB_ENABLE)
-    add_definitions(-DNGRAPH_CPU_STATIC_LIB_ENABLE)
-endif()
-
-if(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
-    add_definitions(-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
-endif()
-
-
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)            
     list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
     list(APPEND SRC grappler/ngraph_optimizer.cc)
