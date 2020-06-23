@@ -240,7 +240,7 @@ def build_tensorflow(tf_version,
     command_executor(cmd)
 
     # If target is not specified, we assume default TF wheel build and copy the wheel to artifacts dir
-    if target == '':
+    if target == '//tensorflow/tools/pip_package:build_pip_package':
         command_executor([
             "bazel-bin/tensorflow/tools/pip_package/build_pip_package",
             artifacts_dir
