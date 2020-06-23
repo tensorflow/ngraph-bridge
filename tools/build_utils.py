@@ -220,16 +220,14 @@ def build_tensorflow(tf_version, venv_dir, src_dir, artifacts_dir, target_arch,
         "--config=opt",
         "--config=noaws",
         "--config=nohdfs",
-        "--config=noignite",
-        "--config=nokafka",
         "--config=nonccl",
     ]
     # Build the python package
-    if (tf_version == "v2.0.0"):
+    if (tf_version.startswith("v2.")):
         cmd.extend([
             "--config=v2",
         ])
-    elif (tf_version == "v1.15.2"):
+    elif (tf_version.startswith("v1.")):
         cmd.extend([
             "--config=v1",
         ])
@@ -308,9 +306,9 @@ def build_tensorflow_cc(tf_version, src_dir, artifacts_dir, target_arch,
         "--config=nonccl",
     ]
     # Build the python package
-    if (tf_version == "v2.0.0"):
+    if (tf_version.startswith("v2.")):
         cmd.extend(["--config=v2", "//tensorflow:libtensorflow_cc.so.2"])
-    elif (tf_version == "v1.15.2"):
+    elif (tf_version.startswith("v1.")):
         cmd.extend(["--config=v1", "//tensorflow:libtensorflow_cc.so.1"])
 
     command_executor(cmd)
@@ -321,9 +319,9 @@ def build_tensorflow_cc(tf_version, src_dir, artifacts_dir, target_arch,
 
 
 def copy_tf_cc_lib_to_artifacts(tf_version, artifacts_dir, tf_prebuilt):
-    if (tf_version == "v2.0.0"):
+    if (tf_version.startswith("v2.")):
         tf_cc_lib_name = 'libtensorflow_cc.so.2'
-    elif (tf_version == "v1.15.2"):
+    elif (tf_version.startswith("v1.")):
         tf_cc_lib_name = 'libtensorflow_cc.so.1'
     #if (platform.system() == 'Darwin'):
     #tf_cc_lib_name = 'libtensorflow_cc.1.dylib'
@@ -354,16 +352,16 @@ def locate_tf_whl(tf_whl_loc):
 
 
 def copy_tf_to_artifacts(tf_version, artifacts_dir, tf_prebuilt):
-    if (tf_version == "v2.0.0"):
+    if (tf_version.startswith("v2.")):
         tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
         tf_cc_lib_name = 'libtensorflow_cc.so.2'
-    elif (tf_version == "v1.15.2"):
+    elif (tf_version.startswith("v1.")):
         tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
         tf_cc_lib_name = 'libtensorflow_cc.so.1'
     if (platform.system() == 'Darwin'):
-        if (tf_version == "v2.0.0"):
+        if (tf_version.startswith("v2.")):
             tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
-        elif (tf_version == "v1.15.2"):
+        elif (tf_version.startswith("v1.")):
             tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
     try:
         doomed_file = os.path.join(artifacts_dir, tf_cc_lib_name)
@@ -526,11 +524,13 @@ def download_repo(target_name, repo, version):
     os.chdir(pwd)
 
 
-def apply_patch(patch_file):
+def apply_patch(patch_file, level=1):
     # IF patching TensorFlow unittests is done through an automation system,
     # please ensure the latest `libdvdnav-dev` or `libdvdnav-devel` is installed.
     cmd = subprocess.Popen(
-        'patch -p1 -N -i ' + patch_file, shell=True, stdout=subprocess.PIPE)
+        'patch -p' + str(level) + ' -N -i ' + patch_file,
+        shell=True,
+        stdout=subprocess.PIPE)
     printed_lines = cmd.communicate()
     # Check if the patch is being applied for the first time, in which case
     # cmd.returncode will be 0 or if the patch has already been applied, in
@@ -580,7 +580,8 @@ def get_bazel_version():
     # Build timestamp as int: 1557521268
     #
     output = cmd.communicate()[0].splitlines()[0].strip()
-    output = output.split(':')[1].strip()
-
-    version_tuple = output.split('.')
-    return version_tuple
+    version_info = output.split(':')
+    bazel_kind = version_info[0].strip()
+    version = version_info[1].strip()
+    version_tuple = version.split('.')
+    return bazel_kind, version_tuple
