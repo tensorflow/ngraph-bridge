@@ -150,15 +150,15 @@ def setup_venv(venv_dir):
         "-U",
         "pip",
         "psutil",
-        "six>=1.10.0",
-        "numpy>=1.13.3",
+        "six>=1.12.0",
+        "numpy>=1.16.0,<1.19.0",
         "wheel>=0.26",
         "setuptools",
         "mock",
         "termcolor>=1.1.0",
         "keras_applications>=1.0.6",
         "--no-deps",
-        "keras_preprocessing==1.0.5",
+        "keras_preprocessing>=1.1.1,<1.2",
         "--no-deps",
     ]
     command_executor(package_list)
@@ -195,7 +195,7 @@ def build_tensorflow(tf_version,
     # Set the TensorFlow configuration related variables
     os.environ["PYTHON_BIN_PATH"] = python_executable
     os.environ["PYTHON_LIB_PATH"] = python_lib_path
-    os.environ["TF_NEED_XLA"] = "0"
+    os.environ["TF_ENABLE_XLA"] = "0"
     if (platform.system() == 'Darwin'):
         os.environ["TF_CONFIGURE_IOS"] = "0"
     os.environ["TF_NEED_OPENCL_SYCL"] = "0"
