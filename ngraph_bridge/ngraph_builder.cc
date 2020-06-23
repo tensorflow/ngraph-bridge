@@ -1091,101 +1091,6 @@ static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
-static Status TranslateCombinedNonMaxSuppressionOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_boxes, ng_scores;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_boxes, &ng_scores,
-                                   nullptr, nullptr, nullptr, nullptr));
-
-  std::vector<int> max_output_size_per_class;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map,
-                                          &max_output_size_per_class));
-  std::vector<int> max_total_size;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 3, static_input_map, &max_total_size));
-  std::vector<float> iou_threshold;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 4, static_input_map, &iou_threshold));
-
-  std::vector<float> score_threshold;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 5, static_input_map, &score_threshold));
-
-  bool pad_per_class;
-  if (GetNodeAttr(op->attrs(), "pad_per_class", &pad_per_class) !=
-      Status::OK()) {
-    pad_per_class = false;
-  }
-  bool clip_boxes;
-  if (GetNodeAttr(op->attrs(), "clip_boxes", &clip_boxes) != Status::OK()) {
-    clip_boxes = false;
-  }
-  // max_output_size_per_class must be scalar
-  if (max_output_size_per_class.size() != 1) {
-    return errors::InvalidArgument(
-        "CombinedNonMaxSuppression Op: max_output_size_per_class of cnms must "
-        "be scalar ",
-        max_output_size_per_class.size());
-  }
-  // max_total_size must be scalar
-  if (max_total_size.size() != 1) {
-    return errors::InvalidArgument(
-        "CombinedNonMaxSuppression Op: max_total_size of cnms must be scalar ",
-        max_total_size.size());
-  }
-  // iou_threshold must be scalar
-  if (iou_threshold.size() != 1) {
-    return errors::InvalidArgument(
-        "CombinedNonMaxSuppression Op: iou_threshold of cnms must be scalar ",
-        iou_threshold.size());
-  }
-
-  // score_threshold must be scalar
-  if (score_threshold.size() != 1) {
-    return errors::InvalidArgument(
-        "CombinedNonMaxSuppression Op: score_threshold of cnms must be scalar ",
-        score_threshold.size());
-  }
-
-  std::string backend_name;
-  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
-
-  auto config_map = BackendManager::GetBackendAttributeValues(backend_name);
-  if (config_map.at("ngraph_backend") != "NNPI") {
-    return errors::Internal("In translating CombinedNonMaxSuppression op ",
-                            op->name(), " found requested backend ",
-                            backend_name, " which is unsupported");
-  }
-
-  ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
-
-  shared_ptr<ng::Node> ng_cnms = backend->get_backend_op(
-      "CombinedNonMaxSuppression", &ng_boxes, &ng_scores,
-      (size_t)(max_output_size_per_class[0]), (size_t)(max_total_size[0]),
-      (float)(iou_threshold[0]), (float)score_threshold[0], (bool)pad_per_class,
-      (bool)clip_boxes);
-  if (ng_cnms == nullptr) {
-    return errors::Internal("In translating CombinedNonMaxSuppression op ",
-                            op->name(),
-                            " backend could not return valid ngraph node");
-  }
-  Builder::SetTracingInfo(op->name(), ng_cnms);
-  shared_ptr<ngraph::Node> ng_nmsed_boxes =
-      ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_cnms, 0);
-  shared_ptr<ngraph::Node> ng_nmsed_scores =
-      ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_cnms, 1);
-  shared_ptr<ngraph::Node> ng_nmsed_classes =
-      ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_cnms, 2);
-  shared_ptr<ngraph::Node> ng_valid_detections =
-      ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_cnms, 3);
-
-  SaveNgOp(ng_op_map, op->name(), ng_nmsed_boxes);
-  SaveNgOp(ng_op_map, op->name(), ng_nmsed_scores);
-  SaveNgOp(ng_op_map, op->name(), ng_nmsed_classes);
-  SaveNgOp(ng_op_map, op->name(), ng_valid_detections);
-  return Status::OK();
-}
 static Status TranslateConcatV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -2367,25 +2272,10 @@ static Status TranslateGatherV2Op(
                                    "), but got ", tf_axis[0]);
   }
 
-  auto config_map = BackendManager::GetBackendAttributeValues(backend_name);
-  if (config_map.at("ngraph_backend") != "NNPI") {
-    auto gather_op = ConstructNgNode<ng::op::Gather>(
-        op->name(), ng_input, ng_input_coords, tf_axis[0]);
+  auto gather_op = ConstructNgNode<ng::op::Gather>(op->name(), ng_input,
+                                                   ng_input_coords, tf_axis[0]);
 
-    SaveNgOp(ng_op_map, op->name(), gather_op);
-  } else {
-    ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
-
-    shared_ptr<ng::Node> ng_gather =
-        backend->get_backend_op("Gather", &ng_input, &ng_input_coords, &axis);
-    if (ng_gather == nullptr) {
-      return errors::Internal("In translating GatherV2 op ", op->name(),
-                              " backend could not return valid ngraph node");
-    }
-    Builder::SetTracingInfo(op->name(), ng_gather);
-    SaveNgOp(ng_op_map, op->name(), ng_gather);
-  }
-
+  SaveNgOp(ng_op_map, op->name(), gather_op);
   return Status::OK();
 }
 
@@ -2945,27 +2835,19 @@ static Status TranslateNonMaxSuppressionV4Op(
         score_threshold.size());
   }
 
-  std::string backend_name;
-  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
+  auto ng_max_output_size = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::i64, ng::Shape{}, max_output_size[0]);
+  auto ng_iou_threshold = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::f32, ng::Shape{}, iou_threshold[0]);
+  auto ng_score_threshold = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::f32, ng::Shape{}, score_threshold[0]);
 
-  auto config_map = BackendManager::GetBackendAttributeValues(backend_name);
-  if (config_map.at("ngraph_backend") != "NNPI") {
-    return errors::Internal("In translating NonMaxSuppressionV4 op ",
-                            op->name(), " found requested backend ",
-                            backend_name, " which is unsupported");
-  }
+  shared_ptr<ng::Node> ng_nmsv4 =
+      ConstructNgNode<ng::opset3::NonMaxSuppression>(
+          op->name(), ng_boxes, ng_scores, ng_max_output_size, ng_iou_threshold,
+          ng_score_threshold);
 
-  ng::runtime::Backend* backend = BackendManager::GetBackend(backend_name);
-
-  shared_ptr<ng::Node> ng_nmsv4 = backend->get_backend_op(
-      "NonMaxSuppressionV4", &ng_boxes, &ng_scores,
-      (size_t)(max_output_size[0]), (float)(iou_threshold[0]),
-      (float)score_threshold[0], (bool)pad_to_max_output_size);
-  if (ng_nmsv4 == nullptr) {
-    return errors::Internal("In translating NonMaxSuppressionV4 op ",
-                            op->name(),
-                            " backend could not return valid ngraph node");
-  }
+  // ADK: (FIXME) are the outputs set correctly here?
   Builder::SetTracingInfo(op->name(), ng_nmsv4);
   shared_ptr<ngraph::Node> ng_selected_indices =
       ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_nmsv4, 0);
@@ -3220,11 +3102,11 @@ static Status TranslateReciprocalOp(
         auto et = n->get_element_type();
         auto shape = n->get_shape();
         std::vector<std::string> constant_values(ng::shape_size(shape), "-1");
-        auto ng_exponent = ConstructNgNode<ng::op::Constant>(
+        auto ng_exponent = ConstructNgNode<ng::opset3::Constant>(
             op->name(), et, shape, constant_values);
 
         // Raise each element of the input to the power -1.
-        return ConstructNgNode<ng::op::Power>(op->name(), n, ng_exponent);
+        return ConstructNgNode<ng::opset3::Power>(op->name(), n, ng_exponent);
       });
 }
 
@@ -3734,11 +3616,11 @@ static Status TranslateRsqrtOp(
         auto et = n->get_element_type();
         auto shape = n->get_shape();
         std::vector<std::string> constant_values(ng::shape_size(shape), "-0.5");
-        auto ng_exponent = ConstructNgNode<ng::op::Constant>(
+        auto ng_exponent = ConstructNgNode<ng::opset3::Constant>(
             op->name(), et, shape, constant_values);
 
         // Raise each element of the input to the power -0.5.
-        return ConstructNgNode<ng::op::Power>(op->name(), n, ng_exponent);
+        return ConstructNgNode<ng::opset3::Power>(op->name(), n, ng_exponent);
       });
 }
 
@@ -3782,17 +3664,17 @@ static Status TranslateRsqrtGradOp(const Node* op,
   auto et = ng_input->get_element_type();
   auto shape = ng_input->get_shape();
   std::vector<std::string> constant_values(ng::shape_size(shape), "3");
-  auto ng_exponent =
-      ConstructNgNode<ng::op::Constant>(op->name(), et, shape, constant_values);
+  auto ng_exponent = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), et, shape, constant_values);
 
   // Raise each element of the input to the power 3.
   auto ng_pow =
-      ConstructNgNode<ng::op::Power>(op->name(), ng_input, ng_exponent);
+      ConstructNgNode<ng::opset3::Power>(op->name(), ng_input, ng_exponent);
 
   // Create a constant tensor populated with the value -1/2.
   std::vector<std::string> constant_diff(ng::shape_size(shape), "-0.5");
-  auto ng_diff =
-      ConstructNgNode<ng::op::Constant>(op->name(), et, shape, constant_diff);
+  auto ng_diff = ConstructNgNode<ng::opset3::Constant>(op->name(), et, shape,
+                                                       constant_diff);
   auto ng_result = ConstructNgNode<ng::opset3::Multiply>(
       op->name(),
       (ConstructNgNode<ng::opset3::Multiply>(op->name(), ng_pow, ng_delta)),
@@ -4446,19 +4328,6 @@ static Status TranslateSquareOp(
       });
 }
 
-static Status TranslateSquaredDifferenceOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  return TranslateBinaryOp(
-      op, static_input_map, ng_op_map, [&op](std::shared_ptr<ng::Node> input1,
-                                             std::shared_ptr<ng::Node> input2) {
-        auto ng_diff =
-            ConstructNgNode<ng::opset3::Subtract>(op->name(), input1, input2);
-        return ConstructNgNode<ng::opset3::Multiply>(op->name(), ng_diff,
-                                                     ng_diff);
-      });
-}
-
 static Status TranslateSqueezeOp(const Node* op,
                                  const std::vector<const Tensor*>&,
                                  Builder::OpMap& ng_op_map) {
@@ -4949,7 +4818,8 @@ const static std::map<
     const function<Status(const Node*, const std::vector<const Tensor*>&,
                           Builder::OpMap&)>>
     TRANSLATE_OP_MAP {
-  {"Abs", TranslateUnaryOp<ngraph::op::Abs>},
+  {"Abs", TranslateUnaryOp<ngraph::opset3::Abs>},
+      {"Acos", TranslateUnaryOp<ngraph::opset3::Acos>},
       {"Add", TranslateBinaryOp<ngraph::opset3::Add>},
       {"AddN", TranslateAddNOp},
       {"AddV2", TranslateBinaryOp<ngraph::opset3::Add>},
@@ -4957,24 +4827,25 @@ const static std::map<
       {"All", TranslateDirectReduceOp<ng::opset3::ReduceLogicalAnd>},
       {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
       {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
+      {"Asin", TranslateUnaryOp<ngraph::opset3::Asin>},
+      {"Atan", TranslateUnaryOp<ngraph::opset3::Atan>},
       {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
       {"AvgPool", TranslateAvgPoolOp}, {"AvgPoolGrad", TranslateAvgPoolGradOp},
       {"BatchMatMul", TranslateBatchMatMulOp},
       {"BatchMatMulV2", TranslateBatchMatMulV2Op},
       {"BiasAdd", TranslateBiasAddOp}, {"BiasAddGrad", TranslateBiasAddGradOp},
-      {"Cast", TranslateCastOp},
-      {"CombinedNonMaxSuppression", TranslateCombinedNonMaxSuppressionOp},
-      {"ConcatV2", TranslateConcatV2Op}, {"Const", TranslateConstOp},
-      {"Conv2D", TranslateConv2DOp},
+      {"Cast", TranslateCastOp}, {"ConcatV2", TranslateConcatV2Op},
+      {"Const", TranslateConstOp}, {"Conv2D", TranslateConv2DOp},
       {"Conv2DBackpropFilter", TranslateConv2DBackpropFilterOp},
       {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
-      {"Conv3D", TranslateConv3DOp}, {"Cos", TranslateUnaryOp<ngraph::op::Cos>},
+      {"Conv3D", TranslateConv3DOp},
+      {"Cos", TranslateUnaryOp<ngraph::opset3::Cos>},
       {"CropAndResize", TranslateCropAndResizeOp},
       {"Cumsum", TranslateCumsumOp}, {"DepthToSpace", TranslateDepthToSpaceOp},
       {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
       {"Dequantize", TranslateDequantizeOp},
       {"Equal", TranslateBinaryOp<ngraph::opset3::Equal>},
-      {"Exp", TranslateUnaryOp<ngraph::op::Exp>},
+      {"Exp", TranslateUnaryOp<ngraph::opset3::Exp>},
       {"ExpandDims", TranslateExpandDimsOp}, {"Fill", TranslateFillOp},
       {"Floor", TranslateUnaryOp<ngraph::opset3::Floor>},
       {"FloorDiv", TranslateFloorDivOp},
@@ -4998,9 +4869,10 @@ const static std::map<
       {"L2Loss", TranslateL2LossOp}, {"LogSoftmax", TranslateLogSoftmaxOp},
       {"Less", TranslateBinaryOp<ngraph::opset3::Less>},
       {"LessEqual", TranslateBinaryOp<ngraph::opset3::LessEqual>},
-      {"Log", TranslateUnaryOp<ngraph::op::Log>}, {"Log1p", TranslateLog1pOp},
+      {"Log", TranslateUnaryOp<ngraph::opset3::Log>},
+      {"Log1p", TranslateLog1pOp},
       {"LogicalAnd", TranslateBinaryOp<ngraph::opset3::LogicalAnd>},
-      {"LogicalNot", TranslateUnaryOp<ngraph::op::Not>},
+      {"LogicalNot", TranslateUnaryOp<ngraph::opset3::LogicalNot>},
       {"LogicalOr", TranslateBinaryOp<ngraph::opset3::LogicalOr>},
       {"MatMul", TranslateMatMulOp},
       {"Max", TranslateDirectReduceOp<ng::opset3::ReduceMax>},
@@ -5012,7 +4884,7 @@ const static std::map<
       {"Min", TranslateDirectReduceOp<ng::opset3::ReduceMin>},
       {"Minimum", TranslateBinaryOp<ngraph::opset3::Minimum>},
       {"Mul", TranslateBinaryOp<ngraph::opset3::Multiply>},
-      {"Neg", TranslateUnaryOp<ngraph::op::Negative>},
+      {"Neg", TranslateUnaryOp<ngraph::opset3::Negative>},
       // Do nothing! NoOps sometimes get placed on nGraph for bureaucratic
       // reasons, but they have no data flow inputs or outputs.
       {"NoOp", [](const Node*, const std::vector<const Tensor*>&,
@@ -5040,15 +4912,16 @@ const static std::map<
       {"RandomUniform", TranslateRandomUniformOp},
       {"RealDiv", TranslateBinaryOp<ngraph::opset3::Divide>},
       {"Reciprocal", TranslateReciprocalOp},
-      {"Relu", TranslateUnaryOp<ngraph::op::Relu>}, {"Relu6", TranslateRelu6Op},
-      {"ReluGrad", TranslateReluGradOp}, {"Reshape", TranslateReshapeOp},
-      {"Rsqrt", TranslateRsqrtOp}, {"RsqrtGrad", TranslateRsqrtGradOp},
-      {"ScatterNd", TranslateScatterNdOp}, {"Select", TranslateSelectOp},
-      {"Shape", TranslateShapeOp}, {"Sigmoid", TranslateSigmoidOp},
-      {"SigmoidGrad", TranslateSigmoidGradOp},
-      {"Sin", TranslateUnaryOp<ngraph::op::Sin>}, {"Size", TranslateSizeOp},
-      {"Sign", TranslateUnaryOp<ngraph::op::Sign>}, {"Slice", TranslateSliceOp},
-      {"Snapshot", TranslateIdentityOp}, {"Softmax", TranslateSoftmaxOp},
+      {"Relu", TranslateUnaryOp<ngraph::opset3::Relu>},
+      {"Relu6", TranslateRelu6Op}, {"ReluGrad", TranslateReluGradOp},
+      {"Reshape", TranslateReshapeOp}, {"Rsqrt", TranslateRsqrtOp},
+      {"RsqrtGrad", TranslateRsqrtGradOp}, {"ScatterNd", TranslateScatterNdOp},
+      {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
+      {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
+      {"Sin", TranslateUnaryOp<ngraph::opset3::Sin>}, {"Size", TranslateSizeOp},
+      {"Sign", TranslateUnaryOp<ngraph::opset3::Sign>},
+      {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
+      {"Softmax", TranslateSoftmaxOp},
       {"SoftmaxCrossEntropyWithLogits",
        TranslateSoftmaxCrossEntropyWithLogitsOp},
       {"Softplus", TranslateSoftplusOp},
@@ -5056,15 +4929,16 @@ const static std::map<
       {"SparseSoftmaxCrossEntropyWithLogits",
        TranslateSparseSoftmaxCrossEntropyWithLogitsOp},
       {"Split", TranslateSplitOp}, {"SplitV", TranslateSplitVOp},
-      {"Sqrt", TranslateUnaryOp<ngraph::op::Sqrt>},
+      {"Sqrt", TranslateUnaryOp<ngraph::opset3::Sqrt>},
       {"Square", TranslateSquareOp},
-      {"SquaredDifference", TranslateSquaredDifferenceOp},
+      {"SquaredDifference",
+       TranslateBinaryOp<ngraph::opset3::SquaredDifference>},
       {"Squeeze", TranslateSqueezeOp},
       {"StridedSlice", TranslateStridedSliceOp},
       {"StridedSliceGrad", TranslateStridedSliceGradOp},
       {"Sub", TranslateBinaryOp<ngraph::opset3::Subtract>},
       {"Sum", TranslateDirectReduceOp<ng::opset3::ReduceSum>},
-      {"Tanh", TranslateUnaryOp<ngraph::op::Tanh>},
+      {"Tanh", TranslateUnaryOp<ngraph::opset3::Tanh>},
       {"TanhGrad", TranslateTanhGradOp}, {"Tile", TranslateTileOp},
       {"TopKV2", TranslateTopKV2Op}, {"Transpose", TranslateTransposeOp},
       {"UnsortedSegmentSum", TranslateUnsortedSegmentSumOp},

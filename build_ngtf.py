@@ -18,7 +18,7 @@
 from tools.build_utils import *
 
 
-def version_check(use_prebuilt_tensorflow):
+def version_check(use_prebuilt_tensorflow, disable_cpp_api):
     # Check pre-requisites
     if use_prebuilt_tensorflow:
         # Check if the gcc version is at least 5.3.0
@@ -28,23 +28,25 @@ def version_check(use_prebuilt_tensorflow):
                 raise Exception(
                     "Need GCC 5.3.0 or newer to build using prebuilt TensorFlow\n"
                     "Gcc version installed: " + gcc_ver + "\n"
-                    "To build from source ommit `use_prebuilt_tensorflow`")
+                    "To build from source omit `use_prebuilt_tensorflow`")
     # Check cmake version
     cmake_ver = get_cmake_version()
     if (int(cmake_ver[0]) < 3 or int(cmake_ver[1]) < 4):
         raise Exception("Need minimum cmake version 3.4\n"
                         "Got: " + '.'.join(cmake_ver))
 
-    # Check bazel version
-    bazel_ver = get_bazel_version()
-    got_correct_bazel_version = False
-    if (int(bazel_ver[1]) > 24 and int(bazel_ver[1]) <= 25):
-        if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
-            got_correct_bazel_version = True
+    if not disable_cpp_api:
+        # Check bazel version
+        bazel_kind, bazel_ver = get_bazel_version()
+        got_correct_bazel_version = bazel_kind == 'Bazelisk version'
+        if (not got_correct_bazel_version and int(bazel_ver[1]) > 24 and
+                int(bazel_ver[1]) <= 25):
+            if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
+                got_correct_bazel_version = True
 
-    if not got_correct_bazel_version:
-        raise Exception("Need bazel 0.24.1 < version <= 0.25.2 \n" + "Got: " +
-                        '.'.join(bazel_ver))
+            if not got_correct_bazel_version:
+                raise Exception("Need bazel 0.24.1 < version <= 0.25.2 \n" +
+                                "Got: " + '.'.join(bazel_ver))
 
 
 def main():
@@ -96,9 +98,15 @@ def main():
 
     parser.add_argument(
         '--use_prebuilt_tensorflow',
-        help="Skip building TensorFlow and use downloaded version.\n" +
-        "Note that in this case C++ unit tests won't be build for nGraph-TF bridge",
-        action="store_true")
+        type=str,
+        help="Skip building TensorFlow and use the specified prebuilt version.\n"
+        + "If prebuilt version isn't specified, TF version " + tf_version +
+        " will be used.\n" +
+        "Note: in this case C++ API, unit tests and examples won't be build for nGraph-TF bridge",
+        const=tf_version,
+        default='',
+        nargs='?',
+        action="store")
 
     parser.add_argument(
         '--use_prebuilt_ngraph',
@@ -160,6 +168,11 @@ def main():
     parser.add_argument(
         '--use_tensorflow_2', help="Builds with TF 2.0\n", action="store_true")
 
+    parser.add_argument(
+        '--disable_cpp_api',
+        help="Disables C++ API, unit tests and examples\n",
+        action="store_true")
+
     # Done with the options. Now parse the commandline
     arguments = parser.parse_args()
 
@@ -175,14 +188,15 @@ def main():
     # Recipe
     #-------------------------------
 
-    version_check(arguments.use_prebuilt_tensorflow)
+    version_check((arguments.use_prebuilt_tensorflow != ''),
+                  arguments.disable_cpp_api)
 
     # Default directories
     build_dir = 'build_cmake'
 
     assert not (
         arguments.use_tensorflow_from_location != '' and
-        arguments.use_prebuilt_tensorflow
+        arguments.use_prebuilt_tensorflow != ''
     ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\" "
     "cannot be used together."
 
@@ -247,6 +261,17 @@ def main():
 
     print("Target Arch: %s" % target_arch)
 
+    use_tensorflow_2 = False
+    if arguments.use_tensorflow_2:
+        tf_version = "v2.0.0"
+        use_tensorflow_2 = True
+
+    if arguments.use_prebuilt_tensorflow != '':
+        tf_version = arguments.use_prebuilt_tensorflow
+
+    if tf_version.startswith("v2.") or tf_version.startswith("2."):
+        use_tensorflow_2 = True
+
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
     # For gcc older than 5.3, this flag is set to 0 and for newer ones,
     # this is set to 1
@@ -255,8 +280,7 @@ def main():
     # and thus this flag is set to 1
     cxx_abi = "1"
 
-    if arguments.use_tensorflow_2:
-        tf_version = "v2.0.0"
+    if use_tensorflow_2:
         # For building NGTF with TF2.0 we need to apply the following patch
         patch_file = os.path.abspath(
             os.path.join(ngraph_tf_src_dir, "tf2changes.patch"))
@@ -289,59 +313,29 @@ def main():
         os.chdir(tf_whl_loc)
         tf_in_artifacts = os.path.join(
             os.path.abspath(artifacts_location), "tensorflow")
-        if os.path.isdir(tf_in_artifacts):
-            print("TensorFlow already exists in artifacts. Using that")
-        else:
+        if not os.path.isdir(tf_in_artifacts):
             os.mkdir(tf_in_artifacts)
-            # This function copies the .so files from
-            # use_tensorflow_from_location/artifacts/tensorflow to
-            # artifacts/tensorflow
-            copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc)
+        # This function copies the .so files from
+        # use_tensorflow_from_location/artifacts/tensorflow to
+        # artifacts/tensorflow
+        copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc)
         os.chdir(cwd)
     else:
-        if arguments.use_prebuilt_tensorflow:
-            print("Using existing TensorFlow")
-            # First download the source. This will create the tensorfow directory as needed
-            tf_src_dir = os.path.join(artifacts_location, "tensorflow")
-            print("TF_SRC_DIR: ", tf_src_dir)
-            # Download
-            pwd_now = os.getcwd()
-            os.chdir(artifacts_location)
-            print("DOWNLOADING TF: PWD", os.getcwd())
-            download_repo("tensorflow",
-                          "https://github.com/tensorflow/tensorflow.git",
-                          tf_version)
-            os.chdir(pwd_now)
-
-            # Next install the tensorflow python packge
-            # The TF wheel published by Google reports CXX11_ABI = 0 but we
-            # can't even build TF on GCC 4.8.5 since MLIR module contains
-            # code that requires c++14 or GCC 5 or better. That means
-            # CXX11_ABI = 1 when the wheel is correctly built.
-            if ('1.15' not in tf_version and '2.0' not in tf_version):
-                command_executor(
-                    ["pip", "install", "-U", "tensorflow==" + tf_version])
-                cxx_abi = get_tf_cxxabi()
-            # Now due to above reasoning, we can only use prebuilt TF wheel
-            # that has the right flags and was previously built by user,
-            # and usually stored under 'build_cmake/artifacts/tensorflow/'.
-            # So we try to search for that wheel and install it, otherwise
-            # the next call will fail and an exception is raised
-            else:
-                try:
-                    cxx_abi = install_tensorflow(venv_dir, artifacts_location)
-                except:
-                    raise Exception("Please build tensorflow from source "
-                                    "by running: python3 build_ngtf.py")
+        if arguments.use_prebuilt_tensorflow != '':
+            print("Using existing TensorFlow version", tf_version)
+            # Install TensorFlow
+            command_executor(
+                ["pip", "install", "-U", "tensorflow==" + tf_version])
+            cxx_abi = get_tf_cxxabi()
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
-            if arguments.use_tensorflow_2:
+            if use_tensorflow_2:
                 tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
             else:
                 tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
             if (platform.system() == 'Darwin'):
-                if arguments.use_tensorflow_2:
+                if use_tensorflow_2:
                     tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
                 else:
                     tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
@@ -357,10 +351,21 @@ def main():
             dst = os.path.join(dst_dir, tf_fmwk_lib_name)
             shutil.copyfile(tf_lib_file, dst)
 
-            # Now build the libtensorflow_cc.so - the C++ library
-            build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
-                                target_arch, verbosity)
+            if not arguments.disable_cpp_api:
+                tf_src_dir = os.path.join(artifacts_location, "tensorflow")
+                print("TF_SRC_DIR: ", tf_src_dir)
+                # Download TF source
+                pwd_now = os.getcwd()
+                os.chdir(artifacts_location)
+                print("DOWNLOADING TF: PWD", os.getcwd())
+                download_repo("tensorflow",
+                              "https://github.com/tensorflow/tensorflow.git",
+                              tf_version)
+                os.chdir(pwd_now)
 
+                # Now build the libtensorflow_cc.so - the C++ library
+                build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
+                                    target_arch, verbosity)
         else:
             print("Building TensorFlow from source")
             # Download TensorFlow
@@ -370,7 +375,7 @@ def main():
             tf_src_dir = os.path.join(os.getcwd(), "tensorflow")
             print("TF_SRC_DIR: ", tf_src_dir)
 
-            if arguments.use_tensorflow_2:
+            if use_tensorflow_2:
                 # For building TF 2.0 we need to apply the following patch
                 patch_file = os.path.abspath(
                     os.path.join(ngraph_tf_src_dir, "tf2update.patch"))
@@ -381,8 +386,8 @@ def main():
                 os.chdir(pwd)
 
             # Build TensorFlow
-            build_tensorflow(tf_version, venv_dir, "tensorflow",
-                             artifacts_location, target_arch, verbosity)
+            build_tensorflow(tf_version, "tensorflow", artifacts_location,
+                             target_arch, verbosity)
 
             # Now build the libtensorflow_cc.so - the C++ library
             build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
@@ -399,7 +404,6 @@ def main():
         ngraph_src_dir = './ngraph'
         if arguments.ngraph_src_dir:
             ngraph_src_dir = arguments.ngraph_src_dir
-
             print("Using local nGraph source in directory ", ngraph_src_dir)
         else:
             if arguments.ngraph_version:
@@ -460,7 +464,6 @@ def main():
     ngraph_tf_cmake_flags = [
         "-DNGRAPH_TF_INSTALL_PREFIX=" + artifacts_location,
         "-DUSE_PRE_BUILT_NGRAPH=ON",
-        "-DUNIT_TEST_ENABLE=ON",
         "-DNGRAPH_TARGET_ARCH=" + target_arch,
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
     ]
@@ -480,33 +483,22 @@ def main():
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
-    if not arguments.use_prebuilt_tensorflow:
-        if arguments.use_tensorflow_from_location:
-            ngraph_tf_cmake_flags.extend([
-                "-DTF_SRC_DIR=" + os.path.abspath(
-                    arguments.use_tensorflow_from_location + '/tensorflow')
-            ])
-        else:
-            ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
-        ngraph_tf_cmake_flags.extend([
-            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
-                                                    "tensorflow")
-        ])
-
-    # Next build CMAKE options for the bridge
     if arguments.use_tensorflow_from_location:
         ngraph_tf_cmake_flags.extend([
             "-DTF_SRC_DIR=" + os.path.abspath(
                 arguments.use_tensorflow_from_location + '/tensorflow')
         ])
     else:
-        print("TF_SRC_DIR: ", tf_src_dir)
-        ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
+        if not arguments.disable_cpp_api:
+            print("TF_SRC_DIR: ", tf_src_dir)
+            ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
 
-    ngraph_tf_cmake_flags.extend([
-        "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
-                                                "tensorflow")
-    ])
+    ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=ON"])
+    if not arguments.disable_cpp_api:
+        ngraph_tf_cmake_flags.extend([
+            "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
+                                                    "tensorflow")
+        ])
 
     if ((arguments.distributed_build == "OMPI") or
         (arguments.distributed_build == "MLSL")):
@@ -524,10 +516,8 @@ def main():
         flag_string_map[arguments.use_grappler_optimizer]
     ])
 
-    ngraph_tf_cmake_flags.extend([
-        "-DNGRAPH_TF_USE_TENSORFLOW_2=" +
-        flag_string_map[arguments.use_tensorflow_2]
-    ])
+    ngraph_tf_cmake_flags.extend(
+        ["-DNGRAPH_TF_USE_TENSORFLOW_2=" + flag_string_map[use_tensorflow_2]])
 
     # Now build the bridge
     ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,
@@ -553,7 +543,7 @@ def main():
     # 4. use_tensorflow_from_location is defined
     if arguments.use_tensorflow_from_location == '':
         # Case 1
-        if arguments.use_prebuilt_tensorflow:
+        if arguments.use_prebuilt_tensorflow != '':
             # Case 2
             base_dir = None
         else:
@@ -564,11 +554,10 @@ def main():
         base_dir = arguments.use_tensorflow_from_location
 
     if base_dir != None:
-        command_executor([
-            'cp', '-r', base_dir + '/tensorflow/tensorflow/python',
-            os.path.join(artifacts_location, "tensorflow")
-        ],
-                         verbose=True)
+        dest_dir = os.path.join(artifacts_location, "tensorflow")
+        command_executor(
+            ['cp', '-r', base_dir + '/tensorflow/tensorflow/python', dest_dir],
+            verbose=True)
     else:
         # Create a sym-link to
         link_src = os.path.join(artifacts_location,
