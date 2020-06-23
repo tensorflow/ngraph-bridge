@@ -84,7 +84,7 @@ class NGraphDevice : public LocalDevice {
   }
 
   Status FillContextMap(const Graph* graph,
-                        DeviceContextMap* device_context_map) override {
+                        DeviceContextMap* device_context_map) {
     static NGraphDeviceContext* ctx = new NGraphDeviceContext;
     device_context_map->resize(graph->num_node_ids());
     for (Node* n : graph->nodes()) {
