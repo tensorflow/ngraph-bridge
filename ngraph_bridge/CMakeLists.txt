@@ -121,7 +121,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             ${LIB_NAME}
             ngraph_logger 
             ${TensorFlow_FRAMEWORK_LIBRARY} 
-            ngraph_lib
             lib_cpu_backend_static
             lib_interpreter_backend_static 
             ngraph_lib
@@ -129,8 +128,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             absl_algorithm
             absl_container
             absl_strings
-            lib_mkldnn
-            lib_iomp5
         )
 
         target_compile_definitions(
@@ -163,7 +160,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${LIB_NAME_STATIC}
         ngraph_logger
         ${TensorFlow_FRAMEWORK_LIBRARY} 
-        ngraph_lib
         lib_cpu_backend_static
         lib_interpreter_backend_static 
         ngraph_lib
@@ -171,9 +167,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
-        lib_mkldnn
-        lib_mklml_intel
-        lib_iomp5
     )
     target_compile_definitions(
     ${LIB_NAME_STATIC} PRIVATE 
