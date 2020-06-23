@@ -25,7 +25,6 @@
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
-#include "ngraph_bridge/ngraph_capture_variables.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
