@@ -3819,7 +3819,7 @@ static Status TranslateSoftmaxOp(const Node* op,
   }
 
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Softmax>(
-                                      op->name(), ng_input, rank-1));
+                                      op->name(), ng_input, rank - 1));
   return Status::OK();
 }
 
@@ -4626,10 +4626,9 @@ const static std::map<
       {"Sin", TranslateUnaryOp<ngraph::opset3::Sin>}, {"Size", TranslateSizeOp},
       {"Sign", TranslateUnaryOp<ngraph::opset3::Sign>},
       {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
-      {"Softmax", TranslateSoftmaxOp},
-      {"Softplus", TranslateSoftplusOp},
-      {"SpaceToDepth", TranslateSpaceToDepthOp},
-      {"Split", TranslateSplitOp}, {"SplitV", TranslateSplitVOp},
+      {"Softmax", TranslateSoftmaxOp}, {"Softplus", TranslateSoftplusOp},
+      {"SpaceToDepth", TranslateSpaceToDepthOp}, {"Split", TranslateSplitOp},
+      {"SplitV", TranslateSplitVOp},
       {"Sqrt", TranslateUnaryOp<ngraph::opset3::Sqrt>},
       {"Square", TranslateSquareOp},
       {"SquaredDifference",
