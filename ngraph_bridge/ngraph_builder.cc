@@ -25,8 +25,6 @@
 #include "ngraph/builder/dequantize_builder.hpp"
 #include "ngraph/builder/numpy_transpose.hpp"
 #include "ngraph/builder/quantize_builder.hpp"
-#include "ngraph/op/argmax.hpp"
-#include "ngraph/op/argmin.hpp"
 #include "ngraph/op/experimental/layers/interpolate.hpp"
 #include "ngraph/op/util/logical_reduction.hpp"
 #include "ngraph/opsets/opset3.hpp"
@@ -665,48 +663,6 @@ static Status TranslateAddNOp(const Node* op, const std::vector<const Tensor*>&,
           }));  // accumulation: start with
                 // first element. default op is
                 // addition
-  return Status::OK();
-}
-
-template <typename T>
-static Status TranslateArgMinMaxOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  bool is_argmin = std::is_same<T, ng::op::ArgMin>::value;
-  bool is_argmax = std::is_same<T, ng::op::ArgMax>::value;
-  if (!(is_argmin || is_argmax)) {
-    return errors::InvalidArgument("Expected node to be argmin or argmax type");
-  }
-
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
-
-  std::vector<int64> tf_dim;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &tf_dim));
-
-  ng::Shape input_shape = ng_input->get_shape();
-  size_t input_rank = input_shape.size();
-
-  if (tf_dim.size() != 1) {
-    return errors::InvalidArgument(
-        (is_argmin ? "ArgMin" : "ArgMax"),
-        " Op: dimension must be scalar, operates on a single axis");
-  }
-
-  // If input dimension is negative, make it positive
-  if (tf_dim[0] < 0) {
-    tf_dim[0] = (int64)input_rank + tf_dim[0];
-  }
-  size_t input_dims = tf_dim[0];
-
-  DataType dtype;
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "output_type", &dtype));
-
-  ng::element::Type ng_et;
-  TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
-
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<T>(op->name(), ng_input, input_dims, ng_et));
   return Status::OK();
 }
 
@@ -4825,8 +4781,6 @@ const static std::map<
       {"AddV2", TranslateBinaryOp<ngraph::opset3::Add>},
       {"Any", TranslateDirectReduceOp<ng::opset3::ReduceLogicalOr>},
       {"All", TranslateDirectReduceOp<ng::opset3::ReduceLogicalAnd>},
-      {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
-      {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
       {"Asin", TranslateUnaryOp<ngraph::opset3::Asin>},
       {"Atan", TranslateUnaryOp<ngraph::opset3::Atan>},
       {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
