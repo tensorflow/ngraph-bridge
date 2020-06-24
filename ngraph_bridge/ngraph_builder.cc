@@ -5109,47 +5109,61 @@ Status Builder::TranslateGraph(
     return is_result;
   };
 
-  size_t num_tags = 0;
+  // check if the function has Const->Result
   for (auto n : ng_function->get_ordered_ops()) {
-    // Results are not expected to have provenance tags
-    if (!check_if_result(n)) {
-      num_tags = n->get_provenance_tags().size();
-      // if (num_tags != 1) {
-      //   // In case of an error (num_tags != 1), we dump the ngraph json
-      //   // However by default the json will not contain the provenance
-      //   // information. So enable NGRAPH_PROVENANCE_ENABLE, and then reset it
-      //   // back in the end after NgraphSerialize is done
-      //   char* original_provenance_flag_value =
-      //       getenv("NGRAPH_PROVENANCE_ENABLE");
-      //   // No need to free original_provenance_flag_value according to the
-      //   // standard
-
-      //   char enable_provenance[] = "NGRAPH_PROVENANCE_ENABLE=1";
-      //   putenv(enable_provenance);
-      //   NgraphSerialize(
-      //       "tf_function_error_" + ng_function->get_name() + ".json",
-      //       ng_function);
-      //   if (original_provenance_flag_value == NULL) {
-      //     unsetenv("NGRAPH_PROVENANCE_ENABLE");
-      //   } else {
-      //     string
-      //     provenance_flag_original_val{original_provenance_flag_value};
-      //     char* reset = new char[26 + provenance_flag_original_val.size()];
-      //     strcpy(reset,
-      //            ("NGRAPH_PROVENANCE_ENABLE=" + provenance_flag_original_val)
-      //                .c_str());
-      //     putenv(reset);
-      //     delete[] reset;
-      //   }
-
-      //   return errors::Internal(
-      //       "Found ngraph node ", n->get_name(),
-      //       " which has provenance tag set of size ", num_tags,
-      //       ". Expected all ngraph nodes created in TranslateGraph to have "
-      //       "exactly one provenance tag");
-      // }
+    if (n->is_constant()) {
+      auto const_output_nodes = n->outputs();
+      for(auto output_node : const_output_nodes){
+        auto out_node_ptr = output_node.get_node_shared_ptr();
+        if(check_if_result(out_node_ptr)){
+                 return errors::Internal("Found Const->Result | Const Node: ", n->get_name(),
+                              " ,Result Node: ", out_node_ptr->get_name());
+        }
+      }
     }
   }
+
+  // size_t num_tags = 0;
+  // for (auto n : ng_function->get_ordered_ops()) {
+  //   // Results are not expected to have provenance tags
+  //   if (!check_if_result(n)) {
+  //     num_tags = n->get_provenance_tags().size();
+  //     // if (num_tags != 1) {
+  //     //   // In case of an error (num_tags != 1), we dump the ngraph json
+  //     //   // However by default the json will not contain the provenance
+  //     //   // information. So enable NGRAPH_PROVENANCE_ENABLE, and then reset it
+  //     //   // back in the end after NgraphSerialize is done
+  //     //   char* original_provenance_flag_value =
+  //     //       getenv("NGRAPH_PROVENANCE_ENABLE");
+  //     //   // No need to free original_provenance_flag_value according to the
+  //     //   // standard
+
+  //     //   char enable_provenance[] = "NGRAPH_PROVENANCE_ENABLE=1";
+  //     //   putenv(enable_provenance);
+  //     //   NgraphSerialize(
+  //     //       "tf_function_error_" + ng_function->get_name() + ".json",
+  //     //       ng_function);
+  //     //   if (original_provenance_flag_value == NULL) {
+  //     //     unsetenv("NGRAPH_PROVENANCE_ENABLE");
+  //     //   } else {
+  //     //     string
+  //     //     provenance_flag_original_val{original_provenance_flag_value};
+  //     //     char* reset = new char[26 + provenance_flag_original_val.size()];
+  //     //     strcpy(reset,
+  //     //            ("NGRAPH_PROVENANCE_ENABLE=" + provenance_flag_original_val)
+  //     //                .c_str());
+  //     //     putenv(reset);
+  //     //     delete[] reset;
+  //     //   }
+
+  //     //   return errors::Internal(
+  //     //       "Found ngraph node ", n->get_name(),
+  //     //       " which has provenance tag set of size ", num_tags,
+  //     //       ". Expected all ngraph nodes created in TranslateGraph to have "
+  //     //       "exactly one provenance tag");
+  //     // }
+  //   }
+  // }
 
   return Status::OK();
 }
