@@ -426,7 +426,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["RsqrtGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["ScatterNd"] = SimpleConfirmationFunction();
     confirmation_function_map["Select"] = SimpleConfirmationFunction();
-    confirmation_function_map["Shape"] = SimpleConfirmationFunction();
+    // confirmation_function_map["Shape"] = SimpleConfirmationFunction();
     confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
     confirmation_function_map["SigmoidGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Sign"] = SimpleConfirmationFunction();
@@ -644,8 +644,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["ScatterNd"]["T"] = NGraphDTypes();
     type_constraint_map["ScatterNd"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["Select"]["T"] = NGraphDTypes();
-    type_constraint_map["Shape"]["T"] = NGraphDTypes();
-    type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();
+    // type_constraint_map["Shape"]["T"] = NGraphDTypes();
+    // type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();
     type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
     type_constraint_map["SigmoidGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
