@@ -149,12 +149,11 @@ TEST(AssignClusters, Cone) {
   ASSERT_OK(AssignClusters(&g));
 
   int node1_cluster, node2_cluster, node3_cluster;
-  ASSERT_OK(GetNodeCluster(node1, &node1_cluster));
+  ASSERT_NOT_OK(GetNodeCluster(node1, &node1_cluster));
   ASSERT_OK(GetNodeCluster(node2, &node2_cluster));
   ASSERT_OK(GetNodeCluster(node3, &node3_cluster));
 
   ASSERT_NE(node2_cluster, node3_cluster);
-  ASSERT_EQ(node1_cluster, node2_cluster);
 
   ResetAssignClusters(&g);
   // After the reset function the attribute should have disappeared, and using

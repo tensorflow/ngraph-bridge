@@ -169,7 +169,7 @@ TEST(DeadnessCheck, DTestG1) {
 //                        \   /
 //                      N3(#P2) [Mul]
 // There should be 3 clusters
-// Cluster 1 : A1
+// Fallback on TF: A1
 // Cluster 2 : N2 and N3
 // Cluster 3 : N1
 TEST(DeadnessCheck, DTestG2) {
@@ -200,7 +200,7 @@ TEST(DeadnessCheck, DTestG2) {
   }
 
   int N1_Add_cluster, N2_Sub_cluster, A1_cluster, N3_Mul_cluster;
-  ASSERT_OK(GetNodeCluster(node_map["A1"], &A1_cluster));
+  ASSERT_NOT_OK(GetNodeCluster(node_map["A1"], &A1_cluster));
   ASSERT_OK(GetNodeCluster(node_map["N1_Add"], &N1_Add_cluster));
   ASSERT_OK(GetNodeCluster(node_map["N2_Sub"], &N2_Sub_cluster));
   ASSERT_OK(GetNodeCluster(node_map["N3_Mul"], &N3_Mul_cluster));
@@ -208,8 +208,8 @@ TEST(DeadnessCheck, DTestG2) {
   // N2 and N3 are in same cluster
   ASSERT_EQ(N2_Sub_cluster, N3_Mul_cluster);
   // A1, N1 and N2 are in different cluster
-  ASSERT_NE(N1_Add_cluster, A1_cluster);
-  ASSERT_NE(N2_Sub_cluster, A1_cluster);
+  // ASSERT_NE(N1_Add_cluster, A1_cluster);
+  // ASSERT_NE(N2_Sub_cluster, A1_cluster);
   ASSERT_NE(N2_Sub_cluster, N1_Add_cluster);
 }
 
@@ -281,68 +281,13 @@ TEST(DeadnessCheck, DTestG3) {
 //           /     \ 
 //          /       \ 
 //  N2(#P1)[Add]   N3(#P1)[Mul]
-//
-// P1 is not supported on nGraph so is not clustered
-// There will be 3 clusters
-// Cluster 1: B1
-// Cluster 2: A1, N1, N2, N3
-// Cluster 3: N4
-// Disabling this test now. Its behaviour has changed and is captured in
-// DTestG4New
-TEST(DeadnessCheck, DISABLED_DTestG4) {
-  Scope root = Scope::NewRootScope();
-
-  auto dataX = ops::Placeholder(root.WithOpName("dataX"), DataType::DT_FLOAT);
-  auto predX = ops::Placeholder(root.WithOpName("PredX"), DataType::DT_BOOL);
-  auto SX = ops::Switch(root.WithOpName("SwitchX"), dataX, predX);
-  auto dataY = ops::Placeholder(root.WithOpName("dataY"), DataType::DT_FLOAT);
-  auto predY = ops::Placeholder(root.WithOpName("PredY"), DataType::DT_BOOL);
-  auto SY = ops::Switch(root.WithOpName("SwitchY"), dataY, predY);
-
-  auto A1 = ops::Const(root.WithOpName("A1"), {3.f, 2.f});
-  auto B1 = ops::Const(root.WithOpName("B1"), {3.f, 2.f});
-  auto N1_Add = ops::Add(root.WithOpName("N1_Add"), A1, B1);
-  auto N2_Add = ops::Add(root.WithOpName("N2_Add"), N1_Add, SX.output_false);
-  auto N3_Mul = ops::Mul(root.WithOpName("N3_Mul"), N1_Add, SX.output_false);
-  auto N4_Sub = ops::Sub(root.WithOpName("N4_Sub"), B1, SY.output_false);
-
-  std::set<string> skip_these_nodes = {};
-
-  Graph graph(OpRegistry::Global());
-  TF_CHECK_OK(root.ToGraph(&graph));
-  ASSERT_OK(MarkForClustering(&graph, skip_these_nodes, "CPU"));
-  ASSERT_OK(AssignClusters(&graph));
-
-  std::map<std::string, Node*> node_map;
-  for (auto node : graph.op_nodes()) {
-    node_map[node->name()] = node;
-  }
-
-  int N1_Add_cluster, N2_Add_cluster, A1_cluster, N3_Mul_cluster,
-      N4_Sub_cluster, B1_cluster;
-  ASSERT_OK(GetNodeCluster(node_map["A1"], &A1_cluster));
-  ASSERT_OK(GetNodeCluster(node_map["B1"], &B1_cluster));
-  ASSERT_OK(GetNodeCluster(node_map["N1_Add"], &N1_Add_cluster));
-  ASSERT_OK(GetNodeCluster(node_map["N2_Add"], &N2_Add_cluster));
-  ASSERT_OK(GetNodeCluster(node_map["N3_Mul"], &N3_Mul_cluster));
-  ASSERT_OK(GetNodeCluster(node_map["N4_Sub"], &N4_Sub_cluster));
-
-  // A1, N1, N2, N3 are in the same cluster
-  ASSERT_EQ(A1_cluster, N1_Add_cluster);
-  ASSERT_EQ(N2_Add_cluster, N3_Mul_cluster);
-  ASSERT_EQ(A1_cluster, N2_Add_cluster);
-
-  // A1, B1 and N4 are in different clusters
-  ASSERT_NE(A1_cluster, B1_cluster);
-  ASSERT_NE(A1_cluster, N4_Sub_cluster);
-  ASSERT_NE(B1_cluster, N4_Sub_cluster);
-}
 
 // There will be 4 clusters after the new change
 // Cluster 1: N2
-// Cluster 2: A1, N1, B1
+// Cluster 2: A1, N1
 // Cluster 3: N3
 // Cluster 4: N4
+// Fallback to TF: B1
 TEST(DeadnessCheck, DTestG4New) {
   Scope root = Scope::NewRootScope();
 
@@ -373,7 +318,7 @@ TEST(DeadnessCheck, DTestG4New) {
   }
 
   std::vector<std::vector<std::string>> arrangement_specs = {
-      {"A1", "B1", "N1_Add"}, {"N2_Add"}, {"N3_Mul"}, {"N4_Sub"}};
+      {"A1", "N1_Add"}, {"N2_Add"}, {"N3_Mul"}, {"N4_Sub"}};
   int num_groups = arrangement_specs.size();
   std::vector<int> representative_group_id(num_groups, -1);
   // Check that all members of a group are assigned the same cluster
@@ -421,7 +366,7 @@ TEST(DeadnessCheck, DTestG4New) {
 //                 \-->N4(Z & X & ~Y)[Mul]
 //
 // There should be 4 clusters
-// Cluster 1 : A1
+// FallBack on TF : A
 // Cluster 2 : N1 and N2
 // Cluster 3 : N3 and N4
 // Cluster 4 : B, N5 and N6
@@ -465,7 +410,7 @@ TEST(DeadnessCheck, DTestG5) {
   int N1_Add_cluster, N2_Mul_cluster, N3_Sub_cluster, N4_Mul_cluster,
       N5_Add_cluster, N6_Mul_cluster, A_cluster, B_cluster;
 
-  ASSERT_OK(GetNodeCluster(node_map["A"], &A_cluster));
+  ASSERT_NOT_OK(GetNodeCluster(node_map["A"], &A_cluster));
   ASSERT_OK(GetNodeCluster(node_map["B"], &B_cluster));
   ASSERT_OK(GetNodeCluster(node_map["N1_Add"], &N1_Add_cluster));
   ASSERT_OK(GetNodeCluster(node_map["N2_Mul"], &N2_Mul_cluster));
@@ -488,10 +433,6 @@ TEST(DeadnessCheck, DTestG5) {
   ASSERT_NE(N1_Add_cluster, N5_Add_cluster);
   // N3 and N5 are in different cluster
   ASSERT_NE(N3_Sub_cluster, N5_Add_cluster);
-  // A, N1, N3 and N5 are a different cluster
-  ASSERT_NE(A_cluster, N1_Add_cluster);
-  ASSERT_NE(A_cluster, N3_Sub_cluster);
-  ASSERT_NE(A_cluster, N5_Add_cluster);
 }
 
 }  // namespace testing

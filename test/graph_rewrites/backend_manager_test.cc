@@ -196,11 +196,10 @@ TEST(BackendManager, BackendClustering) {
 
   int A_cluster, B_cluster, R_cluster;
   ASSERT_OK(GetNodeCluster(node_map["A"], &A_cluster));
-  ASSERT_OK(GetNodeCluster(node_map["B"], &B_cluster));
+  ASSERT_NOT_OK(GetNodeCluster(node_map["B"], &B_cluster));
   ASSERT_OK(GetNodeCluster(node_map["R"], &R_cluster));
 
   ASSERT_EQ(A_cluster, R_cluster);
-  ASSERT_NE(A_cluster, B_cluster);
 }
 
 // Test GetBackendAttributeValues API
