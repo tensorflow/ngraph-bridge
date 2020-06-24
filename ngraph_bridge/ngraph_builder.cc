@@ -4783,7 +4783,6 @@ const static std::map<
       {"All", TranslateDirectReduceOp<ng::opset3::ReduceLogicalAnd>},
       {"Asin", TranslateUnaryOp<ngraph::opset3::Asin>},
       {"Atan", TranslateUnaryOp<ngraph::opset3::Atan>},
-      {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
       {"AvgPool", TranslateAvgPoolOp}, {"AvgPoolGrad", TranslateAvgPoolGradOp},
       {"BatchMatMul", TranslateBatchMatMulOp},
       {"BatchMatMulV2", TranslateBatchMatMulV2Op},
