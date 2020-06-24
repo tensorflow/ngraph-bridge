@@ -978,7 +978,7 @@ GetTFToNgOpMap() {
         {"Size", {constant}},
         {"Sign", {std::make_shared<ngraph::opset3::Sign>()}},
         {"Slice", {std::make_shared<ngraph::op::Slice>()}}, {"Snapshot", {}},
-        {"Softmax", {std::make_shared<ngraph::op::Softmax>(), constant}},
+        {"Softmax", {std::make_shared<ngraph::opset3::Softmax>()}},
         {"Softplus",
          {constant, std::make_shared<ngraph::op::Exp>(),
           std::make_shared<ngraph::op::Log>(),
