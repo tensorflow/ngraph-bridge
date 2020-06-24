@@ -4836,7 +4836,6 @@ const static std::map<
       {"BiasAdd", TranslateBiasAddOp}, {"BiasAddGrad", TranslateBiasAddGradOp},
       {"Cast", TranslateCastOp},
       {"Ceil", TranslateUnaryOp<ngraph::opset3::Ceiling>},
-      {"CombinedNonMaxSuppression", TranslateCombinedNonMaxSuppressionOp},
       {"ConcatV2", TranslateConcatV2Op}, {"Const", TranslateConstOp},
       {"Conv2D", TranslateConv2DOp},
       {"Conv2DBackpropFilter", TranslateConv2DBackpropFilterOp},
