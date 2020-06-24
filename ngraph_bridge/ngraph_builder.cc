@@ -5113,11 +5113,12 @@ Status Builder::TranslateGraph(
   for (auto n : ng_function->get_ordered_ops()) {
     if (n->is_constant()) {
       auto const_output_nodes = n->outputs();
-      for(auto output_node : const_output_nodes){
+      for (auto output_node : const_output_nodes) {
         auto out_node_ptr = output_node.get_node_shared_ptr();
-        if(check_if_result(out_node_ptr)){
-                 return errors::Internal("Found Const->Result | Const Node: ", n->get_name(),
-                              " ,Result Node: ", out_node_ptr->get_name());
+        if (check_if_result(out_node_ptr)) {
+          return errors::Internal("Found Const->Result | Const Node: ",
+                                  n->get_name(), " ,Result Node: ",
+                                  out_node_ptr->get_name());
         }
       }
     }
@@ -5131,7 +5132,8 @@ Status Builder::TranslateGraph(
   //     // if (num_tags != 1) {
   //     //   // In case of an error (num_tags != 1), we dump the ngraph json
   //     //   // However by default the json will not contain the provenance
-  //     //   // information. So enable NGRAPH_PROVENANCE_ENABLE, and then reset it
+  //     //   // information. So enable NGRAPH_PROVENANCE_ENABLE, and then reset
+  //     it
   //     //   // back in the end after NgraphSerialize is done
   //     //   char* original_provenance_flag_value =
   //     //       getenv("NGRAPH_PROVENANCE_ENABLE");
@@ -5148,9 +5150,11 @@ Status Builder::TranslateGraph(
   //     //   } else {
   //     //     string
   //     //     provenance_flag_original_val{original_provenance_flag_value};
-  //     //     char* reset = new char[26 + provenance_flag_original_val.size()];
+  //     //     char* reset = new char[26 +
+  //     provenance_flag_original_val.size()];
   //     //     strcpy(reset,
-  //     //            ("NGRAPH_PROVENANCE_ENABLE=" + provenance_flag_original_val)
+  //     //            ("NGRAPH_PROVENANCE_ENABLE=" +
+  //     provenance_flag_original_val)
   //     //                .c_str());
   //     //     putenv(reset);
   //     //     delete[] reset;
@@ -5159,7 +5163,8 @@ Status Builder::TranslateGraph(
   //     //   return errors::Internal(
   //     //       "Found ngraph node ", n->get_name(),
   //     //       " which has provenance tag set of size ", num_tags,
-  //     //       ". Expected all ngraph nodes created in TranslateGraph to have "
+  //     //       ". Expected all ngraph nodes created in TranslateGraph to have
+  //     "
   //     //       "exactly one provenance tag");
   //     // }
   //   }
