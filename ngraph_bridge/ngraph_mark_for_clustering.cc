@@ -450,7 +450,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Sub"] = SimpleConfirmationFunction();
     confirmation_function_map["Sum"] = SimpleConfirmationFunction();
     confirmation_function_map["Tanh"] = SimpleConfirmationFunction();
-    confirmation_function_map["TanhGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Tile"] = SimpleConfirmationFunction();
     confirmation_function_map["TopKV2"] = [](Node* n, bool* result) {
       bool sorted = true;
@@ -666,7 +665,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Sum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Tanh"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["TanhGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["Tmultiples"] = NGraphIndexDTypes();
     type_constraint_map["TopKV2"]["T"] = NGraphNumericDTypes();
@@ -999,9 +997,6 @@ GetTFToNgOpMap() {
         {"Sub", {std::make_shared<ngraph::opset3::Subtract>()}},
         {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
         {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
-        {"TanhGrad",
-         {constant, std::make_shared<ngraph::opset3::Subtract>(),
-          std::make_shared<ngraph::opset3::Multiply>()}},
         {"Tile", {constant, std::make_shared<ngraph::op::Concat>()}},
         {"TopKV2",
          {std::make_shared<ngraph::op::TopK>(),
