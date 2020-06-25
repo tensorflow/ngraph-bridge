@@ -105,7 +105,6 @@ set(SRC
     test_thread_safe_queue.cc
     test_enter_prefetch_in_catalog.cc
     test_capture_prefetch.cpp
-    test_pipelined_tensor_store.cc
     dummy_backend.cpp
     test_dummy_backend.cpp
 )
