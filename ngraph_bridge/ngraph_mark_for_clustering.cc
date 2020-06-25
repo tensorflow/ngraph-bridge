@@ -190,7 +190,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["All"] = SetStaticInputs({1});
     set_attributes_map["ArgMax"] = SetStaticInputs({1});
     set_attributes_map["ArgMin"] = SetStaticInputs({1});
-    set_attributes_map["AvgPoolGrad"] = SetStaticInputs({0});
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
     set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
@@ -282,7 +281,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Atan"] = SimpleConfirmationFunction();
     confirmation_function_map["Atan2"] = SimpleConfirmationFunction();
     confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
-    confirmation_function_map["AvgPoolGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
     confirmation_function_map["BiasAdd"] = SimpleConfirmationFunction();
@@ -490,7 +488,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Atan"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Atan2"]["T"] = NGraphRealDTypes();
     type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["AvgPoolGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BiasAdd"]["T"] = NGraphNumericDTypes();
@@ -691,7 +688,6 @@ GetTFToNgOpMap() {
         {"Atan", {std::make_shared<ngraph::opset3::Atan>()}},
         {"Atan2", {std::make_shared<ngraph::op::Atan2>()}},
         {"AvgPool", {std::make_shared<ngraph::op::AvgPool>()}},
-        {"AvgPoolGrad", {std::make_shared<ngraph::op::AvgPoolBackprop>()}},
         {"BatchMatMul",
          {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
           std::make_shared<ngraph::op::MatMul>(),
