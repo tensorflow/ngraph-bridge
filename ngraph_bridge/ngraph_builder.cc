@@ -1986,107 +1986,6 @@ static Status TranslateFusedBatchNormOp(
   return Status::OK();
 }
 
-static Status TranslateFusedBatchNormGradOp(const Node* op,
-                                            const std::vector<const Tensor*>&,
-                                            Builder::OpMap& ng_op_map) {
-  bool is_v3 = op->type_string() == "FusedBatchNormGradV3";
-  TF_RETURN_IF_ERROR(ValidateInputCount(op, is_v3 ? 6 : 5));
-
-  bool tf_is_training;
-  // We only support is_training=true case. We marked rejection for the case
-  // is_training=false.
-  if (GetNodeAttr(op->attrs(), "is_training", &tf_is_training) !=
-      Status::OK()) {
-    NGRAPH_VLOG(3) << "is_training attribute not present, setting to true";
-    tf_is_training = true;
-  }
-
-  NGRAPH_VLOG(3) << "is_training: " << tf_is_training;
-
-  shared_ptr<ng::Node> ng_delta;
-  shared_ptr<ng::Node> ng_input;
-  shared_ptr<ng::Node> ng_scale;
-  shared_ptr<ng::Node> ng_mean;
-  shared_ptr<ng::Node> ng_variance;
-  if (is_v3) {
-    TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_delta, &ng_input,
-                                     &ng_scale, &ng_mean, &ng_variance,
-                                     nullptr));
-  } else {
-    TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_delta, &ng_input,
-                                     &ng_scale, &ng_mean, &ng_variance));
-  }
-
-  std::string tf_data_format;
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
-
-  if (tf_data_format != "NHWC" && tf_data_format != "NCHW") {
-    return errors::InvalidArgument(
-        "FusedBatchnormGrad data format is neither NHWC nor NCHW");
-  }
-
-  bool is_nhwc = (tf_data_format == "NHWC");
-
-  NGRAPH_VLOG(3) << "data_format: " << tf_data_format;
-
-  float tf_epsilon;
-  if (GetNodeAttr(op->attrs(), "epsilon", &tf_epsilon) != Status::OK()) {
-    NGRAPH_VLOG(3) << "epsilon attribute not present, setting to 0.0001";
-    tf_epsilon = 0.0001;
-  }
-
-  NGRAPH_VLOG(3) << "epsilon: " << tf_epsilon;
-
-  // TODO: We are temporarily supplying a fake value for beta here
-  // (all zero, same shape/et as scale/gamma), because Tensorflow does not give
-  // beta to us. This should work because nGraph should not actually use beta.
-  // The nGraph op may change to discard this parameter. Update this when nGraph
-  // does.
-  shared_ptr<ng::Node> ng_beta = ConstructNgNode<ngraph::op::Constant>(
-      op->name(), ng_scale->get_element_type(), ng_scale->get_shape(),
-      std::vector<std::string>{ng::shape_size(ng_scale->get_shape()), "0"});
-
-  BatchToNGraph(op->name(), is_nhwc, ng_input);
-  BatchToNGraph(op->name(), is_nhwc, ng_delta);
-
-  std::shared_ptr<ng::Node> ng_batch_norm_backprop;
-
-  ng_batch_norm_backprop = ConstructNgNode<ng::op::BatchNormTrainingBackprop>(
-      op->name(), tf_epsilon, ng_scale, ng_beta, ng_input, ng_mean, ng_variance,
-      ng_delta);
-
-  shared_ptr<ngraph::Node> ng_input_delta_op =
-      ConstructNgNode<ng::op::GetOutputElement>(op->name(),
-                                                ng_batch_norm_backprop, 0);
-  shared_ptr<ngraph::Node> ng_scale_delta_op =
-      ConstructNgNode<ng::op::GetOutputElement>(op->name(),
-                                                ng_batch_norm_backprop, 1);
-  shared_ptr<ngraph::Node> ng_beta_delta_op =
-      ConstructNgNode<ng::op::GetOutputElement>(op->name(),
-                                                ng_batch_norm_backprop, 2);
-
-  BatchToTensorflow(op->name(), is_nhwc, ng_input_delta_op);
-
-  SaveNgOp(ng_op_map, op->name(), ng_input_delta_op);
-  SaveNgOp(ng_op_map, op->name(), ng_scale_delta_op);
-  SaveNgOp(ng_op_map, op->name(), ng_beta_delta_op);
-  // Output reserve_space_3: Unused placeholder to match the mean input
-  // in FusedBatchNorm.
-  std::shared_ptr<ng::Node> output_mean = ConstructNgNode<ngraph::op::Constant>(
-      op->name(), ng_mean->get_element_type(), ng::Shape{},
-      std::vector<std::string>{""});
-  SaveNgOp(ng_op_map, op->name(), output_mean);
-  // Output reserve_space_4: Unused placeholder to match the variance input
-  // in FusedBatchNorm.
-  std::shared_ptr<ng::Node> output_variance =
-      ConstructNgNode<ngraph::op::Constant>(
-          op->name(), ng_variance->get_element_type(), ng::Shape{},
-          std::vector<std::string>{""});
-  SaveNgOp(ng_op_map, op->name(), output_variance);
-
-  return Status::OK();
-}
-
 static Status TranslateGatherNdOp(const Node* op,
                                   const std::vector<const Tensor*>&,
                                   Builder::OpMap& ng_op_map) {
@@ -4322,10 +4221,7 @@ const static std::map<
       {"FusedBatchNorm", TranslateFusedBatchNormOp},
       {"FusedBatchNormV2", TranslateFusedBatchNormOp},
       {"FusedBatchNormV3", TranslateFusedBatchNormOp},
-      {"FusedBatchNormGrad", TranslateFusedBatchNormGradOp},
-      {"GatherNd", TranslateGatherNdOp},
-      {"FusedBatchNormGradV3", TranslateFusedBatchNormGradOp},
-      {"GatherV2", TranslateGatherV2Op},
+      {"GatherNd", TranslateGatherNdOp}, {"GatherV2", TranslateGatherV2Op},
       {"_FusedConv2D", TranslateFusedConv2DOp},
       {"_FusedMatMul", TranslateFusedMatMulOp},
       {"Greater", TranslateBinaryOp<ngraph::opset3::Greater>},
@@ -4381,10 +4277,10 @@ const static std::map<
       {"RealDiv", TranslateBinaryOp<ngraph::opset3::Divide>},
       {"Reciprocal", TranslateReciprocalOp},
       {"Relu", TranslateUnaryOp<ngraph::opset3::Relu>},
-      {"Relu6", TranslateRelu6Op},
-      {"Reshape", TranslateReshapeOp}, {"Rsqrt", TranslateRsqrtOp},
-      {"ScatterNd", TranslateScatterNdOp}, {"Select", TranslateSelectOp},
-      {"Shape", TranslateShapeOp}, {"Sigmoid", TranslateSigmoidOp},
+      {"Relu6", TranslateRelu6Op}, {"Reshape", TranslateReshapeOp},
+      {"Rsqrt", TranslateRsqrtOp}, {"ScatterNd", TranslateScatterNdOp},
+      {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
+      {"Sigmoid", TranslateSigmoidOp},
       {"Sin", TranslateUnaryOp<ngraph::opset3::Sin>}, {"Size", TranslateSizeOp},
       {"Sign", TranslateUnaryOp<ngraph::opset3::Sign>},
       {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},

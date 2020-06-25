@@ -326,16 +326,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
         SimpleConfirmationFunction();
     confirmation_function_map["FusedBatchNormV3"] =
         SimpleConfirmationFunction();
-    confirmation_function_map["FusedBatchNormGrad"] = [](Node* n,
-                                                         bool* result) {
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
-      return Status::OK();
-    };
-    confirmation_function_map["FusedBatchNormGradV3"] = [](Node* n,
-                                                           bool* result) {
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
-      return Status::OK();
-    };
     confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
@@ -531,10 +521,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     // DT_FLOAT
     type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
     type_constraint_map["FusedBatchNormV3"]["T"] = {DT_FLOAT};
-    type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["GatherNd"]["Tparams"] = {DT_FLOAT};  // NGraphDTypes();
     type_constraint_map["GatherNd"]["Tindices"] = NGraphIndexDTypes();
-    type_constraint_map["FusedBatchNormGradV3"]["T"] = NGraphNumericDTypes();
     type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
     type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["GatherV2"]["Taxis"] = NGraphIndexDTypes();
@@ -770,14 +758,6 @@ GetTFToNgOpMap() {
           std::make_shared<ngraph::op::GetOutputElement>(), constant,
           std::make_shared<ngraph::opset3::Multiply>(),
           std::make_shared<ngraph::op::BatchNormInference>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"FusedBatchNormGrad",
-         {constant, std::make_shared<ngraph::op::GetOutputElement>(),
-          std::make_shared<ngraph::op::BatchNormTrainingBackprop>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"FusedBatchNormGradV3",
-         {constant, std::make_shared<ngraph::op::GetOutputElement>(),
-          std::make_shared<ngraph::op::BatchNormTrainingBackprop>(),
           std::make_shared<ngraph::op::Reshape>()}},
         {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
         {"GatherV2", {std::make_shared<ngraph::op::Gather>()}},
