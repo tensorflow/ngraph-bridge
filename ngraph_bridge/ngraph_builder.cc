@@ -2659,7 +2659,7 @@ static Status TranslateMaxPoolOp(const Node* op,
   Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
                        ng_strides, ng_padding_below, ng_padding_above);
 
-  ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
+  ng::op::PadType ng_pad_type = ng::op::PadType::AUTO;
   if (tf_padding_type == "VALID") {
     ng_pad_type = ng::op::PadType::VALID;
   }
@@ -2726,7 +2726,7 @@ static Status TranslateMaxPool3DOp(const Node* op,
   Builder::MakePadding3D(tf_padding_type, ng_image_shape, ng_kernel_shape,
                          ng_strides, ng_padding_below, ng_padding_above);
 
-  ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
+  ng::op::PadType ng_pad_type = ng::op::PadType::AUTO;
   if (tf_padding_type == "VALID") {
     ng_pad_type = ng::op::PadType::VALID;
   }
