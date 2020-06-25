@@ -33,7 +33,6 @@ unordered_map<string, unordered_set<int>>
     NGraphCatalog::encap_output_copy_indexes_map_;
 unordered_map<string, tuple<string, bool>>
     NGraphCatalog::encap_output_info_map_;
-unordered_map<string, map<int, int>> NGraphCatalog::prefetched_input_index_map_;
 
 // Function to create the Node Key
 string NGraphCatalog::CreateNodeKey(const int& graph_id,
@@ -53,7 +52,6 @@ void NGraphCatalog::ClearCatalog() {
   NGraphCatalog::ClearInputVariableSharedNameMap();
   NGraphCatalog::ClearEncapOutputCopyIndexesMap();
   NGraphCatalog::ClearEncapOutputInfoMap();
-  NGraphCatalog::ClearPrefetchedInputIndexMap();
 }
 
 // Functions for Encapsulate Output Copy Indexes Map

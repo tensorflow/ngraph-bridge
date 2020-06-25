@@ -36,13 +36,11 @@ set(SRC
    ngraph_assign_clusters.cc
    ngraph_builder.cc
    ngraph_backend_manager.cc
-   ngraph_find_replace_prefetchdataset.cc
    ngraph_catalog.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
-   ngraph_enter_prefetch_in_catalog.cc
    ngraph_encapsulate_impl.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
@@ -54,9 +52,6 @@ set(SRC
    ngraph_utils.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
-   prefetch_autotuner.cc
-   ngraph_prefetch_dataset_op.cc
-   stats_utils.cc
    version.cc
 )
 
