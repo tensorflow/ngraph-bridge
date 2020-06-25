@@ -4092,70 +4092,6 @@ static Status TranslateStridedSliceOp(
   return Status::OK();
 }
 
-// For StridedSliceGradOp, see
-// .../tensorflow/core/kernels/strided_slice_op.cc
-// and .../tensorflow/core/api_def/base_api/api_def_StridedSliceGrad.pbtxt
-static Status TranslateStridedSliceGradOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  strided_slice_mask_attrs mask_attrs;
-  TF_RETURN_IF_ERROR(GetStridedSliceAttrs(op, mask_attrs));
-
-  // get original shape
-  std::vector<int64> original_shape;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 0, static_input_map, &original_shape));
-  ng::Shape ng_original_shape(
-      std::vector<size_t>(original_shape.begin(), original_shape.end()));
-  NGRAPH_VLOG(5) << "Original shape rank " << ng_original_shape.size();
-  NGRAPH_VLOG(5) << "Original shape: " << ng::join(ng_original_shape);
-
-  shared_ptr<ng::Node> ng_delta;
-  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 4, &ng_delta));
-  ng::Shape ng_delta_shape = ng_delta->get_shape();
-  NGRAPH_VLOG(5) << "delta shape rank " << ng_delta_shape.size();
-  if (ng_original_shape.size() != 0 && ng_delta_shape.size() == 0) {
-    NGRAPH_VLOG(5) << "Need to broadcast the scalar.";
-    ng::AxisSet ng_axis_set = {0};
-    ng::Shape output_shape = {1};
-    ng_delta = ConstructNgNode<ng::op::Broadcast>(op->name(), ng_delta,
-                                                  output_shape, ng_axis_set);
-  }
-  NGRAPH_VLOG(5) << "Delta shape: " << ng::join(ng_delta->get_shape());
-
-  // get begin, end, and stride
-  std::vector<int64> begin_vec;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &begin_vec));
-  std::vector<int64_t> begin_vec_longint(begin_vec.begin(), begin_vec.end());
-
-  std::vector<int64> end_vec;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &end_vec));
-  std::vector<int64_t> end_vec_longint(end_vec.begin(), end_vec.end());
-
-  std::vector<int64> stride_vec;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 3, static_input_map, &stride_vec));
-  std::vector<int64_t> stride_vec_longint(stride_vec.begin(), stride_vec.end());
-
-  ng::SlicePlan sp =
-      GetSlicePlan(ng_original_shape, begin_vec_longint, end_vec_longint,
-                   stride_vec_longint, mask_attrs);
-
-  // Need to convert int64_t to size_t
-  std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
-  std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
-  std::vector<size_t> sp_strides(sp.strides.begin(), sp.strides.end());
-
-  auto zeros = ConstructNgNode<ng::op::Constant>(
-      op->name(), ng_delta->get_element_type(), ng_original_shape,
-      std::vector<float>{0});
-
-  auto ng_result = ConstructNgNode<ng::op::ReplaceSlice>(
-      op->name(), zeros, ng_delta, sp_begins, sp_ends, sp_strides);
-  SaveNgOp(ng_op_map, op->name(), ng_result);
-  return Status::OK();
-}
-
 static Status TranslateTileOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -4526,7 +4462,6 @@ const static std::map<
        TranslateBinaryOp<ngraph::opset3::SquaredDifference>},
       {"Squeeze", TranslateSqueezeOp},
       {"StridedSlice", TranslateStridedSliceOp},
-      {"StridedSliceGrad", TranslateStridedSliceGradOp},
       {"Sub", TranslateBinaryOp<ngraph::opset3::Subtract>},
       {"Sum", TranslateDirectReduceOp<ng::opset3::ReduceSum>},
       {"Tanh", TranslateUnaryOp<ngraph::opset3::Tanh>},

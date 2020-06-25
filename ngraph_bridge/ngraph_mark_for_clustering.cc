@@ -992,8 +992,6 @@ GetTFToNgOpMap() {
          {std::make_shared<ngraph::op::Reverse>(),
           std::make_shared<ngraph::op::Slice>(),
           std::make_shared<ngraph::op::Reshape>()}},
-        {"StridedSliceGrad",
-         {constant, std::make_shared<ngraph::op::ReplaceSlice>()}},
         {"Sub", {std::make_shared<ngraph::opset3::Subtract>()}},
         {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
         {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
