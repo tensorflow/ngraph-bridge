@@ -43,16 +43,13 @@ set(SRC
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
    ngraph_enter_prefetch_in_catalog.cc
-   ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
-   ngraph_encapsulate_op_utils.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc
    ngraph_register_stub_kernels.cc   
    ngraph_rewrite_pass.cc
-   ngraph_tensor_manager.cc
    ngraph_var.cc
    ngraph_utils.cc
    tf_graphcycles.cc
@@ -92,15 +89,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 endif()
 
-if(NGRAPH_CPU_STATIC_LIB_ENABLE)
-    add_definitions(-DNGRAPH_CPU_STATIC_LIB_ENABLE)
-endif()
-
-if(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
-    add_definitions(-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
-endif()
-
-
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)            
     list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
     list(APPEND SRC grappler/ngraph_optimizer.cc)
@@ -119,13 +107,15 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             ${TensorFlow_FRAMEWORK_LIBRARY} 
             ngraph_lib
             lib_cpu_backend_static
-            lib_interpreter_backend_static 
+            lib_interpreter_backend_static
             ngraph_lib
             dl
+            pthread
             absl_algorithm
             absl_container
             absl_strings
-            lib_mkldnn
+            lib_mklml_intel
+            lib_dnnl
             lib_iomp5
         )
 
@@ -159,7 +149,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${LIB_NAME_STATIC}
         ngraph_logger
         ${TensorFlow_FRAMEWORK_LIBRARY} 
-        ngraph_lib
         lib_cpu_backend_static
         lib_interpreter_backend_static 
         ngraph_lib
@@ -167,9 +156,9 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
-        lib_mkldnn
-        lib_mklml_intel
+        lib_dnnl
         lib_iomp5
+        lib_mklml_intel
     )
     target_compile_definitions(
     ${LIB_NAME_STATIC} PRIVATE 
