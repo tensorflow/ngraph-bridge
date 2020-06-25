@@ -320,9 +320,9 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     std::shared_ptr<ng::runtime::Tensor> last_ng_tensor =
         input_caches[i].second;
     void* current_src_ptr = (void*)DMAHelper::base(&tf_input_tensors[i]);
-    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = GetCurrentNgTensor(
-        current_src_ptr, last_src_ptr, last_ng_tensor, false, ng_exec,
-        op_backend, ng_element_type, ng_shape, nullptr) ß;
+    std::shared_ptr<ng::runtime::Tensor> current_ng_tensor =
+        GetCurrentNgTensor(current_src_ptr, last_src_ptr, last_ng_tensor, false,
+                           ng_exec, op_backend, ng_element_type, ng_shape);
     bool is_cpu = m_op_backend_name == "CPU";
 
     if (!is_cpu && current_ng_tensor->get_stale()) {
@@ -398,9 +398,9 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     NGRAPH_VLOG(4) << "NGraphEncapsulateImpl:: Output from non Variable Node";
 #endif
 
-    current_ng_tensor = GetCurrentNgTensor(
-        current_dst_ptr, last_dst_ptr, last_ng_tensor, true, ng_exec,
-        op_backend, ng_element_type, ng_shape, nullptr);
+    current_ng_tensor =
+        GetCurrentNgTensor(current_dst_ptr, last_dst_ptr, last_ng_tensor, true,
+                           ng_exec, op_backend, ng_element_type, ng_shape);
 
     current_ng_tensor->set_stale(true);
     output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
