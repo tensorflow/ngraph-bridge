@@ -3060,38 +3060,6 @@ static Status TranslateRankOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
-static Status TranslateRandomUniformOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-
-  auto const_min = ConstructNgNode<ng::op::Constant>(
-      op->name(), ng::element::f32, ng::Shape{}, std::vector<float>{0});
-
-  auto const_max = ConstructNgNode<ng::op::Constant>(
-      op->name(), ng::element::f32, ng::Shape{}, std::vector<float>{1});
-
-  std::vector<int64> shape;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 0, static_input_map, &shape));
-
-  auto const_shape = ConstructNgNode<ng::op::Constant>(
-      op->name(), ng::element::i64, ng::Shape{shape.size()}, shape);
-
-  auto const_use_fixed_seed = ConstructNgNode<ng::op::Constant>(
-      op->name(), ng::element::boolean, ng::Shape{}, std::vector<bool>{true});
-
-  tensorflow::int64 seed{};
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "seed", &seed));
-
-  auto random_uniform = ConstructNgNode<ng::op::RandomUniform>(
-      op->name(), const_min, const_max, const_shape, const_use_fixed_seed,
-      seed);
-
-  SaveNgOp(ng_op_map, op->name(), random_uniform);
-  return Status::OK();
-}
-
 static Status TranslateReciprocalOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -3838,155 +3806,6 @@ static Status TranslateSliceOp(
   return Status::OK();
 }
 
-// See TF C++ API
-// https://www.tensorflow.org/versions/r1.15/api_docs/cc/class/tensorflow/ops/softmax-cross-entropy-with-logits.html
-// Computes softmax cross entropy cost and gradients to backpropagate. Inputs
-// are the logits, not probabilities.
-// Note: Labels used in softmax_cross_entropy_with_logits are equivalent to the
-// one hot version of labels used in sparse_softmax_cross_entropy_with_logits
-static Status TranslateSoftmaxCrossEntropyWithLogitsOp(
-    const Node* op, const std::vector<const Tensor*>&,
-    Builder::OpMap& ng_op_map) {
-  // TF op Inputs:
-  //  1. Logits/Features:
-  //    Shape : [BatchSize B, NumOfClasses NC]
-  //     Type : float (-inf, +inf)
-  //  2. Labels
-  //    Shape : [BatchSize B, NumOfClasses NC]
-  //    Range : valid distribution of probabilities across classes (for a given
-  //    sample)
-  //     Type : float [0, 1], and sum-total across NumOfClasses = 1
-  shared_ptr<ng::Node> ng_features, ng_labels;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_features, &ng_labels));
-
-  ng::Shape ng_features_shape = ng_features->get_shape();
-  ng::Shape ng_labels_shape = ng_labels->get_shape();
-  NGRAPH_VLOG(3) << " number of classes " << ng_features_shape[1];
-  NGRAPH_VLOG(3) << " Batch " << ng_features_shape[0];
-
-  // See .../tensorflow/tensorflow/core/kernels/xent_op.cc for TF implementation
-  auto ng_features_dim = ng_features_shape.size();
-  auto ng_features_dim1 = ng_features_shape[0];
-  auto ng_features_dim2 = ng_features_shape[1];
-  auto ng_labels_dim = ng_labels_shape.size();
-  auto ng_labels_dim1 = ng_labels_shape[0];
-  auto ng_labels_dim2 = ng_labels_shape[1];
-
-  // Logits/Features must be 2-d shape
-  if (ng_features_dim != 2) {
-    return errors::InvalidArgument(
-        " Logits/Features must be shape 2-D, but got shape ",
-        ng::join(ng_features_shape), " while building op ", op->type_string());
-  }
-
-  // Labels must be 2-d shape
-  if (ng_labels_dim != 2) {
-    return errors::InvalidArgument(" Labels must be shape 2-D, but got shape ",
-                                   ng::join(ng_labels_shape),
-                                   " while building op ", op->type_string());
-  }
-
-  // Logits/Features second dimension must be >0, i.e. NumOfClasses>0
-  if (ng_features_dim2 <= 0) {
-    return errors::InvalidArgument(
-        " Logits/Features must have atleast one class but got shape ",
-        ng::join(ng_features_shape), " while building op ", op->type_string());
-  }
-
-  // Labels second dimension must be >0, i.e. NumOfClasses>0
-  if (ng_labels_dim2 <= 0) {
-    return errors::InvalidArgument(
-        " Labels must have atleast one class but got shape ",
-        ng::join(ng_labels_shape), " while building op ", op->type_string());
-  }
-
-  // Logits/Features and Labels must have the same second dimension (i.e.
-  // NumOfClasses)
-  if (ng_labels_dim2 != ng_features_dim2) {
-    return errors::InvalidArgument(
-        " Logits/Features and Labels must have the same second dimension, got "
-        "Logits shape ",
-        ng::join(ng_features_shape), " and Labels shape ",
-        ng::join(ng_labels_shape), " while building op ", op->type_string());
-  }
-
-  // ng_labels_dim1 and ng_features_dim1 should be SAME or
-  // either should be 1, which would be broadcastable to the other xxx_dim1
-  if (ng_labels_dim1 == ng_features_dim1) {
-    // no shape-broadcasting needed
-  } else if (ng_labels_dim1 == 1) {
-    // So we want labels's dim1 to be broadcast to feature's dim1
-    std::tie(ng_labels, ng_features) =
-        Builder::PerformNgBroadcast(op->name(), ng_labels, ng_features);
-    ng_labels_shape = ng_labels->get_shape();
-  } else if (ng_features_dim1 == 1) {
-    // So we want feature's dim1 to be broadcast to label's dim1
-    std::tie(ng_features, ng_labels) =
-        Builder::PerformNgBroadcast(op->name(), ng_features, ng_labels);
-    ng_features_shape = ng_features->get_shape();
-  } else {
-    // bad ng_labels_dim1
-    return errors::InvalidArgument(
-        " Logits/Features and Labels must be broadcastable, but got Logits "
-        "shape ",
-        ng::join(ng_features_shape), " and Labels shape ",
-        ng::join(ng_labels_shape), " while building op ", op->type_string());
-  }
-
-  // To implement a numericaly stable and precise implementation, for this op,
-  // the implementation is inspired from the tf kernel of this op found in
-  // /tensorflow/core/kernels/xent_op.h
-  // /tensorflow/core/kernels/xent_op.cc
-
-  // axis for operation is 1
-  ng::AxisSet ng_axes_class;
-  ng_axes_class.insert(1);
-
-  // compute max(logits) and broadcast to shape [B, NC]
-  auto max_logits = ConstructNgNode<ng::op::Broadcast>(
-      op->name(),
-      ConstructNgNode<ng::op::Max>(op->name(), ng_features, ng_axes_class),
-      ng_features_shape, ng_axes_class);
-
-  // logits_normalized : (logits - max_logits)
-  auto logits_normalized = ConstructNgNode<ng::opset3::Subtract>(
-      op->name(), ng_features, max_logits);
-
-  // y_pred = exp(logits_normalized) / sum(exp(logits_normalized))
-  auto exp_logits = ConstructNgNode<ng::op::Exp>(op->name(), logits_normalized);
-  auto sum_exp_logits = ConstructNgNode<ng::op::Broadcast>(
-      op->name(),
-      ConstructNgNode<ng::op::Sum>(op->name(), exp_logits, ng_axes_class),
-      ng_features_shape, ng_axes_class);
-  auto predicted_prob = ConstructNgNode<ng::opset3::Divide>(
-      op->name(), exp_logits, sum_exp_logits);
-
-  // Output 1
-  // Note: both labels (y_true OR actual_prob) and predicted_prob (y_pred) have
-  // dimesions [B,NC]; the result will be [B,1]==[B]
-  // loss = - sum[labels * log(predicted_prob)] ==> OR ==>
-  // loss = sum[labels * { log(sum(exp(logits_normalized))) - logits_normalized
-  // }]
-  auto ng_loss = ConstructNgNode<ng::op::Sum>(
-      op->name(),
-      ConstructNgNode<ng::opset3::Multiply>(
-          op->name(), ConstructNgNode<ng::opset3::Subtract>(
-                          op->name(), ConstructNgNode<ng::op::Log>(
-                                          op->name(), sum_exp_logits),
-                          logits_normalized),
-          ng_labels),
-      ng_axes_class);
-
-  // Output 2
-  // backprop = y_pred - y_true
-  auto ng_backprop = ConstructNgNode<ng::opset3::Subtract>(
-      op->name(), predicted_prob, ng_labels);
-
-  SaveNgOp(ng_op_map, op->name(), ng_loss);
-  SaveNgOp(ng_op_map, op->name(), ng_backprop);
-  return Status::OK();
-}
-
 static Status TranslateSoftmaxOp(const Node* op,
                                  const std::vector<const Tensor*>&,
                                  Builder::OpMap& ng_op_map) {
@@ -3994,15 +3813,13 @@ static Status TranslateSoftmaxOp(const Node* op,
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
 
   auto ng_input_shape = ng_input->get_shape();
-  ng::AxisSet ng_axes_softmax;
-  auto shape_size = ng_input_shape.size();
-  if (shape_size < 1) {
+  auto rank = ng_input_shape.size();
+  if (rank < 1) {
     return errors::InvalidArgument("TF Softmax logits must be >=1 dimension");
   }
-  auto rank = ng_input->get_shape().size();
-  ng_axes_softmax.insert(rank - 1);
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Softmax>(
-                                      op->name(), ng_input, ng_axes_softmax));
+
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Softmax>(
+                                      op->name(), ng_input, rank - 1));
   return Status::OK();
 }
 
@@ -4084,119 +3901,6 @@ static Status TranslateSpaceToDepthOp(const Node* op,
   SaveNgOp(ng_op_map, op->name(),
            ConstructNgNode<ngraph::op::Concat>(op->name(), strided_slice_result,
                                                channel_index));
-  return Status::OK();
-}
-
-static Status TranslateSparseSoftmaxCrossEntropyWithLogitsOp(
-    const Node* op, const std::vector<const Tensor*>&,
-    Builder::OpMap& ng_op_map) {
-  // TF op Inputs:
-  //  1. Logits/Features:
-  //    Shape : [BatchSize, NumOfClasses]
-  //     Type : float
-  //  2. Label
-  //    Shape : [BatchSize]
-  //    Range : [0, NumOfClasses)
-  //     Type : int
-  shared_ptr<ng::Node> ng_features, ng_labels;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_features, &ng_labels));
-
-  ng::Shape ng_features_shape = ng_features->get_shape();
-  ng::Shape ng_labels_shape = ng_labels->get_shape();
-  NGRAPH_VLOG(3) << " number of classes " << ng_features_shape[1];
-  NGRAPH_VLOG(3) << " Batch " << ng_features_shape[0];
-
-  // Logits/Features must be 2-d shape
-  if (ng_features_shape.size() != 2) {
-    return errors::InvalidArgument(
-        " Logits/Features must be shape 2-D, but got shape ",
-        ng::join(ng_features_shape), " while building op ", op->type_string());
-  }
-
-  // Labels must be 1-d shape
-  if (ng_labels_shape.size() != 1) {
-    return errors::InvalidArgument(" Labels must be shape 1-D, but got shape ",
-                                   ng::join(ng_labels_shape),
-                                   " while building op ", op->type_string());
-  }
-
-  // Logits/Features and Labels must have the same first dimension
-  if (ng_labels_shape[0] != ng_features_shape[0]) {
-    return errors::InvalidArgument(
-        " Logits/Features and Labels must have the same first dimension, got "
-        "Logits shape ",
-        ng::join(ng_features_shape), " and Labels shape ",
-        ng::join(ng_labels_shape), " while building op ", op->type_string());
-  }
-
-  // Logits dimension 1 must be >0, i.e. NumOfClasses>0
-  if (ng_features_shape[1] <= 0) {
-    return errors::InvalidArgument(
-        " Logits/Features must have atleast one class but got shape ",
-        ng::join(ng_features_shape), " while building op ", op->type_string());
-  }
-
-  // ** Check invalid label index **
-  // Labels should be in range [0, NumOfClasses): Cannot do this check here
-  // If the labels are out of range, we would get nGraph Exception while
-  // computing y_true using ng::op::OneHot
-
-  // To implement a numericaly stable and precise implementation,
-  // for this op, the implementation is inspired from the tf kernel
-  // of this op found in
-  // /tensorflow/core/kernels/sparse_xent_op.h
-  // /tensorflow/core/kernels/sparse_xent_op.cc
-
-  // axis for operation is 1
-  ng::AxisSet ng_axes_class;
-  ng_axes_class.insert(1);
-
-  // compute max(logits) and broadcast to shape [B, NC]
-  auto max_logits = ConstructNgNode<ng::op::Broadcast>(
-      op->name(),
-      ConstructNgNode<ng::op::Max>(op->name(), ng_features, ng_axes_class),
-      ng_features_shape, ng_axes_class);
-
-  // logits_normalized : (logits - max_logits)
-  auto logits_normalized = ConstructNgNode<ng::opset3::Subtract>(
-      op->name(), ng_features, max_logits);
-
-  // y_pred = exp(logits_normalized) / sum(exp(logits_normalized))
-  auto exp_logits = ConstructNgNode<ng::op::Exp>(op->name(), logits_normalized);
-  auto sum_exp_logits = ConstructNgNode<ng::op::Broadcast>(
-      op->name(),
-      ConstructNgNode<ng::op::Sum>(op->name(), exp_logits, ng_axes_class),
-      ng_features_shape, ng_axes_class);
-  auto predicted_prob = ConstructNgNode<ng::opset3::Divide>(
-      op->name(), exp_logits, sum_exp_logits);
-
-  // y_true : one_hot_float_labels
-  auto ng_onehot_labels = ConstructNgNode<ng::op::OneHot>(op->name(), ng_labels,
-                                                          ng_features_shape, 1);
-
-  auto ng_onehot_labels_float = ConstructNgNode<ng::op::Convert>(
-      op->name(), ng_onehot_labels, ng_features->get_element_type());
-
-  // Output 1
-  // loss = sum[labels * {sum(log(exp(logits_normalized)))
-  // - logits_normalized }]
-  auto ng_loss = ConstructNgNode<ng::op::Sum>(
-      op->name(),
-      ConstructNgNode<ng::opset3::Multiply>(
-          op->name(), ConstructNgNode<ng::opset3::Subtract>(
-                          op->name(), ConstructNgNode<ng::op::Log>(
-                                          op->name(), sum_exp_logits),
-                          logits_normalized),
-          ng_onehot_labels_float),
-      ng_axes_class);
-
-  // Output 2
-  // backprop = y_pred - y_true
-  auto ng_backprop = ConstructNgNode<ng::opset3::Subtract>(
-      op->name(), predicted_prob, ng_onehot_labels_float);
-
-  SaveNgOp(ng_op_map, op->name(), ng_loss);
-  SaveNgOp(ng_op_map, op->name(), ng_backprop);
   return Status::OK();
 }
 
@@ -4343,46 +4047,12 @@ static Status TranslateSqueezeOp(const Node* op,
     tf_axis[i] = tf_axis[i] < 0 ? (int32)(input_dims) + tf_axis[i] : tf_axis[i];
   }
 
-  std::set<int> axis_set(tf_axis.begin(), tf_axis.end());
-  ng::Shape input_shape = ng_input->get_shape();
-  std::vector<int> dims;
+  auto ng_const = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::u32, ng::Shape{tf_axis.size()}, tf_axis);
 
-  if (axis_set.size() == 0) {
-    for (size_t i = 0; i < input_dims; i++) {
-      if (input_shape[i] > 1) {
-        dims.push_back(input_shape[i]);
-      }
-    }
-  } else {
-    for (size_t i = 0; i < input_dims; i++) {
-      bool skip = false;
-      if (axis_set.find(i) != axis_set.end()) {
-        if (input_shape[i] == 1) {
-          skip = true;
-        } else {
-          throw errors::InvalidArgument(
-              "Tried to explicitly squeeze "
-              "dimension ",
-              i, " but dimension was not 1: ", input_shape[i]);
-        }
-      }
-      if (!skip) {
-        dims.push_back(input_shape[i]);
-      }
-    }
-  }
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Squeeze>(
+                                      op->name(), ng_input, ng_const));
 
-  ng::Shape output_shape(dims.size());
-  for (size_t i = 0; i < dims.size(); ++i) {
-    output_shape[i] = dims[i];
-  }
-
-  ng::AxisVector ng_axis_order(ng_input->get_shape().size());
-  std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
-
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::op::Reshape>(op->name(), ng_input, ng_axis_order,
-                                            output_shape));
   return Status::OK();
 }
 
@@ -4911,7 +4581,6 @@ const static std::map<
        TranslateQuantizedConv2DWithBiasSumAndReluAndRequantizeOp},
       {"QuantizedMaxPool", TranslateQuantizedMaxPoolOp},
       {"QuantizeV2", TranslateQuantizeV2Op}, {"Rank", TranslateRankOp},
-      {"RandomUniform", TranslateRandomUniformOp},
       {"RealDiv", TranslateBinaryOp<ngraph::opset3::Divide>},
       {"Reciprocal", TranslateReciprocalOp},
       {"Relu", TranslateUnaryOp<ngraph::opset3::Relu>},
@@ -4923,14 +4592,9 @@ const static std::map<
       {"Sin", TranslateUnaryOp<ngraph::opset3::Sin>}, {"Size", TranslateSizeOp},
       {"Sign", TranslateUnaryOp<ngraph::opset3::Sign>},
       {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
-      {"Softmax", TranslateSoftmaxOp},
-      {"SoftmaxCrossEntropyWithLogits",
-       TranslateSoftmaxCrossEntropyWithLogitsOp},
-      {"Softplus", TranslateSoftplusOp},
-      {"SpaceToDepth", TranslateSpaceToDepthOp},
-      {"SparseSoftmaxCrossEntropyWithLogits",
-       TranslateSparseSoftmaxCrossEntropyWithLogitsOp},
-      {"Split", TranslateSplitOp}, {"SplitV", TranslateSplitVOp},
+      {"Softmax", TranslateSoftmaxOp}, {"Softplus", TranslateSoftplusOp},
+      {"SpaceToDepth", TranslateSpaceToDepthOp}, {"Split", TranslateSplitOp},
+      {"SplitV", TranslateSplitVOp},
       {"Sqrt", TranslateUnaryOp<ngraph::opset3::Sqrt>},
       {"Square", TranslateSquareOp},
       {"SquaredDifference",
