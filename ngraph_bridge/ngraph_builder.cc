@@ -2656,17 +2656,17 @@ static Status TranslateMaxPoolOp(const Node* op,
   ng::Shape ng_padding_below{0, 0};
   ng::Shape ng_padding_above{0, 0};
 
-  Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
-                       ng_strides, ng_padding_below, ng_padding_above);
-
-  ng::op::PadType ng_pad_type = ng::op::PadType::AUTO;
+  ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
   if (tf_padding_type == "VALID") {
     ng_pad_type = ng::op::PadType::VALID;
+  } else {
+    Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
+                         ng_strides, ng_padding_below, ng_padding_above);
   }
 
   std::shared_ptr<ng::Node> ng_maxpool = ConstructNgNode<ng::opset3::MaxPool>(
       op->name(), ng_input, ng_strides, ng_padding_below, ng_padding_above,
-      ng_kernel_shape, ng::op::RoundingType::CEIL, ng_pad_type);
+      ng_kernel_shape, ng::op::RoundingType::FLOOR, ng_pad_type);
 
   BatchToTensorflow(op->name(), is_nhwc, ng_maxpool);
 
@@ -2723,17 +2723,17 @@ static Status TranslateMaxPool3DOp(const Node* op,
   ng::Shape ng_padding_below{0, 0, 0};
   ng::Shape ng_padding_above{0, 0, 0};
 
-  Builder::MakePadding3D(tf_padding_type, ng_image_shape, ng_kernel_shape,
-                         ng_strides, ng_padding_below, ng_padding_above);
-
-  ng::op::PadType ng_pad_type = ng::op::PadType::AUTO;
+  ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
   if (tf_padding_type == "VALID") {
     ng_pad_type = ng::op::PadType::VALID;
+  } else {
+    Builder::MakePadding3D(tf_padding_type, ng_image_shape, ng_kernel_shape,
+                           ng_strides, ng_padding_below, ng_padding_above);
   }
 
   std::shared_ptr<ng::Node> ng_maxpool = ConstructNgNode<ng::opset3::MaxPool>(
       op->name(), ng_input, ng_strides, ng_padding_below, ng_padding_above,
-      ng_kernel_shape, ng::op::RoundingType::CEIL, ng_pad_type);
+      ng_kernel_shape, ng::op::RoundingType::FLOOR, ng_pad_type);
 
   BatchToTensorflow3D(op->name(), is_ndhwc, ng_maxpool);
 
