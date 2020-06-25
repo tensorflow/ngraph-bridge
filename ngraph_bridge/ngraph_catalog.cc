@@ -216,48 +216,5 @@ void NGraphCatalog::PrintEncapOutputInfoMap() {
   }
 }
 
-// Functions for PrefetchedInputIndex Map
-void NGraphCatalog::AddToPrefetchedInputIndexMap(
-    const int& graphid, const string& node_name,
-    const map<int, int>& encap_inp_index_map) {
-  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
-  if (NGraphCatalog::ExistsInPrefetchedInputIndexMap(key)) {
-    throw runtime_error("Trying to add an already existing key ( " + key +
-                        " ) in PrefetchedInputIndexMap ");
-  }
-  NGraphCatalog::prefetched_input_index_map_.insert({key, encap_inp_index_map});
-}
-
-bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const int& graphid,
-                                                    const string& node_name) {
-  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
-  return NGraphCatalog::ExistsInPrefetchedInputIndexMap(key);
-}
-
-bool NGraphCatalog::ExistsInPrefetchedInputIndexMap(const string& key) {
-  auto itr = NGraphCatalog::prefetched_input_index_map_.find(key);
-  return itr != NGraphCatalog::prefetched_input_index_map_.end();
-}
-
-const map<int, int>& NGraphCatalog::GetIndexesFromPrefetchedInputIndexMap(
-    const int& graphid, const string& node_name) {
-  string key = NGraphCatalog::CreateNodeKey(graphid, node_name);
-  return NGraphCatalog::prefetched_input_index_map_.at(key);
-}
-
-void NGraphCatalog::ClearPrefetchedInputIndexMap() {
-  NGraphCatalog::prefetched_input_index_map_.clear();
-}
-
-void NGraphCatalog::PrintPrefetchedInputIndexMap() {
-  NGRAPH_VLOG(4) << "PrefetchedInputIndexMap";
-  for (auto it : prefetched_input_index_map_) {
-    NGRAPH_VLOG(4) << "Key: (GraphId_NodeName) " << it.first;
-    for (auto itr = it.second.begin(); itr != it.second.end(); ++itr) {
-      NGRAPH_VLOG(4) << " NGEncap Input Index: " << itr->first
-                     << ", IteratorGetNext Output Index: " << itr->second;
-    }
-  }
-}
 }  // ngraph_bridge
 }  // tensorflow

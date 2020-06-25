@@ -153,18 +153,6 @@ class NGraphCatalog {
   static void ClearEncapOutputInfoMap();
   static void PrintEncapOutputInfoMap();
 
-  // Functions for PrefetedInputs Map
-  static void AddToPrefetchedInputIndexMap(
-      const int& graphid, const string& node_name,
-      const map<int, int>& encap_inp_index_map);
-  static bool ExistsInPrefetchedInputIndexMap(const int& graphid,
-                                              const string& node_name);
-  static bool ExistsInPrefetchedInputIndexMap(const string& key);
-  static const map<int, int>& GetIndexesFromPrefetchedInputIndexMap(
-      const int& graphid, const string& node_name);
-
-  static void ClearPrefetchedInputIndexMap();
-  static void PrintPrefetchedInputIndexMap();
 };
 
 }  // ngraph_bridge
