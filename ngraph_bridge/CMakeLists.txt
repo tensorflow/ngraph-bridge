@@ -44,7 +44,6 @@ set(SRC
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
    ngraph_enter_prefetch_in_catalog.cc
-   ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
