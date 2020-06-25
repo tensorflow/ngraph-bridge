@@ -53,6 +53,9 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             absl_algorithm
             absl_container
             absl_strings
+            lib_mklml_intel
+            lib_dnnl
+            lib_iomp5
         )
 
         target_compile_definitions(
@@ -93,6 +96,9 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
+        lib_dnnl
+        lib_iomp5
+        lib_mklml_intel
     )
     target_compile_definitions(
     ${LIB_NAME_STATIC} PRIVATE 
