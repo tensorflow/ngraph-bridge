@@ -192,8 +192,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["ArgMin"] = SetStaticInputs({1});
     set_attributes_map["AvgPoolGrad"] = SetStaticInputs({0});
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
-    set_attributes_map["CombinedNonMaxSuppression"] =
-        SetStaticInputs({2, 3, 4, 5});
     set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
     set_attributes_map["ExpandDims"] = SetStaticInputs({1});
@@ -228,7 +226,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
       SetStaticInputs(n, static_input_vec);
       return Status::OK();
     };
-    set_attributes_map["RandomUniform"] = SetStaticInputs({0});
     set_attributes_map["Reshape"] = SetStaticInputs({1});
     set_attributes_map["ScatterNd"] = SetStaticInputs({2});
     set_attributes_map["Slice"] = SetStaticInputs({1, 2});
@@ -291,6 +288,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["BiasAdd"] = SimpleConfirmationFunction();
     confirmation_function_map["BiasAddGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Cast"] = SimpleConfirmationFunction();
+    confirmation_function_map["Ceil"] = SimpleConfirmationFunction();
     confirmation_function_map["ConcatV2"] = SimpleConfirmationFunction();
     confirmation_function_map["Const"] = SimpleConfirmationFunction();
     confirmation_function_map["Conv2D"] = SimpleConfirmationFunction();
@@ -375,6 +373,8 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
     confirmation_function_map["Mul"] = SimpleConfirmationFunction();
     confirmation_function_map["Neg"] = SimpleConfirmationFunction();
+    confirmation_function_map["NonMaxSuppressionV4"] =
+        SimpleConfirmationFunction();
     confirmation_function_map["NoOp"] = SimpleConfirmationFunction();
     confirmation_function_map["OneHot"] = SimpleConfirmationFunction();
     confirmation_function_map["Pad"] = SimpleConfirmationFunction();
@@ -382,7 +382,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["PreventGradient"] = SimpleConfirmationFunction();
     confirmation_function_map["Prod"] = SimpleConfirmationFunction();
     confirmation_function_map["Rank"] = SimpleConfirmationFunction();
-    confirmation_function_map["RandomUniform"] = SimpleConfirmationFunction();
     confirmation_function_map["QuantizeAndDequantizeV2"] = [](Node* n,
                                                               bool* result) {
       // accept only when num_bits == 8 and range is given
@@ -517,6 +516,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["BiasAddGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cast"]["SrcT"] = NGraphDTypes();
     type_constraint_map["Cast"]["DstT"] = NGraphDTypes();
+    type_constraint_map["Ceil"]["T"] = NGraphRealDTypes();
     type_constraint_map["ConcatV2"]["T"] = NGraphDTypes();
     type_constraint_map["ConcatV2"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Const"]["dtype"] = NGraphDTypes();
@@ -584,7 +584,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
         DT_FLOAT};  // TF allows half too
     type_constraint_map["OneHot"]["T"] = NGraphDTypes();
     type_constraint_map["Pack"]["T"] = NGraphDTypes();
-    type_constraint_map["RandomUniform"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
@@ -744,7 +743,8 @@ GetTFToNgOpMap() {
          {std::make_shared<ngraph::opset3::Add>(),
           std::make_shared<ngraph::op::Broadcast>()}},
         {"BiasAddGrad", {std::make_shared<ngraph::op::Sum>(), constant}},
-        {"Cast", {std::make_shared<ngraph::op::Convert>()}},
+        {"Cast", {std::make_shared<ngraph::opset3::Convert>()}},
+        {"Ceil", {std::make_shared<ngraph::opset3::Ceiling>()}},
         {"ConcatV2", {std::make_shared<ngraph::op::Concat>()}},
         {"Const", {constant}}, {"Conv2D",
                                 {std::make_shared<ngraph::op::Reshape>(),
@@ -869,6 +869,8 @@ GetTFToNgOpMap() {
         {"Minimum", {std::make_shared<ngraph::opset3::Minimum>()}},
         {"Mul", {std::make_shared<ngraph::opset3::Multiply>()}},
         {"Neg", {std::make_shared<ngraph::opset3::Negative>()}},
+        {"NonMaxSuppressionV4",
+         {std::make_shared<ngraph::opset3::NonMaxSuppression>(), constant}},
         {"OneHot", {std::make_shared<ngraph::opset3::OneHot>(), constant}},
         {"Pack",
          {std::make_shared<ngraph::op::Concat>(),
@@ -960,10 +962,6 @@ GetTFToNgOpMap() {
           std::make_shared<ngraph::op::Quantize>(),
           std::make_shared<ngraph::op::Divide>(),
           std::make_shared<ngraph::op::Add>()}},
-        {
-            "RandomUniform",
-            {constant, std::make_shared<ngraph::op::RandomUniform>()},
-        },
         {"Rank", {constant}}, {"RealDiv",
                                {std::make_shared<ngraph::opset3::Divide>(),
                                 std::make_shared<ngraph::op::Broadcast>()}},
@@ -1102,24 +1100,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     confirmation_function_map = GetConfirmationMap();
     initialized = true;
   }
-
-  // Right now it cannot be inside the if(!initialized) block, because it is
-  // backend dependent, which might change with different sess.run()s
-  confirmation_function_map["NonMaxSuppressionV4"] = [&current_backend](
-      Node*, bool* result) {
-    auto config_map =
-        BackendManager::GetBackendAttributeValues(current_backend);
-    *result = (config_map.at("ngraph_backend") == "NNPI");
-    return Status::OK();
-  };
-
-  confirmation_function_map["CombinedNonMaxSuppression"] = [&current_backend](
-      Node*, bool* result) {
-    auto config_map =
-        BackendManager::GetBackendAttributeValues(current_backend);
-    *result = (config_map.at("ngraph_backend") == "NNPI");
-    return Status::OK();
-  };
 
   if (op_set_support_has_changed) {
     NGRAPH_VLOG(5) << "Changing op support";
