@@ -3631,27 +3631,6 @@ static Status TranslateShapeOp(const Node* op,
   return Status::OK();
 }
 
-static Status TranslateSigmoidGradOp(const Node* op,
-                                     const std::vector<const Tensor*>&,
-                                     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  shared_ptr<ng::Node> ng_delta;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_delta));
-
-  auto ng_mul =
-      ConstructNgNode<ng::opset3::Multiply>(op->name(), ng_input, ng_delta);
-  auto ng_subtract = ConstructNgNode<ng::opset3::Subtract>(
-      op->name(), ConstructNgNode<ng::op::Constant>(
-                      op->name(), ng_input->get_element_type(),
-                      ng_input->get_shape(), std::vector<int>({1})),
-      ng_input);
-  auto ng_result =
-      ConstructNgNode<ng::opset3::Multiply>(op->name(), ng_mul, ng_subtract);
-
-  SaveNgOp(ng_op_map, op->name(), ng_result);
-  return Status::OK();
-}
-
 static Status TranslateSigmoidOp(const Node* op,
                                  const std::vector<const Tensor*>&,
                                  Builder::OpMap& ng_op_map) {
@@ -4449,7 +4428,7 @@ const static std::map<
       {"Reshape", TranslateReshapeOp}, {"Rsqrt", TranslateRsqrtOp},
       {"RsqrtGrad", TranslateRsqrtGradOp}, {"ScatterNd", TranslateScatterNdOp},
       {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
-      {"Sigmoid", TranslateSigmoidOp}, {"SigmoidGrad", TranslateSigmoidGradOp},
+      {"Sigmoid", TranslateSigmoidOp},
       {"Sin", TranslateUnaryOp<ngraph::opset3::Sin>}, {"Size", TranslateSizeOp},
       {"Sign", TranslateUnaryOp<ngraph::opset3::Sign>},
       {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
