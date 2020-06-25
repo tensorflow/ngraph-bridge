@@ -421,7 +421,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["ReluGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Reshape"] = SimpleConfirmationFunction();
     confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
-    confirmation_function_map["RsqrtGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["ScatterNd"] = SimpleConfirmationFunction();
     confirmation_function_map["Select"] = SimpleConfirmationFunction();
     confirmation_function_map["Shape"] = SimpleConfirmationFunction();
@@ -631,7 +630,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Reshape"]["T"] = NGraphDTypes();
     type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
     type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
-    type_constraint_map["RsqrtGrad"]["T"] = NGraphRealDTypes();
     type_constraint_map["ScatterNd"]["T"] = NGraphDTypes();
     type_constraint_map["ScatterNd"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["Select"]["T"] = NGraphDTypes();
@@ -953,9 +951,6 @@ GetTFToNgOpMap() {
           std::make_shared<ngraph::op::Relu>()}},
         {"ReluGrad", {relu}},
         {"Rsqrt", {constant, std::make_shared<ngraph::opset3::Power>()}},
-        {"RsqrtGrad",
-         {constant, std::make_shared<ngraph::opset3::Power>(),
-          std::make_shared<ngraph::opset3::Multiply>()}},
         {"Select", {std::make_shared<ngraph::opset3::Select>()}},
         {"Reshape", {std::make_shared<ngraph::opset3::Reshape>()}},
         {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},

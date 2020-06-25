@@ -3570,37 +3570,6 @@ static Status TranslateScatterNdOp(
   return Status::OK();
 }
 
-static Status TranslateRsqrtGradOp(const Node* op,
-                                   const std::vector<const Tensor*>&,
-                                   Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  shared_ptr<ng::Node> ng_delta;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_delta));
-
-  //`grad = dy * -0.5 * y^3`, where `y = rsqrt(x)`, and `dy`
-  // Create a constant tensor populated with the value 3.
-  auto et = ng_input->get_element_type();
-  auto shape = ng_input->get_shape();
-  std::vector<std::string> constant_values(ng::shape_size(shape), "3");
-  auto ng_exponent = ConstructNgNode<ng::opset3::Constant>(
-      op->name(), et, shape, constant_values);
-
-  // Raise each element of the input to the power 3.
-  auto ng_pow =
-      ConstructNgNode<ng::opset3::Power>(op->name(), ng_input, ng_exponent);
-
-  // Create a constant tensor populated with the value -1/2.
-  std::vector<std::string> constant_diff(ng::shape_size(shape), "-0.5");
-  auto ng_diff = ConstructNgNode<ng::opset3::Constant>(op->name(), et, shape,
-                                                       constant_diff);
-  auto ng_result = ConstructNgNode<ng::opset3::Multiply>(
-      op->name(),
-      (ConstructNgNode<ng::opset3::Multiply>(op->name(), ng_pow, ng_delta)),
-      ng_diff);
-  SaveNgOp(ng_op_map, op->name(), ng_result);
-  return Status::OK();
-}
-
 static Status TranslateShapeOp(const Node* op,
                                const std::vector<const Tensor*>&,
                                Builder::OpMap& ng_op_map) {
@@ -4426,9 +4395,8 @@ const static std::map<
       {"Relu", TranslateUnaryOp<ngraph::opset3::Relu>},
       {"Relu6", TranslateRelu6Op}, {"ReluGrad", TranslateReluGradOp},
       {"Reshape", TranslateReshapeOp}, {"Rsqrt", TranslateRsqrtOp},
-      {"RsqrtGrad", TranslateRsqrtGradOp}, {"ScatterNd", TranslateScatterNdOp},
-      {"Select", TranslateSelectOp}, {"Shape", TranslateShapeOp},
-      {"Sigmoid", TranslateSigmoidOp},
+      {"ScatterNd", TranslateScatterNdOp}, {"Select", TranslateSelectOp},
+      {"Shape", TranslateShapeOp}, {"Sigmoid", TranslateSigmoidOp},
       {"Sin", TranslateUnaryOp<ngraph::opset3::Sin>}, {"Size", TranslateSizeOp},
       {"Sign", TranslateUnaryOp<ngraph::opset3::Sign>},
       {"Slice", TranslateSliceOp}, {"Snapshot", TranslateIdentityOp},
