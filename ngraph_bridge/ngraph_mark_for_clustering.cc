@@ -418,7 +418,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Reciprocal"] = SimpleConfirmationFunction();
     confirmation_function_map["Relu"] = SimpleConfirmationFunction();
     confirmation_function_map["Relu6"] = SimpleConfirmationFunction();
-    confirmation_function_map["ReluGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Reshape"] = SimpleConfirmationFunction();
     confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
     confirmation_function_map["ScatterNd"] = SimpleConfirmationFunction();
@@ -626,7 +625,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Reciprocal"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Relu"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Relu6"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["ReluGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Reshape"]["T"] = NGraphDTypes();
     type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
     type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
@@ -678,15 +676,10 @@ const TypeConstraintMap& GetTypeConstraintMap() {
 
 const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
 GetTFToNgOpMap() {
-  // Constant Op, ReluGrad Op do not have default Constructor
+  // Constant Op does not have default Constructor
   // in ngraph, so passing a dummy node
   auto constant = ngraph::op::Constant::create(ngraph::element::f32,
                                                ngraph::Shape{}, {2.0f});
-  auto shape_a = ngraph::Shape{2, 5};
-  auto A = make_shared<ngraph::op::Parameter>(ngraph::element::f32, shape_a);
-  auto delta_val =
-      make_shared<ngraph::op::Parameter>(ngraph::element::f32, shape_a);
-  auto relu = make_shared<ngraph::op::ReluBackprop>(A, delta_val);
   // Map:: TF ops to NG Ops to track if all the Ngraph ops
   // are supported by backend
   // Update this Map if a new TF Op translation is
@@ -949,7 +942,6 @@ GetTFToNgOpMap() {
         {"Relu6",
          {constant, std::make_shared<ngraph::op::Minimum>(),
           std::make_shared<ngraph::op::Relu>()}},
-        {"ReluGrad", {relu}},
         {"Rsqrt", {constant, std::make_shared<ngraph::opset3::Power>()}},
         {"Select", {std::make_shared<ngraph::opset3::Select>()}},
         {"Reshape", {std::make_shared<ngraph::opset3::Reshape>()}},

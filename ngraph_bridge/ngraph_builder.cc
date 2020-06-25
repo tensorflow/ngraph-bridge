@@ -3491,18 +3491,6 @@ static Status TranslateRelu6Op(const Node* op,
   return Status::OK();
 }
 
-static Status TranslateReluGradOp(const Node* op,
-                                  const std::vector<const Tensor*>&,
-                                  Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_arg, ng_delta;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_delta, &ng_arg));
-
-  auto ng_relu_grad =
-      ConstructNgNode<ng::op::ReluBackprop>(op->name(), ng_arg, ng_delta);
-  SaveNgOp(ng_op_map, op->name(), ng_relu_grad);
-  return Status::OK();
-}
-
 static Status TranslateReshapeOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -4393,7 +4381,7 @@ const static std::map<
       {"RealDiv", TranslateBinaryOp<ngraph::opset3::Divide>},
       {"Reciprocal", TranslateReciprocalOp},
       {"Relu", TranslateUnaryOp<ngraph::opset3::Relu>},
-      {"Relu6", TranslateRelu6Op}, {"ReluGrad", TranslateReluGradOp},
+      {"Relu6", TranslateRelu6Op},
       {"Reshape", TranslateReshapeOp}, {"Rsqrt", TranslateRsqrtOp},
       {"ScatterNd", TranslateScatterNdOp}, {"Select", TranslateSelectOp},
       {"Shape", TranslateShapeOp}, {"Sigmoid", TranslateSigmoidOp},
