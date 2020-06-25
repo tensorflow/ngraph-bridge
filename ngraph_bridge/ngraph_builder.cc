@@ -1020,56 +1020,6 @@ static Status TranslateBiasAddOp(
   return Status::OK();
 }
 
-static Status TranslateBiasAddGradOp(const Node* op,
-                                     const std::vector<const Tensor*>&,
-                                     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-
-  std::string tf_data_format;
-  if (GetNodeAttr(op->attrs(), "data_format", &tf_data_format) !=
-      Status::OK()) {
-    tf_data_format = "NHWC";
-  }
-
-  if (tf_data_format != "NHWC" && tf_data_format != "NCHW") {
-    return errors::InvalidArgument(
-        "BiasAddGrad data format is neither NHWC nor NCHW");
-  }
-
-  bool is_nhwc = (tf_data_format == "NHWC");
-
-  ng::AxisSet reduction_axes;
-  shared_ptr<ng::Node> ng_biasadd_backprop;
-  auto ng_input_shape = ng_input->get_shape();
-
-  if (is_nhwc) {
-    if (ng_input_shape.size() < 2) {
-      return errors::InvalidArgument(
-          "BiasAddGrad argument needs to have at least 2 dimensions for NHWC "
-          "data format");
-    }
-    for (size_t i = 0; i < ng_input_shape.size() - 1; i++) {
-      reduction_axes.insert(i);
-    }
-  } else {
-    // Tensorflow NCHW format supports only 4D input/output tensor
-    if (ng_input_shape.size() != 4) {
-      return errors::InvalidArgument(
-          "BiasAddGrad only support 4d input/output for NCHW data format");
-    }
-    for (size_t i = 0; i < ng_input_shape.size(); i++) {
-      if (i != ng_input_shape.size() - 3) reduction_axes.insert(i);
-    }
-  }
-
-  ng_biasadd_backprop =
-      ConstructNgNode<ng::op::Sum>(op->name(), ng_input, reduction_axes);
-
-  SaveNgOp(ng_op_map, op->name(), ng_biasadd_backprop);
-  return Status::OK();
-}
-
 static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
                               Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input;
@@ -4503,8 +4453,7 @@ const static std::map<
       {"AvgPool", TranslateAvgPoolOp}, {"AvgPoolGrad", TranslateAvgPoolGradOp},
       {"BatchMatMul", TranslateBatchMatMulOp},
       {"BatchMatMulV2", TranslateBatchMatMulV2Op},
-      {"BiasAdd", TranslateBiasAddOp}, {"BiasAddGrad", TranslateBiasAddGradOp},
-      {"Cast", TranslateCastOp},
+      {"BiasAdd", TranslateBiasAddOp}, {"Cast", TranslateCastOp},
       {"Ceil", TranslateUnaryOp<ngraph::opset3::Ceiling>},
       {"ConcatV2", TranslateConcatV2Op}, {"Const", TranslateConstOp},
       {"Conv2D", TranslateConv2DOp},
