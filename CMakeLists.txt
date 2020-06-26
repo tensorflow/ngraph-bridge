@@ -23,6 +23,8 @@ include(ExternalProject)
 include(CMakeDependentOption)
 include(cmake/sdl.cmake)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(Apple)?Clang$")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-comment -Wno-sign-compare -Wno-backslash-newline-escape")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -248,7 +250,7 @@ if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.28.0-rc.1
+        GIT_TAG 94456090176ad6abda633b496b89cc16157ed4b0
         CMAKE_ARGS 
             -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
@@ -290,7 +292,7 @@ set(NGRAPH_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBNGRAPH})
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBCPU_BACKEND_A})
     set(INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBINTERPRETER_BACKEND_A})
-    set(LIB_MKLDNN_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libmkldnn.so)
+    set(LIB_DNNL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libdnnl.so)
     set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libmklml_intel.so)
     set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libiomp5.so)
 
@@ -315,11 +317,11 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC}
     )
 
-    add_library(lib_mkldnn SHARED IMPORTED)
+    add_library(lib_dnnl SHARED IMPORTED)
     set_target_properties(
-        lib_mkldnn
+        lib_dnnl
         PROPERTIES IMPORTED_LOCATION
-        ${LIB_MKLDNN_IMPORTED_LOCATION}
+        ${LIB_DNNL_IMPORTED_LOCATION}
     )
 
     add_library(lib_mklml_intel SHARED IMPORTED)
@@ -327,6 +329,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         lib_mklml_intel
         PROPERTIES IMPORTED_LOCATION
         ${LIB_MKLML_INTEL_IMPORTED_LOCATION}
+        IMPORTED_NO_SONAME 1
     )
 
     add_library(lib_iomp5 SHARED IMPORTED)
@@ -379,18 +382,23 @@ endif()
 
 if (UNIT_TEST_ENABLE)
     if (NOT DEFINED TF_SRC_DIR)
-        message(FATAL_ERROR "Provide TensorFlow source directory: -DTF_SRC_DIR=<directory>")
-    endif()
-    if (NOT EXISTS ${TensorFlow_SRC_DIR})
         message(
-            STATUS 
-            "TensorFlow source directory doesn't exist"
+            STATUS
+            "TensorFlow source directory not provided. "
+            "C++ unit tests won't be built"
         )
-    endif()
+    else()
+        if (NOT EXISTS ${TensorFlow_SRC_DIR})
+            message(
+                STATUS 
+                "TensorFlow source directory doesn't exist"
+            )
+        endif()
 
-    # Check if the path specified is ABSOLUTE or RELATVE
-    if (NOT IS_ABSOLUTE ${TF_SRC_DIR})
-        set(TF_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TF_SRC_DIR})
+        # Check if the path specified is ABSOLUTE or RELATVE
+        if (NOT IS_ABSOLUTE ${TF_SRC_DIR})
+            set(TF_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TF_SRC_DIR})
+        endif()
     endif()
 
     add_subdirectory(test)

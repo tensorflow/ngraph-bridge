@@ -49,60 +49,6 @@ namespace testing {
 // https://github.com/google/googletest/blob/master/googletest/docs/primer.md
 // Use only Tensors and ops::Const() to provide input to the test op
 
-// The backward operation for "BiasAdd" on the bias tensor.
-// NHWC: out_backprop input at least rank 2
-// NCHW: out_backprop input only rank 4
-TEST(NNOps, BiasAddGrad) {
-  // define the shape for the out_backprop input shape
-  vector<int64> out_backprop_shape_2D = {10, 20};
-  vector<int64> out_backprop_shape_3D = {1, 3, 6};
-  vector<int64> out_backprop_shape_4D = {
-      1, 2, 3, 4};  // NCHW only supports 4D input/output on TF CPU
-  vector<int64> out_backprop_shape_5D = {2, 4, 6, 8, 10};
-
-  vector<vector<int64>> shape_vector;
-
-  shape_vector.push_back(out_backprop_shape_2D);
-  shape_vector.push_back(out_backprop_shape_3D);
-  shape_vector.push_back(out_backprop_shape_4D);
-  shape_vector.push_back(out_backprop_shape_5D);
-
-  auto attrs = ops::BiasAddGrad::Attrs();
-  attrs.data_format_ = "NHWC";
-
-  vector<int> static_input_indexes = {};
-  vector<DataType> output_datatypes = {DT_FLOAT};
-
-  for (int i = 0; i < 4; i++) {
-    Scope root = Scope::NewRootScope();
-    auto tensor_shape = shape_vector[i];
-
-    Tensor out_backprop(DT_FLOAT, TensorShape(tensor_shape));
-    AssignInputValuesRandom<float>(out_backprop, -5, 10);
-
-    auto R = ops::BiasAddGrad(root, out_backprop, attrs);
-    std::vector<Output> sess_run_fetchoutputs = {
-        R};  // tf session run parameter
-    OpExecuter opexecuter(root, "BiasAddGrad", static_input_indexes,
-                          output_datatypes, sess_run_fetchoutputs);
-    opexecuter.RunTest();
-  }
-
-  attrs.data_format_ = "NCHW";
-  Scope s_nchw = Scope::NewRootScope();
-
-  Tensor out_backprop_4D(DT_FLOAT, TensorShape(out_backprop_shape_4D));
-  AssignInputValuesRandom<float>(out_backprop_4D, -10, 20);
-
-  auto R_4D = ops::BiasAddGrad(s_nchw, out_backprop_4D, attrs);
-  std::vector<Output> sess_run_fetchoutputs_4D = {
-      R_4D};  // tf session run parameter
-  OpExecuter opexecuter_4D(s_nchw, "BiasAddGrad", static_input_indexes,
-                           output_datatypes, sess_run_fetchoutputs_4D);
-
-  opexecuter_4D.RunTest();
-}
-
 // TF does not support NCHW kernels
 // To test NCHW data format
 // Create graph with inputs in NCHW format and execute on NGraph
@@ -1119,120 +1065,6 @@ TEST(NNOps, FusedBatchNormV3NHWCTraining) {
                      static_cast<float>(1e-03));
 }  // end of FusedBatchNormV3NHWCTraining
 
-// FusedBatchNormGrad : Gradient for batch normalization
-// On TF CPU: only supports NHWC
-TEST(NNOps, FusedBatchNormGradNHWC) {
-  Scope root = Scope::NewRootScope();
-
-  // 4D tensor for the gradient with respect to y
-  Tensor y_backprop(DT_FLOAT, TensorShape({5, 4, 3, 2}));
-  // 4D tensor for input data
-  Tensor x(DT_FLOAT, TensorShape({5, 4, 3, 2}));
-  // 1D tensor for scaling the normalized x
-  Tensor scale(DT_FLOAT, TensorShape({2}));
-  // 1D tensor for population mean
-  Tensor reserve_space_1_mean(DT_FLOAT, TensorShape({2}));
-  // 1D tensor for population variance
-  Tensor reserve_space_2_variance(DT_FLOAT, TensorShape({2}));
-
-  AssignInputValuesRandom<float>(y_backprop, -5.0f, 10.0f);
-  AssignInputValuesRandom<float>(x, -10.0f, 10.0f);
-  AssignInputValuesRandom<float>(scale, -1.6f, 1.6f);
-  AssignInputValuesRandom<float>(reserve_space_1_mean, 1.1f, 1.5f);
-  AssignInputValuesRandom<float>(reserve_space_2_variance, 0.5f, 1.5f);
-
-  auto attrs = ops::FusedBatchNormGrad::Attrs();
-  attrs.is_training_ =
-      true;  // doesn't support is_training_= false case on ngraph
-  attrs.epsilon_ = 0.0001f;
-  attrs.data_format_ = "NHWC";
-
-  // test grab the first three outputs from the FusedBatchNormGrad op
-  vector<int> static_input_indexes = {};
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT};
-  auto R =
-      ops::FusedBatchNormGrad(root, y_backprop, x, scale, reserve_space_1_mean,
-                              reserve_space_2_variance, attrs);
-  std::vector<Output> sess_run_fetchoutputs = {R.x_backprop, R.scale_backprop,
-                                               R.offset_backprop};
-  OpExecuter opexecuter(root, "FusedBatchNormGrad", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  opexecuter.RunTest(1e-05, 1e-06);
-
-  // test grab all the outputs from the FusedBatchNormGrad op
-  Scope all_output_test = Scope::NewRootScope();
-  vector<DataType> output_datatypes_all = {DT_FLOAT, DT_FLOAT, DT_FLOAT,
-                                           DT_FLOAT, DT_FLOAT};
-  R = ops::FusedBatchNormGrad(all_output_test, y_backprop, x, scale,
-                              reserve_space_1_mean, reserve_space_2_variance,
-                              attrs);
-  std::vector<Output> sess_run_fetchoutputs_all = {
-      R.x_backprop, R.scale_backprop, R.offset_backprop, R.reserve_space_3,
-      R.reserve_space_4};
-  OpExecuter opexecuter_all_output(all_output_test, "FusedBatchNormGrad",
-                                   static_input_indexes, output_datatypes_all,
-                                   sess_run_fetchoutputs_all);
-  opexecuter_all_output.RunTest(1e-05, 1e-06);
-}
-
-// FusedBatchNormGradV3 : Gradient for batch normalization
-// On TF CPU: only supports NHWC
-TEST(NNOps, FusedBatchNormGradV3NHWC) {
-  Scope root = Scope::NewRootScope();
-
-  // 4D tensor for the gradient with respect to y
-  Tensor y_backprop(DT_FLOAT, TensorShape({5, 4, 3, 2}));
-  // 4D tensor for input data
-  Tensor x(DT_FLOAT, TensorShape({5, 4, 3, 2}));
-  // 1D tensor for scaling the normalized x
-  Tensor scale(DT_FLOAT, TensorShape({2}));
-  // 1D tensor for population mean
-  Tensor reserve_space_1_mean(DT_FLOAT, TensorShape({2}));
-  // 1D tensor for population variance
-  Tensor reserve_space_2_variance(DT_FLOAT, TensorShape({2}));
-  Tensor reserve_space_3(DT_FLOAT, TensorShape({2}));
-
-  AssignInputValuesRandom<float>(y_backprop, -5.0f, 10.0f);
-  AssignInputValuesRandom<float>(x, -10.0f, 10.0f);
-  AssignInputValuesRandom<float>(scale, -1.6f, 1.6f);
-  AssignInputValuesRandom<float>(reserve_space_1_mean, 1.1f, 1.5f);
-  AssignInputValuesRandom<float>(reserve_space_2_variance, 0.5f, 1.5f);
-  AssignInputValuesRandom<float>(reserve_space_3, 0.5f, 1.5f);
-
-  auto attrs = ops::FusedBatchNormGradV3::Attrs();
-  attrs.is_training_ =
-      true;  // doesn't support is_training_= false case on ngraph
-  attrs.epsilon_ = 0.0001f;
-  attrs.data_format_ = "NHWC";
-
-  // test grab the first three outputs from the FusedBatchNormGradV3 op
-  vector<int> static_input_indexes = {};
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT};
-  auto R = ops::FusedBatchNormGradV3(
-      root, y_backprop, x, scale, reserve_space_1_mean,
-      reserve_space_2_variance, reserve_space_3, attrs);
-  std::vector<Output> sess_run_fetchoutputs = {R.x_backprop, R.scale_backprop,
-                                               R.offset_backprop};
-  OpExecuter opexecuter(root, "FusedBatchNormGradV3", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  opexecuter.RunTest(1e-05, 1e-06);
-
-  // test grab all the outputs from the FusedBatchNormGradV3 op
-  Scope all_output_test = Scope::NewRootScope();
-  vector<DataType> output_datatypes_all = {DT_FLOAT, DT_FLOAT, DT_FLOAT,
-                                           DT_FLOAT, DT_FLOAT};
-  R = ops::FusedBatchNormGradV3(all_output_test, y_backprop, x, scale,
-                                reserve_space_1_mean, reserve_space_2_variance,
-                                reserve_space_3, attrs);
-  std::vector<Output> sess_run_fetchoutputs_all = {
-      R.x_backprop, R.scale_backprop, R.offset_backprop, R.reserve_space_4,
-      R.reserve_space_5};
-  OpExecuter opexecuter_all_output(all_output_test, "FusedBatchNormGradV3",
-                                   static_input_indexes, output_datatypes_all,
-                                   sess_run_fetchoutputs_all);
-  opexecuter_all_output.RunTest(1e-05, 1e-06);
-}
-
 // Test Op :"L2Loss"
 TEST(NNOps, L2Loss) {
   std::vector<std::vector<int64>> input_sizes;
@@ -1533,35 +1365,6 @@ TEST(NNOps, Softmax3D) {
   opexecuter.RunTest();
 }
 
-// Computes softmax cross entropy cost and gradients to backpropagate.
-TEST(NNOps, SoftmaxCrossEntropyWithLogits) {
-  Scope root = Scope::NewRootScope();
-  int batch = 10;
-  int num_of_classes = 10;
-
-  Tensor A(DT_FLOAT, TensorShape({batch, num_of_classes}));  // logits/features
-  Tensor B(
-      DT_FLOAT,
-      TensorShape({batch, num_of_classes}));  // labels with a valid Prob Distr
-
-  AssignInputValuesRandom<float>(A, -200.0f, 200.0f);
-  AssignInputValuesRandom<float>(B, 0.0f, 1.0f);
-  // TODO: To make B a valid prob distr, let's ensure that the sum of each row
-  // is 1, using a Softmax
-
-  vector<int> static_input_indexes = {};
-  auto R = ops::SoftmaxCrossEntropyWithLogits(root, A, B);
-
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT};
-
-  std::vector<Output> sess_run_fetchoutputs = {R.loss, R.backprop};
-  OpExecuter opexecuter(root, "SoftmaxCrossEntropyWithLogits",
-                        static_input_indexes, output_datatypes,
-                        sess_run_fetchoutputs);
-
-  opexecuter.RunTest();
-}
-
 // The non softmax (non last) dim is zero
 TEST(NNOps, SoftmaxZeroDimTest1) {
   Scope root = Scope::NewRootScope();
@@ -1624,31 +1427,6 @@ TEST(NNOps, Softplus) {
 
     opexecuter.RunTest();
   }
-}
-
-// Computes softmax cross entropy cost and gradients to backpropagate.
-TEST(NNOps, SparseSoftmaxCrossEntropyWithLogits) {
-  Scope root = Scope::NewRootScope();
-  int batch = 10;
-  int num_of_classes = 2;
-
-  Tensor A(DT_FLOAT, TensorShape({batch, num_of_classes}));
-  Tensor B(DT_INT32, TensorShape({batch}));
-
-  AssignInputValuesRandom<float>(A, -2.0f, 2.0f);
-  AssignInputValuesRandom<int>(B, 0, num_of_classes - 1);
-
-  vector<int> static_input_indexes = {};
-  auto R = ops::SparseSoftmaxCrossEntropyWithLogits(root, A, B);
-
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT};
-
-  std::vector<Output> sess_run_fetchoutputs = {R.loss, R.backprop};
-  OpExecuter opexecuter(root, "SparseSoftmaxCrossEntropyWithLogits",
-                        static_input_indexes, output_datatypes,
-                        sess_run_fetchoutputs);
-
-  opexecuter.RunTest();
 }
 
 }  // namespace testing
