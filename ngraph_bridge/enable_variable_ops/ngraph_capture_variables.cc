@@ -82,8 +82,6 @@ Status CaptureVariables(Graph* graph, std::set<string> skip_these_nodes) {
           }
           ref_list.clear();
         }
-      } else if (node->type_string() == "MakeIterator") {
-        make_iterator_nodes.push_back(node);
       }
     }
   }
