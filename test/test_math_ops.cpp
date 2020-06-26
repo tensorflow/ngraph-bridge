@@ -2424,6 +2424,13 @@ TEST(MathOps, XdivyZeroXZeroY) {
 
 // Test op: Tanh
 TEST(MathOps, Tanh) {
+  Scope root = Scope::NewRootScope();
+
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
   AssignInputValues(A, 7.5f);
 
   vector<int> static_input_indexes = {};
