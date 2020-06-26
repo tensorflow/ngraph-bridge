@@ -715,7 +715,7 @@ GetTFToNgOpMap() {
         {"Asin", {std::make_shared<ngraph::opset3::Asin>()}},
         {"Atan", {std::make_shared<ngraph::opset3::Atan>()}},
         {"Atan2", {std::make_shared<ngraph::op::Atan2>()}},
-        {"AvgPool", {std::make_shared<ngraph::op::AvgPool>()}},
+        {"AvgPool", {std::make_shared<ngraph::opset3::AvgPool>()}},
         {"AvgPoolGrad", {std::make_shared<ngraph::op::AvgPoolBackprop>()}},
         {"BatchMatMul",
          {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
