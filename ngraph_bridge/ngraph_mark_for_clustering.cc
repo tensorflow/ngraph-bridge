@@ -190,7 +190,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["All"] = SetStaticInputs({1});
     set_attributes_map["ArgMax"] = SetStaticInputs({1});
     set_attributes_map["ArgMin"] = SetStaticInputs({1});
-    set_attributes_map["AvgPoolGrad"] = SetStaticInputs({0});
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
     set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
@@ -232,7 +231,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Split"] = SetStaticInputs({0});
     set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
     set_attributes_map["StridedSlice"] = SetStaticInputs({1, 2, 3});
-    set_attributes_map["StridedSliceGrad"] = SetStaticInputs({0, 1, 2, 3});
     set_attributes_map["Sum"] = SetStaticInputs({1});
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
@@ -282,11 +280,9 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Atan"] = SimpleConfirmationFunction();
     confirmation_function_map["Atan2"] = SimpleConfirmationFunction();
     confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
-    confirmation_function_map["AvgPoolGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
     confirmation_function_map["BiasAdd"] = SimpleConfirmationFunction();
-    confirmation_function_map["BiasAddGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Cast"] = SimpleConfirmationFunction();
     confirmation_function_map["Ceil"] = SimpleConfirmationFunction();
     confirmation_function_map["ConcatV2"] = SimpleConfirmationFunction();
@@ -327,16 +323,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
         SimpleConfirmationFunction();
     confirmation_function_map["FusedBatchNormV3"] =
         SimpleConfirmationFunction();
-    confirmation_function_map["FusedBatchNormGrad"] = [](Node* n,
-                                                         bool* result) {
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
-      return Status::OK();
-    };
-    confirmation_function_map["FusedBatchNormGradV3"] = [](Node* n,
-                                                           bool* result) {
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
-      return Status::OK();
-    };
     confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
@@ -367,7 +353,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Maximum"] = SimpleConfirmationFunction();
     confirmation_function_map["MaxPool"] = SimpleConfirmationFunction();
     confirmation_function_map["MaxPool3D"] = SimpleConfirmationFunction();
-    confirmation_function_map["MaxPoolGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Mean"] = SimpleConfirmationFunction();
     confirmation_function_map["Min"] = SimpleConfirmationFunction();
     confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
@@ -419,15 +404,12 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Reciprocal"] = SimpleConfirmationFunction();
     confirmation_function_map["Relu"] = SimpleConfirmationFunction();
     confirmation_function_map["Relu6"] = SimpleConfirmationFunction();
-    confirmation_function_map["ReluGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Reshape"] = SimpleConfirmationFunction();
     confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
-    confirmation_function_map["RsqrtGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["ScatterNd"] = SimpleConfirmationFunction();
     confirmation_function_map["Select"] = SimpleConfirmationFunction();
     confirmation_function_map["Shape"] = SimpleConfirmationFunction();
     confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
-    confirmation_function_map["SigmoidGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Sign"] = SimpleConfirmationFunction();
     confirmation_function_map["Sin"] = SimpleConfirmationFunction();
     confirmation_function_map["Size"] = SimpleConfirmationFunction();
@@ -445,13 +427,10 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
         SimpleConfirmationFunction();
     confirmation_function_map["Squeeze"] = SimpleConfirmationFunction();
     confirmation_function_map["StridedSlice"] = SimpleConfirmationFunction();
-    confirmation_function_map["StridedSliceGrad"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Pack"] = SimpleConfirmationFunction();
     confirmation_function_map["Sub"] = SimpleConfirmationFunction();
     confirmation_function_map["Sum"] = SimpleConfirmationFunction();
     confirmation_function_map["Tanh"] = SimpleConfirmationFunction();
-    confirmation_function_map["TanhGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Tile"] = SimpleConfirmationFunction();
     confirmation_function_map["TopKV2"] = [](Node* n, bool* result) {
       bool sorted = true;
@@ -466,6 +445,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Unpack"] = SimpleConfirmationFunction();
     confirmation_function_map["UnsortedSegmentSum"] =
         SimpleConfirmationFunction();
+    confirmation_function_map["Xdivy"] = SimpleConfirmationFunction();
     confirmation_function_map["ZerosLike"] = SimpleConfirmationFunction();
     initialized = true;
   }
@@ -505,11 +485,9 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Atan"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Atan2"]["T"] = NGraphRealDTypes();
     type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["AvgPoolGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BiasAdd"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["BiasAddGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cast"]["SrcT"] = NGraphDTypes();
     type_constraint_map["Cast"]["DstT"] = NGraphDTypes();
     type_constraint_map["Ceil"]["T"] = NGraphRealDTypes();
@@ -537,10 +515,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     // DT_FLOAT
     type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
     type_constraint_map["FusedBatchNormV3"]["T"] = {DT_FLOAT};
-    type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["GatherNd"]["Tparams"] = {DT_FLOAT};  // NGraphDTypes();
     type_constraint_map["GatherNd"]["Tindices"] = NGraphIndexDTypes();
-    type_constraint_map["FusedBatchNormGradV3"]["T"] = NGraphNumericDTypes();
     type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
     type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["GatherV2"]["Taxis"] = NGraphIndexDTypes();
@@ -568,7 +544,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Maximum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["MaxPool"]["T"] = NGraphNumericDTypes();
     type_constraint_map["MaxPool3D"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["MaxPoolGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Mean"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Mean"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Min"]["T"] = NGraphNumericDTypes();
@@ -631,18 +606,15 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Reciprocal"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Relu"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Relu6"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["ReluGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Reshape"]["T"] = NGraphDTypes();
     type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
     type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
-    type_constraint_map["RsqrtGrad"]["T"] = NGraphRealDTypes();
     type_constraint_map["ScatterNd"]["T"] = NGraphDTypes();
     type_constraint_map["ScatterNd"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["Select"]["T"] = NGraphDTypes();
     type_constraint_map["Shape"]["T"] = NGraphDTypes();
     type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();
     type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["SigmoidGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sin"]["T"] = NGraphRealDTypes();
     type_constraint_map["Size"]["T"] = NGraphDTypes();
@@ -662,13 +634,10 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Squeeze"]["T"] = NGraphDTypes();
     type_constraint_map["StridedSlice"]["T"] = NGraphDTypes();
     type_constraint_map["StridedSlice"]["Index"] = NGraphIndexDTypes();
-    type_constraint_map["StridedSliceGrad"]["T"] = NGraphDTypes();
-    type_constraint_map["StridedSliceGrad"]["Index"] = NGraphIndexDTypes();
     type_constraint_map["Sub"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Tanh"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["TanhGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["Tmultiples"] = NGraphIndexDTypes();
     type_constraint_map["TopKV2"]["T"] = NGraphNumericDTypes();
@@ -679,6 +648,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["UnsortedSegmentSum"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
         NGraphIndexDTypes();
+    type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
     initialized = true;
   }
   return type_constraint_map;
@@ -686,15 +656,10 @@ const TypeConstraintMap& GetTypeConstraintMap() {
 
 const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
 GetTFToNgOpMap() {
-  // Constant Op, ReluGrad Op do not have default Constructor
+  // Constant Op does not have default Constructor
   // in ngraph, so passing a dummy node
   auto constant = ngraph::op::Constant::create(ngraph::element::f32,
                                                ngraph::Shape{}, {2.0f});
-  auto shape_a = ngraph::Shape{2, 5};
-  auto A = make_shared<ngraph::op::Parameter>(ngraph::element::f32, shape_a);
-  auto delta_val =
-      make_shared<ngraph::op::Parameter>(ngraph::element::f32, shape_a);
-  auto relu = make_shared<ngraph::op::ReluBackprop>(A, delta_val);
   // Map:: TF ops to NG Ops to track if all the Ngraph ops
   // are supported by backend
   // Update this Map if a new TF Op translation is
@@ -717,8 +682,7 @@ GetTFToNgOpMap() {
         {"Asin", {std::make_shared<ngraph::opset3::Asin>()}},
         {"Atan", {std::make_shared<ngraph::opset3::Atan>()}},
         {"Atan2", {std::make_shared<ngraph::op::Atan2>()}},
-        {"AvgPool", {std::make_shared<ngraph::op::AvgPool>()}},
-        {"AvgPoolGrad", {std::make_shared<ngraph::op::AvgPoolBackprop>()}},
+        {"AvgPool", {std::make_shared<ngraph::opset3::AvgPool>()}},
         {"BatchMatMul",
          {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
           std::make_shared<ngraph::op::MatMul>(),
@@ -730,7 +694,6 @@ GetTFToNgOpMap() {
         {"BiasAdd",
          {std::make_shared<ngraph::opset3::Add>(),
           std::make_shared<ngraph::op::Broadcast>()}},
-        {"BiasAddGrad", {std::make_shared<ngraph::op::Sum>(), constant}},
         {"Cast", {std::make_shared<ngraph::opset3::Convert>()}},
         {"Ceil", {std::make_shared<ngraph::opset3::Ceiling>()}},
         {"ConcatV2", {std::make_shared<ngraph::op::Concat>()}},
@@ -787,14 +750,6 @@ GetTFToNgOpMap() {
           std::make_shared<ngraph::opset3::Multiply>(),
           std::make_shared<ngraph::op::BatchNormInference>(),
           std::make_shared<ngraph::op::Reshape>()}},
-        {"FusedBatchNormGrad",
-         {constant, std::make_shared<ngraph::op::GetOutputElement>(),
-          std::make_shared<ngraph::op::BatchNormTrainingBackprop>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"FusedBatchNormGradV3",
-         {constant, std::make_shared<ngraph::op::GetOutputElement>(),
-          std::make_shared<ngraph::op::BatchNormTrainingBackprop>(),
-          std::make_shared<ngraph::op::Reshape>()}},
         {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
         {"GatherV2", {std::make_shared<ngraph::op::Gather>()}},
         {"_FusedConv2D",
@@ -845,13 +800,10 @@ GetTFToNgOpMap() {
         {"Maximum", {std::make_shared<ngraph::opset3::Maximum>()}},
         {"MaxPool",
          {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::MaxPool>()}},
+          std::make_shared<ngraph::opset3::MaxPool>()}},
         {"MaxPool3D",
          {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::MaxPool>()}},
-        {"MaxPoolGrad",
-         {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::MaxPoolBackprop>()}},
+          std::make_shared<ngraph::opset3::MaxPool>()}},
         {"Mean", {std::make_shared<ngraph::opset3::ReduceMean>(), constant}},
         {"Min", {std::make_shared<ngraph::opset3::ReduceMin>(), constant}},
         {"Minimum", {std::make_shared<ngraph::opset3::Minimum>()}},
@@ -958,11 +910,7 @@ GetTFToNgOpMap() {
         {"Relu6",
          {constant, std::make_shared<ngraph::op::Minimum>(),
           std::make_shared<ngraph::op::Relu>()}},
-        {"ReluGrad", {relu}},
         {"Rsqrt", {constant, std::make_shared<ngraph::opset3::Power>()}},
-        {"RsqrtGrad",
-         {constant, std::make_shared<ngraph::opset3::Power>(),
-          std::make_shared<ngraph::opset3::Multiply>()}},
         {"Select", {std::make_shared<ngraph::opset3::Select>()}},
         {"Reshape", {std::make_shared<ngraph::opset3::Reshape>()}},
         {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},
@@ -971,9 +919,6 @@ GetTFToNgOpMap() {
                                  std::make_shared<ngraph::op::Negative>(),
                                  std::make_shared<ngraph::opset3::Add>(),
                                  std::make_shared<ngraph::opset3::Divide>()}},
-        {"SigmoidGrad",
-         {constant, std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::opset3::Subtract>()}},
         {"Sin", {std::make_shared<ngraph::opset3::Sin>()}},
         {"Size", {constant}},
         {"Sign", {std::make_shared<ngraph::opset3::Sign>()}},
@@ -997,19 +942,20 @@ GetTFToNgOpMap() {
          {std::make_shared<ngraph::op::Reverse>(),
           std::make_shared<ngraph::op::Slice>(),
           std::make_shared<ngraph::op::Reshape>()}},
-        {"StridedSliceGrad",
-         {constant, std::make_shared<ngraph::op::ReplaceSlice>()}},
         {"Sub", {std::make_shared<ngraph::opset3::Subtract>()}},
         {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
         {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
-        {"TanhGrad",
-         {constant, std::make_shared<ngraph::opset3::Subtract>(),
-          std::make_shared<ngraph::opset3::Multiply>()}},
         {"Tile", {constant, std::make_shared<ngraph::op::Concat>()}},
         {"TopKV2",
          {std::make_shared<ngraph::op::TopK>(),
           std::make_shared<ngraph::op::GetOutputElement>()}},
         {"Transpose", {constant, std::make_shared<ngraph::op::Reshape>()}},
+        {"Xdivy",
+         {constant, std::make_shared<ngraph::op::Divide>(),
+          std::make_shared<ngraph::op::Equal>(),
+          std::make_shared<ngraph::op::Convert>(),
+          std::make_shared<ngraph::op::Select>(),
+          std::make_shared<ngraph::op::Broadcast>()}},
         {"UnsortedSegmentSum",
          {constant, std::make_shared<ngraph::op::ScatterAdd>()}},
         {"Unpack",
