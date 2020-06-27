@@ -53,7 +53,7 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
     '''
     if type(cmd) == type([]):  #if its a list, convert to string
         cmd = ' '.join(cmd)
-    verbose = True # Bani debug
+    verbose = True  # Bani debug
     if verbose:
         tag = 'Running COMMAND: ' if msg is None else msg
         print(tag + cmd)
