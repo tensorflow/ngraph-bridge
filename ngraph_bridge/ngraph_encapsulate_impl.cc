@@ -114,7 +114,6 @@ Status NGraphEncapsulateImpl::Compile(
                        st.error_message()));
   }
   BackendManager::UnlockBackend(backend_name);
-  BackendManager::ReleaseBackend(backend_name);
   return Status::OK();
 }
 
