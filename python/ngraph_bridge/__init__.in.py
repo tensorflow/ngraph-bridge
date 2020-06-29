@@ -258,4 +258,4 @@ if ngraph_classic_loaded:
     "CXX11_ABI flag used for this build: " + str(ngraph_bridge_lib.ngraph_tf_cxx11_abi_flag()) + "\n" \
     "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.ngraph_tf_is_grappler_enabled()) + "\n" \
     "nGraph bridge built with Variables and Optimizers Enablement: " \
-    + str(ngraph_bridge_lib.ngraph_tf_are_variables_enabled()))
+    + str(ngraph_bridge_lib.ngraph_tf_are_variables_enabled())
