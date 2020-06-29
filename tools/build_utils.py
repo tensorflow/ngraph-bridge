@@ -44,7 +44,11 @@ def is_venv():
             (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
 
 
-def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
+def command_executor(cmd,
+                     verbose=False,
+                     msg=None,
+                     stdout=sys.stdout,
+                     stderr=sys.stderr):
     '''
     Executes the command.
     Example:
@@ -55,22 +59,22 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
         cmd = ' '.join(cmd)
     if verbose:
         tag = 'Running COMMAND: ' if msg is None else msg
-        print(tag + cmd)
-    cmd_list = shlex.split(cmd)
+        print(tag + cmd, file=stdout)
     try:
-        retcode = subprocess.call(cmd_list, stderr=subprocess.STDOUT)
-        if retcode < 0:
-            print("Child was terminated by signal", -retcode, file=sys.stderr)
-            exit(retcode)
-        elif retcode == 0:
-            print("Child returned OK", retcode, file=sys.stderr)
-            # OK, continue
-        else:
-            print("Child returned ERROR", retcode, file=sys.stderr)
-            exit(retcode)
+        process = subprocess.Popen(
+            shlex.split(cmd), stdout=stdout, stderr=stderr)
+        so, se = process.communicate()
+        retcode = process.returncode
+        assert retcode == 0, "Error in running command: " + cmd
     except OSError as e:
-        print("!!! Execution failed !!!", e, file=sys.stderr)
-        #exit 1 # exit program with error
+        print(
+            "!!! Execution failed !!!",
+            e,
+            " -->  Error running command:",
+            cmd,
+            file=sys.stderr)
+        raise
+    except Exception as e:
         raise
 
 
