@@ -2163,23 +2163,6 @@ static Status TranslateFusedConv2DOp(const Node* op,
           "Bias argument to BiasAdd does not have one dimension");
     }
 
-    // ng::AxisSet ng_broadcast_axes;
-
-    // if (is_nhwc) {
-    //   for (size_t i = 0; i < ng_conv_shape.size() - 1; i++) {
-    //     ng_broadcast_axes.insert(i);
-    //   }
-    // } else {
-    //   for (size_t i = 0; i < ng_conv_shape.size(); i++) {
-    //     if (i != 1) {
-    //       ng_broadcast_axes.insert(i);
-    //     }
-    //   }
-    // }
-
-    // auto ng_bias_broadcasted = ConstructNgNode<ng::op::Broadcast>(
-    //     op->name() + "_FusedConv2D_BiasAdd", ng_bias, ng_conv_shape,
-    //     ng_broadcast_axes);
     auto ng_add = ConstructNgNode<ng::opset3::Add>(
         op->name() + "_FusedConv2D_BiasAdd", ng_conv, ng_bias);
 
