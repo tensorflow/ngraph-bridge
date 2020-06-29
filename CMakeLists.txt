@@ -23,6 +23,8 @@ include(ExternalProject)
 include(CMakeDependentOption)
 include(cmake/sdl.cmake)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(Apple)?Clang$")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-comment -Wno-sign-compare -Wno-backslash-newline-escape")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -152,7 +154,6 @@ option(USE_PRE_BUILT_NGRAPH "Use pre-built nGraph located in NGRAPH_ARTIFACTS_DI
 option(NGRAPH_ARTIFACTS_DIR "Where would nGraph be installed after build" FALSE)
 option(UNIT_TEST_ENABLE "Control the building of unit tests" FALSE)
 option(UNIT_TEST_TF_CC_DIR "Location where TensorFlow CC library is located" FALSE)
-option(NGRAPH_DISTRIBUTED_ENABLE "Add distributed mode to the CPU backend" FALSE)
 option(NGRAPH_BRIDGE_STATIC_LIB_ENABLE "Enable build nGraph bridge static library" FALSE)
 
 find_package(PlaidML CONFIG)
@@ -232,17 +233,10 @@ message(STATUS "UNIT_TEST_ENABLE:           ${UNIT_TEST_ENABLE}")
 
 message(STATUS "NGRAPH_ARTIFACTS_DIR:       ${NGRAPH_ARTIFACTS_DIR}")
 message(STATUS "USE_PRE_BUILT_NGRAPH:       ${USE_PRE_BUILT_NGRAPH}")
-message(STATUS "NGRAPH_DISTRIBUTED_ENABLE:  ${NGRAPH_DISTRIBUTED_ENABLE}")
 message(STATUS "NGRAPH_PLAIDML_ENABLE:      ${NGRAPH_PLAIDML_ENABLE}")
 message(STATUS "NGRAPH_TARGET_ARCH:         ${NGRAPH_TARGET_ARCH}")
 message(STATUS "NGRAPH_TUNE_ARCH:           ${NGRAPH_TUNE_ARCH}")
 
-if(NGRAPH_DISTRIBUTED_ENABLE)
-    find_package(MPI REQUIRED)
-    add_definitions(-DNGRAPH_DISTRIBUTED)
-    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH} ${MPI_CXX_INCLUDE_PATH})
-    link_directories(${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
-endif()
 # Find and build ngraph - if not using pre-built one
 if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
@@ -250,7 +244,6 @@ if (NOT USE_PRE_BUILT_NGRAPH)
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
         GIT_TAG 94456090176ad6abda633b496b89cc16157ed4b0
         CMAKE_ARGS 
-            -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
             -DNGRAPH_USE_CXX_ABI=${TensorFlow_CXX_ABI}
             -DNGRAPH_UNIT_TEST_ENABLE=FALSE
@@ -290,7 +283,7 @@ set(NGRAPH_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBNGRAPH})
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBCPU_BACKEND_A})
     set(INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBINTERPRETER_BACKEND_A})
-    set(LIB_MKLDNN_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libmkldnn.so)
+    set(LIB_DNNL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libdnnl.so)
     set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libmklml_intel.so)
     set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libiomp5.so)
 
@@ -315,11 +308,11 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC}
     )
 
-    add_library(lib_mkldnn SHARED IMPORTED)
+    add_library(lib_dnnl SHARED IMPORTED)
     set_target_properties(
-        lib_mkldnn
+        lib_dnnl
         PROPERTIES IMPORTED_LOCATION
-        ${LIB_MKLDNN_IMPORTED_LOCATION}
+        ${LIB_DNNL_IMPORTED_LOCATION}
     )
 
     add_library(lib_mklml_intel SHARED IMPORTED)
@@ -327,6 +320,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         lib_mklml_intel
         PROPERTIES IMPORTED_LOCATION
         ${LIB_MKLML_INTEL_IMPORTED_LOCATION}
+        IMPORTED_NO_SONAME 1
     )
 
     add_library(lib_iomp5 SHARED IMPORTED)

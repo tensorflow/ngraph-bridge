@@ -190,10 +190,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["All"] = SetStaticInputs({1});
     set_attributes_map["ArgMax"] = SetStaticInputs({1});
     set_attributes_map["ArgMin"] = SetStaticInputs({1});
-    set_attributes_map["AvgPoolGrad"] = SetStaticInputs({0});
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
-    set_attributes_map["CombinedNonMaxSuppression"] =
-        SetStaticInputs({2, 3, 4, 5});
     set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
     set_attributes_map["ExpandDims"] = SetStaticInputs({1});
@@ -228,14 +225,12 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
       SetStaticInputs(n, static_input_vec);
       return Status::OK();
     };
-    set_attributes_map["RandomUniform"] = SetStaticInputs({0});
     set_attributes_map["Reshape"] = SetStaticInputs({1});
     set_attributes_map["ScatterNd"] = SetStaticInputs({2});
     set_attributes_map["Slice"] = SetStaticInputs({1, 2});
     set_attributes_map["Split"] = SetStaticInputs({0});
     set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
     set_attributes_map["StridedSlice"] = SetStaticInputs({1, 2, 3});
-    set_attributes_map["StridedSliceGrad"] = SetStaticInputs({0, 1, 2, 3});
     set_attributes_map["Sum"] = SetStaticInputs({1});
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
@@ -285,12 +280,11 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Atan"] = SimpleConfirmationFunction();
     confirmation_function_map["Atan2"] = SimpleConfirmationFunction();
     confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
-    confirmation_function_map["AvgPoolGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
     confirmation_function_map["BiasAdd"] = SimpleConfirmationFunction();
-    confirmation_function_map["BiasAddGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Cast"] = SimpleConfirmationFunction();
+    confirmation_function_map["Ceil"] = SimpleConfirmationFunction();
     confirmation_function_map["ConcatV2"] = SimpleConfirmationFunction();
     confirmation_function_map["Const"] = SimpleConfirmationFunction();
     confirmation_function_map["Conv2D"] = SimpleConfirmationFunction();
@@ -329,16 +323,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
         SimpleConfirmationFunction();
     confirmation_function_map["FusedBatchNormV3"] =
         SimpleConfirmationFunction();
-    confirmation_function_map["FusedBatchNormGrad"] = [](Node* n,
-                                                         bool* result) {
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
-      return Status::OK();
-    };
-    confirmation_function_map["FusedBatchNormGradV3"] = [](Node* n,
-                                                           bool* result) {
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "is_training", result));
-      return Status::OK();
-    };
     confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
@@ -347,12 +331,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
                                        // check?
     confirmation_function_map["Greater"] = SimpleConfirmationFunction();
     confirmation_function_map["GreaterEqual"] = SimpleConfirmationFunction();
-#if defined NGRAPH_DISTRIBUTED
-    confirmation_function_map["HorovodAllreduce"] =
-        SimpleConfirmationFunction();
-    confirmation_function_map["HorovodBroadcast"] =
-        SimpleConfirmationFunction();
-#endif
     confirmation_function_map["Identity"] = SimpleConfirmationFunction();
     confirmation_function_map["IsFinite"] = SimpleConfirmationFunction();
     confirmation_function_map["L2Loss"] = SimpleConfirmationFunction();
@@ -369,12 +347,13 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Maximum"] = SimpleConfirmationFunction();
     confirmation_function_map["MaxPool"] = SimpleConfirmationFunction();
     confirmation_function_map["MaxPool3D"] = SimpleConfirmationFunction();
-    confirmation_function_map["MaxPoolGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Mean"] = SimpleConfirmationFunction();
     confirmation_function_map["Min"] = SimpleConfirmationFunction();
     confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
     confirmation_function_map["Mul"] = SimpleConfirmationFunction();
     confirmation_function_map["Neg"] = SimpleConfirmationFunction();
+    confirmation_function_map["NonMaxSuppressionV4"] =
+        SimpleConfirmationFunction();
     confirmation_function_map["NoOp"] = SimpleConfirmationFunction();
     confirmation_function_map["OneHot"] = SimpleConfirmationFunction();
     confirmation_function_map["Pad"] = SimpleConfirmationFunction();
@@ -382,7 +361,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["PreventGradient"] = SimpleConfirmationFunction();
     confirmation_function_map["Prod"] = SimpleConfirmationFunction();
     confirmation_function_map["Rank"] = SimpleConfirmationFunction();
-    confirmation_function_map["RandomUniform"] = SimpleConfirmationFunction();
     confirmation_function_map["QuantizeAndDequantizeV2"] = [](Node* n,
                                                               bool* result) {
       // accept only when num_bits == 8 and range is given
@@ -420,28 +398,21 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Reciprocal"] = SimpleConfirmationFunction();
     confirmation_function_map["Relu"] = SimpleConfirmationFunction();
     confirmation_function_map["Relu6"] = SimpleConfirmationFunction();
-    confirmation_function_map["ReluGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Reshape"] = SimpleConfirmationFunction();
     confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
-    confirmation_function_map["RsqrtGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["ScatterNd"] = SimpleConfirmationFunction();
     confirmation_function_map["Select"] = SimpleConfirmationFunction();
     confirmation_function_map["Shape"] = SimpleConfirmationFunction();
     confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
-    confirmation_function_map["SigmoidGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Sign"] = SimpleConfirmationFunction();
     confirmation_function_map["Sin"] = SimpleConfirmationFunction();
     confirmation_function_map["Size"] = SimpleConfirmationFunction();
     confirmation_function_map["Slice"] = SimpleConfirmationFunction();
     confirmation_function_map["Snapshot"] = SimpleConfirmationFunction();
     confirmation_function_map["Softmax"] = SimpleConfirmationFunction();
-    confirmation_function_map["SoftmaxCrossEntropyWithLogits"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Softplus"] = SimpleConfirmationFunction();
     confirmation_function_map["SpaceToDepth"] =
         confirmation_function_map["DepthToSpace"];
-    confirmation_function_map["SparseSoftmaxCrossEntropyWithLogits"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Split"] = SimpleConfirmationFunction();
     confirmation_function_map["SplitV"] = SimpleConfirmationFunction();
     confirmation_function_map["Sqrt"] = SimpleConfirmationFunction();
@@ -450,13 +421,10 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
         SimpleConfirmationFunction();
     confirmation_function_map["Squeeze"] = SimpleConfirmationFunction();
     confirmation_function_map["StridedSlice"] = SimpleConfirmationFunction();
-    confirmation_function_map["StridedSliceGrad"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Pack"] = SimpleConfirmationFunction();
     confirmation_function_map["Sub"] = SimpleConfirmationFunction();
     confirmation_function_map["Sum"] = SimpleConfirmationFunction();
     confirmation_function_map["Tanh"] = SimpleConfirmationFunction();
-    confirmation_function_map["TanhGrad"] = SimpleConfirmationFunction();
     confirmation_function_map["Tile"] = SimpleConfirmationFunction();
     confirmation_function_map["TopKV2"] = [](Node* n, bool* result) {
       bool sorted = true;
@@ -471,6 +439,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Unpack"] = SimpleConfirmationFunction();
     confirmation_function_map["UnsortedSegmentSum"] =
         SimpleConfirmationFunction();
+    confirmation_function_map["Xdivy"] = SimpleConfirmationFunction();
     confirmation_function_map["ZerosLike"] = SimpleConfirmationFunction();
     initialized = true;
   }
@@ -510,13 +479,12 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Atan"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Atan2"]["T"] = NGraphRealDTypes();
     type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["AvgPoolGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BiasAdd"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["BiasAddGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cast"]["SrcT"] = NGraphDTypes();
     type_constraint_map["Cast"]["DstT"] = NGraphDTypes();
+    type_constraint_map["Ceil"]["T"] = NGraphRealDTypes();
     type_constraint_map["ConcatV2"]["T"] = NGraphDTypes();
     type_constraint_map["ConcatV2"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Const"]["dtype"] = NGraphDTypes();
@@ -541,10 +509,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     // DT_FLOAT
     type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
     type_constraint_map["FusedBatchNormV3"]["T"] = {DT_FLOAT};
-    type_constraint_map["FusedBatchNormGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["GatherNd"]["Tparams"] = {DT_FLOAT};  // NGraphDTypes();
     type_constraint_map["GatherNd"]["Tindices"] = NGraphIndexDTypes();
-    type_constraint_map["FusedBatchNormGradV3"]["T"] = NGraphNumericDTypes();
     type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
     type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["GatherV2"]["Taxis"] = NGraphIndexDTypes();
@@ -552,10 +518,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["_FusedMatMul"]["T"] = NGraphRealDTypes();
     type_constraint_map["Greater"]["T"] = NGraphDTypes();
     type_constraint_map["GreaterEqual"]["T"] = NGraphDTypes();
-#if defined NGRAPH_DISTRIBUTED
-    type_constraint_map["HorovodAllreduce"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["HorovodBroadcast"]["T"] = NGraphNumericDTypes();
-#endif
     type_constraint_map["Identity"]["T"] = NGraphDTypes();
     type_constraint_map["IsFinite"]["T"] = NGraphRealDTypes();
     type_constraint_map["L2Loss"]["T"] = NGraphNumericDTypes();
@@ -572,7 +534,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Maximum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["MaxPool"]["T"] = NGraphNumericDTypes();
     type_constraint_map["MaxPool3D"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["MaxPoolGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Mean"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Mean"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Min"]["T"] = NGraphNumericDTypes();
@@ -584,7 +545,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
         DT_FLOAT};  // TF allows half too
     type_constraint_map["OneHot"]["T"] = NGraphDTypes();
     type_constraint_map["Pack"]["T"] = NGraphDTypes();
-    type_constraint_map["RandomUniform"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
@@ -636,18 +596,15 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Reciprocal"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Relu"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Relu6"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["ReluGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Reshape"]["T"] = NGraphDTypes();
     type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
     type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
-    type_constraint_map["RsqrtGrad"]["T"] = NGraphRealDTypes();
     type_constraint_map["ScatterNd"]["T"] = NGraphDTypes();
     type_constraint_map["ScatterNd"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["Select"]["T"] = NGraphDTypes();
     type_constraint_map["Shape"]["T"] = NGraphDTypes();
     type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();
     type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["SigmoidGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sin"]["T"] = NGraphRealDTypes();
     type_constraint_map["Size"]["T"] = NGraphDTypes();
@@ -656,16 +613,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Slice"]["Index"] = NGraphIndexDTypes();
     type_constraint_map["Snapshot"]["T"] = NGraphDTypes();
     type_constraint_map["Softmax"]["T"] = NGraphNumericDTypes();
-    // For SoftmaxCrossEntropyWithLogits, see
-    // https://github.com/tensorflow/tensorflow/blob/c95ca05536144451ef78ca6e2c15f0f65ebaaf95/tensorflow/core/ops/nn_ops.cc#L1096
-    type_constraint_map["SoftmaxCrossEntropyWithLogits"]["T"] =
-        NGraphRealDTypes();
     type_constraint_map["Softplus"]["T"] = NGraphRealDTypes();
     type_constraint_map["SpaceToDepth"]["T"] = NGraphDTypes();
-    type_constraint_map["SparseSoftmaxCrossEntropyWithLogits"]["T"] =
-        NGraphRealDTypes();
-    type_constraint_map["SparseSoftmaxCrossEntropyWithLogits"]["Tlabels"] =
-        NGraphNumericDTypes();
     type_constraint_map["Split"]["T"] = NGraphDTypes();
     type_constraint_map["SplitV"]["T"] = NGraphDTypes();
     type_constraint_map["SplitV"]["Tlen"] = NGraphIndexDTypes();
@@ -675,13 +624,10 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Squeeze"]["T"] = NGraphDTypes();
     type_constraint_map["StridedSlice"]["T"] = NGraphDTypes();
     type_constraint_map["StridedSlice"]["Index"] = NGraphIndexDTypes();
-    type_constraint_map["StridedSliceGrad"]["T"] = NGraphDTypes();
-    type_constraint_map["StridedSliceGrad"]["Index"] = NGraphIndexDTypes();
     type_constraint_map["Sub"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Tanh"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["TanhGrad"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["Tmultiples"] = NGraphIndexDTypes();
     type_constraint_map["TopKV2"]["T"] = NGraphNumericDTypes();
@@ -692,6 +638,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["UnsortedSegmentSum"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
         NGraphIndexDTypes();
+    type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
     initialized = true;
   }
   return type_constraint_map;
@@ -699,364 +646,316 @@ const TypeConstraintMap& GetTypeConstraintMap() {
 
 const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
 GetTFToNgOpMap() {
-  // Constant Op, ReluGrad Op do not have default Constructor
+  // Constant Op does not have default Constructor
   // in ngraph, so passing a dummy node
   auto constant = ngraph::op::Constant::create(ngraph::element::f32,
                                                ngraph::Shape{}, {2.0f});
-  auto shape_a = ngraph::Shape{2, 5};
-  auto A = make_shared<ngraph::op::Parameter>(ngraph::element::f32, shape_a);
-  auto delta_val =
-      make_shared<ngraph::op::Parameter>(ngraph::element::f32, shape_a);
-  auto relu = make_shared<ngraph::op::ReluBackprop>(A, delta_val);
   // Map:: TF ops to NG Ops to track if all the Ngraph ops
   // are supported by backend
   // Update this Map if a new TF Op translation is
   // implemented or a new Ngraph Op has been added
-  static std::map<std::string, std::set<shared_ptr<ng::Node>>> TFtoNgraphOpMap {
-    {"Abs", {std::make_shared<ngraph::opset3::Abs>()}},
-        {"Acos", {std::make_shared<ngraph::opset3::Acos>()}},
-        {"Add", {std::make_shared<ngraph::opset3::Add>()}},
-        {"AddN", {std::make_shared<ngraph::opset3::Add>()}},
-        {"AddV2",
-         {std::make_shared<ngraph::opset3::Add>(),
-          std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"Any",
-         {std::make_shared<ngraph::opset3::ReduceLogicalOr>(), constant}},
-        {"All",
-         {std::make_shared<ngraph::opset3::ReduceLogicalAnd>(), constant}},
-        {"ArgMax", {std::make_shared<ngraph::op::ArgMax>()}},
-        {"ArgMin", {std::make_shared<ngraph::op::ArgMin>()}},
-        {"Asin", {std::make_shared<ngraph::opset3::Asin>()}},
-        {"Atan", {std::make_shared<ngraph::opset3::Atan>()}},
-        {"Atan2", {std::make_shared<ngraph::op::Atan2>()}},
-        {"AvgPool", {std::make_shared<ngraph::op::AvgPool>()}},
-        {"AvgPoolGrad", {std::make_shared<ngraph::op::AvgPoolBackprop>()}},
-        {"BatchMatMul",
-         {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
-          std::make_shared<ngraph::op::MatMul>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"BatchMatMulV2",
-         {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
-          std::make_shared<ngraph::op::MatMul>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"BiasAdd",
-         {std::make_shared<ngraph::opset3::Add>(),
-          std::make_shared<ngraph::op::Broadcast>()}},
-        {"BiasAddGrad", {std::make_shared<ngraph::op::Sum>(), constant}},
-        {"Cast", {std::make_shared<ngraph::op::Convert>()}},
-        {"ConcatV2", {std::make_shared<ngraph::op::Concat>()}},
-        {"Const", {constant}}, {"Conv2D",
-                                {std::make_shared<ngraph::op::Reshape>(),
-                                 std::make_shared<ngraph::op::Convolution>()}},
-        {"Conv2DBackpropFilter",
-         {std::make_shared<ngraph::op::ConvolutionBackpropFilters>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"Conv2DBackpropInput",
-         {std::make_shared<ngraph::op::ConvolutionBackpropData>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"Conv3D",
-         {std::make_shared<ngraph::op::Convolution>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"Cos", {std::make_shared<ngraph::opset3::Cos>()}},
-        {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
-        {"Cumsum", {std::make_shared<ngraph::op::CumSum>()}},
-        {"DepthToSpace", {std::make_shared<ngraph::op::Reshape>()}},
-        {"DepthwiseConv2dNative",
-         {std::make_shared<ngraph::op::Slice>(),
-          std::make_shared<ngraph::op::Convolution>(),
-          std::make_shared<ngraph::op::Concat>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"Dequantize",
-         {std::make_shared<ngraph::op::Dequantize>(), constant,
-          std::make_shared<ngraph::op::Divide>(),
-          std::make_shared<ngraph::op::Maximum>(),
-          std::make_shared<ngraph::op::Abs>()}},
-        {"Equal", {std::make_shared<ngraph::opset3::Equal>()}},
-        {"Exp", {std::make_shared<ngraph::opset3::Exp>()}},
-        {"ExpandDims", {constant, std::make_shared<ngraph::opset3::Reshape>()}},
-        {"Fill", {std::make_shared<ngraph::op::Broadcast>()}},
-        {"Floor", {std::make_shared<ngraph::opset3::Floor>()}},
-        {"FloorDiv",
-         {std::make_shared<ngraph::opset3::Divide>(),
-          std::make_shared<ngraph::opset3::Floor>(),
-          std::make_shared<ngraph::op::Broadcast>()}},
-        //{"FloorMod", {std::make_shared<ngraph::opset3::FloorMod>()}},
-        {"FusedBatchNorm",
-         {std::make_shared<ngraph::op::BatchNormTraining>(),
-          std::make_shared<ngraph::op::GetOutputElement>(), constant,
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::BatchNormInference>()}},
-        {"FusedBatchNormV2",
-         {std::make_shared<ngraph::op::BatchNormTraining>(),
-          std::make_shared<ngraph::op::GetOutputElement>(), constant,
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::BatchNormInference>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"FusedBatchNormV3",
-         {std::make_shared<ngraph::op::BatchNormTraining>(),
-          std::make_shared<ngraph::op::GetOutputElement>(), constant,
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::BatchNormInference>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"FusedBatchNormGrad",
-         {constant, std::make_shared<ngraph::op::GetOutputElement>(),
-          std::make_shared<ngraph::op::BatchNormTrainingBackprop>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"FusedBatchNormGradV3",
-         {constant, std::make_shared<ngraph::op::GetOutputElement>(),
-          std::make_shared<ngraph::op::BatchNormTrainingBackprop>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
-        {"GatherV2", {std::make_shared<ngraph::op::Gather>()}},
-        {"_FusedConv2D",
-         {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::Convolution>(), constant,
-          std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Relu>(),
-          std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Add>(),
-          std::make_shared<ngraph::op::BatchNormInference>()}},
-        {"_FusedMatMul",
-         {std::make_shared<ngraph::op::MatMul>(),
-          std::make_shared<ngraph::op::Relu>(),
-          std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Add>(), constant,
-          std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"Greater", {std::make_shared<ngraph::opset3::Greater>()}},
-        {"GreaterEqual", {std::make_shared<ngraph::opset3::GreaterEqual>()}},
-        {"Identity", {}}, {"IsFinite",
-                           {constant, std::make_shared<ngraph::op::NotEqual>(),
-                            std::make_shared<ngraph::op::Equal>(),
-                            std::make_shared<ngraph::op::And>()}},
-        {"L2Loss",
-         {constant, std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::Sum>(),
-          std::make_shared<ngraph::opset3::Divide>()}},
-        {"LogSoftmax",
-         {std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Max>(),
-          std::make_shared<ngraph::opset3::Subtract>(),
-          std::make_shared<ngraph::op::Exp>(),
-          std::make_shared<ngraph::op::Log>(),
-          std::make_shared<ngraph::op::Sum>(), constant}},
-        {"Less", {std::make_shared<ngraph::opset3::Less>()}},
-        {"LessEqual", {std::make_shared<ngraph::opset3::LessEqual>()}},
-        {"Log", {std::make_shared<ngraph::opset3::Log>()}},
-        {"Log1p",
-         {constant, std::make_shared<ngraph::opset3::Add>(),
-          std::make_shared<ngraph::op::Log>()}},
-        {"LogicalAnd", {std::make_shared<ngraph::opset3::LogicalAnd>()}},
-        {"LogicalNot", {std::make_shared<ngraph::opset3::LogicalNot>()}},
-        {"LogicalOr", {std::make_shared<ngraph::opset3::LogicalOr>()}},
-        {"MatMul",
-         {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::MatMul>()}},
-        {"Max", {std::make_shared<ng::opset3::ReduceMax>(), constant}},
-        {"Maximum", {std::make_shared<ngraph::opset3::Maximum>()}},
-        {"MaxPool",
-         {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::MaxPool>()}},
-        {"MaxPool3D",
-         {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::MaxPool>()}},
-        {"MaxPoolGrad",
-         {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::MaxPoolBackprop>()}},
-        {"Mean", {std::make_shared<ngraph::opset3::ReduceMean>(), constant}},
-        {"Min", {std::make_shared<ngraph::opset3::ReduceMin>(), constant}},
-        {"Minimum", {std::make_shared<ngraph::opset3::Minimum>()}},
-        {"Mul", {std::make_shared<ngraph::opset3::Multiply>()}},
-        {"Neg", {std::make_shared<ngraph::opset3::Negative>()}},
-        {"OneHot", {std::make_shared<ngraph::opset3::OneHot>(), constant}},
-        {"Pack",
-         {std::make_shared<ngraph::op::Concat>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"Pad", {constant, std::make_shared<ngraph::op::Pad>()}},
-        {"Pow", {std::make_shared<ngraph::opset3::Power>()}},
-        {"PreventGradient", {}},
-        {"Prod", {std::make_shared<ngraph::opset3::ReduceProd>(), constant}},
-        {"QuantizeAndDequantizeV2",
-         {constant, std::make_shared<ngraph::op::Quantize>(),
-          std::make_shared<ngraph::op::Dequantize>()}},
-        // Next few are CPU only ops
-        {"QuantizedAvgPool",
-         {std::make_shared<ngraph::op::AvgPool>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"QuantizedConcat",
-         {constant, std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::Min>(),
-          std::make_shared<ngraph::op::Max>(),
-          std::make_shared<ngraph::op::Abs>(),
-          std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Maximum>(),
-          std::make_shared<ngraph::op::Divide>(),
-          std::make_shared<ngraph::op::Dequantize>(),
-          std::make_shared<ngraph::op::Quantize>(),
-          std::make_shared<ngraph::op::Concat>(),
-          std::make_shared<ngraph::op::Broadcast>()}},
-        {"QuantizedConcatV2",
-         {constant, std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::Min>(),
-          std::make_shared<ngraph::op::Max>(),
-          std::make_shared<ngraph::op::Abs>(),
-          std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Maximum>(),
-          std::make_shared<ngraph::op::Divide>(),
-          std::make_shared<ngraph::op::Dequantize>(),
-          std::make_shared<ngraph::op::Quantize>(),
-          std::make_shared<ngraph::op::Concat>()}},
-        {"QuantizedConv2DWithBiasAndReluAndRequantize",
-         {constant, std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Abs>(),
-          std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Maximum>(),
-          std::make_shared<ngraph::opset3::Divide>(),
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::Quantize>(),
-          std::make_shared<ngraph::op::QuantizedConvolutionBias>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"QuantizedConv2DWithBiasAndRequantize",
-         {constant, std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Abs>(),
-          std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Maximum>(),
-          std::make_shared<ngraph::opset3::Divide>(),
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::Quantize>(),
-          std::make_shared<ngraph::op::QuantizedConvolutionBias>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"QuantizedConv2DWithBiasSignedSumAndReluAndRequantize",
-         {constant, std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Abs>(),
-          std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Maximum>(),
-          std::make_shared<ngraph::opset3::Divide>(),
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::Quantize>(),
-          std::make_shared<ngraph::op::QuantizedConvolutionBiasSignedAdd>(),
-          std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::Convert>()}},
-        {"QuantizedConv2DWithBiasSumAndReluAndRequantize",
-         {constant, std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Abs>(),
-          std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Maximum>(),
-          std::make_shared<ngraph::opset3::Divide>(),
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::Quantize>(),
-          std::make_shared<ngraph::op::QuantizedConvolutionBiasAdd>(),
-          std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::Convert>()}},
-        {"QuantizedMaxPool",
-         {std::make_shared<ngraph::op::Reshape>(),
-          std::make_shared<ngraph::op::MaxPool>()}},
-        // End of CPU only ops
-        {"QuantizeV2",
-         {constant, std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Abs>(),
-          std::make_shared<ngraph::op::Maximum>(),
-          std::make_shared<ngraph::op::Quantize>(),
-          std::make_shared<ngraph::op::Divide>(),
-          std::make_shared<ngraph::op::Add>()}},
-        {
-            "RandomUniform",
-            {constant, std::make_shared<ngraph::op::RandomUniform>()},
-        },
-        {"Rank", {constant}}, {"RealDiv",
-                               {std::make_shared<ngraph::opset3::Divide>(),
-                                std::make_shared<ngraph::op::Broadcast>()}},
-        {"Reciprocal", {constant, std::make_shared<ngraph::opset3::Power>()}},
-        {"Relu", {std::make_shared<ngraph::opset3::Relu>()}},
-        {"Relu6",
-         {constant, std::make_shared<ngraph::op::Minimum>(),
-          std::make_shared<ngraph::op::Relu>()}},
-        {"ReluGrad", {relu}},
-        {"Rsqrt", {constant, std::make_shared<ngraph::opset3::Power>()}},
-        {"RsqrtGrad",
-         {constant, std::make_shared<ngraph::opset3::Power>(),
-          std::make_shared<ngraph::opset3::Multiply>()}},
-        {"Select", {std::make_shared<ngraph::opset3::Select>()}},
-        {"Reshape", {std::make_shared<ngraph::opset3::Reshape>()}},
-        {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},
-        {"Shape", {constant}}, {"Sigmoid",
-                                {constant, std::make_shared<ngraph::op::Exp>(),
-                                 std::make_shared<ngraph::op::Negative>(),
-                                 std::make_shared<ngraph::opset3::Add>(),
-                                 std::make_shared<ngraph::opset3::Divide>()}},
-        {"SigmoidGrad",
-         {constant, std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::opset3::Subtract>()}},
-        {"Sin", {std::make_shared<ngraph::opset3::Sin>()}},
-        {"Size", {constant}},
-        {"Sign", {std::make_shared<ngraph::opset3::Sign>()}},
-        {"Slice", {std::make_shared<ngraph::op::Slice>()}}, {"Snapshot", {}},
-        {"Softmax", {std::make_shared<ngraph::op::Softmax>(), constant}},
-        {"SoftmaxCrossEntropyWithLogits",
-         {std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Max>(),
-          std::make_shared<ngraph::opset3::Subtract>(),
-          std::make_shared<ngraph::op::Exp>(),
-          std::make_shared<ngraph::op::Sum>(),
-          std::make_shared<ngraph::opset3::Divide>(),
-          std::make_shared<ngraph::op::Convert>(),
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::Log>(), constant}},
-        {"Softplus",
-         {constant, std::make_shared<ngraph::op::Exp>(),
-          std::make_shared<ngraph::op::Log>(),
-          std::make_shared<ngraph::opset3::Add>()}},
-        {"SpaceToDepth",
-         {std::make_shared<ngraph::op::Slice>(),
-          std::make_shared<ngraph::op::Concat>()}},
-        {"SparseSoftmaxCrossEntropyWithLogits",
-         {std::make_shared<ngraph::op::Broadcast>(),
-          std::make_shared<ngraph::op::Max>(),
-          std::make_shared<ngraph::opset3::Subtract>(),
-          std::make_shared<ngraph::op::Exp>(),
-          std::make_shared<ngraph::op::Sum>(),
-          std::make_shared<ngraph::opset3::Divide>(),
-          std::make_shared<ngraph::op::OneHot>(),
-          std::make_shared<ngraph::op::Convert>(),
-          std::make_shared<ngraph::opset3::Multiply>(),
-          std::make_shared<ngraph::op::Log>(), constant}},
-        {"Split", {std::make_shared<ngraph::op::Slice>()}},
-        {"SplitV", {std::make_shared<ngraph::op::Slice>()}},
-        {"Sqrt", {std::make_shared<ngraph::opset3::Sqrt>()}},
-        {"Square", {std::make_shared<ngraph::opset3::Multiply>()}},
-        {"SquaredDifference",
-         {std::make_shared<ngraph::opset3::SquaredDifference>()}},
-        {"Squeeze", {std::make_shared<ngraph::op::Reshape>()}},
-        {"StridedSlice",
-         {std::make_shared<ngraph::op::Reverse>(),
-          std::make_shared<ngraph::op::Slice>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"StridedSliceGrad",
-         {constant, std::make_shared<ngraph::op::ReplaceSlice>()}},
-        {"Sub", {std::make_shared<ngraph::opset3::Subtract>()}},
-        {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
-        {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
-        {"TanhGrad",
-         {constant, std::make_shared<ngraph::opset3::Subtract>(),
-          std::make_shared<ngraph::opset3::Multiply>()}},
-        {"Tile", {constant, std::make_shared<ngraph::op::Concat>()}},
-        {"TopKV2",
-         {std::make_shared<ngraph::op::TopK>(),
-          std::make_shared<ngraph::op::GetOutputElement>()}},
-        {"Transpose", {constant, std::make_shared<ngraph::op::Reshape>()}},
-        {"UnsortedSegmentSum",
-         {constant, std::make_shared<ngraph::op::ScatterAdd>()}},
-        {"Unpack",
-         {std::make_shared<ngraph::op::Slice>(),
-          std::make_shared<ngraph::op::Reshape>()}},
-        {"ZerosLike", {constant}},
-#if defined NGRAPH_DISTRIBUTED
-        {"HorovodAllreduce", {std::make_shared<ngraph::op::AllReduce>()}},
-        {"HorovodBroadcast",
-         {std::make_shared<ngraph::op::BroadcastDistributed>()}},
-#endif
-        {"NoOp", {}},
+  static std::map<std::string, std::set<shared_ptr<ng::Node>>> TFtoNgraphOpMap{
+      {"Abs", {std::make_shared<ngraph::opset3::Abs>()}},
+      {"Acos", {std::make_shared<ngraph::opset3::Acos>()}},
+      {"Add", {std::make_shared<ngraph::opset3::Add>()}},
+      {"AddN", {std::make_shared<ngraph::opset3::Add>()}},
+      {"AddV2",
+       {std::make_shared<ngraph::opset3::Add>(),
+        std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"Any", {std::make_shared<ngraph::opset3::ReduceLogicalOr>(), constant}},
+      {"All", {std::make_shared<ngraph::opset3::ReduceLogicalAnd>(), constant}},
+      {"ArgMax", {std::make_shared<ngraph::op::ArgMax>()}},
+      {"ArgMin", {std::make_shared<ngraph::op::ArgMin>()}},
+      {"Asin", {std::make_shared<ngraph::opset3::Asin>()}},
+      {"Atan", {std::make_shared<ngraph::opset3::Atan>()}},
+      {"Atan2", {std::make_shared<ngraph::op::Atan2>()}},
+      {"AvgPool", {std::make_shared<ngraph::opset3::AvgPool>()}},
+      {"BatchMatMul",
+       {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
+        std::make_shared<ngraph::op::MatMul>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"BatchMatMulV2",
+       {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
+        std::make_shared<ngraph::op::MatMul>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"BiasAdd",
+       {std::make_shared<ngraph::opset3::Add>(),
+        std::make_shared<ngraph::op::Broadcast>()}},
+      {"Cast", {std::make_shared<ngraph::opset3::Convert>()}},
+      {"Ceil", {std::make_shared<ngraph::opset3::Ceiling>()}},
+      {"ConcatV2", {std::make_shared<ngraph::op::Concat>()}},
+      {"Const", {constant}},
+      {"Conv2D",
+       {std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::Convolution>()}},
+      {"Conv2DBackpropFilter",
+       {std::make_shared<ngraph::op::ConvolutionBackpropFilters>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"Conv2DBackpropInput",
+       {std::make_shared<ngraph::op::ConvolutionBackpropData>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"Conv3D",
+       {std::make_shared<ngraph::op::Convolution>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"Cos", {std::make_shared<ngraph::opset3::Cos>()}},
+      {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
+      {"Cumsum", {std::make_shared<ngraph::op::CumSum>()}},
+      {"DepthToSpace", {std::make_shared<ngraph::op::Reshape>()}},
+      {"DepthwiseConv2dNative",
+       {std::make_shared<ngraph::op::Slice>(),
+        std::make_shared<ngraph::op::Convolution>(),
+        std::make_shared<ngraph::op::Concat>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"Dequantize",
+       {std::make_shared<ngraph::op::Dequantize>(), constant,
+        std::make_shared<ngraph::op::Divide>(),
+        std::make_shared<ngraph::op::Maximum>(),
+        std::make_shared<ngraph::op::Abs>()}},
+      {"Equal", {std::make_shared<ngraph::opset3::Equal>()}},
+      {"Exp", {std::make_shared<ngraph::opset3::Exp>()}},
+      {"ExpandDims", {constant, std::make_shared<ngraph::opset3::Reshape>()}},
+      {"Fill", {std::make_shared<ngraph::op::Broadcast>()}},
+      {"Floor", {std::make_shared<ngraph::opset3::Floor>()}},
+      {"FloorDiv",
+       {std::make_shared<ngraph::opset3::Divide>(),
+        std::make_shared<ngraph::opset3::Floor>(),
+        std::make_shared<ngraph::op::Broadcast>()}},
+      //{"FloorMod", {std::make_shared<ngraph::opset3::FloorMod>()}},
+      {"FusedBatchNorm",
+       {std::make_shared<ngraph::op::BatchNormTraining>(),
+        std::make_shared<ngraph::op::GetOutputElement>(), constant,
+        std::make_shared<ngraph::opset3::Multiply>(),
+        std::make_shared<ngraph::op::BatchNormInference>()}},
+      {"FusedBatchNormV2",
+       {std::make_shared<ngraph::op::BatchNormTraining>(),
+        std::make_shared<ngraph::op::GetOutputElement>(), constant,
+        std::make_shared<ngraph::opset3::Multiply>(),
+        std::make_shared<ngraph::op::BatchNormInference>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"FusedBatchNormV3",
+       {std::make_shared<ngraph::op::BatchNormTraining>(),
+        std::make_shared<ngraph::op::GetOutputElement>(), constant,
+        std::make_shared<ngraph::opset3::Multiply>(),
+        std::make_shared<ngraph::op::BatchNormInference>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
+      {"GatherV2", {std::make_shared<ngraph::op::Gather>()}},
+      {"_FusedConv2D",
+       {std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::Convolution>(), constant,
+        std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Relu>(),
+        std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Add>(),
+        std::make_shared<ngraph::op::BatchNormInference>()}},
+      {"_FusedMatMul",
+       {std::make_shared<ngraph::op::MatMul>(),
+        std::make_shared<ngraph::op::Relu>(),
+        std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Add>(), constant,
+        std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"Greater", {std::make_shared<ngraph::opset3::Greater>()}},
+      {"GreaterEqual", {std::make_shared<ngraph::opset3::GreaterEqual>()}},
+      {"Identity", {}},
+      {"IsFinite",
+       {constant, std::make_shared<ngraph::op::NotEqual>(),
+        std::make_shared<ngraph::op::Equal>(),
+        std::make_shared<ngraph::op::And>()}},
+      {"L2Loss",
+       {constant, std::make_shared<ngraph::opset3::Multiply>(),
+        std::make_shared<ngraph::op::Sum>(),
+        std::make_shared<ngraph::opset3::Divide>()}},
+      {"LogSoftmax",
+       {std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Max>(),
+        std::make_shared<ngraph::opset3::Subtract>(),
+        std::make_shared<ngraph::op::Exp>(),
+        std::make_shared<ngraph::op::Log>(),
+        std::make_shared<ngraph::op::Sum>(), constant}},
+      {"Less", {std::make_shared<ngraph::opset3::Less>()}},
+      {"LessEqual", {std::make_shared<ngraph::opset3::LessEqual>()}},
+      {"Log", {std::make_shared<ngraph::opset3::Log>()}},
+      {"Log1p",
+       {constant, std::make_shared<ngraph::opset3::Add>(),
+        std::make_shared<ngraph::op::Log>()}},
+      {"LogicalAnd", {std::make_shared<ngraph::opset3::LogicalAnd>()}},
+      {"LogicalNot", {std::make_shared<ngraph::opset3::LogicalNot>()}},
+      {"LogicalOr", {std::make_shared<ngraph::opset3::LogicalOr>()}},
+      {"MatMul",
+       {std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::MatMul>()}},
+      {"Max", {std::make_shared<ng::opset3::ReduceMax>(), constant}},
+      {"Maximum", {std::make_shared<ngraph::opset3::Maximum>()}},
+      {"MaxPool",
+       {std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::opset3::MaxPool>()}},
+      {"MaxPool3D",
+       {std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::opset3::MaxPool>()}},
+      {"Mean", {std::make_shared<ngraph::opset3::ReduceMean>(), constant}},
+      {"Min", {std::make_shared<ngraph::opset3::ReduceMin>(), constant}},
+      {"Minimum", {std::make_shared<ngraph::opset3::Minimum>()}},
+      {"Mul", {std::make_shared<ngraph::opset3::Multiply>()}},
+      {"Neg", {std::make_shared<ngraph::opset3::Negative>()}},
+      {"NonMaxSuppressionV4",
+       {std::make_shared<ngraph::opset3::NonMaxSuppression>(), constant}},
+      {"OneHot", {std::make_shared<ngraph::opset3::OneHot>(), constant}},
+      {"Pack",
+       {std::make_shared<ngraph::op::Concat>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"Pad", {constant, std::make_shared<ngraph::op::Pad>()}},
+      {"Pow", {std::make_shared<ngraph::opset3::Power>()}},
+      {"PreventGradient", {}},
+      {"Prod", {std::make_shared<ngraph::opset3::ReduceProd>(), constant}},
+      {"QuantizeAndDequantizeV2",
+       {constant, std::make_shared<ngraph::op::Quantize>(),
+        std::make_shared<ngraph::op::Dequantize>()}},
+      // Next few are CPU only ops
+      {"QuantizedAvgPool",
+       {std::make_shared<ngraph::op::AvgPool>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"QuantizedConcat",
+       {constant, std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::Min>(),
+        std::make_shared<ngraph::op::Max>(),
+        std::make_shared<ngraph::op::Abs>(),
+        std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Maximum>(),
+        std::make_shared<ngraph::op::Divide>(),
+        std::make_shared<ngraph::op::Dequantize>(),
+        std::make_shared<ngraph::op::Quantize>(),
+        std::make_shared<ngraph::op::Concat>(),
+        std::make_shared<ngraph::op::Broadcast>()}},
+      {"QuantizedConcatV2",
+       {constant, std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::Min>(),
+        std::make_shared<ngraph::op::Max>(),
+        std::make_shared<ngraph::op::Abs>(),
+        std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Maximum>(),
+        std::make_shared<ngraph::op::Divide>(),
+        std::make_shared<ngraph::op::Dequantize>(),
+        std::make_shared<ngraph::op::Quantize>(),
+        std::make_shared<ngraph::op::Concat>()}},
+      {"QuantizedConv2DWithBiasAndReluAndRequantize",
+       {constant, std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Abs>(),
+        std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Maximum>(),
+        std::make_shared<ngraph::opset3::Divide>(),
+        std::make_shared<ngraph::opset3::Multiply>(),
+        std::make_shared<ngraph::op::Quantize>(),
+        std::make_shared<ngraph::op::QuantizedConvolutionBias>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"QuantizedConv2DWithBiasAndRequantize",
+       {constant, std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Abs>(),
+        std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Maximum>(),
+        std::make_shared<ngraph::opset3::Divide>(),
+        std::make_shared<ngraph::opset3::Multiply>(),
+        std::make_shared<ngraph::op::Quantize>(),
+        std::make_shared<ngraph::op::QuantizedConvolutionBias>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"QuantizedConv2DWithBiasSignedSumAndReluAndRequantize",
+       {constant, std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Abs>(),
+        std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Maximum>(),
+        std::make_shared<ngraph::opset3::Divide>(),
+        std::make_shared<ngraph::opset3::Multiply>(),
+        std::make_shared<ngraph::op::Quantize>(),
+        std::make_shared<ngraph::op::QuantizedConvolutionBiasSignedAdd>(),
+        std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::Convert>()}},
+      {"QuantizedConv2DWithBiasSumAndReluAndRequantize",
+       {constant, std::make_shared<ngraph::op::Broadcast>(),
+        std::make_shared<ngraph::op::Abs>(),
+        std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Maximum>(),
+        std::make_shared<ngraph::opset3::Divide>(),
+        std::make_shared<ngraph::opset3::Multiply>(),
+        std::make_shared<ngraph::op::Quantize>(),
+        std::make_shared<ngraph::op::QuantizedConvolutionBiasAdd>(),
+        std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::Convert>()}},
+      {"QuantizedMaxPool",
+       {std::make_shared<ngraph::op::Reshape>(),
+        std::make_shared<ngraph::op::MaxPool>()}},
+      // End of CPU only ops
+      {"QuantizeV2",
+       {constant, std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Abs>(),
+        std::make_shared<ngraph::op::Maximum>(),
+        std::make_shared<ngraph::op::Quantize>(),
+        std::make_shared<ngraph::op::Divide>(),
+        std::make_shared<ngraph::op::Add>()}},
+      {"Rank", {constant}},
+      {"RealDiv",
+       {std::make_shared<ngraph::opset3::Divide>(),
+        std::make_shared<ngraph::op::Broadcast>()}},
+      {"Reciprocal", {constant, std::make_shared<ngraph::opset3::Power>()}},
+      {"Relu", {std::make_shared<ngraph::opset3::Relu>()}},
+      {"Relu6",
+       {constant, std::make_shared<ngraph::op::Minimum>(),
+        std::make_shared<ngraph::op::Relu>()}},
+      {"Rsqrt", {constant, std::make_shared<ngraph::opset3::Power>()}},
+      {"Select", {std::make_shared<ngraph::opset3::Select>()}},
+      {"Reshape", {std::make_shared<ngraph::opset3::Reshape>()}},
+      {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},
+      {"Shape", {constant}},
+      {"Sigmoid",
+       {constant, std::make_shared<ngraph::op::Exp>(),
+        std::make_shared<ngraph::op::Negative>(),
+        std::make_shared<ngraph::opset3::Add>(),
+        std::make_shared<ngraph::opset3::Divide>()}},
+      {"Sin", {std::make_shared<ngraph::opset3::Sin>()}},
+      {"Size", {constant}},
+      {"Sign", {std::make_shared<ngraph::opset3::Sign>()}},
+      {"Slice", {std::make_shared<ngraph::op::Slice>()}},
+      {"Snapshot", {}},
+      {"Softmax", {std::make_shared<ngraph::opset3::Softmax>()}},
+      {"Softplus",
+       {constant, std::make_shared<ngraph::op::Exp>(),
+        std::make_shared<ngraph::op::Log>(),
+        std::make_shared<ngraph::opset3::Add>()}},
+      {"SpaceToDepth",
+       {std::make_shared<ngraph::op::Slice>(),
+        std::make_shared<ngraph::op::Concat>()}},
+      {"Split", {std::make_shared<ngraph::op::Slice>()}},
+      {"SplitV", {std::make_shared<ngraph::op::Slice>()}},
+      {"Sqrt", {std::make_shared<ngraph::opset3::Sqrt>()}},
+      {"Square", {std::make_shared<ngraph::opset3::Multiply>()}},
+      {"SquaredDifference",
+       {std::make_shared<ngraph::opset3::SquaredDifference>()}},
+      {"Squeeze", {std::make_shared<ngraph::opset3::Squeeze>(), constant}},
+      {"StridedSlice",
+       {std::make_shared<ngraph::op::Reverse>(),
+        std::make_shared<ngraph::op::Slice>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"Sub", {std::make_shared<ngraph::opset3::Subtract>()}},
+      {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
+      {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
+      {"Tile", {constant, std::make_shared<ngraph::op::Concat>()}},
+      {"TopKV2",
+       {std::make_shared<ngraph::op::TopK>(),
+        std::make_shared<ngraph::op::GetOutputElement>()}},
+      {"Transpose", {constant, std::make_shared<ngraph::op::Reshape>()}},
+      {"Xdivy",
+       {constant, std::make_shared<ngraph::op::Divide>(),
+        std::make_shared<ngraph::op::Equal>(),
+        std::make_shared<ngraph::op::Convert>(),
+        std::make_shared<ngraph::op::Select>(),
+        std::make_shared<ngraph::op::Broadcast>()}},
+      {"UnsortedSegmentSum",
+       {constant, std::make_shared<ngraph::op::ScatterAdd>()}},
+      {"Unpack",
+       {std::make_shared<ngraph::op::Slice>(),
+        std::make_shared<ngraph::op::Reshape>()}},
+      {"ZerosLike", {constant}},
+      {"NoOp", {}},
   };
 
   return TFtoNgraphOpMap;
@@ -1102,24 +1001,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     confirmation_function_map = GetConfirmationMap();
     initialized = true;
   }
-
-  // Right now it cannot be inside the if(!initialized) block, because it is
-  // backend dependent, which might change with different sess.run()s
-  confirmation_function_map["NonMaxSuppressionV4"] = [&current_backend](
-      Node*, bool* result) {
-    auto config_map =
-        BackendManager::GetBackendAttributeValues(current_backend);
-    *result = (config_map.at("ngraph_backend") == "NNPI");
-    return Status::OK();
-  };
-
-  confirmation_function_map["CombinedNonMaxSuppression"] = [&current_backend](
-      Node*, bool* result) {
-    auto config_map =
-        BackendManager::GetBackendAttributeValues(current_backend);
-    *result = (config_map.at("ngraph_backend") == "NNPI");
-    return Status::OK();
-  };
 
   if (op_set_support_has_changed) {
     NGRAPH_VLOG(5) << "Changing op support";

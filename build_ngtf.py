@@ -116,12 +116,6 @@ def main():
         action="store")
 
     parser.add_argument(
-        '--distributed_build',
-        type=str,
-        help="Builds a distributed version of the nGraph components\n",
-        action="store")
-
-    parser.add_argument(
         '--enable_variables_and_optimizers',
         help=
         "Ops like variable and optimizers are supported by nGraph in this version of the bridge\n",
@@ -328,6 +322,22 @@ def main():
                 ["pip", "install", "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
 
+            if not arguments.disable_cpp_api:
+                tf_src_dir = os.path.join(artifacts_location, "tensorflow")
+                print("TF_SRC_DIR: ", tf_src_dir)
+                # Download TF source
+                pwd_now = os.getcwd()
+                os.chdir(artifacts_location)
+                print("DOWNLOADING TF: PWD", os.getcwd())
+                download_repo("tensorflow",
+                              "https://github.com/tensorflow/tensorflow.git",
+                              tf_version)
+                os.chdir(pwd_now)
+
+                # Now build the libtensorflow_cc.so - the C++ library
+                build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
+                                    target_arch, verbosity)
+
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
             if use_tensorflow_2:
@@ -351,21 +361,6 @@ def main():
             dst = os.path.join(dst_dir, tf_fmwk_lib_name)
             shutil.copyfile(tf_lib_file, dst)
 
-            if not arguments.disable_cpp_api:
-                tf_src_dir = os.path.join(artifacts_location, "tensorflow")
-                print("TF_SRC_DIR: ", tf_src_dir)
-                # Download TF source
-                pwd_now = os.getcwd()
-                os.chdir(artifacts_location)
-                print("DOWNLOADING TF: PWD", os.getcwd())
-                download_repo("tensorflow",
-                              "https://github.com/tensorflow/tensorflow.git",
-                              tf_version)
-                os.chdir(pwd_now)
-
-                # Now build the libtensorflow_cc.so - the C++ library
-                build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
-                                    target_arch, verbosity)
         else:
             print("Building TensorFlow from source")
             # Download TensorFlow
@@ -386,8 +381,8 @@ def main():
                 os.chdir(pwd)
 
             # Build TensorFlow
-            build_tensorflow(tf_version, venv_dir, "tensorflow",
-                             artifacts_location, target_arch, verbosity)
+            build_tensorflow(tf_version, "tensorflow", artifacts_location,
+                             target_arch, verbosity)
 
             # Now build the libtensorflow_cc.so - the C++ library
             build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
@@ -428,16 +423,11 @@ def main():
             ngraph_cmake_flags.extend(["-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"])
             ngraph_cmake_flags.extend(
                 ["-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE"])
+            ngraph_cmake_flags.extend(
+                ["-DNGRAPH_DYNAMIC_COMPONENTS_ENABLE=OFF"])
 
         if arguments.debug_build:
             ngraph_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
-
-        if (arguments.distributed_build == "OMPI"):
-            ngraph_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=OMPI"])
-        elif (arguments.distributed_build == "MLSL"):
-            ngraph_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=MLSL"])
-        else:
-            ngraph_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=OFF"])
 
         if arguments.build_plaidml_backend:
             command_executor(["pip", "install", "-U", "plaidML"])
@@ -499,12 +489,6 @@ def main():
             "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
                                                     "tensorflow")
         ])
-
-    if ((arguments.distributed_build == "OMPI") or
-        (arguments.distributed_build == "MLSL")):
-        ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=TRUE"])
-    else:
-        ngraph_tf_cmake_flags.extend(["-DNGRAPH_DISTRIBUTED_ENABLE=FALSE"])
 
     ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=" +
