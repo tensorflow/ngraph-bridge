@@ -476,16 +476,13 @@ static Status BiasAdd(const std::string& op_name,
     reshape_pattern_values[1] = bias->get_shape().front();
   }
 
-  auto reshape_pattern = ConstructNgNode<ng::op::Constant>(
+  auto reshape_pattern = ConstructNgNode<ng::opset3::Constant>(
       op_name, ng::element::u64, ng::Shape{reshape_pattern_values.size()},
       reshape_pattern_values);
 
-  auto ng_add = ConstructNgNode<ng::op::v1::Add>(
-      op_name, input, ConstructNgNode<ng::op::v1::Reshape>(
+  *result = ConstructNgNode<ng::opset3::Add>(
+      op_name, input, ConstructNgNode<ng::opset3::Reshape>(
                           op_name, bias, reshape_pattern, false));
-
-  *result = ng_add;
-
   return Status::OK();
 }
 
