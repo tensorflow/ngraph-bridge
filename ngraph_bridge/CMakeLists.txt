@@ -36,31 +36,22 @@ set(SRC
    ngraph_assign_clusters.cc
    ngraph_builder.cc
    ngraph_backend_manager.cc
-   ngraph_capture_variables.cc
-   ngraph_find_replace_prefetchdataset.cc
    ngraph_catalog.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
-   ngraph_enter_prefetch_in_catalog.cc
-   ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
-   ngraph_encapsulate_op_utils.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc
    ngraph_register_stub_kernels.cc   
    ngraph_rewrite_pass.cc
-   ngraph_tensor_manager.cc
    ngraph_var.cc
    ngraph_utils.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
-   prefetch_autotuner.cc
-   ngraph_prefetch_dataset_op.cc
-   stats_utils.cc
    version.cc
 )
 
@@ -68,9 +59,6 @@ message(STATUS "NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS: ${NGRAPH_TF_ENABLE_VA
 
 if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     # common files
-    list(REMOVE_ITEM SRC ngraph_capture_variables.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_capture_variables.cc)
-
     list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
     list(APPEND SRC enable_variable_ops/ngraph_rewrite_pass.cc)
 
@@ -87,22 +75,14 @@ if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
     list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
     list(APPEND SRC enable_variable_ops/ngraph_variable_op.cc)
-
+    list(APPEND SRC enable_variable_ops/ngraph_capture_variables.cc)
+    
     add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
 endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 endif()
-
-if(NGRAPH_CPU_STATIC_LIB_ENABLE)
-    add_definitions(-DNGRAPH_CPU_STATIC_LIB_ENABLE)
-endif()
-
-if(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
-    add_definitions(-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
-endif()
-
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)            
     list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
@@ -122,13 +102,15 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             ${TensorFlow_FRAMEWORK_LIBRARY} 
             ngraph_lib
             lib_cpu_backend_static
-            lib_interpreter_backend_static 
+            lib_interpreter_backend_static
             ngraph_lib
             dl
+            pthread
             absl_algorithm
             absl_container
             absl_strings
-            lib_mkldnn
+            lib_mklml_intel
+            lib_dnnl
             lib_iomp5
         )
 
@@ -162,7 +144,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${LIB_NAME_STATIC}
         ngraph_logger
         ${TensorFlow_FRAMEWORK_LIBRARY} 
-        ngraph_lib
         lib_cpu_backend_static
         lib_interpreter_backend_static 
         ngraph_lib
@@ -170,9 +151,9 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
-        lib_mkldnn
-        lib_mklml_intel
+        lib_dnnl
         lib_iomp5
+        lib_mklml_intel
     )
     target_compile_definitions(
     ${LIB_NAME_STATIC} PRIVATE 
