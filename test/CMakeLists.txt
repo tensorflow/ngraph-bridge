@@ -61,6 +61,7 @@ include_directories(${TensorFlow_SRC_DIR})
 
 # Files that are generated during TF build are here
 include_directories(${TensorFlow_SRC_DIR}/bazel-genfiles)
+include_directories(${TensorFlow_SRC_DIR}/bazel-bin)
 
 add_library(tensorflow_cc_lib SHARED IMPORTED)
 if(NGRAPH_TF_USE_TENSORFLOW_2)
