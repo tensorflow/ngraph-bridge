@@ -479,8 +479,10 @@ def main():
         flag_string_map[arguments.use_grappler_optimizer]
     ])
 
-    ngraph_tf_cmake_flags.extend(
-        ["-DNGRAPH_TF_USE_TENSORFLOW_2=" + flag_string_map[use_tensorflow_2]])
+    ngraph_tf_cmake_flags.extend([
+        "-DNGRAPH_TF_USE_TENSORFLOW_2=" +
+        flag_string_map[arguments.use_tensorflow_2]
+    ])
 
     # Now build the bridge
     ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,
