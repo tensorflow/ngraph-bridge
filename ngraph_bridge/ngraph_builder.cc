@@ -2117,20 +2117,25 @@ static Status TranslateFusedConv2DOp(const Node* op,
     ng::CoordinateDiff ng_padding_below{0, 0};
     ng::CoordinateDiff ng_padding_above{0, 0};
 
-    Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
-                         ng_strides, ng_dilations, ng_padding_below,
-                         ng_padding_above);
+    ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
+    if (tf_padding_type == "VALID") {
+      ng_pad_type = ng::op::PadType::VALID;
+    } else {
+      Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
+                           ng_strides, ng_dilations, ng_padding_below,
+                           ng_padding_above);
+    }
 
     ng_conv = ConstructNgNode<ng::opset3::Convolution>(
         op->name() + "_FusedConv2D_Conv", ng_input, ng_filter, ng_strides,
-        ng_padding_below, ng_padding_above, ng_dilations);
+        ng_padding_below, ng_padding_above, ng_dilations, ng_pad_type);
 
     return Status::OK();
   };
 
   auto create_relu6 = [](const string& op_name,
                          const shared_ptr<ng::Node>& ng_node) {
-    auto constant_6 = ConstructNgNode<ng::op::Constant>(
+    auto constant_6 = ConstructNgNode<ng::opset3::Constant>(
         op_name, ng_node->get_element_type(), ng_node->get_shape(),
         std::vector<std::string>(ng::shape_size(ng_node->get_shape()), "6"));
     auto relu6_op = ConstructNgNode<ng::opset3::Minimum>(
