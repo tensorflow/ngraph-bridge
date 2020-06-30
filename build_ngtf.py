@@ -160,7 +160,10 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        '--use_tensorflow_2', help="Builds with TF 2.0\n", action="store_true", default=True)
+        '--use_tensorflow_2',
+        help="Builds with TF 2.0\n",
+        action="store_true",
+        default=True)
 
     parser.add_argument(
         '--disable_cpp_api',
@@ -258,7 +261,8 @@ def main():
     if arguments.use_prebuilt_tensorflow != '':
         tf_version = arguments.use_prebuilt_tensorflow
 
-    if not arguments.use_tensorflow_2 and (tf_version.startswith("v2.") or tf_version.startswith("2.")):
+    if not arguments.use_tensorflow_2 and (tf_version.startswith("v2.") or
+                                           tf_version.startswith("2.")):
         arguments.use_tensorflow_2 = True
 
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI

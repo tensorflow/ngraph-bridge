@@ -22,7 +22,6 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/graph/graph.h"
 
-
 using namespace std;
 
 namespace tensorflow {
