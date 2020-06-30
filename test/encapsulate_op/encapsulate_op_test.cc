@@ -124,7 +124,7 @@ TEST(EncapsulateOp, AllocateNGInputTensors) {
   ASSERT_OK(BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
 
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-  NGraphEncapsulateImpl::Compile(f, ng_exec);
+  NGraphEncapsulateImpl::Compile(ng_encap_impl.GetOpBackend(), f, ng_exec);
 
   std::vector<tensorflow::TensorShape> input_shapes;
   std::vector<tensorflow::Tensor> input_tensors;
@@ -160,7 +160,7 @@ TEST(EncapsulateOp, AllocateNGOutputTensors) {
   ASSERT_OK(BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
 
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-  NGraphEncapsulateImpl::Compile(f, ng_exec);
+  NGraphEncapsulateImpl::Compile(ng_encap_impl.GetOpBackend(), f, ng_exec);
 
   std::vector<tensorflow::TensorShape> input_shapes;
   std::vector<tensorflow::Tensor> outputs;

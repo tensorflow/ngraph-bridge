@@ -48,11 +48,13 @@ class NGraphEncapsulateImpl {
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
 
-  static Status Compile(std::shared_ptr<ngraph::Function> ng_function,
+  static Status Compile(const std::string& backend_name,
+                        std::shared_ptr<ngraph::Function> ng_function,
                         std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
 
-  static Status GetCompiledString(std::shared_ptr<ngraph::Function> ng_function,
-                                  std::shared_ptr<std::string>& ng_exec_str);
+  static Status GetCompiledString(const std::string& backend_name,
+                                  std::shared_ptr<ngraph::Function> ng_function,
+                                  std::string* ng_exec_str);
 
   // Calls Compute Signature and gets ngraph executable
   Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,

@@ -93,10 +93,9 @@ Status NGraphEncapsulateImpl::ComputeSignature(
 
 // Compiles the ngraph function and returns ngraph executable
 Status NGraphEncapsulateImpl::Compile(
+    const std::string& backend_name,
     std::shared_ptr<ngraph::Function> ng_function,
     std::shared_ptr<ngraph::runtime::Executable>& ng_exec) {
-  string backend_name;
-  TF_RETURN_IF_ERROR(BackendManager::GetCurrentlySetBackendName(&backend_name));
   ng::runtime::Backend* op_backend = BackendManager::GetBackend(backend_name);
   BackendManager::LockBackend(backend_name);
   try {
@@ -119,13 +118,13 @@ Status NGraphEncapsulateImpl::Compile(
 
 // Compiles the ngraph function and returns ngraph executable as a string
 Status NGraphEncapsulateImpl::GetCompiledString(
-    std::shared_ptr<ngraph::Function> ng_function,
-    std::shared_ptr<std::string>& ng_exec_str) {
+    const std::string& backend_name,
+    std::shared_ptr<ngraph::Function> ng_function, std::string* ng_exec_str) {
   std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-  NGraphEncapsulateImpl::Compile(ng_function, ng_exec);
+  NGraphEncapsulateImpl::Compile(backend_name, ng_function, ng_exec);
   stringstream exec_dump;
   ng_exec->save(exec_dump);
-  ng_exec_str = make_shared<string>(exec_dump.str());
+  *ng_exec_str = exec_dump.str();
   return Status::OK();
 }
 
@@ -244,7 +243,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
         ng_exec = op_backend->load(serialized_exec_read);
         BackendManager::UnlockBackend(m_op_backend_name);
       } else {
-        NGraphEncapsulateImpl::Compile(ng_function, ng_exec);
+        NGraphEncapsulateImpl::Compile(m_op_backend_name, ng_function, ng_exec);
       }
     } catch (const std::exception& exp) {
       Status st = StringToFile("tf_function_error_" + m_name + ".json",

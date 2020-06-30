@@ -284,16 +284,16 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
               ngraph::serialize(ng_function, json_indentation));
 
           // Translation done, now compile
-          std::shared_ptr<std::string> ng_exec_str;
+          std::string ng_exec_str;
           TF_RETURN_IF_ERROR(NGraphEncapsulateImpl::GetCompiledString(
-              ng_function, ng_exec_str));
+              op_backend_name, ng_function, &ng_exec_str));
 
           // Compilation done, now serialize and attach as attribute
           // ng function attached as debugging information
           node->AddAttr("_ngraph_aot_ngfunction_" + signature,
                         serialized_ngfunc);
           // Compute will use this ngexec
-          node->AddAttr("_ngraph_aot_ngexec_" + signature, ng_exec_str.get());
+          node->AddAttr("_ngraph_aot_ngexec_" + signature, ng_exec_str);
           // We do not need to add "_ngraph_aot_requested" attribute since it
           // already is already present in device_config and inserted into the
           // currently created NGraphEncapsulate
@@ -301,6 +301,7 @@ Status PerformAOTOnEncapsulates(Graph* graph, const AOTInfo& aot_info) {
           // and for bridge
           performed_aot_on_enc.insert(node->name());
           NGRAPH_VLOG(5) << "Performed AOT on " << node->name();
+          BackendManager::ReleaseBackend(op_backend_name);
         }
       }
     }  // end of for (ShapeHintMap single_hint : node_shapes_hints_sets)
