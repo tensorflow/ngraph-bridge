@@ -23,12 +23,12 @@
 #include "tensorflow/core/public/session.h"
 
 #include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/enable_variable_ops/ngraph_capture_variables.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_enter_in_catalog.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_op_utilities.h"
 #include "ngraph_bridge/enable_variable_ops/ngraph_replace_variable_modifiers.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
-#include "ngraph_bridge/ngraph_capture_variables.h"
 #include "ngraph_bridge/ngraph_catalog.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
@@ -105,9 +105,9 @@ TEST(CatalogTest, SmallGraph2) {
   auto init_value = ops::Const(root, {{1.f, 1.f}, {1.f, 1.f}});
   auto var_assign = ops::Assign(root.WithOpName("Var_Assign"), var, init_value);
 
-  auto acos = ops::Acos(root.WithOpName("Acos"), var);
+  auto asinh = ops::Asinh(root.WithOpName("Asinh"), var);
 
-  auto assign = ops::Assign(root.WithOpName("Assign"), var, acos);
+  auto assign = ops::Assign(root.WithOpName("Assign"), var, asinh);
 
   std::set<string> skip_these_nodes = {};
 
@@ -150,7 +150,7 @@ TEST(CatalogTest, SmallGraph2) {
 //           |      /\            |
 //           |     /  \           |
 //           |    /    \          |
-//          Assign_1   Acos       |
+//          Assign_1   Asinh      |
 //                       \        |
 //                        \       |
 //                         \      |
@@ -158,7 +158,7 @@ TEST(CatalogTest, SmallGraph2) {
 // Assign_A, Assign_B and Assign_1 should have the attribute
 // _ngraph_remove added and set to true
 // whereas Assign_2 should not have the attribute added since
-// it is being fed by Acos which is not supported by nGraph.
+// it is being fed by Asinh which is not supported by nGraph.
 TEST(CatalogTest, SmallGraph3) {
   Scope root = Scope::NewRootScope();
 
@@ -179,9 +179,9 @@ TEST(CatalogTest, SmallGraph3) {
 
   auto assign_1 = ops::Assign(root.WithOpName("Assign_1"), var_a, add);
 
-  auto acos = ops::Acos(root.WithOpName("Acos"), add);
+  auto asinh = ops::Asinh(root.WithOpName("Asinh"), add);
 
-  auto assign_2 = ops::Assign(root.WithOpName("Assign_2"), var_b, acos);
+  auto assign_2 = ops::Assign(root.WithOpName("Assign_2"), var_b, asinh);
 
   std::set<string> skip_these_nodes = {};
 

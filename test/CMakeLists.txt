@@ -14,19 +14,49 @@
 # limitations under the License.
 # ******************************************************************************
 
-include_directories(${GTEST_INCLUDE_DIR})
-include_directories(${TensorFlow_INCLUDE_DIR})
-include_directories(${TensorFlow_INCLUDE_DIR}/external/nsync/public)
+add_subdirectory(python)
+add_subdirectory(python/bfloat16)
+add_subdirectory(model_level_tests)
+
+if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
+    set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
+else()
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/../install/")
+endif()
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "*.py"
+)
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "*.pbtxt"
+)
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "*.pb"
+)
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+)
 
 # Get this location from the CMAKE variables passed during the cmake time
 if (NOT DEFINED TF_SRC_DIR)
    message(
-       FATAL_ERROR
-       "TensorFlow source directory.Use -DTF_SRC_DIR=<tf source directory>"
+       STATUS
+       "TensorFlow source directory not found. Skipping C++ unit tests..."
     )
+    return()
 endif()
 
-
+include_directories(${GTEST_INCLUDE_DIR})
+include_directories(${TensorFlow_INCLUDE_DIR})
+include_directories(${TensorFlow_INCLUDE_DIR}/external/nsync/public)
 include_directories(${TensorFlow_SRC_DIR})
 
 # Files that are generated during TF build are here
@@ -62,7 +92,6 @@ set(SRC
     graph_rewrites/disable_ops_test.cc
     graph_rewrites/mark_for_clustering_test.cc
     graph_rewrites/op_by_op_capability_test.cc
-    test_index_library.cpp
     test_ngraph_data_cache.cpp
     test_utilities.cpp
     test_image_ops.cpp
@@ -70,14 +99,9 @@ set(SRC
     test_nn_ops.cpp
     test_array_ops.cpp
     test_variable_ops.cpp
-    test_parallel_executor.cpp
     test_momentum_op.cpp
     opexecuter.cpp
     test_thread_safe_queue.cc
-    test_enter_prefetch_in_catalog.cc
-    test_ngraph_tensor_manager.cpp
-    test_capture_prefetch.cpp
-    test_pipelined_tensor_store.cc
     dummy_backend.cpp
     test_dummy_backend.cpp
 )
@@ -129,20 +153,8 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_prefetch.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_capture_prefetch.pbtxt
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_prefetch_1.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_capture_prefetch_1.pbtxt
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_general_graph.pbtxt
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_catalog_for_prefetch.pbtxt
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch_1.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_catalog_for_prefetch_1.pbtxt
 )
 
 if (APPLE)
@@ -168,6 +180,9 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
         absl_synchronization
+        lib_dnnl
+        lib_iomp5
+        lib_mklml_intel
     )
 else()
     target_link_libraries(
@@ -186,45 +201,10 @@ if (NGRAPH_PLAIDML_ENABLE)
     target_link_libraries(gtest_ngtf ${PLAIDML_LIBRARIES})
 endif()
 
-add_subdirectory(python)
-add_subdirectory(python/bfloat16)
-add_subdirectory(model_level_tests)
-
-if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
-    set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
-else()
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/../install/")
-endif()
-
 # First install the libngraph_bridge.so and headers
 install(TARGETS gtest_ngtf DESTINATION ${CMAKE_INSTALL_PREFIX}/test)  
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_prefetch.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_prefetch_1.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch_1.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-
-install(
-    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-    FILES_MATCHING PATTERN "*.py"
-)
-install(
-    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-    FILES_MATCHING PATTERN "*.pbtxt"
-)
-install(
-    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-    FILES_MATCHING PATTERN "*.pb"
-)
-
-install(
-    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-)
