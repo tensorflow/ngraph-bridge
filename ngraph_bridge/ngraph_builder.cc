@@ -1435,8 +1435,8 @@ static Status TranslateCumsumOp(const Node* op,
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "reverse", &reverse));
 
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::op::CumSum>(op->name(), ng_x, ng_axis, exclusive,
-                                           reverse));
+           ConstructNgNode<ng::opset3::CumSum>(op->name(), ng_x, ng_axis,
+                                               exclusive, reverse));
   return Status::OK();
 }
 

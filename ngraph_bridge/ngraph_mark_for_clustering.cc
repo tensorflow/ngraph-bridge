@@ -717,7 +717,7 @@ GetTFToNgOpMap() {
       {"Cos", {std::make_shared<ngraph::opset3::Cos>()}},
       {"Cosh", {std::make_shared<ngraph::opset3::Cosh>()}},
       {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
-      {"Cumsum", {std::make_shared<ngraph::op::CumSum>()}},
+      {"Cumsum", {std::make_shared<ngraph::opset3::CumSum>()}},
       {"DepthToSpace", {std::make_shared<ngraph::op::Reshape>()}},
       {"DepthwiseConv2dNative",
        {std::make_shared<ngraph::op::Slice>(),
