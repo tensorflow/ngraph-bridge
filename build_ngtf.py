@@ -160,12 +160,6 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        '--use_tensorflow_2',
-        help="Builds with TF 2.0\n",
-        action="store_true",
-        default=True)
-
-    parser.add_argument(
         '--disable_cpp_api',
         help="Disables C++ API, unit tests and examples\n",
         action="store_true")
@@ -261,10 +255,6 @@ def main():
     if arguments.use_prebuilt_tensorflow != '':
         tf_version = arguments.use_prebuilt_tensorflow
 
-    if not arguments.use_tensorflow_2 and (tf_version.startswith("v2.") or
-                                           tf_version.startswith("2.")):
-        arguments.use_tensorflow_2 = True
-
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
     # For gcc older than 5.3, this flag is set to 0 and for newer ones,
     # this is set to 1
@@ -329,15 +319,9 @@ def main():
 
             # Copy the libtensorflow_framework.so to the artifacts so that
             # we can run c++ tests from that location later
-            if arguments.use_tensorflow_2:
-                tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
-            else:
-                tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
+            tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
             if (platform.system() == 'Darwin'):
-                if arguments.use_tensorflow_2:
-                    tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
-                else:
-                    tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
+                tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
             import tensorflow as tf
             tf_lib_dir = tf.sysconfig.get_lib()
             tf_lib_file = os.path.join(tf_lib_dir, tf_fmwk_lib_name)
@@ -477,11 +461,6 @@ def main():
     ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=" +
         flag_string_map[arguments.use_grappler_optimizer]
-    ])
-
-    ngraph_tf_cmake_flags.extend([
-        "-DNGRAPH_TF_USE_TENSORFLOW_2=" +
-        flag_string_map[arguments.use_tensorflow_2]
     ])
 
     # Now build the bridge

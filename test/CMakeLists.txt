@@ -65,25 +65,16 @@ include_directories(${TensorFlow_SRC_DIR}/bazel-bin)
 
 add_library(tensorflow_cc_lib SHARED IMPORTED)
 add_library(tensorflow_ops_testutil SHARED IMPORTED)
-if(NGRAPH_TF_USE_TENSORFLOW_2)
-    set_target_properties(
-        tensorflow_cc_lib
-        PROPERTIES IMPORTED_LOCATION
-        ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.2
-    )
-    set_target_properties(
-        tensorflow_ops_testutil
-        PROPERTIES IMPORTED_LOCATION
-        ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/core/kernels/libops_testutil.so
-    )
-else()
-    set_target_properties(
-        tensorflow_cc_lib
-        PROPERTIES IMPORTED_LOCATION
-        ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.1
-    )
-endif()
-
+set_target_properties(
+    tensorflow_cc_lib
+    PROPERTIES IMPORTED_LOCATION
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.2
+)
+set_target_properties(
+    tensorflow_ops_testutil
+    PROPERTIES IMPORTED_LOCATION
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/core/kernels/libops_testutil.so
+)
 
 set(SRC
     main.cpp
