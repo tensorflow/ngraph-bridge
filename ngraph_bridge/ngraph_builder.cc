@@ -4033,6 +4033,7 @@ const static std::map<
         {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
         {"Conv3D", TranslateConv3DOp},
         {"Cos", TranslateUnaryOp<ngraph::opset3::Cos>},
+        {"Cosh", TranslateUnaryOp<ngraph::opset3::Cosh>},
         {"CropAndResize", TranslateCropAndResizeOp},
         {"Cumsum", TranslateCumsumOp},
         {"DepthToSpace", TranslateDepthToSpaceOp},

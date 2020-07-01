@@ -1377,6 +1377,25 @@ TEST(MathOps, Cos) {
   opexecuter.RunTest();
 }  // end of test op Cos
 
+// Test op: Cosh
+TEST(MathOps, Cosh) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Cosh(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Cosh", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of test op Cosh
+
 // Test op: Exp
 TEST(MathOps, Exp1D) {
   Scope root = Scope::NewRootScope();

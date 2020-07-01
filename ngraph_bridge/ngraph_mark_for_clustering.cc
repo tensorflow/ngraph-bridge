@@ -308,6 +308,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
     confirmation_function_map["CropAndResize"] = SimpleConfirmationFunction();
     confirmation_function_map["Cos"] = SimpleConfirmationFunction();
+    confirmation_function_map["Cosh"] = SimpleConfirmationFunction();
     confirmation_function_map["Cumsum"] = SimpleConfirmationFunction();
     confirmation_function_map["DepthwiseConv2dNative"] =
         SimpleConfirmationFunction();
@@ -507,6 +508,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Conv3D"]["T"] = NGraphNumericDTypes();
     type_constraint_map["CropAndResize"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cos"]["T"] = NGraphRealDTypes();
+    type_constraint_map["Cosh"]["T"] = NGraphRealDTypes();
     type_constraint_map["Cumsum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cumsum"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["DepthToSpace"]["T"] = NGraphDTypes();
@@ -713,6 +715,7 @@ GetTFToNgOpMap() {
        {std::make_shared<ngraph::op::Convolution>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"Cos", {std::make_shared<ngraph::opset3::Cos>()}},
+      {"Cosh", {std::make_shared<ngraph::opset3::Cosh>()}},
       {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
       {"Cumsum", {std::make_shared<ngraph::op::CumSum>()}},
       {"DepthToSpace", {std::make_shared<ngraph::op::Reshape>()}},
