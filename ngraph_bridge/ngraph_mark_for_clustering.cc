@@ -707,7 +707,7 @@ GetTFToNgOpMap() {
        {std::make_shared<ngraph::op::ConvolutionBackpropFilters>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"Conv2DBackpropInput",
-       {std::make_shared<ngraph::op::ConvolutionBackpropData>(),
+       {std::make_shared<ngraph::opset3::ConvolutionBackpropData>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"Conv3D",
        {std::make_shared<ngraph::opset3::Convolution>(),

@@ -1303,15 +1303,19 @@ static Status TranslateConv2DBackpropInputOp(
   ng::CoordinateDiff ng_padding_below{0, 0};
   ng::CoordinateDiff ng_padding_above{0, 0};
 
-  Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
-                       ng_strides, ng_dilations, ng_padding_below,
-                       ng_padding_above);
+  ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
+  if (tf_padding_type == "VALID") {
+    ng_pad_type = ng::op::PadType::VALID;
+  } else {
+    Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
+                         ng_strides, ng_dilations, ng_padding_below,
+                         ng_padding_above);
+  }
 
   std::shared_ptr<ng::Node> ng_data =
-      ConstructNgNode<ng::op::ConvolutionBackpropData>(
-          op->name(), ng_batch_shape, ng_filter, ng_out_backprop, ng_strides,
-          ng_dilations, ng_padding_below, ng_padding_above,
-          ng::Strides(ng_batch_shape.size() - 2, 1));
+      ConstructNgNode<ng::opset3::ConvolutionBackpropData>(
+          op->name(), ng_out_backprop, ng_filter, ng_strides, ng_padding_below,
+          ng_padding_above, ng_dilations, ng_pad_type);
 
   BatchToTensorflow(op->name(), is_nhwc, ng_data);
 
