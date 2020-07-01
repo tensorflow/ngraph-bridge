@@ -1312,10 +1312,14 @@ static Status TranslateConv2DBackpropInputOp(
                          ng_padding_above);
   }
 
+  auto ng_output_shape = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::i64, ng::Shape{ng_batch_shape.size() - 2},
+      vector<size_t>(ng_batch_shape.begin() + 2, ng_batch_shape.end()));
+
   std::shared_ptr<ng::Node> ng_data =
       ConstructNgNode<ng::opset3::ConvolutionBackpropData>(
-          op->name(), ng_out_backprop, ng_filter, ng_strides, ng_padding_below,
-          ng_padding_above, ng_dilations, ng_pad_type);
+          op->name(), ng_out_backprop, ng_filter, ng_output_shape, ng_strides,
+          ng_padding_below, ng_padding_above, ng_dilations, ng_pad_type);
 
   BatchToTensorflow(op->name(), is_nhwc, ng_data);
 
