@@ -228,39 +228,43 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     }  // cache eviction if cache size greater than cache depth
 
     NG_TRACE("Compile nGraph", m_name, "");
-    try {
-      if (m_do_aot) {
-        auto itr = m_aot_execs.find(signature);
-        if (itr == m_aot_execs.end()) {
-          return errors::Internal(
-              "Requested AOT, but could not find string with the "
-              "signature: ",
-              signature);
-        }
+    if (m_do_aot) {
+      auto itr = m_aot_execs.find(signature);
+      if (itr == m_aot_execs.end()) {
+        return errors::Internal(
+            "Requested AOT, but could not find string with the "
+            "signature: ",
+            signature);
+      }
+
+      BackendManager::LockBackend(m_op_backend_name);
+      try {
         stringstream serialized_exec_read;
         serialized_exec_read << (itr->second);
-        BackendManager::LockBackend(m_op_backend_name);
         ng_exec = op_backend->load(serialized_exec_read);
+      } catch (const std::exception& exp) {
         BackendManager::UnlockBackend(m_op_backend_name);
-      } else {
-        NGraphEncapsulateImpl::Compile(m_op_backend_name, ng_function, ng_exec);
+        Status st = StringToFile("tf_function_error_" + m_name + ".json",
+                                 serialized_ng_func);
+        string status_string =
+            "Caught exception while compiling op_backend: " +
+            string(exp.what()) +
+            (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                             st.error_message()));
+        return errors::Internal(status_string);
+      } catch (...) {
+        BackendManager::UnlockBackend(m_op_backend_name);
+        Status st = StringToFile("tf_function_error_" + m_name + ".json",
+                                 serialized_ng_func);
+        string status_string =
+            "Error in compiling op_backend." +
+            (st.ok() ? "" : (" Also error in dumping serialized function: " +
+                             st.error_message()));
+        return errors::Internal(status_string);
       }
-    } catch (const std::exception& exp) {
-      Status st = StringToFile("tf_function_error_" + m_name + ".json",
-                               serialized_ng_func);
-      string status_string =
-          "Caught exception while compiling op_backend: " + string(exp.what()) +
-          (st.ok() ? "" : (" Also error in dumping serialized function: " +
-                           st.error_message()));
-      return errors::Internal(status_string);
-    } catch (...) {
-      Status st = StringToFile("tf_function_error_" + m_name + ".json",
-                               serialized_ng_func);
-      string status_string =
-          "Error in compiling op_backend." +
-          (st.ok() ? "" : (" Also error in dumping serialized function: " +
-                           st.error_message()));
-      return errors::Internal(status_string);
+      BackendManager::UnlockBackend(m_op_backend_name);
+    } else {
+      NGraphEncapsulateImpl::Compile(m_op_backend_name, ng_function, ng_exec);
     }
 
     SetNgExecMap(signature, ng_exec);
