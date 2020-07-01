@@ -1086,13 +1086,18 @@ static Status TranslateConv2DOp(const Node* op,
   ng::CoordinateDiff ng_padding_below{0, 0};
   ng::CoordinateDiff ng_padding_above{0, 0};
 
-  Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
-                       ng_strides, ng_dilations, ng_padding_below,
-                       ng_padding_above);
+  ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
+  if (tf_padding_type == "VALID") {
+    ng_pad_type = ng::op::PadType::VALID;
+  } else {
+    Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
+                         ng_strides, ng_dilations, ng_padding_below,
+                         ng_padding_above);
+  }
 
-  std::shared_ptr<ng::Node> ng_conv = ConstructNgNode<ng::op::Convolution>(
-      op->name(), ng_input, ng_filter, ng_strides, ng_dilations,
-      ng_padding_below, ng_padding_above);
+  std::shared_ptr<ng::Node> ng_conv = ConstructNgNode<ng::opset3::Convolution>(
+      op->name(), ng_input, ng_filter, ng_strides, ng_padding_below,
+      ng_padding_above, ng_dilations, ng_pad_type);
 
   BatchToTensorflow(op->name(), is_nhwc, ng_conv);
   SaveNgOp(ng_op_map, op->name(), ng_conv);
@@ -1377,13 +1382,18 @@ static Status TranslateConv3DOp(const Node* op,
   ng::CoordinateDiff ng_padding_below{0, 0, 0};
   ng::CoordinateDiff ng_padding_above{0, 0, 0};
 
-  Builder::MakePadding3D(tf_padding_type, ng_image_shape, ng_kernel_shape,
-                         ng_strides, ng_dilations, ng_padding_below,
-                         ng_padding_above);
+  ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
+  if (tf_padding_type == "VALID") {
+    ng_pad_type = ng::op::PadType::VALID;
+  } else {
+    Builder::MakePadding3D(tf_padding_type, ng_image_shape, ng_kernel_shape,
+                           ng_strides, ng_dilations, ng_padding_below,
+                           ng_padding_above);
+  }
 
-  std::shared_ptr<ng::Node> ng_conv = ConstructNgNode<ng::op::Convolution>(
-      op->name(), ng_input, ng_filter, ng_strides, ng_dilations,
-      ng_padding_below, ng_padding_above);
+  std::shared_ptr<ng::Node> ng_conv = ConstructNgNode<ng::opset3::Convolution>(
+      op->name(), ng_input, ng_filter, ng_strides, ng_padding_below,
+      ng_padding_above, ng_dilations, ng_pad_type);
 
   BatchToTensorflow3D(op->name(), is_ndhwc, ng_conv);
   SaveNgOp(ng_op_map, op->name(), ng_conv);
