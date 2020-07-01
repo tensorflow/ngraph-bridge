@@ -4114,6 +4114,7 @@ const static std::map<
         {"Shape", TranslateShapeOp},
         {"Sigmoid", TranslateSigmoidOp},
         {"Sin", TranslateUnaryOp<ngraph::opset3::Sin>},
+        {"Sinh", TranslateUnaryOp<ngraph::opset3::Sinh>},
         {"Size", TranslateSizeOp},
         {"Sign", TranslateUnaryOp<ngraph::opset3::Sign>},
         {"Slice", TranslateSliceOp},

@@ -2218,6 +2218,28 @@ TEST(MathOps, Sin) {
   opexecuter.RunTest();
 }  // end of test op Sin
 
+// Test op: Sinh
+TEST(MathOps, Sinh) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 5;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues<float>(
+      A, {0, -0, M_PI / 2, M_PI, 1.0, 3.8, 4.2, -3.9, -4.2, -1.0});
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Sinh(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Sinh", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Sinh
+
 // Test op: Square
 TEST(MathOps, Square) {
   Scope root = Scope::NewRootScope();
