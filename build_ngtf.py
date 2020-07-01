@@ -18,7 +18,8 @@
 from tools.build_utils import *
 
 
-def version_check(use_prebuilt_tensorflow, disable_cpp_api):
+def version_check(use_prebuilt_tensorflow, use_tensorflow_from_location,
+                  disable_cpp_api):
     # Check pre-requisites
     if use_prebuilt_tensorflow:
         # Check if the gcc version is at least 5.3.0
@@ -35,7 +36,7 @@ def version_check(use_prebuilt_tensorflow, disable_cpp_api):
         raise Exception("Need minimum cmake version 3.4\n"
                         "Got: " + '.'.join(cmake_ver))
 
-    if not disable_cpp_api:
+    if not use_tensorflow_from_location and not disable_cpp_api:
         # Check bazel version
         bazel_kind, bazel_ver = get_bazel_version()
         got_correct_bazel_version = bazel_kind == 'Bazelisk version'
@@ -174,9 +175,6 @@ def main():
     # Recipe
     #-------------------------------
 
-    version_check((arguments.use_prebuilt_tensorflow != ''),
-                  arguments.disable_cpp_api)
-
     # Default directories
     build_dir = 'build_cmake'
 
@@ -185,6 +183,10 @@ def main():
         arguments.use_prebuilt_tensorflow != ''
     ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\" "
     "cannot be used together."
+
+    version_check((arguments.use_prebuilt_tensorflow != ''),
+                  (arguments.use_tensorflow_from_location != ''),
+                  arguments.disable_cpp_api)
 
     if arguments.use_tensorflow_from_location != '':
         # Check if the prebuilt folder has necessary files
