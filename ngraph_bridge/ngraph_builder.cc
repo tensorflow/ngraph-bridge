@@ -957,7 +957,7 @@ static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
     SaveNgOp(ng_op_map, op->name(),
              ConstructNgNode<ng::opset3::Convert>(op->name(), ng_input, ng_et));
   } catch (const std::out_of_range&) {
-    return errors::Unimplemented("Unsupported TensorFlow data type: ",
+    return errors::Unimplemented("Failed to convert TF data type: ",
                                  DataType_Name(dtype));
   }
   return Status::OK();
@@ -1017,7 +1017,7 @@ static Status TranslateConstOp(const Node* op,
     const auto& func_param = Builder::TF_NGRAPH_CONST_MAP().at(dtype);
     TF_RETURN_IF_ERROR(func_param.first(op, func_param.second, &ng_node));
   } catch (const std::out_of_range&) {
-    return errors::Unimplemented("Unsupported TensorFlow data type: ",
+    return errors::Unimplemented("Failed to translate Constant with TF type: ",
                                  DataType_Name(dtype));
   }
 
