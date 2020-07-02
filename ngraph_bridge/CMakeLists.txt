@@ -93,6 +93,13 @@ endif()
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
+if(ENABLE_OPENVINO)
+    list(REMOVE_ITEM SRC ngraph_encapsulate_impl.cc)
+    add_definitions(-DENABLE_OPENVINO)
+endif()
+
+message(STATUS "ENABLE_OPENVINO: ${ENABLE_OPENVINO}")
+
 add_library(${LIB_NAME} SHARED ${SRC})
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)

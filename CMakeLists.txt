@@ -125,8 +125,6 @@ endif()
 # Find TensorFlow
 find_package(TensorFlow REQUIRED)
 
-
-
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(NGRAPH_TF_CXX11_ABI "${TensorFlow_CXX_ABI}")
     message( STATUS "nGraph-TensorFlow using CXX11 ABI:  ${NGRAPH_TF_CXX11_ABI}" )
@@ -155,6 +153,8 @@ option(NGRAPH_ARTIFACTS_DIR "Where would nGraph be installed after build" FALSE)
 option(UNIT_TEST_ENABLE "Control the building of unit tests" FALSE)
 option(UNIT_TEST_TF_CC_DIR "Location where TensorFlow CC library is located" FALSE)
 option(NGRAPH_BRIDGE_STATIC_LIB_ENABLE "Enable build nGraph bridge static library" FALSE)
+option(ENABLE_OPENVINO "Build OpenVINO backend" FALSE)
+option(OPENVINO_ARTIFACTS_DIR "Where would OpenVINO be installed after build" FALSE)
 
 find_package(PlaidML CONFIG)
 option(NGRAPH_PLAIDML_ENABLE "Build PlaidML backend" ${PLAIDML_FOUND})
@@ -236,6 +236,7 @@ message(STATUS "USE_PRE_BUILT_NGRAPH:       ${USE_PRE_BUILT_NGRAPH}")
 message(STATUS "NGRAPH_PLAIDML_ENABLE:      ${NGRAPH_PLAIDML_ENABLE}")
 message(STATUS "NGRAPH_TARGET_ARCH:         ${NGRAPH_TARGET_ARCH}")
 message(STATUS "NGRAPH_TUNE_ARCH:           ${NGRAPH_TUNE_ARCH}")
+message(STATUS "OPENVINO_ARTIFACTS_DIR:     ${OPENVINO_ARTIFACTS_DIR}")
 
 # Find and build ngraph - if not using pre-built one
 if (NOT USE_PRE_BUILT_NGRAPH)
