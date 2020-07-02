@@ -1029,7 +1029,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   std::unordered_map<string, int> fail_confirmation_histogram;
   std::unordered_map<string, int> fail_constraint_histogram;
   vector<Node*> nodes_marked_for_clustering;
-  vector<Node*> variable_type_nodes;
   string ng_backend_type;
   // Create nGraph backend
   BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
@@ -1040,11 +1039,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   for (auto node : graph->op_nodes()) {
     bool mark_for_clustering = false;
-
-    if (IsNGVariableType(node->type_string())) {
-      variable_type_nodes.push_back(node);
-      continue;
-    }
 
     do {
       // check if output node
@@ -1148,9 +1142,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     }
   }
 
-  for (auto node : variable_type_nodes) {
-    SetNodeBackend(node, current_backend);
-  }
   return Status::OK();
 }
 
