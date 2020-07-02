@@ -2713,6 +2713,7 @@ static Status TranslatePackOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
+// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad
 static Status TranslatePadOp(const Node* op,
                              const std::vector<const Tensor*>& static_input_map,
                              Builder::OpMap& ng_op_map) {
@@ -2730,26 +2731,128 @@ static Status TranslatePadOp(const Node* op,
         "elements");
   }
 
-  ng::CoordinateDiff padding_below(paddings.size() / 2);
-  ng::CoordinateDiff padding_above(paddings.size() / 2);
-  ng::Shape padding_interior(paddings.size() / 2);
+  ng::CoordinateDiff padding_before(paddings.size() / 2);
+  ng::CoordinateDiff padding_after(paddings.size() / 2);
   auto pad_mode = ng::op::PadMode::CONSTANT;
 
   for (size_t i = 0; i < paddings.size() / 2; i++) {
-    padding_below[i] = paddings[2 * i];
-    padding_above[i] = paddings[2 * i + 1];
-    padding_interior[i] = 0;
+    padding_before[i] = paddings[2 * i];
+    padding_after[i] = paddings[2 * i + 1];
   }
 
-  NGRAPH_VLOG(3) << "{" << ng::join(padding_below) << "}";
-  NGRAPH_VLOG(3) << "{" << ng::join(padding_above) << "}";
+  NGRAPH_VLOG(3) << "{" << ng::join(padding_before) << "}";
+  NGRAPH_VLOG(3) << "{" << ng::join(padding_after) << "}";
+
+  auto pads_begin_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{padding_before.size()}, padding_before);
+  auto pads_end_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{padding_after.size()}, padding_after);
 
   // For PadV1 it seems the value is always zero.
-  auto pad_val_op = ConstructNgNode<ng::op::Constant>(
+  auto pad_val_op = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng_input->get_element_type(), ng::Shape{},
       std::vector<std::string>{"0"});
-  auto pad_op = ConstructNgNode<ng::op::Pad>(
-      op->name(), ng_input, pad_val_op, padding_below, padding_above, pad_mode);
+  auto pad_op = ConstructNgNode<ng::opset3::Pad>(
+      op->name(), ng_input, pads_begin_node, pads_end_node, pad_val_op,
+      pad_mode);
+
+  SaveNgOp(ng_op_map, op->name(), pad_op);
+  return Status::OK();
+}
+
+// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad-v2
+static Status TranslatePadV2Op(const Node* op,
+                             const std::vector<const Tensor*>& static_input_map,
+                             Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input, ng_paddings_op, ng_constant_values;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op, &ng_constant_values));
+
+  std::vector<int64> paddings;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &paddings));
+
+  NGRAPH_VLOG(3) << "{" << ng::join(paddings) << "}";
+
+  if (paddings.size() % 2 != 0) {
+    return errors::InvalidArgument(
+        "Constant node for paddings does not have an even number of "
+        "elements");
+  }
+
+  ng::CoordinateDiff padding_before(paddings.size() / 2);
+  ng::CoordinateDiff padding_after(paddings.size() / 2);
+  auto pad_mode = ng::op::PadMode::CONSTANT;
+
+  for (size_t i = 0; i < paddings.size() / 2; i++) {
+    padding_before[i] = paddings[2 * i];
+    padding_after[i] = paddings[2 * i + 1];
+  }
+
+  NGRAPH_VLOG(3) << "{" << ng::join(padding_before) << "}";
+  NGRAPH_VLOG(3) << "{" << ng::join(padding_after) << "}";
+
+  auto pads_begin_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{padding_before.size()}, padding_before);
+  auto pads_end_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{padding_after.size()}, padding_after);
+
+
+  auto pad_op = ConstructNgNode<ng::opset3::Pad>(
+      op->name(), ng_input, pads_begin_node, pads_end_node, ng_constant_values,
+      pad_mode);
+
+  SaveNgOp(ng_op_map, op->name(), pad_op);
+  return Status::OK();
+}
+
+// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/mirror-pad
+static Status TranslateMirrorPadOp(const Node* op,
+                             const std::vector<const Tensor*>& static_input_map,
+                             Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input, ng_paddings_op;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
+
+  std::vector<int64> paddings;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &paddings));
+  NGRAPH_VLOG(3) << "{" << ng::join(paddings) << "}";
+
+  std::string pad_mode_str;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "mode", &pad_mode_str));
+  ng::op::PadMode pad_mode = ng::op::PadMode::CONSTANT; // Impossible Value
+  if (pad_mode_str == "REFLECT") {
+    pad_mode = ng::op::PadMode::REFLECT;
+  } else if (pad_mode_str == "SYMMETRIC") {
+    pad_mode = ng::op::PadMode::SYMMETRIC;
+  } else {
+    return errors::InvalidArgument(pad_mode_str, " is not an allowed padding mode.");
+  }
+
+  if (paddings.size() % 2 != 0) {
+    return errors::InvalidArgument(
+        "Constant node for paddings does not have an even number of "
+        "elements");
+  }
+
+  ng::CoordinateDiff padding_before(paddings.size() / 2);
+  ng::CoordinateDiff padding_after(paddings.size() / 2);
+
+  for (size_t i = 0; i < paddings.size() / 2; i++) {
+    padding_before[i] = paddings[2 * i];
+    padding_after[i] = paddings[2 * i + 1];
+  }
+
+  NGRAPH_VLOG(3) << "{" << ng::join(padding_before) << "}";
+  NGRAPH_VLOG(3) << "{" << ng::join(padding_after) << "}";
+
+  auto pads_begin_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{padding_before.size()}, padding_before);
+  auto pads_end_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{padding_after.size()}, padding_after);
+
+  auto pad_val_op = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng_input->get_element_type(), ng::Shape{},
+      std::vector<std::string>{"0"});
+  auto pad_op = ConstructNgNode<ng::opset3::Pad>(
+      op->name(), ng_input, pads_begin_node, pads_end_node, pad_mode);
 
   SaveNgOp(ng_op_map, op->name(), pad_op);
   return Status::OK();
@@ -4135,6 +4238,7 @@ const static std::map<
         {"Mean", TranslateDirectReduceOp<ng::opset3::ReduceMean>},
         {"Min", TranslateDirectReduceOp<ng::opset3::ReduceMin>},
         {"Minimum", TranslateBinaryOp<ngraph::opset3::Minimum>},
+        {"MirrorPad", TranslateMirrorPadOp},
         {"Mul", TranslateBinaryOp<ngraph::opset3::Multiply>},
         {"Neg", TranslateUnaryOp<ngraph::opset3::Negative>},
         // Do nothing! NoOps sometimes get placed on nGraph for bureaucratic
@@ -4143,7 +4247,7 @@ const static std::map<
                     Builder::OpMap&) { return Status::OK(); }},
         {"OneHot", TranslateOneHotOp},
         {"Pack", TranslatePackOp},
-        {"Pad", TranslatePadOp},
+        {"Pad", TranslatePadOp}, {"PadV2", TranslatePadV2Op},
         {"Pow", TranslateBinaryOp<ngraph::opset3::Power>},
         // PreventGradient is just Identity in data-flow terms, so reuse that.
         {"PreventGradient", TranslateIdentityOp},
