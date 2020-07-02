@@ -4132,6 +4132,7 @@ const static std::map<
         {"StridedSlice", TranslateStridedSliceOp},
         {"Sub", TranslateBinaryOp<ngraph::opset3::Subtract>},
         {"Sum", TranslateDirectReduceOp<ng::opset3::ReduceSum>},
+        {"Tan", TranslateUnaryOp<ngraph::opset3::Tan>},
         {"Tanh", TranslateUnaryOp<ngraph::opset3::Tanh>},
         {"Tile", TranslateTileOp},
         {"TopKV2", TranslateTopKV2Op},

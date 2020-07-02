@@ -2463,6 +2463,29 @@ TEST(MathOps, XdivyZeroXZeroY) {
   opexecuter.RunTest();
 }  // end of test op Xdivy
 
+// Test op: Tan
+TEST(MathOps, Tan) {
+  Scope root = Scope::NewRootScope();
+
+  int dim1 = 2;
+  int dim2 = 3;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 3.5f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Tan(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Tan", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Tan
+
 // Test op: Tanh
 TEST(MathOps, Tanh) {
   Scope root = Scope::NewRootScope();
