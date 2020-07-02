@@ -138,6 +138,19 @@ static ConfirmationFunction SimpleConfirmationFunction() {
   return cf;
 };
 
+static ConfirmationFunction FusedBatchNormConfirmationFunction() {
+  auto cf = [](Node* n, bool* result) {
+    bool tf_is_training;
+    if (GetNodeAttr(n->attrs(), "is_training", &tf_is_training) !=
+        Status::OK()) {
+      tf_is_training = true;
+    }
+    *result = !tf_is_training;
+    return Status::OK();
+  };
+  return cf;
+};
+
 // Check if op is supported by backend using is_supported API
 Status IsSupportedByBackend(
     const Node* node, const ng::runtime::Backend* op_backend,
@@ -191,7 +204,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["ArgMax"] = SetStaticInputs({1});
     set_attributes_map["ArgMin"] = SetStaticInputs({1});
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
-    set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
     set_attributes_map["ExpandDims"] = SetStaticInputs({1});
     set_attributes_map["Fill"] = SetStaticInputs({0});
@@ -290,8 +302,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["ConcatV2"] = SimpleConfirmationFunction();
     confirmation_function_map["Const"] = SimpleConfirmationFunction();
     confirmation_function_map["Conv2D"] = SimpleConfirmationFunction();
-    confirmation_function_map["Conv2DBackpropFilter"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Conv2DBackpropInput"] =
         SimpleConfirmationFunction();
     confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
@@ -320,11 +330,12 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Floor"] = SimpleConfirmationFunction();
     confirmation_function_map["FloorDiv"] = SimpleConfirmationFunction();
     // confirmation_function_map["FloorMod"] = SimpleConfirmationFunction();
-    confirmation_function_map["FusedBatchNorm"] = SimpleConfirmationFunction();
+    confirmation_function_map["FusedBatchNorm"] =
+        FusedBatchNormConfirmationFunction();
     confirmation_function_map["FusedBatchNormV2"] =
-        SimpleConfirmationFunction();
+        FusedBatchNormConfirmationFunction();
     confirmation_function_map["FusedBatchNormV3"] =
-        SimpleConfirmationFunction();
+        FusedBatchNormConfirmationFunction();
     confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
@@ -647,6 +658,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
         NGraphIndexDTypes();
     type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
+    type_constraint_map["ZerosLike"]["T"] = NGraphNumericDTypes();
     initialized = true;
   }
   return type_constraint_map;
@@ -696,15 +708,12 @@ GetTFToNgOpMap() {
       {"Const", {constant}},
       {"Conv2D",
        {std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::Convolution>()}},
-      {"Conv2DBackpropFilter",
-       {std::make_shared<ngraph::op::ConvolutionBackpropFilters>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+        std::make_shared<ngraph::opset3::Convolution>()}},
       {"Conv2DBackpropInput",
-       {std::make_shared<ngraph::op::ConvolutionBackpropData>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {std::make_shared<ngraph::opset3::ConvolutionBackpropData>(),
+        std::make_shared<ngraph::op::Reshape>(), constant}},
       {"Conv3D",
-       {std::make_shared<ngraph::op::Convolution>(),
+       {std::make_shared<ngraph::opset3::Convolution>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"Cos", {std::make_shared<ngraph::opset3::Cos>()}},
       {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
@@ -730,22 +739,12 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::opset3::Floor>(),
         std::make_shared<ngraph::op::Broadcast>()}},
       //{"FloorMod", {std::make_shared<ngraph::opset3::FloorMod>()}},
-      {"FusedBatchNorm",
-       {std::make_shared<ngraph::op::BatchNormTraining>(),
-        std::make_shared<ngraph::op::GetOutputElement>(), constant,
-        std::make_shared<ngraph::opset3::Multiply>(),
-        std::make_shared<ngraph::op::BatchNormInference>()}},
+      {"FusedBatchNorm", {std::make_shared<ngraph::op::BatchNormInference>()}},
       {"FusedBatchNormV2",
-       {std::make_shared<ngraph::op::BatchNormTraining>(),
-        std::make_shared<ngraph::op::GetOutputElement>(), constant,
-        std::make_shared<ngraph::opset3::Multiply>(),
-        std::make_shared<ngraph::op::BatchNormInference>(),
+       {std::make_shared<ngraph::op::BatchNormInference>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"FusedBatchNormV3",
-       {std::make_shared<ngraph::op::BatchNormTraining>(),
-        std::make_shared<ngraph::op::GetOutputElement>(), constant,
-        std::make_shared<ngraph::opset3::Multiply>(),
-        std::make_shared<ngraph::op::BatchNormInference>(),
+       {constant, std::make_shared<ngraph::op::BatchNormInference>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
       {"GatherV2", {std::make_shared<ngraph::op::Gather>()}},
