@@ -52,10 +52,13 @@ class TestPadOperations(NgraphTest):
         input_data = tf.compat.v1.placeholder(tf.int32, shape=(2, 3, 2))
         paddings = tf.compat.v1.placeholder(tf.int32, shape=(3, 2))
 
-        inp = ([[[1, 1], [3, 6], [4, 5]], [[7, 8], [3, 3], [7, 5]]])  # shape: (2,3,2), input-dim Dn (rank) = 3
+        inp = ([[[1, 1], [3, 6], [4, 5]],
+                [[7, 8], [3, 3],
+                 [7, 5]]])  # shape: (2,3,2), input-dim Dn (rank) = 3
         pad = ([[1, 0], [3, 2], [2, 1]])  # shape: Dn x 2
 
-        out = tf.pad(input_data, paddings, mode='CONSTANT',
+        out = tf.pad(
+            input_data, paddings, mode='CONSTANT',
             constant_values=7)  # shape: (3,8,5)
 
         def run_test(sess):
