@@ -2547,17 +2547,14 @@ static Status TranslatePackOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
-// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad
-static Status TranslatePadOp(const Node* op,
-                             const std::vector<const Tensor*>& static_input_map,
-                             Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input, ng_paddings_op;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
-
+static Status _MakeBeginEndNodesForNgPadOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    shared_ptr<ng::opset3::Constant>* pads_begin_node,
+    shared_ptr<ng::opset3::Constant>* pads_end_node) {
   std::vector<int64> paddings;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &paddings));
 
-  NGRAPH_VLOG(3) << "{" << ng::join(paddings) << "}";
+  NGRAPH_VLOG(6) << op->name() << " pads {" << ng::join(paddings) << "}";
 
   if (paddings.size() % 2 != 0) {
     return errors::InvalidArgument(
@@ -2565,24 +2562,37 @@ static Status TranslatePadOp(const Node* op,
         "elements");
   }
 
-  ng::CoordinateDiff padding_before(paddings.size() / 2);
-  ng::CoordinateDiff padding_after(paddings.size() / 2);
-  auto pad_mode = ng::op::PadMode::CONSTANT;
+  ng::CoordinateDiff pad_begin(paddings.size() / 2);
+  ng::CoordinateDiff pad_end(paddings.size() / 2);
 
   for (size_t i = 0; i < paddings.size() / 2; i++) {
-    padding_before[i] = paddings[2 * i];
-    padding_after[i] = paddings[2 * i + 1];
+    pad_begin[i] = paddings[2 * i];
+    pad_end[i] = paddings[2 * i + 1];
   }
 
-  NGRAPH_VLOG(3) << "{" << ng::join(padding_before) << "}";
-  NGRAPH_VLOG(3) << "{" << ng::join(padding_after) << "}";
+  NGRAPH_VLOG(6) << "  pad_begin {" << ng::join(pad_begin) << "}";
+  NGRAPH_VLOG(6) << "  pad_end {" << ng::join(pad_end) << "}";
 
-  auto pads_begin_node = make_shared<ng::opset3::Constant>(
-      ng::element::i64, ng::Shape{padding_before.size()}, padding_before);
-  auto pads_end_node = make_shared<ng::opset3::Constant>(
-      ng::element::i64, ng::Shape{padding_after.size()}, padding_after);
+  *pads_begin_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{pad_begin.size()}, pad_begin);
+  *pads_end_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{pad_end.size()}, pad_end);
 
-  // For PadV1 it seems the value is always zero.
+  return Status::OK();
+}
+
+// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad
+static Status TranslatePadOp(const Node* op,
+                             const std::vector<const Tensor*>& static_input_map,
+                             Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+
+  shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
+  TF_RETURN_IF_ERROR(_MakeBeginEndNodesForNgPadOp(
+      op, static_input_map, &pads_begin_node, &pads_end_node));
+
+  auto pad_mode = ng::op::PadMode::CONSTANT;
   auto pad_val_op = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng_input->get_element_type(), ng::Shape{},
       std::vector<std::string>{"0"});
@@ -2602,34 +2612,11 @@ static Status TranslatePadV2Op(
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op,
                                    &ng_constant_values));
 
-  std::vector<int64> paddings;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &paddings));
+  shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
+  TF_RETURN_IF_ERROR(_MakeBeginEndNodesForNgPadOp(
+      op, static_input_map, &pads_begin_node, &pads_end_node));
 
-  NGRAPH_VLOG(3) << "{" << ng::join(paddings) << "}";
-
-  if (paddings.size() % 2 != 0) {
-    return errors::InvalidArgument(
-        "Constant node for paddings does not have an even number of "
-        "elements");
-  }
-
-  ng::CoordinateDiff padding_before(paddings.size() / 2);
-  ng::CoordinateDiff padding_after(paddings.size() / 2);
   auto pad_mode = ng::op::PadMode::CONSTANT;
-
-  for (size_t i = 0; i < paddings.size() / 2; i++) {
-    padding_before[i] = paddings[2 * i];
-    padding_after[i] = paddings[2 * i + 1];
-  }
-
-  NGRAPH_VLOG(3) << "{" << ng::join(padding_before) << "}";
-  NGRAPH_VLOG(3) << "{" << ng::join(padding_after) << "}";
-
-  auto pads_begin_node = make_shared<ng::opset3::Constant>(
-      ng::element::i64, ng::Shape{padding_before.size()}, padding_before);
-  auto pads_end_node = make_shared<ng::opset3::Constant>(
-      ng::element::i64, ng::Shape{padding_after.size()}, padding_after);
-
   auto pad_op = ConstructNgNode<ng::opset3::Pad>(op->name(), ng_input,
                                                  pads_begin_node, pads_end_node,
                                                  ng_constant_values, pad_mode);
@@ -2642,12 +2629,12 @@ static Status TranslatePadV2Op(
 static Status TranslateMirrorPadOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input, ng_paddings_op;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
+  shared_ptr<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
 
-  std::vector<int64> paddings;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &paddings));
-  NGRAPH_VLOG(3) << "{" << ng::join(paddings) << "}";
+  shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
+  TF_RETURN_IF_ERROR(_MakeBeginEndNodesForNgPadOp(
+      op, static_input_map, &pads_begin_node, &pads_end_node));
 
   std::string pad_mode_str;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "mode", &pad_mode_str));
@@ -2661,31 +2648,6 @@ static Status TranslateMirrorPadOp(
                                    " is not an allowed padding mode.");
   }
 
-  if (paddings.size() % 2 != 0) {
-    return errors::InvalidArgument(
-        "Constant node for paddings does not have an even number of "
-        "elements");
-  }
-
-  ng::CoordinateDiff padding_before(paddings.size() / 2);
-  ng::CoordinateDiff padding_after(paddings.size() / 2);
-
-  for (size_t i = 0; i < paddings.size() / 2; i++) {
-    padding_before[i] = paddings[2 * i];
-    padding_after[i] = paddings[2 * i + 1];
-  }
-
-  NGRAPH_VLOG(3) << "{" << ng::join(padding_before) << "}";
-  NGRAPH_VLOG(3) << "{" << ng::join(padding_after) << "}";
-
-  auto pads_begin_node = make_shared<ng::opset3::Constant>(
-      ng::element::i64, ng::Shape{padding_before.size()}, padding_before);
-  auto pads_end_node = make_shared<ng::opset3::Constant>(
-      ng::element::i64, ng::Shape{padding_after.size()}, padding_after);
-
-  auto pad_val_op = ConstructNgNode<ng::opset3::Constant>(
-      op->name(), ng_input->get_element_type(), ng::Shape{},
-      std::vector<std::string>{"0"});
   auto pad_op = ConstructNgNode<ng::opset3::Pad>(
       op->name(), ng_input, pads_begin_node, pads_end_node, pad_mode);
 
