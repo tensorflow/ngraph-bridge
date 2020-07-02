@@ -125,7 +125,3 @@ class TestVariableStaticInputs(NgraphTest):
 
         # Final Var value
         assert np.allclose(ng_var_final, tf_var_final)
-
-        # clean up
-        self.unset_env_variable(buffer_sharing_env)
-        self.restore_env_variables(env_var_map)
