@@ -117,10 +117,6 @@ class NGraphEncapsulateImpl {
 
   void ClearNgExecMap() { m_ng_exec_map.clear(); }
 
-  void ClearNgExecSerializedFunctionCache() {
-    m_serialized_ng_function_map.clear();
-  }
-
   void SetName(string name) { m_name = name; }
 
   Status ParseNodeAttributes(
@@ -142,14 +138,8 @@ class NGraphEncapsulateImpl {
   std::vector<bool> m_input_is_static;
   std::list<std::string> m_lru;
   static int s_instance_count;
-  bool m_do_aot = false;
-  map<string, string> m_aot_functions;
-  map<string, string> m_aot_execs;
 
-  // ng_function, ng_executable, Output and Input Cache maps
   std::unordered_map<std::string, std::shared_ptr<Executable>> m_ng_exec_map;
-  std::unordered_map<std::shared_ptr<Executable>, std::string>
-      m_serialized_ng_function_map;
 };
 
 }  // namespace ngraph_bridge
