@@ -77,6 +77,7 @@ def command_executor(cmd,
     except Exception as e:
         raise
 
+
 def cmake_build(build_dir, src_location, cmake_flags, verbose):
     pwd = os.getcwd()
 
@@ -497,7 +498,7 @@ def download_repo(target_name, repo, version, submodule_update=False):
     call(["git", "pull"])
 
     if submodule_update:
-        call(["git", "submodule",  "update", "--init", "--recursive"])
+        call(["git", "submodule", "update", "--init", "--recursive"])
 
     os.chdir(pwd)
 

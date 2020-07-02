@@ -19,6 +19,7 @@ from tools.build_utils import *
 
 flag_string_map = {True: 'YES', False: 'NO'}
 
+
 def version_check(use_prebuilt_tensorflow, use_tensorflow_from_location,
                   disable_cpp_api):
     # Check pre-requisites
@@ -369,26 +370,30 @@ def main():
     # Build OpenVINO if required.
     if arguments.build_openvino_backend:
         if not arguments.use_prebuilt_openvino:
-            openvino_version="releases/2020/3"
-            openvino_src_dir="./openvino"
-            download_repo("openvino",
-                            "https://github.com/openvinotoolkit/openvino",
-                            openvino_version, submodule_update=True)
+            openvino_version = "releases/2020/3"
+            openvino_src_dir = "./openvino"
+            download_repo(
+                "openvino",
+                "https://github.com/openvinotoolkit/openvino",
+                openvino_version,
+                submodule_update=True)
 
             # Now build OpenVINO
             openvino_cmake_flags = [
                 "-DENABLE_TESTS=OFF",
                 "-DENABLE_FUNCTIONAL_TESTS=OFF",
-                "-DENABLE_VPU=OFF", # TODO: Fix OpenVINO VPU build
+                "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
                 "-DENABLE_CPPLINT=OFF",
                 "-DENABLE_SPEECH_DEMO=FALSE",
-                "-DCMAKE_INSTALL_PREFIX=" + os.path.join(artifacts_location, "openvino")
+                "-DCMAKE_INSTALL_PREFIX=" + os.path.join(
+                    artifacts_location, "openvino")
             ]
 
             if arguments.debug_build:
                 openvino_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
-            cmake_build(build_dir, openvino_src_dir, openvino_cmake_flags, verbosity)
+            cmake_build(build_dir, openvino_src_dir, openvino_cmake_flags,
+                        verbosity)
     else:
         # Skip building nGraph if we're building OpenVINO
         # Build nGraph if required.
@@ -403,8 +408,8 @@ def main():
 
                 print("nGraph Version: ", ngraph_version)
                 download_repo("ngraph",
-                            "https://github.com/NervanaSystems/ngraph.git",
-                            ngraph_version)
+                              "https://github.com/NervanaSystems/ngraph.git",
+                              ngraph_version)
 
             # Now build nGraph
             ngraph_cmake_flags = [
@@ -417,7 +422,8 @@ def main():
 
             if arguments.use_ngraph_staticlibs:
                 ngraph_cmake_flags.extend(["-DNGRAPH_STATIC_LIB_ENABLE=TRUE"])
-                ngraph_cmake_flags.extend(["-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"])
+                ngraph_cmake_flags.extend(
+                    ["-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"])
                 ngraph_cmake_flags.extend(
                     ["-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE"])
                 ngraph_cmake_flags.extend(
@@ -446,7 +452,8 @@ def main():
                 flag_string_map[arguments.build_intelgpu_backend]
             ])
 
-            cmake_build(build_dir, ngraph_src_dir, ngraph_cmake_flags, verbosity)
+            cmake_build(build_dir, ngraph_src_dir, ngraph_cmake_flags,
+                        verbosity)
 
     # Next build CMAKE options for the bridge
     ngraph_tf_cmake_flags = [
@@ -459,9 +466,11 @@ def main():
     if arguments.build_openvino_backend:
         openvino_artifacts_dir = ""
         if not arguments.use_prebuilt_openvino:
-            openvino_artifacts_dir = os.path.join(artifacts_location, "openvino")
+            openvino_artifacts_dir = os.path.join(artifacts_location,
+                                                  "openvino")
         else:
-            openvino_artifacts_dir = os.path.abspath(arguments.use_prebuilt_openvino)
+            openvino_artifacts_dir = os.path.abspath(
+                arguments.use_prebuilt_openvino)
 
         ngraph_tf_cmake_flags.extend(["-DENABLE_OPENVINO=ON"])
         ngraph_tf_cmake_flags.extend(
