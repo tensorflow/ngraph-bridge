@@ -186,7 +186,7 @@ class NGraphEncapsulateImpl {
   int m_number_outputs = -1;
   int m_number_inputs = -1;
   int my_instance_id{0};
-  string m_op_backend_name;
+  string m_op_backend;
   string m_name;
   std::stringstream copy_log_str;
   bool log_copies = false;
