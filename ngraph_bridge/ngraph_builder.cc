@@ -2547,6 +2547,7 @@ static Status TranslatePackOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
+// Helper function for several Pad Ops
 static Status _MakeBeginEndNodesForNgPadOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     shared_ptr<ng::opset3::Constant>* pads_begin_node,
@@ -2585,8 +2586,8 @@ static Status _MakeBeginEndNodesForNgPadOp(
 static Status TranslatePadOp(const Node* op,
                              const std::vector<const Tensor*>& static_input_map,
                              Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+  shared_ptr<ng::Node> ng_input, ng_paddings_op;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
 
   shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
   TF_RETURN_IF_ERROR(_MakeBeginEndNodesForNgPadOp(
@@ -2594,8 +2595,8 @@ static Status TranslatePadOp(const Node* op,
 
   auto pad_mode = ng::op::PadMode::CONSTANT;
   auto pad_val_op = ConstructNgNode<ng::opset3::Constant>(
-      op->name(), ng_input->get_element_type(), ng::Shape{},
-      std::vector<std::string>{"0"});
+      op->name(), ng_input->get_element_type(), ng::Shape(),
+      std::vector<int>({0}));
   auto pad_op =
       ConstructNgNode<ng::opset3::Pad>(op->name(), ng_input, pads_begin_node,
                                        pads_end_node, pad_val_op, pad_mode);
@@ -2629,8 +2630,8 @@ static Status TranslatePadV2Op(
 static Status TranslateMirrorPadOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+  shared_ptr<ng::Node> ng_input, ng_paddings_op;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
 
   shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
   TF_RETURN_IF_ERROR(_MakeBeginEndNodesForNgPadOp(
