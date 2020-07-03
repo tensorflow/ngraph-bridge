@@ -138,6 +138,19 @@ static ConfirmationFunction SimpleConfirmationFunction() {
   return cf;
 };
 
+static ConfirmationFunction FusedBatchNormConfirmationFunction() {
+  auto cf = [](Node* n, bool* result) {
+    bool tf_is_training;
+    if (GetNodeAttr(n->attrs(), "is_training", &tf_is_training) !=
+        Status::OK()) {
+      tf_is_training = true;
+    }
+    *result = !tf_is_training;
+    return Status::OK();
+  };
+  return cf;
+};
+
 // Check if op is supported by backend using is_supported API
 Status IsSupportedByBackend(
     const Node* node, const ng::runtime::Backend* op_backend,
@@ -191,7 +204,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["ArgMax"] = SetStaticInputs({1});
     set_attributes_map["ArgMin"] = SetStaticInputs({1});
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
-    set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
     set_attributes_map["ExpandDims"] = SetStaticInputs({1});
     set_attributes_map["Fill"] = SetStaticInputs({0});
@@ -288,13 +300,12 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["ConcatV2"] = SimpleConfirmationFunction();
     confirmation_function_map["Const"] = SimpleConfirmationFunction();
     confirmation_function_map["Conv2D"] = SimpleConfirmationFunction();
-    confirmation_function_map["Conv2DBackpropFilter"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Conv2DBackpropInput"] =
         SimpleConfirmationFunction();
     confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
     confirmation_function_map["CropAndResize"] = SimpleConfirmationFunction();
     confirmation_function_map["Cos"] = SimpleConfirmationFunction();
+    confirmation_function_map["Cosh"] = SimpleConfirmationFunction();
     confirmation_function_map["Cumsum"] = SimpleConfirmationFunction();
     confirmation_function_map["DepthwiseConv2dNative"] =
         SimpleConfirmationFunction();
@@ -318,11 +329,12 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Floor"] = SimpleConfirmationFunction();
     confirmation_function_map["FloorDiv"] = SimpleConfirmationFunction();
     // confirmation_function_map["FloorMod"] = SimpleConfirmationFunction();
-    confirmation_function_map["FusedBatchNorm"] = SimpleConfirmationFunction();
+    confirmation_function_map["FusedBatchNorm"] =
+        FusedBatchNormConfirmationFunction();
     confirmation_function_map["FusedBatchNormV2"] =
-        SimpleConfirmationFunction();
+        FusedBatchNormConfirmationFunction();
     confirmation_function_map["FusedBatchNormV3"] =
-        SimpleConfirmationFunction();
+        FusedBatchNormConfirmationFunction();
     confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
@@ -406,6 +418,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
     confirmation_function_map["Sign"] = SimpleConfirmationFunction();
     confirmation_function_map["Sin"] = SimpleConfirmationFunction();
+    confirmation_function_map["Sinh"] = SimpleConfirmationFunction();
     confirmation_function_map["Size"] = SimpleConfirmationFunction();
     confirmation_function_map["Slice"] = SimpleConfirmationFunction();
     confirmation_function_map["Snapshot"] = SimpleConfirmationFunction();
@@ -424,6 +437,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Pack"] = SimpleConfirmationFunction();
     confirmation_function_map["Sub"] = SimpleConfirmationFunction();
     confirmation_function_map["Sum"] = SimpleConfirmationFunction();
+    confirmation_function_map["Tan"] = SimpleConfirmationFunction();
     confirmation_function_map["Tanh"] = SimpleConfirmationFunction();
     confirmation_function_map["Tile"] = SimpleConfirmationFunction();
     confirmation_function_map["TopKV2"] = [](Node* n, bool* result) {
@@ -493,6 +507,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Conv3D"]["T"] = NGraphNumericDTypes();
     type_constraint_map["CropAndResize"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cos"]["T"] = NGraphRealDTypes();
+    type_constraint_map["Cosh"]["T"] = NGraphRealDTypes();
     type_constraint_map["Cumsum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cumsum"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["DepthToSpace"]["T"] = NGraphDTypes();
@@ -607,6 +622,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sin"]["T"] = NGraphRealDTypes();
+    type_constraint_map["Sinh"]["T"] = NGraphRealDTypes();
     type_constraint_map["Size"]["T"] = NGraphDTypes();
     type_constraint_map["Size"]["out_type"] = NGraphIndexDTypes();
     type_constraint_map["Slice"]["T"] = NGraphDTypes();
@@ -627,6 +643,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Sub"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["Tidx"] = NGraphIndexDTypes();
+    type_constraint_map["Tan"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tanh"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["Tmultiples"] = NGraphIndexDTypes();
@@ -639,6 +656,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
         NGraphIndexDTypes();
     type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
+    type_constraint_map["ZerosLike"]["T"] = NGraphNumericDTypes();
     initialized = true;
   }
   return type_constraint_map;
@@ -688,19 +706,17 @@ GetTFToNgOpMap() {
       {"Const", {constant}},
       {"Conv2D",
        {std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::Convolution>()}},
-      {"Conv2DBackpropFilter",
-       {std::make_shared<ngraph::op::ConvolutionBackpropFilters>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+        std::make_shared<ngraph::opset3::Convolution>()}},
       {"Conv2DBackpropInput",
-       {std::make_shared<ngraph::op::ConvolutionBackpropData>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {std::make_shared<ngraph::opset3::ConvolutionBackpropData>(),
+        std::make_shared<ngraph::op::Reshape>(), constant}},
       {"Conv3D",
-       {std::make_shared<ngraph::op::Convolution>(),
+       {std::make_shared<ngraph::opset3::Convolution>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"Cos", {std::make_shared<ngraph::opset3::Cos>()}},
+      {"Cosh", {std::make_shared<ngraph::opset3::Cosh>()}},
       {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
-      {"Cumsum", {std::make_shared<ngraph::op::CumSum>()}},
+      {"Cumsum", {std::make_shared<ngraph::opset3::CumSum>()}},
       {"DepthToSpace", {std::make_shared<ngraph::op::Reshape>()}},
       {"DepthwiseConv2dNative",
        {std::make_shared<ngraph::op::Slice>(),
@@ -722,22 +738,12 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::opset3::Floor>(),
         std::make_shared<ngraph::op::Broadcast>()}},
       //{"FloorMod", {std::make_shared<ngraph::opset3::FloorMod>()}},
-      {"FusedBatchNorm",
-       {std::make_shared<ngraph::op::BatchNormTraining>(),
-        std::make_shared<ngraph::op::GetOutputElement>(), constant,
-        std::make_shared<ngraph::opset3::Multiply>(),
-        std::make_shared<ngraph::op::BatchNormInference>()}},
+      {"FusedBatchNorm", {std::make_shared<ngraph::op::BatchNormInference>()}},
       {"FusedBatchNormV2",
-       {std::make_shared<ngraph::op::BatchNormTraining>(),
-        std::make_shared<ngraph::op::GetOutputElement>(), constant,
-        std::make_shared<ngraph::opset3::Multiply>(),
-        std::make_shared<ngraph::op::BatchNormInference>(),
+       {std::make_shared<ngraph::op::BatchNormInference>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"FusedBatchNormV3",
-       {std::make_shared<ngraph::op::BatchNormTraining>(),
-        std::make_shared<ngraph::op::GetOutputElement>(), constant,
-        std::make_shared<ngraph::opset3::Multiply>(),
-        std::make_shared<ngraph::op::BatchNormInference>(),
+       {constant, std::make_shared<ngraph::op::BatchNormInference>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
       {"GatherV2", {std::make_shared<ngraph::op::Gather>()}},
@@ -910,6 +916,7 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::opset3::Add>(),
         std::make_shared<ngraph::opset3::Divide>()}},
       {"Sin", {std::make_shared<ngraph::opset3::Sin>()}},
+      {"Sinh", {std::make_shared<ngraph::opset3::Sinh>()}},
       {"Size", {constant}},
       {"Sign", {std::make_shared<ngraph::opset3::Sign>()}},
       {"Slice", {std::make_shared<ngraph::op::Slice>()}},
@@ -935,6 +942,7 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::op::Reshape>()}},
       {"Sub", {std::make_shared<ngraph::opset3::Subtract>()}},
       {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
+      {"Tan", {std::make_shared<ngraph::opset3::Tan>()}},
       {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
       {"Tile", {constant, std::make_shared<ngraph::op::Concat>()}},
       {"TopKV2",
@@ -1021,7 +1029,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   std::unordered_map<string, int> fail_confirmation_histogram;
   std::unordered_map<string, int> fail_constraint_histogram;
   vector<Node*> nodes_marked_for_clustering;
-  vector<Node*> variable_type_nodes;
   string ng_backend_type;
   // Create nGraph backend
   BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
@@ -1032,11 +1039,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
 
   for (auto node : graph->op_nodes()) {
     bool mark_for_clustering = false;
-
-    if (IsNGVariableType(node->type_string())) {
-      variable_type_nodes.push_back(node);
-      continue;
-    }
 
     do {
       // check if output node
@@ -1140,9 +1142,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     }
   }
 
-  for (auto node : variable_type_nodes) {
-    SetNodeBackend(node, current_backend);
-  }
   return Status::OK();
 }
 
