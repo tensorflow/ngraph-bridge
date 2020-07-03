@@ -59,20 +59,21 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   std::string ngraph_backend;
   OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &ngraph_backend));
   std::string ngraph_device_id;
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_device_id", &ngraph_device_id));
+  OP_REQUIRES_OK(ctx,
+                 ctx->GetAttr<string>("ngraph_device_id", &ngraph_device_id));
 
   // Concatenate the backend_name:device_id
-  string backend_name =
-      BackendManager::GetBackendCreationString(ngraph_backend, ngraph_device_id);
+  string backend_name = BackendManager::GetBackendCreationString(
+      ngraph_backend, ngraph_device_id);
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name()
                  << "Backend: " << backend_name;
   OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(backend_name));
 
   auto backend = BackendManager::GetBackend(backend_name);
-  OP_REQUIRES(
-      ctx, backend != nullptr,
-      errors::Internal("Cannot get the backend object for backend: ", backend_name));
+  OP_REQUIRES(ctx, backend != nullptr,
+              errors::Internal("Cannot get the backend object for backend: ",
+                               backend_name));
 
   NGRAPH_VLOG(1) << "Create Legacy Executor " << name();
   ng_encap_impl_.SetName(name());
