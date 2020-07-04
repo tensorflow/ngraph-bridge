@@ -2547,8 +2547,11 @@ static Status TranslatePackOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
-// Helper function for several Pad Ops
-static Status _CreateNgPadOp(const Node* op,
+// 3 different Pad Ops: Pad, PadV2, MirrorPad
+// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad
+// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad-v2
+// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/mirror-pad
+static Status TranslatePadOp(const Node* op,
                              const std::vector<const Tensor*>& static_input_map,
                              Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input, ng_paddings_op, pad_val_op, result_pad_op;
@@ -2611,27 +2614,6 @@ static Status _CreateNgPadOp(const Node* op,
 
   SaveNgOp(ng_op_map, op->name(), result_pad_op);
   return Status::OK();
-}
-
-// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad
-static Status TranslatePadOp(const Node* op,
-                             const std::vector<const Tensor*>& static_input_map,
-                             Builder::OpMap& ng_op_map) {
-  return _CreateNgPadOp(op, static_input_map, ng_op_map);
-}
-
-// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad-v2
-static Status TranslatePadV2Op(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  return _CreateNgPadOp(op, static_input_map, ng_op_map);
-}
-
-// See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/mirror-pad
-static Status TranslateMirrorPadOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  return _CreateNgPadOp(op, static_input_map, ng_op_map);
 }
 
 static Status TranslateRankOp(const Node* op, const std::vector<const Tensor*>&,
@@ -4014,7 +3996,7 @@ const static std::map<
         {"Mean", TranslateDirectReduceOp<ng::opset3::ReduceMean>},
         {"Min", TranslateDirectReduceOp<ng::opset3::ReduceMin>},
         {"Minimum", TranslateBinaryOp<ngraph::opset3::Minimum>},
-        {"MirrorPad", TranslateMirrorPadOp},
+        {"MirrorPad", TranslatePadOp},
         {"Mul", TranslateBinaryOp<ngraph::opset3::Multiply>},
         {"Neg", TranslateUnaryOp<ngraph::opset3::Negative>},
         // Do nothing! NoOps sometimes get placed on nGraph for bureaucratic
@@ -4024,7 +4006,7 @@ const static std::map<
         {"OneHot", TranslateOneHotOp},
         {"Pack", TranslatePackOp},
         {"Pad", TranslatePadOp},
-        {"PadV2", TranslatePadV2Op},
+        {"PadV2", TranslatePadOp},
         {"Pow", TranslateBinaryOp<ngraph::opset3::Power>},
         // PreventGradient is just Identity in data-flow terms, so reuse that.
         {"PreventGradient", TranslateIdentityOp},
