@@ -2548,37 +2548,67 @@ static Status TranslatePackOp(const Node* op, const std::vector<const Tensor*>&,
 }
 
 // Helper function for several Pad Ops
-static Status _MakeBeginEndNodesForNgPadOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    shared_ptr<ng::opset3::Constant>* pads_begin_node,
-    shared_ptr<ng::opset3::Constant>* pads_end_node) {
+static Status _CreateNgPadOp(const Node* op,
+                             const std::vector<const Tensor*>& static_input_map,
+                             Builder::OpMap& ng_op_map) {
+  shared_ptr<ng::Node> ng_input, ng_paddings_op, pad_val_op, result_pad_op;
+
+  // Set inputs and pad_val_op
+  if (op->name() == "Pad" || op->name() == "MirrorPad") {
+    TF_RETURN_IF_ERROR(
+        GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
+    pad_val_op = ConstructNgNode<ng::opset3::Constant>(
+        op->name(), ng_input->get_element_type(), ng::Shape(),
+        std::vector<int>({0}));
+  } else if (op->name() == "PadV2") {
+    TF_RETURN_IF_ERROR(
+        GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op, &pad_val_op));
+  } else {
+    return errors::InvalidArgument("Incorrect TF Pad Op: " + op->name());
+  }
+
+  // Set pad_mode
+  auto pad_mode = ng::op::PadMode::CONSTANT;
+  if (op->name() == "MirrorPad") {
+    std::string pad_mode_str;
+    TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "mode", &pad_mode_str));
+    if (pad_mode_str == "REFLECT") {
+      pad_mode = ng::op::PadMode::REFLECT;
+    } else if (pad_mode_str == "SYMMETRIC") {
+      pad_mode = ng::op::PadMode::SYMMETRIC;
+    } else {
+      return errors::InvalidArgument(pad_mode_str,
+                                     " is not an allowed padding mode.");
+    }
+  }
+
+  // Set pads_begin & pads_end (from the pad_val_op)
+  shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
   std::vector<int64> paddings;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &paddings));
-
   NGRAPH_VLOG(6) << op->name() << " pads {" << ng::join(paddings) << "}";
-
   if (paddings.size() % 2 != 0) {
     return errors::InvalidArgument(
         "Constant node for paddings does not have an even number of "
         "elements");
   }
-
   ng::CoordinateDiff pad_begin(paddings.size() / 2);
   ng::CoordinateDiff pad_end(paddings.size() / 2);
-
   for (size_t i = 0; i < paddings.size() / 2; i++) {
     pad_begin[i] = paddings[2 * i];
     pad_end[i] = paddings[2 * i + 1];
   }
-
-  NGRAPH_VLOG(6) << "  pad_begin {" << ng::join(pad_begin) << "}";
-  NGRAPH_VLOG(6) << "  pad_end {" << ng::join(pad_end) << "}";
-
-  *pads_begin_node = make_shared<ng::opset3::Constant>(
+  pads_begin_node = make_shared<ng::opset3::Constant>(
       ng::element::i64, ng::Shape{pad_begin.size()}, pad_begin);
-  *pads_end_node = make_shared<ng::opset3::Constant>(
+  pads_end_node = make_shared<ng::opset3::Constant>(
       ng::element::i64, ng::Shape{pad_end.size()}, pad_end);
 
+  // Create final Op
+  result_pad_op =
+      ConstructNgNode<ng::opset3::Pad>(op->name(), ng_input, pads_begin_node,
+                                       pads_end_node, pad_val_op, pad_mode);
+
+  SaveNgOp(ng_op_map, op->name(), result_pad_op);
   return Status::OK();
 }
 
@@ -2586,74 +2616,21 @@ static Status _MakeBeginEndNodesForNgPadOp(
 static Status TranslatePadOp(const Node* op,
                              const std::vector<const Tensor*>& static_input_map,
                              Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input, ng_paddings_op;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
-
-  shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
-  TF_RETURN_IF_ERROR(_MakeBeginEndNodesForNgPadOp(
-      op, static_input_map, &pads_begin_node, &pads_end_node));
-
-  auto pad_mode = ng::op::PadMode::CONSTANT;
-  auto pad_val_op = ConstructNgNode<ng::opset3::Constant>(
-      op->name(), ng_input->get_element_type(), ng::Shape(),
-      std::vector<int>({0}));
-  auto pad_op =
-      ConstructNgNode<ng::opset3::Pad>(op->name(), ng_input, pads_begin_node,
-                                       pads_end_node, pad_val_op, pad_mode);
-
-  SaveNgOp(ng_op_map, op->name(), pad_op);
-  return Status::OK();
+  return _CreateNgPadOp(op, static_input_map, ng_op_map);
 }
 
 // See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/pad-v2
 static Status TranslatePadV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input, ng_paddings_op, ng_constant_values;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op,
-                                   &ng_constant_values));
-
-  shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
-  TF_RETURN_IF_ERROR(_MakeBeginEndNodesForNgPadOp(
-      op, static_input_map, &pads_begin_node, &pads_end_node));
-
-  auto pad_mode = ng::op::PadMode::CONSTANT;
-  auto pad_op = ConstructNgNode<ng::opset3::Pad>(op->name(), ng_input,
-                                                 pads_begin_node, pads_end_node,
-                                                 ng_constant_values, pad_mode);
-
-  SaveNgOp(ng_op_map, op->name(), pad_op);
-  return Status::OK();
+  return _CreateNgPadOp(op, static_input_map, ng_op_map);
 }
 
 // See https://www.tensorflow.org/api_docs/cc/class/tensorflow/ops/mirror-pad
 static Status TranslateMirrorPadOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input, ng_paddings_op;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
-
-  shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
-  TF_RETURN_IF_ERROR(_MakeBeginEndNodesForNgPadOp(
-      op, static_input_map, &pads_begin_node, &pads_end_node));
-
-  std::string pad_mode_str;
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "mode", &pad_mode_str));
-  ng::op::PadMode pad_mode = ng::op::PadMode::CONSTANT;  // Impossible Value
-  if (pad_mode_str == "REFLECT") {
-    pad_mode = ng::op::PadMode::REFLECT;
-  } else if (pad_mode_str == "SYMMETRIC") {
-    pad_mode = ng::op::PadMode::SYMMETRIC;
-  } else {
-    return errors::InvalidArgument(pad_mode_str,
-                                   " is not an allowed padding mode.");
-  }
-
-  auto pad_op = ConstructNgNode<ng::opset3::Pad>(
-      op->name(), ng_input, pads_begin_node, pads_end_node, pad_mode);
-
-  SaveNgOp(ng_op_map, op->name(), pad_op);
-  return Status::OK();
+  return _CreateNgPadOp(op, static_input_map, ng_op_map);
 }
 
 static Status TranslateRankOp(const Node* op, const std::vector<const Tensor*>&,
