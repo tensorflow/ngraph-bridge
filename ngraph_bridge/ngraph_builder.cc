@@ -2554,22 +2554,23 @@ static Status _CreateNgPadOp(const Node* op,
   shared_ptr<ng::Node> ng_input, ng_paddings_op, pad_val_op, result_pad_op;
 
   // Set inputs and pad_val_op
-  if (op->name() == "Pad" || op->name() == "MirrorPad") {
+  if (op->type_string() == "Pad" || op->type_string() == "MirrorPad") {
     TF_RETURN_IF_ERROR(
         GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op));
     pad_val_op = ConstructNgNode<ng::opset3::Constant>(
         op->name(), ng_input->get_element_type(), ng::Shape(),
         std::vector<int>({0}));
-  } else if (op->name() == "PadV2") {
+  } else if (op->type_string() == "PadV2") {
     TF_RETURN_IF_ERROR(
         GetInputNodes(ng_op_map, op, &ng_input, &ng_paddings_op, &pad_val_op));
   } else {
-    return errors::InvalidArgument("Incorrect TF Pad Op: " + op->name());
+    return errors::InvalidArgument("Incorrect TF Pad OpType: " +
+                                   op->type_string());
   }
 
   // Set pad_mode
   auto pad_mode = ng::op::PadMode::CONSTANT;
-  if (op->name() == "MirrorPad") {
+  if (op->type_string() == "MirrorPad") {
     std::string pad_mode_str;
     TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "mode", &pad_mode_str));
     if (pad_mode_str == "REFLECT") {
