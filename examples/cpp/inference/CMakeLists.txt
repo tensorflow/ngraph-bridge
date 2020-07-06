@@ -25,7 +25,6 @@ if (NOT DEFINED TF_SRC_DIR)
     )
 endif()
 
-
 message(STATUS "TF Src Dir: ${TensorFlow_SRC_DIR}")
 include_directories(${TensorFlow_SRC_DIR})
 
@@ -83,6 +82,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         lib_dnnl
         lib_iomp5
         lib_mklml_intel
+        ${InferenceEngine_LIBRARIES}
     )
 else()
     target_link_libraries(
@@ -93,6 +93,7 @@ else()
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
         absl_synchronization
+        ${InferenceEngine_LIBRARIES}
     )
 endif()
 
@@ -118,6 +119,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         lib_dnnl
         lib_iomp5
         lib_mklml_intel
+        ${InferenceEngine_LIBRARIES}
     )
 else()
     target_link_libraries(
@@ -128,6 +130,7 @@ else()
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
         absl_synchronization
+        ${InferenceEngine_LIBRARIES}
     )
 endif()
 

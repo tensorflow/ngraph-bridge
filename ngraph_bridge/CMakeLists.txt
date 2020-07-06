@@ -67,7 +67,6 @@ endif()
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
 if(ENABLE_OPENVINO)
-    include_directories(${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/include)
     list(APPEND SRC ngraph_executable.cc)
     list(APPEND SRC ngraph_backend.cc)
     list(APPEND SRC ie_executable.cc)
@@ -78,17 +77,6 @@ endif()
 message(STATUS "ENABLE_OPENVINO: ${ENABLE_OPENVINO}")
 
 add_library(${LIB_NAME} SHARED ${SRC})
-
-if(ENABLE_OPENVINO)
-    set(IE_IMPORTED_LOCATION ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/lib/intel64/libinference_engine.so)
-    add_library(ie_lib SHARED IMPORTED)
-    set_target_properties(
-        ie_lib
-        PROPERTIES IMPORTED_LOCATION
-        ${IE_IMPORTED_LOCATION}
-    )
-    target_link_libraries(${LIB_NAME} ie_lib) 
-endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     target_link_libraries(
@@ -107,6 +95,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             lib_mklml_intel
             lib_dnnl
             lib_iomp5
+            ${InferenceEngine_LIBRARIES}
         )
 
         target_compile_definitions(
@@ -121,6 +110,7 @@ else()
             absl_algorithm
             absl_container
             absl_strings
+            ${InferenceEngine_LIBRARIES}
         )
 endif()
 
