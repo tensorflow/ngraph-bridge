@@ -211,9 +211,11 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Max"] = SetStaticInputs({1});
     set_attributes_map["Mean"] = SetStaticInputs({1});
     set_attributes_map["Min"] = SetStaticInputs({1});
+    set_attributes_map["MirrorPad"] = SetStaticInputs({1});
     set_attributes_map["NonMaxSuppressionV4"] = SetStaticInputs({2, 3, 4});
     set_attributes_map["OneHot"] = SetStaticInputs({1});
     set_attributes_map["Pad"] = SetStaticInputs({1});
+    set_attributes_map["PadV2"] = SetStaticInputs({1, 2});
     set_attributes_map["Prod"] = SetStaticInputs({1});
 
     set_attributes_map["QuantizeAndDequantizeV2"] = SetStaticInputs({1, 2});
@@ -305,6 +307,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
     confirmation_function_map["CropAndResize"] = SimpleConfirmationFunction();
     confirmation_function_map["Cos"] = SimpleConfirmationFunction();
+    confirmation_function_map["Cosh"] = SimpleConfirmationFunction();
     confirmation_function_map["Cumsum"] = SimpleConfirmationFunction();
     confirmation_function_map["DepthwiseConv2dNative"] =
         SimpleConfirmationFunction();
@@ -361,6 +364,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Mean"] = SimpleConfirmationFunction();
     confirmation_function_map["Min"] = SimpleConfirmationFunction();
     confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
+    confirmation_function_map["MirrorPad"] = SimpleConfirmationFunction();
     confirmation_function_map["Mul"] = SimpleConfirmationFunction();
     confirmation_function_map["Neg"] = SimpleConfirmationFunction();
     confirmation_function_map["NonMaxSuppressionV4"] =
@@ -368,6 +372,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["NoOp"] = SimpleConfirmationFunction();
     confirmation_function_map["OneHot"] = SimpleConfirmationFunction();
     confirmation_function_map["Pad"] = SimpleConfirmationFunction();
+    confirmation_function_map["PadV2"] = SimpleConfirmationFunction();
     confirmation_function_map["Pow"] = SimpleConfirmationFunction();
     confirmation_function_map["PreventGradient"] = SimpleConfirmationFunction();
     confirmation_function_map["Prod"] = SimpleConfirmationFunction();
@@ -417,6 +422,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
     confirmation_function_map["Sign"] = SimpleConfirmationFunction();
     confirmation_function_map["Sin"] = SimpleConfirmationFunction();
+    confirmation_function_map["Sinh"] = SimpleConfirmationFunction();
     confirmation_function_map["Size"] = SimpleConfirmationFunction();
     confirmation_function_map["Slice"] = SimpleConfirmationFunction();
     confirmation_function_map["Snapshot"] = SimpleConfirmationFunction();
@@ -435,6 +441,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Pack"] = SimpleConfirmationFunction();
     confirmation_function_map["Sub"] = SimpleConfirmationFunction();
     confirmation_function_map["Sum"] = SimpleConfirmationFunction();
+    confirmation_function_map["Tan"] = SimpleConfirmationFunction();
     confirmation_function_map["Tanh"] = SimpleConfirmationFunction();
     confirmation_function_map["Tile"] = SimpleConfirmationFunction();
     confirmation_function_map["TopKV2"] = [](Node* n, bool* result) {
@@ -504,6 +511,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Conv3D"]["T"] = NGraphNumericDTypes();
     type_constraint_map["CropAndResize"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cos"]["T"] = NGraphRealDTypes();
+    type_constraint_map["Cosh"]["T"] = NGraphRealDTypes();
     type_constraint_map["Cumsum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cumsum"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["DepthToSpace"]["T"] = NGraphDTypes();
@@ -550,6 +558,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Min"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Min"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Minimum"]["T"] = NGraphNumericDTypes();
+    type_constraint_map["MirrorPad"]["T"] = NGraphDTypes();
+    type_constraint_map["MirrorPad"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Mul"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Neg"]["T"] = NGraphNumericDTypes();
     type_constraint_map["NonMaxSuppressionV4"]["T"] = {
@@ -558,6 +568,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Pack"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
+    type_constraint_map["PadV2"]["T"] = NGraphDTypes();
+    type_constraint_map["PadV2"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
     type_constraint_map["PreventGradient"]["T"] = NGraphDTypes();
     type_constraint_map["Prod"]["T"] = NGraphNumericDTypes();
@@ -618,6 +630,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sin"]["T"] = NGraphRealDTypes();
+    type_constraint_map["Sinh"]["T"] = NGraphRealDTypes();
     type_constraint_map["Size"]["T"] = NGraphDTypes();
     type_constraint_map["Size"]["out_type"] = NGraphIndexDTypes();
     type_constraint_map["Slice"]["T"] = NGraphDTypes();
@@ -638,6 +651,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Sub"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["Tidx"] = NGraphIndexDTypes();
+    type_constraint_map["Tan"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tanh"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["Tmultiples"] = NGraphIndexDTypes();
@@ -660,8 +674,8 @@ const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
 GetTFToNgOpMap() {
   // Constant Op does not have default Constructor
   // in ngraph, so passing a dummy node
-  auto constant = ngraph::op::Constant::create(ngraph::element::f32,
-                                               ngraph::Shape{}, {2.0f});
+  auto constant = ngraph::opset3::Constant::create(ngraph::element::f32,
+                                                   ngraph::Shape{}, {2.0f});
   // Map:: TF ops to NG Ops to track if all the Ngraph ops
   // are supported by backend
   // Update this Map if a new TF Op translation is
@@ -708,8 +722,9 @@ GetTFToNgOpMap() {
        {std::make_shared<ngraph::opset3::Convolution>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"Cos", {std::make_shared<ngraph::opset3::Cos>()}},
+      {"Cosh", {std::make_shared<ngraph::opset3::Cosh>()}},
       {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
-      {"Cumsum", {std::make_shared<ngraph::op::CumSum>()}},
+      {"Cumsum", {std::make_shared<ngraph::opset3::CumSum>()}},
       {"DepthToSpace", {std::make_shared<ngraph::op::Reshape>()}},
       {"DepthwiseConv2dNative",
        {std::make_shared<ngraph::op::Slice>(),
@@ -794,6 +809,7 @@ GetTFToNgOpMap() {
       {"Mean", {std::make_shared<ngraph::opset3::ReduceMean>(), constant}},
       {"Min", {std::make_shared<ngraph::opset3::ReduceMin>(), constant}},
       {"Minimum", {std::make_shared<ngraph::opset3::Minimum>()}},
+      {"MirrorPad", {constant, std::make_shared<ngraph::opset3::Pad>()}},
       {"Mul", {std::make_shared<ngraph::opset3::Multiply>()}},
       {"Neg", {std::make_shared<ngraph::opset3::Negative>()}},
       {"NonMaxSuppressionV4",
@@ -802,7 +818,8 @@ GetTFToNgOpMap() {
       {"Pack",
        {std::make_shared<ngraph::op::Concat>(),
         std::make_shared<ngraph::op::Reshape>()}},
-      {"Pad", {constant, std::make_shared<ngraph::op::Pad>()}},
+      {"Pad", {constant, std::make_shared<ngraph::opset3::Pad>()}},
+      {"PadV2", {constant, std::make_shared<ngraph::opset3::Pad>()}},
       {"Pow", {std::make_shared<ngraph::opset3::Power>()}},
       {"PreventGradient", {}},
       {"Prod", {std::make_shared<ngraph::opset3::ReduceProd>(), constant}},
@@ -909,6 +926,7 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::opset3::Add>(),
         std::make_shared<ngraph::opset3::Divide>()}},
       {"Sin", {std::make_shared<ngraph::opset3::Sin>()}},
+      {"Sinh", {std::make_shared<ngraph::opset3::Sinh>()}},
       {"Size", {constant}},
       {"Sign", {std::make_shared<ngraph::opset3::Sign>()}},
       {"Slice", {std::make_shared<ngraph::op::Slice>()}},
@@ -934,6 +952,7 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::op::Reshape>()}},
       {"Sub", {std::make_shared<ngraph::opset3::Subtract>()}},
       {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
+      {"Tan", {std::make_shared<ngraph::opset3::Tan>()}},
       {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
       {"Tile", {constant, std::make_shared<ngraph::op::Concat>()}},
       {"TopKV2",
