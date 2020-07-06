@@ -75,7 +75,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
               errors::Internal("Cannot get the backend object for backend: ",
                                backend_name));
 
-  NGRAPH_VLOG(1) << "Create Legacy Executor " << name();
+  NGRAPH_VLOG(1) << "Create Executor " << name();
   ng_encap_impl_.SetName(name());
 
   std::ostringstream oss;
@@ -212,8 +212,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
-  NGRAPH_VLOG(1) << "NGraphEncapsulateOp::Compute: Using Legacy Executor";
-  NGRAPH_VLOG(1) << "Compute using Legacy Executor " << name();
+  NGRAPH_VLOG(1) << "Compute using Executor " << name();
   std::ostringstream oss;
   oss << "Execute: Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
       << name();
