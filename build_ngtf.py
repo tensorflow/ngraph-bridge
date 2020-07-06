@@ -361,6 +361,9 @@ def main():
             # will be 1
             cxx_abi = install_tensorflow(venv_dir, artifacts_location)
 
+            # This function copies the TF .so files
+            copy_tf_to_artifacts(tf_version, artifacts_location, None)
+
     # Build OpenVINO if required.
     if arguments.build_openvino_backend:
         if not arguments.use_prebuilt_openvino:
