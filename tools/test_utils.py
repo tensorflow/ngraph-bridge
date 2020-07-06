@@ -711,12 +711,23 @@ def run_simple_resnet50_infer_from_artifacts(ngraph_tf_src_dir, artifact_dir,
     else:
         print("Using existing pretrained model file: " + pretrained_model)
 
+    # Setup the env flags
+    import psutil
+    num_cores = int(psutil.cpu_count(logical=False))
+    print("OMP_NUM_THREADS: %s " % str(num_cores))
+    os.environ['OMP_NUM_THREADS'] = str(num_cores)
+    os.environ["KMP_AFFINITY"] = 'granularity=fine,compact,1,0'
+
     os.chdir(root_pwd)
     cmd = [
         'python',
         ngraph_tf_src_dir + '/test/python/test_rn50_infer.py',
         '--input-graph',
         pretrained_model,
+        '--batch-size',
+        str(batch_size),
+        '--num-images',
+        str(batch_size * 10),
     ]
     command_executor(cmd, verbose=True)
 
