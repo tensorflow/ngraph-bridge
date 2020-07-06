@@ -132,7 +132,7 @@ def main():
                                         batch_size, iterations)
     elif (arguments.test_resnet50_infer):
         if get_os_type() == 'Darwin':
-            sys.exit(1)
+            raise Exception("RN50 inference test not supported on Darwin")
         else:
             batch_size = 128
             iterations = 10
