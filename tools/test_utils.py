@@ -683,10 +683,52 @@ def run_intelaimodels_resnet50_infer_from_artifacts(
     os.chdir(root_pwd)
 
 
+def run_simple_resnet50_infer_from_artifacts(ngraph_tf_src_dir, artifact_dir,
+                                             batch_size, iterations):
+    root_pwd = os.getcwd(
+    )  # e.g. /localdisk/buildkite-agent/builds/aipg-ra-skx-168-2/ngraph/ngtf-cpu-ubuntu
+    artifact_dir = os.path.abspath(artifact_dir)
+    if not os.path.exists(artifact_dir):
+        raise Exception("Can't find artifact dir: " + artifact_dir)
+    ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
+    if (len(glob.glob(artifact_dir + "/ngraph_tensorflow_bridge-*.whl")) == 0):
+        install_ngraph_bridge(artifact_dir)
+
+    # Check/download pretrained model
+    pretrained_models_dir = root_pwd + '/pretrained_models'
+    if not os.path.exists(pretrained_models_dir):
+        os.mkdir(pretrained_models_dir, 0o755)
+    os.chdir(pretrained_models_dir)
+    pretrained_model = pretrained_models_dir + '/resnet50_v1.pb'
+    if not os.path.exists(pretrained_model):
+        # wget https://zenodo.org/record/2535873/files/resnet50_v1.pb
+        command_executor(
+            ['wget', 'https://zenodo.org/record/2535873/files/resnet50_v1.pb'],
+            verbose=True)
+        if not os.path.exists(pretrained_model):
+            raise Exception("Can't download pretrained model: " +
+                            pretrained_model)
+    else:
+        print("Using existing pretrained model file: " + pretrained_model)
+
+    os.chdir(root_pwd)
+    cmd = [
+        'python',
+        ngraph_tf_src_dir + '/test/python/test_rn50_infer.py',
+        '--input-graph',
+        pretrained_model,
+    ]
+    command_executor(cmd, verbose=True)
+
+    os.chdir(root_pwd)
+
+
 def run_resnet50_infer_from_artifacts(ngraph_tf_src_dir, artifact_dir,
                                       batch_size, iterations):
-    run_intelaimodels_resnet50_infer_from_artifacts(
-        ngraph_tf_src_dir, artifact_dir, batch_size, iterations)
+    #run_intelaimodels_resnet50_infer_from_artifacts(
+    #    ngraph_tf_src_dir, artifact_dir, batch_size, iterations)
+    run_simple_resnet50_infer_from_artifacts(ngraph_tf_src_dir, artifact_dir,
+                                             batch_size, iterations)
 
 
 def run_cpp_example_test(build_dir):
