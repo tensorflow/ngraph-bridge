@@ -86,21 +86,6 @@ class Backend {
       const ngraph::element::Type& element_type, const ngraph::Shape& shape,
       void* memory_pointer) = 0;
 
-  /// \brief Create a tensor of C type T specific to this backend
-  /// \param shape The shape of the tensor
-  /// \returns shared_ptr to a new backend specific tensor
-  virtual shared_ptr<ngraph::runtime::Tensor> create_tensor(
-      const ngraph::Shape& shape);
-
-  /// \brief Create a tensor of C type T specific to this backend
-  /// \param shape The shape of the tensor
-  /// \returns shared_ptr to a new backend specific tensor
-  template <typename T>
-  std::shared_ptr<ngraph::runtime::Tensor> create_tensor(
-      const ngraph::Shape& shape) {
-    return create_tensor(ngraph::element::from<T>(), shape);
-  }
-
   /// \brief Create a dynamic tensor specific to this backend, if the backend
   /// supports dynamic
   ///        tensors.

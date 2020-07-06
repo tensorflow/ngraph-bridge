@@ -59,6 +59,12 @@ vector<string> Backend::get_registered_devices() {
   return {};
 }
 
+// template <typename T>
+// std::shared_ptr<ngraph::runtime::Tensor> Backend::create_tensor(
+//       const ngraph::Shape& shape) {
+//     return create_tensor(ngraph::element::from<T>(), shape);
+// }
+
 std::shared_ptr<ngraph::runtime::Tensor> Backend::create_dynamic_tensor(
     const ngraph::element::Type& /* element_type */,
     const PartialShape& /* shape */) {
