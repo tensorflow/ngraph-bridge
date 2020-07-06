@@ -16,6 +16,10 @@
 
 #include "ngraph_bridge/ngraph_backend_manager.h"
 
+#if !defined(ENABLE_OPENVINO)
+#include "ngraph/runtime/backend_manager.hpp"
+#endif
+
 using namespace std;
 namespace ng = ngraph;
 
