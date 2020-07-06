@@ -166,30 +166,35 @@ if (NGRAPH_PLAIDML_ENABLE)
     endif()
 endif()
 
-if(USE_PRE_BUILT_NGRAPH)
-    if(NOT NGRAPH_ARTIFACTS_DIR)
-        message(
-            FATAL_ERROR
-            "USE_PRE_BUILT_NGRAPH is ON but NGRAPH_ARTIFACTS_DIR is missing"
-        )
-    endif()
-    # Check if the path specified is ABSOLUTE or RELATVE
-    if (NOT IS_ABSOLUTE ${NGRAPH_ARTIFACTS_DIR})
-        set(NGRAPH_ARTIFACTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NGRAPH_ARTIFACTS_DIR})
-    endif()
-
-    # Create absolute path for the directory
-    get_filename_component(
-        NGRAPH_ARTIFACTS_DIR
-        "${NGRAPH_ARTIFACTS_DIR}"
-        ABSOLUTE
-    )
-    if (NOT EXISTS ${NGRAPH_ARTIFACTS_DIR})
-        message(FATAL_ERROR
-            "nGraph artifacts directory doesn't exist: " ${NGRAPH_ARTIFACTS_DIR} )
-    endif()
+if (ENABLE_OPENVINO)
+    set(NGRAPH_ARTIFACTS_DIR ${OPENVINO_ARTIFACTS_DIR})
+    add_definitions(-DENABLE_OPENVINO)
 else()
-    set(NGRAPH_ARTIFACTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/ngraph/ngraph_dist)
+    if(USE_PRE_BUILT_NGRAPH)
+        if(NOT NGRAPH_ARTIFACTS_DIR)
+            message(
+                FATAL_ERROR
+                "USE_PRE_BUILT_NGRAPH is ON but NGRAPH_ARTIFACTS_DIR is missing"
+            )
+        endif()
+        # Check if the path specified is ABSOLUTE or RELATVE
+        if (NOT IS_ABSOLUTE ${NGRAPH_ARTIFACTS_DIR})
+            set(NGRAPH_ARTIFACTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NGRAPH_ARTIFACTS_DIR})
+        endif()
+
+        # Create absolute path for the directory
+        get_filename_component(
+            NGRAPH_ARTIFACTS_DIR
+            "${NGRAPH_ARTIFACTS_DIR}"
+            ABSOLUTE
+        )
+        if (NOT EXISTS ${NGRAPH_ARTIFACTS_DIR})
+            message(FATAL_ERROR
+                "nGraph artifacts directory doesn't exist: " ${NGRAPH_ARTIFACTS_DIR} )
+        endif()
+    else()
+        set(NGRAPH_ARTIFACTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/ngraph/ngraph_dist)
+    endif()
 endif()
 
 message(STATUS "UNIT_TEST_TF_CC_DIR:        ${TF_PRE_BUILT_LOCATION}")
