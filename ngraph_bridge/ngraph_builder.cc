@@ -1634,15 +1634,12 @@ static Status TranslateFillOp(
   std::vector<int64> dims_vec;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 0, static_input_map, &dims_vec));
 
-  ng::Shape ng_output_shape(dims_vec.size());
-  ng::AxisSet ng_axis_set;
-  for (size_t i = 0; i < dims_vec.size(); ++i) {
-    ng_output_shape[i] = dims_vec[i];
-    ng_axis_set.insert(i);
-  }
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::op::Broadcast>(op->name(), ng_value,
-                                              ng_output_shape, ng_axis_set));
+  auto ng_output_shape = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::i64, ng::Shape{dims_vec.size()},
+      vector<size_t>(dims_vec.begin(), dims_vec.end()));
+
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Broadcast>(
+                                      op->name(), ng_value, ng_output_shape));
   return Status::OK();
 }
 
@@ -1793,8 +1790,8 @@ static Status TranslateFusedMatMulOp(const Node* op,
 
   shared_ptr<ng::Node> ng_lhs, ng_rhs, ng_bias, ng_matmul;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs, &ng_bias));
-  ng_matmul = ConstructNgNode<ngraph::opset3::MatMul>(op->name(), ng_lhs, ng_rhs,
-                                                  transpose_a, transpose_b);
+  ng_matmul = ConstructNgNode<ngraph::opset3::MatMul>(
+      op->name(), ng_lhs, ng_rhs, transpose_a, transpose_b);
 
   auto ng_matmul_shape = ng_matmul->get_shape();
   auto ng_bias_shape = ng_bias->get_shape();
@@ -1806,7 +1803,8 @@ static Status TranslateFusedMatMulOp(const Node* op,
 
   // ng::AxisSet ng_broadcast_axes;
 
-  // // TODO : _FusedMatMul doesn't have data_format attributes, insert broadcast
+  // // TODO : _FusedMatMul doesn't have data_format attributes, insert
+  // broadcast
   // // axes as if it's NHWC for now.
   // for (size_t i = 0; i < ng_matmul_shape.size() - 1; i++) {
   //   ng_broadcast_axes.insert(i);
@@ -1815,8 +1813,8 @@ static Status TranslateFusedMatMulOp(const Node* op,
   // auto ng_bias_broadcasted = ConstructNgNode<ng::op::Broadcast>(
   //     op->name(), ng_bias, ng_matmul_shape, ng_broadcast_axes);
 
-  auto ng_add = ConstructNgNode<ng::opset3::Add>(op->name(), ng_matmul,
-                                                 ng_bias);
+  auto ng_add =
+      ConstructNgNode<ng::opset3::Add>(op->name(), ng_matmul, ng_bias);
   if (fused_ops.size() == 1) {  // Only fusing BiasAdd
     SaveNgOp(ng_op_map, op->name(), ng_add);
   } else if (fused_ops.size() == 2) {  // Also has activation
