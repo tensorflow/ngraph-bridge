@@ -343,7 +343,7 @@ def main():
             os.mkdir(dst_dir)
         dst = os.path.join(dst_dir, tf_fmwk_lib_name)
         shutil.copyfile(tf_lib_file, dst)
-        
+
     flag_string_map = {True: 'YES', False: 'NO'}
     # Build nGraph if required.
     if not arguments.use_prebuilt_ngraph:
