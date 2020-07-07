@@ -789,7 +789,7 @@ GetTFToNgOpMap() {
       {"Log", {std::make_shared<ngraph::opset3::Log>()}},
       {"Log1p",
        {constant, std::make_shared<ngraph::opset3::Add>(),
-        std::make_shared<ngraph::op::Log>()}},
+        std::make_shared<ngraph::opset3::Log>()}},
       {"LogicalAnd", {std::make_shared<ngraph::opset3::LogicalAnd>()}},
       {"LogicalNot", {std::make_shared<ngraph::opset3::LogicalNot>()}},
       {"LogicalOr", {std::make_shared<ngraph::opset3::LogicalOr>()}},

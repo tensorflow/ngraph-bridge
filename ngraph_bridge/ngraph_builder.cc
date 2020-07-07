@@ -1801,18 +1801,6 @@ static Status TranslateFusedMatMulOp(const Node* op,
         "Bias argument to BiasAdd does not have one dimension");
   }
 
-  // ng::AxisSet ng_broadcast_axes;
-
-  // // TODO : _FusedMatMul doesn't have data_format attributes, insert
-  // broadcast
-  // // axes as if it's NHWC for now.
-  // for (size_t i = 0; i < ng_matmul_shape.size() - 1; i++) {
-  //   ng_broadcast_axes.insert(i);
-  // }
-
-  // auto ng_bias_broadcasted = ConstructNgNode<ng::op::Broadcast>(
-  //     op->name(), ng_bias, ng_matmul_shape, ng_broadcast_axes);
-
   auto ng_add =
       ConstructNgNode<ng::opset3::Add>(op->name(), ng_matmul, ng_bias);
   if (fused_ops.size() == 1) {  // Only fusing BiasAdd
@@ -2132,10 +2120,10 @@ static Status TranslateLog1pOp(
         auto shape = n->get_shape();
         std::vector<std::string> val_1(ng::shape_size(shape), "1");
         auto ng_const1 =
-            ConstructNgNode<ng::op::Constant>(op->name(), et, shape, val_1);
+            ConstructNgNode<ng::opset3::Constant>(op->name(), et, shape, val_1);
         auto ng_add =
             ConstructNgNode<ng::opset3::Add>(op->name(), ng_const1, n);
-        return ConstructNgNode<ng::op::Log>(op->name(), ng_add);
+        return ConstructNgNode<ng::opset3::Log>(op->name(), ng_add);
       });
 }
 
