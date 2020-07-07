@@ -1793,7 +1793,7 @@ static Status TranslateFusedMatMulOp(const Node* op,
 
   shared_ptr<ng::Node> ng_lhs, ng_rhs, ng_bias, ng_matmul;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs, &ng_bias));
-  ng_matmul = ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs,
+  ng_matmul = ConstructNgNode<ngraph::opset3::MatMul>(op->name(), ng_lhs, ng_rhs,
                                                   transpose_a, transpose_b);
 
   auto ng_matmul_shape = ng_matmul->get_shape();
@@ -1804,32 +1804,32 @@ static Status TranslateFusedMatMulOp(const Node* op,
         "Bias argument to BiasAdd does not have one dimension");
   }
 
-  ng::AxisSet ng_broadcast_axes;
+  // ng::AxisSet ng_broadcast_axes;
 
-  // TODO : _FusedMatMul doesn't have data_format attributes, insert broadcast
-  // axes as if it's NHWC for now.
-  for (size_t i = 0; i < ng_matmul_shape.size() - 1; i++) {
-    ng_broadcast_axes.insert(i);
-  }
+  // // TODO : _FusedMatMul doesn't have data_format attributes, insert broadcast
+  // // axes as if it's NHWC for now.
+  // for (size_t i = 0; i < ng_matmul_shape.size() - 1; i++) {
+  //   ng_broadcast_axes.insert(i);
+  // }
 
-  auto ng_bias_broadcasted = ConstructNgNode<ng::op::Broadcast>(
-      op->name(), ng_bias, ng_matmul_shape, ng_broadcast_axes);
+  // auto ng_bias_broadcasted = ConstructNgNode<ng::op::Broadcast>(
+  //     op->name(), ng_bias, ng_matmul_shape, ng_broadcast_axes);
 
   auto ng_add = ConstructNgNode<ng::opset3::Add>(op->name(), ng_matmul,
-                                                 ng_bias_broadcasted);
+                                                 ng_bias);
   if (fused_ops.size() == 1) {  // Only fusing BiasAdd
     SaveNgOp(ng_op_map, op->name(), ng_add);
   } else if (fused_ops.size() == 2) {  // Also has activation
     if (fused_ops[1] == "Relu") {
       SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ng::op::Relu>(op->name(), ng_add));
+               ConstructNgNode<ng::opset3::Relu>(op->name(), ng_add));
     } else if (fused_ops[1] == "Relu6") {
       // TODO fill
-      auto constant_6 = ConstructNgNode<ng::op::Constant>(
+      auto constant_6 = ConstructNgNode<ng::opset3::Constant>(
           op->name(), ng_add->get_element_type(), ng_add->get_shape(),
           std::vector<std::string>(ng::shape_size(ng_add->get_shape()), "6"));
-      auto relu6_op = ConstructNgNode<ng::op::Minimum>(
-          op->name(), ConstructNgNode<ng::op::Relu>(op->name(), ng_add),
+      auto relu6_op = ConstructNgNode<ng::opset3::Minimum>(
+          op->name(), ConstructNgNode<ng::opset3::Relu>(op->name(), ng_add),
           constant_6);
       SaveNgOp(ng_op_map, op->name(), relu6_op);
     } else {
