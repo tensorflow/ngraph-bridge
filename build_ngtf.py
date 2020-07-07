@@ -347,9 +347,6 @@ def main():
             # will be 1
             cxx_abi = install_tensorflow(venv_dir, artifacts_location)
 
-            # This function copies the TF .so files
-            copy_tf_to_artifacts(tf_version, artifacts_location, None)
-
     flag_string_map = {True: 'YES', False: 'NO'}
     # Build nGraph if required.
     if not arguments.use_prebuilt_ngraph:
