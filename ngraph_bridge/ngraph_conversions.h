@@ -18,6 +18,8 @@
 #define NGRAPH_TF_BRIDGE_CONVERSIONS_H_
 #pragma once
 
+#include "ngraph/opsets/opset3.hpp"
+
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_builder.h"
 
@@ -35,8 +37,10 @@ void Reshape(std::shared_ptr<ngraph::Node>& ng_node) {
   ngraph::Shape reshaped_shape{s[a], s[b], s[c], s[d]};
   NGRAPH_VLOG(3) << "reshaping " << ngraph::join(s) << " to "
                  << ngraph::join(reshaped_shape);
-  ng_node = std::make_shared<ngraph::op::Reshape>(
-      ng_node, ngraph::AxisVector{a, b, c, d}, reshaped_shape);
+  auto ng_shape = std::make_shared<ngraph::opset3::Constant>(
+      ngraph::element::u64, ngraph::Shape{reshaped_shape.size()},
+      reshaped_shape);
+  ng_node = std::make_shared<ngraph::opset3::Reshape>(ng_node, ng_shape, false);
 }
 
 template <size_t a, size_t b, size_t c, size_t d, size_t e>
@@ -50,8 +54,10 @@ void Reshape3D(std::shared_ptr<ngraph::Node>& ng_node) {
   ngraph::Shape reshaped_shape{s[a], s[b], s[c], s[d], s[e]};
   NGRAPH_VLOG(3) << "reshaping " << ngraph::join(s) << " to "
                  << ngraph::join(reshaped_shape);
-  ng_node = std::make_shared<ngraph::op::Reshape>(
-      ng_node, ngraph::AxisVector{a, b, c, d, e}, reshaped_shape);
+  auto ng_shape = std::make_shared<ngraph::opset3::Constant>(
+      ngraph::element::u64, ngraph::Shape{reshaped_shape.size()},
+      reshaped_shape);
+  ng_node = std::make_shared<ngraph::opset3::Reshape>(ng_node, ng_shape, false);
 }
 
 namespace detail {
