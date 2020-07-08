@@ -30,6 +30,7 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 #if !defined(ENABLE_OPENVINO)
+#include "ngraph/runtime/backend_manager.hpp"
 using Backend = ngraph::runtime::Backend;
 #else
 

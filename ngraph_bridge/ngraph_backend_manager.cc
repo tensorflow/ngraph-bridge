@@ -16,10 +16,6 @@
 
 #include "ngraph_bridge/ngraph_backend_manager.h"
 
-#if !defined(ENABLE_OPENVINO)
-#include "ngraph/runtime/backend_manager.hpp"
-#endif
-
 using namespace std;
 namespace ng = ngraph;
 
@@ -60,17 +56,12 @@ Status BackendManager::CreateBackend(const string& backend_name) {
   if (itr == BackendManager::ng_backend_map_.end()) {
     std::shared_ptr<Backend> bend_ptr;
 
-#if !defined(ENABLE_OPENVINO)
     try {
-      bend_ptr = ng::runtime::Backend::create(backend_name);
+      bend_ptr = Backend::create(backend_name);
     } catch (const std::exception& e) {
       return errors::Internal("Could not create backend of type ", backend_name,
                               ". Got exception: ", e.what());
     }
-#else
-// TODO:
-// create IE backend
-#endif
 
     if (bend_ptr == nullptr) {
       return errors::Internal("Could not create backend of type ", backend_name,
@@ -150,8 +141,7 @@ vector<string> BackendManager::GetSupportedBackendNames() {
 #if !defined(ENABLE_OPENVINO)
   return ng::runtime::BackendManager::get_registered_backends();
 #else
-  // TODO:
-  return {};
+  return Backend::get_registered_devices();
 #endif
 }
 

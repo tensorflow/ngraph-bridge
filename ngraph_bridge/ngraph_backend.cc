@@ -49,21 +49,12 @@ std::shared_ptr<Backend> Backend::create(const string& t,
   if (pos != string::npos) {
     type = type.replace(pos, 1, ":");
   }
-
-  // TODO: check type is OPENVINO/IE
   return make_shared<IE_Backend>(type);
 }
 
 vector<string> Backend::get_registered_devices() {
-  // TODO: return supported IE plugins/devices
-  return {};
+  return IE_Backend::get_registered_devices();
 }
-
-// template <typename T>
-// std::shared_ptr<ngraph::runtime::Tensor> Backend::create_tensor(
-//       const ngraph::Shape& shape) {
-//     return create_tensor(ngraph::element::from<T>(), shape);
-// }
 
 std::shared_ptr<ngraph::runtime::Tensor> Backend::create_dynamic_tensor(
     const ngraph::element::Type& /* element_type */,

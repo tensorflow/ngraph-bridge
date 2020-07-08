@@ -66,7 +66,8 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-    target_link_libraries(${APP_NAME} 
+    target_link_libraries(
+        ${APP_NAME} 
         -Wl,--whole-archive
             ngraph_bridge_static
         -Wl,--no-whole-archive
@@ -82,7 +83,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         lib_dnnl
         lib_iomp5
         lib_mklml_intel
-        ${InferenceEngine_LIBRARIES}
     )
 else()
     target_link_libraries(
@@ -93,8 +93,11 @@ else()
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
         absl_synchronization
-        ${InferenceEngine_LIBRARIES}
     )
+endif()
+
+if (ENABLE_OPENVINO)
+    target_link_libraries(${APP_NAME} ${InferenceEngine_LIBRARIES} ${TBB_IMPORTED_TARGETS})
 endif()
 
 set(APP_NAME_MULTI infer_multiple_networks)
@@ -103,7 +106,8 @@ add_executable(
 )
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-    target_link_libraries(${APP_NAME_MULTI} 
+    target_link_libraries(
+        ${APP_NAME_MULTI} 
         -Wl,--whole-archive
             ngraph_bridge_static
         -Wl,--no-whole-archive
@@ -119,7 +123,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         lib_dnnl
         lib_iomp5
         lib_mklml_intel
-        ${InferenceEngine_LIBRARIES}
     )
 else()
     target_link_libraries(
@@ -130,8 +133,11 @@ else()
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
         absl_synchronization
-        ${InferenceEngine_LIBRARIES}
     )
+endif()
+
+if (ENABLE_OPENVINO)
+    target_link_libraries(${APP_NAME_MULTI} ${InferenceEngine_LIBRARIES} ${TBB_IMPORTED_TARGETS})
 endif()
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)

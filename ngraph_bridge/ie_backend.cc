@@ -16,6 +16,7 @@
 
 #include "ie_backend.h"
 
+#include <ie_core.hpp>
 #include "ngraph/ngraph.hpp"
 #include "ngraph/opsets/opset.hpp"
 
@@ -49,6 +50,11 @@ bool IE_Backend::is_supported_property(const Property) const { return false; }
 shared_ptr<runtime::Tensor> IE_Backend::create_dynamic_tensor(
     const element::Type& type, const PartialShape& shape) {
   return make_shared<IETensor>(type, shape);
+}
+
+vector<string> IE_Backend::get_registered_devices() {
+  InferenceEngine::Core core;
+  return core.GetAvailableDevices();
 }
 
 shared_ptr<runtime::Tensor> IE_Backend::create_tensor() {

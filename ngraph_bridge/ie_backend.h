@@ -26,8 +26,6 @@
 #include "ngraph_bridge/ngraph_backend.h"
 #include "ngraph_bridge/ngraph_executable.h"
 
-class Handle;
-
 using namespace std;
 
 namespace tensorflow {
@@ -46,6 +44,8 @@ class IE_Backend final : public Backend {
   shared_ptr<ngraph::runtime::Tensor> create_dynamic_tensor(
       const ngraph::element::Type& type,
       const ngraph::PartialShape& shape) override;
+
+  static vector<string> get_registered_devices();
 
   shared_ptr<ngraph::runtime::Tensor> create_tensor() override;
 
