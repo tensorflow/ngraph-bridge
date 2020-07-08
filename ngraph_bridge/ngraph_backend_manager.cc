@@ -14,6 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 
+#include "ngraph_bridge/ngraph_backend.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 
 using namespace std;
