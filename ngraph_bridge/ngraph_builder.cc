@@ -1635,8 +1635,7 @@ static Status TranslateFillOp(
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 0, static_input_map, &dims_vec));
 
   auto ng_output_shape = ConstructNgNode<ng::opset3::Constant>(
-      op->name(), ng::element::i64, ng::Shape{dims_vec.size()},
-      vector<size_t>(dims_vec.begin(), dims_vec.end()));
+      op->name(), ng::element::i64, ng::Shape{dims_vec.size()}, dims_vec);
 
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Broadcast>(
                                       op->name(), ng_value, ng_output_shape));
@@ -2457,7 +2456,6 @@ static Status TranslateOneHotOp(
       GetInputNodes(ng_op_map, op, &ng_features, nullptr, &ng_on, &ng_off));
 
   auto ng_features_shape = ng_features->get_shape();
-  auto ng_features_rank = ng_features_shape.size();
   std::vector<int> depth;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &depth));
 
