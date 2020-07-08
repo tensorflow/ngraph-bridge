@@ -990,8 +990,8 @@ static Status TranslateConcatV2Op(
   }
 
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::op::Concat>(op->name(), ng_args,
-                                           size_t(concat_axis)));
+           ConstructNgNode<ng::opset3::Concat>(op->name(), ng_args,
+                                               size_t(concat_axis)));
   return Status::OK();
 }
 
@@ -2160,11 +2160,11 @@ static Status TranslateSoftplusOp(const Node* op,
                                   Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_inp;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_inp));
-  auto ng_exp = ConstructNgNode<ng::op::Exp>(op->name(), ng_inp);
-  auto constant_1 = ConstructNgNode<ng::op::Constant>(
+  auto ng_exp = ConstructNgNode<ng::opset3::Exp>(op->name(), ng_inp);
+  auto constant_1 = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng_inp->get_element_type(), ng_inp->get_shape(),
       std::vector<std::string>(ng::shape_size(ng_inp->get_shape()), "1"));
-  auto ng_output = ConstructNgNode<ng::op::Log>(
+  auto ng_output = ConstructNgNode<ng::opset3::Log>(
       op->name(),
       ConstructNgNode<ng::opset3::Add>(op->name(), ng_exp, constant_1));
   SaveNgOp(ng_op_map, op->name(), ng_output);
@@ -2185,8 +2185,8 @@ static Status TranslateMatMulOp(const Node* op,
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "transpose_b", &transpose_b));
 
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs,
-                                               transpose_a, transpose_b));
+           ConstructNgNode<ngraph::opset3::MatMul>(op->name(), ng_lhs, ng_rhs,
+                                                   transpose_a, transpose_b));
   return Status::OK();
 }
 
@@ -2611,7 +2611,7 @@ static Status TranslateRankOp(const Node* op, const std::vector<const Tensor*>&,
   ng::Shape input_shape = ng_input->get_shape();
   auto input_rank = static_cast<int>(input_shape.size());
 
-  auto ng_rank = ConstructNgNode<ng::op::Constant>(
+  auto ng_rank = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng::element::i32, ng::Shape(),
       std::vector<int>({input_rank}));
 
@@ -3089,11 +3089,11 @@ static Status TranslateRelu6Op(const Node* op,
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
 
-  auto constant_6 = ConstructNgNode<ng::op::Constant>(
+  auto constant_6 = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng_input->get_element_type(), ng_input->get_shape(),
       std::vector<std::string>(ng::shape_size(ng_input->get_shape()), "6"));
-  auto relu6_op = ConstructNgNode<ng::op::Minimum>(
-      op->name(), ConstructNgNode<ng::op::Relu>(op->name(), ng_input),
+  auto relu6_op = ConstructNgNode<ng::opset3::Minimum>(
+      op->name(), ConstructNgNode<ng::opset3::Relu>(op->name(), ng_input),
       constant_6);
 
   SaveNgOp(ng_op_map, op->name(), relu6_op);
@@ -3197,26 +3197,6 @@ static Status TranslateShapeOp(const Node* op,
   return Status::OK();
 }
 
-static Status TranslateSigmoidOp(const Node* op,
-                                 const std::vector<const Tensor*>&,
-                                 Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-
-  auto exp_op = ConstructNgNode<ng::op::Exp>(
-      op->name(), ConstructNgNode<ng::op::Negative>(op->name(), ng_input));
-  auto constant_1 = ConstructNgNode<ng::op::Constant>(
-      op->name(), ng_input->get_element_type(), ng_input->get_shape(),
-      std::vector<std::string>(ng::shape_size(ng_input->get_shape()), "1"));
-
-  auto denominator_op =
-      ConstructNgNode<ng::opset3::Add>(op->name(), constant_1, exp_op);
-
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Divide>(
-                                      op->name(), constant_1, denominator_op));
-  return Status::OK();
-}
-
 static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
                               Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input;
@@ -3237,7 +3217,7 @@ static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
   }
 
   // make a scalar with value equals to result
-  auto ng_result = ConstructNgNode<ng::op::Constant>(
+  auto ng_result = ConstructNgNode<ng::opset3::Constant>(
       op->name(), type, ng::Shape(0), std::vector<int64>({result}));
 
   SaveNgOp(ng_op_map, op->name(), ng_result);
@@ -4021,7 +4001,7 @@ const static std::map<
         {"ScatterNd", TranslateScatterNdOp},
         {"Select", TranslateSelectOp},
         {"Shape", TranslateShapeOp},
-        {"Sigmoid", TranslateSigmoidOp},
+        {"Sigmoid", TranslateUnaryOp<ngraph::opset3::Sigmoid>},
         {"Sin", TranslateUnaryOp<ngraph::opset3::Sin>},
         {"Sinh", TranslateUnaryOp<ngraph::opset3::Sinh>},
         {"Size", TranslateSizeOp},
