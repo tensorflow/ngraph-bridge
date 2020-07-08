@@ -45,7 +45,6 @@ if (PYTHON)
     endif()
     message(STATUS "LIB_SUFFIX: ${NGTF_INSTALL_DIR}/${LIB_SUFFIX}")
     file(GLOB NGRAPH_LIB_FILES "${NGTF_INSTALL_DIR}/${LIB_SUFFIX}/lib*")
-
     # Copy the ngraph_bridge include from install
     message(STATUS "NGTF_INSTALL_DIR: ${NGTF_INSTALL_DIR}")
     

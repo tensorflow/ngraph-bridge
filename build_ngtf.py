@@ -367,7 +367,7 @@ def main():
     # Build OpenVINO if required.
     if arguments.build_openvino_backend:
         if not arguments.use_prebuilt_openvino:
-            openvino_version = "releases/2020/3"
+            openvino_version = "releases/2020/4"
             openvino_src_dir = "./openvino"
             download_repo(
                 "openvino",
@@ -382,6 +382,7 @@ def main():
                 "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
                 "-DENABLE_CPPLINT=OFF",
                 "-DENABLE_SPEECH_DEMO=FALSE",
+                "-DCMAKE_INSTALL_RPATH=\"$ORIGIN\"",
                 "-DCMAKE_INSTALL_PREFIX=" + os.path.join(
                     artifacts_location, "openvino")
             ]
@@ -468,6 +469,7 @@ def main():
         else:
             openvino_artifacts_dir = os.path.abspath(
                 arguments.use_prebuilt_openvino)
+            ngraph_tf_cmake_flags.extend(["-DUSE_PREBUILT_OPENVINO=TRUE"])
 
         ngraph_tf_cmake_flags.extend(["-DENABLE_OPENVINO=ON"])
         ngraph_tf_cmake_flags.extend(
