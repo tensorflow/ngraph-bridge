@@ -11,9 +11,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 PIPELINE_STEPS=" ${SCRIPT_DIR}/setup.yml "
 if [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-cpu-ubuntu-grappler" ]; then
    export BUILD_OPTIONS=--use_grappler
-   PIPELINE_STEPS=" ${SCRIPT_DIR}/ngtf-cpu-ubuntu.yml "
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-cpu-ubuntu.yml "
 else
-   PIPELINE_STEPS=" ${SCRIPT_DIR}/${BUILDKITE_PIPELINE_NAME}.yml "
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/${BUILDKITE_PIPELINE_NAME}.yml "
 fi
 
 cat ${PIPELINE_STEPS} | buildkite-agent pipeline upload
