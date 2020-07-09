@@ -71,7 +71,8 @@ void IE_Backend::remove_compiled_function(shared_ptr<Executable> exec) {
 }
 
 bool IE_Backend::is_supported(const Node& node) const {
-  // TODO: check if the given backend/device supports the op. Right now we're assuming
+  // TODO: check if the given backend/device supports the op. Right now we're
+  // assuming
   // that the selected backend supports all opset3 ops
   const auto& opset = ngraph::get_opset3();
   return opset.contains_op_type(&node);
