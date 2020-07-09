@@ -3640,7 +3640,7 @@ static Status TranslateTileOp(
   }
   if (is_empty) {
     SaveNgOp(ng_op_map, op->name(),
-             ConstructNgNode<ngraph::op::Constant>(
+             ConstructNgNode<ngraph::opset3::Constant>(
                  op->name(), ng_input->get_element_type(), output_shape,
                  std::vector<std::string>(ng::shape_size(output_shape), "0")));
   } else {
@@ -3654,7 +3654,7 @@ static Status TranslateTileOp(
         tmp_tensors.push_back(ng_output);
       }
       auto ng_concat =
-          ConstructNgNode<ngraph::op::Concat>(op->name(), tmp_tensors, i);
+          ConstructNgNode<ngraph::opset3::Concat>(op->name(), tmp_tensors, i);
       ng_output = ng_concat;
     }
     SaveNgOp(ng_op_map, op->name(), ng_output);

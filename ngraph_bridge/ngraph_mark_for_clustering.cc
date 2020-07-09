@@ -943,7 +943,7 @@ GetTFToNgOpMap() {
       {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
       {"Tan", {std::make_shared<ngraph::opset3::Tan>()}},
       {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
-      {"Tile", {constant, std::make_shared<ngraph::op::Concat>()}},
+      {"Tile", {constant, std::make_shared<ngraph::opset3::Concat>()}},
       {"TopKV2",
        {std::make_shared<ngraph::op::TopK>(),
         std::make_shared<ngraph::op::GetOutputElement>()}},
