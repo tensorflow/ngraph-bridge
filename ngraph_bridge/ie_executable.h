@@ -41,6 +41,7 @@ class IE_Executable final : public Executable {
 
  private:
   InferenceEngine::CNNNetwork m_network;
+  InferenceEngine::InferRequest m_infer_req;
   string m_device;
 };
 }

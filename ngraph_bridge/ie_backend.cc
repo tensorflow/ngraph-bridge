@@ -20,6 +20,8 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph/opsets/opset.hpp"
 
+#include "ngraph_bridge/ngraph_executable.h"
+
 using namespace std;
 using namespace ngraph;
 
@@ -36,11 +38,41 @@ IE_Backend::IE_Backend(const string& configuration_string) {
   m_device = config;
 }
 
-shared_ptr<Executable> IE_Backend::compile(shared_ptr<Function> func, bool) {
-  return make_shared<IE_Executable>(func, m_device);
+IE_Backend::~IE_Backend() { m_exec_map.clear(); }
+
+shared_ptr<Executable> IE_Backend::compile(shared_ptr<ngraph::Function> func,
+                                           bool) {
+  shared_ptr<Executable> rc;
+  {
+    std::lock_guard<std::mutex> guard(m_exec_map_mutex);
+    auto it = m_exec_map.find(func);
+    if (it != m_exec_map.end()) {
+      rc = it->second;
+      return rc;
+    }
+  }
+
+  rc = make_shared<IE_Executable>(func, m_device);
+  {
+    std::lock_guard<std::mutex> guard(m_exec_map_mutex);
+    m_exec_map.insert({func, rc});
+    return rc;
+  }
+}
+
+void IE_Backend::remove_compiled_function(shared_ptr<Executable> exec) {
+  std::lock_guard<std::mutex> guard(m_exec_map_mutex);
+  for (auto it = m_exec_map.begin(); it != m_exec_map.end(); ++it) {
+    if (it->second == exec) {
+      m_exec_map.erase(it);
+      break;
+    }
+  }
 }
 
 bool IE_Backend::is_supported(const Node& node) const {
+  // TODO: check if the given backend/device supports the op. Right now we're assuming
+  // that the selected backend supports all opset3 ops
   const auto& opset = ngraph::get_opset3();
   return opset.contains_op_type(&node);
 }

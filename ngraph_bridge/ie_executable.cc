@@ -15,6 +15,17 @@
 //*****************************************************************************
 
 #include "ngraph/ngraph.hpp"
+#include "ngraph/opsets/opset.hpp"
+#include "ngraph/opsets/opset.hpp"
+#include "ngraph/pass/algebraic_simplification.hpp"
+#include "ngraph/pass/get_output_element_elimination.hpp"
+#include "ngraph/pass/like_replacement.hpp"
+#include "ngraph/pass/manager.hpp"
+#include "ngraph/pass/nop_elimination.hpp"
+#include "ngraph/pass/opset1_upgrade.hpp"
+#include "ngraph/pass/reshape_elimination.hpp"
+#include "ngraph/pass/reshape_sinking.hpp"
+#include "ngraph/pass/zero_dim_tensor_elimination.hpp"
 
 #include "ngraph_bridge/ie_executable.h"
 #include "ngraph_bridge/ie_tensor.h"
@@ -59,9 +70,13 @@ InferenceEngine::Blob::Ptr fill_blob(InferenceEngine::SizeVector shape,
 
   InferenceEngine::MemoryBlob::Ptr blob;
 
+  auto size = data_size * elem_type.size();
+
 #define MAKE_IE_TBLOB(type_, precision_, shape_, layout_)                 \
-  make_shared<InferenceEngine::TBlob<type_>>(InferenceEngine::TensorDesc{ \
-      InferenceEngine::Precision::precision_, shape_, layout_})
+  make_shared<InferenceEngine::TBlob<type_>>(                             \
+      InferenceEngine::TensorDesc{InferenceEngine::Precision::precision_, \
+                                  shape_, layout_},                       \
+      (type_*)data, size)
 
   switch (elem_type) {
     case element::Type_t::f32:
@@ -96,32 +111,45 @@ InferenceEngine::Blob::Ptr fill_blob(InferenceEngine::SizeVector shape,
                          << " to IE Precision!";
   }
 #undef MAKE_IE_TBLOB
-
-  blob->allocate();
-  uint8_t* blob_ptr = blob->rwmap().as<uint8_t*>();
-  memcpy(blob_ptr, data, data_size * elem_type.size());
   return blob;
 }
 }
 
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     : m_device{device} {
+  const auto& opset = ngraph::get_opset3();
+  ngraph::pass::Manager passes;
+  passes.register_pass<ngraph::pass::LikeReplacement>();
+  passes.register_pass<ngraph::pass::NopElimination>();
+  passes.register_pass<ngraph::pass::ZeroDimTensorElimination>();
+  passes.register_pass<ngraph::pass::AlgebraicSimplification>();
+  passes.register_pass<ngraph::pass::ReshapeSinking>();
+  passes.register_pass<ngraph::pass::ReshapeElimination>();
+  passes.register_pass<ngraph::pass::RecurrentReshapeElimination>();
+  passes.register_pass<ngraph::pass::GetOutputElementElimination>();
+  passes.run_passes(func);
+
+  for (const auto& node : func->get_ops()) {
+    if (!opset.contains_op_type(node.get())) {
+      cout << "UNSUPPORTED OP DETECTED: " << node->get_type_info().name << endl;
+      THROW_IE_EXCEPTION << "Detected op not belonging to opset3!";
+    }
+  }
+
   m_network = InferenceEngine::CNNNetwork(func);
+  set_parameters_and_results(*func);
+
+  InferenceEngine::Core ie;
+  // Load model to the plugin (BACKEND_NAME)
+  InferenceEngine::ExecutableNetwork exe_network =
+      ie.LoadNetwork(m_network, m_device);
+  // Create infer request
+  m_infer_req = exe_network.CreateInferRequest();
 }
 
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
-  InferenceEngine::Core ie;
-
-  //  Loading model to the plugin (BACKEND_NAME)
-  InferenceEngine::ExecutableNetwork exe_network =
-      ie.LoadNetwork(m_network, m_device);
-  //  Create infer request
-  InferenceEngine::InferRequest infer_request =
-      exe_network.CreateInferRequest();
-  //  Prepare input and output blobs
   InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-
   if (input_info.size() != inputs.size()) {
     THROW_IE_EXCEPTION
         << "Function inputs number differ from number of given inputs";
@@ -130,7 +158,7 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
   size_t i = 0;
   for (const auto& it : input_info) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
-    infer_request.SetBlob(
+    m_infer_req.SetBlob(
         it.first,
         fill_blob(it.second->getTensorDesc().getDims(), tv->get_data_ptr(),
                   tv->get_element_count(), tv->get_element_type()));
@@ -138,21 +166,23 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
   }
 
   //  Prepare output blobs
-  string output_name = m_network.getOutputsInfo().begin()->first;
-
-  infer_request.Infer();
-  InferenceEngine::Blob::Ptr output = infer_request.GetBlob(output_name);
-
-  InferenceEngine::MemoryBlob::Ptr moutput =
-      InferenceEngine::as<InferenceEngine::MemoryBlob>(output);
-  if (!moutput) {
+  InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
+  if (output_info.size() != outputs.size()) {
     THROW_IE_EXCEPTION
-        << "Cannot get output MemoryBlob in call_with_validate()";
+        << "Function outputs number differ from number of given outputs";
   }
 
-  auto lm = moutput->rmap();
-  uint8_t* output_ptr = lm.as<uint8_t*>();
-  outputs[0]->write(output_ptr, moutput->byteSize());
+  i = 0;
+  for (const auto& it : output_info) {
+    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
+    m_infer_req.SetBlob(
+        it.first,
+        fill_blob(it.second->getTensorDesc().getDims(), tv->get_data_ptr(),
+                  tv->get_element_count(), tv->get_element_type()));
+    i++;
+  }
+
+  m_infer_req.Infer();
   return true;
 }
 }

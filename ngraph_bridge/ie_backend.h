@@ -34,10 +34,11 @@ namespace ngraph_bridge {
 class IE_Backend final : public Backend {
  public:
   IE_Backend(const string& configuration_string);
-  virtual ~IE_Backend() = default;
+  ~IE_Backend() override;
 
   shared_ptr<Executable> compile(shared_ptr<ngraph::Function> func,
                                  bool enable_performance_data = false) override;
+  void remove_compiled_function(std::shared_ptr<Executable> exec) override;
   bool is_supported(const ngraph::Node& node) const override;
   bool is_supported_property(const Property prop) const override;
 
@@ -68,6 +69,10 @@ class IE_Backend final : public Backend {
   }
 
  private:
+  std::mutex m_exec_map_mutex;
+  std::unordered_map<std::shared_ptr<ngraph::Function>,
+                     std::shared_ptr<Executable>>
+      m_exec_map;
   string m_device;
 };
 }
