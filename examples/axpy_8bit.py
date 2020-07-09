@@ -53,4 +53,3 @@ with tf.compat.v1.Session(config=config_ngraph_enabled) as sess:
                                            options=options,
                                            run_metadata=run_metadata)
         print(result_axpy)
-
