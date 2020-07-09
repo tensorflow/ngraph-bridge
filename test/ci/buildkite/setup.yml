@@ -1,3 +1,4 @@
+steps:
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
       virtualenv -p python3 /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv 
