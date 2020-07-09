@@ -3882,7 +3882,7 @@ static Status TranslateZerosLikeOp(const Node* op,
 
   ng::Shape input_shape = ng_input->get_shape();
   std::vector<std::string> const_values(ng::shape_size(input_shape), "0");
-  auto ng_result = ConstructNgNode<ng::op::Constant>(
+  auto ng_result = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng_input->get_element_type(), input_shape, const_values);
 
   SaveNgOp(ng_op_map, op->name(), ng_result);
