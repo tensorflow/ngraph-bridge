@@ -7,11 +7,6 @@ echo "BUILDKITE_AGENT_META_DATA_NAME: ${BUILDKITE_AGENT_META_DATA_NAME}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-if [[ $BUILDKITE_PULL_REQUEST = 'false' ]]; then
-   echo "Not a pull request, skipping testing..."
-   exit 0
-fi
-
 # Always run setup for now
 PIPELINE_STEPS=" ${SCRIPT_DIR}/setup.yml "
 if [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-cpu-ubuntu-grappler" ]; then
