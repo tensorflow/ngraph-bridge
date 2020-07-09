@@ -4,8 +4,6 @@
       
     label: ":gear: Setup"
     timeout_in_minutes: 30
-    agents:
-    - "queue=cpu"
     parallelism: 1
 
   - wait
@@ -16,28 +14,52 @@
       
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
-    agents:
-    - "queue=cpu"
     parallelism: 1
 
   - wait
 
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
+      pip install psutil && pip install -U \
+        /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-2.2.0-cp36-cp36m-linux_x86_64.whl
+      pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
+      
+    label: ":gear: Install"
+    timeout_in_minutes: 30
+
+  - wait
+  - command: |
+      source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
+      pip install pytest keras==2.3.1
+      PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
+        --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_python
+    
+    label: ":python: nGraph Pytest"
+    timeout_in_minutes: 30
+
+  - wait
+  - command: |
+      source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
+      pip install pytest
+      PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
+        --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_tf_python
+    
+    label: ":python: TensorFlow Pytest"
+    timeout_in_minutes: 60
+
+  - wait
+
+  - command: |
+      source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install psutil 
-      pip install -U pip==19.3.1
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_resnet50_infer
     label: ":bar_chart: ResNet50 Inference"
     timeout_in_minutes: 30
-    agents:
-    - "queue=cpu"
 
   - wait: ~
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
-    agents:
-    - "queue=cpu"
 
