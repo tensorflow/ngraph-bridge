@@ -272,8 +272,7 @@ Status NGraphEncapsulateImpl::AllocateNGInputTensors(
     const std::vector<Tensor>& tf_input_tensors,
     const std::shared_ptr<Executable>& ng_exec,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs) {
-  ng::runtime::Backend* op_backend =
-      BackendManager::GetBackend(m_op_backend_name);
+  Backend* op_backend = BackendManager::GetBackend(m_op_backend_name);
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     ng::Shape ng_shape(tf_input_tensors[i].shape().dims());
     for (int j = 0; j < tf_input_tensors[i].shape().dims(); ++j) {
@@ -297,8 +296,7 @@ Status NGraphEncapsulateImpl::AllocateNGOutputTensors(
     const std::vector<Tensor*>& output_tensors,
     const std::shared_ptr<Executable>& ng_exec,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs) {
-  ng::runtime::Backend* op_backend =
-      BackendManager::GetBackend(m_op_backend_name);
+  Backend* op_backend = BackendManager::GetBackend(m_op_backend_name);
   for (auto i = 0; i < ng_exec->get_results().size(); i++) {
     auto ng_element = ng_exec->get_results()[i];
     auto ng_shape = ng_element->get_shape();

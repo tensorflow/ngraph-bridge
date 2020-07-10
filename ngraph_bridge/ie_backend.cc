@@ -101,10 +101,7 @@ shared_ptr<runtime::Tensor> IE_Backend::create_tensor(
 
 shared_ptr<runtime::Tensor> IE_Backend::create_tensor(
     const element::Type& element_type, const Shape& shape, void* data) {
-  shared_ptr<runtime::Tensor> tensor =
-      make_shared<IETensor>(element_type, shape);
-  tensor->write(data, shape_size(shape) * element_type.size());
-  return tensor;
+  return make_shared<IETensor>(element_type, shape, data);
 }
 }
 }

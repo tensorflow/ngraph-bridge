@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <ie_core.hpp>
 #include "ngraph/ngraph.hpp"
 
 namespace tensorflow {
@@ -27,16 +28,20 @@ class IETensor : public ngraph::runtime::Tensor {
            const ngraph::Shape& shape);
   IETensor(const ngraph::element::Type& element_type,
            const ngraph::PartialShape& shape);
+  IETensor(const ngraph::element::Type& element_type,
+           const ngraph::Shape& shape, void* memory_pointer);
 
   void write(const void* src, size_t bytes) override;
   void read(void* dst, size_t bytes) const override;
+
   const void* get_data_ptr() const;
+  InferenceEngine::MemoryBlob::Ptr get_blob() { return m_blob; }
 
  private:
   IETensor(const IETensor&) = delete;
   IETensor(IETensor&&) = delete;
   IETensor& operator=(const IETensor&) = delete;
-  ngraph::runtime::AlignedBuffer m_data;
+  InferenceEngine::MemoryBlob::Ptr m_blob;
 };
 }
 }
