@@ -12,7 +12,6 @@
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
 
   - wait
-
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
@@ -24,7 +23,6 @@
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
 
   - wait
-
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
@@ -37,7 +35,6 @@
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
 
   - wait
-
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
@@ -50,7 +47,6 @@
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
 
   - wait
-
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
@@ -62,7 +58,6 @@
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
 
   - wait
-
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
