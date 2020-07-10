@@ -659,7 +659,7 @@ TEST(NNOps, MaxPool3DNDHWCValid) {
   }
 }  // end of MaxPool3DNDHWCValid op
 
-TEST(NNOps, QuantizedAvgPoolEvenInput) {
+TEST(NNOps, DISABLED_QuantizedAvgPoolEvenInput) {
   int dim1 = 2;
   int dim2 = 4;
   int channels = 2;
