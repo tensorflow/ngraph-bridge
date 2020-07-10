@@ -821,7 +821,7 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::op::Dequantize>()}},
       // Next few are CPU only ops
       {"QuantizedAvgPool",
-       {constant, std::make_shared<ngraph::op::AvgPool>(),
+       {constant, std::make_shared<ngraph::opset3::AvgPool>(),
         std::make_shared<ngraph::opset3::Transpose>()}},
       {"QuantizedConcat",
        {constant, std::make_shared<ngraph::op::Reshape>(),
@@ -890,7 +890,7 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::op::Convert>()}},
       {"QuantizedMaxPool",
        {constant, std::make_shared<ngraph::opset3::Transpose>(),
-        std::make_shared<ngraph::op::MaxPool>()}},
+        std::make_shared<ngraph::opset3::MaxPool>()}},
       // End of CPU only ops
       {"QuantizeV2",
        {constant, std::make_shared<ngraph::op::Minimum>(),

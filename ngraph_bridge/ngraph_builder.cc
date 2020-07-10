@@ -609,8 +609,14 @@ static Status TranslateQuantizedPoolOp(const Node* op,
 
   ng::Shape ng_padding_below{0, 0};
   ng::Shape ng_padding_above{0, 0};
-  Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
-                       ng_strides, ng_padding_below, ng_padding_above);
+
+  ng::op::PadType ng_pad_type = ng::op::PadType::EXPLICIT;
+  if (tf_padding_type == "VALID") {
+    ng_pad_type = ng::op::PadType::VALID;
+  } else {
+    Builder::MakePadding(tf_padding_type, ng_image_shape, ng_kernel_shape,
+                         ng_strides, ng_padding_below, ng_padding_above);
+  }
 
   // Creating and passing dummy nodes to quantized pool operation because it
   // does
@@ -622,14 +628,14 @@ static Status TranslateQuantizedPoolOp(const Node* op,
   if (is_quantizedAvgPool) {
     // QuantizeAvgPool
     // TF doesn't include padding in avg calculation
-    ng_quant_pool = ConstructNgNode<ng::op::AvgPool>(
-        op->name(), ng_input, ng_kernel_shape, ng_strides, ng_padding_below,
-        ng_padding_above, false);
+    ng_quant_pool = ConstructNgNode<ng::opset3::AvgPool>(
+        op->name(), ng_input, ng_strides, ng_padding_below, ng_padding_above,
+        ng_kernel_shape, true, ng::op::RoundingType::FLOOR, ng_pad_type);
   } else {
     // QuantizeMaxPool
-    ng_quant_pool = ConstructNgNode<ng::op::MaxPool>(
-        op->name(), ng_input, ng_kernel_shape, ng_strides, ng_padding_below,
-        ng_padding_above);
+    ng_quant_pool = ConstructNgNode<ng::opset3::MaxPool>(
+        op->name(), ng_input, ng_strides, ng_padding_below, ng_padding_above,
+        ng_kernel_shape, ng::op::RoundingType::FLOOR, ng_pad_type);
   }
   Builder::SetTracingInfo(op->name(), ng_quant_pool);
 
@@ -3190,8 +3196,8 @@ static Status TranslateShapeOp(const Node* op,
   for (size_t i = 0; i < rank; i++) {
     values[i] = input_shape[i];
   }
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::op::Constant>(op->name(), type, shape, values));
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Constant>(
+                                      op->name(), type, shape, values));
   return Status::OK();
 }
 
