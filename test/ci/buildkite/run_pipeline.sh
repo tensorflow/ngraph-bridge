@@ -12,7 +12,7 @@ PIPELINE_STEPS=" ${SCRIPT_DIR}/setup.yml "
 if [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-cpu-ubuntu-grappler" ]; then
    export BUILD_OPTIONS=--use_grappler
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-cpu-ubuntu.yml "
-if [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-interpreter-ubuntu" ]; then
+elif [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-interpreter-ubuntu" ]; then
    export NGRAPH_TF_BACKEND=interpreter
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-cpu-ubuntu.yml "
 else
