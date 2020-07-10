@@ -3968,6 +3968,7 @@ const static std::map<
         {"Minimum", TranslateBinaryOp<ngraph::opset3::Minimum>},
         {"MirrorPad", TranslatePadOp},
         {"Mul", TranslateBinaryOp<ngraph::opset3::Multiply>},
+        {"Mod", TranslateBinaryOp<ngraph::opset3::Mod>},
         {"Neg", TranslateUnaryOp<ngraph::opset3::Negative>},
         {"NotEqual", TranslateBinaryOp<ngraph::opset3::NotEqual>},
         // Do nothing! NoOps sometimes get placed on nGraph for bureaucratic
