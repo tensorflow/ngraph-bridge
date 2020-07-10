@@ -3969,6 +3969,7 @@ const static std::map<
         {"MirrorPad", TranslatePadOp},
         {"Mul", TranslateBinaryOp<ngraph::opset3::Multiply>},
         {"Neg", TranslateUnaryOp<ngraph::opset3::Negative>},
+        {"NotEqual", TranslateBinaryOp<ngraph::opset3::NotEqual>},
         // Do nothing! NoOps sometimes get placed on nGraph for bureaucratic
         // reasons, but they have no data flow inputs or outputs.
         {"NoOp", [](const Node*, const std::vector<const Tensor*>&,

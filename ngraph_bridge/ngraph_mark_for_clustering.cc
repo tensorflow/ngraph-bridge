@@ -367,6 +367,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["MirrorPad"] = SimpleConfirmationFunction();
     confirmation_function_map["Mul"] = SimpleConfirmationFunction();
     confirmation_function_map["Neg"] = SimpleConfirmationFunction();
+    confirmation_function_map["NotEqual"] = SimpleConfirmationFunction();
     confirmation_function_map["NonMaxSuppressionV4"] =
         SimpleConfirmationFunction();
     confirmation_function_map["NoOp"] = SimpleConfirmationFunction();
@@ -562,6 +563,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["MirrorPad"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Mul"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Neg"]["T"] = NGraphNumericDTypes();
+    type_constraint_map["NotEqual"]["T"] = NGraphDTypes();
     type_constraint_map["NonMaxSuppressionV4"]["T"] = {
         DT_FLOAT};  // TF allows half too
     type_constraint_map["OneHot"]["T"] = NGraphDTypes();
@@ -805,6 +807,7 @@ GetTFToNgOpMap() {
       {"MirrorPad", {constant, std::make_shared<ngraph::opset3::Pad>()}},
       {"Mul", {std::make_shared<ngraph::opset3::Multiply>()}},
       {"Neg", {std::make_shared<ngraph::opset3::Negative>()}},
+      {"NotEqual", {std::make_shared<ngraph::opset3::NotEqual>()}},
       {"NonMaxSuppressionV4",
        {std::make_shared<ngraph::opset3::NonMaxSuppression>(), constant}},
       {"OneHot", {std::make_shared<ngraph::opset3::OneHot>(), constant}},
