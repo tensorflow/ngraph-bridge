@@ -755,7 +755,7 @@ GetTFToNgOpMap() {
        {constant, std::make_shared<ngraph::op::BatchNormInference>(),
         std::make_shared<ngraph::opset3::Transpose>()}},
       {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
-      {"GatherV2", {std::make_shared<ngraph::op::Gather>()}},
+      {"GatherV2", {constant, std::make_shared<ngraph::opset3::Gather>()}},
       {"_FusedConv2D",
        {std::make_shared<ngraph::opset3::Convolution>(), constant,
         std::make_shared<ngraph::opset3::Minimum>(),

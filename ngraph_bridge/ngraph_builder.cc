@@ -1870,8 +1870,11 @@ static Status TranslateGatherV2Op(
                                    "), but got ", tf_axis[0]);
   }
 
-  auto gather_op = ConstructNgNode<ng::op::Gather>(op->name(), ng_input,
-                                                   ng_input_coords, tf_axis[0]);
+  auto ng_axis = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::i64, ng::Shape{tf_axis.size()}, tf_axis);
+
+  auto gather_op = ConstructNgNode<ng::opset3::Gather>(
+      op->name(), ng_input, ng_input_coords, ng_axis);
 
   SaveNgOp(ng_op_map, op->name(), gather_op);
   return Status::OK();
