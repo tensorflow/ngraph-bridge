@@ -51,23 +51,23 @@ static InferenceEngine::Layout getLayoutByDims(size_t dims) {
 
 static InferenceEngine::Precision getPrecision(
     const element::Type& element_type) {
-  switch (element_type) {
+  switch (element_type.get_type_enum()) {
     case element::Type_t::f32:
       return InferenceEngine::Precision::FP32;
-    case element::Type_t::i16:
-      return InferenceEngine::Precision::I16;
     case element::Type_t::u8:
       return InferenceEngine::Precision::U8;
     case element::Type_t::i8:
       return InferenceEngine::Precision::I8;
     case element::Type_t::u16:
       return InferenceEngine::Precision::U16;
+    case element::Type_t::i16:
+      return InferenceEngine::Precision::I16;
     case element::Type_t::i32:
       return InferenceEngine::Precision::I32;
-    case element::Type_t::i64:
-      return InferenceEngine::Precision::I64;
     case element::Type_t::u64:
       return InferenceEngine::Precision::U64;
+    case element::Type_t::i64:
+      return InferenceEngine::Precision::I64;
     case element::Type_t::boolean:
       return InferenceEngine::Precision::BOOL;
     default:
@@ -97,10 +97,6 @@ IETensor::IETensor(const element::Type& element_type, const Shape& shape_,
       m_blob = make_shared<InferenceEngine::TBlob<float>>(
           desc, (float*)memory_pointer, size);
       break;
-    case element::Type_t::i16:
-      m_blob = make_shared<InferenceEngine::TBlob<int16_t>>(
-          desc, (int16_t*)memory_pointer, size);
-      break;
     case element::Type_t::u8:
       m_blob = make_shared<InferenceEngine::TBlob<uint8_t>>(
           desc, (uint8_t*)memory_pointer, size);
@@ -113,17 +109,21 @@ IETensor::IETensor(const element::Type& element_type, const Shape& shape_,
       m_blob = make_shared<InferenceEngine::TBlob<uint16_t>>(
           desc, (uint16_t*)memory_pointer, size);
       break;
+    case element::Type_t::i16:
+      m_blob = make_shared<InferenceEngine::TBlob<int16_t>>(
+          desc, (int16_t*)memory_pointer, size);
+      break;
     case element::Type_t::i32:
       m_blob = make_shared<InferenceEngine::TBlob<int32_t>>(
           desc, (int32_t*)memory_pointer, size);
       break;
-    case element::Type_t::i64:
-      m_blob = make_shared<InferenceEngine::TBlob<int64_t>>(
-          desc, (int64_t*)memory_pointer, size);
-      break;
     case element::Type_t::u64:
       m_blob = make_shared<InferenceEngine::TBlob<uint64_t>>(
           desc, (uint64_t*)memory_pointer, size);
+      break;
+    case element::Type_t::i64:
+      m_blob = make_shared<InferenceEngine::TBlob<int64_t>>(
+          desc, (int64_t*)memory_pointer, size);
       break;
     case element::Type_t::boolean:
       m_blob = make_shared<InferenceEngine::TBlob<uint8_t>>(
