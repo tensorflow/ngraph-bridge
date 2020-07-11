@@ -121,7 +121,7 @@ class Testtf2ngraph(NgraphTest):
                     return
             else:
                 convert(inp_format, inp_loc, out_format, out_loc, ['out_node'],
-                        ng_device, optional_backend_params, shape_hints,
+                        ng_device, "", optional_backend_params, shape_hints,
                         precompile, save_ng_clusters)
             file_present = 'ngraph_cluster_0.pbtxt' in os.listdir()
             assert save_ng_clusters == file_present

@@ -88,7 +88,7 @@ def main():
     if 'NGRAPH_TF_BACKEND' in os.environ:
         backend = os.environ['NGRAPH_TF_BACKEND']
 
-    print("nGraph bridge backend set to: ", backend)
+    print("nGraph bridge backend set to:", backend)
 
     # Decide which tests to run
     if (arguments.test_cpp):
