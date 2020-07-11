@@ -39,17 +39,6 @@ namespace ngraph_bridge {
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     : m_device{device} {
   const auto& opset = ngraph::get_opset3();
-  ngraph::pass::Manager passes;
-  passes.register_pass<ngraph::pass::LikeReplacement>();
-  passes.register_pass<ngraph::pass::NopElimination>();
-  passes.register_pass<ngraph::pass::ZeroDimTensorElimination>();
-  passes.register_pass<ngraph::pass::AlgebraicSimplification>();
-  passes.register_pass<ngraph::pass::ReshapeSinking>();
-  passes.register_pass<ngraph::pass::ReshapeElimination>();
-  passes.register_pass<ngraph::pass::RecurrentReshapeElimination>();
-  passes.register_pass<ngraph::pass::GetOutputElementElimination>();
-  passes.run_passes(func);
-
   for (const auto& node : func->get_ops()) {
     if (!opset.contains_op_type(node.get())) {
       cout << "UNSUPPORTED OP DETECTED: " << node->get_type_info().name << endl;
