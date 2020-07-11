@@ -234,7 +234,8 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
       }
       BackendManager::UnlockBackend(m_op_backend_name);
     } else {
-      NGraphEncapsulateImpl::Compile(m_op_backend_name, ng_function, ng_exec);
+      TF_RETURN_IF_ERROR(NGraphEncapsulateImpl::Compile(m_op_backend_name,
+                                                        ng_function, ng_exec));
     }
 
     SetNgExecMap(signature, ng_exec);
