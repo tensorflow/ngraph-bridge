@@ -3530,7 +3530,7 @@ static Status TranslateSqueezeOp(const Node* op,
   }
 
   auto ng_const = ConstructNgNode<ng::opset3::Constant>(
-      op->name(), ng::element::u32, ng::Shape{tf_axis.size()}, tf_axis);
+      op->name(), ng::element::i32, ng::Shape{tf_axis.size()}, tf_axis);
 
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Squeeze>(
                                       op->name(), ng_input, ng_const));
