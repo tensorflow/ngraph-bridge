@@ -27,6 +27,7 @@
 #include "ngraph/pass/reshape_sinking.hpp"
 #include "ngraph/pass/zero_dim_tensor_elimination.hpp"
 
+#include "logging/ngraph_log.h"
 #include "ngraph_bridge/ie_executable.h"
 #include "ngraph_bridge/ie_tensor.h"
 
@@ -38,6 +39,7 @@ namespace ngraph_bridge {
 
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     : m_device{device} {
+  NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
   const auto& opset = ngraph::get_opset3();
   for (const auto& node : func->get_ops()) {
     if (!opset.contains_op_type(node.get())) {
@@ -46,13 +48,17 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     }
   }
 
+  NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
   set_parameters_and_results(*func);
 
+  NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
+
   InferenceEngine::Core ie;
-  // Load model to the plugin (BACKEND_NAME)
+  // Load model to the plugin (m_device)
   InferenceEngine::ExecutableNetwork exe_network =
       ie.LoadNetwork(m_network, m_device);
+
   // Create infer request
   m_infer_req = exe_network.CreateInferRequest();
 }
