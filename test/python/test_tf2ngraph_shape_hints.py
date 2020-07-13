@@ -34,7 +34,7 @@ from tensorflow.core.framework import graph_pb2
 from tools.build_utils import command_executor
 from tools.tf2ngraph import convert, get_gdef, Tf2ngraphJson
 
-from common import NgraphTest
+from common import NgraphTest, NGTF_BACKEND
 
 
 def get_pbtxt_name(tag, p0_shape, p1_shape):
@@ -79,11 +79,6 @@ def check_pbtxt_has_exec(pbtxt_filename, num_expected_execs):
 
 
 def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
-    ng_device = ngraph_bridge.get_currently_set_backend_name()
-    if ng_device != "INTERPRETER":
-        print("Only INTERPRETER backend supports precompilation")
-        return
-
     inp0 = get_inputs(p0_actual_shape)
     inp1 = get_inputs(p1_actual_shape)
     x, y, z, temp_in_pbtxt_name = create_graph(p0_shape, p1_shape)
@@ -141,6 +136,9 @@ class Testtf2ngraphShapehints(NgraphTest):
     @pytest.mark.skipif(
         not ngraph_bridge.is_grappler_enabled(),
         reason="Requires grappler build for tf2ngraph and AOT")
+    @pytest.mark.skipif(
+        NGTF_BACKEND != "INTERPRETER",
+        reason="Only INTERPRETER backend supports precompilation")
     def test_tf2ngraph_with_shape_hints_0(self, p0_shape, p1_shape,
                                           p0_actual_shape, p1_actual_shape,
                                           shapehints):
@@ -170,6 +168,9 @@ class Testtf2ngraphShapehints(NgraphTest):
     @pytest.mark.skipif(
         not ngraph_bridge.is_grappler_enabled(),
         reason="Requires grappler build for tf2ngraph and AOT")
+    @pytest.mark.skipif(
+        NGTF_BACKEND != "INTERPRETER",
+        reason="Only INTERPRETER backend supports precompilation")
     def test_tf2ngraph_with_shape_hints_1(self, p0_shape, p1_shape,
                                           p0_actual_shape, p1_actual_shape,
                                           shapehints):
