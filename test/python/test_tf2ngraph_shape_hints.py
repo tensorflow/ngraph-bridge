@@ -78,11 +78,13 @@ def check_pbtxt_has_exec(pbtxt_filename, num_expected_execs):
         assert contents.count('_ngraph_aot_ngfunction_') == num_expected_execs
 
 
-def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
+def helper(self, p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
+           shapehints):
     ng_device = ngraph_bridge.get_currently_set_backend_name()
     if ng_device != "INTERPRETER":
         print("Only INTERPRETER backend supports precompilation")
-        return
+        env_var_map = self.store_env_variables(["NGRAPH_TF_BACKEND"])
+        self.unset_env_variable("NGRAPH_TF_BACKEND")
 
     inp0 = get_inputs(p0_actual_shape)
     inp1 = get_inputs(p1_actual_shape)
@@ -107,6 +109,9 @@ def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
     os.remove(temp_in_pbtxt_name)
     os.remove(temp_out_pbtxt_name)
     os.remove(json_name)
+
+    if ng_device != "INTERPRETER":
+        self.restore_env_variables(env_var_map)
 
 
 # TODO: Add more test cases
@@ -144,7 +149,8 @@ class Testtf2ngraphShapehints(NgraphTest):
     def test_tf2ngraph_with_shape_hints_0(self, p0_shape, p1_shape,
                                           p0_actual_shape, p1_actual_shape,
                                           shapehints):
-        helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints)
+        helper(self, p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
+               shapehints)
 
     @pytest.mark.parametrize(
         ('p0_shape', 'p1_shape', 'p0_actual_shape', 'p1_actual_shape',
@@ -174,5 +180,5 @@ class Testtf2ngraphShapehints(NgraphTest):
                                           p0_actual_shape, p1_actual_shape,
                                           shapehints):
         with pytest.raises(Exception):
-            helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
+            helper(self, p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
                    shapehints)

@@ -134,5 +134,6 @@ class NgraphTest(object):
 
     # restore env variables
     def restore_env_variables(self, env_var_map):
+        print("Restoring env varaibles")
         for k, v in env_var_map.items():
             self.set_env_variable(k, v)
