@@ -65,17 +65,22 @@ class Testtf2ngraph(NgraphTest):
         ('pb',),
         ('savedmodel',),
     ))
-    @pytest.mark.parametrize(('ng_device', 'shape_hints', 'precompile'),
-                             (('CPU', [], False), ('INTERPRETER', [{}], True),
-                              ('INTERPRETER', [], False)))
+    @pytest.mark.parametrize(('shape_hints', 'precompile'), (([], False),
+                                                             ([{}], True)))
     # In sample_graph.pbtxt, the input shape is fully specified,
     # so we don't need to pass shape hints for precompile
     def test_command_line_api(self, inp_format, inp_loc, out_node_name,
                               save_ng_clusters, out_format, commandline,
-                              ng_device, shape_hints, precompile):
+                              shape_hints, precompile):
         # Only run this test when grappler is enabled
         if not ngraph_bridge.is_grappler_enabled():
             return
+
+        ng_device = ngraph_bridge.get_currently_set_backend_name()
+        if ng_device == "CPU" and precompile:
+            print("CPU backend doesn't support precompilation")
+            return
+
         assert Testtf2ngraph.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
             '' if out_format == 'savedmodel' else ('.' + out_format))
