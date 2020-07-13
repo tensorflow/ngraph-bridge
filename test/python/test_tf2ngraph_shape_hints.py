@@ -79,6 +79,11 @@ def check_pbtxt_has_exec(pbtxt_filename, num_expected_execs):
 
 
 def helper(p0_shape, p1_shape, p0_actual_shape, p1_actual_shape, shapehints):
+    ng_device = ngraph_bridge.get_currently_set_backend_name()
+    if ng_device != "INTERPRETER":
+        print("Only INTERPRETER backend supports precompilation")
+        return
+
     inp0 = get_inputs(p0_actual_shape)
     inp1 = get_inputs(p1_actual_shape)
     x, y, z, temp_in_pbtxt_name = create_graph(p0_shape, p1_shape)

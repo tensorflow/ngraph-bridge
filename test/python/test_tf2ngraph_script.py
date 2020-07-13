@@ -77,8 +77,8 @@ class Testtf2ngraph(NgraphTest):
             return
 
         ng_device = ngraph_bridge.get_currently_set_backend_name()
-        if ng_device == "CPU" and precompile:
-            print("CPU backend doesn't support precompilation")
+        if ng_device != "INTERPRETER" and precompile:
+            print("Only INTERPRETER backend supports precompilation")
             return
 
         assert Testtf2ngraph.format_and_loc_match(inp_format, inp_loc)
