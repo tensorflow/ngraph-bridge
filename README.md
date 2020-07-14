@@ -107,7 +107,6 @@ When the build finishes, a new `virtualenv` directory is created in `build_cmake
 Add the following flags to build PlaidML, Intel GPU or OpenVINO backends (optional):
 
         --build_plaidml_backend
-        --build_intelgpu_backend
         --build_openvino_backend
 
 For more build options:
@@ -241,7 +240,7 @@ Observe that the output time runs faster than TensorFlow native (i.e., without n
 
 #### Add additional backends
 
-You can substitute the default CPU backend with a different backend such as `PLAIDML` or `INTELGPU`. Use the following API:
+You can substitute the default CPU backend with a different backend such as `PLAIDML`. Use the following API:
 
     ngraph_bridge.set_backend('PLAIDML')
 
