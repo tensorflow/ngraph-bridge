@@ -34,7 +34,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   const auto& opset = ngraph::get_opset3();
   for (const auto& node : func->get_ops()) {
     if (!opset.contains_op_type(node.get())) {
-      cout << "UNSUPPORTED OP DETECTED: " << node->get_type_info().name << endl;
+      NGRAPH_VLOG(0) << "UNSUPPORTED OP DETECTED: "
+                     << node->get_type_info().name;
       THROW_IE_EXCEPTION << "Detected op not belonging to opset3!";
     }
   }
