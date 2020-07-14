@@ -65,21 +65,22 @@ class Testtf2ngraph(NgraphTest):
         ('pb',),
         ('savedmodel',),
     ))
-    @pytest.mark.parametrize(('shape_hints', 'precompile'), (([], False),
-                                                             ([{}], True)))
+    @pytest.mark.parametrize(('ng_device', 'shape_hints', 'precompile'),
+                             (('CPU', [], False), ('INTERPRETER', [{}], True),
+                              ('INTERPRETER', [], False)))
     # In sample_graph.pbtxt, the input shape is fully specified,
     # so we don't need to pass shape hints for precompile
     def test_command_line_api(self, inp_format, inp_loc, out_node_name,
                               save_ng_clusters, out_format, commandline,
-                              shape_hints, precompile):
+                              ng_device, shape_hints, precompile):
         # Only run this test when grappler is enabled
         if not ngraph_bridge.is_grappler_enabled():
             return
 
-        ng_device = ngraph_bridge.get_currently_set_backend_name()
-        if ng_device != "INTERPRETER" and precompile:
-            print("Only INTERPRETER backend supports precompilation")
-            return
+        # Store and unset env variable NGRAPH_TF_BACKEND because the test
+        # implicitly tests with different options
+        env_var_map = self.store_env_variables(["NGRAPH_TF_BACKEND"])
+        self.unset_env_variable("NGRAPH_TF_BACKEND")
 
         assert Testtf2ngraph.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (
@@ -168,6 +169,9 @@ class Testtf2ngraph(NgraphTest):
             assert np.isclose(res1, res2).all()
             # Comparing with expected value
             assert np.isclose(res1, exp).all()
+
+        # Restore env variable NGRAPH_TF_BACKEND that was stored
+        self.restore_env_variables(env_var_map)
 
     def test_output_node_inference_for_saved_model(self):
         # The saved model we create in this pytest
