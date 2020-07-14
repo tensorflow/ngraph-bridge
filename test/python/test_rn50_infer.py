@@ -134,11 +134,6 @@ class RN50Graph:
         print("Run inference (with nGraph)")
         ngraph_bridge.enable()
 
-        config = tf.compat.v1.ConfigProto()
-        config.intra_op_parallelism_threads = 2
-        config.inter_op_parallelism_threads = 4
-        config.use_per_session_threads = True
-
         data_sess = tf.compat.v1.Session(graph=data_graph, config=config)
         infer_sess = tf.compat.v1.Session(graph=infer_graph, config=config)
 
