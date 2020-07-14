@@ -68,7 +68,7 @@ bool ngraph_tf_is_grappler_enabled() {
 }
 
 bool ngraph_tf_is_openvino_enabled() {
-#if defined(NGRAPH_TF_USE_OPENVINO)
+#if defined(ENABLE_OPENVINO)
   return true;
 #else
   return false;

@@ -508,9 +508,6 @@ def main():
         flag_string_map[arguments.use_grappler_optimizer]
     ])
 
-    if (arguments.build_openvino_backend) or (arguments.use_prebuilt_openvino):
-        ngraph_tf_cmake_flags.extend(["-DNGRAPH_TF_USE_OPENVINO=YES"])
-
     # Now build the bridge
     ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,
                                 ngraph_tf_src_dir, venv_dir,
