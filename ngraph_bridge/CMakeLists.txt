@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Nervana Systems Inc.
+# Copyright 2018-2020 Intel Corporation
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -36,80 +36,26 @@ set(SRC
    ngraph_assign_clusters.cc
    ngraph_builder.cc
    ngraph_backend_manager.cc
-   ngraph_capture_variables.cc
-   ngraph_find_replace_prefetchdataset.cc
-   ngraph_catalog.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
-   ngraph_enter_prefetch_in_catalog.cc
-   ngraph_pipelined_tensors.cc
    ngraph_encapsulate_impl.cc
-   ngraph_executor.cc
    ops/ngraph_ops.cc
    ngraph_encapsulate_op.cc
-   ngraph_encapsulate_op_utils.cc
-   ngraph_freshness_tracker.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc
-   ngraph_rewrite_for_tracking.cc
+   ngraph_register_stub_kernels.cc   
    ngraph_rewrite_pass.cc
-   ngraph_tensor_manager.cc
-   ngraph_tracked_variable.cc
-   ngraph_var.cc
    ngraph_utils.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
-   prefetch_autotuner.cc
-   ngraph_prefetch_dataset_op.cc
-   stats_utils.cc
    version.cc
 )
-
-message(STATUS "NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS: ${NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS}")
-
-if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    # common files
-    list(REMOVE_ITEM SRC ngraph_capture_variables.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_capture_variables.cc)
-
-    list(REMOVE_ITEM SRC ngraph_rewrite_for_tracking.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_rewrite_for_tracking.cc)
-
-    list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_rewrite_pass.cc)
-
-    list(REMOVE_ITEM SRC ops/ngraph_ops.cc)
-    list(APPEND SRC enable_variable_ops/ops/ngraph_ops.cc)
-
-    list(REMOVE_ITEM SRC ngraph_tracked_variable.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_tracked_variable.cc)
-
-    # new files
-    list(APPEND SRC enable_variable_ops/ngraph_assign_op.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_enter_in_catalog.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_remove_ngraphassigns.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_replace_op_utilities.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_replace_variable_modifiers.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_variable_modifiers.cc)
-    list(APPEND SRC enable_variable_ops/ngraph_variable_update_ng_tensor_op.cc)
-    
-    add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 endif()
-
-if(NGRAPH_CPU_STATIC_LIB_ENABLE)
-    add_definitions(-DNGRAPH_CPU_STATIC_LIB_ENABLE)
-endif()
-
-if(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
-    add_definitions(-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
-endif()
-
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)            
     list(REMOVE_ITEM SRC ngraph_rewrite_pass.cc)
@@ -120,6 +66,16 @@ endif()
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
 
+if(ENABLE_OPENVINO)
+    list(APPEND SRC ngraph_executable.cc)
+    list(APPEND SRC ngraph_backend.cc)
+    list(APPEND SRC ie_executable.cc)
+    list(APPEND SRC ie_backend.cc)
+    list(APPEND SRC ie_tensor.cc)
+endif()
+
+message(STATUS "ENABLE_OPENVINO: ${ENABLE_OPENVINO}")
+
 add_library(${LIB_NAME} SHARED ${SRC})
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
@@ -129,13 +85,15 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             ${TensorFlow_FRAMEWORK_LIBRARY} 
             ngraph_lib
             lib_cpu_backend_static
-            lib_interpreter_backend_static 
+            lib_interpreter_backend_static
             ngraph_lib
             dl
+            pthread
             absl_algorithm
             absl_container
             absl_strings
-            lib_mkldnn
+            lib_mklml_intel
+            lib_dnnl
             lib_iomp5
         )
 
@@ -154,6 +112,10 @@ else()
         )
 endif()
 
+if (ENABLE_OPENVINO)
+    target_link_libraries(${LIB_NAME} ${InferenceEngine_LIBRARIES})
+endif()
+
 target_compile_definitions( 
     ${LIB_NAME} PRIVATE
     _GLIBCXX_USE_CXX11_ABI=${TensorFlow_CXX_ABI}
@@ -164,12 +126,10 @@ target_include_directories(${LIB_NAME} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     add_library(${LIB_NAME_STATIC} STATIC ${SRC})
-
     target_link_libraries(
         ${LIB_NAME_STATIC}
         ngraph_logger
         ${TensorFlow_FRAMEWORK_LIBRARY} 
-        ngraph_lib
         lib_cpu_backend_static
         lib_interpreter_backend_static 
         ngraph_lib
@@ -177,9 +137,9 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
-        lib_mkldnn
-        lib_mklml_intel
+        lib_dnnl
         lib_iomp5
+        lib_mklml_intel
     )
     target_compile_definitions(
     ${LIB_NAME_STATIC} PRIVATE 
@@ -192,7 +152,6 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 
     target_include_directories(${LIB_NAME_STATIC} PUBLIC "${NGRAPH_INSTALL_DIR}/include")
     target_include_directories(${LIB_NAME_STATIC} PUBLIC "${NGRAPH_DEVICE_INCLUDE_PATH}")
-
 endif()
 
 #------------------------------------------------------------------------------
@@ -227,6 +186,26 @@ if(OS_VERSION STREQUAL "\"centos\"")
 	install(DIRECTORY ${NGRAPH_INSTALL_DIR}/lib64/ DESTINATION "${NGTF_INSTALL_LIB_DIR}" )
 else()
 	install(DIRECTORY ${NGRAPH_INSTALL_DIR}/lib/ DESTINATION "${NGTF_INSTALL_LIB_DIR}" )
+endif()
+
+# Install OpenVINO libraries
+if(ENABLE_OPENVINO)
+    set(IE_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/lib/intel64/)
+    set(TBB_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/external/tbb/lib/)
+    install(DIRECTORY ${IE_LIBS} DESTINATION "${NGTF_INSTALL_LIB_DIR}" )
+    install(DIRECTORY ${TBB_LIBS} DESTINATION "${NGTF_INSTALL_LIB_DIR}" )
+    if(USE_PREBUILT_OPENVINO)
+        file(GLOB NGRAPH_LIB_FILES "${IE_LIBS}/lib*" "${TBB_LIBS}/lib*")
+        foreach(LIB_FILE ${NGRAPH_LIB_FILES})
+            get_filename_component(lib_file_real_path ${LIB_FILE} ABSOLUTE)
+            get_filename_component(lib_file_name ${LIB_FILE} NAME)
+            if(${lib_file_name} MATCHES ".so*")
+                install(CODE "
+                execute_process(COMMAND patchelf --set-rpath $ORIGIN ${lib_file_real_path} COMMAND_ECHO STDOUT)
+                ")
+            endif()
+        endforeach()
+    endif()
 endif()
 
 #Install nbench if we built

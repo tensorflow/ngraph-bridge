@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,10 +28,6 @@
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
-
-#if defined NGRAPH_DISTRIBUTED
-#include "ngraph/distributed.hpp"
-#endif
 
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
@@ -97,31 +93,6 @@ Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
   return Status::OK();
 }
 
-Status GetNgraphVarBufferSharingState(int& buffer_sharing_state) {
-  const char* ngvar_buffer_env_var =
-      std::getenv("NGRAPH_TF_NGVARIABLE_BUFFER_SHARING");
-  if (ngvar_buffer_env_var == nullptr) {
-    buffer_sharing_state = -1;
-    return Status::OK();
-  }
-  int env_var_val;
-  try {
-    env_var_val = stoi(string(ngvar_buffer_env_var));
-  } catch (const std::invalid_argument& ia) {
-    return errors::InvalidArgument(
-        "Invalid argument for NGRAPH_TF_NGVARIABLE_BUFFER_SHARING. Exception: ",
-        ia.what());
-  }
-  if (env_var_val != 0 && env_var_val != 1) {
-    return errors::InvalidArgument(
-        "Invalid argument for NGRAPH_TF_NGVARIABLE_BUFFER_SHARING. Pass 1 to "
-        "enable, 0 to disable");
-  }
-
-  buffer_sharing_state = env_var_val;
-  return Status::OK();
-}
-
 void PrintTFTensor(Tensor& T1) {
   NGRAPH_VLOG(4) << "all tensor values" << (T1).SummarizeValue(64) << endl;
 }
@@ -133,37 +104,26 @@ std::string DebugNode(Node* node) {
 
 std::string PrintBool(bool var) { return (var ? "Yes" : "No"); }
 
-bool IsNGVariableType(string node_type) {
-  if (ngraph_tf_are_variables_enabled())
-    return (node_type == "NGraphVariable" || node_type == "NGraphAssign");
-  else
-    return node_type == "NGraphVariable";
-}
-
 bool IsNGSupportedType(string node_type) {
-  return (IsNGVariableType(node_type) || node_type == "NGraphEncapsulate");
+  return (node_type == "NGraphEncapsulate");
 };
 
 // Read from this ng_tensor into tf_tensor
 void ReadNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                   Tensor* tf_tensor) {
-  ngraph::Event event_sync_ng_tf_tensors("Tensor Read D2H", "", "");
+  NG_TRACE("Tensor Read D2H", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
   ng_tensor->read(tf_src_ptr, ng_tensor->get_element_count() *
                                   ng_tensor->get_element_type().size());
-  event_sync_ng_tf_tensors.Stop();
-  ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
 
 // Write into this ng_tensor from tf_tensor
 void WriteNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                    Tensor* tf_tensor) {
-  ngraph::Event event_sync_ng_tf_tensors("Tensor Write H2D", "", "");
+  NG_TRACE("Tensor Write H2D", "", "");
   void* tf_src_ptr = (void*)DMAHelper::base(tf_tensor);
   ng_tensor->write(tf_src_ptr, ng_tensor->get_element_count() *
                                    ng_tensor->get_element_type().size());
-  event_sync_ng_tf_tensors.Stop();
-  ngraph::Event::write_trace(event_sync_ng_tf_tensors);
 }
 
 void SummarizeOp(OpKernelConstruction* ctx, std::ostream& out) {
@@ -223,6 +183,11 @@ Status TensorToStream(std::ostream& ostream, const Tensor& tensor) {
     case DT_BOOL:
       TensorDataToStream<bool>(ostream, n_elements, data);
       break;
+    case DT_BFLOAT16:
+      return errors::Internal(
+          "TensorToStream got data type bfloat16. No compatible standard C++ "
+          "data type.");
+      break;
     default:
       return errors::Internal("TensorToStream got unsupported data type ",
                               DataType_Name(tensor.dtype()));
@@ -273,6 +238,12 @@ Status TFDataTypeToNGraphElementType(DataType tf_dt,
     case DataType::DT_QINT32:
       *ng_et = ng::element::i32;
       break;
+    case DataType::DT_BFLOAT16:
+      *ng_et = ng::element::bf16;
+      break;
+    case DataType::DT_HALF:
+      *ng_et = ng::element::f16;
+      break;
     default:
       return errors::Unimplemented("Unsupported TensorFlow data type: ",
                                    DataType_Name(tf_dt));
@@ -322,15 +293,16 @@ void print_node_histogram(const std::unordered_map<string, int>& histogram,
 
 const gtl::ArraySlice<DataType>& NGraphDTypes() {
   static gtl::ArraySlice<DataType> result{
-      DT_FLOAT,  DT_DOUBLE, DT_INT8,   DT_INT16, DT_INT32, DT_INT64, DT_UINT8,
-      DT_UINT16, DT_UINT32, DT_UINT64, DT_BOOL,  DT_QINT8, DT_QUINT8};
+      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,   DT_INT32,
+      DT_INT64, DT_UINT8,  DT_UINT16, DT_UINT32,  DT_UINT64,
+      DT_BOOL,  DT_QINT8,  DT_QUINT8, DT_BFLOAT16};
   return result;
 }
 
 const gtl::ArraySlice<DataType>& NGraphNumericDTypes() {
   static gtl::ArraySlice<DataType> result{
-      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,  DT_INT32,
-      DT_INT64, DT_UINT8,  DT_UINT16, DT_UINT32, DT_UINT64};
+      DT_FLOAT, DT_DOUBLE, DT_INT8,   DT_INT16,  DT_INT32,   DT_INT64,
+      DT_UINT8, DT_UINT16, DT_UINT32, DT_UINT64, DT_BFLOAT16};
   return result;
 }
 
@@ -346,13 +318,19 @@ const gtl::ArraySlice<DataType>& NGraphIndexDTypes() {
   return result;
 }
 
+const gtl::ArraySlice<DataType>& NGraphIntDTypes() {
+  static gtl::ArraySlice<DataType> result{DT_INT8, DT_UINT16, DT_INT16,
+                                          DT_INT32, DT_INT64};
+  return result;
+}
+
 const gtl::ArraySlice<DataType>& NGraphSupportedQuantizedDTypes() {
   static gtl::ArraySlice<DataType> result{DT_QINT8, DT_QUINT8};
   return result;
 }
 
 const gtl::ArraySlice<DataType>& NGraphRealDTypes() {
-  static gtl::ArraySlice<DataType> result{DT_FLOAT, DT_DOUBLE};
+  static gtl::ArraySlice<DataType> result{DT_FLOAT, DT_DOUBLE, DT_BFLOAT16};
   return result;
 }
 
@@ -464,10 +442,6 @@ std::string PbtxtFilename(std::string kind, int idx, int sub_idx) {
 std::string GraphFilenamePrefix(std::string kind, int idx) {
   std::stringstream ss;
   ss << kind << "_" << std::setfill('0') << std::setw(4) << idx;
-#if defined NGRAPH_DISTRIBUTED
-  int rank_id = ng::get_distributed_interface()->get_rank();
-  ss << "_" << std::setfill('0') << std::setw(4) << rank_id;
-#endif
   return ss.str();
 }
 
@@ -475,10 +449,6 @@ std::string GraphFilenamePrefix(std::string kind, int idx, int sub_idx) {
   std::stringstream ss;
   ss << GraphFilenamePrefix(kind, idx) << "_" << std::setfill('0')
      << std::setw(4) << sub_idx;
-#if defined NGRAPH_DISTRIBUTED
-  int rank_id = ng::get_distributed_interface()->get_rank();
-  ss << "_" << std::setfill('0') << std::setw(4) << rank_id;
-#endif
   return ss.str();
 }
 
@@ -519,16 +489,6 @@ void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
 
 bool DumpAllGraphs() { return std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr; }
 
-bool DumpPrecaptureGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_PRE_CAPTURED_GRAPHS") != nullptr;
-}
-
-bool DumpCapturedGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_CAPTURED_GRAPHS") != nullptr;
-}
-
 bool DumpUnmarkedGraphs() {
   return DumpAllGraphs() ||
          std::getenv("NGRAPH_TF_DUMP_UNMARKED_GRAPHS") != nullptr;
@@ -553,42 +513,6 @@ bool DumpEncapsulatedGraphs() {
   return DumpAllGraphs() ||
          std::getenv("NGRAPH_TF_DUMP_ENCAPSULATED_GRAPHS") != nullptr;
 }
-
-bool DumpTrackedGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_TRACKED_GRAPHS") != nullptr;
-}
-
-bool DumpCatalogedGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_CATALOGED_GRAPHS") != nullptr;
-}
-
-#if defined(NGRAPH_DISTRIBUTED)
-void OpControlOrder(const std::shared_ptr<ngraph::Function>& ng_function,
-                    const std::string& op_name) {
-  // Get the serialized ops and stored the allreduce ops to a vector and
-  ng::NodeVector op_list;
-  for (const shared_ptr<ng::Node>& node : ng_function->get_ordered_ops()) {
-    if (node->description() == op_name) {
-      op_list.push_back(node);
-    }
-  }
-  // Sort the allreduce ops according to the TF names
-  std::sort(op_list.begin(), op_list.end(),
-            [](const shared_ptr<ng::Node>& x, const shared_ptr<ng::Node>& y) {
-              return x->get_friendly_name() < y->get_friendly_name();
-            });
-  // Add control dependency in for the allreduce ops
-  if (op_list.size() > 1) {
-    for (size_t i = 1; i < op_list.size(); ++i) {
-      auto pre_node = op_list[i - 1];
-      auto cur_node = op_list[i];
-      cur_node->add_control_dependency(pre_node);
-    }
-  }
-}
-#endif
 
 bool IsProcessedByNgraphPass(Graph* g) {
   // TODO: place a dummy node as a marker

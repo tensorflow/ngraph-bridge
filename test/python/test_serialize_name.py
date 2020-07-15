@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ class TestDumpingGraphs(NgraphTest):
         # Specifically we want NgraphSerialize to work
         # even when there are '/' in the file name
         pb_filename = 'flib_graph_1.pbtxt'
-        graph_def = tf.GraphDef()
+        graph_def = tf.compat.v1.GraphDef()
         with open(pb_filename, "r") as f:
             text_format.Merge(f.read(), graph_def)
 

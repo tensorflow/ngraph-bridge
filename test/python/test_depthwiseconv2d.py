@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import pytest
 import platform
 
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 from tensorflow.python.framework import constant_op
 from tensorflow.python.ops import nn_ops
 import numpy as np

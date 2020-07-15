@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ from __future__ import print_function
 import pytest
 
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 from common import NgraphTest
 from google.protobuf import text_format

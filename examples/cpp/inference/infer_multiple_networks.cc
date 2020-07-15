@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,10 +33,10 @@
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
-#include "ngraph/event_tracing.hpp"
-
+#include "ngraph_bridge/ngraph_backend.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_timer.h"
+#include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/thread_safe_queue.h"
 #include "ngraph_bridge/version.h"
 
@@ -73,6 +73,9 @@ tf::Status SetNGraphBackend(const string& backend_name) {
 }
 
 void PrintVersion() {
+  // Tensorflow version info
+  std::cout << "Tensorflow version: " << tensorflow::ngraph_bridge::tf_version()
+            << std::endl;
   // nGraph Bridge version info
   std::cout << "Bridge version: " << tf::ngraph_bridge::ngraph_tf_version()
             << std::endl;
@@ -85,12 +88,6 @@ void PrintVersion() {
                     ? std::string("Yes")
                     : std::string("No"))
             << std::endl;
-  std::cout << "Variables Enabled? "
-            << (tf::ngraph_bridge::ngraph_tf_are_variables_enabled()
-                    ? std::string("Yes")
-                    : std::string("No"))
-            << std::endl;
-
   PrintAvailableBackends();
 }
 
@@ -214,30 +211,28 @@ int main(int argc, char** argv) {
   TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
                                                         "0", session_three));
   session_db[session_three.get()] = "Three";
-
-  ngraph::Event evt_compilation("Compilation", "Compilation", "");
-
-  //
-  // Warm-up i.e., Call it onces to get the nGraph compilation done
-  //
-  Tensor next_image;
-  TF_CHECK_OK(inference_engine.GetNextImage(next_image));
   std::vector<Tensor> outputs;
-  // Run inference once. This will trigger a compilation
-  tf::ngraph_bridge::Timer compilation_time;
-  TF_CHECK_OK(session_one->Run({{input_layer, next_image}}, {output_layer}, {},
-                               &outputs));
-  TF_CHECK_OK(session_two->Run({{input_layer, next_image}}, {output_layer}, {},
-                               &outputs));
-  TF_CHECK_OK(session_three->Run({{input_layer, next_image}}, {output_layer},
+  {
+    NG_TRACE("Compilation", "Compilation", "");
+
+    //
+    // Warm-up i.e., Call it onces to get the nGraph compilation done
+    //
+    Tensor next_image;
+    TF_CHECK_OK(inference_engine.GetNextImage(next_image));
+    // Run inference once. This will trigger a compilation
+    tf::ngraph_bridge::Timer compilation_time;
+    TF_CHECK_OK(session_one->Run({{input_layer, next_image}}, {output_layer},
                                  {}, &outputs));
-  compilation_time.Stop();
+    TF_CHECK_OK(session_two->Run({{input_layer, next_image}}, {output_layer},
+                                 {}, &outputs));
+    TF_CHECK_OK(session_three->Run({{input_layer, next_image}}, {output_layer},
+                                   {}, &outputs));
+    compilation_time.Stop();
 
-  cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
-       << endl;
-  evt_compilation.Stop();
-  ngraph::Event::write_trace(evt_compilation);
-
+    cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
+         << endl;
+  }
   //
   // Add these sessions to the queue
   //
@@ -264,7 +259,7 @@ int main(int argc, char** argv) {
     // Run the inference loop
     //-----------------------------------------
     for (int i = 0; i < iteration_count; i++) {
-      ngraph::Event evt_iteration(oss.str(), to_string(i), "");
+      NG_TRACE(oss.str(), to_string(i), "");
 
       tf::ngraph_bridge::Timer get_image_timer;
       //
@@ -278,21 +273,21 @@ int main(int argc, char** argv) {
       // Get the next available network model (i.e., session)
       //
       tf::ngraph_bridge::Timer execute_inference_timer;
-      ngraph::Event evt_get_session("Get Session",
-                                    string("Iteration") + to_string(i), "");
-      auto next_available_session = session_queue.GetNextAvailable();
-
-      evt_get_session.Stop();
+      unique_ptr<Session> next_available_session;
+      {
+        NG_TRACE("Get Session", string("Iteration") + to_string(i), "");
+        next_available_session = session_queue.GetNextAvailable();
+      }
 
       //
       // Run inference on this network model (i.e., session)
       //
-      ngraph::Event evt_run("Run Session", string("Iteration") + to_string(i),
-                            "");
-      TF_CHECK_OK(next_available_session->Run({{input_layer, next_image}},
-                                              {output_layer}, {},
-                                              &output_each_thread));
-      evt_run.Stop();
+      {
+        NG_TRACE("Run Session", string("Iteration") + to_string(i), "");
+        TF_CHECK_OK(next_available_session->Run({{input_layer, next_image}},
+                                                {output_layer}, {},
+                                                &output_each_thread));
+      }
       Session* next_session_ptr = next_available_session.get();
       session_queue.Add(move(next_available_session));
       execute_inference_timer.Stop();
@@ -304,14 +299,6 @@ int main(int argc, char** argv) {
       local_stats[next_session_ptr].second +=
           execute_inference_timer.ElapsedInMS();
       num_items[next_session_ptr]++;
-
-      //
-      // Update the Events
-      //
-      evt_iteration.Stop();
-      ngraph::Event::write_trace(evt_get_session);
-      ngraph::Event::write_trace(evt_run);
-      ngraph::Event::write_trace(evt_iteration);
     }
 
     //-----------------------------------------

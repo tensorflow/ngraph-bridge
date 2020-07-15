@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,10 @@
  *******************************************************************************/
 #include <atomic>
 #include <memory>
+#include <thread>
+
 #include "absl/synchronization/barrier.h"
 #include "gtest/gtest.h"
-#include "test/test_utilities.h"
 
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/graph/graph_constructor.h"
@@ -27,6 +28,8 @@
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_data_cache.h"
 #include "ngraph_bridge/version.h"
+
+#include "test/test_utilities.h"
 
 using namespace std;
 namespace ng = ngraph;

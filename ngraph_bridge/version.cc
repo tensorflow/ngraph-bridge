@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 #include <iostream>
 #include <string>
+
+#include "tensorflow/core/public/version.h"
 
 #include "ngraph/ngraph.hpp"
 
@@ -65,21 +67,15 @@ bool ngraph_tf_is_grappler_enabled() {
 #endif
 }
 
-bool ngraph_tf_are_variables_enabled() {
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+bool ngraph_tf_is_openvino_enabled() {
+#if defined(ENABLE_OPENVINO)
   return true;
 #else
   return false;
 #endif
 }
 
-bool ngraph_tf_is_distributed_enabled() {
-#if defined(NGRAPH_DISTRIBUTED)
-  return true;
-#else
-  return false;
-#endif
-}
+const char* tf_version() { return (TF_VERSION_STRING); }
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,9 @@
 
 #include "ngraph/ngraph.hpp"
 
-namespace tensorflow {
+#include "ngraph_bridge/ngraph_backend.h"
 
+namespace tensorflow {
 namespace ngraph_bridge {
 
 Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes,
@@ -31,13 +32,22 @@ Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes,
 // remove marking, backend and static input nodes attributes
 void ResetMarkForClustering(Graph* graph);
 Status IsSupportedByBackend(
-    const Node* node, const ngraph::runtime::Backend* op_backend,
+    const Node* node, const Backend* op_backend,
     const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
         TFtoNgraphOpMap,
     bool& is_supported);
 bool NodeIsMarkedForClustering(const Node* node);
-void GetStaticInputs(const Node* node, std::vector<int32>* inputs);
+
+// Returns the static input indexes in vector static_input_indexes
+void GetStaticInputs(const Node* node,
+                     std::vector<int32>* static_input_indexes);
+
+// Returns True if the index-th input is static
 bool InputIsStatic(const Node* node, int index);
+
+// Returns the static input indexes of the graph in vector static_input_indexes
+Status GetStaticInputs(Graph* graph, std::vector<int32>* static_input_indexes);
+
 Status GetNodeBackend(const Node* node, string* backend_name);
 void SetNodeBackend(Node* node, const string& backend_name);
 

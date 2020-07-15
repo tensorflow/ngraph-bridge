@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,9 +29,6 @@
 
 #include "logging/ngraph_log.h"
 #include "ngraph/ngraph.hpp"
-
-#include "ngraph_bridge/ngraph_freshness_tracker.h"
-#include "ngraph_bridge/ngraph_pipelined_tensors.h"
 
 namespace tensorflow {
 

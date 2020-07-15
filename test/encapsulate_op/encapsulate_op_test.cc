@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_encapsulate_op.h"
+#include "ngraph_bridge/ngraph_executable.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
 
@@ -27,7 +28,6 @@ using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 namespace testing {
@@ -103,13 +103,10 @@ TEST(EncapsulateOp, GetNgExecutable) {
 
   ng_encap_impl.SetOpBackend("CPU");
   ASSERT_OK(BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
-  ng::runtime::Backend* op_backend;
-  op_backend = BackendManager::GetBackend(ng_encap_impl.GetOpBackend());
 
-  std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-
-  ASSERT_OK(ng_encap_impl.GetNgExecutable(
-      input_tensors, input_shapes, static_input_map, op_backend, ng_exec));
+  std::shared_ptr<Executable> ng_exec;
+  ASSERT_OK(ng_encap_impl.GetNgExecutable(input_tensors, input_shapes,
+                                          static_input_map, ng_exec));
 
   BackendManager::ReleaseBackend("CPU");
 }
@@ -125,9 +122,9 @@ TEST(EncapsulateOp, AllocateNGInputTensors) {
 
   ng_encap_impl.SetOpBackend("CPU");
   ASSERT_OK(BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
-  ng::runtime::Backend* op_backend;
-  op_backend = BackendManager::GetBackend(ng_encap_impl.GetOpBackend());
-  auto ng_exec = op_backend->compile(f);
+
+  std::shared_ptr<Executable> ng_exec;
+  NGraphEncapsulateImpl::Compile(ng_encap_impl.GetOpBackend(), f, ng_exec);
 
   std::vector<tensorflow::TensorShape> input_shapes;
   std::vector<tensorflow::Tensor> input_tensors;
@@ -145,8 +142,8 @@ TEST(EncapsulateOp, AllocateNGInputTensors) {
 
   std::vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
 
-  ASSERT_OK(ng_encap_impl.AllocateNGInputTensors(input_tensors, ng_exec, {},
-                                                 op_backend, ng_inputs));
+  ASSERT_OK(
+      ng_encap_impl.AllocateNGInputTensors(input_tensors, ng_exec, ng_inputs));
   BackendManager::ReleaseBackend("CPU");
 }
 
@@ -161,9 +158,9 @@ TEST(EncapsulateOp, AllocateNGOutputTensors) {
 
   ng_encap_impl.SetOpBackend("CPU");
   ASSERT_OK(BackendManager::CreateBackend(ng_encap_impl.GetOpBackend()));
-  ng::runtime::Backend* op_backend;
-  op_backend = BackendManager::GetBackend(ng_encap_impl.GetOpBackend());
-  auto ng_exec = op_backend->compile(f);
+
+  std::shared_ptr<Executable> ng_exec;
+  NGraphEncapsulateImpl::Compile(ng_encap_impl.GetOpBackend(), f, ng_exec);
 
   std::vector<tensorflow::TensorShape> input_shapes;
   std::vector<tensorflow::Tensor> outputs;
@@ -186,8 +183,8 @@ TEST(EncapsulateOp, AllocateNGOutputTensors) {
   }
   std::vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
 
-  ASSERT_OK(ng_encap_impl.AllocateNGOutputTensors(output_tensors, ng_exec, {},
-                                                  op_backend, ng_outputs));
+  ASSERT_OK(ng_encap_impl.AllocateNGOutputTensors(output_tensors, ng_exec,
+                                                  ng_outputs));
 
   BackendManager::ReleaseBackend("CPU");
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,7 @@ using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
-
 namespace testing {
 
 // Utility Function to create NodeDef for _Arg and _Retval nodes
@@ -156,7 +154,7 @@ void OpExecuter::ExecuteOnTF(vector<Tensor>& tf_outputs) {
   ASSERT_EQ(Status::OK(), session.Run(sess_run_fetchoutputs_, &tf_outputs))
       << "Failed to run opexecutor on TF";
   for (size_t i = 0; i < tf_outputs.size(); i++) {
-    NGRAPH_VLOG(5) << " TF op " << i << tf_outputs[i].DebugString();
+    NGRAPH_VLOG(5) << " TF op " << i << " " << tf_outputs[i].DebugString();
   }
 }
 
@@ -214,7 +212,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     NGRAPH_VLOG(0) << "NGraph using backend: " << ng_backend_type;
   }
 
-  ng::runtime::Backend* backend;
+  Backend* backend;
   try {
     backend = BackendManager::GetBackend(ng_backend_type);
   } catch (...) {

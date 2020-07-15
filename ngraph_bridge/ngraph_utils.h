@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,12 +27,17 @@
 #include "tensorflow/core/platform/tensor_coding.h"
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
 
-#include "ngraph/event_tracing.hpp"
+#include "ngraph/chrome_trace.hpp"
 #include "ngraph/ngraph.hpp"
 #include "ngraph/serializer.hpp"
 
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
+
+// Activates event logging until the end of the current code-block scoping;
+// Automatically writes log data as soon as the the current scope expires.
+#define NG_TRACE(name, category, args) \
+  ngraph::event::Duration dx__ { (name), (category), (args) }
 
 namespace ng = ngraph;
 using namespace std;
@@ -59,8 +64,6 @@ int FindNumberOfNodes(const Graph* graph, const string op_type);
 Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
                                         bool& is_copy_log_enabled);
 
-Status GetNgraphVarBufferSharingState(int& buffer_sharing_state);
-
 void PrintTFTensor(Tensor& T1);
 std::string DebugNode(Node* node);
 
@@ -73,9 +76,6 @@ void WriteNGTensor(shared_ptr<ng::runtime::Tensor> ng_tensor,
                    Tensor* tf_tensor);
 
 void SummarizeOp(OpKernelConstruction* ctx, std::ostream& out);
-
-// Node-types on a variable and are executed on nGraph
-bool IsNGVariableType(string node_type);
 
 // Node-types that are executed on nGraph
 bool IsNGSupportedType(string node_type);
@@ -309,6 +309,9 @@ const gtl::ArraySlice<DataType>& NGraphNumericAndQuantizedDTypes();
 // axis/tensor indices.
 const gtl::ArraySlice<DataType>& NGraphIndexDTypes();
 
+// Returns an ArraySlice containing all data integer types.
+const gtl::ArraySlice<DataType>& NGraphIntDTypes();
+
 // Returns an ArraySlice containing supported data types in the quantized domain
 const gtl::ArraySlice<DataType>& NGraphSupportedQuantizedDTypes();
 
@@ -368,16 +371,6 @@ bool DumpClusteredGraphs();
 bool DumpDeclusteredGraphs();
 
 bool DumpEncapsulatedGraphs();
-
-bool DumpTrackedGraphs();
-
-bool DumpCatalogedGraphs();
-
-#if defined(NGRAPH_DISTRIBUTED)
-// Insert constrol dependency for AllReduce ops to ensure execution order
-void OpControlOrder(const std::shared_ptr<ngraph::Function>&,
-                    const std::string&);
-#endif
 
 }  // namespace ngraph_bridge
 

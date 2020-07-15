@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,482 +48,6 @@ namespace testing {
 // Neither TestCaseName nor TestName should contain underscore
 // https://github.com/google/googletest/blob/master/googletest/docs/primer.md
 // Use only Tensors and ops::Const() to provide input to the test op
-
-// The backward operation for "BiasAdd" on the bias tensor.
-// NHWC: out_backprop input at least rank 2
-// NCHW: out_backprop input only rank 4
-TEST(NNOps, BiasAddGrad) {
-  // define the shape for the out_backprop input shape
-  vector<int64> out_backprop_shape_2D = {10, 20};
-  vector<int64> out_backprop_shape_3D = {1, 3, 6};
-  vector<int64> out_backprop_shape_4D = {
-      1, 2, 3, 4};  // NCHW only supports 4D input/output on TF CPU
-  vector<int64> out_backprop_shape_5D = {2, 4, 6, 8, 10};
-
-  vector<vector<int64>> shape_vector;
-
-  shape_vector.push_back(out_backprop_shape_2D);
-  shape_vector.push_back(out_backprop_shape_3D);
-  shape_vector.push_back(out_backprop_shape_4D);
-  shape_vector.push_back(out_backprop_shape_5D);
-
-  auto attrs = ops::BiasAddGrad::Attrs();
-  attrs.data_format_ = "NHWC";
-
-  vector<int> static_input_indexes = {};
-  vector<DataType> output_datatypes = {DT_FLOAT};
-
-  for (int i = 0; i < 4; i++) {
-    Scope root = Scope::NewRootScope();
-    auto tensor_shape = shape_vector[i];
-
-    Tensor out_backprop(DT_FLOAT, TensorShape(tensor_shape));
-    AssignInputValuesRandom<float>(out_backprop, -5, 10);
-
-    auto R = ops::BiasAddGrad(root, out_backprop, attrs);
-    std::vector<Output> sess_run_fetchoutputs = {
-        R};  // tf session run parameter
-    OpExecuter opexecuter(root, "BiasAddGrad", static_input_indexes,
-                          output_datatypes, sess_run_fetchoutputs);
-    opexecuter.RunTest();
-  }
-
-  attrs.data_format_ = "NCHW";
-  Scope s_nchw = Scope::NewRootScope();
-
-  Tensor out_backprop_4D(DT_FLOAT, TensorShape(out_backprop_shape_4D));
-  AssignInputValuesRandom<float>(out_backprop_4D, -10, 20);
-
-  auto R_4D = ops::BiasAddGrad(s_nchw, out_backprop_4D, attrs);
-  std::vector<Output> sess_run_fetchoutputs_4D = {
-      R_4D};  // tf session run parameter
-  OpExecuter opexecuter_4D(s_nchw, "BiasAddGrad", static_input_indexes,
-                           output_datatypes, sess_run_fetchoutputs_4D);
-
-  opexecuter_4D.RunTest();
-}
-
-// TF does not support NCHW kernels
-// To test NCHW data format
-// Create graph with inputs in NCHW format and execute on NGraph
-// Reshape the NCHW inputs to NHWC and run on TF
-// Compare the results
-TEST(NNOps, Conv2DBackpropFilterNCHWSame) {
-  string padding_type = "SAME";
-  // Filter :[filter_height, filter_width, in_channels, out_channels]
-  initializer_list<int> filter_size_HWIO = {3, 3, 2, 2};
-  vector<DataType> output_datatypes = {DT_FLOAT};
-  vector<int> static_input_indexes = {1};
-
-  // Define scope for nGraph
-  // Data Format : NCHW
-  Scope ngraph_scope = Scope::NewRootScope();
-  vector<int64> input_size_NCHW = {1, 2, 7, 6};
-  Tensor input_data_NCHW(DT_FLOAT, TensorShape(input_size_NCHW));
-  AssignInputValuesRandom<float>(input_data_NCHW, -15.0f, 15.0f);
-
-  vector<int64> output_del_size_NCHW = {1, 2, 4, 3};
-  Tensor output_delta_NCHW(DT_FLOAT, TensorShape(output_del_size_NCHW));
-  AssignInputValuesRandom<float>(output_delta_NCHW, -20.0f, 20.0f);
-
-  auto filter_sizes = ops::Const(ngraph_scope, filter_size_HWIO);
-  vector<int> stride_NCHW = {1, 1, 2, 2};
-
-  // Dilation rates > 1 not supported by TF on CPU
-  ops::Conv2DBackpropFilter::Attrs op_attr_nchw;
-  op_attr_nchw = op_attr_nchw.DataFormat("NCHW");
-  op_attr_nchw = op_attr_nchw.Dilations({1, 1, 1, 1});
-
-  auto r_ngraph = ops::Conv2DBackpropFilter(
-      ngraph_scope, input_data_NCHW, filter_sizes, output_delta_NCHW,
-      stride_NCHW, padding_type, op_attr_nchw);
-
-  vector<Output> sess_run_fetchoutputs = {r_ngraph};
-  OpExecuter opexecuter_ngraph(ngraph_scope, "Conv2DBackpropFilter",
-                               static_input_indexes, output_datatypes,
-                               sess_run_fetchoutputs);
-  vector<Tensor> ngraph_outputs;
-  opexecuter_ngraph.ExecuteOnNGraph(ngraph_outputs);
-
-  // Define scope for tf (without nGraph)
-  // Data Format: NHWC
-  Scope tf_scope = Scope::NewRootScope();
-  auto input_data_NHWC =
-      ops::Transpose(tf_scope, input_data_NCHW, {0, 2, 3, 1});
-  auto output_delta_NHWC =
-      ops::Transpose(tf_scope, output_delta_NCHW, {0, 2, 3, 1});
-  auto filter_sizes_tf = ops::Const(tf_scope, filter_size_HWIO);
-  vector<int> stride_NHWC = {1, 2, 2, 1};
-  auto r_tf =
-      ops::Conv2DBackpropFilter(tf_scope, input_data_NHWC, filter_sizes_tf,
-                                output_delta_NHWC, stride_NHWC, padding_type);
-  vector<Output> sess_run_fetchoutputs_tf = {r_tf};
-  OpExecuter opexecuter_tf(tf_scope, "Conv2DBackpropFilter",
-                           static_input_indexes, output_datatypes,
-                           sess_run_fetchoutputs_tf);
-
-  vector<Tensor> tf_outputs;
-  opexecuter_tf.ExecuteOnTF(tf_outputs);
-
-  // Compare NGraph and TF Outputs
-  Compare(tf_outputs, ngraph_outputs, 1e-03, 1e-03);
-}
-
-TEST(NNOps, Conv2DBackpropFilterNCHWSameWithDilation) {
-  // TF Default formats : NHWC
-  vector<int64> input_size = {1, 2, 7, 6};
-  // Filter :[filter_height, filter_width, in_channels, out_channels]
-  initializer_list<int> filter_size = {3, 3, 2, 2};
-  vector<int64> output_delta_size = {1, 2, 4, 3};
-  vector<int> stride = {1, 1, 2, 2};
-  string padding_type = "SAME";
-  // change the dilation attribute
-  ops::Conv2DBackpropFilter::Attrs op_attr;
-  op_attr = op_attr.DataFormat("NCHW");
-  op_attr = op_attr.Dilations({1, 1, 3, 2});
-
-  vector<int> static_input_indexes = {1};
-
-  Scope root = Scope::NewRootScope();
-
-  Tensor output_delta(DT_FLOAT, TensorShape(output_delta_size));
-  int size_vect =
-      std::accumulate(output_delta_size.begin(), output_delta_size.end(), 1,
-                      std::multiplies<int64>());
-  std::vector<float> output_vector(size_vect);
-  std::iota(output_vector.begin(), output_vector.end(), 0);
-  AssignInputValues<float>(output_delta, output_vector);
-
-  auto filter_sizes = ops::Const(root, filter_size);
-
-  Tensor input_data(DT_FLOAT, TensorShape(input_size));
-  size_vect = std::accumulate(input_size.begin(), input_size.end(), 1,
-                              std::multiplies<int64>());
-  std::vector<float> input_vector(size_vect);
-  std::iota(input_vector.begin(), input_vector.end(), 0);
-  AssignInputValues<float>(input_data, input_vector);
-
-  auto R =
-      ops::Conv2DBackpropFilter(root, input_data, filter_sizes, output_delta,
-                                stride, padding_type, op_attr);
-
-  vector<DataType> output_datatypes = {DT_FLOAT};
-  std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "Conv2DBackpropFilter", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  vector<Tensor> ngraph_outputs;
-  opexecuter.ExecuteOnNGraph(ngraph_outputs);
-
-  // Construct tf_outputs using gathered values
-  vector<Tensor> tf_outputs;
-  Tensor tf_result(DT_FLOAT, TensorShape({3, 3, 2, 2}));
-  std::vector<float> tf_output_vector{
-      542.f,  1214.f,  2054.f, 4742.f, 827.f,  1907.f, 2969.f, 7073.f, 550.f,
-      1318.f, 1894.f,  4678.f, 1324.f, 3244.f, 3340.f, 9292.f, 1942.f, 4966.f,
-      4714.f, 13786.f, 1244.f, 3356.f, 2924.f, 9068.f, 350.f,  1598.f, 854.f,
-      4118.f, 467.f,   2411.f, 1097.f, 6065.f, 262.f,  1606.f, 598.f,  3958.f};
-  AssignInputValues(tf_result, tf_output_vector);
-  tf_outputs.push_back(tf_result);
-
-  Compare(tf_outputs, ngraph_outputs);
-}  // end of Conv2DBackpropFilterNCHWSameWithDilation
-
-TEST(NNOps, Conv2DBackpropFilterNCHWValid) {
-  string padding_type = "VALID";
-  // Filter :[filter_height, filter_width, in_channels, out_channels]
-  initializer_list<int> filter_size_HWIO = {3, 3, 2, 2};
-  vector<DataType> output_datatypes = {DT_FLOAT};
-  vector<int> static_input_indexes = {1};
-
-  // Define scope for nGraph
-  // Data Format : NCHW
-  Scope ngraph_scope = Scope::NewRootScope();
-  vector<int64> input_size_NCHW = {1, 2, 7, 6};
-  Tensor input_data_NCHW(DT_FLOAT, TensorShape(input_size_NCHW));
-  AssignInputValuesRandom<float>(input_data_NCHW, -15.0f, 15.0f);
-
-  vector<int64> output_del_size_NCHW = {1, 2, 3, 2};
-  Tensor output_delta_NCHW(DT_FLOAT, TensorShape(output_del_size_NCHW));
-  AssignInputValuesRandom<float>(output_delta_NCHW, -20.0f, 20.0f);
-
-  auto filter_sizes = ops::Const(ngraph_scope, filter_size_HWIO);
-  vector<int> stride_NCHW = {1, 1, 2, 2};
-
-  // Dilation rates > 1 not supported by TF on CPU
-  ops::Conv2DBackpropFilter::Attrs op_attr_nchw;
-  op_attr_nchw = op_attr_nchw.DataFormat("NCHW");
-  op_attr_nchw = op_attr_nchw.Dilations({1, 1, 1, 1});
-
-  auto r_ngraph = ops::Conv2DBackpropFilter(
-      ngraph_scope, input_data_NCHW, filter_sizes, output_delta_NCHW,
-      stride_NCHW, padding_type, op_attr_nchw);
-
-  vector<Output> sess_run_fetchoutputs = {r_ngraph};
-  OpExecuter opexecuter_ngraph(ngraph_scope, "Conv2DBackpropFilter",
-                               static_input_indexes, output_datatypes,
-                               sess_run_fetchoutputs);
-  vector<Tensor> ngraph_outputs;
-  opexecuter_ngraph.ExecuteOnNGraph(ngraph_outputs);
-
-  // Define scope for tf (without nGraph)
-  // Data Format: NHWC
-  Scope tf_scope = Scope::NewRootScope();
-  auto input_data_NHWC =
-      ops::Transpose(tf_scope, input_data_NCHW, {0, 2, 3, 1});
-  auto output_delta_NHWC =
-      ops::Transpose(tf_scope, output_delta_NCHW, {0, 2, 3, 1});
-  auto filter_sizes_tf = ops::Const(tf_scope, filter_size_HWIO);
-  vector<int> stride_NHWC = {1, 2, 2, 1};
-  auto r_tf =
-      ops::Conv2DBackpropFilter(tf_scope, input_data_NHWC, filter_sizes_tf,
-                                output_delta_NHWC, stride_NHWC, padding_type);
-  vector<Output> sess_run_fetchoutputs_tf = {r_tf};
-  OpExecuter opexecuter_tf(tf_scope, "Conv2DBackpropFilter",
-                           static_input_indexes, output_datatypes,
-                           sess_run_fetchoutputs_tf);
-
-  vector<Tensor> tf_outputs;
-  opexecuter_tf.ExecuteOnTF(tf_outputs);
-
-  // Compare NGraph and TF Outputs
-  Compare(tf_outputs, ngraph_outputs, 1e-03, 1e-03);
-}
-
-TEST(NNOps, Conv2DBackpropFilterNCHWValidWithDilation) {
-  // NCHW
-  vector<int64> input_size = {1, 2, 7, 6};
-  // Filter :[filter_height, filter_width, in_channels, out_channels]
-  initializer_list<int> filter_size = {3, 3, 2, 2};
-  vector<int64> output_delta_size = {1, 2, 1, 1};
-  vector<int> stride = {1, 1, 2, 2};
-  string padding_type = "VALID";
-  // change the dilation attribute
-  ops::Conv2DBackpropFilter::Attrs op_attr;
-  op_attr = op_attr.DataFormat("NCHW");
-  op_attr = op_attr.Dilations({1, 1, 3, 2});
-
-  vector<int> static_input_indexes = {1};
-
-  Scope root = Scope::NewRootScope();
-
-  Tensor output_delta(DT_FLOAT, TensorShape(output_delta_size));
-  int size_vect =
-      std::accumulate(output_delta_size.begin(), output_delta_size.end(), 1,
-                      std::multiplies<int64>());
-  std::vector<float> output_vector(size_vect);
-  std::iota(output_vector.begin(), output_vector.end(), 0);
-  AssignInputValues<float>(output_delta, output_vector);
-
-  auto filter_sizes = ops::Const(root, filter_size);
-
-  Tensor input_data(DT_FLOAT, TensorShape(input_size));
-  size_vect = std::accumulate(input_size.begin(), input_size.end(), 1,
-                              std::multiplies<int64>());
-  std::vector<float> input_vector(size_vect);
-  std::iota(input_vector.begin(), input_vector.end(), 0);
-  AssignInputValues<float>(input_data, input_vector);
-
-  auto R =
-      ops::Conv2DBackpropFilter(root, input_data, filter_sizes, output_delta,
-                                stride, padding_type, op_attr);
-
-  vector<DataType> output_datatypes = {DT_FLOAT};
-  std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "Conv2DBackpropFilter", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  vector<Tensor> ngraph_outputs;
-  opexecuter.ExecuteOnNGraph(ngraph_outputs);
-
-  // Construct tf_outputs using gathered values
-  vector<Tensor> tf_outputs;
-  Tensor tf_result(DT_FLOAT, TensorShape({3, 3, 2, 2}));
-  std::vector<float> tf_output_vector{
-      0.f, 0.f,  0.f, 42.f, 0.f, 2.f,  0.f, 44.f, 0.f, 4.f,  0.f, 46.f,
-      0.f, 18.f, 0.f, 60.f, 0.f, 20.f, 0.f, 62.f, 0.f, 22.f, 0.f, 64.f,
-      0.f, 36.f, 0.f, 78.f, 0.f, 38.f, 0.f, 80.f, 0.f, 40.f, 0.f, 82.f};
-  AssignInputValues(tf_result, tf_output_vector);
-  tf_outputs.push_back(tf_result);
-
-  Compare(tf_outputs, ngraph_outputs);
-}  // end of Conv2DBackpropFilterNCHWValidWithDilation
-
-TEST(NNOps, Conv2DBackpropFilterNHWCSame) {
-  // TF Default formats : NHWC
-  vector<int64> input_size = {1, 7, 6, 2};
-  // Filter :[filter_height, filter_width, in_channels, out_channels]
-  initializer_list<int> filter_size = {3, 3, 2, 2};
-  vector<int> stride = {1, 2, 2, 1};
-  string padding_type = "SAME";
-  vector<int64> output_delta_size = {1, 4, 3, 2};
-  vector<int> static_input_indexes = {1};
-
-  Scope root = Scope::NewRootScope();
-
-  Tensor output_delta(DT_FLOAT, TensorShape(output_delta_size));
-  AssignInputValuesRandom<float>(output_delta, -1.1f, 15.0f);
-
-  auto filter_sizes = ops::Const(root, filter_size);
-
-  Tensor input_data(DT_FLOAT, TensorShape(input_size));
-  AssignInputValuesRandom<float>(input_data, -1.1f, 10.0f);
-
-  auto R = ops::Conv2DBackpropFilter(root, input_data, filter_sizes,
-                                     output_delta, stride, padding_type);
-
-  vector<DataType> output_datatypes = {DT_FLOAT};
-  std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "Conv2DBackpropFilter", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-
-  opexecuter.RunTest();
-}
-
-TEST(NNOps, Conv2DBackpropFilterNHWCSameWithDilation) {
-  // TF Default formats : NHWC
-  vector<int64> input_size = {1, 7, 6, 2};
-  // Filter :[filter_height, filter_width, in_channels, out_channels]
-  initializer_list<int> filter_size = {3, 3, 2, 2};
-  vector<int64> output_delta_size = {1, 4, 3, 2};
-  vector<int> stride = {1, 2, 2, 1};
-  string padding_type = "SAME";
-  // change the dilation attribute
-  ops::Conv2DBackpropFilter::Attrs op_attr;
-  op_attr = op_attr.Dilations({1, 3, 2, 1});
-
-  vector<int> static_input_indexes = {1};
-
-  Scope root = Scope::NewRootScope();
-
-  Tensor output_delta(DT_FLOAT, TensorShape(output_delta_size));
-  int size_vect =
-      std::accumulate(output_delta_size.begin(), output_delta_size.end(), 1,
-                      std::multiplies<int64>());
-  std::vector<float> output_vector(size_vect);
-  std::iota(output_vector.begin(), output_vector.end(), 0);
-  AssignInputValues<float>(output_delta, output_vector);
-
-  auto filter_sizes = ops::Const(root, filter_size);
-
-  Tensor input_data(DT_FLOAT, TensorShape(input_size));
-  size_vect = std::accumulate(input_size.begin(), input_size.end(), 1,
-                              std::multiplies<int64>());
-  std::vector<float> input_vector(size_vect);
-  std::iota(input_vector.begin(), input_vector.end(), 0);
-  AssignInputValues<float>(input_data, input_vector);
-
-  auto R =
-      ops::Conv2DBackpropFilter(root, input_data, filter_sizes, output_delta,
-                                stride, padding_type, op_attr);
-
-  vector<DataType> output_datatypes = {DT_FLOAT};
-  std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "Conv2DBackpropFilter", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  vector<Tensor> ngraph_outputs;
-  opexecuter.ExecuteOnNGraph(ngraph_outputs);
-
-  // Construct tf_outputs using gathered values
-  vector<Tensor> tf_outputs;
-  Tensor tf_result(DT_FLOAT, TensorShape({3, 3, 2, 2}));
-  std::vector<float> tf_output_vector{
-      2168.f, 2280.f, 2240.f, 2356.f, 3308.f, 3488.f, 3410.f, 3596.f, 2200.f,
-      2328.f, 2264.f, 2396.f, 5296.f, 5616.f, 5392.f, 5720.f, 7768.f, 8272.f,
-      7900.f, 8416.f, 4976.f, 5328.f, 5056.f, 5416.f, 1400.f, 1608.f, 1424.f,
-      1636.f, 1868.f, 2192.f, 1898.f, 2228.f, 1048.f, 1272.f, 1064.f, 1292.f};
-  AssignInputValues(tf_result, tf_output_vector);
-  tf_outputs.push_back(tf_result);
-
-  Compare(tf_outputs, ngraph_outputs);
-}  // end of Conv2DBackpropFilterNHWCSameWithDilation
-
-TEST(NNOps, Conv2DBackpropFilterNHWCValid) {
-  // TF Default formats : NHWC
-  vector<int64> input_size = {1, 7, 6, 2};
-  // Filter :[filter_height, filter_width, in_channels, out_channels]
-  initializer_list<int> filter_size = {3, 3, 2, 2};
-  vector<int64> output_delta_size = {1, 3, 2, 2};
-  vector<int> stride = {1, 2, 2, 1};
-  string padding_type = "VALID";
-
-  vector<int> static_input_indexes = {1};
-
-  Scope root = Scope::NewRootScope();
-
-  Tensor output_delta(DT_FLOAT, TensorShape(output_delta_size));
-  AssignInputValuesRandom<float>(output_delta, -1.1f, 15.0f);
-
-  auto filter_sizes = ops::Const(root, filter_size);
-
-  Tensor input_data(DT_FLOAT, TensorShape(input_size));
-  AssignInputValuesRandom<float>(input_data, -1.1f, 10.0f);
-
-  auto R = ops::Conv2DBackpropFilter(root, input_data, filter_sizes,
-                                     output_delta, stride, padding_type);
-
-  vector<DataType> output_datatypes = {DT_FLOAT};
-  std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "Conv2DBackpropFilter", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-
-  opexecuter.RunTest();
-}
-
-TEST(NNOps, Conv2DBackpropFilterNHWCValidWithDilation) {
-  // TF Default formats : NHWC
-  vector<int64> input_size = {1, 7, 6, 2};
-  // Filter :[filter_height, filter_width, in_channels, out_channels]
-  initializer_list<int> filter_size = {3, 3, 2, 2};
-  vector<int64> output_delta_size = {1, 1, 1, 2};
-  vector<int> stride = {1, 2, 2, 1};
-  string padding_type = "VALID";
-  // change the dilation attribute
-  ops::Conv2DBackpropFilter::Attrs op_attr;
-  op_attr = op_attr.Dilations({1, 3, 2, 1});
-
-  vector<int> static_input_indexes = {1};
-
-  Scope root = Scope::NewRootScope();
-
-  Tensor output_delta(DT_FLOAT, TensorShape(output_delta_size));
-  int size_vect =
-      std::accumulate(output_delta_size.begin(), output_delta_size.end(), 1,
-                      std::multiplies<int64>());
-  std::vector<float> output_vector(size_vect);
-  std::iota(output_vector.begin(), output_vector.end(), 0);
-  AssignInputValues<float>(output_delta, output_vector);
-
-  auto filter_sizes = ops::Const(root, filter_size);
-
-  Tensor input_data(DT_FLOAT, TensorShape(input_size));
-  size_vect = std::accumulate(input_size.begin(), input_size.end(), 1,
-                              std::multiplies<int64>());
-  std::vector<float> input_vector(size_vect);
-  std::iota(input_vector.begin(), input_vector.end(), 0);
-  AssignInputValues<float>(input_data, input_vector);
-
-  auto R =
-      ops::Conv2DBackpropFilter(root, input_data, filter_sizes, output_delta,
-                                stride, padding_type, op_attr);
-
-  vector<DataType> output_datatypes = {DT_FLOAT};
-  std::vector<Output> sess_run_fetchoutputs = {R};
-  OpExecuter opexecuter(root, "Conv2DBackpropFilter", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  vector<Tensor> ngraph_outputs;
-  opexecuter.ExecuteOnNGraph(ngraph_outputs);
-
-  // Construct tf_outputs using gathered values
-  vector<Tensor> tf_outputs;
-  Tensor tf_result(DT_FLOAT, TensorShape({3, 3, 2, 2}));
-  std::vector<float> tf_output_vector{
-      0.f, 0.f,  0.f, 1.f,  0.f, 4.f,  0.f, 5.f,  0.f, 8.f,  0.f, 9.f,
-      0.f, 36.f, 0.f, 37.f, 0.f, 40.f, 0.f, 41.f, 0.f, 44.f, 0.f, 45.f,
-      0.f, 72.f, 0.f, 73.f, 0.f, 76.f, 0.f, 77.f, 0.f, 80.f, 0.f, 81.f};
-  AssignInputValues(tf_result, tf_output_vector);
-  tf_outputs.push_back(tf_result);
-
-  Compare(tf_outputs, ngraph_outputs);
-}  // end of Conv2DBackpropFilterNHWCValidWithDilation
 
 // Conv2DBackpropInput op : compute the graidents of conv with respects to input
 // Input is in NCHW format, with padding type "SAME"
@@ -988,50 +512,6 @@ TEST(NNOps, FusedBatchNormV2NHWCInference) {
   opexecuter.RunTest(1e-05, 1e-06);
 }  // end of FusedBatchNormV2NHWCInference
 
-// FusedBatchNormV2 op test with only DT_FLOAT datatype
-TEST(NNOps, FusedBatchNormV2NHWCTraining) {
-  Scope root = Scope::NewRootScope();
-
-  // 4D tensor for input data
-  Tensor x(DT_FLOAT, TensorShape({10, 128, 128, 3}));
-  // Tensor x(DT_FLOAT, TensorShape({27, 131, 127, 6}));
-  // Tensor x(DT_FLOAT, TensorShape({0, 131, 127, 6}));
-  // 1D tensor for scaling the normalized x
-  Tensor scale(DT_FLOAT, TensorShape({3}));
-  // 1D tensor for offset, to shift to the normalized x
-  Tensor offset(DT_FLOAT, TensorShape({3}));
-  // 1D tensor for population mean
-  // used for inference only, must be empty for training
-  Tensor mean(DT_FLOAT, TensorShape({0}));
-  // 1D tensor for population variance
-  // used for inference only, must be empty for training
-  Tensor variance(DT_FLOAT, TensorShape({0}));
-
-  AssignInputValuesRandom<float>(x, -30.f, 50.f);
-  AssignInputValuesRandom<float>(scale, 0.f, 1.f);
-  AssignInputValuesRandom<float>(offset, 0.f, 1.f);
-
-  auto attrs = ops::FusedBatchNormV2::Attrs();
-  attrs.is_training_ = true;  // default
-  attrs.epsilon_ = 0.0001f;
-  attrs.data_format_ = "NHWC";
-
-  // test grab the first three outputs from the FusedBatchNormGrad op
-  vector<int> static_input_indexes = {};
-
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT, DT_FLOAT,
-                                       DT_FLOAT};
-  auto R = ops::FusedBatchNormV2(root, x, scale, offset, mean, variance, attrs);
-
-  std::vector<Output> sess_run_fetchoutputs = {
-      R.y, R.batch_mean, R.batch_variance, R.reserve_space_1,
-      R.reserve_space_2};
-  OpExecuter opexecuter(root, "FusedBatchNormV2", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  opexecuter.RunTest("CPU", static_cast<float>(1e-03),
-                     static_cast<float>(1e-03));
-}  // end of FusedBatchNormV2NHWCTraining
-
 // FusedBatchNormV3 op test with only DT_FLOAT datatype
 TEST(NNOps, FusedBatchNormV3NHWCInference) {
   Scope root = Scope::NewRootScope();
@@ -1073,165 +553,6 @@ TEST(NNOps, FusedBatchNormV3NHWCInference) {
 
   opexecuter.RunTest(1e-05, 1e-06);
 }  // end of FusedBatchNormV3NHWCInference
-
-// FusedBatchNormV3 op test with only DT_FLOAT datatype
-TEST(NNOps, FusedBatchNormV3NHWCTraining) {
-  Scope root = Scope::NewRootScope();
-
-  // 4D tensor for input data
-  Tensor x(DT_FLOAT, TensorShape({10, 128, 128, 3}));
-  // Tensor x(DT_FLOAT, TensorShape({27, 131, 127, 6}));
-  // Tensor x(DT_FLOAT, TensorShape({0, 131, 127, 6}));
-  // 1D tensor for scaling the normalized x
-  Tensor scale(DT_FLOAT, TensorShape({3}));
-  // 1D tensor for offset, to shift to the normalized x
-  Tensor offset(DT_FLOAT, TensorShape({3}));
-  // 1D tensor for population mean
-  // used for inference only, must be empty for training
-  Tensor mean(DT_FLOAT, TensorShape({0}));
-  // 1D tensor for population variance
-  // used for inference only, must be empty for training
-  Tensor variance(DT_FLOAT, TensorShape({0}));
-
-  AssignInputValuesRandom<float>(x, -30.f, 50.f);
-  AssignInputValuesRandom<float>(scale, 0.f, 1.f);
-  AssignInputValuesRandom<float>(offset, 0.f, 1.f);
-
-  auto attrs = ops::FusedBatchNormV3::Attrs();
-  attrs.is_training_ = true;  // default
-  attrs.epsilon_ = 0.0001f;
-  attrs.data_format_ = "NHWC";
-
-  // test grab the first three outputs from the FusedBatchNormGrad op
-  vector<int> static_input_indexes = {};
-
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT, DT_FLOAT,
-                                       DT_FLOAT};
-  auto R = ops::FusedBatchNormV3(root, x, scale, offset, mean, variance, attrs);
-
-  std::vector<Output> sess_run_fetchoutputs = {
-      R.y, R.batch_mean, R.batch_variance, R.reserve_space_1,
-      R.reserve_space_2};
-  // reserve_space_3 is also an output but not comparing it
-  OpExecuter opexecuter(root, "FusedBatchNormV3", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  opexecuter.RunTest("CPU", static_cast<float>(1e-03),
-                     static_cast<float>(1e-03));
-}  // end of FusedBatchNormV3NHWCTraining
-
-// FusedBatchNormGrad : Gradient for batch normalization
-// On TF CPU: only supports NHWC
-TEST(NNOps, FusedBatchNormGradNHWC) {
-  Scope root = Scope::NewRootScope();
-
-  // 4D tensor for the gradient with respect to y
-  Tensor y_backprop(DT_FLOAT, TensorShape({5, 4, 3, 2}));
-  // 4D tensor for input data
-  Tensor x(DT_FLOAT, TensorShape({5, 4, 3, 2}));
-  // 1D tensor for scaling the normalized x
-  Tensor scale(DT_FLOAT, TensorShape({2}));
-  // 1D tensor for population mean
-  Tensor reserve_space_1_mean(DT_FLOAT, TensorShape({2}));
-  // 1D tensor for population variance
-  Tensor reserve_space_2_variance(DT_FLOAT, TensorShape({2}));
-
-  AssignInputValuesRandom<float>(y_backprop, -5.0f, 10.0f);
-  AssignInputValuesRandom<float>(x, -10.0f, 10.0f);
-  AssignInputValuesRandom<float>(scale, -1.6f, 1.6f);
-  AssignInputValuesRandom<float>(reserve_space_1_mean, 1.1f, 1.5f);
-  AssignInputValuesRandom<float>(reserve_space_2_variance, 0.5f, 1.5f);
-
-  auto attrs = ops::FusedBatchNormGrad::Attrs();
-  attrs.is_training_ =
-      true;  // doesn't support is_training_= false case on ngraph
-  attrs.epsilon_ = 0.0001f;
-  attrs.data_format_ = "NHWC";
-
-  // test grab the first three outputs from the FusedBatchNormGrad op
-  vector<int> static_input_indexes = {};
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT};
-  auto R =
-      ops::FusedBatchNormGrad(root, y_backprop, x, scale, reserve_space_1_mean,
-                              reserve_space_2_variance, attrs);
-  std::vector<Output> sess_run_fetchoutputs = {R.x_backprop, R.scale_backprop,
-                                               R.offset_backprop};
-  OpExecuter opexecuter(root, "FusedBatchNormGrad", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  opexecuter.RunTest(1e-05, 1e-06);
-
-  // test grab all the outputs from the FusedBatchNormGrad op
-  Scope all_output_test = Scope::NewRootScope();
-  vector<DataType> output_datatypes_all = {DT_FLOAT, DT_FLOAT, DT_FLOAT,
-                                           DT_FLOAT, DT_FLOAT};
-  R = ops::FusedBatchNormGrad(all_output_test, y_backprop, x, scale,
-                              reserve_space_1_mean, reserve_space_2_variance,
-                              attrs);
-  std::vector<Output> sess_run_fetchoutputs_all = {
-      R.x_backprop, R.scale_backprop, R.offset_backprop, R.reserve_space_3,
-      R.reserve_space_4};
-  OpExecuter opexecuter_all_output(all_output_test, "FusedBatchNormGrad",
-                                   static_input_indexes, output_datatypes_all,
-                                   sess_run_fetchoutputs_all);
-  opexecuter_all_output.RunTest(1e-05, 1e-06);
-}
-
-// FusedBatchNormGradV3 : Gradient for batch normalization
-// On TF CPU: only supports NHWC
-TEST(NNOps, FusedBatchNormGradV3NHWC) {
-  Scope root = Scope::NewRootScope();
-
-  // 4D tensor for the gradient with respect to y
-  Tensor y_backprop(DT_FLOAT, TensorShape({5, 4, 3, 2}));
-  // 4D tensor for input data
-  Tensor x(DT_FLOAT, TensorShape({5, 4, 3, 2}));
-  // 1D tensor for scaling the normalized x
-  Tensor scale(DT_FLOAT, TensorShape({2}));
-  // 1D tensor for population mean
-  Tensor reserve_space_1_mean(DT_FLOAT, TensorShape({2}));
-  // 1D tensor for population variance
-  Tensor reserve_space_2_variance(DT_FLOAT, TensorShape({2}));
-  Tensor reserve_space_3(DT_FLOAT, TensorShape({2}));
-
-  AssignInputValuesRandom<float>(y_backprop, -5.0f, 10.0f);
-  AssignInputValuesRandom<float>(x, -10.0f, 10.0f);
-  AssignInputValuesRandom<float>(scale, -1.6f, 1.6f);
-  AssignInputValuesRandom<float>(reserve_space_1_mean, 1.1f, 1.5f);
-  AssignInputValuesRandom<float>(reserve_space_2_variance, 0.5f, 1.5f);
-  AssignInputValuesRandom<float>(reserve_space_3, 0.5f, 1.5f);
-
-  auto attrs = ops::FusedBatchNormGradV3::Attrs();
-  attrs.is_training_ =
-      true;  // doesn't support is_training_= false case on ngraph
-  attrs.epsilon_ = 0.0001f;
-  attrs.data_format_ = "NHWC";
-
-  // test grab the first three outputs from the FusedBatchNormGradV3 op
-  vector<int> static_input_indexes = {};
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT, DT_FLOAT};
-  auto R = ops::FusedBatchNormGradV3(
-      root, y_backprop, x, scale, reserve_space_1_mean,
-      reserve_space_2_variance, reserve_space_3, attrs);
-  std::vector<Output> sess_run_fetchoutputs = {R.x_backprop, R.scale_backprop,
-                                               R.offset_backprop};
-  OpExecuter opexecuter(root, "FusedBatchNormGradV3", static_input_indexes,
-                        output_datatypes, sess_run_fetchoutputs);
-  opexecuter.RunTest(1e-05, 1e-06);
-
-  // test grab all the outputs from the FusedBatchNormGradV3 op
-  Scope all_output_test = Scope::NewRootScope();
-  vector<DataType> output_datatypes_all = {DT_FLOAT, DT_FLOAT, DT_FLOAT,
-                                           DT_FLOAT, DT_FLOAT};
-  R = ops::FusedBatchNormGradV3(all_output_test, y_backprop, x, scale,
-                                reserve_space_1_mean, reserve_space_2_variance,
-                                reserve_space_3, attrs);
-  std::vector<Output> sess_run_fetchoutputs_all = {
-      R.x_backprop, R.scale_backprop, R.offset_backprop, R.reserve_space_4,
-      R.reserve_space_5};
-  OpExecuter opexecuter_all_output(all_output_test, "FusedBatchNormGradV3",
-                                   static_input_indexes, output_datatypes_all,
-                                   sess_run_fetchoutputs_all);
-  opexecuter_all_output.RunTest(1e-05, 1e-06);
-}
 
 // Test Op :"L2Loss"
 TEST(NNOps, L2Loss) {
@@ -1533,35 +854,6 @@ TEST(NNOps, Softmax3D) {
   opexecuter.RunTest();
 }
 
-// Computes softmax cross entropy cost and gradients to backpropagate.
-TEST(NNOps, SoftmaxCrossEntropyWithLogits) {
-  Scope root = Scope::NewRootScope();
-  int batch = 10;
-  int num_of_classes = 10;
-
-  Tensor A(DT_FLOAT, TensorShape({batch, num_of_classes}));  // logits/features
-  Tensor B(
-      DT_FLOAT,
-      TensorShape({batch, num_of_classes}));  // labels with a valid Prob Distr
-
-  AssignInputValuesRandom<float>(A, -200.0f, 200.0f);
-  AssignInputValuesRandom<float>(B, 0.0f, 1.0f);
-  // TODO: To make B a valid prob distr, let's ensure that the sum of each row
-  // is 1, using a Softmax
-
-  vector<int> static_input_indexes = {};
-  auto R = ops::SoftmaxCrossEntropyWithLogits(root, A, B);
-
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT};
-
-  std::vector<Output> sess_run_fetchoutputs = {R.loss, R.backprop};
-  OpExecuter opexecuter(root, "SoftmaxCrossEntropyWithLogits",
-                        static_input_indexes, output_datatypes,
-                        sess_run_fetchoutputs);
-
-  opexecuter.RunTest();
-}
-
 // The non softmax (non last) dim is zero
 TEST(NNOps, SoftmaxZeroDimTest1) {
   Scope root = Scope::NewRootScope();
@@ -1626,29 +918,75 @@ TEST(NNOps, Softplus) {
   }
 }
 
-// Computes softmax cross entropy cost and gradients to backpropagate.
-TEST(NNOps, SparseSoftmaxCrossEntropyWithLogits) {
-  Scope root = Scope::NewRootScope();
-  int batch = 10;
-  int num_of_classes = 2;
+// Test Op :"BiasAdd", also see ./python/test_biasadd.py
+// Run .../ngraph-bridge/build_cmake/test$ ./gtest_ngtf
+// --gtest_filter="NNOps.BiasAdd"
+TEST(NNOps, BiasAdd) {
+  {
+    Tensor A(DT_FLOAT, TensorShape({2, 2, 2, 2}));
+    AssignInputValues<float>(A,
+                             {0, 1, 0, 1, 2, 1, 1, 0, 3, 1, 1, 0, 4, 4, 5, 4});
+    Tensor B(DT_FLOAT, TensorShape({2}));
+    AssignInputValues<float>(B, {100, -100});
+    ops::BiasAdd::Attrs attrs;
+    vector<DataType> output_datatypes = {DT_FLOAT};
+    vector<int> static_input_indexes = {};
+    std::vector<std::string> formats{"NHWC", "NCHW"};
 
-  Tensor A(DT_FLOAT, TensorShape({batch, num_of_classes}));
-  Tensor B(DT_INT32, TensorShape({batch}));
+    for (auto& format : formats) {
+      NGRAPH_VLOG(2) << "BiasAdd testing with format: " << format;
+      Scope root = Scope::NewRootScope();
+      attrs = attrs.DataFormat(format);
+      // see TF file .../tensorflow/cc/ops/nn_ops.h
+      auto R = ops::BiasAdd(root, A, B, attrs);
+      std::vector<Output> sess_run_fetchoutputs = {R};
+      OpExecuter opexecuter(root, "BiasAdd", static_input_indexes,
+                            output_datatypes, sess_run_fetchoutputs);
+      opexecuter.RunTest();
+    }
+  }
 
-  AssignInputValuesRandom<float>(A, -2.0f, 2.0f);
-  AssignInputValuesRandom<int>(B, 0, num_of_classes - 1);
+  {
+    Tensor A(DT_FLOAT, TensorShape({2, 3, 2, 2}));  // NCHW
+    AssignInputValues<float>(A, {0, 1, 0, 1, 2, 1, 1, 0, 3, 1, 1, 0,
+                                 4, 4, 5, 4, 3, 5, 1, 2, 0, 4, 0, 1});
+    Tensor B(DT_FLOAT, TensorShape({3}));
+    AssignInputValues<float>(B, {100, -100, 50});  // channels = 3
+    ops::BiasAdd::Attrs attrs;
+    vector<DataType> output_datatypes = {DT_FLOAT};
+    vector<int> static_input_indexes = {};
+    std::string format("NCHW");
+    NGRAPH_VLOG(2) << "BiasAdd testing with format: " << format;
+    Scope root = Scope::NewRootScope();
+    attrs = attrs.DataFormat(format);
+    // see TF file .../tensorflow/cc/ops/nn_ops.h
+    auto R = ops::BiasAdd(root, A, B, attrs);
+    std::vector<Output> sess_run_fetchoutputs = {R};
+    OpExecuter opexecuter(root, "BiasAdd", static_input_indexes,
+                          output_datatypes, sess_run_fetchoutputs);
+    opexecuter.RunTest();
+  }
 
-  vector<int> static_input_indexes = {};
-  auto R = ops::SparseSoftmaxCrossEntropyWithLogits(root, A, B);
-
-  vector<DataType> output_datatypes = {DT_FLOAT, DT_FLOAT};
-
-  std::vector<Output> sess_run_fetchoutputs = {R.loss, R.backprop};
-  OpExecuter opexecuter(root, "SparseSoftmaxCrossEntropyWithLogits",
-                        static_input_indexes, output_datatypes,
-                        sess_run_fetchoutputs);
-
-  opexecuter.RunTest();
+  {
+    Tensor A(DT_FLOAT, TensorShape({2, 2, 2, 3}));  // NHWC
+    AssignInputValues<float>(A, {0, 1, 0, 1, 2, 1, 1, 0, 3, 1, 1, 0,
+                                 4, 4, 5, 4, 3, 5, 1, 2, 0, 4, 0, 1});
+    Tensor B(DT_FLOAT, TensorShape({3}));
+    AssignInputValues<float>(B, {100, -100, 50});  // channels = 3
+    ops::BiasAdd::Attrs attrs;
+    vector<DataType> output_datatypes = {DT_FLOAT};
+    vector<int> static_input_indexes = {};
+    std::string format("NHWC");
+    NGRAPH_VLOG(2) << "BiasAdd testing with format: " << format;
+    Scope root = Scope::NewRootScope();
+    attrs = attrs.DataFormat(format);
+    // see TF file .../tensorflow/cc/ops/nn_ops.h
+    auto R = ops::BiasAdd(root, A, B, attrs);
+    std::vector<Output> sess_run_fetchoutputs = {R};
+    OpExecuter opexecuter(root, "BiasAdd", static_input_indexes,
+                          output_datatypes, sess_run_fetchoutputs);
+    opexecuter.RunTest();
+  }
 }
 
 }  // namespace testing

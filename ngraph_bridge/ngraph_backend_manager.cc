@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,14 @@
 
 #include "ngraph_bridge/ngraph_backend_manager.h"
 
+#if !defined(ENABLE_OPENVINO)
+#include "ngraph/runtime/backend_manager.hpp"
+#endif
+
 using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 BackendManager::~BackendManager() {
@@ -30,7 +33,7 @@ BackendManager::~BackendManager() {
 // initialize backend manager
 string BackendManager::ng_backend_name_ = "CPU";
 mutex BackendManager::ng_backend_name_mutex_;
-map<string, std::unique_ptr<Backend>> BackendManager::ng_backend_map_;
+map<string, std::unique_ptr<_Backend>> BackendManager::ng_backend_map_;
 mutex BackendManager::ng_backend_map_mutex_;
 map<std::string, int> BackendManager::ref_count_each_backend_;
 
@@ -46,10 +49,8 @@ Status BackendManager::SetBackendName(const string& backend_name) {
 
 Status BackendManager::CreateBackend(const string& backend_name) {
 // Register backends for static linking
-#if defined(NGRAPH_CPU_STATIC_LIB_ENABLE)
+#if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
   ngraph_register_cpu_backend();
-#endif
-#if defined(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
   ngraph_register_interpreter_backend();
 #endif
 
@@ -57,9 +58,10 @@ Status BackendManager::CreateBackend(const string& backend_name) {
   auto itr = BackendManager::ng_backend_map_.find(backend_name);
   // if backend does not exist create it
   if (itr == BackendManager::ng_backend_map_.end()) {
-    std::shared_ptr<ng::runtime::Backend> bend_ptr;
+    std::shared_ptr<Backend> bend_ptr;
+
     try {
-      bend_ptr = ng::runtime::Backend::create(backend_name);
+      bend_ptr = Backend::create(backend_name);
     } catch (const std::exception& e) {
       return errors::Internal("Could not create backend of type ", backend_name,
                               ". Got exception: ", e.what());
@@ -69,7 +71,7 @@ Status BackendManager::CreateBackend(const string& backend_name) {
       return errors::Internal("Could not create backend of type ", backend_name,
                               " got nullptr");
     }
-    std::unique_ptr<Backend> bend = std::unique_ptr<Backend>(new Backend);
+    std::unique_ptr<_Backend> bend = std::unique_ptr<_Backend>(new _Backend);
     bend->backend_ptr = std::move(bend_ptr);
     BackendManager::ng_backend_map_[backend_name] = std::move(bend);
     BackendManager::ref_count_each_backend_[backend_name] = 0;
@@ -100,7 +102,7 @@ void BackendManager::SetConfig(
     const std::unordered_map<std::string, std::string>&
         additional_attributes_map) {
   std::lock_guard<std::mutex> lock(BackendManager::ng_backend_map_mutex_);
-  ng::runtime::Backend* bend = GetBackend(backend_name);
+  Backend* bend = GetBackend(backend_name);
   NGRAPH_VLOG(2) << "BackendManager::SetConfig() " << backend_name;
   std::string error;
   std::map<std::string, std::string> device_config_map;
@@ -118,7 +120,7 @@ void BackendManager::SetConfig(
 }
 
 // Returns a backend pointer of the type specified by the backend name
-ng::runtime::Backend* BackendManager::GetBackend(const string& backend_name) {
+Backend* BackendManager::GetBackend(const string& backend_name) {
   return BackendManager::ng_backend_map_.at(backend_name)->backend_ptr.get();
 }
 
@@ -135,24 +137,25 @@ void BackendManager::UnlockBackend(const string& backend_name) {
 // Returns the nGraph supported backend names
 vector<string> BackendManager::GetSupportedBackendNames() {
 // Register backends for static linking
-#if defined(NGRAPH_CPU_STATIC_LIB_ENABLE)
+#if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
   ngraph_register_cpu_backend();
-#endif
-#if defined(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
   ngraph_register_interpreter_backend();
 #endif
+
+#if !defined(ENABLE_OPENVINO)
   return ng::runtime::BackendManager::get_registered_backends();
+#else
+  return Backend::get_registered_devices();
+#endif
 }
 
 size_t BackendManager::GetNumOfSupportedBackends() {
 // Register backends for static linking
-#if defined(NGRAPH_CPU_STATIC_LIB_ENABLE)
+#if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
   ngraph_register_cpu_backend();
-#endif
-#if defined(NGRAPH_INTERPRETER_STATIC_LIB_ENABLE)
   ngraph_register_interpreter_backend();
 #endif
-  return ng::runtime::BackendManager::get_registered_backends().size();
+  return BackendManager::GetSupportedBackendNames().size();
 }
 
 Status BackendManager::CanCreateBackend(const string& backend_string) {

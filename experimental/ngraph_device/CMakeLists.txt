@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Nervana Systems Inc.
+# Copyright 2018-2020 Intel Corporation
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -53,7 +53,8 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
             absl_algorithm
             absl_container
             absl_strings
-            lib_mkldnn
+            lib_mklml_intel
+            lib_dnnl
             lib_iomp5
         )
 
@@ -95,9 +96,9 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         absl_algorithm
         absl_container
         absl_strings
-        lib_mkldnn
-        lib_mklml_intel
+        lib_dnnl
         lib_iomp5
+        lib_mklml_intel
     )
     target_compile_definitions(
     ${LIB_NAME_STATIC} PRIVATE 

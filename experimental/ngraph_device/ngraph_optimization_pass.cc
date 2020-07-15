@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,22 +17,10 @@
 #include <fstream>
 #include <iomanip>
 
+#include "absl/synchronization/mutex.h"
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/graph/graph.h"
-
-// #include "logging/ngraph_log.h"
-// #include "logging/tf_graph_writer.h"
-// #include "ngraph_bridge/ngraph_api.h"
-// #include "ngraph_bridge/ngraph_assign_clusters.h"
-// #include "ngraph_bridge/ngraph_backend_manager.h"
-// #include "ngraph_bridge/ngraph_capture_variables.h"
-// #include "ngraph_bridge/ngraph_cluster_manager.h"
-// #include "ngraph_bridge/ngraph_deassign_clusters.h"
-// #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
-// #include "ngraph_bridge/ngraph_mark_for_clustering.h"
-// #include "ngraph_bridge/ngraph_rewrite_for_tracking.h"
-// #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,8 +77,6 @@ TEST(MathOps, Abs1D) {
   // the third is the retval. In multiple test runs the retval's number changes,
   // hence not adding in an assert
   ASSERT_EQ(node_list.size(), 3);
-  auto it = node_list.begin();
-  ASSERT_EQ((*std::next(it))->get_friendly_name(), "Abs");
 }
 
 TEST(MathOps, Abs2D) {
@@ -99,6 +97,26 @@ TEST(MathOps, Abs2D) {
                         sess_run_fetchoutputs);
   opexecuter.RunTest();
 }  // end of test op Abs
+
+// Test op: Acos
+TEST(MathOps, Acos2D) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 4;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Acos(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Acos", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of test op Acos
 
 // Test op: Add
 TEST(MathOps, Add) {
@@ -190,7 +208,9 @@ TEST(MathOps, AddN) {
 
 // Test op: Any
 // Any with attribute KeepDims set to true
-TEST(MathOps, AnyKeepDims) {
+// Fails with opset3 upgrade because there is no opset0
+// downgrade available for it in nGraph
+TEST(MathOps, DISABLED_AnyKeepDims) {
   int dim1 = 2;
   int dim2 = 2;
   std::vector<bool> v = {true, true, true, true};
@@ -213,7 +233,7 @@ TEST(MathOps, AnyKeepDims) {
   opexecuter.RunTest();
 }
 
-TEST(MathOps, AnyNegativeAxis) {
+TEST(MathOps, DISABLED_AnyNegativeAxis) {
   int dim1 = 2;
   int dim2 = 3;
   std::vector<bool> v = {true, true, true, true, false, false};
@@ -234,7 +254,7 @@ TEST(MathOps, AnyNegativeAxis) {
   opexecuter.RunTest();
 }
 
-TEST(MathOps, AnyPositiveAxis) {
+TEST(MathOps, DISABLED_AnyPositiveAxis) {
   int dim1 = 3;
   int dim2 = 3;
   std::vector<bool> v = {true,  true, true,  true, false,
@@ -258,7 +278,9 @@ TEST(MathOps, AnyPositiveAxis) {
 
 // Test op: All
 // All with attribute KeepDims set to true
-TEST(MathOps, AllKeepDims) {
+// Fails with opset3 upgrade because there is no opset0
+// downgrade available for it in nGraph
+TEST(MathOps, DISABLED_AllKeepDims) {
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
   int dim2 = 2;
@@ -284,7 +306,7 @@ TEST(MathOps, AllKeepDims) {
   opexecuter.RunTest();
 }
 
-TEST(MathOps, AllNegativeAxis) {
+TEST(MathOps, DISABLED_AllNegativeAxis) {
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
   int dim2 = 3;
@@ -309,7 +331,7 @@ TEST(MathOps, AllNegativeAxis) {
   opexecuter.RunTest();
 }
 
-TEST(MathOps, AllPositiveAxis) {
+TEST(MathOps, DISABLED_AllPositiveAxis) {
   Scope root = Scope::NewRootScope();
   int dim1 = 3;
   int dim2 = 3;
@@ -334,6 +356,45 @@ TEST(MathOps, AllPositiveAxis) {
 
   opexecuter.RunTest();
 }  // end of test op All
+
+// Test op: Asin
+TEST(MathOps, Asin) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 4;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Asin(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Asin", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of test op Asin
+
+// Test op: Atan
+TEST(MathOps, Atan) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Atan(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Atan", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of test op Atan
 
 // Test op: Cumsum
 TEST(MathOps, Cumsum) {
@@ -573,6 +634,28 @@ TEST(MathOps, Atan2) {
 
   opexecuter.RunTest();
 }  // end of test op Atan2
+
+// Test op: MatMul
+TEST(MathOps, MatMul) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3}));
+  Tensor B(DT_FLOAT, TensorShape({3, 4}));
+
+  AssignInputValues(A, 2.0f);
+  AssignInputValues(B, 7.0f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::MatMul(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "MatMul", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
 
 // Test op: BatchMatMul
 // BatchMatMul2D
@@ -1271,6 +1354,27 @@ TEST(MathOps, Cast2D) {
   opexecuter.RunTest();
 }  // end of test op Cast
 
+// Test op: Ceil
+TEST(MathOps, Ceil) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 5;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Ceil(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Ceil", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Ceil
+
 // Test op: Cos
 TEST(MathOps, Cos) {
   Scope root = Scope::NewRootScope();
@@ -1292,6 +1396,25 @@ TEST(MathOps, Cos) {
 
   opexecuter.RunTest();
 }  // end of test op Cos
+
+// Test op: Cosh
+TEST(MathOps, Cosh) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1}));
+
+  AssignInputValuesRandom(A);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Cosh(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Cosh", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of test op Cosh
 
 // Test op: Exp
 TEST(MathOps, Exp1D) {
@@ -1359,6 +1482,29 @@ TEST(MathOps, FloorDiv) {
   opexecuter.RunTest();
 }  // end of test op FloorDiv
 
+TEST(MathOps, FloorDivInt) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_INT32, TensorShape({dim1, dim2}));
+  Tensor B(DT_INT32, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 4);
+  AssignInputValues(B, 3);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::FloorDiv(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_INT32};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "FloorDiv", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op FloorDivInt
+
 // Test op: FloorDivBroadcasting
 TEST(MathOps, FloorDivBroadcasting) {
   Scope root = Scope::NewRootScope();
@@ -1384,10 +1530,7 @@ TEST(MathOps, FloorDivBroadcasting) {
 }  // end of test op FloorDivBroadcasting
 
 // Test op: FloorDivNegInt
-// Error found when running tensorflow python test
-// For this test case, TF outputs -1, NGraph outputs 0
-// Enable when NGraph fix the issue
-TEST(MathOps, DISABLED_FloorDivNegInt) {
+TEST(MathOps, FloorDivNegInt) {
   Scope root = Scope::NewRootScope();
 
   Tensor A(DT_INT32, TensorShape({1}));
@@ -1430,7 +1573,7 @@ TEST(MathOps, FloorDivNegFloat) {
 }  // end of test op FloorDivNegFloat
 
 // Test op: FloorMod
-TEST(MathOps, FloorMod) {
+TEST(MathOps, DISABLED_FloorMod) {
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
   int dim2 = 2;
@@ -1454,7 +1597,7 @@ TEST(MathOps, FloorMod) {
 }  // end of test op FloorMod
 
 // Test op: FloorModBroadcasting
-TEST(MathOps, FloorModBroadcasting) {
+TEST(MathOps, DISABLED_FloorModBroadcasting) {
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
   int dim2 = 2;
@@ -1502,7 +1645,7 @@ TEST(MathOps, DISABLED_FloorModNegInt) {
   opexecuter.RunTest();
 }  // end of test op FloorModNegInt
 
-TEST(MathOps, FloorModNegFloat) {
+TEST(MathOps, DISABLED_FloorModNegFloat) {
   Scope root = Scope::NewRootScope();
 
   vector<float> nums = {-8.f, -8.f};
@@ -1594,6 +1737,28 @@ TEST(MathOps, Log2D) {
   opexecuter.RunTest();
 }  // end of test op Log
 
+TEST(MathOps, Log1p) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 4;
+  vector<float> vals = {-2, -1, 0, 0.25, 0.5, 1, 5, 10};
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, vals);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Log1p(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Log1p", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Log1p
+
 // Test Op:LogicalOr
 TEST(MathOps, LogicalOr) {
   Scope root = Scope::NewRootScope();
@@ -1619,6 +1784,28 @@ TEST(MathOps, LogicalOr) {
                         output_datatypes, sess_run_fetchoutputs);
   opexecuter.RunTest();
 }  // end of LogicalOr
+
+// Test Op:LogicalNot
+TEST(MathOps, LogicalNot) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 3;
+  std::vector<bool> v1 = {true, true, true, true, false, false};
+
+  Tensor A(DT_BOOL, TensorShape({dim1, dim2}));
+  AssignInputValues(A, v1);
+
+  vector<int> static_input_indexes = {};
+
+  auto R = ops::LogicalNot(root, A);
+
+  vector<DataType> output_datatypes = {DT_BOOL};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "LogicalNot", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of LogicalNot
 
 // Test op: Max
 TEST(MathOps, MaxNegativeAxis) {
@@ -1850,6 +2037,22 @@ TEST(MathOps, Pow2D) {
   OpExecuter opexecuter(root, "Pow", static_input_indexes, output_datatypes,
                         sess_run_fetchoutputs);
   opexecuter.RunTest();
+}
+
+// Broadcasting
+TEST(MathOps, Pow0D1D) {
+  Scope root = Scope::NewRootScope();
+  Tensor A(DT_FLOAT, TensorShape({}));   // scalar == rank 0 (no axes)
+  Tensor B(DT_FLOAT, TensorShape({5}));  // vector == rank 1 (1 axis)
+  AssignInputValues(A, 2.1f);
+  AssignInputValues(B, 4.1f);
+  vector<int> static_input_indexes = {};
+  auto R = ops::Pow(root, A, B);
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Pow", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
 }  // end of test op Pow
 
 // Test op: RealDiv
@@ -1900,6 +2103,34 @@ TEST(MathOps, RealDivBroadcasting) {
   opexecuter.RunTest();
 }  // end of test op RealDivBroadcasting
 
+// Test op: RealDiv for nan, inf case
+TEST(MathOps, RealDivNonfinite) {
+  Scope root = Scope::NewRootScope();
+  int dim = 3;
+
+  Tensor A(DT_FLOAT, TensorShape({dim}));
+  Tensor B(DT_FLOAT, TensorShape({dim}));
+
+  auto inf = std::numeric_limits<float>::infinity();
+
+  vector<float> dividend_vals = {0, -inf, inf};
+  vector<float> divisor_vals = {0, 1.0, 1.0};
+
+  AssignInputValues(A, dividend_vals);
+  AssignInputValues(B, divisor_vals);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::RealDiv(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "RealDiv", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test RealDivNonfinite
+
 // Test op: Reciprocal
 TEST(MathOps, Reciprocal) {
   Scope root = Scope::NewRootScope();
@@ -1922,6 +2153,28 @@ TEST(MathOps, Reciprocal) {
   opexecuter.RunTest();
 }  // end of test op Reciprocal
 
+// Test op: Relu
+TEST(MathOps, Relu) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 2.0f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Relu(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Relu", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Relu
+
 // Test op: Rsqrt
 TEST(MathOps, Rsqrt) {
   Scope root = Scope::NewRootScope();
@@ -1942,6 +2195,26 @@ TEST(MathOps, Rsqrt) {
                         sess_run_fetchoutputs);
   opexecuter.RunTest();
 }  // end of test op Rsqrt
+
+// Test op: Sign
+TEST(MathOps, Sign) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  AssignInputValuesRandom<float>(A, -50, 50);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Sign(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Sign", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of test op Sign
 
 // Test op: Sin
 TEST(MathOps, Sin) {
@@ -1964,6 +2237,28 @@ TEST(MathOps, Sin) {
 
   opexecuter.RunTest();
 }  // end of test op Sin
+
+// Test op: Sinh
+TEST(MathOps, Sinh) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 5;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues<float>(
+      A, {0, -0, M_PI / 2, M_PI, 1.0, 3.8, 4.2, -3.9, -4.2, -1.0});
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Sinh(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Sinh", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Sinh
 
 // Test op: Square
 TEST(MathOps, Square) {
@@ -2116,6 +2411,124 @@ TEST(MathOps, SquaredDifferenceBroadcasting) {
   opexecuter.RunTest();
 }  // end of test op SquaredDifferenceBroadcasting
 
+// Test op: Xdivy
+TEST(MathOps, Xdivy) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  Tensor B(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 4.3f);
+  AssignInputValues(B, 3.7f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Xdivy(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Xdivy", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(MathOps, XdivyZeroX) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 3;
+  int dim2 = 3;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  Tensor B(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, std::vector<float>{0.0f, 1.1f, 5.1f, 3.2f, 8.1f, 1.0f,
+                                          -1.0f, 2.0f, 0.0f});
+  AssignInputValues(B, std::vector<float>{2.0f, 1.2f, 4.2f, 8.9f, 0.0f, 0.0f,
+                                          0.0f, 0.0f, 0.0f});
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Xdivy(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Xdivy", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+TEST(MathOps, XdivyZeroXZeroY) {
+  Scope root = Scope::NewRootScope();
+
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  Tensor B(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 0.0f);
+  AssignInputValues(B, 0.0f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Xdivy(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Xdivy", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}  // end of test op Xdivy
+
+// Test op: Tan
+TEST(MathOps, Tan) {
+  Scope root = Scope::NewRootScope();
+
+  int dim1 = 2;
+  int dim2 = 3;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 3.5f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Tan(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Tan", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Tan
+
+// Test op: Tanh
+TEST(MathOps, Tanh) {
+  Scope root = Scope::NewRootScope();
+
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 7.5f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Tanh(root, A);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Tanh", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Tanh
+
 // Test op: UnsortedSegmentSum
 TEST(MathOps, UnsortedSegmentSum) {
   Scope root = Scope::NewRootScope();
@@ -2231,6 +2644,52 @@ TEST(MathOps, UnsortedSegmentSumTwoDims) {
 
   opexecuter.RunTest();
 }  // end of test op UnsortedSegmentSum
+
+// Test op: NotEqual
+TEST(MathOps, NotEqual) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  Tensor B(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 2.1f);
+  AssignInputValues(B, 4.1f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::NotEqual(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_BOOL};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "NotEqual", static_input_indexes,
+                        output_datatypes, sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op NotEqual
+
+// Test op: Mod
+TEST(MathOps, Mod) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2}));
+  Tensor B(DT_FLOAT, TensorShape({dim1, dim2}));
+
+  AssignInputValues(A, 4.1f);
+  AssignInputValues(B, 2.0f);
+
+  vector<int> static_input_indexes = {};
+  auto R = ops::Mod(root, A, B);
+
+  vector<DataType> output_datatypes = {DT_FLOAT};
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Mod", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}  // end of test op Mod
 
 }  // namespace testing
 }  // namespace ngraph_bridge

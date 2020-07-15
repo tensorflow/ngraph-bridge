@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,13 +34,13 @@ int ngraph_tf_cxx11_abi_flag();
 // graph rewriting
 bool ngraph_tf_is_grappler_enabled();
 
-// Returns true when nGraph-bridge is built with
-// --enable_variables_and_optimizers flag
-bool ngraph_tf_are_variables_enabled();
+// Returns true when nGraph is using openvino
+bool ngraph_tf_is_openvino_enabled();
 
-// Return true when nGraph-bridge is build with
-// --distributed_build flag
-bool ngraph_tf_is_distributed_enabled();
+// Returns the tensorflow version
+const char* tf_version();
+
+// Return
 }
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
