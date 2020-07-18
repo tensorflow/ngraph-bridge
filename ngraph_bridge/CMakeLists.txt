@@ -72,6 +72,7 @@ if(ENABLE_OPENVINO)
     list(APPEND SRC ie_executable.cc)
     list(APPEND SRC ie_backend.cc)
     list(APPEND SRC ie_tensor.cc)
+    list(APPEND SRC transpose_sinking.cc)
 endif()
 
 message(STATUS "ENABLE_OPENVINO: ${ENABLE_OPENVINO}")
