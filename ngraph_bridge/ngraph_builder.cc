@@ -37,6 +37,7 @@
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_conversions.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
+#include "ngraph_bridge/ngraph_passes.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
 using tensorflow::int32;
@@ -1988,8 +1989,6 @@ static Status TranslateFusedConv2DOp(const Node* op,
 
     TF_RETURN_IF_ERROR(CreateNgConv(ng_input, ng_filter, ng_conv));
 
-    BatchToTensorflow(op->name(), is_nhwc, ng_conv);
-
     auto ng_conv_shape = ng_conv->get_shape();
     auto ng_bias_shape = ng_bias->get_shape();
     if (ng_bias_shape.size() != 1) {
@@ -1997,16 +1996,28 @@ static Status TranslateFusedConv2DOp(const Node* op,
           "Bias argument to BiasAdd does not have one dimension");
     }
 
-    auto ng_add = ConstructNgNode<ng::opset3::Add>(
-        op->name() + "_FusedConv2D_BiasAdd", ng_conv, ng_bias);
+    std::vector<size_t> reshape_pattern_values(ng_conv_shape.size(), 1U);
+    reshape_pattern_values[1] = ng_bias->get_shape().front();
+    auto reshape_pattern = make_shared<ng::opset3::Constant>(
+        ng::element::u64, ng::Shape{reshape_pattern_values.size()},
+        reshape_pattern_values);
+    shared_ptr<ng::Node> ng_bias_reshaped =
+        ConstructNgNode<ng::opset3::Reshape>(op->name(), ng_bias,
+                                             reshape_pattern, false);
+
+    shared_ptr<ng::Node> ng_add = ConstructNgNode<ng::opset3::Add>(
+        op->name() + "_FusedConv2D_BiasAdd", ng_conv, ng_bias_reshaped);
 
     if (VecStrCmp(fused_ops, {"BiasAdd", "Relu"})) {
-      SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ng::opset3::Relu>(
-                   op->name() + "_FusedConv2D_Relu", ng_add));
+      shared_ptr<ng::Node> ng_relu = ConstructNgNode<ng::opset3::Relu>(
+          op->name() + "_FusedConv2D_Relu", ng_add);
+      BatchToTensorflow(op->name(), is_nhwc, ng_relu);
+      SaveNgOp(ng_op_map, op->name(), ng_relu);
     } else if (VecStrCmp(fused_ops, {"BiasAdd", "Relu6"})) {
+      BatchToTensorflow(op->name(), is_nhwc, ng_add);
       SaveNgOp(ng_op_map, op->name(), create_relu6(op->name(), ng_add));
     } else {
+      BatchToTensorflow(op->name(), is_nhwc, ng_add);
       SaveNgOp(ng_op_map, op->name(), ng_add);
     }
   } else if (VecStrCmp(fused_ops, {"FusedBatchNorm"}) ||
@@ -4175,6 +4186,11 @@ Status Builder::TranslateGraph(
   // Create the nGraph function.
   //
   ng_function = make_shared<ng::Function>(ng_result_list, ng_parameter_list);
+
+  //
+  // Apply additional passes on the nGraph function here.
+  //
+  TransposeElimination().run_on_function(ng_function);
 
   //
   // Request row-major layout on results.
