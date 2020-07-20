@@ -546,98 +546,98 @@ bool TransposeSinking::run_on_function(shared_ptr<ng::Function> f)
     ng::NodeVector results;
     set<shared_ptr<ng::Node>> reshapes_to_delete;
 
-    // // STEP 1 : Sink or Swim reshapes away for op clusters
-    // for (auto n : f->get_ordered_ops())
-    // {
-    //     NGRAPH_DEBUG << "Start: Processing node " << n->get_name();
-    //     // collect all Result nodes for a sanity check
-    //     if (n->is_output())
-    //     {
-    //         results.push_back(n);
-    //     }
+    // STEP 1 : Sink or Swim reshapes away for op clusters
+    for (auto n : f->get_ordered_ops())
+    {
+        NGRAPH_DEBUG << "Start: Processing node " << n->get_name();
+        // collect all Result nodes for a sanity check
+        if (n->is_output())
+        {
+            results.push_back(n);
+        }
 
-    //     if (auto reshape = ng::as_type_ptr<ng::op::Reshape>(n))
-    //     {
-    //         sink_reshape(reshape, reorders, reshapes_to_delete);
-    //     }
-    //     else if (n->is_unary_elementwise_arithmetic())
-    //     {
-    //         sink_unary(n, reorders, reshapes_to_delete);
-    //     }
-    //     else if (n->is_binary_elementwise_arithmetic())
-    //     {
-    //         sink_binary(n, reorders, reshapes_to_delete);
-    //     }
-    //     else if (auto goe = ng::as_type_ptr<ng::op::GetOutputElement>(n))
-    //     {
-    //         write_reshapemap(reorders, goe, create_default_reshape(goe));
-    //     }
-    //     else if (auto quantize = ng::as_type_ptr<ng::op::Quantize>(n))
-    //     {
-    //         sink_quantize(quantize, reorders, reshapes_to_delete);
-    //     }
-    //     else if (auto dequantize = ng::as_type_ptr<ng::op::Dequantize>(n))
-    //     {
-    //         sink_dequantize(dequantize, reorders, reshapes_to_delete);
-    //     }
-    //     else if (auto slice = ng::as_type_ptr<ng::op::Slice>(n))
-    //     {
-    //         // A heuristic. If Reshape has multiple slice users, if sunk
-    //         // it will be replicated by the number of its users
-    //         // TODO: we should have a pre-pass that looks at this kind of
-    //         // scenarios and marks some reshapes as too "toxic" to sink
-    //         // For now, this heuristic works really well.
-    //         // Note, get_users(*true*) which means we only care about
-    //         // live users of Reshape. However get_users(*true*) cause
-    //         // significant time increase on graphs with many slice ops,
-    //         // so for now we are removing "true" check and let backend
-    //         // handle reshape sinking for slice operation.
-    //         if (slice->get_argument(0)->get_users().size() == 1)
-    //         {
-    //             sink_slice(slice, reorders, reshapes_to_delete);
-    //         }
-    //         else
-    //         {
-    //             materialize_shapes(n, reorders, reshapes_to_delete);
-    //         }
-    //     }
-    //     else if (auto pad = ng::as_type_ptr<ng::op::Pad>(n))
-    //     {
-    //         sink_pad(pad, reorders, reshapes_to_delete);
-    //     }
-    //     else if (auto concat = ng::as_type_ptr<ng::op::Concat>(n))
-    //     {
-    //         sink_concat(concat, reorders, reshapes_to_delete);
-    //     }
-    //     else
-    //     {
-    //         materialize_shapes(n, reorders, reshapes_to_delete);
-    //     }
-    //     NGRAPH_DEBUG << "End: Processing node " << n->get_name();
-    // }
+        if (auto reshape = ng::as_type_ptr<ng::op::Reshape>(n))
+        {
+            sink_reshape(reshape, reorders, reshapes_to_delete);
+        }
+        else if (n->is_unary_elementwise_arithmetic())
+        {
+            sink_unary(n, reorders, reshapes_to_delete);
+        }
+        else if (n->is_binary_elementwise_arithmetic())
+        {
+            sink_binary(n, reorders, reshapes_to_delete);
+        }
+        else if (auto goe = ng::as_type_ptr<ng::op::GetOutputElement>(n))
+        {
+            write_reshapemap(reorders, goe, create_default_reshape(goe));
+        }
+        else if (auto quantize = ng::as_type_ptr<ng::op::Quantize>(n))
+        {
+            sink_quantize(quantize, reorders, reshapes_to_delete);
+        }
+        else if (auto dequantize = ng::as_type_ptr<ng::op::Dequantize>(n))
+        {
+            sink_dequantize(dequantize, reorders, reshapes_to_delete);
+        }
+        else if (auto slice = ng::as_type_ptr<ng::op::Slice>(n))
+        {
+            // A heuristic. If Reshape has multiple slice users, if sunk
+            // it will be replicated by the number of its users
+            // TODO: we should have a pre-pass that looks at this kind of
+            // scenarios and marks some reshapes as too "toxic" to sink
+            // For now, this heuristic works really well.
+            // Note, get_users(*true*) which means we only care about
+            // live users of Reshape. However get_users(*true*) cause
+            // significant time increase on graphs with many slice ops,
+            // so for now we are removing "true" check and let backend
+            // handle reshape sinking for slice operation.
+            if (slice->get_argument(0)->get_users().size() == 1)
+            {
+                sink_slice(slice, reorders, reshapes_to_delete);
+            }
+            else
+            {
+                materialize_shapes(n, reorders, reshapes_to_delete);
+            }
+        }
+        else if (auto pad = ng::as_type_ptr<ng::op::Pad>(n))
+        {
+            sink_pad(pad, reorders, reshapes_to_delete);
+        }
+        else if (auto concat = ng::as_type_ptr<ng::op::Concat>(n))
+        {
+            sink_concat(concat, reorders, reshapes_to_delete);
+        }
+        else
+        {
+            materialize_shapes(n, reorders, reshapes_to_delete);
+        }
+        NGRAPH_DEBUG << "End: Processing node " << n->get_name();
+    }
 
-    // // STEP 2: purge all the reshapes we either sunk or swam.
-    // for (auto r : reshapes_to_delete)
-    // {
-    //     delete_reshape(r);
-    // }
+    // STEP 2: purge all the reshapes we either sunk or swam.
+    for (auto r : reshapes_to_delete)
+    {
+        delete_reshape(r);
+    }
 
-    // // make sure shapes are always materialized before results
-    // for (auto r : results)
-    // {
-    //     NGRAPH_CHECK(r->get_shape() == r->get_input_shape(0) &&
-    //                      r->get_element_type() == r->get_argument(0)->get_element_type(),
-    //                  " op::Result = ",
-    //                  *r,
-    //                  ", Arg = ",
-    //                  *r->get_argument(0));
-    // }
+    // make sure shapes are always materialized before results
+    for (auto r : results)
+    {
+        NGRAPH_CHECK(r->get_shape() == r->get_input_shape(0) &&
+                         r->get_element_type() == r->get_argument(0)->get_element_type(),
+                     " op::Result = ",
+                     *r,
+                     ", Arg = ",
+                     *r->get_argument(0));
+    }
 
-    // // STEP 3: fix wrong shape info wholesale
-    // for (auto n : f->get_ordered_ops())
-    // {
-    //     n->revalidate_and_infer_types();
-    // }
+    // STEP 3: fix wrong shape info wholesale
+    for (auto n : f->get_ordered_ops())
+    {
+        n->revalidate_and_infer_types();
+    }
     return true;
 }
 
