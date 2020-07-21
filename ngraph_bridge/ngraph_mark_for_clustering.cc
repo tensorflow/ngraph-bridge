@@ -195,8 +195,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
 
   if (!initialized) {
     // Set Additional Attributes (if any)
-    set_attributes_map["Any"] = SetStaticInputs({1});
-    set_attributes_map["All"] = SetStaticInputs({1});
     set_attributes_map["ArgMax"] = SetStaticInputs({1});
     set_attributes_map["ArgMin"] = SetStaticInputs({1});
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
@@ -204,15 +202,11 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["ExpandDims"] = SetStaticInputs({1});
     set_attributes_map["Fill"] = SetStaticInputs({0});
     set_attributes_map["GatherV2"] = SetStaticInputs({2});
-    set_attributes_map["Max"] = SetStaticInputs({1});
-    set_attributes_map["Mean"] = SetStaticInputs({1});
-    set_attributes_map["Min"] = SetStaticInputs({1});
     set_attributes_map["MirrorPad"] = SetStaticInputs({1});
     set_attributes_map["NonMaxSuppressionV4"] = SetStaticInputs({2, 3, 4});
     set_attributes_map["OneHot"] = SetStaticInputs({1});
     set_attributes_map["Pad"] = SetStaticInputs({1});
     set_attributes_map["PadV2"] = SetStaticInputs({1, 2});
-    set_attributes_map["Prod"] = SetStaticInputs({1});
     set_attributes_map["Reshape"] = SetStaticInputs({1});
     set_attributes_map["Shape"] = SetStaticInputs({0});
     set_attributes_map["ScatterNd"] = SetStaticInputs({2});
@@ -220,7 +214,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Split"] = SetStaticInputs({0});
     set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
     set_attributes_map["StridedSlice"] = SetStaticInputs({1, 2, 3});
-    set_attributes_map["Sum"] = SetStaticInputs({1});
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
     set_attributes_map["Transpose"] = SetStaticInputs({1});

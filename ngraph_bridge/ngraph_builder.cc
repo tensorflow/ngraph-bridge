@@ -2079,45 +2079,8 @@ static Status TranslateNonMaxSuppressionV4Op(
   return Status::OK();
 }
 
-static Status TranslateReduceOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map,
-    std::function<ng::Output<ng::Node>(ng::Output<ng::Node>,
-                                       ng::Output<ng::Node>, const bool)>
-        create_ng_node) {
-  ng::Output<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
-  bool tf_keep_dims;
-  if (GetNodeAttr(op->attrs(), "keep_dims", &tf_keep_dims) != Status::OK()) {
-    tf_keep_dims = false;
-  }
-
-  std::vector<int64> axes;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &axes));
-
-  ng::Shape input_shape = ng_input.get_shape();
-  size_t input_rank = input_shape.size();
-
-  TF_RETURN_IF_ERROR(CheckAxisDimInRange(axes, input_rank));
-
-  std::vector<size_t> ng_reduction_axes_vect(axes.size());
-  std::transform(
-      axes.begin(), axes.end(), ng_reduction_axes_vect.begin(),
-      [input_rank](int idx) { return idx + (idx < 0 ? (int)input_rank : 0); });
-  auto ng_reduction_axes = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{ng_reduction_axes_vect.size()},
-      ng_reduction_axes_vect);
-
-  ng::Output<ng::Node> ng_node =
-      create_ng_node(ng_input, ng_reduction_axes, tf_keep_dims);
-  Builder::SetTracingInfo(op->name(), ng_node);
-
-  SaveNgOp(ng_op_map, op->name(), ng_node);
-  return Status::OK();
-}
-
 template <typename T>
-static Status TranslateDirectReduceOp(
+static Status TranslateReduceOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   // ensure its either an arithmetic or a logical reduction
@@ -2127,13 +2090,19 @@ static Status TranslateDirectReduceOp(
         "Expected node to be either a valid logical or arithmetic reduction "
         "type");
   }
-  return TranslateReduceOp(
-      op, static_input_map, ng_op_map,
-      [&op](ng::Output<ng::Node> ng_input,
-            ng::Output<ng::Node> ng_reduction_axes, const bool keep_dims) {
-        return ConstructNgNode<T>(op->name(), ng_input, ng_reduction_axes,
-                                  keep_dims);
-      });
+
+  shared_ptr<ng::Node> ng_input, ng_reduction_indices;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &ng_input, &ng_reduction_indices));
+  bool keep_dims;
+  if (GetNodeAttr(op->attrs(), "keep_dims", &keep_dims) != Status::OK()) {
+    keep_dims = false;
+  }
+
+  auto ng_node =
+      ConstructNgNode<T>(op->name(), ng_input, ng_reduction_indices, keep_dims);
+  SaveNgOp(ng_op_map, op->name(), ng_node);
+  return Status::OK();
 }
 
 static Status TranslateOneHotOp(
@@ -3002,8 +2971,8 @@ const static std::map<
         {"Add", TranslateBinaryOp<opset::Add>},
         {"AddN", TranslateAddNOp},
         {"AddV2", TranslateBinaryOp<opset::Add>},
-        {"Any", TranslateDirectReduceOp<opset::ReduceLogicalOr>},
-        {"All", TranslateDirectReduceOp<opset::ReduceLogicalAnd>},
+        {"Any", TranslateReduceOp<opset::ReduceLogicalOr>},
+        {"All", TranslateReduceOp<opset::ReduceLogicalAnd>},
         {"ArgMax", TranslateArgMaxOp},
         {"ArgMin", TranslateArgMinOp},
         {"Asin", TranslateUnaryOp<opset::Asin>},
@@ -3053,13 +3022,13 @@ const static std::map<
         {"LogicalNot", TranslateUnaryOp<opset::LogicalNot>},
         {"LogicalOr", TranslateBinaryOp<opset::LogicalOr>},
         {"MatMul", TranslateMatMulOp},
-        {"Max", TranslateDirectReduceOp<opset::ReduceMax>},
+        {"Max", TranslateReduceOp<opset::ReduceMax>},
         {"Maximum", TranslateBinaryOp<opset::Maximum>},
         {"MaxPool", TranslateMaxPoolOp},
         {"MaxPool3D", TranslateMaxPool3DOp},
         {"NonMaxSuppressionV4", TranslateNonMaxSuppressionV4Op},
-        {"Mean", TranslateDirectReduceOp<opset::ReduceMean>},
-        {"Min", TranslateDirectReduceOp<opset::ReduceMin>},
+        {"Mean", TranslateReduceOp<opset::ReduceMean>},
+        {"Min", TranslateReduceOp<opset::ReduceMin>},
         {"Minimum", TranslateBinaryOp<opset::Minimum>},
         {"MirrorPad", TranslatePadOp},
         {"Mul", TranslateBinaryOp<opset::Multiply>},
@@ -3077,7 +3046,7 @@ const static std::map<
         {"Pow", TranslateBinaryOp<opset::Power>},
         // PreventGradient is just Identity in dataflow terms, so reuse that.
         {"PreventGradient", TranslateIdentityOp},
-        {"Prod", TranslateDirectReduceOp<opset::ReduceProd>},
+        {"Prod", TranslateReduceOp<opset::ReduceProd>},
         {"Rank", TranslateRankOp},
         {"RealDiv", TranslateBinaryOp<opset::Divide>},
         {"Reciprocal", TranslateReciprocalOp},
@@ -3106,7 +3075,7 @@ const static std::map<
         {"Squeeze", TranslateSqueezeOp},
         {"StridedSlice", TranslateStridedSliceOp},
         {"Sub", TranslateBinaryOp<opset::Subtract>},
-        {"Sum", TranslateDirectReduceOp<opset::ReduceSum>},
+        {"Sum", TranslateReduceOp<opset::ReduceSum>},
         {"Tan", TranslateUnaryOp<opset::Tan>},
         {"Tanh", TranslateUnaryOp<opset::Tanh>},
         {"Tile", TranslateTileOp},
