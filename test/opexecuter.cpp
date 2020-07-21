@@ -432,8 +432,8 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     tf_op_shapes.push_back(tf_shape);
     #if defined(ENABLE_OPENVINO)
     // Use pre-allocated tensors to accept outputs of OPV-IE inference
-    Tensor output_tensor(expected_output_datatypes_[i], tf_op_shapes[i]);
-    void* dst_ptr = (void*)DMAHelper::base(&output_tensor);
+    Tensor *p_output_tensor = new Tensor(expected_output_datatypes_[i], tf_op_shapes[i]);
+    void* dst_ptr = (void*)DMAHelper::base(p_output_tensor);
     auto result = backend->create_tensor(ng_op_type, ng_op_shape, dst_ptr);
     #else
     auto result = backend->create_tensor(ng_op_type, ng_op_shape);
