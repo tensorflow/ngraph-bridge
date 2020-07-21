@@ -62,9 +62,9 @@ void OpExecuter::GetNodeData(Graph& graph, NodeMetaData& node_inedge_md,
         *test_op = e->dst();
       }
     }
-    NGRAPH_VLOG(5) << "Edge between, Src: " << e->src()->name()
-                   << " Src op index " << e->src_output()
-                   << " ,Dst: " << e->dst()->name() << " dst ip index "
+    NGRAPH_VLOG(5) << "  GetNodeData Edge: " << e->src()->name()
+                   << "#" << e->src_output()
+                   << " -> " << e->dst()->name() << " #"
                    << e->dst_input();
     // update src's outedge metadata
     node_outedge_md[e->src()].push_back({e->dst(), e->dst_input()});
@@ -246,7 +246,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     input_dt.push_back(ip_tensor.dtype());
     tf_inputs.push_back(ip_tensor);
 
-    NGRAPH_VLOG(5) << "Extracted tensor  " << i << " "
+    NGRAPH_VLOG(5) << "Extracted tensor #" << i << " "
                    << ip_tensor.DebugString();
   }
 
@@ -254,7 +254,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   for (int i = 0; i < number_of_inputs; i++) {
     if (static_input_indexes_.find(i) != static_input_indexes_.end()) {
       static_input_map.push_back(&tf_inputs[i]);
-      NGRAPH_VLOG(5) << "reading static tensor ptr " << i << " "
+      NGRAPH_VLOG(5) << "  reading static_input tensor index #" << i << " "
                      << (static_input_map[i])->DebugString();
     } else {
       static_input_map.push_back(nullptr);
@@ -322,12 +322,11 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     graph.AddEdge(test_op, i, ret_node, 0);
   }
 
-  NGRAPH_VLOG(5) << "Added _Retval nodes ";
+  NGRAPH_VLOG(5) << "Added _Retval nodes & Edges ...";
 
-  NGRAPH_VLOG(5) << "After rewrite *** ";
   for (const Edge* e : graph.edges()) {
-    NGRAPH_VLOG(5) << "Edge between, Src: " << e->src()->name()
-                   << " ,Dst: " << e->dst()->name();
+    NGRAPH_VLOG(5) << "  Edge: " << e->src()->name()
+                   << " -> " << e->dst()->name();
   }
   // For debug
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {

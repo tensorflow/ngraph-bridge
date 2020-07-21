@@ -432,8 +432,10 @@ TEST(MathOps, Sum) {
   // axis at which the dimension will be inserted
   // should be -rank <= axis < rank
   vector<int> v_axis = {-1, 0, 1};
+  int counter = 1;
   for (auto axis : v_axis) {
     for (auto keep_dims : v_keep_dims) {
+      NGRAPH_VLOG(5) << "========>> Running Sum sub-test #" << counter++ << ", axis=" << axis << ", keep_dims=" << keep_dims;
       Scope root = Scope::NewRootScope();
       auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
 

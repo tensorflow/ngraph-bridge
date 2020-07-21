@@ -39,6 +39,9 @@
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
+#include "ngraph/pass/manager.hpp"
+#include "ngraph/pass/constant_folding.hpp"
+
 using tensorflow::int32;
 using namespace std;
 namespace ng = ngraph;
@@ -4175,6 +4178,11 @@ Status Builder::TranslateGraph(
   // Create the nGraph function.
   //
   ng_function = make_shared<ng::Function>(ng_result_list, ng_parameter_list);
+
+  // Bani
+  ngraph::pass::Manager passes;
+  passes.register_pass<ngraph::pass::ConstantFolding>();
+  passes.run_passes(ng_function);
 
   //
   // Request row-major layout on results.
