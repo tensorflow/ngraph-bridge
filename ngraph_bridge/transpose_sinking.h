@@ -16,21 +16,22 @@
 
 #pragma once
 
+#include "ngraph/ngraph.hpp"
 #include "ngraph/pass/pass.hpp"
+#include "ngraph/pass/pass_util.hpp"
 #include "ngraph/util.hpp"
 
 namespace ng = ngraph;
 using namespace std;
 
-namespace tensorflow
-{
-    namespace ngraph_bridge
-    {
-        class NGRAPH_API TransposeSinking : public ng::pass::FunctionPass
-        {
-        public:
-            TransposeSinking() { set_property(ng::pass::PassProperty::REQUIRE_STATIC_SHAPE, true); }
-            bool run_on_function(std::shared_ptr<ng::Function> function) override;
-        };
-    }
+namespace tensorflow {
+namespace ngraph_bridge {
+class NGRAPH_API TransposeSinking : public ng::pass::FunctionPass {
+ public:
+  TransposeSinking() {
+    set_property(ng::pass::PassProperty::REQUIRE_STATIC_SHAPE, true);
+  }
+  bool run_on_function(std::shared_ptr<ng::Function> function) override;
+};
+}
 }

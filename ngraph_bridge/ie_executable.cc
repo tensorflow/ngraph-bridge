@@ -16,11 +16,12 @@
 
 #include "ngraph/ngraph.hpp"
 #include "ngraph/opsets/opset.hpp"
-#include "ngraph/opsets/opset.hpp"
+#include "ngraph/pass/manager.hpp"
 
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/ie_executable.h"
 #include "ngraph_bridge/ie_tensor.h"
+#include "ngraph_bridge/transpose_sinking.h"
 
 using namespace std;
 using namespace ngraph;
@@ -30,6 +31,10 @@ namespace ngraph_bridge {
 
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     : m_device{device} {
+  pass::Manager passes;
+  passes.register_pass<TransposeSinking>();
+  passes.run_passes(func);
+
   NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
   const auto& opset = ngraph::get_opset3();
   for (const auto& node : func->get_ops()) {
@@ -43,6 +48,10 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
   set_parameters_and_results(*func);
+
+  NGRAPH_VLOG(0) << "Creating IE CNN network using nGraph function";
+  auto& name = m_network.getName();
+  m_network.serialize(name + ".xml", name + ".bin");
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
 
