@@ -65,6 +65,9 @@ NGStubOp::~NGStubOp() {}
 // Keep them in alphabetical order
 REGISTER_NGRAPH_STUB_BFLOAT_KERNEL("Conv2D")
 
+REGISTER_NGRAPH_STUB_NCHW_KERNEL("DepthToSpace")
+REGISTER_NGRAPH_STUB_NCHW_KERNEL("SpaceToDepth")
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

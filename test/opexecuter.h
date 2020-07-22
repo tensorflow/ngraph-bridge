@@ -43,9 +43,7 @@ using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
-
 namespace testing {
 
 class OpExecuter {
@@ -64,8 +62,7 @@ class OpExecuter {
   // const std::vector<Output>& fetch_ops    : Output ops to be fetched,
   //                                           is passed to tf.session.run()
   OpExecuter(const Scope sc, const string test_op,
-             const vector<int>& static_input_indexes,
-             const vector<DataType>& op_types, const vector<Output>& fetch_ops);
+             const vector<Output>& fetch_ops);
 
   ~OpExecuter();
 
@@ -90,28 +87,16 @@ class OpExecuter {
   // If only want to set tolerance values and running using default backends
   void RunTest(float rtol, float atol) { return RunTest("CPU", rtol, atol); };
 
-  shared_ptr<ng::Function> get_ng_function() { return ng_function; }
-
  private:
   Scope tf_scope_;
   const string test_op_type_;
-  shared_ptr<ng::Function> ng_function;
-  set<int> static_input_indexes_;
-  const vector<DataType> expected_output_datatypes_;
   const std::vector<Output> sess_run_fetchoutputs_;
 
-  void GetNodeData(Graph& graph, NodeMetaData& node_inedge_md,
-                   NodeMetaData& node_outedge_md, NodeOutEdges& node_outedges,
-                   Node** test_op);
   void ValidateGraph(const Graph& graph, const vector<string> allowed_nodes);
-
-  void CreateNodeDef(const string op_type, const string op_name_prefix,
-                     int index, const DataType dt, NodeDef& node_def);
 };
 
 }  // namespace testing
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
 
 #endif  // NGRAPH_TF_BRIDGE_OPEXECUTER_H_
