@@ -44,6 +44,7 @@ class IE_Executable final : public Executable {
   InferenceEngine::InferRequest m_infer_req;
   string m_device;
   ngraph::ResultVector m_results_orig;
+  ngraph::ParameterVector m_params_orig;
   std::map<std::string, int> m_map_cnnparam_to_tfidx; // which CNN param maps to which index of the TF input tensor
   std::map<std::string, int> m_map_cnnresult_to_tfidx; // which CNN result maps to which index of the TF output tensor
   std::map<std::string, void*> m_map_cnnconstresult_to_ngnodeptr;

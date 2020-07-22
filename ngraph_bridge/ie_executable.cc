@@ -42,6 +42,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
   set_parameters_and_results(*func);
   m_results_orig = m_results;
+  m_params_orig = m_parameters;
 
 #if 1
   // We need to save the mapping from CNN network's Result nodes to the original NG-function's result-contributing nodes
@@ -54,7 +55,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
       // Find within the related NGFUNC, the parent/contributing node which feeds to this cnn_result_name
       const auto& cnn_result_node = ng_result_node->input(0).get_source_output().get_node();
       const auto& cnn_result_name = cnn_result_node->get_friendly_name(); //  e.g. Constant_675 or ngraph_output_1 // Don't use get_name()!!
-      //BANI_DBG: std::cout << " IE_Executable cnn --> ng_result : " << cnn_result_name << " --> " << ng_result_name << "\n";
+      //DBG_ONLY: std::cout << " IE_Executable cnn --> ng_result : " << cnn_result_name << " --> " << ng_result_name << "\n";
       m_map_result_to_ngnode.insert(std::pair<std::string, std::string>(ng_result_name, cnn_result_name));
       if(cnn_result_node->is_constant()) {
           // (input-const, output-result) e.g. Constant_675->Result_352, ngraph_output_1->Result_350
@@ -67,11 +68,11 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
           }
       }
   }
-  //BANI_DBG: 
+  //DBG_ONLY: 
   // Example: Result_353->Constant_673, Result_350->ngraph_output_1, ...
-  //BANI_DBG: std::cout << "\n*** m_results " << m_results.size() << " ==> "; for (auto& op : m_results) { std::cout << op->get_name() << ", "; } std::cout << "\n";
+  //DBG_ONLY: std::cout << "\n*** m_results " << m_results.size() << " ==> "; for (auto& op : m_results) { std::cout << op->get_name() << ", "; } std::cout << "\n";
   std::cout << "\n*** m_map_result_to_ngnode " << m_map_result_to_ngnode.size() << " ==> "; for (auto const& pair : m_map_result_to_ngnode) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
-  //BANI_DBG: 
+  //DBG_ONLY: 
   std::cout << "\n*** m_nongraph_const_outputs " << m_nongraph_const_outputs.size() << " ==> "; for (auto const& pair : m_nongraph_const_outputs) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
   // Example: Constant_673->Result_353,  ngraph_output_1->Result_350, ...
 
@@ -103,7 +104,21 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   func2 = make_shared<ngraph::Function>(ng_result_list2, func->get_parameters());
   func2->set_friendly_name(func->get_friendly_name());
   }
+
+  // after above
+  // Let's strip off any isolated Param nodes
+  ngraph::ParameterVector ng_param_list2;
+  for (auto& node : func2->get_parameters()) { // node is a shared_ptr of Node
+    if(node->get_output_size()>0 && node->output(0).get_target_inputs().size()==0) {
+      NGRAPH_VLOG(5) << "!! Stripping off isolated Param node: " << node->get_friendly_name();
+    } else {
+      ng_param_list2.push_back(node);
+    }
+  }
+  func2 = make_shared<ngraph::Function>(func2->get_results(), ng_param_list2);
+  func2->set_friendly_name(func->get_friendly_name());
 #endif
+
 
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func2);
@@ -132,9 +147,9 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
           }
       }
   }
-  //BANI_DBG: 
+  //DBG_ONLY: 
   std::cout << "\nIE_Executable ctor, m_map_cnnparam_to_tfidx " << m_network.getFunction()->get_friendly_name() << " ==> "; for (auto const& pair : m_map_cnnparam_to_tfidx) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
-  NGRAPH_CHECK(m_map_cnnparam_to_tfidx.size()==func->get_parameters().size(), "Mismatching number of param/input items for orig-func and m_network.getFunction()");
+  //NGRAPH_CHECK(m_map_cnnparam_to_tfidx.size()==func->get_parameters().size(), "Mismatching number of param/input items for orig-func and m_network.getFunction()");
 
 #if 1
   // Bani
@@ -159,7 +174,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
       idx++;
   }
-  //BANI_DBG: 
+  //DBG_ONLY: 
   std::cout << "\nIE_Executable ctor, m_map_cnnresult_to_tfidx " << m_network.getFunction()->get_friendly_name() << " ==> "; for (auto const& pair : m_map_cnnresult_to_tfidx) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
 #endif
 
@@ -188,9 +203,9 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
   //   ngraph_output_6->Result_355, ngraph_output_7->Result_356, ngraph_output_8->Result_357, ngraph_output_9->Result_358,
 
   InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  if (input_info.size() != inputs.size()) {
+  if (m_params_orig.size() != inputs.size()) {
     THROW_IE_EXCEPTION
-        << "Function inputs number differ from number of given inputs";
+        << "Ng-Function inputs number differ from number of given inputs";
   }
 
   size_t i = 0;
@@ -227,7 +242,7 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
       if(const_node) {
           int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
           auto num_bytes = shape_size(const_node->get_shape()) * const_node->get_element_type().size();
-          //BANI_DBG: 
+          //DBG_ONLY: 
           std::cout << "    ... shortcut value from Const node " << output_name << " to TF Output " << m_nongraph_const_outputs.at(output_name) << ", index=" << ", num_bytes=" << num_bytes << "\n";
           const void* value = const_node->get_data_ptr();
           outputs[idx_tensor_output]->write(value, num_bytes);
@@ -243,7 +258,7 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
     int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
 
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[idx_tensor_output]);
-    //BANI_DBG: 
+    //DBG_ONLY: 
     NGRAPH_VLOG(5) << "func => " << m_network.getFunction()->get_friendly_name() <<
     " Calling m_infer_req.SetBlob for output " << output_name << ", count=" << tv->get_element_count() << 
     ", network precision=" << it.second->getTensorDesc().getPrecision().name() << 

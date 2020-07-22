@@ -350,6 +350,59 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank) {
   return Status::OK();
 }
 
+#if (CMAKE_BUILD_TYPE == Debug)
+// GDB Debug utility
+void gdb_print_ngfunc_nodes_shptr(const shared_ptr<ngraph::Function>& func) {
+  gdb_print_ngfunc_nodes_funcref(*func);
+}
+
+void gdb_print_ngfunc_nodes_vptr(void* func_addr) {
+  gdb_print_ngfunc_nodes_funcref(*((ngraph::Function*)func_addr));
+}
+
+void gdb_print_ngfunc_nodes_funcref(const ngraph::Function& func) {
+  std::cout << "The ngfunc nodes for " << func.get_friendly_name() << 
+  ", #results=" << func.get_results().size() << ", #params=" << func.get_parameters().size() << 
+  ", #ops=" << func.get_ops().size() << " ==>>\n";
+  for (auto aNodeShPtr : func.get_ordered_ops()) { std::cout << aNodeShPtr->get_friendly_name() << " (" << aNodeShPtr->get_name() << " / " << aNodeShPtr->get_type_name() << "), "; } std::cout << "\n";
+
+  std::map<std::string, std::string> m_map_result_to_ngnode; // (result, from) e.g. Result_353->Constant_673, Result_350->ngraph_output_1
+  auto& orig_ng_results = func.get_results();
+  for (auto aNodeShPtr : orig_ng_results) {
+      m_map_result_to_ngnode.insert(std::pair<std::string, std::string>(aNodeShPtr->get_friendly_name(), "UNKNOWN"));
+  }
+  for (const auto& node : func.get_ops()) {
+      //std::cout << "    trying fn(name) = " << node->get_friendly_name() << "(" << node->get_name() << ", " << node->get_type_name() << ")\n";
+      auto outputs = node->outputs(); // std::vector<Output<Node>>
+      if(outputs.size() == 1) {
+          auto const& outHndl = outputs[0];
+          auto const& targetInputHndls = outHndl.get_target_inputs(); // std::set<Input<Node>> get_target_inputs()
+          //std::cout << "        node's outHndl.get_target_inputs().size() = " << targetInputHndls.size() << "  ==>> "; for (auto x : targetInputHndls) { std::cout << x.get_node()->get_friendly_name() << " (" << x.get_node()->get_name() << " / " << x.get_node()->get_type_name() << "), "; } std::cout << "\n";
+          // TODO: put a check: if we get size > 1, it's Ok as long as all the target inputs have same friendly_name (but diff actual name)
+          if(targetInputHndls.size() > 0) {
+              auto const& outNode = targetInputHndls.begin()->get_node();
+              //std::cout << "        node's outputs.size() == ?, fn(name) = " << outNode->get_friendly_name() << "(" << outNode->get_name() << ", " << outNode->get_type_name() << ")\n";
+              if(m_map_result_to_ngnode.count(outNode->get_friendly_name()) == 0) {
+                  continue; // we are not interested, as it is not a Result_ node
+              }
+              if(outNode->is_output()) {
+                  // (result, from) e.g. Result_353->Constant_673, Result_350->ngraph_output_1
+                  m_map_result_to_ngnode.erase(outNode->get_friendly_name());
+                  m_map_result_to_ngnode.insert(std::pair<std::string, std::string>(outNode->get_friendly_name(), node->get_friendly_name()));
+              }
+          }
+      }
+  }
+  std::cout << "m_map_result_to_ngnode ==> "; for (auto const& pair : m_map_result_to_ngnode) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
+}
+
+Status gdb_serialize_ngfunc(const char* file_name,
+                       const std::shared_ptr<ngraph::Function>& ng_function) {
+  return NgraphSerialize(std::string(file_name), ng_function);          
+}
+#endif
+
+
 Status NgraphSerialize(const std::string& file_name,
                        const std::shared_ptr<ngraph::Function>& ng_function) {
   int json_indentation = 4;
