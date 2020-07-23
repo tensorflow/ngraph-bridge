@@ -78,7 +78,7 @@ TEST(ArrayOps, DepthToSpaceNHWC) {
 }  // end of op DepthToSpaceNHWC
 
 // Test DepthToSpace with NCHW data format
-TEST(ArrayOps, DepthToSpaceNCHW) {
+TEST(ArrayOps, DISABLED_DepthToSpaceNCHW) {
   std::map<std::vector<int64>, int> input_map;
   input_map.insert(pair<std::vector<int64>, int>({1, 4, 1, 1}, 2));
   input_map.insert(pair<std::vector<int64>, int>({1, 250, 1, 1}, 5));
@@ -1085,7 +1085,7 @@ TEST(ArrayOps, SpaceToDepthNHWC) {
 }  // end of op SpaceToDepthNHWC
 
 // Test SpaceToDepth with NCHW data format
-TEST(ArrayOps, SpaceToDepthNCHW) {
+TEST(ArrayOps, DISABLED_SpaceToDepthNCHW) {
   std::map<std::vector<int64>, int> input_map;
   input_map.insert(pair<std::vector<int64>, int>({1, 1, 2, 2}, 2));
   input_map.insert(pair<std::vector<int64>, int>({1, 10, 5, 5}, 5));

@@ -49,13 +49,7 @@ class NGStubOp : public OpKernel {
       Name(optype).Device(DEVICE_CPU).TypeConstraint<bfloat16>("T"), \
       NGStubOp);
 
-#define REGISTER_NGRAPH_STUB_NCHW_KERNEL(optype)                             \
-  REGISTER_KERNEL_BUILDER(                                                   \
-      Name(optype).Device(DEVICE_CPU).AttrConstraint("data_format", "NCHW"), \
-      NGStubOp);
-
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
 
 #endif  // NGRAPH_TF_BRIDGE_REGISTER_STUB_KERNELS_H_
