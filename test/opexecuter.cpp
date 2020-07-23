@@ -109,8 +109,11 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs) {
   ValidateGraph(graph, {"Const"});
 
   ActivateNGraph();
-  ClientSession session(tf_scope_);
-  ASSERT_EQ(Status::OK(), session.Run(sess_run_fetchoutputs_, &ngraph_outputs))
+  string backend_name;
+  TF_CHECK_OK(BackendManager::GetCurrentlySetBackendName(&backend_name));
+  tf::SessionOptions options = GetSessionOptions(backend_name);
+  ClientSession session(tf_scope_, options);
+  TF_CHECK_OK(session.Run(sess_run_fetchoutputs_, &ngraph_outputs))
       << "Failed to run opexecutor on NGTF";
   for (size_t i = 0; i < ngraph_outputs.size(); i++) {
     NGRAPH_VLOG(5) << " NGTF op " << i << " "
