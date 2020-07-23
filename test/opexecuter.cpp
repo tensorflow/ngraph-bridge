@@ -67,10 +67,9 @@ OpExecuter::OpExecuter(const Scope sc, const string test_op,
 
 OpExecuter::~OpExecuter() {}
 
-void OpExecuter::RunTest(const string& ng_backend_name, float rtol,
-                         float atol) {
+void OpExecuter::RunTest(float rtol, float atol) {
   vector<Tensor> ngraph_outputs;
-  ExecuteOnNGraph(ngraph_outputs, ng_backend_name);
+  ExecuteOnNGraph(ngraph_outputs);
   vector<Tensor> tf_outputs;
   ExecuteOnTF(tf_outputs);
 
@@ -98,8 +97,7 @@ void OpExecuter::ExecuteOnTF(vector<Tensor>& tf_outputs) {
 }
 
 // Sets NG backend before executing on NGTF
-void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
-                                 const string& ng_backend_name) {
+void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs) {
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(tf_scope_.ToGraph(&graph));
 
@@ -110,7 +108,6 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
 
   ValidateGraph(graph, {"Const"});
 
-  SetBackendUsingEnvVar(ng_backend_name);
   ActivateNGraph();
   ClientSession session(tf_scope_);
   ASSERT_EQ(Status::OK(), session.Run(sess_run_fetchoutputs_, &ngraph_outputs))
