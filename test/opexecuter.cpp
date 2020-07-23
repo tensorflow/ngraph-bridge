@@ -14,6 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 #include "test/opexecuter.h"
+#include "gtest/gtest.h"
 #include <cstdlib>
 
 using namespace std;
@@ -131,6 +132,7 @@ OpExecuter::~OpExecuter() {}
 void OpExecuter::RunTest(const string& ng_backend_name, float rtol,
                          float atol) {
   vector<Tensor> ngraph_outputs;
+  ngtf_run_status = false;
   ExecuteOnNGraph(ngraph_outputs, ng_backend_name);
   vector<Tensor> tf_outputs;
   ExecuteOnTF(tf_outputs);
@@ -145,6 +147,7 @@ void OpExecuter::RunTest(const string& ng_backend_name, float rtol,
   }
 
   Compare(tf_outputs, ngraph_outputs, rtol, atol);
+  ngtf_run_status = ! ::testing::Test::HasFailure();
 }
 
 // Uses tf_scope to execute on TF
@@ -177,6 +180,19 @@ void OpExecuter::ExecuteOnTF(vector<Tensor>& tf_outputs) {
 // TODO : Refactor
 void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
                                  const string& ng_backend_name) {
+
+#if 0
+  ActivateNGraph();
+  //setenv("NGRAPH_TF_BACKEND", ng_backend_name, 1);
+  ClientSession session(tf_scope_);
+  ASSERT_EQ(Status::OK(), session.Run(sess_run_fetchoutputs_, &ngraph_outputs))
+      << "Failed to run opexecutor on NGTF";
+  for (size_t i = 0; i < ngraph_outputs.size(); i++) {
+    NGRAPH_VLOG(5) << " NGTF output #" << i << ", " << ngraph_outputs[i].DebugString();
+  }
+#endif
+
+#if 1
   Graph graph(OpRegistry::Global());
   TF_CHECK_OK(tf_scope_.ToGraph(&graph));
 
@@ -478,6 +494,8 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
 
   // Release the backend
   BackendManager::ReleaseBackend(ng_backend_type);
+
+#endif
 
 }  // ExecuteOnNGraph
 

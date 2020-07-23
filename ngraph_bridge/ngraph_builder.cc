@@ -2460,6 +2460,7 @@ static Status TranslateDirectReduceOp(
         "Expected node to be either a valid logical or arithmetic reduction "
         "type");
   }
+#if 1
   return TranslateReduceOp(
       op, static_input_map, ng_op_map,
       [&op](std::shared_ptr<ng::Node> ng_input,
@@ -2467,6 +2468,23 @@ static Status TranslateDirectReduceOp(
         return ConstructNgNode<T>(op->name(), ng_input, ng_reduction_axes,
                                   keep_dims);
       });
+#endif
+
+#if 0
+  shared_ptr<ng::Node> ng_input, ng_reduction_indices;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, &ng_input, &ng_reduction_indices));
+  bool keep_dims;
+  if (GetNodeAttr(op->attrs(), "keep_dims", &keep_dims) != Status::OK()) {
+    keep_dims = false;
+  }
+
+  std::shared_ptr<ng::Node> ng_node =
+      ConstructNgNode<T>(op->name(), ng_input, ng_reduction_indices, keep_dims);
+  SaveNgOp(ng_op_map, op->name(), ng_node);
+  return Status::OK();
+#endif
+
 }
 
 static Status TranslateOneHotOp(

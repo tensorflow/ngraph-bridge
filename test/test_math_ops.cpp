@@ -421,37 +421,116 @@ TEST(MathOps, Cumsum) {
   opexecuter.RunTest();
 }  // end of test op Cumsum
 
+#if 0
+// An example of how to use create parametrized Google Tests...
+class MathOpsSumParameterizedTests :public ::testing::TestWithParam<std::tuple<TensorShape, std::vector<int>, bool>> {
+  // tuple: tensor-shape, reduction axis vector, keep_dims
+protected:
+    std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
+};
+
+TEST_P(MathOpsSumParameterizedTests, SumOpSubTests) {
+  TensorShape tshp = std::get<0>(GetParam());
+  auto axisvec = std::get<1>(GetParam());
+  auto keep_dims = std::get<2>(GetParam());
+
+  std::stringstream axisvec_ss;
+  std::copy(axisvec.begin(), axisvec.end(), std::ostream_iterator<int>(axisvec_ss, ","));
+  NGRAPH_VLOG(5) << "========>> Running MathOpsSum parameterized sub-test" << 
+  ", tensor-shape=" << tshp << ", axis=" << axisvec_ss.str() << ", keep_dims=" << keep_dims;
+  Scope root = Scope::NewRootScope();
+  auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
+
+  Tensor A(DT_INT32, TensorShape(tshp));
+  AssignInputValues<int>(A, vals);
+
+  Tensor B(DT_INT32, TensorShape({axisvec.size()}));
+  AssignInputValues<int>(B, axisvec);
+
+  vector<int> static_input_indexes = {1};
+  vector<DataType> output_datatypes = {DT_INT32};
+
+  auto R = ops::Sum(root, A, B, keep_dims_attr);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Sum", static_input_indexes, output_datatypes,
+                        sess_run_fetchoutputs);
+
+  opexecuter.RunTest();
+}
+
+// Run like: .../build_cmake$ LD_LIBRARY_PATH="$LD_LIBRARY_PATH:./ngraph_bridge:./artifacts/lib"  ./test/gtest_ngtf  --gtest_filter="MathOpsSumTestsWithParams*"
+INSTANTIATE_TEST_CASE_P(
+  MathOpsSumTestsWithParams,
+  MathOpsSumParameterizedTests,
+  ::testing::Values(
+      std::make_tuple(TensorShape{2,3}, std::vector<int>{0}, false),
+      std::make_tuple(TensorShape{2,3}, std::vector<int>{1}, false),
+      std::make_tuple(TensorShape{2,2,3}, std::vector<int>{0}, false),
+      std::make_tuple(TensorShape{2,2,3}, std::vector<int>{1}, false),
+      std::make_tuple(TensorShape{2,2,3}, std::vector<int>{2}, false),
+      std::make_tuple(TensorShape{2,1,2,3}, std::vector<int>{0}, false),
+      std::make_tuple(TensorShape{2,1,2,3}, std::vector<int>{1}, false),
+      std::make_tuple(TensorShape{2,1,2,3}, std::vector<int>{2}, false),
+      std::make_tuple(TensorShape{2,1,2,3}, std::vector<int>{3}, false),
+      std::make_tuple(TensorShape{2,1,2,3}, std::vector<int>{0,1,3}, false),
+      std::make_tuple(TensorShape{6,2}, std::vector<int>{0}, false),
+      std::make_tuple(TensorShape{6,2}, std::vector<int>{1}, false),
+      std::make_tuple(TensorShape{6,2}, std::vector<int>{0,1}, false),
+      std::make_tuple(TensorShape{2,4,3}, std::vector<int>{0}, false),
+      std::make_tuple(TensorShape{2,4,3}, std::vector<int>{1}, false),
+      std::make_tuple(TensorShape{2,4,3}, std::vector<int>{2}, false),
+      std::make_tuple(TensorShape{2,4,3}, std::vector<int>{0,1,2}, false)
+      ));
+#endif
+
 // Test op: Sum with & without keep dims & with both positive & negative axis
 TEST(MathOps, Sum) {
-  int dim1 = 2;
-  int dim2 = 2;
 
-  std::vector<int> v = {1, 2, 3, 4};
-  Tensor A(DT_INT32, TensorShape({dim1, dim2}));
-  vector<bool> v_keep_dims = {false}; //{true, false};
-  // axis at which the dimension will be inserted
-  // should be -rank <= axis < rank
-  vector<int> v_axis = {1}; //{-1, 0, 1};
+  std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
+  vector<TensorShape> tshapes = { {2,3}, {2,2,3}, {6,2}, {2,4,3}, {4,3,2,1}, {1,2,3,4}, {3,1,2,4,1}  };
+  vector<bool> v_keep_dims = {true, false};
+  std::vector<std::string> run_results;
   int counter = 1;
-  for (auto axis : v_axis) {
-    for (auto keep_dims : v_keep_dims) {
-      NGRAPH_VLOG(5) << "========>> Running Sum sub-test #" << counter++ << ", axis=" << axis << ", keep_dims=" << keep_dims;
-      Scope root = Scope::NewRootScope();
-      auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
+  for(auto tshp : tshapes) {
+    Tensor A(DT_INT32, TensorShape(tshp));
+    vector<int> v_axis(tshp.dims());
+    std::iota(v_axis.begin(), v_axis.end(), 0);
+    for (auto axis : v_axis) {
+      for (auto keep_dims : v_keep_dims) {
+        NGRAPH_VLOG(5) << "========>> Running Sum sub-test #" << counter++ << 
+        ", tensor-shape=" << tshp << ", axis=" << axis << ", keep_dims=" << keep_dims;
+        Scope root = Scope::NewRootScope();
+        auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
 
-      AssignInputValues<int>(A, v);
+        AssignInputValues<int>(A, vals);
 
-      vector<int> static_input_indexes = {1};
-      vector<DataType> output_datatypes = {DT_INT32};
+        vector<int> static_input_indexes = {1};
+        vector<DataType> output_datatypes = {DT_INT32};
 
-      auto R = ops::Sum(root, A, axis, keep_dims_attr);
-      std::vector<Output> sess_run_fetchoutputs = {R};
-      OpExecuter opexecuter(root, "Sum", static_input_indexes, output_datatypes,
-                            sess_run_fetchoutputs);
+        auto R = ops::Sum(root, A, axis, keep_dims_attr);
+        std::vector<Output> sess_run_fetchoutputs = {R};
+        OpExecuter opexecuter(root, "Sum", static_input_indexes, output_datatypes,
+                              sess_run_fetchoutputs);
 
-      opexecuter.RunTest();
+        opexecuter.RunTest();
+        // run_results.push_back(
+        //   std::format("Status {} -> tensor-shape={}, axis={}, keep_dims={}", 
+        //   (opexecuter.ngtf_run_status ? "PASS" : "FAIL"), tshp, axis, keep_dims)
+        // );
+        
+        run_results.push_back(std::string("Status ") + (LastCompareSuccessful() ? "  PASS" : "* FAIL") + " -> " 
+          + "tensor-shape=" + tshp.DebugString() + ", axis=" + std::to_string(axis) + ", keep_dims=" + std::to_string(keep_dims));
+        // run_results.push_back(std::string("Status ") + (::testing::Test::HasFailure() ? "FAIL" : "PASS") + " -> " 
+        //   + "tensor-shape=" + tshp.DebugString() + ", axis=" + std::to_string(axis) + ", keep_dims=" + std::to_string(keep_dims));
+      }
     }
   }
+
+  std::cout << "\nReport of sub-tests...\n";
+  for(auto & str: run_results) {
+    std::cout << str + "\n";
+  }
+  std::cout << "\n";
 }
 
 // Test op: Mean with & without keep dims & with both positive & negative axis

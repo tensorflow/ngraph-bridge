@@ -92,6 +92,9 @@ class OpExecuter {
 
   shared_ptr<ng::Function> get_ng_function() { return ng_function; }
 
+  bool tf_run_status = true;
+  bool ngtf_run_status = true;
+
  private:
   Scope tf_scope_;
   const string test_op_type_;
@@ -99,6 +102,7 @@ class OpExecuter {
   set<int> static_input_indexes_;
   const vector<DataType> expected_output_datatypes_;
   const std::vector<Output> sess_run_fetchoutputs_;
+
 
   void GetNodeData(Graph& graph, NodeMetaData& node_inedge_md,
                    NodeMetaData& node_outedge_md, NodeOutEdges& node_outedges,
