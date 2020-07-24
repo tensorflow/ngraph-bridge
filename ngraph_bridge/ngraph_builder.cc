@@ -4181,7 +4181,7 @@ Status Builder::TranslateGraph(
   // Apply additional passes on the nGraph function here.
   //
   ngraph::pass::Manager passes;
-  passes.register_pass<TransposeElimination>();
+  passes.register_pass<TransposeFolding>();
   passes.run_passes(ng_function);
 
   //
