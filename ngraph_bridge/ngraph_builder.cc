@@ -1208,7 +1208,6 @@ static Status TranslateConv2DBackpropInputOp(
           ng_padding_below, ng_padding_above, ng_dilations, ng_pad_type);
 
   BatchToTensorflow(op->name(), is_nhwc, ng_data);
-
   SaveNgOp(ng_op_map, op->name(), ng_data);
   return Status::OK();
 }
@@ -2015,8 +2014,9 @@ static Status TranslateFusedConv2DOp(const Node* op,
       BatchToTensorflow(op->name(), is_nhwc, ng_relu);
       SaveNgOp(ng_op_map, op->name(), ng_relu);
     } else if (VecStrCmp(fused_ops, {"BiasAdd", "Relu6"})) {
-      BatchToTensorflow(op->name(), is_nhwc, ng_add);
-      SaveNgOp(ng_op_map, op->name(), create_relu6(op->name(), ng_add));
+      shared_ptr<ng::Node> ng_relu6 = create_relu6(op->name(), ng_add);
+      BatchToTensorflow(op->name(), is_nhwc, ng_relu6);
+      SaveNgOp(ng_op_map, op->name(), ng_relu6);
     } else {
       BatchToTensorflow(op->name(), is_nhwc, ng_add);
       SaveNgOp(ng_op_map, op->name(), ng_add);
@@ -2044,15 +2044,17 @@ static Status TranslateFusedConv2DOp(const Node* op,
             op->name() + "_FusedConv2D_BatchNorm", tf_epsilon, ng_scale,
             ng_offset, ng_conv, ng_mean, ng_variance);
 
-    BatchToTensorflow(op->name(), is_nhwc, ng_batch_norm);
-
     if (VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu"})) {
-      SaveNgOp(ng_op_map, op->name(),
-               ConstructNgNode<ng::opset3::Relu>(
-                   op->name() + "_FusedConv2D_BatchNormRelu", ng_batch_norm));
+      shared_ptr<ng::Node> ng_relu = ConstructNgNode<ng::opset3::Relu>(
+          op->name() + "_FusedConv2D_BatchNormRelu", ng_batch_norm);
+      BatchToTensorflow(op->name(), is_nhwc, ng_relu);
+      SaveNgOp(ng_op_map, op->name(), ng_relu);
     } else if (VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu6"})) {
-      SaveNgOp(ng_op_map, op->name(), create_relu6(op->name(), ng_batch_norm));
+      shared_ptr<ng::Node> ng_relu6 = create_relu6(op->name(), ng_batch_norm);
+      BatchToTensorflow(op->name(), is_nhwc, ng_relu6);
+      SaveNgOp(ng_op_map, op->name(), ng_relu6);
     } else {
+      BatchToTensorflow(op->name(), is_nhwc, ng_batch_norm);
       SaveNgOp(ng_op_map, op->name(), ng_batch_norm);
     }
   } else {
