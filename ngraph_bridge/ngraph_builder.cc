@@ -39,7 +39,7 @@
 #include "ngraph_bridge/ngraph_conversions.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/pass/transpose_elimination.h"
+#include "ngraph_bridge/pass/transpose_folding.h"
 
 using tensorflow::int32;
 using namespace std;
