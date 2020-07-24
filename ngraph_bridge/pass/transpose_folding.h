@@ -27,9 +27,9 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 // TODO: change to graph-rewrite pass
-class TransposeElimination : public ngraph::pass::FunctionPass {
+class TransposeFolding : public ngraph::pass::FunctionPass {
  public:
-  TransposeElimination() {
+  TransposeFolding() {
     set_property(ngraph::pass::PassProperty::REQUIRE_STATIC_SHAPE, true);
   }
   bool run_on_function(std::shared_ptr<ngraph::Function> function) override;

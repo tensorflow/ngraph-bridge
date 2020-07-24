@@ -23,7 +23,7 @@
 #include "ngraph/opsets/opset3.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/pass/transpose_elimination.h"
+#include "ngraph_bridge/pass/transpose_folding.h"
 #include "ngraph_bridge/version.h"
 
 using namespace std;
@@ -31,7 +31,7 @@ using namespace std;
 namespace tensorflow {
 namespace ngraph_bridge {
 
-bool TransposeElimination::run_on_function(shared_ptr<ngraph::Function> f) {
+bool TransposeFolding::run_on_function(shared_ptr<ngraph::Function> f) {
   for (auto n1 : f->get_ordered_ops()) {
     if (auto t1 = ngraph::as_type_ptr<ngraph::opset3::Transpose>(n1)) {
       // check if the next node is also a transpose
@@ -53,7 +53,7 @@ bool TransposeElimination::run_on_function(shared_ptr<ngraph::Function> f) {
           // check if the two transposes cancel each other out
           if (default_order == perm_t2) {
             NGRAPH_VLOG(4)
-                << "TransposeElimination: Eliminating consecutive transposes:"
+                << "TransposeFolding: Eliminating consecutive transposes:"
                 << " t1 i/o = " << ngraph::join(const1->get_axis_vector_val())
                 << " t2 i/o = " << ngraph::join(const2->get_axis_vector_val());
             ngraph::replace_node(t1, t2->input_value(0).get_node_shared_ptr());
