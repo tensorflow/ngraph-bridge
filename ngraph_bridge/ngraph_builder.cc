@@ -29,6 +29,7 @@
 #include "ngraph/op/experimental/layers/interpolate.hpp"
 #include "ngraph/op/util/logical_reduction.hpp"
 #include "ngraph/opsets/opset3.hpp"
+#include "ngraph/pass/manager.hpp"
 #include "ngraph/slice_plan.hpp"
 
 #include "logging/ngraph_log.h"
@@ -37,8 +38,8 @@
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_conversions.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
-#include "ngraph_bridge/ngraph_passes.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/pass/transpose_elimination.h"
 
 using tensorflow::int32;
 using namespace std;
@@ -4190,7 +4191,9 @@ Status Builder::TranslateGraph(
   //
   // Apply additional passes on the nGraph function here.
   //
-  TransposeElimination().run_on_function(ng_function);
+  ngraph::pass::Manager passes;
+  passes.register_pass<TransposeElimination>();
+  passes.run_passes(ng_function);
 
   //
   // Request row-major layout on results.

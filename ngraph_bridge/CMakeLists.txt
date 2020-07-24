@@ -45,10 +45,10 @@ set(SRC
    ngraph_encapsulate_op.cc
    ngraph_mark_for_clustering.cc
    ngraph_partial_shapes.cc
-   ngraph_passes.cc
    ngraph_register_stub_kernels.cc   
    ngraph_rewrite_pass.cc
    ngraph_utils.cc
+   pass/transpose_elimination.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
    version.cc

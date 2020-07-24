@@ -23,7 +23,7 @@
 #include "ngraph/opsets/opset3.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_passes.h"
+#include "ngraph_bridge/pass/transpose_elimination.h"
 #include "ngraph_bridge/version.h"
 
 using namespace std;
