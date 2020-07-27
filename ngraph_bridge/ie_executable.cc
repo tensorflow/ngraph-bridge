@@ -28,6 +28,7 @@ using namespace ngraph;
 namespace tensorflow {
 namespace ngraph_bridge {
 
+
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     : m_device{device} {
   NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
@@ -44,7 +45,116 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   m_results_orig = m_results;
   m_params_orig = m_parameters;
 
-#if 1
+  InfoSaveResultMaps();
+
+  shared_ptr<Function> func2 = StripOffUnhandledNodes(func);
+
+  NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
+  m_network = InferenceEngine::CNNNetwork(func2);
+  //// CAUTION: set_parameters_and_results(*func2); // Don't update again, as we want TF to pass us all inputs & outputs tensors per the original func
+
+  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
+    auto& name = m_network.getName();
+    m_network.serialize(name + ".xml", name + ".bin");
+  }
+
+  InfoSaveInOutIndexMaps();
+
+  NGRAPH_VLOG(2) << "Loading IE CNN network to device=" << m_device << ", ng-function=" << m_network.getFunction()->get_friendly_name();
+  InferenceEngine::Core ie;
+  // Load model to the plugin (m_device)
+  InferenceEngine::ExecutableNetwork exe_network =
+      ie.LoadNetwork(m_network, m_device);
+
+  // Create infer request
+  NGRAPH_VLOG(5) << "IE_Executable calling CreateInferRequest() --> " << m_network.getFunction()->get_friendly_name();
+  m_infer_req = exe_network.CreateInferRequest();
+}
+
+bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
+                         const vector<shared_ptr<runtime::Tensor>>& inputs) {
+  NGRAPH_VLOG(5) << "IE_Executable::call BEGIN --> " << m_network.getFunction()->get_friendly_name();
+  
+  // A note about input and output tensor orders:
+  // Example from ng func (the param vectors are in this order for outputs and inputs respectively):
+  //   outs(10) = Add_359(*), Constant_673, Constant_675, ngraph_output_0(*), ngraph_output_1, ngraph_output_2, ngraph_output_6, ngraph_output_7, ngraph_output_8, ngraph_output_9,
+  //     The ones with * are actual dynamic computed results/outs from the IE/CNN
+  //   ins(2) = _arg_import/best_practices_0_0, _arg_import/read_tensor_0_1,
+  // Example Const to ng result map (m_nongraph_const_outputs), helpful for tensor data copying:
+  //   Constant_673->Result_353, Constant_675->Result_352, ngraph_output_1->Result_350, ngraph_output_2->Result_351, 
+  //   ngraph_output_6->Result_355, ngraph_output_7->Result_356, ngraph_output_8->Result_357, ngraph_output_9->Result_358,
+
+  InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
+  if (m_params_orig.size() != inputs.size()) {
+    THROW_IE_EXCEPTION
+        << "Ng-Function inputs number differ from number of given inputs";
+  }
+  
+  // Align input tensor index with IE-CNN's param index
+  size_t i = 0;
+  for (const auto& it : input_info) {
+    auto input_name = it.first;
+    // Check which TF-tensor-input# this input_name matches with
+    if(m_map_cnnparam_to_tfidx.find(input_name) == m_map_cnnparam_to_tfidx.end()) {
+        THROW_IE_EXCEPTION << "\n!!! Cannot locate in m_map_cnnparam_to_tfidx, input/param = " << input_name << " !!!\n";
+    }
+    int idx_tensor_input = m_map_cnnparam_to_tfidx.at(input_name);
+    if(idx_tensor_input >= inputs.size()) {
+        THROW_IE_EXCEPTION << "\n!!! Bad idx_tensor_input for " << input_name << ", idx_tensor_input = " << idx_tensor_input << " !!!\n";
+    }
+
+    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[idx_tensor_input]);
+    m_infer_req.SetBlob(input_name, tv->get_blob());
+    i++;
+  }
+
+  //  Prepare output blobs
+  InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
+  if (output_info.size() != outputs.size()) {
+    THROW_IE_EXCEPTION
+        << "Function outputs number differ from number of given outputs";
+  }
+  NGRAPH_CHECK(m_results_orig.size()==outputs.size(), "Mismatching number of output items between tensors (", outputs.size(), ") and results (", m_results_orig.size() ,")");
+
+  // Shortcut the Const -> Result values
+  for(const auto& it : m_map_cnnconstresult_to_ngnodeptr) {
+      auto output_name = it.first;
+      const ngraph::op::Constant* const_node = (ngraph::op::Constant*)(it.second);
+      if(const_node) {
+          int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
+          auto num_bytes = shape_size(const_node->get_shape()) * const_node->get_element_type().size();
+          //DBG_ONLY: 
+          std::cout << "    ... shortcut value from Const node " << output_name << " to TF Output " << m_nongraph_const_outputs.at(output_name) << ", index=" << ", num_bytes=" << num_bytes << "\n";
+          const void* value = const_node->get_data_ptr();
+          outputs[idx_tensor_output]->write(value, num_bytes);
+      } else {
+          THROW_IE_EXCEPTION << "\n!!! Cannot get const_node = " << output_name << " for value shortcut !!!\n";
+      }
+  }
+
+  // Pass the other output tensors
+  for (const auto& it : output_info) {
+    auto output_name = it.first;
+    NGRAPH_CHECK(m_map_cnnresult_to_tfidx.count(output_name) == 1, "!!! Output ", output_name, " not found !!!");
+    int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
+
+    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[idx_tensor_output]);
+    //DBG_ONLY: 
+    NGRAPH_VLOG(5) << "func => " << m_network.getFunction()->get_friendly_name() <<
+    " Calling m_infer_req.SetBlob for output " << output_name << ", count=" << tv->get_element_count() << 
+    ", network precision=" << it.second->getTensorDesc().getPrecision().name() << 
+    ", tensor type=" << tv->get_element_type().get_type_name() << "\n";
+
+    m_infer_req.SetBlob(output_name, tv->get_blob());
+  }
+
+  NGRAPH_VLOG(5) << "IE_Executable::call -> m_infer_req.Infer() --> " << m_network.getFunction()->get_friendly_name();
+  m_infer_req.Infer();
+  return true;
+} // end of call()
+
+
+void IE_Executable::InfoSaveResultMaps() {
   // We need to save the mapping from CNN network's Result nodes to the original NG-function's result-contributing nodes
   // m_map_result_to_ngnode e.g. (result, from) e.g. Result_353->Constant_673, Result_350->ngraph_output_1
   // Also...
@@ -83,26 +193,26 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
           THROW_IE_EXCEPTION << "\n!!! m_results op " << op->get_name() << " not found in m_map_result_to_ngnode !!!\n";
       }
   }
-#endif
+}
 
+shared_ptr<Function> IE_Executable::StripOffUnhandledNodes(const shared_ptr<Function> &func) {
   shared_ptr<Function> func2 = func;
 
-#if 1
   // Let's don't send disconnected Const -> Result nodes to IE
   if(m_nongraph_const_outputs.size() > 0) {
-  vector<shared_ptr<ngraph::Node>> ng_result_list2; // (func->get_results().size() - m_nongraph_const_outputs.size());
-  for (auto& opresult : func->get_results()) {
-      const auto& ng_result_name = opresult->get_name();
-      if(m_map_result_to_ngnode.count(ng_result_name) == 1) {
-          const auto& cnn_result_name = m_map_result_to_ngnode.at(ng_result_name);
-          if(m_nongraph_const_outputs.count(cnn_result_name) == 1) {
-              continue;
-          }
-      }
-      ng_result_list2.push_back(opresult);
-  }
-  func2 = make_shared<ngraph::Function>(ng_result_list2, func->get_parameters());
-  func2->set_friendly_name(func->get_friendly_name());
+    vector<shared_ptr<ngraph::Node>> ng_result_list2; // (func->get_results().size() - m_nongraph_const_outputs.size());
+    for (auto& opresult : func->get_results()) {
+        const auto& ng_result_name = opresult->get_name();
+        if(m_map_result_to_ngnode.count(ng_result_name) == 1) {
+            const auto& cnn_result_name = m_map_result_to_ngnode.at(ng_result_name);
+            if(m_nongraph_const_outputs.count(cnn_result_name) == 1) {
+                continue;
+            }
+        }
+        ng_result_list2.push_back(opresult);
+    }
+    func2 = make_shared<ngraph::Function>(ng_result_list2, func->get_parameters());
+    func2->set_friendly_name(func->get_friendly_name());
   }
 
   // after above
@@ -117,21 +227,11 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   }
   func2 = make_shared<ngraph::Function>(func2->get_results(), ng_param_list2);
   func2->set_friendly_name(func->get_friendly_name());
-#endif
 
+  return func2;
+}
 
-  NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
-  m_network = InferenceEngine::CNNNetwork(func2);
-  ////set_parameters_and_results(*func2); // Don't update again, as we want TF to pass us all inputs & outputs tensors per the original func
-
-
-  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
-    auto& name = m_network.getName();
-    m_network.serialize(name + ".xml", name + ".bin");
-  }
-
-
-  // Bani
+void IE_Executable::InfoSaveInOutIndexMaps() {
   // Save the input index mappings from CNN's param name to TF/NGraph's input index
   for (const auto& node : m_network.getFunction()->get_ops()) { // node is a shared_ptr of Node
       if(node->is_parameter()) {
@@ -151,8 +251,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   //std::cout << "\nIE_Executable ctor, m_map_cnnparam_to_tfidx " << m_network.getFunction()->get_friendly_name() << " ==> "; for (auto const& pair : m_map_cnnparam_to_tfidx) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
   ////Dont' check NGRAPH_CHECK(m_map_cnnparam_to_tfidx.size()==func->get_parameters().size(), "Mismatching number of param/input items for orig-func and m_network.getFunction()");
 
-#if 1
-  // Bani
+
   // Save the output index mappings from CNN's result name to TF tensor's output index
   // Example: same numbers of items in each (e.g. 10)
   // m_network.getOutputsInfo() => Add_359(*), Constant_673, Constant_675, ngraph_output_0(*), ngraph_output_1, ngraph_output_2, ngraph_output_6, ngraph_output_7, ngraph_output_8, ngraph_output_9
@@ -176,101 +275,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   }
   //DBG_ONLY: 
   //std::cout << "\nIE_Executable ctor, m_map_cnnresult_to_tfidx " << m_network.getFunction()->get_friendly_name() << " ==> "; for (auto const& pair : m_map_cnnresult_to_tfidx) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
-#endif
-
-  NGRAPH_VLOG(2) << "Loading IE CNN network to device=" << m_device << ", ng-function=" << m_network.getFunction()->get_friendly_name();
-  InferenceEngine::Core ie;
-  // Load model to the plugin (m_device)
-  InferenceEngine::ExecutableNetwork exe_network =
-      ie.LoadNetwork(m_network, m_device);
-
-  // Create infer request
-  NGRAPH_VLOG(5) << "IE_Executable calling CreateInferRequest() --> " << m_network.getFunction()->get_friendly_name();
-  m_infer_req = exe_network.CreateInferRequest();
 }
 
-bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
-                         const vector<shared_ptr<runtime::Tensor>>& inputs) {
-  NGRAPH_VLOG(5) << "IE_Executable::call BEGIN --> " << m_network.getFunction()->get_friendly_name();
-  
-  // A note about input and output tensor orders:
-  // Example from ng func (the param vectors are in this order for outputs and inputs respectively):
-  //   outs(10) = Add_359(*), Constant_673, Constant_675, ngraph_output_0(*), ngraph_output_1, ngraph_output_2, ngraph_output_6, ngraph_output_7, ngraph_output_8, ngraph_output_9,
-  //     The ones with * are actual dynamic computed results/outs from the IE/CNN
-  //   ins(2) = _arg_import/best_practices_0_0, _arg_import/read_tensor_0_1,
-  // Example Const to ng result map (m_nongraph_const_outputs), helpful for tensor data copying:
-  //   Constant_673->Result_353, Constant_675->Result_352, ngraph_output_1->Result_350, ngraph_output_2->Result_351, 
-  //   ngraph_output_6->Result_355, ngraph_output_7->Result_356, ngraph_output_8->Result_357, ngraph_output_9->Result_358,
-
-  InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  if (m_params_orig.size() != inputs.size()) {
-    THROW_IE_EXCEPTION
-        << "Ng-Function inputs number differ from number of given inputs";
-  }
-
-  size_t i = 0;
-  for (const auto& it : input_info) {
-    auto input_name = it.first;
-    // Check which TF-tensor-input# this input_name matches with
-    if(m_map_cnnparam_to_tfidx.find(input_name) == m_map_cnnparam_to_tfidx.end()) {
-        THROW_IE_EXCEPTION << "\n!!! Cannot locate in m_map_cnnparam_to_tfidx, input/param = " << input_name << " !!!\n";
-    }
-    int idx_tensor_input = m_map_cnnparam_to_tfidx.at(input_name);
-    if(idx_tensor_input >= inputs.size()) {
-        THROW_IE_EXCEPTION << "\n!!! Bad idx_tensor_input for " << input_name << ", idx_tensor_input = " << idx_tensor_input << " !!!\n";
-    }
-
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[idx_tensor_input]);
-    m_infer_req.SetBlob(input_name, tv->get_blob());
-    i++;
-  }
-
-  //  Prepare output blobs
-  InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
-  if (output_info.size() != outputs.size()) {
-    THROW_IE_EXCEPTION
-        << "Function outputs number differ from number of given outputs";
-  }
-
-  NGRAPH_CHECK(m_results_orig.size()==outputs.size(), "Mismatching number of output items between tensors (", outputs.size(), ") and results (", m_results_orig.size() ,")");
-  //NGRAPH_CHECK(m_results.size()==outputs.size(), "Mismatching number of output items between tensors (", outputs.size(), ") and results (", m_results.size() ,")");
-
-  // Shortcut the Const -> Result values
-  for(const auto& it : m_map_cnnconstresult_to_ngnodeptr) {
-      auto output_name = it.first;
-      const ngraph::op::Constant* const_node = (ngraph::op::Constant*)(it.second);
-      if(const_node) {
-          int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
-          auto num_bytes = shape_size(const_node->get_shape()) * const_node->get_element_type().size();
-          //DBG_ONLY: 
-          std::cout << "    ... shortcut value from Const node " << output_name << " to TF Output " << m_nongraph_const_outputs.at(output_name) << ", index=" << ", num_bytes=" << num_bytes << "\n";
-          const void* value = const_node->get_data_ptr();
-          outputs[idx_tensor_output]->write(value, num_bytes);
-      } else {
-          THROW_IE_EXCEPTION << "\n!!! Cannot get const_node = " << output_name << " for value shortcut !!!\n";
-      }
-  }
-
-  // Pass the other output tensors
-  for (const auto& it : output_info) {
-    auto output_name = it.first;
-    NGRAPH_CHECK(m_map_cnnresult_to_tfidx.count(output_name) == 1, "!!! Output ", output_name, " not found !!!");
-    int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
-
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[idx_tensor_output]);
-    //DBG_ONLY: 
-    NGRAPH_VLOG(5) << "func => " << m_network.getFunction()->get_friendly_name() <<
-    " Calling m_infer_req.SetBlob for output " << output_name << ", count=" << tv->get_element_count() << 
-    ", network precision=" << it.second->getTensorDesc().getPrecision().name() << 
-    ", tensor type=" << tv->get_element_type().get_type_name() << "\n";
-
-    m_infer_req.SetBlob(output_name, tv->get_blob());
-  }
-
-  NGRAPH_VLOG(5) << "IE_Executable::call -> m_infer_req.Infer() --> " << m_network.getFunction()->get_friendly_name();
-  m_infer_req.Infer();
-  return true;
-}
 
 } // namespace ngraph_bridge
 } // namespace tensorflow

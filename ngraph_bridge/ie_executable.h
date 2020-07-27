@@ -51,6 +51,10 @@ class IE_Executable final : public Executable {
   std::map<std::string, std::string> m_nongraph_const_outputs; // (input-const, output-result)
   std::map<std::string, std::string> m_map_result_to_ngnode; // (result, from) e.g. Result_353->Constant_673, Result_350->ngraph_output_1
   std::map<std::string, void*> m_map_result_to_ngnodeptr; // same as above one
+  void InfoSaveResultMaps();
+  void InfoSaveInOutIndexMaps();
+  shared_ptr<ngraph::Function> StripOffUnhandledNodes(const shared_ptr<ngraph::Function> &);
+
 };
 
 } // namespace ngraph_bridge
