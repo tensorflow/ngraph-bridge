@@ -341,9 +341,7 @@ bool Compare(std::vector<string> desired, std::vector<string> actual) {
   return true;
 }
 
-bool LastCompareSuccessful() {
-  return _LastCompareSuccessful;
-}
+bool LastCompareSuccessful() { return _LastCompareSuccessful; }
 
 Status CreateSession(const string& graph_filename, const string& backend_name,
                      unique_ptr<tf::Session>& session) {

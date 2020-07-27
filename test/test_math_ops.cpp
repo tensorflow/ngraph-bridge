@@ -485,20 +485,23 @@ INSTANTIATE_TEST_CASE_P(
 
 // Test op: Sum with & without keep dims & with both positive & negative axis
 TEST(MathOps, Sum) {
-
-  std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
-  vector<TensorShape> tshapes = { {2,3}, {2,2,3}, {6,2}, {2,4,3}, {4,3,2,1}, {1,2,3,4}, {3,1,2,4,1}  };
+  std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6,
+                           1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
+  vector<TensorShape> tshapes = {{2, 3},         {2, 2, 3},    {6, 2},
+                                 {2, 4, 3},      {4, 3, 2, 1}, {1, 2, 3, 4},
+                                 {3, 1, 2, 4, 1}};
   vector<bool> v_keep_dims = {true, false};
   std::vector<std::string> run_results;
   int counter = 1;
-  for(auto tshp : tshapes) {
+  for (auto tshp : tshapes) {
     Tensor A(DT_INT32, TensorShape(tshp));
     vector<int> v_axis(tshp.dims());
     std::iota(v_axis.begin(), v_axis.end(), 0);
     for (auto axis : v_axis) {
       for (auto keep_dims : v_keep_dims) {
-        NGRAPH_VLOG(5) << "========>> Running Sum sub-test #" << counter++ << 
-        ", tensor-shape=" << tshp << ", axis=" << axis << ", keep_dims=" << keep_dims;
+        NGRAPH_VLOG(5) << "========>> Running Sum sub-test #" << counter++
+                       << ", tensor-shape=" << tshp << ", axis=" << axis
+                       << ", keep_dims=" << keep_dims;
         Scope root = Scope::NewRootScope();
         auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
 
@@ -509,25 +512,31 @@ TEST(MathOps, Sum) {
 
         auto R = ops::Sum(root, A, axis, keep_dims_attr);
         std::vector<Output> sess_run_fetchoutputs = {R};
-        OpExecuter opexecuter(root, "Sum", static_input_indexes, output_datatypes,
-                              sess_run_fetchoutputs);
+        OpExecuter opexecuter(root, "Sum", static_input_indexes,
+                              output_datatypes, sess_run_fetchoutputs);
 
         opexecuter.RunTest();
         // run_results.push_back(
-        //   std::format("Status {} -> tensor-shape={}, axis={}, keep_dims={}", 
-        //   (opexecuter.ngtf_run_status ? "PASS" : "FAIL"), tshp, axis, keep_dims)
+        //   std::format("Status {} -> tensor-shape={}, axis={}, keep_dims={}",
+        //   (opexecuter.ngtf_run_status ? "PASS" : "FAIL"), tshp, axis,
+        //   keep_dims)
         // );
-        
-        run_results.push_back(std::string("Status ") + (LastCompareSuccessful() ? "  PASS" : "* FAIL") + " -> " 
-          + "tensor-shape=" + tshp.DebugString() + ", axis=" + std::to_string(axis) + ", keep_dims=" + std::to_string(keep_dims));
-        // run_results.push_back(std::string("Status ") + (::testing::Test::HasFailure() ? "FAIL" : "PASS") + " -> " 
-        //   + "tensor-shape=" + tshp.DebugString() + ", axis=" + std::to_string(axis) + ", keep_dims=" + std::to_string(keep_dims));
+
+        run_results.push_back(std::string("Status ") +
+                              (LastCompareSuccessful() ? "  PASS" : "* FAIL") +
+                              " -> " + "tensor-shape=" + tshp.DebugString() +
+                              ", axis=" + std::to_string(axis) +
+                              ", keep_dims=" + std::to_string(keep_dims));
+        // run_results.push_back(std::string("Status ") +
+        // (::testing::Test::HasFailure() ? "FAIL" : "PASS") + " -> "
+        //   + "tensor-shape=" + tshp.DebugString() + ", axis=" +
+        //   std::to_string(axis) + ", keep_dims=" + std::to_string(keep_dims));
       }
     }
   }
 
   std::cout << "\nReport of sub-tests...\n";
-  for(auto & str: run_results) {
+  for (auto& str : run_results) {
     std::cout << str + "\n";
   }
   std::cout << "\n";

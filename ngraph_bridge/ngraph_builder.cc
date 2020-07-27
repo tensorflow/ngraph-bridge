@@ -39,14 +39,14 @@
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
-#include "ngraph/pass/manager.hpp"
 #include "ngraph/pass/algebraic_simplification.hpp"
+#include "ngraph/pass/constant_folding.hpp"
 #include "ngraph/pass/get_output_element_elimination.hpp"
 #include "ngraph/pass/like_replacement.hpp"
 #include "ngraph/pass/manager.hpp"
+#include "ngraph/pass/manager.hpp"
 #include "ngraph/pass/nop_elimination.hpp"
 #include "ngraph/pass/opset1_upgrade.hpp"
-#include "ngraph/pass/constant_folding.hpp"
 #include "ngraph/pass/reshape_elimination.hpp"
 #include "ngraph/pass/reshape_sinking.hpp"
 #include "ngraph/pass/zero_dim_tensor_elimination.hpp"
@@ -2484,7 +2484,6 @@ static Status TranslateDirectReduceOp(
   SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
 #endif
-
 }
 
 static Status TranslateOneHotOp(
@@ -4208,63 +4207,72 @@ Status Builder::TranslateGraph(
 
 #if 1
   // Bani
-  NGRAPH_VLOG(1) << "Running optimization passes after TF->NGFUNC TranslateGraph() ...";
-  // ngraph::pass::Manager passes;
-  // passes.register_pass<ng::pass::LikeReplacement>();
-  // passes.register_pass<ng::pass::NopElimination>();
-  // passes.register_pass<ng::pass::ZeroDimTensorElimination>();
-  // passes.register_pass<ng::pass::AlgebraicSimplification>();
-  // passes.register_pass<ngraph::pass::ConstantFolding>();
-  // passes.register_pass<ng::pass::GetOutputElementElimination>();
-  // passes.run_passes(ng_function);
+  NGRAPH_VLOG(1)
+      << "Running optimization passes after TF->NGFUNC TranslateGraph() ...";
+// ngraph::pass::Manager passes;
+// passes.register_pass<ng::pass::LikeReplacement>();
+// passes.register_pass<ng::pass::NopElimination>();
+// passes.register_pass<ng::pass::ZeroDimTensorElimination>();
+// passes.register_pass<ng::pass::AlgebraicSimplification>();
+// passes.register_pass<ngraph::pass::ConstantFolding>();
+// passes.register_pass<ng::pass::GetOutputElementElimination>();
+// passes.run_passes(ng_function);
 
-  // uint64 num_params_before, num_params_after;
-  // do {
-  //   num_params_before = ng_function->get_parameters().size();
-  //   auto itr = ng_function->get_parameters().begin();
-  //   for (auto i=0; i<num_params_before; ++i) {
-  //     const auto& node = ng_function->get_parameters()[i];
-  //     if(node->get_output_size()>0 && node->output(0).get_target_inputs().size()==0) {
-  //       NGRAPH_VLOG(1) << "!! Found isolated Param node: " << node->get_friendly_name();
-  //       ng_function->get_parameters().erase(itr);
-  //       break;
-  //     } else {
-  //       itr++;
-  //     }
-  //   }
-  //   num_params_after = ng_function->get_parameters().size();
-  // } while(num_params_before != num_params_after);
+// uint64 num_params_before, num_params_after;
+// do {
+//   num_params_before = ng_function->get_parameters().size();
+//   auto itr = ng_function->get_parameters().begin();
+//   for (auto i=0; i<num_params_before; ++i) {
+//     const auto& node = ng_function->get_parameters()[i];
+//     if(node->get_output_size()>0 &&
+//     node->output(0).get_target_inputs().size()==0) {
+//       NGRAPH_VLOG(1) << "!! Found isolated Param node: " <<
+//       node->get_friendly_name();
+//       ng_function->get_parameters().erase(itr);
+//       break;
+//     } else {
+//       itr++;
+//     }
+//   }
+//   num_params_after = ng_function->get_parameters().size();
+// } while(num_params_before != num_params_after);
 
+// auto func_params = ng_function->get_parameters();
+// std::remove_if(func_params.begin(), func_params.end(),
+//   [](std::shared_ptr<ngraph::Node> node) -> bool {
+//     if(node->get_output_size()>0 &&
+//     node->output(0).get_target_inputs().size()==0) {
+//       NGRAPH_VLOG(1) << "!! Found isolated Param node: " <<
+//       node->get_friendly_name();
+//       return true;
+//     }
+//     return false;
+//   });
 
-  
-  // auto func_params = ng_function->get_parameters();
-  // std::remove_if(func_params.begin(), func_params.end(),
-  //   [](std::shared_ptr<ngraph::Node> node) -> bool {
-  //     if(node->get_output_size()>0 && node->output(0).get_target_inputs().size()==0) {
-  //       NGRAPH_VLOG(1) << "!! Found isolated Param node: " << node->get_friendly_name();
-  //       return true;
-  //     }
-  //     return false;
-  //   });
+// auto func_params = ng_function->get_parameters();
+// ngraph::ParameterVector func_params2;
+// for (auto& node : func_params) { // node is a shared_ptr of Node
+//   //NGRAPH_VLOG(1) << " -> found Param node: " << node->get_friendly_name()
+//   << ", " << node->get_type_info().name << ", #outputs=" <<
+//   node->get_output_size();
+//   // if no output, delete this Arg/Param node
+//   if(node->get_output_size()>0 &&
+//   node->output(0).get_target_inputs().size()==0) {
+//     NGRAPH_VLOG(1) << "!! Stripping off isolated Param node: " <<
+//     node->get_friendly_name();
+//   } else {
+//     func_params2.push_back(node);
+//   }
+// }
+// ng_function = make_shared<ngraph::Function>(ng_function->get_results(),
+// func_params2);
 
-
-  // auto func_params = ng_function->get_parameters();
-  // ngraph::ParameterVector func_params2;
-  // for (auto& node : func_params) { // node is a shared_ptr of Node
-  //   //NGRAPH_VLOG(1) << " -> found Param node: " << node->get_friendly_name() << ", " << node->get_type_info().name << ", #outputs=" << node->get_output_size();
-  //   // if no output, delete this Arg/Param node
-  //   if(node->get_output_size()>0 && node->output(0).get_target_inputs().size()==0) {
-  //     NGRAPH_VLOG(1) << "!! Stripping off isolated Param node: " << node->get_friendly_name();
-  //   } else {
-  //     func_params2.push_back(node);
-  //   }
-  // }
-  // ng_function = make_shared<ngraph::Function>(ng_function->get_results(), func_params2);
-
-  // NGRAPH_VLOG(5) << "After: " << ng_function->get_parameters().size();
-  // for (const auto& node : ng_function->get_parameters()) { // node is a shared_ptr of Node
-  //   NGRAPH_VLOG(5) << " -> after found Param node: " << node->get_friendly_name();
-  // }
+// NGRAPH_VLOG(5) << "After: " << ng_function->get_parameters().size();
+// for (const auto& node : ng_function->get_parameters()) { // node is a
+// shared_ptr of Node
+//   NGRAPH_VLOG(5) << " -> after found Param node: " <<
+//   node->get_friendly_name();
+// }
 #endif
 
   //

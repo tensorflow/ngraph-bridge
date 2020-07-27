@@ -103,7 +103,6 @@ class OpExecuter {
   const vector<DataType> expected_output_datatypes_;
   const std::vector<Output> sess_run_fetchoutputs_;
 
-
   void GetNodeData(Graph& graph, NodeMetaData& node_inedge_md,
                    NodeMetaData& node_outedge_md, NodeOutEdges& node_outedges,
                    Node** test_op);

@@ -333,7 +333,7 @@ Status NgraphSerialize(const std::string&,
 // For gdb debug help...
 // Serialize a ngraph function into a file
 Status gdb_serialize_ngfunc(const char*,
-                       const std::shared_ptr<ngraph::Function>&);
+                            const std::shared_ptr<ngraph::Function>&);
 void gdb_print_ngfunc_nodes_shptr(const shared_ptr<ngraph::Function>&);
 void gdb_print_ngfunc_nodes_funcref(const ngraph::Function&);
 void gdb_print_ngfunc_nodes_vptr(void*);
