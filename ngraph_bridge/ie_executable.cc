@@ -51,7 +51,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func2);
   //// CAUTION: set_parameters_and_results(*func2); // Don't update again, as we
-  ///want TF to pass us all inputs & outputs tensors per the original func
+  /// want TF to pass us all inputs & outputs tensors per the original func
 
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
     auto& name = m_network.getName();
@@ -328,9 +328,9 @@ void IE_Executable::InfoSaveInOutIndexMaps() {
   // pair : m_map_cnnparam_to_tfidx) { std::cout << pair.first << "->" <<
   // pair.second << ", "; } std::cout << "\n";
   ////Dont' check
-  ///NGRAPH_CHECK(m_map_cnnparam_to_tfidx.size()==func->get_parameters().size(),
+  /// NGRAPH_CHECK(m_map_cnnparam_to_tfidx.size()==func->get_parameters().size(),
   ///"Mismatching number of param/input items for orig-func and
-  ///m_network.getFunction()");
+  /// m_network.getFunction()");
 
   // Save the output index mappings from CNN's result name to TF tensor's output
   // index
