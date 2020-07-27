@@ -71,9 +71,9 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   //DBG_ONLY: 
   // Example: Result_353->Constant_673, Result_350->ngraph_output_1, ...
   //DBG_ONLY: std::cout << "\n*** m_results " << m_results.size() << " ==> "; for (auto& op : m_results) { std::cout << op->get_name() << ", "; } std::cout << "\n";
-  std::cout << "\n*** m_map_result_to_ngnode " << m_map_result_to_ngnode.size() << " ==> "; for (auto const& pair : m_map_result_to_ngnode) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
+  //std::cout << "\n*** m_map_result_to_ngnode " << m_map_result_to_ngnode.size() << " ==> "; for (auto const& pair : m_map_result_to_ngnode) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
   //DBG_ONLY: 
-  std::cout << "\n*** m_nongraph_const_outputs " << m_nongraph_const_outputs.size() << " ==> "; for (auto const& pair : m_nongraph_const_outputs) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
+  //std::cout << "\n*** m_nongraph_const_outputs " << m_nongraph_const_outputs.size() << " ==> "; for (auto const& pair : m_nongraph_const_outputs) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
   // Example: Constant_673->Result_353,  ngraph_output_1->Result_350, ...
 
   NGRAPH_CHECK(m_results.size()==m_map_result_to_ngnode.size(), "Mismatching number of result/output items");
@@ -148,8 +148,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
       }
   }
   //DBG_ONLY: 
-  std::cout << "\nIE_Executable ctor, m_map_cnnparam_to_tfidx " << m_network.getFunction()->get_friendly_name() << " ==> "; for (auto const& pair : m_map_cnnparam_to_tfidx) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
-  //NGRAPH_CHECK(m_map_cnnparam_to_tfidx.size()==func->get_parameters().size(), "Mismatching number of param/input items for orig-func and m_network.getFunction()");
+  //std::cout << "\nIE_Executable ctor, m_map_cnnparam_to_tfidx " << m_network.getFunction()->get_friendly_name() << " ==> "; for (auto const& pair : m_map_cnnparam_to_tfidx) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
+  ////Dont' check NGRAPH_CHECK(m_map_cnnparam_to_tfidx.size()==func->get_parameters().size(), "Mismatching number of param/input items for orig-func and m_network.getFunction()");
 
 #if 1
   // Bani
@@ -175,7 +175,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
       idx++;
   }
   //DBG_ONLY: 
-  std::cout << "\nIE_Executable ctor, m_map_cnnresult_to_tfidx " << m_network.getFunction()->get_friendly_name() << " ==> "; for (auto const& pair : m_map_cnnresult_to_tfidx) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
+  //std::cout << "\nIE_Executable ctor, m_map_cnnresult_to_tfidx " << m_network.getFunction()->get_friendly_name() << " ==> "; for (auto const& pair : m_map_cnnresult_to_tfidx) { std::cout << pair.first << "->" << pair.second << ", "; } std::cout << "\n";
 #endif
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device=" << m_device << ", ng-function=" << m_network.getFunction()->get_friendly_name();
