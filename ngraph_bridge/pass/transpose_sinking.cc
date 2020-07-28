@@ -45,7 +45,7 @@ static ngraph::CoordinateDiff apply_permutation(ngraph::CoordinateDiff input,
   return output;
 }
 
-static string describe_reshape(shared_ptr<ngraph::Node> node) {
+static string describe_transpose(shared_ptr<ngraph::Node> node) {
   stringstream ss;
   auto reshape = ngraph::as_type_ptr<ngraph::op::Reshape>(node);
   ss << reshape->get_name() << " ( axis order = "
@@ -56,20 +56,20 @@ static string describe_reshape(shared_ptr<ngraph::Node> node) {
   return ss.str();
 }
 
-static shared_ptr<ngraph::op::Reshape> make_reshape(
+static shared_ptr<ngraph::op::Reshape> make_transpose(
     shared_ptr<ngraph::Node> arg, const ngraph::AxisVector& input_order,
     const ngraph::Shape& output_shape) {
   auto reshape =
       make_shared<ngraph::op::Reshape>(arg, input_order, output_shape);
-  NGRAPH_VLOG(4) << "Make Reshape " << describe_reshape(reshape);
+  NGRAPH_VLOG(4) << "Make Reshape " << describe_transpose(reshape);
   return reshape;
 }
 
 static void write_transposemap(TransposeMap& reorders,
-                             shared_ptr<ngraph::Node> target,
-                             shared_ptr<ngraph::op::Reshape> reshape) {
+                               shared_ptr<ngraph::Node> target,
+                               shared_ptr<ngraph::op::Reshape> reshape) {
   NGRAPH_VLOG(4) << "Write TransposeMap[" << target->get_name()
-                 << "] = " << describe_reshape(reshape);
+                 << "] = " << describe_transpose(reshape);
   reorders[target] = reshape;
 }
 
@@ -77,32 +77,32 @@ static shared_ptr<ngraph::op::Reshape> read_transposemap(
     TransposeMap& reorders, shared_ptr<ngraph::Node> target) {
   auto reorder = reorders.at(target);
   NGRAPH_VLOG(4) << "Read TransposeMap[" << target->get_name() << "]  -> "
-                 << describe_reshape(reorder);
+                 << describe_transpose(reorder);
   return reorder;
 }
 
-static shared_ptr<ngraph::op::Reshape> combine_reshapes(
+static shared_ptr<ngraph::op::Reshape> combine_transposes(
     shared_ptr<ngraph::op::Reshape> r1, shared_ptr<ngraph::op::Reshape> r2) {
   auto default_order = ngraph::get_default_order(r1->get_shape());
   auto perm_r1 =
       ngraph::apply_permutation(default_order, r1->get_input_order());
   auto perm_r2 = ngraph::apply_permutation(perm_r1, r2->get_input_order());
-  auto rreshape = make_reshape(r2->get_argument(0), perm_r2, r2->get_shape());
-  NGRAPH_VLOG(4) << "Combining " << describe_reshape(r1) << " and "
-                 << describe_reshape(r2) << " into "
-                 << describe_reshape(rreshape);
+  auto rreshape = make_transpose(r2->get_argument(0), perm_r2, r2->get_shape());
+  NGRAPH_VLOG(4) << "Combining " << describe_transpose(r1) << " and "
+                 << describe_transpose(r2) << " into "
+                 << describe_transpose(rreshape);
   return rreshape;
 }
 
-static void insert_reshape(shared_ptr<ngraph::Node> target,
-                           shared_ptr<ngraph::Node> reshape,
-                           size_t input_index) {
+static void insert_transpose(shared_ptr<ngraph::Node> target,
+                             shared_ptr<ngraph::Node> reshape,
+                             size_t input_index) {
   NGRAPH_VLOG(4) << "Inserting reshape at input " << target->get_name()
                  << " input index " << input_index;
   auto arg = target->input(input_index).get_source_output();
   NGRAPH_VLOG(4) << "Arg shape: " << arg.get_shape();
   auto new_reshape = reshape->copy_with_new_inputs({arg});
-  NGRAPH_VLOG(4) << "Inserting reshape " << describe_reshape(new_reshape)
+  NGRAPH_VLOG(4) << "Inserting reshape " << describe_transpose(new_reshape)
                  << " at input " << target->get_name() << " input index "
                  << input_index;
   target->input(input_index).replace_source_output(new_reshape->output(0));
@@ -115,7 +115,7 @@ static void delete_reshape(shared_ptr<ngraph::Node> reshape) {
   }
 }
 
-static void mark_reshape_for_deletion(
+static void mark_transpose_for_deletion(
     shared_ptr<ngraph::Node> reshape,
     set<shared_ptr<ngraph::Node>>& reshapes_to_delete) {
   NGRAPH_VLOG(4) << "Marking reshape " << reshape->get_name()
@@ -123,11 +123,11 @@ static void mark_reshape_for_deletion(
   reshapes_to_delete.insert(reshape);
 }
 
-static shared_ptr<ngraph::op::Reshape> create_default_reshape(
+static shared_ptr<ngraph::op::Reshape> create_default_transpose(
     shared_ptr<ngraph::Node> n) {
   auto default_order = ngraph::get_default_order(n->get_shape());
-  auto default_reshape = make_reshape(n, default_order, n->get_shape());
-  NGRAPH_VLOG(4) << "Default reshape: " << describe_reshape(default_reshape);
+  auto default_reshape = make_transpose(n, default_order, n->get_shape());
+  NGRAPH_VLOG(4) << "Default reshape: " << describe_transpose(default_reshape);
   return default_reshape;
 }
 
@@ -173,7 +173,7 @@ void swim(ngraph::Input<ngraph::Node> input,
       auto new_reshape = csw.reshape->clone_with_new_inputs({n});
       new_reshape->merge_provenance_tags_from(n);
       NGRAPH_VLOG(4) << "Materializing new reshape "
-                     << describe_reshape(new_reshape);
+                     << describe_transpose(new_reshape);
       csw.input.replace_source_output(new_reshape->output(0));
     };  // Only swim past nodes which have a single user
     if (n->get_users().size() > 1) {
@@ -184,9 +184,9 @@ void swim(ngraph::Input<ngraph::Node> input,
     if (n->is_unary_elementwise_arithmetic()) {
       Swimmer nsw{n->input(0), csw.reshape};
       work_queue.push_back(nsw);
-      NGRAPH_VLOG(4) << "Propagating reshape " << describe_reshape(csw.reshape)
-                     << " for " << n->get_name() << " to "
-                     << n->get_argument(0);
+      NGRAPH_VLOG(4) << "Propagating reshape "
+                     << describe_transpose(csw.reshape) << " for "
+                     << n->get_name() << " to " << n->get_argument(0);
     } else if (ngraph::is_type<ngraph::op::Broadcast>(n)) {
       auto old_broadcast = static_pointer_cast<ngraph::op::Broadcast>(n);
       auto broadcast_axes = old_broadcast->get_broadcast_axes();
@@ -230,8 +230,8 @@ void swim(ngraph::Input<ngraph::Node> input,
 
         auto new_arg_shape = ngraph::apply_permutation(
             broadcast_input->get_shape(), new_source_axis_order);
-        broadcast_input =
-            make_reshape(broadcast_input, new_source_axis_order, new_arg_shape);
+        broadcast_input = make_transpose(broadcast_input, new_source_axis_order,
+                                         new_arg_shape);
       }
 
       auto new_broadcast = make_shared<ngraph::op::Broadcast>(
@@ -261,12 +261,12 @@ static void convert_binary_to_default_order(
   auto new_shape = ngraph::apply_permutation(left->get_shape(), perm_to_def);
   NGRAPH_VLOG(4) << "right = " << ngraph::vector_to_string(right->get_shape())
                  << ", " << right->get_name();
-  auto new_reshape = make_reshape(left, perm_to_def, new_shape);
-  NGRAPH_VLOG(4) << "left : About to swim " << describe_reshape(new_reshape)
+  auto new_reshape = make_transpose(left, perm_to_def, new_shape);
+  NGRAPH_VLOG(4) << "left : About to swim " << describe_transpose(new_reshape)
                  << " up to " << left->get_name();
   // this should now insert and swim reshape on right
   swim(input, new_reshape);
-  mark_reshape_for_deletion(reorders.at(right), reshapes_to_delete);
+  mark_transpose_for_deletion(reorders.at(right), reshapes_to_delete);
   write_transposemap(reorders, binary, read_transposemap(reorders, right));
 }
 
@@ -283,44 +283,44 @@ static void materialize_shapes(
     auto arg = n->get_argument(i);
     if (reorders.count(arg) != 0) {
       auto arg_reshape = reorders.at(arg);
-      NGRAPH_VLOG(4) << "Materializing " << describe_reshape(arg_reshape)
+      NGRAPH_VLOG(4) << "Materializing " << describe_transpose(arg_reshape)
                      << " for " << arg->get_name();
-      mark_reshape_for_deletion(arg_reshape, reshapes_to_delete);
+      mark_transpose_for_deletion(arg_reshape, reshapes_to_delete);
       auto arg_shape = arg->get_shape();
       if (arg_reshape->get_input_order() !=
           get_default_order(arg->get_shape())) {
         // Insert if arg needs to be transposed.
-        insert_reshape(n, arg_reshape, i);
+        insert_transpose(n, arg_reshape, i);
       }
       // no swimming up
     }
   }
-  write_transposemap(reorders, n, create_default_reshape(n));
+  write_transposemap(reorders, n, create_default_transpose(n));
 }
 
-static void sink_reshape(shared_ptr<ngraph::op::Reshape> reshape,
+static void sink_transpose(shared_ptr<ngraph::op::Reshape> reshape,
                          TransposeMap& reorders,
                          set<shared_ptr<ngraph::Node>>& reshapes_to_delete) {
-  NGRAPH_VLOG(4) << "Sinking Reshape :" << describe_reshape(reshape);
+  NGRAPH_VLOG(4) << "Sinking Reshape :" << describe_transpose(reshape);
   auto orig_reshape = reorders.at(reshape->get_argument(0));
   // 1) Not a Transpose or 2) Rank changing operation.
   if ((reshape->get_output_shape(0).size() !=
        reshape->get_input_order().size()) ||
       (!reshape->get_is_transpose())) {
-    NGRAPH_VLOG(4) << "Materializing " << describe_reshape(orig_reshape)
-                   << " for reshape " << describe_reshape(reshape);
-    insert_reshape(reshape, orig_reshape, 0);
-    mark_reshape_for_deletion(orig_reshape, reshapes_to_delete);
-    write_transposemap(reorders, reshape, create_default_reshape(reshape));
+    NGRAPH_VLOG(4) << "Materializing " << describe_transpose(orig_reshape)
+                   << " for reshape " << describe_transpose(reshape);
+    insert_transpose(reshape, orig_reshape, 0);
+    mark_transpose_for_deletion(orig_reshape, reshapes_to_delete);
+    write_transposemap(reorders, reshape, create_default_transpose(reshape));
   } else {
     // combine both reshapes
-    auto new_reshape = combine_reshapes(orig_reshape, reshape);
+    auto new_reshape = combine_transposes(orig_reshape, reshape);
     // remove original reshape now it's combined with a new one
     // should be safe to remove an already detached node
-    mark_reshape_for_deletion(orig_reshape, reshapes_to_delete);
+    mark_transpose_for_deletion(orig_reshape, reshapes_to_delete);
     // replace reshape with combined one
     ngraph::replace_node(reshape, new_reshape);
-    mark_reshape_for_deletion(new_reshape, reshapes_to_delete);
+    mark_transpose_for_deletion(new_reshape, reshapes_to_delete);
     write_transposemap(reorders, new_reshape, new_reshape);
   }
 }
@@ -329,7 +329,7 @@ static void sink_unary(
     shared_ptr<ngraph::Node> n, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& /* reshapes_to_delete */) {
   auto arg_reshape = read_transposemap(reorders, n->get_argument(0));
-  NGRAPH_VLOG(4) << "Propagating " << describe_reshape(arg_reshape) << " for "
+  NGRAPH_VLOG(4) << "Propagating " << describe_transpose(arg_reshape) << " for "
                  << n->get_name();
   write_transposemap(reorders, n, arg_reshape);
 }
@@ -341,12 +341,12 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, TransposeMap& reorders,
 
   if (reorders.at(left)->get_input_order() ==
       reorders.at(right)->get_input_order()) {
-    NGRAPH_VLOG(4) << "Propagating " << describe_reshape(reorders.at(left))
+    NGRAPH_VLOG(4) << "Propagating " << describe_transpose(reorders.at(left))
                    << " for " << binary->get_name();
     write_transposemap(reorders, binary, read_transposemap(reorders, left));
     // at this point, both reshapes will be eventually removed
-    mark_reshape_for_deletion(reorders.at(left), reshapes_to_delete);
-    mark_reshape_for_deletion(reorders.at(right), reshapes_to_delete);
+    mark_transpose_for_deletion(reorders.at(left), reshapes_to_delete);
+    mark_transpose_for_deletion(reorders.at(right), reshapes_to_delete);
   } else if (reorders.at(left)->get_input_order() ==
              ngraph::get_default_order(left->get_shape())) {
     convert_binary_to_default_order(binary, binary->input(0), right, reorders,
@@ -357,12 +357,12 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, TransposeMap& reorders,
                                     reshapes_to_delete);
   } else {
     NGRAPH_VLOG(4) << "Materializing both reshapes for " << binary->get_name();
-    NGRAPH_VLOG(4) << "Left = " << describe_reshape(reorders.at(left));
-    NGRAPH_VLOG(4) << "Right = " << describe_reshape(reorders.at(right));
-    mark_reshape_for_deletion(reorders.at(left), reshapes_to_delete);
-    mark_reshape_for_deletion(reorders.at(right), reshapes_to_delete);
-    insert_reshape(binary, reorders.at(left), 0);
-    insert_reshape(binary, reorders.at(right), 1);
+    NGRAPH_VLOG(4) << "Left = " << describe_transpose(reorders.at(left));
+    NGRAPH_VLOG(4) << "Right = " << describe_transpose(reorders.at(right));
+    mark_transpose_for_deletion(reorders.at(left), reshapes_to_delete);
+    mark_transpose_for_deletion(reorders.at(right), reshapes_to_delete);
+    insert_transpose(binary, reorders.at(left), 0);
+    insert_transpose(binary, reorders.at(right), 1);
   }
 }
 
@@ -391,8 +391,8 @@ static void sink_slice(
                  << new_slice->get_name();
   ngraph::replace_node(n, new_slice);
 
-  auto new_reshape = make_reshape(new_slice, order, n->get_shape());
-  NGRAPH_VLOG(4) << "Propagating " << describe_reshape(new_reshape) << " for "
+  auto new_reshape = make_transpose(new_slice, order, n->get_shape());
+  NGRAPH_VLOG(4) << "Propagating " << describe_transpose(new_reshape) << " for "
                  << n->get_name();
   write_transposemap(reorders, new_slice, new_reshape);
 }
@@ -418,8 +418,8 @@ static void sink_pad(shared_ptr<ngraph::op::Pad> n, TransposeMap& reorders,
   NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
                  << new_pad->get_name();
   ngraph::replace_node(n, new_pad);
-  auto new_reshape = make_reshape(new_pad, order, n->get_shape());
-  NGRAPH_VLOG(4) << "Propagating " << describe_reshape(new_reshape) << " for "
+  auto new_reshape = make_transpose(new_pad, order, n->get_shape());
+  NGRAPH_VLOG(4) << "Propagating " << describe_transpose(new_reshape) << " for "
                  << n->get_name();
   write_transposemap(reorders, new_pad, new_reshape);
 }
@@ -438,7 +438,8 @@ static void sink_quantize(
   write_transposemap(reorders, new_quantize, arg_reshape);
 }
 
-static void sink_concat(shared_ptr<ngraph::op::Concat> n, TransposeMap& reorders,
+static void sink_concat(shared_ptr<ngraph::op::Concat> n,
+                        TransposeMap& reorders,
                         set<shared_ptr<ngraph::Node>>& reshapes_to_delete) {
   auto arg_reshape = reorders.at(n->get_argument(0));
   auto order = arg_reshape->get_input_order();
@@ -481,8 +482,8 @@ static void sink_concat(shared_ptr<ngraph::op::Concat> n, TransposeMap& reorders
                  << new_concat->get_name();
   ngraph::replace_node(n, new_concat);
 
-  auto new_reshape = make_reshape(new_concat, order, n->get_shape());
-  NGRAPH_VLOG(4) << "Propagating " << describe_reshape(new_reshape) << " for "
+  auto new_reshape = make_transpose(new_concat, order, n->get_shape());
+  NGRAPH_VLOG(4) << "Propagating " << describe_transpose(new_reshape) << " for "
                  << n->get_name();
   write_transposemap(reorders, new_concat, new_reshape);
 }
@@ -525,14 +526,14 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
     }
 
     if (auto reshape = ngraph::as_type_ptr<ngraph::op::Reshape>(n)) {
-      sink_reshape(reshape, reorders, reshapes_to_delete);
+      sink_transpose(reshape, reorders, reshapes_to_delete);
     } else if (n->is_unary_elementwise_arithmetic()) {
       sink_unary(n, reorders, reshapes_to_delete);
     } else if (n->is_binary_elementwise_arithmetic()) {
       sink_binary(n, reorders, reshapes_to_delete);
     } else if (auto goe =
                    ngraph::as_type_ptr<ngraph::op::GetOutputElement>(n)) {
-      write_transposemap(reorders, goe, create_default_reshape(goe));
+      write_transposemap(reorders, goe, create_default_transpose(goe));
     } else if (auto quantize = ngraph::as_type_ptr<ngraph::op::Quantize>(n)) {
       sink_quantize(quantize, reorders, reshapes_to_delete);
     } else if (auto dequantize =
