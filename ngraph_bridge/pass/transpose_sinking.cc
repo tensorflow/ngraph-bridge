@@ -516,6 +516,24 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   ngraph::NodeVector results;
   set<shared_ptr<ngraph::Node>> reshapes_to_delete;
 
+  // STEP 0: Downgrade v1::Transpose to v0::Reshape
+  for (auto n : f->get_ordered_ops()) {
+    if (auto transpose = ngraph::as_type_ptr<ngraph::opset3::Transpose>(n)) {
+      const auto target_shape_input =
+          transpose->input_value(1).get_node_shared_ptr();
+      const auto input_rank = transpose->get_input_partial_shape(0).rank();
+      if (target_shape_input->is_constant() &&
+          transpose->get_output_partial_shape(0).is_static() &&
+          input_rank.is_static()) {
+        const auto output_shape = transpose->get_output_shape(0);
+        auto reshape = make_shared<ngraph::op::Reshape>(
+            transpose->input_value(0),
+            ngraph::get_default_order(input_rank.get_length()), output_shape);
+        ngraph::replace_node(transpose, reshape);
+      }
+    }
+  }
+
   // STEP 1 : Sink or Swim reshapes away for op clusters
   for (auto n : f->get_ordered_ops()) {
     NGRAPH_VLOG(4) << "Start: Processing node " << n->get_name();
@@ -581,6 +599,25 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   for (auto n : f->get_ordered_ops()) {
     n->revalidate_and_infer_types();
   }
+
+  // STEP 4: Upgrade v0::Reshape to v1::Transpose
+  for (auto n : f->get_ordered_ops()) {
+    if (auto reshape = ngraph::as_type_ptr<ngraph::op::Reshape>(n)) {
+      const auto input_order = reshape->get_input_order();
+      const auto output_shape = reshape->get_reshape_output_shape();
+      shared_ptr<ngraph::Node> replacement_node;
+      if (reshape->get_is_transpose() &&
+          (input_order.size() == output_shape.size())) {
+        auto input_order_node = make_shared<ngraph::opset3::Constant>(
+            ngraph::element::i64, ngraph::Shape{input_order.size()},
+            input_order);
+        auto transpose = make_shared<ngraph::opset3::Transpose>(
+            reshape->input_value(0), input_order_node);
+        ngraph::replace_node(reshape, transpose);
+      }
+    }
+  }
+
   return true;
 }
 
