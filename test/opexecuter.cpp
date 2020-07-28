@@ -62,9 +62,8 @@ void OpExecuter::GetNodeData(Graph& graph, NodeMetaData& node_inedge_md,
         *test_op = e->dst();
       }
     }
-    NGRAPH_VLOG(5) << "Edge between, Src: " << e->src()->name()
-                   << " Src op index " << e->src_output()
-                   << " ,Dst: " << e->dst()->name() << " dst ip index "
+    NGRAPH_VLOG(5) << "  GetNodeData Edge: " << e->src()->name() << "#"
+                   << e->src_output() << " -> " << e->dst()->name() << " #"
                    << e->dst_input();
     // update src's outedge metadata
     node_outedge_md[e->src()].push_back({e->dst(), e->dst_input()});
@@ -154,7 +153,8 @@ void OpExecuter::ExecuteOnTF(vector<Tensor>& tf_outputs) {
   ASSERT_EQ(Status::OK(), session.Run(sess_run_fetchoutputs_, &tf_outputs))
       << "Failed to run opexecutor on TF";
   for (size_t i = 0; i < tf_outputs.size(); i++) {
-    NGRAPH_VLOG(5) << " TF op " << i << " " << tf_outputs[i].DebugString();
+    NGRAPH_VLOG(5) << " TF output #" << i << ", "
+                   << tf_outputs[i].DebugString();
   }
 }
 
@@ -194,7 +194,6 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
 
   GetNodeData(graph, node_inedge_metadata, node_outedge_metadata,
               node_out_edges, &test_op);
-  NGRAPH_VLOG(5) << "Got graph data. Found op " << test_op->type_string();
 
   // Get Tensor input shapes and values from the const nodes
   int number_of_inputs = test_op->num_inputs();
@@ -202,6 +201,10 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   // Create nGraph backend
   string ng_backend_type;
   BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
+
+  NGRAPH_VLOG(5) << "ExecuteOnNGraph Op " << test_op->type_string()
+                 << ", #inputs " << number_of_inputs << ", backend "
+                 << ng_backend_type;
 
   Status status = BackendManager::CreateBackend(ng_backend_type);
   if (!status.ok()) {
@@ -216,7 +219,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   try {
     backend = BackendManager::GetBackend(ng_backend_type);
   } catch (...) {
-    throw std::runtime_error("No backend available :" + ng_backend_type +
+    throw std::runtime_error("No backend available: " + ng_backend_type +
                              ". Cannot execute graph");
   }
 
@@ -233,18 +236,17 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   for (int i = 0; i < number_of_inputs; i++) {
     Node* ip;
     ASSERT_EQ(Status::OK(), test_op->input_node(i, &ip))
-        << "Failed to get input number " << i << " named " << ip->name();
+        << "Failed to get input #" << i << " named " << ip->name();
     input_node.push_back(ip);
 
     Tensor ip_tensor;
     ASSERT_EQ(Status::OK(), GetNodeAttr(ip->attrs(), "value", &ip_tensor))
-        << "Failed to get values from input number " << i << " named "
-        << ip->name();
+        << "Failed to get values from input #" << i << " named " << ip->name();
     input_shapes.push_back(ip_tensor.shape());
     input_dt.push_back(ip_tensor.dtype());
     tf_inputs.push_back(ip_tensor);
 
-    NGRAPH_VLOG(5) << " Extracted tensor  " << i << " "
+    NGRAPH_VLOG(5) << "Extracted tensor #" << i << " "
                    << ip_tensor.DebugString();
   }
 
@@ -252,7 +254,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   for (int i = 0; i < number_of_inputs; i++) {
     if (static_input_indexes_.find(i) != static_input_indexes_.end()) {
       static_input_map.push_back(&tf_inputs[i]);
-      NGRAPH_VLOG(5) << "reading static tensor ptr " << i << " "
+      NGRAPH_VLOG(5) << "  reading static_input tensor index #" << i << " "
                      << (static_input_map[i])->DebugString();
     } else {
       static_input_map.push_back(nullptr);
@@ -320,12 +322,11 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     graph.AddEdge(test_op, i, ret_node, 0);
   }
 
-  NGRAPH_VLOG(5) << "Added _Retval nodes ";
+  NGRAPH_VLOG(5) << "Added _Retval nodes & Edges ...";
 
-  NGRAPH_VLOG(5) << "After rewrite *** ";
   for (const Edge* e : graph.edges()) {
-    NGRAPH_VLOG(5) << "Edge between, Src: " << e->src()->name()
-                   << " ,Dst: " << e->dst()->name();
+    NGRAPH_VLOG(5) << "  Edge: " << e->src()->name() << " -> "
+                   << e->dst()->name();
   }
   // For debug
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {
@@ -334,7 +335,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   }
 
   // Create nGraph function
-  NGRAPH_VLOG(5) << " Create ng function ";
+  NGRAPH_VLOG(5) << "Creating ng-function via TranslateGraph";
   ASSERT_EQ(Status::OK(),
             Builder::TranslateGraph(input_shapes, static_input_map, &graph,
                                     ng_function))
@@ -376,7 +377,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   vector<std::shared_ptr<ngraph::runtime::Tensor>> ng_ip_tensors;
   vector<std::shared_ptr<ngraph::runtime::Tensor>> ng_op_tensors;
 
-  NGRAPH_VLOG(5) << " Creating ng inputs ";
+  NGRAPH_VLOG(5) << "Creating ng inputs ";
   NGRAPH_VLOG(5) << "No of inputs " << tf_inputs.size();
   for (size_t i = 0; i < tf_inputs.size(); i++) {
     ng::Shape ng_shape;
@@ -392,17 +393,21 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
 
     void* src_ptr = (void*)DMAHelper::base(&tf_inputs[i]);
     std::shared_ptr<ngraph::runtime::Tensor> result;
+#if defined(ENABLE_OPENVINO)
+    result = backend->create_tensor(ng_et, ng_shape, src_ptr);
+#else
     if (ng_backend_type != "CPU") {
       result = backend->create_tensor(ng_et, ng_shape);
       result->write(src_ptr, result->get_element_count() * ng_et.size());
     } else {
       result = backend->create_tensor(ng_et, ng_shape, src_ptr);
     }
+#endif
 
     ng_ip_tensors.push_back(result);
   }
 
-  NGRAPH_VLOG(5) << " Creating ng outputs ";
+  NGRAPH_VLOG(5) << "Creating ng outputs ";
   vector<TensorShape> tf_op_shapes;
   for (int i = 0; i < number_of_outputs; i++) {
     auto ng_op_shape = ng_function->get_output_shape(i);
@@ -425,12 +430,20 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
     }
     TensorShape tf_shape(dims);
     tf_op_shapes.push_back(tf_shape);
+#if defined(ENABLE_OPENVINO)
+    // Use pre-allocated tensors to accept outputs of OPV-IE inference
+    Tensor* p_output_tensor =
+        new Tensor(expected_output_datatypes_[i], tf_op_shapes[i]);
+    void* dst_ptr = (void*)DMAHelper::base(p_output_tensor);
+    auto result = backend->create_tensor(ng_op_type, ng_op_shape, dst_ptr);
+#else
     auto result = backend->create_tensor(ng_op_type, ng_op_shape);
+#endif
     ng_op_tensors.push_back(result);
   }
 
   // Execute the nGraph
-  NGRAPH_VLOG(5) << " Executing on nGraph ";
+  NGRAPH_VLOG(5) << "Executing on nGraph ...";
   BackendManager::LockBackend(ng_backend_type);
   try {
     auto exec = backend->compile(ng_function);
@@ -450,14 +463,15 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs,
   }
   BackendManager::UnlockBackend(ng_backend_type);
 
-  NGRAPH_VLOG(5) << " Writing to Tensors ";
+  NGRAPH_VLOG(5) << "Writing Op-Results to Tensors";
   for (size_t i = 0; i < ng_function->get_output_size(); i++) {
     // Convert to tf tensor
     Tensor output_tensor(expected_output_datatypes_[i], tf_op_shapes[i]);
     void* dst_ptr = DMAHelper::base(&output_tensor);
     ng_op_tensors[i]->read(dst_ptr, output_tensor.TotalBytes());
     ngraph_outputs.push_back(output_tensor);
-    NGRAPH_VLOG(5) << " NGRAPH op " << i << ngraph_outputs[i].DebugString();
+    NGRAPH_VLOG(5) << "  output #" << i << ", "
+                   << ngraph_outputs[i].DebugString();
   }
 
   // Clear the tesnors

@@ -31,6 +31,8 @@ namespace ngraph_bridge {
 
 namespace testing {
 
+static bool _LastCompareSuccessful = false;
+
 void ActivateNGraph() {
   setenv("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", "1", 1);
   unsetenv("NGRAPH_TF_DISABLE");
@@ -323,6 +325,7 @@ void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
 
     EXPECT_TRUE(is_comparable) << " TF output " << a << endl
                                << " NG output " << b;
+    _LastCompareSuccessful = is_comparable;
   }
 }
 
@@ -337,6 +340,8 @@ bool Compare(std::vector<string> desired, std::vector<string> actual) {
   }
   return true;
 }
+
+bool LastCompareSuccessful() { return _LastCompareSuccessful; }
 
 Status CreateSession(const string& graph_filename, const string& backend_name,
                      unique_ptr<tf::Session>& session) {
