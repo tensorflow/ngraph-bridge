@@ -144,25 +144,6 @@ static ngraph::AxisSet get_quantization_axes_in_default_order(
   return axis_set;
 }
 
-static bool match_order(ngraph::AxisVector a, ngraph::AxisVector b) {
-  std::vector<uint64_t>::iterator first1, last1, first2;
-  if (a.size() < b.size()) {
-    first1 = a.begin();
-    last1 = a.end();
-    first2 = b.begin();
-  } else {
-    first1 = b.begin();
-    last1 = b.end();
-    first2 = a.begin();
-  }
-  for (; first1 != last1; ++first1, ++first2) {
-    if (!(*first1 == *first2)) {
-      return false;
-    }
-  }
-  return true;
-}
-
 struct Swimmer {
   ngraph::Input<ngraph::Node> input;
   shared_ptr<ngraph::op::Reshape> reshape;
@@ -306,8 +287,8 @@ static void materialize_shapes(
                      << " for " << arg->get_name();
       mark_reshape_for_deletion(arg_reshape, reshapes_to_delete);
       auto arg_shape = arg->get_shape();
-      if (!match_order(arg_reshape->get_input_order(),
-                       get_default_order(arg->get_shape()))) {
+      if (arg_reshape->get_input_order() !=
+          get_default_order(arg->get_shape())) {
         // Insert if arg needs to be transposed.
         insert_reshape(n, arg_reshape, i);
       }
@@ -358,8 +339,8 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, ReshapeMap& reorders,
   auto left = binary->get_argument(0);
   auto right = binary->get_argument(1);
 
-  if (match_order(reorders.at(left)->get_input_order(),
-                  reorders.at(right)->get_input_order())) {
+  if (reorders.at(left)->get_input_order() ==
+      reorders.at(right)->get_input_order()) {
     NGRAPH_VLOG(4) << "Propagating " << describe_reshape(reorders.at(left))
                    << " for " << binary->get_name();
     write_reshapemap(reorders, binary, read_reshapemap(reorders, left));
