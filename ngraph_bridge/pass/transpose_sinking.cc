@@ -36,15 +36,6 @@ namespace ngraph_bridge {
 using TransposeMap = unordered_map<shared_ptr<ngraph::Node>,
                                    shared_ptr<ngraph::opset3::Transpose>>;
 
-static ngraph::CoordinateDiff apply_permutation(ngraph::CoordinateDiff input,
-                                                ngraph::AxisVector order) {
-  ngraph::CoordinateDiff output(input.size());
-  for (size_t i = 0; i < order.size(); i++) {
-    output[i] = input.at(order.at(i));
-  }
-  return output;
-}
-
 static string describe_transpose(shared_ptr<ngraph::Node> node) {
   stringstream ss;
   auto transpose = ngraph::as_type_ptr<ngraph::opset3::Transpose>(node);
@@ -200,6 +191,11 @@ static void convert_binary_to_default_order(
 static void materialize_shapes(
     shared_ptr<ngraph::Node> n, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& transposes_to_delete) {
+  // skip multiple output nodes and deal with GOEs exclusively
+  if (n->get_output_size() > 1) {
+    return;
+  }
+
   for (size_t i = 0; i < n->get_arguments().size(); i++) {
     // materialize all pending transposes, flush pending transposes
     auto arg = n->get_argument(i);
