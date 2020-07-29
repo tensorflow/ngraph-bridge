@@ -106,7 +106,8 @@ static shared_ptr<ngraph::opset3::Transpose> combine_transposes(
       ngraph::apply_permutation(default_order, t1_const->get_axis_vector_val());
   auto perm_t2 =
       ngraph::apply_permutation(perm_t1, t2_const->get_axis_vector_val());
-  auto combined = make_transpose(t2->get_argument(0), perm_t2);
+  auto combined =
+      make_transpose(t2->input_value(0).get_node_shared_ptr(), perm_t2);
   NGRAPH_VLOG(4) << "Combining " << describe_transpose(t1) << " and "
                  << describe_transpose(t2) << " into "
                  << describe_transpose(combined);
@@ -199,11 +200,6 @@ static void convert_binary_to_default_order(
 static void materialize_shapes(
     shared_ptr<ngraph::Node> n, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& transposes_to_delete) {
-  // skip multiple output nodes and deal with GOEs exclusively
-  if (n->get_output_size() > 1) {
-    return;
-  }
-
   for (size_t i = 0; i < n->get_arguments().size(); i++) {
     // materialize all pending transposes, flush pending transposes
     auto arg = n->get_argument(i);
@@ -268,20 +264,18 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, TransposeMap& reorders,
   auto right_mismatch =
       right_order != ngraph::get_default_order(right->get_shape());
 
-  if (left_mismatch && right_mismatch) {
-    NGRAPH_VLOG(4) << "Materializing both transposes for "
-                   << binary->get_name();
-    convert_binary_to_default_order(binary, binary->input(0), right, reorders,
-                                    transposes_to_delete);
-    convert_binary_to_default_order(binary, binary->input(1), left, reorders,
-                                    transposes_to_delete);
-  } else if (right_mismatch) {
-    convert_binary_to_default_order(binary, binary->input(0), right, reorders,
-                                    transposes_to_delete);
-  } else if (left_mismatch) {
-    convert_binary_to_default_order(binary, binary->input(1), left, reorders,
-                                    transposes_to_delete);
-  } else {
+  NGRAPH_VLOG(4) << "Sink binary " << binary->get_name()
+                 << " left transpose: " << ngraph::vector_to_string(left_order)
+                 << " left default: "
+                 << ngraph::vector_to_string(
+                        ngraph::get_default_order(left->get_shape()))
+                 << " right transpose: "
+                 << ngraph::vector_to_string(right_order) << " right default: "
+                 << ngraph::vector_to_string(
+                        ngraph::get_default_order(right->get_shape()));
+
+  if ((left_order.size() == right_order.size() && left_order == right_order) ||
+      !(left_mismatch && right_mismatch)) {
     // Propagate the reshape which matches the shape of the binary node
     auto new_transpose =
         (binary->get_output_shape(0) == left->get_shape()) ? left : right;
@@ -293,124 +287,16 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, TransposeMap& reorders,
     // at this point, both transposes will be eventually removed
     mark_transpose_for_deletion(reorders.at(left), transposes_to_delete);
     mark_transpose_for_deletion(reorders.at(right), transposes_to_delete);
-  }
-}
-
-static void sink_slice(
-    shared_ptr<ngraph::op::Slice> n, TransposeMap& reorders,
-    set<shared_ptr<ngraph::Node>>& /* transposes_to_delete */) {
-  auto arg_transpose = reorders.at(n->get_argument(0));
-  auto arg_transpose_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
-      arg_transpose->input_value(1).get_node_shared_ptr());
-  auto order = arg_transpose_order->get_axis_vector_val();
-
-  // we need the correct input shape to produce the right output shape
-  // we are going to create a label of the right input shape,
-  // so a new slice will have the right shape
-  auto def_order = ngraph::get_permutation_to_default_order(order);
-  auto input_shape =
-      ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
-  auto dummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
-      arg_transpose->get_element_type(), input_shape);
-
-  auto new_lower = ngraph::apply_permutation(n->get_lower_bounds(), def_order);
-  auto new_upper = ngraph::apply_permutation(n->get_upper_bounds(), def_order);
-  auto new_strides = ngraph::apply_permutation(n->get_strides(), def_order);
-  auto new_slice = make_shared<ngraph::op::Slice>(
-      dummy_correct_shape, new_lower, new_upper, new_strides);
-  ngraph::replace_node(dummy_correct_shape, n->get_argument(0));
-  NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
-                 << new_slice->get_name();
-  ngraph::replace_node(n, new_slice);
-
-  auto new_transpose = make_transpose(new_slice, order);
-  NGRAPH_VLOG(4) << "Propagating " << describe_transpose(new_transpose)
-                 << " for " << n->get_name();
-  write_transposemap(reorders, new_slice, new_transpose);
-}
-
-static void sink_pad(
-    shared_ptr<ngraph::op::Pad> n, TransposeMap& reorders,
-    set<shared_ptr<ngraph::Node>>& /* transposes_to_delete */) {
-  auto arg_transpose = reorders.at(n->get_argument(0));
-  auto arg_transpose_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
-      arg_transpose->input_value(1).get_node_shared_ptr());
-  auto order = arg_transpose_order->get_axis_vector_val();
-  // we need the correct input shape to produce the right output shape
-  // we are going to create a label of the right input shape,
-  // so a new pad will have the right shape
-  auto def_order = ngraph::get_permutation_to_default_order(order);
-  auto input_shape =
-      ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
-  auto dummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
-      arg_transpose->get_element_type(), input_shape);
-  auto new_lower = apply_permutation(n->get_padding_below(), def_order);
-  auto new_upper = apply_permutation(n->get_padding_above(), def_order);
-  auto new_pad =
-      make_shared<ngraph::op::Pad>(dummy_correct_shape, n->get_argument(1),
-                                   new_lower, new_upper, n->get_pad_mode());
-  ngraph::replace_node(dummy_correct_shape, n->get_argument(0));
-  NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
-                 << new_pad->get_name();
-  ngraph::replace_node(n, new_pad);
-  auto new_transpose = make_transpose(new_pad, order);
-  NGRAPH_VLOG(4) << "Propagating " << describe_transpose(new_transpose)
-                 << " for " << n->get_name();
-  write_transposemap(reorders, new_pad, new_transpose);
-}
-
-static void sink_concat(shared_ptr<ngraph::op::Concat> n,
-                        TransposeMap& reorders,
-                        set<shared_ptr<ngraph::Node>>& transposes_to_delete) {
-  auto arg_transpose = reorders.at(n->get_argument(0));
-  auto arg_transpose_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
-      arg_transpose->input_value(1).get_node_shared_ptr());
-  auto order = arg_transpose_order->get_axis_vector_val();
-  // we need the correct input shape to produce the right output shape
-  // we are going to create a label of the right input shape,
-  // so a new slice will have the right shape
-  auto def_order = ngraph::get_permutation_to_default_order(order);
-  auto input_shape =
-      ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
-  auto dummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
-      arg_transpose->get_element_type(), input_shape);
-
-  ngraph::NodeVector new_args;
-  new_args.push_back(dummy_correct_shape);
-
-  for (size_t i = 1; i < n->get_input_size(); i++) {
-    auto iarg_transpose = reorders.at(n->get_argument(i));
-    auto iarg_transpose_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
-        arg_transpose->input_value(1).get_node_shared_ptr());
-    auto iorder = iarg_transpose_order->get_axis_vector_val();
-    if (iorder != order) {
-      NGRAPH_VLOG(4) << " input order at " << i
-                     << "-th arg is different from first arg";
-      materialize_shapes(n, reorders, transposes_to_delete);
-      return;
+  } else {
+    if (right_mismatch) {
+      convert_binary_to_default_order(binary, binary->input(0), right, reorders,
+                                      transposes_to_delete);
     }
-
-    auto iinput_shape =
-        ngraph::apply_permutation(iarg_transpose->get_shape(), def_order);
-    auto idummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
-        iarg_transpose->get_element_type(), iinput_shape);
-    new_args.push_back(idummy_correct_shape);
+    if (left_mismatch) {
+      convert_binary_to_default_order(binary, binary->input(1), left, reorders,
+                                      transposes_to_delete);
+    }
   }
-
-  auto new_axis = order.at(n->get_concatenation_axis());
-  auto new_concat = make_shared<ngraph::op::Concat>(new_args, new_axis);
-  // put back the original arguments
-  for (size_t i = 0; i < new_concat->get_input_size(); i++) {
-    ngraph::replace_node(new_args.at(i), n->get_argument(i));
-  }
-  NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
-                 << new_concat->get_name();
-  ngraph::replace_node(n, new_concat);
-
-  auto new_transpose = make_transpose(new_concat, order);
-  NGRAPH_VLOG(4) << "Propagating " << describe_transpose(new_transpose)
-                 << " for " << n->get_name();
-  write_transposemap(reorders, new_concat, new_transpose);
 }
 
 // The goal of TransposeSinking is to remove
@@ -441,26 +327,6 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
       sink_unary(n, reorders, transposes_to_delete);
     } else if (n->is_binary_elementwise_arithmetic()) {
       sink_binary(n, reorders, transposes_to_delete);
-    } else if (auto slice = ngraph::as_type_ptr<ngraph::op::Slice>(n)) {
-      // A heuristic. If Transpose has multiple slice users, if sunk
-      // it will be replicated by the number of its users
-      // TODO: we should have a pre-pass that looks at this kind of
-      // scenarios and marks some transposes as too "toxic" to sink
-      // For now, this heuristic works really well.
-      // Note, get_users(*true*) which means we only care about
-      // live users of Transpose. However get_users(*true*) cause
-      // significant time increase on graphs with many slice ops,
-      // so for now we are removing "true" check and let backend
-      // handle transpose sinking for slice operation.
-      if (slice->get_argument(0)->get_users().size() == 1) {
-        sink_slice(slice, reorders, transposes_to_delete);
-      } else {
-        materialize_shapes(n, reorders, transposes_to_delete);
-      }
-    } else if (auto pad = ngraph::as_type_ptr<ngraph::op::Pad>(n)) {
-      sink_pad(pad, reorders, transposes_to_delete);
-    } else if (auto concat = ngraph::as_type_ptr<ngraph::op::Concat>(n)) {
-      sink_concat(concat, reorders, transposes_to_delete);
     } else {
       materialize_shapes(n, reorders, transposes_to_delete);
     }
