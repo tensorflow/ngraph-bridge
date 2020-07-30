@@ -25,27 +25,19 @@ if (NOT DEFINED TF_SRC_DIR)
     )
 endif()
 
-
 message(STATUS "TF Src Dir: ${TensorFlow_SRC_DIR}")
 include_directories(${TensorFlow_SRC_DIR})
 
 # Files that are generated during TF build are here
 include_directories(${TensorFlow_SRC_DIR}/bazel-genfiles)
+include_directories(${TensorFlow_SRC_DIR}/bazel-bin)
 
 add_library(tensorflow_cc_lib SHARED IMPORTED)
-if(NGRAPH_TF_USE_TENSORFLOW_2)
-    set_target_properties(
-        tensorflow_cc_lib
-        PROPERTIES IMPORTED_LOCATION
-        ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.2
-    )
-else()
-    set_target_properties(
-        tensorflow_cc_lib
-        PROPERTIES IMPORTED_LOCATION
-        ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.1
-    )
-endif()
+set_target_properties(
+    tensorflow_cc_lib
+    PROPERTIES IMPORTED_LOCATION
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.2
+)
 
 set(SRC
     inference_engine.h
@@ -74,7 +66,8 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
 endif()
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-    target_link_libraries(${APP_NAME} 
+    target_link_libraries(
+        ${APP_NAME} 
         -Wl,--whole-archive
             ngraph_bridge_static
         -Wl,--no-whole-archive
@@ -103,13 +96,18 @@ else()
     )
 endif()
 
+if (ENABLE_OPENVINO)
+    target_link_libraries(${APP_NAME} ${InferenceEngine_LIBRARIES} ${TBB_IMPORTED_TARGETS})
+endif()
+
 set(APP_NAME_MULTI infer_multiple_networks)
 add_executable(
     ${APP_NAME_MULTI} ${SRC} infer_multiple_networks.cc
 )
 
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-    target_link_libraries(${APP_NAME_MULTI} 
+    target_link_libraries(
+        ${APP_NAME_MULTI} 
         -Wl,--whole-archive
             ngraph_bridge_static
         -Wl,--no-whole-archive
@@ -136,6 +134,10 @@ else()
         tensorflow_cc_lib
         absl_synchronization
     )
+endif()
+
+if (ENABLE_OPENVINO)
+    target_link_libraries(${APP_NAME_MULTI} ${InferenceEngine_LIBRARIES} ${TBB_IMPORTED_TARGETS})
 endif()
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)

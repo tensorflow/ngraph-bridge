@@ -16,6 +16,7 @@
 
 #include <iomanip>
 
+#include "absl/synchronization/mutex.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/grappler/clusters/cluster.h"
@@ -28,10 +29,6 @@
 #include "ngraph_bridge/grappler/ngraph_optimizer.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
-
-#if defined NGRAPH_DISTRIBUTED
-#include "ngraph/distributed.hpp"
-#endif
 
 #include <iostream>
 
@@ -218,7 +215,9 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig "
                  << backend_creation_string;
 
-  NGRAPH_VLOG(0) << "NGraph using backend: " << backend_creation_string;
+  if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
+    NGRAPH_VLOG(0) << "NGraph using backend: " << backend_creation_string;
+  }
 
   // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(

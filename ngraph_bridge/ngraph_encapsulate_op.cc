@@ -29,33 +29,22 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
-#include "ngraph/runtime/backend.hpp"
-
-#if defined NGRAPH_DISTRIBUTED
-#include "ngraph/distributed.hpp"
-#endif
-
 #include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_backend.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_encapsulate_op.h"
+#include "ngraph_bridge/ngraph_executable.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
-#include "ngraph_bridge/ngraph_prefetch_shared_data.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/ngraph_var.h"
-
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-#include "ngraph_bridge/ngraph_catalog.h"
-#endif
 
 using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 int NGraphEncapsulateOp::s_instance_id = 0;
@@ -66,33 +55,26 @@ int NGraphEncapsulateOp::s_instance_id = 0;
 NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     : OpKernel(ctx) {
   // Set the backend type for the this NGraphEncapsulate Op
-  std::string backend_name;
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &backend_name));
-  std::string device_id;
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_device_id", &device_id));
+  std::string ngraph_backend;
+  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &ngraph_backend));
+  std::string ngraph_device_id;
+  OP_REQUIRES_OK(ctx,
+                 ctx->GetAttr<string>("ngraph_device_id", &ngraph_device_id));
 
   // Concatenate the backend_name:device_id
-  string be_name =
-      BackendManager::GetBackendCreationString(backend_name, device_id);
+  string backend_name = BackendManager::GetBackendCreationString(
+      ngraph_backend, ngraph_device_id);
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name()
-                 << "BE: " << be_name;
-  OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(be_name));
+                 << "Backend: " << backend_name;
+  OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(backend_name));
 
-  auto backend = BackendManager::GetBackend(be_name);
-  OP_REQUIRES(
-      ctx, backend != nullptr,
-      errors::Internal("Cannot get the backend object for BE: ", be_name));
+  auto backend = BackendManager::GetBackend(backend_name);
+  OP_REQUIRES(ctx, backend != nullptr,
+              errors::Internal("Cannot get the backend object for backend: ",
+                               backend_name));
 
-  CreateLegacyExecutor(ctx, be_name);
-}
-
-//---------------------------------------------------------------------------
-//  CreateLegacyExecutor
-//---------------------------------------------------------------------------
-void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx,
-                                               const string& backend_name) {
-  NGRAPH_VLOG(1) << "Create Legacy Executor " << name();
+  NGRAPH_VLOG(1) << "Create Executor " << name();
   ng_encap_impl_.SetName(name());
 
   std::ostringstream oss;
@@ -207,17 +189,6 @@ void NGraphEncapsulateOp::CreateLegacyExecutor(OpKernelConstruction* ctx,
   // SetConfig will be called for each EncapsulateOp
   BackendManager::SetConfig(ng_encap_impl_.GetOpBackend(),
                             additional_attribute_map);
-
-  bool exec_can_create_tensor =
-      BackendManager::GetBackend(ng_encap_impl_.GetOpBackend())
-          ->executable_can_create_tensors();
-  if (ng_encap_impl_.GetOpBackend() == "CPU") {
-    ng_encap_impl_.SetExecCanCreateTensor(false);
-  } else {
-    ng_encap_impl_.SetExecCanCreateTensor(exec_can_create_tensor);
-  }
-  NGRAPH_VLOG(5) << "Executable can " << (exec_can_create_tensor ? "" : "not")
-                 << " create tensors";
 }
 
 //---------------------------------------------------------------------------
@@ -229,35 +200,6 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
       << name();
   NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
-
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  // Remove Entries from Catalog
-  // Remove entries related to outputs
-  for (int i = 0; i < ng_encap_impl_.GetNumberOfOutputs(); i++) {
-    string key =
-        NGraphCatalog::CreateNodeKey(ng_encap_impl_.GetGraphId(), name(), i);
-    if (NGraphCatalog::ExistsInEncapOutputInfoMap(key)) {
-      NGraphCatalog::DeleteFromEncapOutputInfoMap(key);
-      NGRAPH_VLOG(2) << "Deleting from output info map " << key;
-    }
-  }
-
-  NGRAPH_VLOG(2) << "Deleting from Output Copy Index map " << name();
-  NGraphCatalog::DeleteFromEncapOutputCopyIndexesMap(
-      ng_encap_impl_.GetGraphId(), name());
-
-  // Remove entries related to inputs
-  for (int i = 0; i < ng_encap_impl_.GetNumberOfOutputs(); i++) {
-    string key =
-        NGraphCatalog::CreateNodeKey(ng_encap_impl_.GetGraphId(), name(), i);
-    if (NGraphCatalog::ExistsInInputVariableSharedNameMap(key)) {
-      NGraphCatalog::DeleteFromInputVariableSharedNameMap(key);
-      NGRAPH_VLOG(2) << "Deleting from input variable shared name map " << key;
-    }
-  }
-
-#endif
-
   ng_encap_impl_.ClearExecMaps();
 
   // Release the backend
@@ -269,16 +211,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
-  NG_TRACE("NGEncap::Compute::" + name(), name(), "");
-  NGRAPH_VLOG(1) << "NGraphEncapsulateOp::Compute: Using Legacy Executor";
-  ComputeUsingLegacyExecutor(ctx);
-}
-
-//---------------------------------------------------------------------------
-//    ComputeUsingLegacyExecutor
-//---------------------------------------------------------------------------
-void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
-  NGRAPH_VLOG(1) << "Compute using Legacy Executor " << name();
+  NGRAPH_VLOG(1) << "Compute using Executor " << name();
   std::ostringstream oss;
   oss << "Execute: Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
       << name();
@@ -293,8 +226,7 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
-  std::shared_ptr<ngraph::runtime::Executable> ng_exec;
-  ng::runtime::Backend* op_backend;
+  std::shared_ptr<Executable> ng_exec;
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;
   int step_id;
@@ -307,9 +239,9 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
     step_id = ctx->step_id();
 
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(ctx, ng_encap_impl_.GetNgExecutable(
-                            tf_input_tensors, input_shapes, static_input_map,
-                            op_backend, ng_exec));
+    OP_REQUIRES_OK(
+        ctx, ng_encap_impl_.GetNgExecutable(tf_input_tensors, input_shapes,
+                                            static_input_map, ng_exec));
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
@@ -330,7 +262,7 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
   {
     NG_TRACE("Input: maybe create", name(), "");
     OP_REQUIRES_OK(ctx, ng_encap_impl_.AllocateNGInputTensors(
-                            tf_input_tensors, ng_exec, op_backend, ng_inputs));
+                            tf_input_tensors, ng_exec, ng_inputs));
   }
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
@@ -370,84 +302,12 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                            "the element type expected by TensorFlow"));
     }
 
-    OP_REQUIRES_OK(
-        ctx, ng_encap_impl_.AllocateNGOutputTensors(tf_output_tensors, ng_exec,
-                                                    op_backend, ng_outputs));
-    output_caches = ng_encap_impl_.GetNgExecOutputCacheMap(ng_exec);
+    OP_REQUIRES_OK(ctx, ng_encap_impl_.AllocateNGOutputTensors(
+                            tf_output_tensors, ng_exec, ng_outputs));
   }
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << ng_encap_impl_.GetNgraphCluster();
-
-// Dealing with the output from Variable nodes here
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting output variables "
-                    "from resource manager "
-                 << ng_encap_impl_.GetNgraphCluster();
-
-  {
-    NG_TRACE("Get Variable Outputs from Resource Manager", name(), "");
-    for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-      void* current_dst_ptr = DMAHelper::base(tf_output_tensors[i]);
-      std::shared_ptr<ng::runtime::Tensor> current_ng_tensor = nullptr;
-      // if the output tensor is going to be assigned to a variable
-      // we ask nGraph to provide the output directly in the variable tensor
-      bool ref_exists = NGraphCatalog::ExistsInEncapOutputInfoMap(
-          ng_encap_impl_.GetGraphId(), name(), i);
-      if (!ref_exists) {
-        OP_REQUIRES(ctx, ng_outputs[i] != nullptr,
-                    errors::Internal("Output ", i,
-                                     " is not in Catalog nor was set from TF"));
-        continue;
-      }
-      string output_key =
-          NGraphCatalog::CreateNodeKey(ng_encap_impl_.GetGraphId(), name(), i);
-      string ref_var_name =
-          NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(
-              output_key);
-      NGraphVar* var;
-      OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
-                              ctx->resource_manager()->default_container(),
-                              ref_var_name, &var));
-      current_ng_tensor = var->ng_tensor();
-      output_caches[i] = std::make_pair(current_dst_ptr, current_ng_tensor);
-      var->Unref();
-      ng_outputs[i] = current_ng_tensor;
-    }
-  }
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute getting input variables "
-                    "from resource manager "
-                 << ng_encap_impl_.GetNgraphCluster();
-
-  {
-    NG_TRACE("Get Variable Inputs from Resource Manager", name(), "");
-
-    // Dealing with the input from Variable nodes here
-    for (int input_index = 0; input_index < input_shapes.size();
-         input_index++) {
-      bool ref_exists = NGraphCatalog::ExistsInInputVariableSharedNameMap(
-          ng_encap_impl_.GetGraphId(), def().name(), input_index);
-
-      if (!ref_exists) {
-        OP_REQUIRES(ctx, ng_inputs[input_index] != nullptr,
-                    errors::Internal("Input ", input_index,
-                                     " is not in Catalog nor was set from TF"));
-        continue;
-      }
-
-      string ref_var_name = NGraphCatalog::GetInputVariableSharedName(
-          ng_encap_impl_.GetGraphId(), def().name(), input_index);
-      NGraphVar* var;
-      OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
-                              ctx->resource_manager()->default_container(),
-                              ref_var_name, &var));
-
-      ng_inputs[input_index] = var->ng_tensor();
-
-      var->Unref();
-    }
-  }
-#endif
 
   int time_create_or_lookup_tensors = create_or_lookup_tensors.ElapsedInMS();
 
@@ -501,113 +361,6 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
                  << ng_encap_impl_.GetNgraphCluster();
 
-  // Copy value to host if backend is not CPU
-  Timer copy_output_tensors_to_host;
-  {
-    NG_TRACE("Output - copy back", name(), "");
-    try {
-      size_t output_tensor_count = output_caches.size();
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-      if (ng_encap_impl_.GetNumberOfOutputs() == -1) {
-        NGRAPH_VLOG(4) << "Settig number of outputs for " << def().name();
-        ng_encap_impl_.SetNumberOfOutputs(ng_outputs.size());
-        NGRAPH_VLOG(4) << "Setting number of inputs for " << def().name();
-        ng_encap_impl_.SetNumberOfInputs(ng_inputs.size());
-      }
-      for (size_t i = 0; i < output_tensor_count; ++i) {
-        // Sync the Var Tensor if required
-        string output_key = NGraphCatalog::CreateNodeKey(
-            ng_encap_impl_.GetGraphId(), def().name(), i);
-        bool ref_exists = NGraphCatalog::ExistsInEncapOutputInfoMap(output_key);
-
-        if (ref_exists) {
-          NGRAPH_VLOG(4) << "Syncing the output var tensor " << output_key;
-
-          // Get var
-          string ref_var_name =
-              NGraphCatalog::GetVariableSharedNameFromEncapOutputInfoMap(
-                  output_key);
-          NGraphVar* var;
-          OP_REQUIRES_OK(ctx, ctx->resource_manager()->Lookup<NGraphVar>(
-                                  ctx->resource_manager()->default_container(),
-                                  ref_var_name, &var));
-
-          if (NGraphCatalog::GetUpdateTFTensorFromEncapOutputInfoMap(
-                  output_key)) {
-            if (var->copy_ng_to_tf()) {
-              int copies = ng_encap_impl_.GetNumberOfCopies();
-              ng_encap_impl_.SetNumberOfCopies(copies++);
-              ng_encap_impl_.AppendCopyLog(" UPDATE_TF_TENSOR ");
-            }
-          }
-          var->Unref();
-        }
-
-        std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
-        void* dst_ptr;
-        std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
-
-        if (ng_encap_impl_.GetOpBackend() != "CPU" &&
-            NGraphCatalog::EncapOutputIndexNeedsCopy(
-                ng_encap_impl_.GetGraphId(), def().name(), i)) {
-          int copies = ng_encap_impl_.GetNumberOfCopies();
-          ng_encap_impl_.SetNumberOfCopies(copies++);
-          stringstream log;
-          log << " COPY_OP_VAL[" << i << "]";
-          ng_encap_impl_.AppendCopyLog(log.str());
-
-          NGRAPH_VLOG(4) << "Copying Output " << def().name()
-                         << " ,index: " << i;
-          auto ng_element_type = dst_ng_tensor->get_element_type();
-          size_t copy_size =
-              dst_ng_tensor->get_element_count() * ng_element_type.size();
-          string event_name =
-              "Output_" + to_string(i) + "_" + to_string(copy_size);
-          NG_TRACE(event_name, name(), "");
-          dst_ng_tensor->read(dst_ptr, dst_ng_tensor->get_element_count() *
-                                           ng_element_type.size());
-        }
-      }
-#else
-      if (ng_encap_impl_.GetOpBackend() != "CPU") {
-        for (size_t i = 0; i < output_tensor_count; ++i) {
-          void* dst_ptr;
-          std::shared_ptr<ng::runtime::Tensor> dst_ng_tensor;
-          std::tie(dst_ptr, dst_ng_tensor) = output_caches[i];
-          auto ng_element_type = dst_ng_tensor->get_element_type();
-          NG_TRACE(("Output_" + std::to_string(i) + "_" +
-                    std::to_string(dst_ng_tensor->get_element_count() *
-                                   ng_element_type.size())),
-                   name(), "");
-          dst_ng_tensor->read(dst_ptr, dst_ng_tensor->get_element_count() *
-                                           ng_element_type.size());
-        }
-      }
-#endif
-    } catch (const std::exception& exp) {
-      OP_REQUIRES(
-          ctx, false,
-          errors::Internal(
-              "Caught exception while transferring tensor data to host: ",
-              exp.what(), "\n"));
-    } catch (...) {
-      OP_REQUIRES(
-          ctx, false,
-          errors::Internal("Error in transferring tensor data to host\n"));
-    }
-  }
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  std::stringstream str;
-  str << " Number of copies " << ng_encap_impl_.GetNumberOfCopies() << "\n";
-  ng_encap_impl_.AppendCopyLog(str.str());
-  if (ng_encap_impl_.GetLogCopies()) {
-    cout << ng_encap_impl_.GetCopyLog();
-  }
-#endif
-
-  int time_copy_output_tensors_to_host =
-      copy_output_tensors_to_host.ElapsedInMS();
-
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
       << ng_encap_impl_.GetNgraphCluster();
@@ -618,9 +371,7 @@ void NGraphEncapsulateOp::ComputeUsingLegacyExecutor(OpKernelContext* ctx) {
                  << " Function-Create-or-Lookup: " << time_func_create_or_lookup
                  << " Create-and-copy-tensors: "
                  << time_create_or_lookup_tensors
-                 << " Execute: " << time_execute_function
-                 << " Copy-outputs-to-host: "
-                 << time_copy_output_tensors_to_host;
+                 << " Execute: " << time_execute_function;
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;

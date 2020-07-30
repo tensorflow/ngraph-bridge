@@ -67,16 +67,8 @@ bool ngraph_tf_is_grappler_enabled() {
 #endif
 }
 
-bool ngraph_tf_are_variables_enabled() {
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  return true;
-#else
-  return false;
-#endif
-}
-
-bool ngraph_tf_is_distributed_enabled() {
-#if defined(NGRAPH_DISTRIBUTED)
+bool ngraph_tf_is_openvino_enabled() {
+#if defined(ENABLE_OPENVINO)
   return true;
 #else
   return false;
@@ -84,14 +76,6 @@ bool ngraph_tf_is_distributed_enabled() {
 }
 
 const char* tf_version() { return (TF_VERSION_STRING); }
-
-bool ngraph_tf_is_tf2_enabled() {
-#if defined(NGRAPH_TF_USE_TENSORFLOW_2)
-  return true;
-#else
-  return false;
-#endif
-}
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

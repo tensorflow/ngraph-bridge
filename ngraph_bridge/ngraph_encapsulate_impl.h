@@ -27,14 +27,10 @@
 #include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
+#include "ngraph_bridge/ngraph_executable.h"
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
-
-using NgFunctionIOCache = std::unordered_map<
-    std::shared_ptr<ngraph::runtime::Executable>,
-    std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>>;
 
 class NGraphEncapsulateImpl {
  public:
@@ -48,43 +44,38 @@ class NGraphEncapsulateImpl {
                           std::vector<const Tensor*>& static_input_map,
                           std::stringstream& signature_ss);
 
+  static Status Compile(const std::string& backend_name,
+                        std::shared_ptr<ngraph::Function> ng_function,
+                        std::shared_ptr<Executable>& ng_exec);
+
+  static Status GetCompiledString(const std::string& backend_name,
+                                  std::shared_ptr<ngraph::Function> ng_function,
+                                  std::string* ng_exec_str);
+
   // Calls Compute Signature and gets ngraph executable
   Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
                          std::vector<TensorShape>& input_shapes,
                          std::vector<const Tensor*>& static_input_map,
-                         ng::runtime::Backend*& op_backend,
-                         std::shared_ptr<ngraph::runtime::Executable>& ng_exec);
+                         std::shared_ptr<Executable>& ng_exec);
 
   // Allocate tensors for input arguments. Creates ngraph input tensors using
   // tensorflow tensors required to execute ngraph function
   Status AllocateNGInputTensors(
       const std::vector<Tensor>& tf_input_tensors,
-      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      ng::runtime::Backend* const op_backend,
+      const std::shared_ptr<Executable>& ng_exec,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
 
   // Allocate tensors for output results.  Creates ngraph output tensors using
   // tensorflow tensors required to execute ngraph function
   Status AllocateNGOutputTensors(
       const std::vector<Tensor*>& tf_output_tensors,
-      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      ng::runtime::Backend* const op_backend,
+      const std::shared_ptr<Executable>& ng_exec,
       vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
-
-  // Get current ngraph tensor
-  std::shared_ptr<ng::runtime::Tensor> GetCurrentNgTensor(
-      void* current_tf_ptr, void* last_tf_ptr,
-      const std::shared_ptr<ng::runtime::Tensor>& last_ng_tensor,
-      const bool& output_tensor,
-      const std::shared_ptr<ngraph::runtime::Executable>& ng_exec,
-      ng::runtime::Backend* const op_backend,
-      const ng::element::Type& ng_element_type, const ng::Shape& ng_shape);
 
   // Clear all maps with ng_exec as keys
   void ClearExecMaps();
 
-  Status DumpNgFunction(const string&,
-                        std::shared_ptr<ngraph::runtime::Executable>);
+  Status DumpNgFunction(const string&, std::shared_ptr<Executable>);
 
   // Accessors(getters and setters) for the private data members of
   // NgraphEncapsulateImpl class
@@ -93,14 +84,6 @@ class NGraphEncapsulateImpl {
   int GetGraphId() { return m_graph_id; }
 
   void SetGraphId(const int& graph_id) { m_graph_id = graph_id; }
-
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-  const int& GetNumberOfCopies() { return number_of_copies; }
-
-  void SetNumberOfCopies(const int& number) { number_of_copies = number; }
-
-  void AppendCopyLog(const string str) { copy_log_str << str; }
-#endif
 
   const int& GetNgraphCluster() { return m_ngraph_cluster; }
 
@@ -139,35 +122,16 @@ class NGraphEncapsulateImpl {
     m_input_is_static[index] = value;
   }
 
-  std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
-  GetNgExecMap() {
+  std::unordered_map<std::string, std::shared_ptr<Executable>> GetNgExecMap() {
     return m_ng_exec_map;
   }
 
   void SetNgExecMap(const std::string& ng_map_key,
-                    const std::shared_ptr<ngraph::runtime::Executable>& exec) {
+                    const std::shared_ptr<Executable>& exec) {
     m_ng_exec_map[ng_map_key] = exec;
   }
 
   void ClearNgExecMap() { m_ng_exec_map.clear(); }
-
-  // TODO:sindhu have another get function for output_cache which is only
-  // readable
-  std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
-  GetNgExecOutputCacheMap(std::shared_ptr<ngraph::runtime::Executable> exec) {
-    return m_ng_exec_output_cache_map[exec];
-  }
-
-  void SetNgExecOutputCacheMap(
-      const std::shared_ptr<ngraph::runtime::Executable>& exec,
-      const std::vector<std::pair<void*, shared_ptr<ng::runtime::Tensor>>>&
-          cache) {
-    m_ng_exec_output_cache_map[exec] = cache;
-  }
-
-  void ClearNgExecInputCache() { m_ng_exec_input_cache_map.clear(); }
-
-  void ClearNgExecOutputCache() { m_ng_exec_output_cache_map.clear(); }
 
   void ClearNgExecSerializedFunctionCache() {
     m_serialized_ng_function_map.clear();
@@ -178,9 +142,6 @@ class NGraphEncapsulateImpl {
   Status ParseNodeAttributes(
       const google::protobuf::Map<string, AttrValue>& additional_attributes,
       std::unordered_map<std::string, std::string>* additional_attribute_map);
-  void SetExecCanCreateTensor(bool b) { m_executable_can_create_tensor = b; }
-
-  bool GetExecCanCreateTensor() { return m_executable_can_create_tensor; }
 
   // TF Graph for the cluster
   Graph m_graph;
@@ -205,15 +166,9 @@ class NGraphEncapsulateImpl {
   map<string, string> m_aot_execs;
 
   // ng_function, ng_executable, Output and Input Cache maps
-  std::unordered_map<std::string, std::shared_ptr<ngraph::runtime::Executable>>
-      m_ng_exec_map;
-  std::unordered_map<std::shared_ptr<ngraph::runtime::Executable>, std::string>
+  std::unordered_map<std::string, std::shared_ptr<Executable>> m_ng_exec_map;
+  std::unordered_map<std::shared_ptr<Executable>, std::string>
       m_serialized_ng_function_map;
-
-  NgFunctionIOCache m_ng_exec_input_cache_map;
-  NgFunctionIOCache m_ng_exec_output_cache_map;
-
-  bool m_executable_can_create_tensor = false;
 
   int m_depth{2};  // TODO make this settable
 };

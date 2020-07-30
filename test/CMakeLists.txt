@@ -60,22 +60,20 @@ include_directories(${TensorFlow_SRC_DIR})
 
 # Files that are generated during TF build are here
 include_directories(${TensorFlow_SRC_DIR}/bazel-genfiles)
+include_directories(${TensorFlow_SRC_DIR}/bazel-bin)
 
 add_library(tensorflow_cc_lib SHARED IMPORTED)
-if(NGRAPH_TF_USE_TENSORFLOW_2)
-    set_target_properties(
-        tensorflow_cc_lib
-        PROPERTIES IMPORTED_LOCATION
-        ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.2
-    )
-else()
-    set_target_properties(
-        tensorflow_cc_lib
-        PROPERTIES IMPORTED_LOCATION
-        ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.1
-    )
-endif()
-
+add_library(tensorflow_ops_testutil SHARED IMPORTED)
+set_target_properties(
+    tensorflow_cc_lib
+    PROPERTIES IMPORTED_LOCATION
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/libtensorflow_cc.so.2
+)
+set_target_properties(
+    tensorflow_ops_testutil
+    PROPERTIES IMPORTED_LOCATION
+    ${TensorFlow_SRC_DIR}/bazel-bin/tensorflow/core/kernels/libops_testutil.so
+)
 
 set(SRC
     main.cpp
@@ -101,22 +99,7 @@ set(SRC
     test_momentum_op.cpp
     opexecuter.cpp
     test_thread_safe_queue.cc
-    test_enter_prefetch_in_catalog.cc
-    test_capture_prefetch.cpp
-    dummy_backend.cpp
-    test_dummy_backend.cpp
 )
-
-if(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-    list(APPEND SRC graph_rewrites/capture_variables.cc)
-    list(APPEND SRC graph_rewrites/enter_in_catalog_test.cc)
-    list(APPEND SRC graph_rewrites/remove_ngraphassigns.cc)
-    list(APPEND SRC graph_rewrites/test_replace_optimizer.cpp)
-    list(APPEND SRC tf_fake_input.cc)
-    list(APPEND SRC test_ng_var_update_ng_tensor_kernel.cc)
-    list(APPEND SRC graph_rewrites/test_ng_var_update_ng_tensor.cc)
-    add_definitions(-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
-endif()
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
     list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)
@@ -154,20 +137,8 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
     COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_prefetch.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_capture_prefetch.pbtxt
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_prefetch_1.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_capture_prefetch_1.pbtxt
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_general_graph.pbtxt
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_catalog_for_prefetch.pbtxt
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch_1.pbtxt
-        ${CMAKE_CURRENT_BINARY_DIR}/test_catalog_for_prefetch_1.pbtxt
 )
 
 if (APPLE)
@@ -192,6 +163,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
+        tensorflow_ops_testutil
         absl_synchronization
         lib_dnnl
         lib_iomp5
@@ -206,12 +178,13 @@ else()
         pthread
         ${TensorFlow_FRAMEWORK_LIBRARY}
         tensorflow_cc_lib
+        tensorflow_ops_testutil
         absl_synchronization
     )
 endif()
 
-if (NGRAPH_PLAIDML_ENABLE)
-    target_link_libraries(gtest_ngtf ${PLAIDML_LIBRARIES})
+if (ENABLE_OPENVINO)
+    target_link_libraries(gtest_ngtf ${InferenceEngine_LIBRARIES} ${TBB_IMPORTED_TARGETS})
 endif()
 
 # First install the libngraph_bridge.so and headers
@@ -220,8 +193,4 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy.pbtxt DESTINATION ${CMAKE_IN
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_prefetch.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_prefetch_1.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_catalog_for_prefetch_1.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)

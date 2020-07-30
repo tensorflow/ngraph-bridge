@@ -44,7 +44,11 @@ def is_venv():
             (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
 
 
-def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
+def command_executor(cmd,
+                     verbose=False,
+                     msg=None,
+                     stdout=sys.stdout,
+                     stderr=sys.stderr):
     '''
     Executes the command.
     Example:
@@ -55,12 +59,27 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
         cmd = ' '.join(cmd)
     if verbose:
         tag = 'Running COMMAND: ' if msg is None else msg
-        print(tag + cmd)
-    if (call(shlex.split(cmd), stdout=stdout, stderr=stderr) != 0):
-        raise Exception("Error running command: " + cmd)
+        print(tag + cmd, file=stdout)
+    try:
+        process = subprocess.Popen(
+            shlex.split(cmd), stdout=stdout, stderr=stderr)
+        so, se = process.communicate()
+        retcode = process.returncode
+        assert retcode == 0, "dir:" + os.getcwd(
+        ) + ". Error in running command: " + cmd
+    except OSError as e:
+        print(
+            "!!! Execution failed !!!",
+            e,
+            " -->  Error running command:",
+            cmd,
+            file=sys.stderr)
+        raise
+    except Exception as e:
+        raise
 
 
-def build_ngraph(build_dir, src_location, cmake_flags, verbose):
+def cmake_build(build_dir, src_location, cmake_flags, verbose):
     pwd = os.getcwd()
 
     src_location = os.path.abspath(src_location)
@@ -160,6 +179,7 @@ def setup_venv(venv_dir):
         "--no-deps",
         "keras_preprocessing>=1.1.1,<1.2",
         "--no-deps",
+        "yapf==0.26.0",
     ]
     command_executor(package_list)
 
@@ -273,7 +293,8 @@ def build_tensorflow_cc(tf_version,
         artifacts_dir,
         target_arch,
         verbosity,
-        target="//tensorflow:" + tf_cc_lib_name)
+        target="//tensorflow:" + tf_cc_lib_name +
+        " //tensorflow/core/kernels:ops_testutil")
 
     # In order to build TensorFlow, we need to be in the virtual environment
     pwd = os.getcwd()
@@ -466,23 +487,21 @@ def install_ngraph_tf(tf_version, venv_dir, ngtf_pip_whl):
     print(ngraph_bridge.__version__)
 
 
-def download_repo(target_name, repo, version):
-
+def download_repo(target_name, repo, version, submodule_update=False):
     # First download to a temp folder
     call(["git", "clone", repo, target_name])
 
-    # Next goto this folder nd determine the name of the root folder
     pwd = os.getcwd()
-
-    # Go to the tree
     os.chdir(target_name)
 
-    # checkout the specified branch
+    # checkout the specified branch and get the latest changes
     call(["git", "fetch"])
     command_executor(["git", "checkout", version])
-
-    # Get the latest if applicable
     call(["git", "pull"])
+
+    if submodule_update:
+        call(["git", "submodule", "update", "--init", "--recursive"])
+
     os.chdir(pwd)
 
 
