@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -43,15 +43,9 @@ def main():
         default="native")
     arguments = parser.parse_args()
 
-    assert not os.path.isdir(
-        arguments.output_dir), arguments.output_dir + " already exists"
-    os.makedirs(arguments.output_dir)
+    if not os.path.isdir(arguments.output_dir):
+        os.makedirs(arguments.output_dir)
     os.chdir(arguments.output_dir)
-    assert not is_venv(
-    ), "Please deactivate virtual environment before running this script"
-
-    assert not is_venv(
-    ), "Please deactivate virtual environment before running this script"
 
     venv_dir = './venv3/'
 
@@ -59,22 +53,32 @@ def main():
     load_venv(venv_dir)
     setup_venv(venv_dir)
 
-    # Download TensorFlow
-    download_repo("tensorflow", "https://github.com/tensorflow/tensorflow.git",
-                  arguments.tf_version)
+    if not os.path.isdir(os.path.join(arguments.output_dir, "tensorflow")):
+        # Download TensorFlow
+        download_repo("tensorflow",
+                      "https://github.com/tensorflow/tensorflow.git",
+                      arguments.tf_version)
+    else:
+        pwd = os.getcwd()
+        os.chdir(os.path.join(arguments.output_dir, "tensorflow"))
+        call(["git", "fetch"])
+        command_executor(["git", "checkout", arguments.tf_version])
+        call(["git", "pull"])
+        os.chdir(pwd)
 
     # Build TensorFlow
-    build_tensorflow(venv_dir, "tensorflow", 'artifacts', arguments.target_arch,
-                     False)
+    build_tensorflow(arguments.tf_version, "tensorflow", 'artifacts',
+                     arguments.target_arch, False)
 
     # Build TensorFlow C++ Library
-    build_tensorflow_cc("tensorflow", 'artifacts', arguments.target_arch, False)
+    build_tensorflow_cc(arguments.tf_version, "tensorflow", 'artifacts',
+                        arguments.target_arch, False)
 
     pwd = os.getcwd()
     artifacts_dir = os.path.join(pwd, 'artifacts/tensorflow')
     os.chdir("tensorflow")
 
-    copy_tf_to_artifacts(artifacts_dir, None)
+    copy_tf_to_artifacts(arguments.tf_version, artifacts_dir, None)
 
     print('\033[1;35mTensorFlow Build finished\033[0m')
 
@@ -87,7 +91,7 @@ if __name__ == '__main__':
     main()
     # Usage
     # Build TF once
-    # ./build_tf.py --tf_version v1.14.0-rc0 --output_dir /prebuilt/tf/dir
+    # ./build_tf.py --tf_version v1.15.2 --output_dir /prebuilt/tf/dir
     #
     # Reuse TF in different ngraph-bridge builds
     # mkdir ngtf_1; cd ngtf_1

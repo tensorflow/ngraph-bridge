@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import sys
 import pytest
 import getpass
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import ngraph_bridge
 
 import numpy as np
@@ -53,7 +54,7 @@ class TestMnistTraining(NgraphTest):
                 self.optimizer = optimizer
 
         data_dir = '/tmp/' + getpass.getuser() + 'tensorflow/mnist/input_data'
-        train_loop_count = 20
+        train_loop_count = 50
         batch_size = 50
         test_image_count = None
         make_deterministic = True
@@ -67,7 +68,7 @@ class TestMnistTraining(NgraphTest):
         ng_loss_values, ng_test_accuracy = train_mnist_cnn(FLAGS)
         ng_values = ng_loss_values + [ng_test_accuracy]
         # Reset the Graph
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
         # disable ngraph-tf
         ngraph_bridge.disable()

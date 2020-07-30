@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,6 @@
 #include "logging/ngraph_log.h"
 #include "ngraph/ngraph.hpp"
 
-#include "ngraph_bridge/ngraph_freshness_tracker.h"
-#include "ngraph_bridge/ngraph_pipelined_tensors.h"
-
 namespace tensorflow {
 
 namespace ngraph_bridge {
@@ -53,13 +50,14 @@ class NgraphDataCache {
   // it will create item, put it in the cache and returns item and status
   std::pair<Status, ValueType> LookUpOrCreate(
       KeyType key,
-      std::function<std::pair<Status, ValueType>()> callback_create_item,
-      std::function<void(ValueType)> callback_destroy_item);
+      std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item,
+      std::function<void(ValueType)> callback_destroy_item, bool& cache_hit);
 
   // Overload for above function, which doesn't take callback for destroy item
   std::pair<Status, ValueType> LookUpOrCreate(
       KeyType key,
-      std::function<std::pair<Status, ValueType>()> callback_create_item);
+      std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item,
+      bool& cache_hit);
   Status RemoveItem(KeyType key);
   Status RemoveItem(KeyType key,
                     std::function<void(ValueType)> callback_destroy_item);
@@ -97,7 +95,8 @@ Status NgraphDataCache<KeyType, ValueType>::RemoveItem(
       callback_destroy_item(m_ng_items_map.at(key));
     } catch (std::bad_function_call& exception) {
       return errors::Internal(
-          "Failed to destroy item. Invalid Callback to Destroy");
+          "Failed to destroy item. Invalid Callback to Destroy ",
+          exception.what(), "\n");
     }
     m_ng_items_map.erase(key);
     m_lru.pop_back();
@@ -123,7 +122,8 @@ Status NgraphDataCache<KeyType, ValueType>::RemoveAll(
       callback_destroy_item(it->second);
     } catch (std::bad_function_call& exception) {
       return errors::Internal(
-          "Failed to destroy item. Invalid Callback to Destroy");
+          "Failed to destroy item. Invalid Callback to Destroy ",
+          exception.what(), "\n");
     }
   }
   if (m_ng_items_map.size() != m_lru.size()) {
@@ -139,9 +139,9 @@ template <typename KeyType, typename ValueType>
 std::pair<Status, ValueType>
 NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
     KeyType key,
-    std::function<std::pair<Status, ValueType>()> callback_create_item,
-    std::function<void(ValueType)> callback_destroy_item) {
-  bool found_in_cache;
+    std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item,
+    std::function<void(ValueType)> callback_destroy_item,
+    bool& found_in_cache) {
   // look up in the cache
   {
     absl::MutexLock lock(&m_mutex);
@@ -155,11 +155,12 @@ NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
   ValueType item;
   pair<Status, ValueType> status_item_pair;
   try {
-    status_item_pair = callback_create_item();
+    status_item_pair = callback_create_item(key);
   } catch (std::bad_function_call& exception) {
     return std::make_pair(
         errors::Internal(
-            "Failed to create an item. Invalid Callback to Create"),
+            "Failed to create an item. Invalid Callback to Create ",
+            exception.what(), "\n"),
         item);
   }
   // If item is successfully created we will place in the cache.
@@ -176,7 +177,8 @@ NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
         } catch (std::bad_function_call& exception) {
           return std::make_pair(
               errors::Internal(
-                  "Failed to destroy item. Invalid Callback to Destroy"),
+                  "Failed to destroy item. Invalid Callback to Destroy ",
+                  exception.what(), "\n"),
               item);
         }
         m_ng_items_map.erase(key_to_evict);
@@ -209,8 +211,10 @@ template <typename KeyType, typename ValueType>
 std::pair<Status, ValueType>
 NgraphDataCache<KeyType, ValueType>::LookUpOrCreate(
     KeyType key,
-    std::function<std::pair<Status, ValueType>()> callback_create_item) {
-  return LookUpOrCreate(key, callback_create_item, [](ValueType) {});
+    std::function<std::pair<Status, ValueType>(KeyType)> callback_create_item,
+    bool& found_in_cache) {
+  return LookUpOrCreate(key, callback_create_item, [](ValueType) {},
+                        found_in_cache);
 }
 }
 }

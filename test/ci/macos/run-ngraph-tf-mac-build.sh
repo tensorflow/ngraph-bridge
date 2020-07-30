@@ -1,7 +1,7 @@
 #!  /bin/bash
 
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -223,7 +223,7 @@ if [ -z "${tf_dir}" ] ; then
     # If installing into the OS, use:
     # sudo --preserve-env --set-home pip install --ignore-installed ${PIP_INSTALL_EXTRA_ARGS:-} "${WHEEL_FILE}"
     # Here we are installing into a virtual environment, so DO NOT USE SUDO!!!
-    pip install -U tensorflow==1.14.0
+    pip install -U tensorflow==2.0.0
     set +x
 
 else 

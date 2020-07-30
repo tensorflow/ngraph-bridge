@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Nervana Systems Inc.
+# Copyright 2018-2020 Intel Corporation
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -22,6 +22,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include(ExternalProject)
 include(CMakeDependentOption)
 include(cmake/sdl.cmake)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(Apple)?Clang$")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-comment -Wno-sign-compare -Wno-backslash-newline-escape")
@@ -111,8 +113,9 @@ endif()
 # 1. $ORIGIN/.
 # 2. $ORIGIN/../tensorflow/
 #
-set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_BUILD_RPATH_USE_ORIGIN true)
 if(APPLE)
+    set(CMAKE_MACOSX_RPATH 1)
     set(CMAKE_INSTALL_RPATH "@loader_path/;@loader_path/../tensorflow;")
 elseif(DEFINED NGRAPH_TF_RPATH)
     set(CMAKE_INSTALL_RPATH "\$ORIGIN:\$ORIGIN/../tensorflow:${NGRAPH_TF_RPATH}")
@@ -122,8 +125,6 @@ endif()
 
 # Find TensorFlow
 find_package(TensorFlow REQUIRED)
-
-
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(NGRAPH_TF_CXX11_ABI "${TensorFlow_CXX_ABI}")
@@ -152,43 +153,47 @@ option(USE_PRE_BUILT_NGRAPH "Use pre-built nGraph located in NGRAPH_ARTIFACTS_DI
 option(NGRAPH_ARTIFACTS_DIR "Where would nGraph be installed after build" FALSE)
 option(UNIT_TEST_ENABLE "Control the building of unit tests" FALSE)
 option(UNIT_TEST_TF_CC_DIR "Location where TensorFlow CC library is located" FALSE)
-option(NGRAPH_DISTRIBUTED_ENABLE "Add distributed mode to the CPU backend" FALSE)
 option(NGRAPH_BRIDGE_STATIC_LIB_ENABLE "Enable build nGraph bridge static library" FALSE)
+option(ENABLE_OPENVINO "Build OpenVINO backend" FALSE)
+option(USE_PREBUILT_OPENVINO "Use prebuilt OpenVINO located in OPENVINO_ARTIFACTS_DIR" FALSE)
+option(OPENVINO_ARTIFACTS_DIR "Where would OpenVINO be installed after build" FALSE)
 
-find_package(PlaidML CONFIG)
-option(NGRAPH_PLAIDML_ENABLE "Build PlaidML backend" ${PLAIDML_FOUND})
-
-# Validate the options
-if (NGRAPH_PLAIDML_ENABLE)
-    if (NOT PLAIDML_FOUND)
-        message(FATAL_ERROR "Unable to find PlaidML; use \"pip install plaidml\" to install it.")
-    endif()
-endif()
-
-if(USE_PRE_BUILT_NGRAPH)
-    if(NOT NGRAPH_ARTIFACTS_DIR)
-        message(
-            FATAL_ERROR
-            "USE_PRE_BUILT_NGRAPH is ON but NGRAPH_ARTIFACTS_DIR is missing"
-        )
-    endif()
-    # Check if the path specified is ABSOLUTE or RELATVE
-    if (NOT IS_ABSOLUTE ${NGRAPH_ARTIFACTS_DIR})
-        set(NGRAPH_ARTIFACTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NGRAPH_ARTIFACTS_DIR})
-    endif()
-
-    # Create absolute path for the directory
-    get_filename_component(
-        NGRAPH_ARTIFACTS_DIR
-        "${NGRAPH_ARTIFACTS_DIR}"
-        ABSOLUTE
-    )
-    if (NOT EXISTS ${NGRAPH_ARTIFACTS_DIR})
-        message(FATAL_ERROR
-            "nGraph artifacts directory doesn't exist: " ${NGRAPH_ARTIFACTS_DIR} )
+if (ENABLE_OPENVINO)
+    add_definitions(-DENABLE_OPENVINO)
+    set(NGRAPH_ARTIFACTS_DIR ${OPENVINO_ARTIFACTS_DIR})
+    set(InferenceEngine_DIR ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/share)
+    find_package(InferenceEngine REQUIRED)
+    include_directories(${InferenceEngine_INCLUDE_DIRS})
+    if (THREADING STREQUAL "TBB" OR THREADING STREQUAL "TBB_AUTO")
+        set(TBB_DIR ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/external/tbb/cmake)
+        find_package(TBB COMPONENTS tbb tbbmalloc)
     endif()
 else()
-    set(NGRAPH_ARTIFACTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/ngraph/ngraph_dist)
+    if(USE_PRE_BUILT_NGRAPH)
+        if(NOT NGRAPH_ARTIFACTS_DIR)
+            message(
+                FATAL_ERROR
+                "USE_PRE_BUILT_NGRAPH is ON but NGRAPH_ARTIFACTS_DIR is missing"
+            )
+        endif()
+        # Check if the path specified is ABSOLUTE or RELATVE
+        if (NOT IS_ABSOLUTE ${NGRAPH_ARTIFACTS_DIR})
+            set(NGRAPH_ARTIFACTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NGRAPH_ARTIFACTS_DIR})
+        endif()
+
+        # Create absolute path for the directory
+        get_filename_component(
+            NGRAPH_ARTIFACTS_DIR
+            "${NGRAPH_ARTIFACTS_DIR}"
+            ABSOLUTE
+        )
+        if (NOT EXISTS ${NGRAPH_ARTIFACTS_DIR})
+            message(FATAL_ERROR
+                "nGraph artifacts directory doesn't exist: " ${NGRAPH_ARTIFACTS_DIR} )
+        endif()
+    else()
+        set(NGRAPH_ARTIFACTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/ngraph/ngraph_dist)
+    endif()
 endif()
 
 message(STATUS "UNIT_TEST_TF_CC_DIR:        ${TF_PRE_BUILT_LOCATION}")
@@ -232,25 +237,17 @@ message(STATUS "UNIT_TEST_ENABLE:           ${UNIT_TEST_ENABLE}")
 
 message(STATUS "NGRAPH_ARTIFACTS_DIR:       ${NGRAPH_ARTIFACTS_DIR}")
 message(STATUS "USE_PRE_BUILT_NGRAPH:       ${USE_PRE_BUILT_NGRAPH}")
-message(STATUS "NGRAPH_DISTRIBUTED_ENABLE:  ${NGRAPH_DISTRIBUTED_ENABLE}")
-message(STATUS "NGRAPH_PLAIDML_ENABLE:      ${NGRAPH_PLAIDML_ENABLE}")
 message(STATUS "NGRAPH_TARGET_ARCH:         ${NGRAPH_TARGET_ARCH}")
 message(STATUS "NGRAPH_TUNE_ARCH:           ${NGRAPH_TUNE_ARCH}")
+message(STATUS "OPENVINO_ARTIFACTS_DIR:     ${OPENVINO_ARTIFACTS_DIR}")
 
-if(NGRAPH_DISTRIBUTED_ENABLE)
-    find_package(MPI REQUIRED)
-    add_definitions(-DNGRAPH_DISTRIBUTED)
-    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH} ${MPI_CXX_INCLUDE_PATH})
-    link_directories(${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
-endif()
 # Find and build ngraph - if not using pre-built one
 if (NOT USE_PRE_BUILT_NGRAPH)
     ExternalProject_Add(
         ext_ngraph
         GIT_REPOSITORY https://github.com/NervanaSystems/ngraph
-        GIT_TAG v0.27.0-rc.0
+        GIT_TAG 94456090176ad6abda633b496b89cc16157ed4b0
         CMAKE_ARGS 
-            -DNGRAPH_DISTRIBUTED_ENABLE=${NGRAPH_DISTRIBUTED_ENABLE}
             -DNGRAPH_INSTALL_PREFIX=${NGRAPH_ARTIFACTS_DIR}
             -DNGRAPH_USE_CXX_ABI=${TensorFlow_CXX_ABI}
             -DNGRAPH_UNIT_TEST_ENABLE=FALSE
@@ -260,7 +257,6 @@ if (NOT USE_PRE_BUILT_NGRAPH)
             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
             -DNGRAPH_GPU_ENABLE=${NGRAPH_GPU_ENABLE}
             -DNGRAPH_DEBUG_ENABLE=${NGRAPH_DEBUG_ENABLE}
-            -DNGRAPH_PLAIDML_ENABLE=${NGRAPH_PLAIDML_ENABLE}
             -DNGRAPH_TARGET_ARCH=${NGRAPH_TARGET_ARCH}
             -DNGRAPH_TUNE_ARCH=${NGRAPH_TUNE_ARCH}
         TMP_DIR "${CMAKE_CURRENT_BINARY_DIR}/ngraph/tmp"
@@ -275,6 +271,9 @@ if (NOT USE_PRE_BUILT_NGRAPH)
 endif()
 set(NGRAPH_INSTALL_DIR ${NGRAPH_ARTIFACTS_DIR})
 
+if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+    add_definitions(-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+endif()
 
 if(OS_VERSION STREQUAL "\"centos\"")
     set(LIB "lib64")
@@ -287,7 +286,7 @@ set(NGRAPH_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBNGRAPH})
 if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
     set(CPU_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBCPU_BACKEND_A})
     set(INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC ${NGRAPH_INSTALL_DIR}/${LIB}/${LIBINTERPRETER_BACKEND_A})
-    set(LIB_MKLDNN_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libmkldnn.so)
+    set(LIB_DNNL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libdnnl.so)
     set(LIB_MKLML_INTEL_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libmklml_intel.so)
     set(LIB_IOMP5_IMPORTED_LOCATION ${NGRAPH_INSTALL_DIR}/${LIB}/libiomp5.so)
 
@@ -312,11 +311,11 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         ${INTERPRETER_BACKEND_IMPORTED_LOCATION_STATIC}
     )
 
-    add_library(lib_mkldnn SHARED IMPORTED)
+    add_library(lib_dnnl SHARED IMPORTED)
     set_target_properties(
-        lib_mkldnn
+        lib_dnnl
         PROPERTIES IMPORTED_LOCATION
-        ${LIB_MKLDNN_IMPORTED_LOCATION}
+        ${LIB_DNNL_IMPORTED_LOCATION}
     )
 
     add_library(lib_mklml_intel SHARED IMPORTED)
@@ -324,6 +323,7 @@ if(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
         lib_mklml_intel
         PROPERTIES IMPORTED_LOCATION
         ${LIB_MKLML_INTEL_IMPORTED_LOCATION}
+        IMPORTED_NO_SONAME 1
     )
 
     add_library(lib_iomp5 SHARED IMPORTED)
@@ -376,18 +376,23 @@ endif()
 
 if (UNIT_TEST_ENABLE)
     if (NOT DEFINED TF_SRC_DIR)
-        message(FATAL_ERROR "Provide TensorFlow source directory: -DTF_SRC_DIR=<directory>")
-    endif()
-    if (NOT EXISTS ${TensorFlow_SRC_DIR})
         message(
-            STATUS 
-            "TensorFlow source directory doesn't exist"
+            STATUS
+            "TensorFlow source directory not provided. "
+            "C++ unit tests won't be built"
         )
-    endif()
+    else()
+        if (NOT EXISTS ${TensorFlow_SRC_DIR})
+            message(
+                STATUS 
+                "TensorFlow source directory doesn't exist"
+            )
+        endif()
 
-    # Check if the path specified is ABSOLUTE or RELATVE
-    if (NOT IS_ABSOLUTE ${TF_SRC_DIR})
-        set(TF_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TF_SRC_DIR})
+        # Check if the path specified is ABSOLUTE or RELATVE
+        if (NOT IS_ABSOLUTE ${TF_SRC_DIR})
+            set(TF_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TF_SRC_DIR})
+        endif()
     endif()
 
     add_subdirectory(test)

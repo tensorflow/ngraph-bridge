@@ -1,5 +1,5 @@
 # ******************************************************************************
-# Copyright 2018-2019 Intel Corporation
+# Copyright 2018-2020 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ message(STATUS "TensorFlow_VERSION: " ${TensorFlow_VERSION})
 if ( APPLE )
     set(TF_LIB_NAME libtensorflow_framework.dylib)
 else()
-    set(TF_LIB_NAME libtensorflow_framework.so.1)
+    set(TF_LIB_NAME libtensorflow_framework.so.2)
 endif()
 
 message(STATUS "TF_LIB: " ${TF_LIB_NAME})

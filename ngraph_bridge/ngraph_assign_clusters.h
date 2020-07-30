@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 Status AssignClusters(Graph* graph);
+// reset the effect of AssignClusters
+void ResetAssignClusters(Graph* graph);
 Status GetNodeCluster(const Node* node, int* cluster);
 
 }  // namespace ngraph_bridge

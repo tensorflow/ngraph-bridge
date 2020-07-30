@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import platform
 import random
 
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 from tensorflow.core.protobuf import rewriter_config_pb2
 
 from google.protobuf import text_format
@@ -30,6 +31,7 @@ __all__ = ['LIBNGRAPH_BRIDGE', 'NgraphTest']
 _ext = 'dylib' if platform.system() == 'Darwin' else 'so'
 
 LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
+NGTF_BACKEND = ngraph_bridge.get_currently_set_backend_name()
 
 
 class NgraphTest(object):
@@ -39,7 +41,7 @@ class NgraphTest(object):
                                         tname)
 
     def import_pbtxt(self, pb_filename):
-        graph_def = tf.GraphDef()
+        graph_def = tf.compat.v1.GraphDef()
         with open(pb_filename, "r") as f:
             text_format.Merge(f.read(), graph_def)
 
@@ -51,7 +53,7 @@ class NgraphTest(object):
         # Passing config as None and then initializing it inside
         # because mutable objects should not be used as defaults in python
         if config is None:
-            config = tf.ConfigProto()
+            config = tf.compat.v1.ConfigProto()
         # TODO: Stop grappler on failure (Add fail_on_optimizer_errors=True)
         config = ngraph_bridge.update_config(config)
 
@@ -60,7 +62,7 @@ class NgraphTest(object):
 
         os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
         ngraph_bridge.enable()
-        with tf.Session(config=config) as sess:
+        with tf.compat.v1.Session(config=config) as sess:
             retval = l(sess)
 
         os.environ.pop('NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS', None)
@@ -73,12 +75,12 @@ class NgraphTest(object):
 
     def without_ngraph(self, l, config=None):
         if config is None:
-            config = tf.ConfigProto()
+            config = tf.compat.v1.ConfigProto()
         ngraph_tf_disable_deassign_clusters = os.environ.pop(
             'NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS', None)
 
         ngraph_bridge.disable()
-        with tf.Session(config=config) as sess:
+        with tf.compat.v1.Session(config=config) as sess:
             retval = l(sess)
 
         if ngraph_tf_disable_deassign_clusters is not None:
@@ -109,7 +111,7 @@ class NgraphTest(object):
 
     # unset the env variable
     def unset_env_variable(self, env_var):
-        os.environ.pop(env_var, None)
+        os.unsetenv(env_var)
         print("Unset env variable ", env_var)
 
     # get the env variable
@@ -132,5 +134,6 @@ class NgraphTest(object):
 
     # restore env variables
     def restore_env_variables(self, env_var_map):
+        print("Restoring env varaibles")
         for k, v in env_var_map.items():
             self.set_env_variable(k, v)

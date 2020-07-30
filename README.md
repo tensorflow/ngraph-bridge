@@ -9,13 +9,16 @@ This repository contains the code needed to enable Intel(R) nGraph(TM) Compiler 
 runtime engine for TensorFlow. Use it to speed up your TensorFlow training and 
 inference workloads. The nGraph Library and runtime suite can also be used to 
 customize and deploy Deep Learning inference models that will "just work" with 
-a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the 
+a variety of nGraph-enabled backends: CPU, and custom silicon like the 
 [Intel(R) Nervana(TM) NNP](https://itpeernetwork.intel.com/inteldcisummit-artificial-intelligence/).
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/tensorflow/ngraph-bridge/blob/master/LICENSE)
 [![Build Status](https://badge.buildkite.com/180bbf814f1a884219849b4838cbda5fa1e03715e494185be3.svg?branch=master)](https://buildkite.com/ngraph/ngtf-cpu-ubuntu)
 [![Build Status](https://badge.buildkite.com/ae8d39ef4a18eb238b58ab0637fb97e85b86e85822a08b96d1.svg?branch=master)](https://buildkite.com/ngraph/ngtf-cpu-centos)
 [![Build Status](https://badge.buildkite.com/0aeaff43e378d387a160d30083f203f7147f010e3fb15b01d1.svg?branch=master)](https://buildkite.com/ngraph/ngtf-cpu-ubuntu-binary-tf)
+
+
+#### *** This repository is currently undergoing heavy refactoring for optimization of inference use-cases. If you are looking for the latest stable baseline, please use the following tag: v0.22.0-rc4 (https://github.com/tensorflow/ngraph-bridge/tree/v0.22.0-rc4) ***
 
 ## Installation
 
@@ -24,12 +27,11 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
 |Using pre-built packages| Building from source|
 | -----------------------|-------------------|
 |Python 3| Python 3|
-|TensorFlow v1.14|GCC 4.8 (Ubuntu), Clang/LLVM (macOS)|
+|TensorFlow v2.2.0|GCC 7.3 (Ubuntu), Clang/LLVM (macOS)|
 |        |`cmake` 3.4 or higher|
-|        |Bazel 0.25.2|
-|        |`virtualenv` 16.0.0|
-|        ||
-
+|        |Bazelisk|
+|        |`virtualenv` 16.0.0+|
+|        |`patchelf` (when building with OpenVINO backend)|
 
 ### Use pre-built packages
 
@@ -37,14 +39,18 @@ a variety of nGraph-enabled backends: CPU, GPU, and custom silicon like the
  Complete the following steps to install a pre-built nGraph bridge for
  TensorFlow.
 
-1. Install TensorFlow:
+1. Ensure the following pip version is being used:
+
+        pip install --upgrade pip==19.3.1
+
+2. Install TensorFlow:
 
         pip install -U tensorflow==1.14.0
 
-2. Install `ngraph-tensorflow-bridge`:
+3. Install `ngraph-tensorflow-bridge`:
 
         pip install -U ngraph-tensorflow-bridge
-   
+
 ### Build nGraph from source
 
 To use the latest version of nGraph Library, complete the following steps to
@@ -59,20 +65,22 @@ Pyenv. Some users prefer Anaconda/Miniconda. Before building nGraph, ensure that
 you can successfully build TensorFlow on macOS with a suitable Python
 environment.
 
-The requirements for building nGraph bridge are identical to the requirements for building TensorFlow from source. For more information, review the [TensorFlow configuration] details. 
+The requirements for building nGraph bridge are identical to the requirements for 
+building TensorFlow from source. For more information, review the [TensorFlow configuration] 
+details. 
 
 ##### Prepare your build environment
 
-Install the following requirements before building
- `nGraph-bridge`. 
- 
-TensorFlow uses a build system called "bazel". For the current
- version of `bazel`, use [bazel version].
+Install the following requirements before building the `ngraph-bridge`. 
 
-Install `bazel`:
+TensorFlow uses a build system called "bazel". For the current version of `bazel`, 
+use [bazel version].
 
-        wget https://github.com/bazelbuild/bazel/releases/download/0.25.2/bazel-0.25.2-installer-linux-x86_64.sh      
-        bash bazel-0.25.2-installer-linux-x86_64.sh --user
+Install `bazelisk`:
+
+        wget https://github.com/bazelbuild/bazelisk/releases/download/v1.5.0/bazelisk-linux-amd64
+        mv bazelisk-linux-amd64 ~/bin/bazel
+        chmod +x ~/bin/bazel
 
 Add and source the `bin` path to your `~/.bashrc` file to call
 bazel:
@@ -80,7 +88,7 @@ bazel:
         export PATH=$PATH:~/bin
         source ~/.bashrc   
 
-Install `cmake`, `virtualenv`, and `gcc 4.8`.
+Install `cmake`, `virtualenv`, and `gcc 7.3`.
 
 ##### Build an nGraph bridge
 
@@ -88,7 +96,7 @@ Once TensorFlow's dependencies are installed, clone the `ngraph-bridge` repo:
 
         git clone https://github.com/tensorflow/ngraph-bridge.git
         cd ngraph-bridge
-        git checkout v0.21.0
+        git checkout v0.22.0-rc3
 
 Run the following Python script to build TensorFlow, nGraph, and the bridge. Use Python 3.5:
 
@@ -96,10 +104,9 @@ Run the following Python script to build TensorFlow, nGraph, and the bridge. Use
 
 When the build finishes, a new `virtualenv` directory is created in `build_cmake/venv-tf-py3`. Build artifacts (i.e., the `ngraph_tensorflow_bridge-<VERSION>-py2.py3-none-manylinux1_x86_64.whl`) are created in the `build_cmake/artifacts` directory. 
 
-Add the following flags to build PlaidML and Intel GPU backends (optional):
+Add the following flags to build OpenVINO backend (optional):
 
-        --build_plaidml_backend
-        --build_intelgpu_backend
+        --build_openvino_backend
 
 For more build options:
         
@@ -126,18 +133,24 @@ Verify that `ngraph-bridge` installed correctly:
 
 This will produce something like this:
 
-    TensorFlow version:  <1.14.0>
-    nGraph bridge version: <b'0.14.0'>
-    nGraph version used for this build: b'0.18.0+c5d52f1'
-    TensorFlow version used for this build: <v1.14.0-...>
-    CXX11_ABI flag used for this build: 0
-    nGraph bridge built with Grappler: False
-    nGraph bridge built with Variables and Optimizers Enablement: False
+        TensorFlow version:  2.2.0
+        nGraph bridge version: b'0.22.0-rc3'
+        nGraph version used for this build: b'0.28.0-rc.1+d2cd873'
+        TensorFlow version used for this build: v2.2.0-0-2b96f3662b
+        CXX11_ABI flag used for this build: 1
+        nGraph bridge built with Grappler: False
+        nGraph bridge built with Variables and Optimizers Enablement: False
+
 
 
 Note: The version of the ngraph-tensorflow-bridge is not going to be exactly 
 the same as when you build from source. This is due to delay in the source 
 release and publishing the corresponding Python wheel. 
+
+### Build and run nGraph in Docker
+
+A shell script and dockerfiles are provided in the [`tools`](/tools) directory for easy setup in a Docker container. 
+See [this README](/tools) if you want to use Docker.
 
 ## Classify an image
 
@@ -152,7 +165,7 @@ Download the Inception v3 trained model and labels file:
 Extract the frozen model and labels file from the tarball:
 
     tar xvf inception_v3_2016_08_28_frozen.pb.tar.gz
-        
+
 Download the image file: 
 
     wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/data/grace_hopper.jpg
@@ -160,14 +173,14 @@ Download the image file:
 Download the TensorFlow script:
 
    wget https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/label_image.py
-       
+
 Modify the downloaded TensorFlow script to run TensorFlow with nGraph optimizations:
 
     import ngraph_bridge
     ...
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config_ngraph_enabled = ngraph_bridge.update_config(config)
-    sess = tf.Session(config=config_ngraph_enabled) 
+    sess = tf.compat.v1.Session(config=config_ngraph_enabled)
 
 Run the classification:
 
@@ -226,9 +239,10 @@ Observe that the output time runs faster than TensorFlow native (i.e., without n
 
 #### Add additional backends
 
-You can substitute the default CPU backend with a different backend such as `PLAIDML` or `INTELGPU`. Use the following API:
+You can substitute the default CPU backend with a different backend. 
+Use the following API:
 
-    ngraph_bridge.set_backend('PLAIDML')
+    ngraph_bridge.set_backend('backend_name')
 
 To determine what backends are available on your system, use the following API:
 

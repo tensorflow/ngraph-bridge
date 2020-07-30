@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2019 Intel Corporation
+#  Copyright 2019-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -44,10 +44,14 @@ def is_venv():
             (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix))
 
 
-def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
+def command_executor(cmd,
+                     verbose=False,
+                     msg=None,
+                     stdout=sys.stdout,
+                     stderr=sys.stderr):
     '''
     Executes the command.
-    Example: 
+    Example:
       - command_executor('ls -lrt')
       - command_executor(['ls', '-lrt'])
     '''
@@ -55,12 +59,27 @@ def command_executor(cmd, verbose=False, msg=None, stdout=None, stderr=None):
         cmd = ' '.join(cmd)
     if verbose:
         tag = 'Running COMMAND: ' if msg is None else msg
-        print(tag + cmd)
-    if (call(shlex.split(cmd), stdout=stdout, stderr=stderr) != 0):
-        raise Exception("Error running command: " + cmd)
+        print(tag + cmd, file=stdout)
+    try:
+        process = subprocess.Popen(
+            shlex.split(cmd), stdout=stdout, stderr=stderr)
+        so, se = process.communicate()
+        retcode = process.returncode
+        assert retcode == 0, "dir:" + os.getcwd(
+        ) + ". Error in running command: " + cmd
+    except OSError as e:
+        print(
+            "!!! Execution failed !!!",
+            e,
+            " -->  Error running command:",
+            cmd,
+            file=sys.stderr)
+        raise
+    except Exception as e:
+        raise
 
 
-def build_ngraph(build_dir, src_location, cmake_flags, verbose):
+def cmake_build(build_dir, src_location, cmake_flags, verbose):
     pwd = os.getcwd()
 
     src_location = os.path.abspath(src_location)
@@ -123,7 +142,7 @@ def load_venv(venv_dir):
     exec(
         compile(
             open(activate_this_file, "rb").read(), activate_this_file, 'exec'),
-        dict(__file__=activate_this_file), dict(__file__=activate_this_file))
+        dict(__file__=activate_this_file))
 
     return venv_dir
 
@@ -149,20 +168,16 @@ def setup_venv(venv_dir):
         "install",
         "-U",
         "pip",
-        "setuptools",
         "psutil",
-        "six>=1.10.0",
-        "numpy>=1.13.3",
-        "absl-py>=0.1.6",
-        "astor>=0.6.0",
-        "google_pasta>=0.1.1",
+        "six>=1.12.0",
+        "numpy>=1.16.0,<1.19.0",
         "wheel>=0.26",
+        "setuptools",
         "mock",
         "termcolor>=1.1.0",
-        "protobuf>=3.6.1",
         "keras_applications>=1.0.6",
         "--no-deps",
-        "keras_preprocessing==1.0.5",
+        "keras_preprocessing>=1.1.1,<1.2",
         "--no-deps",
         "yapf==0.26.0",
     ]
@@ -172,15 +187,12 @@ def setup_venv(venv_dir):
     command_executor(["pip", "list"])
 
 
-def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
-
-    base = sys.prefix
-    python_lib_path = os.path.join(base, 'lib', 'python%s' % sys.version[:3],
-                                   'site-packages')
-    python_executable = os.path.join(base, "bin", "python")
-
-    print("PYTHON_BIN_PATH: " + python_executable)
-
+def build_tensorflow(tf_version,
+                     src_dir,
+                     artifacts_dir,
+                     target_arch,
+                     verbosity,
+                     target=""):
     # In order to build TensorFlow, we need to be in the virtual environment
     pwd = os.getcwd()
 
@@ -193,66 +205,99 @@ def build_tensorflow(venv_dir, src_dir, artifacts_dir, target_arch, verbosity):
 
     os.chdir(src_dir)
 
-    # Set the TensorFlow configuration related variables
-    os.environ["PYTHON_BIN_PATH"] = python_executable
-    os.environ["PYTHON_LIB_PATH"] = python_lib_path
-    os.environ["TF_NEED_IGNITE"] = "0"
-    if (platform.system() == 'Darwin'):
-        os.environ["TF_ENABLE_XLA"] = "0"
-        os.environ["TF_CONFIGURE_IOS"] = "0"
-    else:
-        os.environ["TF_ENABLE_XLA"] = "1"
-    os.environ["TF_NEED_OPENCL_SYCL"] = "0"
-    os.environ["TF_NEED_COMPUTECPP"] = "0"
-    os.environ["TF_NEED_ROCM"] = "0"
-    os.environ["TF_NEED_MPI"] = "0"
-    os.environ["TF_NEED_CUDA"] = "0"
-    os.environ["TF_DOWNLOAD_CLANG"] = "0"
-    os.environ["TF_SET_ANDROID_WORKSPACE"] = "0"
-    os.environ["CC_OPT_FLAGS"] = "-march=" + target_arch
-
-    command_executor("./configure")
-
-    # Build the python package
-    cmd = [
-        "bazel",
-        "build",
-        "--config=opt",
-        "--config=noaws",
-        "--config=nohdfs",
-        "--config=noignite",
-        "--config=nokafka",
-        "--config=nonccl",
-        "//tensorflow/tools/pip_package:build_pip_package",
-    ]
-    if verbosity:
-        cmd.extend(['-s'])
-
-    command_executor(cmd)
-
-    command_executor([
-        "bazel-bin/tensorflow/tools/pip_package/build_pip_package",
-        artifacts_dir
-    ])
-
-    # Get the name of the TensorFlow pip package
-    tf_wheel_files = glob.glob(os.path.join(artifacts_dir, "tensorflow-*.whl"))
-    print("TF Wheel: %s" % tf_wheel_files[0])
-
-    # popd
-    os.chdir(pwd)
-
-
-def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
-
-    pwd = os.getcwd()
-
     base = sys.prefix
     python_lib_path = os.path.join(base, 'lib', 'python%s' % sys.version[:3],
                                    'site-packages')
     python_executable = os.path.join(base, "bin", "python")
 
     print("PYTHON_BIN_PATH: " + python_executable)
+
+    # Set the TensorFlow configuration related variables
+    os.environ["PYTHON_BIN_PATH"] = python_executable
+    os.environ["PYTHON_LIB_PATH"] = python_lib_path
+    os.environ["TF_ENABLE_XLA"] = "0"
+    if (platform.system() == 'Darwin'):
+        os.environ["TF_CONFIGURE_IOS"] = "0"
+    os.environ["TF_NEED_OPENCL_SYCL"] = "0"
+    os.environ["TF_NEED_COMPUTECPP"] = "0"
+    os.environ["TF_NEED_ROCM"] = "0"
+    os.environ["TF_NEED_MPI"] = "0"
+    os.environ["TF_NEED_CUDA"] = "0"
+    os.environ["TF_NEED_TENSORRT"] = "0"
+    os.environ["TF_DOWNLOAD_CLANG"] = "0"
+    os.environ["TF_SET_ANDROID_WORKSPACE"] = "0"
+    os.environ["CC_OPT_FLAGS"] = "-march=" + target_arch + " -Wno-sign-compare"
+
+    command_executor("./configure")
+
+    cmd = [
+        "bazel",
+        "build",
+        "--config=opt",
+        "--config=noaws",
+        "--config=nohdfs",
+        "--config=nonccl",
+    ]
+    # Build the python package
+    if (tf_version.startswith("v2.") or tf_version.startswith("2.")):
+        cmd.extend([
+            "--config=v2",
+        ])
+    elif (tf_version.startswith("v1.") or tf_version.startswith("1.")):
+        cmd.extend([
+            "--config=v1",
+        ])
+
+    # If target is not specified, we assume default TF wheel build
+    if target == '':
+        target = "//tensorflow/tools/pip_package:build_pip_package"
+
+    cmd.extend([target])
+
+    if verbosity:
+        cmd.extend(['-s'])
+
+    command_executor(cmd)
+
+    # If target is not specified, we assume default TF wheel build and copy the wheel to artifacts dir
+    if target == '//tensorflow/tools/pip_package:build_pip_package':
+        command_executor([
+            "bazel-bin/tensorflow/tools/pip_package/build_pip_package",
+            artifacts_dir
+        ])
+
+        # Get the name of the TensorFlow pip package
+        tf_wheel_files = glob.glob(
+            os.path.join(artifacts_dir, "tensorflow-*.whl"))
+        print("TF Wheel: %s" % tf_wheel_files[0])
+
+    # popd
+    os.chdir(pwd)
+
+
+def build_tensorflow_cc(tf_version,
+                        src_dir,
+                        artifacts_dir,
+                        target_arch,
+                        verbosity,
+                        tf_prebuilt=None):
+    lib = "libtensorflow_cc.so.2"
+    if (tf_version.startswith("v2.") or tf_version.startswith("2.")):
+        tf_cc_lib_name = "libtensorflow_cc.so.2"
+    elif (tf_version.startswith("v1.") or tf_version.startswith("1.")):
+        tf_cc_lib_name = "libtensorflow_cc.so.1"
+
+    build_tensorflow(
+        tf_version,
+        src_dir,
+        artifacts_dir,
+        target_arch,
+        verbosity,
+        target="//tensorflow:" + tf_cc_lib_name +
+        " //tensorflow/core/kernels:ops_testutil")
+
+    # In order to build TensorFlow, we need to be in the virtual environment
+    pwd = os.getcwd()
 
     src_dir = os.path.abspath(src_dir)
     print("SOURCE DIR: " + src_dir)
@@ -262,44 +307,6 @@ def build_tensorflow_cc(src_dir, artifacts_dir, target_arch, verbosity):
     print("ARTIFACTS DIR: %s" % artifacts_dir)
 
     os.chdir(src_dir)
-
-    # Set the TensorFlow configuration related variables
-    os.environ["PYTHON_BIN_PATH"] = python_executable
-    os.environ["PYTHON_LIB_PATH"] = python_lib_path
-    os.environ["TF_NEED_IGNITE"] = "0"
-    if (platform.system() == 'Darwin'):
-        os.environ["TF_ENABLE_XLA"] = "0"
-        os.environ["TF_CONFIGURE_IOS"] = "0"
-    else:
-        os.environ["TF_ENABLE_XLA"] = "1"
-    os.environ["TF_NEED_OPENCL_SYCL"] = "0"
-    os.environ["TF_NEED_COMPUTECPP"] = "0"
-    os.environ["TF_NEED_ROCM"] = "0"
-    os.environ["TF_NEED_MPI"] = "0"
-    os.environ["TF_NEED_CUDA"] = "0"
-    os.environ["TF_DOWNLOAD_CLANG"] = "0"
-    os.environ["TF_SET_ANDROID_WORKSPACE"] = "0"
-    os.environ["CC_OPT_FLAGS"] = "-march=" + target_arch
-
-    command_executor("./configure")
-
-    # Now build the TensorFlow C++ library
-    cmd = [
-        "bazel", "build", "--config=opt", "--config=noaws", "--config=nohdfs",
-        "--config=noignite", "--config=nokafka", "--config=nonccl",
-        "//tensorflow:libtensorflow_cc.so.1"
-    ]
-    command_executor(cmd)
-    copy_tf_cc_lib_to_artifacts(artifacts_dir, None)
-
-    # popd
-    os.chdir(pwd)
-
-
-def copy_tf_cc_lib_to_artifacts(artifacts_dir, tf_prebuilt):
-    tf_cc_lib_name = 'libtensorflow_cc.so.1'
-    #if (platform.system() == 'Darwin'):
-    #tf_cc_lib_name = 'libtensorflow_cc.1.dylib'
     try:
         doomed_file = os.path.join(artifacts_dir, tf_cc_lib_name)
         os.unlink(doomed_file)
@@ -315,6 +322,7 @@ def copy_tf_cc_lib_to_artifacts(artifacts_dir, tf_prebuilt):
 
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
     shutil.copy(tf_cc_lib_file, artifacts_dir)
+    os.chdir(pwd)
 
 
 def locate_tf_whl(tf_whl_loc):
@@ -326,12 +334,20 @@ def locate_tf_whl(tf_whl_loc):
     return tf_whl
 
 
-def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
-    tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
+def copy_tf_to_artifacts(tf_version, artifacts_dir, tf_prebuilt):
+    if (tf_version.startswith("v2.")):
+        tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
+        tf_cc_lib_name = 'libtensorflow_cc.so.2'
+    elif (tf_version.startswith("v1.")):
+        tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
+        tf_cc_lib_name = 'libtensorflow_cc.so.1'
     if (platform.system() == 'Darwin'):
-        tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
+        if (tf_version.startswith("v2.")):
+            tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
+        elif (tf_version.startswith("v1.")):
+            tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
     try:
-        doomed_file = os.path.join(artifacts_dir, "libtensorflow_cc.so.1")
+        doomed_file = os.path.join(artifacts_dir, tf_cc_lib_name)
         os.unlink(doomed_file)
         doomed_file = os.path.join(artifacts_dir, tf_fmwk_lib_name)
         os.unlink(doomed_file)
@@ -341,10 +357,10 @@ def copy_tf_to_artifacts(artifacts_dir, tf_prebuilt):
 
     # Now copy the TF libraries
     if tf_prebuilt is None:
-        tf_cc_lib_file = "bazel-bin/tensorflow/libtensorflow_cc.so.1"
+        tf_cc_lib_file = "bazel-bin/tensorflow/" + tf_cc_lib_name
         tf_cc_fmwk_file = "bazel-bin/tensorflow/" + tf_fmwk_lib_name
     else:
-        tf_cc_lib_file = os.path.abspath(tf_prebuilt + '/libtensorflow_cc.so.1')
+        tf_cc_lib_file = os.path.abspath(tf_prebuilt + '/' + tf_cc_lib_name)
         tf_cc_fmwk_file = os.path.abspath(tf_prebuilt + '/' + tf_fmwk_lib_name)
     print("PWD: ", os.getcwd())
     print("Copying %s to %s" % (tf_cc_lib_file, artifacts_dir))
@@ -371,11 +387,10 @@ def install_tensorflow(venv_dir, artifacts_dir):
 
     # Get the name of the TensorFlow pip package
     tf_wheel_files = glob.glob("tensorflow-*.whl")
-    if (len(tf_wheel_files) != 1):
-        raise Exception(
-            "artifacts directory contains more than 1 version of tensorflow wheel"
-        )
-
+    if (len(tf_wheel_files) < 1):
+        raise Exception("no tensorflow wheels found")
+    elif (len(tf_wheel_files) > 1):
+        raise Exception("more than 1 version of tensorflow wheels found")
     command_executor(["pip", "install", "-U", tf_wheel_files[0]])
 
     cxx_abi = "0"
@@ -457,7 +472,7 @@ def build_ngraph_tf(build_dir, artifacts_location, ngtf_src_loc, venv_dir,
     return output_wheel
 
 
-def install_ngraph_tf(venv_dir, ngtf_pip_whl):
+def install_ngraph_tf(tf_version, venv_dir, ngtf_pip_whl):
     # Load the virtual env
     load_venv(venv_dir)
 
@@ -472,29 +487,31 @@ def install_ngraph_tf(venv_dir, ngtf_pip_whl):
     print(ngraph_bridge.__version__)
 
 
-def download_repo(target_name, repo, version):
-
+def download_repo(target_name, repo, version, submodule_update=False):
     # First download to a temp folder
     call(["git", "clone", repo, target_name])
 
-    # Next goto this folder nd determine the name of the root folder
     pwd = os.getcwd()
-
-    # Go to the tree
     os.chdir(target_name)
 
-    # checkout the specified branch
+    # checkout the specified branch and get the latest changes
     call(["git", "fetch"])
     command_executor(["git", "checkout", version])
-
-    # Get the latest if applicable
     call(["git", "pull"])
+
+    if submodule_update:
+        call(["git", "submodule", "update", "--init", "--recursive"])
+
     os.chdir(pwd)
 
 
-def apply_patch(patch_file):
+def apply_patch(patch_file, level=1):
+    # IF patching TensorFlow unittests is done through an automation system,
+    # please ensure the latest `libdvdnav-dev` or `libdvdnav-devel` is installed.
     cmd = subprocess.Popen(
-        'patch -p1 -N -i ' + patch_file, shell=True, stdout=subprocess.PIPE)
+        'patch -p' + str(level) + ' -N -i ' + patch_file,
+        shell=True,
+        stdout=subprocess.PIPE)
     printed_lines = cmd.communicate()
     # Check if the patch is being applied for the first time, in which case
     # cmd.returncode will be 0 or if the patch has already been applied, in
@@ -506,7 +523,7 @@ def apply_patch(patch_file):
 
 def get_gcc_version():
     cmd = subprocess.Popen(
-        'gcc -dumpversion',
+        'gcc -dumpfullversion -dumpversion',
         shell=True,
         stdout=subprocess.PIPE,
         bufsize=1,
@@ -537,14 +554,15 @@ def get_bazel_version():
         universal_newlines=True)
     # The bazel version format is a multi line output:
     #
-    # Build label: 0.24.1
-    # Build target: bazel-out/k8-opt/bin/src/main/java/com/...
-    # Build time: Tue Apr 2 16:29:26 2019 (1554222566)
-    # Build timestamp: 1554222566
-    # Build timestamp as int: 1554222566
+    # Build label: 0.25.2
+    # Build target: bazel-out/k8-opt/bin/src/main/java/com/google/devtools/build/lib/bazel/BazelServer_deploy.jar
+    # Build time: Fri May 10 20:47:48 2019 (1557521268)
+    # Build timestamp: 1557521268
+    # Build timestamp as int: 1557521268
     #
     output = cmd.communicate()[0].splitlines()[0].strip()
-    output = output.split(':')[1].strip()
-
-    version_tuple = output.split('.')
-    return version_tuple
+    version_info = output.split(':')
+    bazel_kind = version_info[0].strip()
+    version = version_info[1].strip()
+    version_tuple = version.split('.')
+    return bazel_kind, version_tuple

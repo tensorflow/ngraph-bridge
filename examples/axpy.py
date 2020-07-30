@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 #  limitations under the License.
 # ==============================================================================
 """nGraph TensorFlow axpy
-
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -25,6 +24,7 @@ import ctypes
 
 import numpy as np
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 from tensorflow.python.client import timeline
 import json
 
@@ -35,28 +35,29 @@ print("TensorFlow version: ", tf.version.GIT_VERSION, tf.version.VERSION)
 # Setup TensorBoard
 graph_location = "/tmp/" + getpass.getuser() + "/tensorboard-logs/test"
 print('Saving graph to: %s' % graph_location)
-train_writer = tf.summary.FileWriter(graph_location)
+train_writer = tf.compat.v1.summary.FileWriter(graph_location)
 
 # Define the data
 a = tf.constant(np.full((2048, 2048), 0.05, dtype=np.float32), name='alpha')
-x = tf.placeholder(tf.float32, [None, 2048], name='x')
-y = tf.placeholder(tf.float32, shape=(2048, 2048), name='y')
+x = tf.compat.v1.placeholder(tf.float32, [None, 2048], name='x')
+y = tf.compat.v1.placeholder(tf.float32, shape=(2048, 2048), name='y')
 
 c = a * x
 axpy = c + y
 
 # Configure the session
-config = tf.ConfigProto(
+config = tf.compat.v1.ConfigProto(
     allow_soft_placement=True,
     log_device_placement=False,
     inter_op_parallelism_threads=1)
 config_ngraph_enabled = ngraph_bridge.update_config(config)
 
 # Create session and run
-with tf.Session(config=config_ngraph_enabled) as sess:
+with tf.compat.v1.Session(config=config_ngraph_enabled) as sess:
     print("Python: Running with Session")
-    options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-    run_metadata = tf.RunMetadata()
+    options = tf.compat.v1.RunOptions(
+        trace_level=tf.compat.v1.RunOptions.FULL_TRACE)
+    run_metadata = tf.compat.v1.RunMetadata()
 
     event_times = []
     for i in range(10):
@@ -80,4 +81,4 @@ with tf.Session(config=config_ngraph_enabled) as sess:
             for tr in parsed_trace['traceEvents']:
                 f.write(json.dumps(tr) + ',\n')
 
-train_writer.add_graph(tf.get_default_graph())
+train_writer.add_graph(tf.compat.v1.get_default_graph())

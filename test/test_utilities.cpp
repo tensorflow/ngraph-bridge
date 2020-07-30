@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -191,6 +191,17 @@ void Compare(Tensor& T1, Tensor& T2, float tol) {
   for (int k = 0; k < T_size; k++) {
     auto a = T1_data[k];
     auto b = T2_data[k];
+
+    if (std::isnan(a) && std::isnan(b)) {
+      continue;
+    }
+    if (std::isinf(a) && std::isinf(b)) {
+      if ((a < 0 && b < 0) || (a > 0 && b > 0)) {
+        continue;
+      } else {
+        ASSERT_TRUE(false) << "Mismatch inf and -inf";
+      }
+    }
     if (a == 0) {
       EXPECT_NEAR(a, b, tol);
     } else {
@@ -242,14 +253,76 @@ void Compare(const vector<Tensor>& v1, const vector<Tensor>& v2, float rtol,
   }
 }
 
-// Specialized template for Comparing float
-template <>
-bool Compare(float desired, float actual, float rtol, float atol) {
-  if (desired == 0 && actual == 0) {
+//
+template <typename T>
+static bool compare_integral_data(T a, T b) {
+  return a == b;
+}
+
+static bool compare_float_data(float a, float b, float rtol, float atol) {
+  if (std::isnan(a) && std::isnan(b)) {
     return true;
-  } else {
-    // same as numpy.testing.assert_allclose
-    return std::abs(desired - actual) <= (atol + rtol * std::abs(desired));
+  }
+  if (std::isinf(a) && std::isinf(b)) {
+    return ((a < 0 && b < 0) || (a > 0 && b > 0));
+  }
+  return std::abs(a - b) <= (atol + rtol * std::abs(a));
+}
+
+template <typename T>
+void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
+  // Assert rank
+  ASSERT_EQ(T1.dims(), T2.dims())
+      << "Ranks unequal for T1 and T2. T1.shape = " << T1.shape()
+      << " T2.shape = " << T2.shape();
+
+  // Assert each dimension
+  for (int i = 0; i < T1.dims(); i++) {
+    ASSERT_EQ(T1.dim_size(i), T2.dim_size(i))
+        << "T1 and T2 shapes do not match in dimension " << i
+        << ". T1.shape = " << T1.shape() << " T2.shape = " << T2.shape();
+  }
+
+  // Assert type
+  ASSERT_EQ(T1.dtype(), T2.dtype()) << "Types of T1 and T2 did not match";
+
+  bool float_compare = false;
+  auto dtype = T1.dtype();
+  switch (dtype) {
+    case DT_FLOAT:
+      float_compare = true;
+      break;
+    case DT_INT8:
+    case DT_INT16:
+    case DT_INT32:
+    case DT_INT64:
+    case DT_BOOL:
+    case DT_QINT8:
+    case DT_QUINT8:
+      float_compare = false;
+      break;
+    default:
+      ASSERT_TRUE(false) << "Could not find the corresponding function for the "
+                            "expected output datatype."
+                         << dtype;
+  }
+  auto T_size = T1.flat<T>().size();
+  auto T1_data = T1.flat<T>().data();
+  auto T2_data = T2.flat<T>().data();
+  bool is_comparable = false;
+
+  for (int k = 0; k < T_size; k++) {
+    auto a = T1_data[k];
+    auto b = T2_data[k];
+
+    if (float_compare) {
+      is_comparable = compare_float_data(a, b, rtol, atol);
+    } else {
+      is_comparable = compare_integral_data<T>(a, b);
+    }
+
+    EXPECT_TRUE(is_comparable) << " TF output " << a << endl
+                               << " NG output " << b;
   }
 }
 
@@ -265,8 +338,7 @@ bool Compare(std::vector<string> desired, std::vector<string> actual) {
   return true;
 }
 
-Status CreateSession(const string& graph_filename, const string& backend_name,
-                     unique_ptr<tf::Session>& session) {
+tf::SessionOptions GetSessionOptions(const string& backend_name) {
   tf::SessionOptions options;
   options.config.mutable_graph_options()
       ->mutable_optimizer_options()
@@ -293,10 +365,13 @@ Status CreateSession(const string& graph_filename, const string& backend_name,
         ->mutable_rewrite_options()
         ->set_meta_optimizer_iterations(tf::RewriterConfig::ONE);
   }
+  return options;
+}
 
-  // Load the network
-  Status load_graph_status = LoadGraph(graph_filename, &session, options);
-  return load_graph_status;
+Status CreateSession(const string& graph_filename, const string& backend_name,
+                     unique_ptr<tf::Session>& session) {
+  auto options = GetSessionOptions(backend_name);
+  return LoadGraph(graph_filename, &session, options);
 }
 
 Status LoadGraph(const string& graph_file_name,
@@ -311,6 +386,16 @@ Status LoadGraph(const string& graph_file_name,
   }
   session->reset(tensorflow::NewSession(options));
   return (*session)->Create(graph_def);
+}
+
+Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph) {
+  // Read the graph
+  tensorflow::GraphDef graph_def;
+  TF_RETURN_IF_ERROR(ReadTextProto(Env::Default(), pb_file, &graph_def));
+  GraphConstructorOptions opts;
+  opts.allow_internal_ops = true;
+  auto status = ConvertGraphDefToGraph(opts, graph_def, input_graph);
+  return status;
 }
 
 template <>

@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import pytest
 
 import numpy as np
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 
 from common import NgraphTest
 
@@ -38,9 +39,9 @@ class TestWhileLoop(NgraphTest):
         r = tf.while_loop(c, b, [i])
 
         # We'll need soft placement here
-        cfg = tf.ConfigProto(allow_soft_placement=True)
+        cfg = tf.compat.v1.ConfigProto(allow_soft_placement=True)
 
-        with tf.Session(config=cfg) as sess:
+        with tf.compat.v1.Session(config=cfg) as sess:
             sess_fn = lambda sess: sess.run((r,))
             result = self.with_ngraph(sess_fn)
-            assert result[0] == 10
+            assert result[0] == [10]

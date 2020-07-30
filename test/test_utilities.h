@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,10 @@
 
 #include "gtest/gtest.h"
 
+#include "tensorflow/cc/client/client_session.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_types.h"
+#include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/public/session.h"
 
@@ -135,19 +137,6 @@ void Compare(const vector<Tensor>& v1, const vector<Tensor>& v2,
              float rtol = static_cast<float>(1e-05),
              float atol = static_cast<float>(1e-08));
 
-// TODO: Compares two Tensor vectors considering tolerance
-void Compare(const vector<Tensor>& v1, const vector<Tensor>& v2,
-             float tolerance);
-
-// Compares two individual values in corresponding tensors
-template <typename T>
-bool Compare(T arg0, T arg1, T rtol, T atol) {
-  return arg0 == arg1;
-}
-
-template <>
-bool Compare(float arg0, float arg1, float rtol, float atol);
-
 bool Compare(std::vector<string> arg0, std::vector<string> arg1);
 
 // Compares two Tensors
@@ -156,34 +145,12 @@ bool Compare(std::vector<string> arg0, std::vector<string> arg1);
 template <typename T>
 void Compare(const Tensor& T1, const Tensor& T2,
              float rtol = static_cast<float>(1e-05),
-             float atol = static_cast<float>(1e-08)) {
-  // Assert rank
-  ASSERT_EQ(T1.dims(), T2.dims())
-      << "Ranks unequal for T1 and T2. T1.shape = " << T1.shape()
-      << " T2.shape = " << T2.shape();
-
-  // Assert each dimension
-  for (int i = 0; i < T1.dims(); i++) {
-    ASSERT_EQ(T1.dim_size(i), T2.dim_size(i))
-        << "T1 and T2 shapes do not match in dimension " << i
-        << ". T1.shape = " << T1.shape() << " T2.shape = " << T2.shape();
-  }
-
-  // Assert type
-  ASSERT_EQ(T1.dtype(), T2.dtype()) << "Types of T1 and T2 did not match";
-  auto T_size = T1.flat<T>().size();
-  auto T1_data = T1.flat<T>().data();
-  auto T2_data = T2.flat<T>().data();
-  for (int k = 0; k < T_size; k++) {
-    auto a = T1_data[k];
-    auto b = T2_data[k];
-    bool rt = Compare<T>(a, b, rtol, atol);
-    EXPECT_TRUE(rt) << " TF output " << a << endl << " NG output " << b;
-  }
-}
+             float atol = static_cast<float>(1e-08));
 
 // Compares Tensors considering tolerance
 void Compare(Tensor& T1, Tensor& T2, float tol);
+
+tf::SessionOptions GetSessionOptions(const string& backend_name);
 
 Status CreateSession(const string& graph_filename, const string& backend_name,
                      unique_ptr<tf::Session>& session);
@@ -191,6 +158,8 @@ Status CreateSession(const string& graph_filename, const string& backend_name,
 Status LoadGraph(const string& graph_file_name,
                  std::unique_ptr<tensorflow::Session>* session,
                  const tensorflow::SessionOptions& options);
+
+Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph);
 
 }  // namespace testing
 

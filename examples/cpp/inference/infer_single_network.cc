@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2019 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 #include <thread>
 
 #include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/tensor.h"
@@ -33,11 +32,10 @@
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
-#include "ngraph/event_tracing.hpp"
-
 #include "inference_engine.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_timer.h"
+#include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
 
 using namespace std;
@@ -71,6 +69,9 @@ tf::Status SetNGraphBackend(const string& backend_name) {
 }
 
 void PrintVersion() {
+  // Tensorflow version info
+  std::cout << "Tensorflow version: " << tensorflow::ngraph_bridge::tf_version()
+            << std::endl;
   // nGraph Bridge version info
   std::cout << "Bridge version: " << tf::ngraph_bridge::ngraph_tf_version()
             << std::endl;
@@ -83,12 +84,6 @@ void PrintVersion() {
                     ? std::string("Yes")
                     : std::string("No"))
             << std::endl;
-  std::cout << "Variables Enabled? "
-            << (tf::ngraph_bridge::ngraph_tf_are_variables_enabled()
-                    ? std::string("Yes")
-                    : std::string("No"))
-            << std::endl;
-
   PrintAvailableBackends();
 }
 
@@ -160,6 +155,11 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+// Register cpu backend for static linking
+#if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
+  ngraph_register_cpu_backend();
+#endif
+
   const char* backend = "CPU";
   if (SetNGraphBackend(backend) != tf::Status::OK()) {
     std::cout << "Error: Cannot set the backend: " << backend << std::endl;
@@ -189,22 +189,22 @@ int main(int argc, char** argv) {
   TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
                                                         "0", the_session));
 
-  ngraph::Event evt_compilation("Compilation", "Compilation", "");
-
-  // Call it onces to get the nGraph compilation done
   Tensor next_image;
-  TF_CHECK_OK(inference_engine.GetNextImage(next_image));
   std::vector<Tensor> outputs;
-  // Run inference once. This will trigger a compilation
-  tf::ngraph_bridge::Timer compilation_time;
-  TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer}, {},
-                               &outputs));
-  compilation_time.Stop();
+  {
+    NG_TRACE("Compilation", "Compilation", "");
 
-  cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
-       << endl;
-  evt_compilation.Stop();
-  ngraph::Event::write_trace(evt_compilation);
+    // Call it onces to get the nGraph compilation done
+    TF_CHECK_OK(inference_engine.GetNextImage(next_image));
+    // Run inference once. This will trigger a compilation
+    tf::ngraph_bridge::Timer compilation_time;
+    TF_CHECK_OK(the_session->Run({{input_layer, next_image}}, {output_layer},
+                                 {}, &outputs));
+    compilation_time.Stop();
+
+    cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
+         << endl;
+  }
 
   atomic<int> total_time_in_ms{0};
   atomic<int> total_images_processed{0};
@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
     ostringstream oss;
     oss << "Worker_" << worker_id;
     for (int i = 0; i < iteration_count; i++) {
-      ngraph::Event evt_run(oss.str(), to_string(i), "");
+      NG_TRACE(oss.str(), to_string(i), "");
       tf::ngraph_bridge::Timer iteration_timer;
       // Get the image
       Tensor next_image;
@@ -229,8 +229,6 @@ int main(int argc, char** argv) {
       cout << "Iteration: " << i << " Time: " << iteration_timer.ElapsedInMS()
            << endl;
       total_images_processed++;
-      evt_run.Stop();
-      ngraph::Event::write_trace(evt_run);
     }
   };
 

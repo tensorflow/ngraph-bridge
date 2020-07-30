@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ from __future__ import print_function
 import pytest
 
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 
 from common import NgraphTest
@@ -31,9 +32,9 @@ from common import NgraphTest
 class TestSigmoid(NgraphTest):
 
     def test_sigmoid(self):
-        x = tf.placeholder(tf.float32, shape=(2, 3))
-        y = tf.placeholder(tf.float32, shape=(2, 3))
-        z = tf.placeholder(tf.float32, shape=(2, 3))
+        x = tf.compat.v1.placeholder(tf.float32, shape=(2, 3))
+        y = tf.compat.v1.placeholder(tf.float32, shape=(2, 3))
+        z = tf.compat.v1.placeholder(tf.float32, shape=(2, 3))
 
         a = x + y + z
         b = tf.nn.sigmoid(a)
@@ -52,4 +53,5 @@ class TestSigmoid(NgraphTest):
                                             y: y_np,
                                             z: z_np
                                         })
-        np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
+        assert np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))

@@ -1,5 +1,5 @@
 # ==============================================================================
-#  Copyright 2018-2019 Intel Corporation
+#  Copyright 2018-2020 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ from __future__ import print_function
 import pytest
 
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 
 from common import NgraphTest
@@ -31,7 +32,7 @@ from common import NgraphTest
 class TestSoftmax(NgraphTest):
 
     def test_softmax_2d(self):
-        x = tf.placeholder(tf.float32, shape=(2, 3))
+        x = tf.compat.v1.placeholder(tf.float32, shape=(2, 3))
 
         # input value and expected value
         x_np = np.random.rand(2, 3)
@@ -43,11 +44,12 @@ class TestSoftmax(NgraphTest):
         expected = a_np
         a = tf.nn.softmax(x)
         sess_fn = lambda sess: sess.run((a), feed_dict={x: x_np})
-        np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
-        np.allclose(self.with_ngraph(sess_fn), expected)
+        assert np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
+        assert np.allclose(self.with_ngraph(sess_fn), expected)
 
     def test_softmax_3d(self):
-        x = tf.placeholder(tf.float32, shape=(2, 3, 2))
+        x = tf.compat.v1.placeholder(tf.float32, shape=(2, 3, 2))
 
         # input value and expected value
         x_np = np.random.rand(2, 3, 2)
@@ -59,11 +61,12 @@ class TestSoftmax(NgraphTest):
         expected = a_np
         a = tf.nn.softmax(x)
         sess_fn = lambda sess: sess.run((a), feed_dict={x: x_np})
-        np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
-        np.allclose(self.with_ngraph(sess_fn), expected)
+        assert np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
+        assert np.allclose(self.with_ngraph(sess_fn), expected)
 
     def test_softmax_4d(self):
-        x = tf.placeholder(tf.float32, shape=(2, 3, 2, 4))
+        x = tf.compat.v1.placeholder(tf.float32, shape=(2, 3, 2, 4))
 
         # input value and expected value
         x_np = np.random.rand(2, 3, 2, 4)
@@ -75,5 +78,6 @@ class TestSoftmax(NgraphTest):
         expected = a_np
         a = tf.nn.softmax(x)
         sess_fn = lambda sess: sess.run((a), feed_dict={x: x_np})
-        np.allclose(self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
-        np.allclose(self.with_ngraph(sess_fn), expected)
+        assert np.allclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn))
+        assert np.allclose(self.with_ngraph(sess_fn), expected)

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -347,79 +347,6 @@ TEST(tf_exec, DISABLED_BatchMatMul_2D) {
   Compare<float>(outputs[0], outputs_cpu[0]);
 }
 
-TEST(tf_exec, DISABLED_BiasAddGrad) {
-  Scope root = Scope::NewRootScope();
-  auto dev_scope = root.WithDevice("/device:NGRAPH:0");
-  Tensor X(DT_FLOAT, TensorShape({2, 3, 4, 5}));
-  Tensor X2D(DT_FLOAT, TensorShape({2, 3}));
-  Tensor X3D(DT_FLOAT, TensorShape({2, 3, 4}));
-  Tensor X5D(DT_FLOAT, TensorShape({2, 3, 4, 5, 6}));
-  auto val = 0.86f;
-  AssignInputValues(X2D, val);
-  AssignInputValues(X3D, val);
-  AssignInputValues(X5D, val);
-
-  auto attrs = ops::BiasAddGrad::Attrs();
-  attrs.data_format_ = "NHWC";
-  std::vector<Tensor> outputs_ngraph_nhwc;
-  std::vector<Tensor> outputs_CPU_nhwc;
-  auto R_ngraph_nhwc =
-      ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X, attrs);
-  auto R_CPU_nhwc = ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X, attrs);
-
-  ClientSession session(dev_scope);
-  ClientSession sess(root);
-
-  ASSERT_OK(session.Run({R_ngraph_nhwc}, &outputs_ngraph_nhwc));
-  ASSERT_OK(sess.Run({R_CPU_nhwc}, &outputs_CPU_nhwc));
-
-  ASSERT_EQ(outputs_ngraph_nhwc[0].shape(), outputs_CPU_nhwc[0].shape());
-  Compare(outputs_ngraph_nhwc[0], outputs_CPU_nhwc[0], 1e-6);
-  // Check 2D Tensor
-  R_ngraph_nhwc =
-      ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X2D, attrs);
-  R_CPU_nhwc = ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X2D, attrs);
-
-  ASSERT_OK(session.Run({R_ngraph_nhwc}, &outputs_ngraph_nhwc));
-  ASSERT_OK(sess.Run({R_CPU_nhwc}, &outputs_CPU_nhwc));
-
-  ASSERT_EQ(outputs_ngraph_nhwc[0].shape(), outputs_CPU_nhwc[0].shape());
-  Compare(outputs_ngraph_nhwc[0], outputs_CPU_nhwc[0], 1e-6);
-  // check 3D tensor
-  R_ngraph_nhwc =
-      ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X3D, attrs);
-  R_CPU_nhwc = ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X3D, attrs);
-
-  ASSERT_OK(session.Run({R_ngraph_nhwc}, &outputs_ngraph_nhwc));
-  ASSERT_OK(sess.Run({R_CPU_nhwc}, &outputs_CPU_nhwc));
-
-  ASSERT_EQ(outputs_ngraph_nhwc[0].shape(), outputs_CPU_nhwc[0].shape());
-  Compare(outputs_ngraph_nhwc[0], outputs_CPU_nhwc[0], 1e-6);
-  // check 5D tensor
-  R_ngraph_nhwc =
-      ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nhwc"), X5D, attrs);
-  R_CPU_nhwc = ops::BiasAddGrad(root.WithOpName("R_CPU_nhwc"), X5D, attrs);
-
-  ASSERT_OK(session.Run({R_ngraph_nhwc}, &outputs_ngraph_nhwc));
-  ASSERT_OK(sess.Run({R_CPU_nhwc}, &outputs_CPU_nhwc));
-
-  ASSERT_EQ(outputs_ngraph_nhwc[0].shape(), outputs_CPU_nhwc[0].shape());
-  Compare(outputs_ngraph_nhwc[0], outputs_CPU_nhwc[0], 1e-6);
-
-  attrs.data_format_ = "NCHW";
-  std::vector<Tensor> outputs_ngraph_nchw;
-  std::vector<Tensor> outputs_CPU_nchw;
-
-  auto R_ngraph_nchw =
-      ops::BiasAddGrad(dev_scope.WithOpName("R_ngraph_nchw"), X, attrs);
-  auto R_CPU_nchw = ops::BiasAddGrad(root.WithOpName("R_CPU_nchw"), X, attrs);
-  ASSERT_OK(session.Run({R_ngraph_nchw}, &outputs_ngraph_nchw));
-  ASSERT_OK(sess.Run({R_CPU_nchw}, &outputs_CPU_nchw));
-
-  ASSERT_EQ(outputs_ngraph_nchw[0].shape(), outputs_CPU_nchw[0].shape());
-  Compare(outputs_ngraph_nchw[0], outputs_CPU_nchw[0], 1e-6);
-}
-
 TEST(tf_exec, DISABLED_FusedBatchNormGrad_NHWC) {
   Scope root = Scope::NewRootScope();
   auto dev_scope = root.WithDevice("/device:NGRAPH:0");
@@ -671,34 +598,6 @@ TEST(tf_exec, DISABLED_Op_Conv2DBackpropFilter) {
   }
 
 }  // namespace ngraph_bridge
-
-TEST(tf_exec, DISABLED_Op_SparseSoftmaxCrossEntropyWithLogits) {
-  Scope root = Scope::NewRootScope();
-  Scope root_ngraph = root.NewSubScope("sub_scope_ngraph");
-  root_ngraph = root_ngraph.WithDevice("/device:NGRAPH:0");
-
-  int batch_size = 100;
-  int num_classes = 10;
-  Tensor features(DT_FLOAT, TensorShape({batch_size, num_classes}));
-  Tensor labels(DT_INT32, TensorShape({batch_size}));
-  AssignInputValues(features, -1.1f);
-  AssignInputValuesRandom<int>(labels, 0, num_classes - 1);
-
-  auto R_ngraph = ops::SparseSoftmaxCrossEntropyWithLogits(
-      root_ngraph.WithOpName("R_ngraph"), features, labels);
-
-  auto R_cpu = ops::SparseSoftmaxCrossEntropyWithLogits(
-      root.WithOpName("R_cpu"), features, labels);
-
-  std::vector<Tensor> outputs_ngraph, outputs_cpu;
-  ClientSession session(root);
-
-  ASSERT_OK(session.Run({R_ngraph.loss, R_ngraph.backprop}, &outputs_ngraph));
-  ASSERT_OK(session.Run({R_cpu.loss, R_cpu.backprop}, &outputs_cpu));
-
-  Compare(outputs_ngraph[0], outputs_cpu[0], 1e-6);
-  Compare(outputs_ngraph[1], outputs_cpu[1], 1e-6);
-}
 
 TEST(tf_exec, DISABLED_Op_PreventGradient) {
   Scope scope_cpu = Scope::NewRootScope();

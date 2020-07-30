@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2019 Intel Corporation
+ * Copyright 2017-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 #include <iostream>
 #include <string>
 
+#include "tensorflow/core/public/version.h"
+
 #include "ngraph/ngraph.hpp"
 
 #include "ngraph_bridge/version.h"
@@ -24,7 +26,7 @@
 // nGraph-TensorFlow bridge uses semantic versioning: see http://semver.org/
 
 #define NG_TF_MAJOR_VERSION 0
-#define NG_TF_MINOR_VERSION 21
+#define NG_TF_MINOR_VERSION 22
 #define NG_TF_PATCH_VERSION 0
 
 // The version suffix is used for pre-release version numbers
@@ -32,7 +34,7 @@
 // candidate such as v0.7.0-rc0
 // The code in master will always have the last released version number
 // with a suffix of '-master'
-#define NG_TF_VERSION_SUFFIX ""
+#define NG_TF_VERSION_SUFFIX "-rc3"
 
 #define VERSION_STR_HELPER(x) #x
 #define VERSION_STR(x) VERSION_STR_HELPER(x)
@@ -65,21 +67,15 @@ bool ngraph_tf_is_grappler_enabled() {
 #endif
 }
 
-bool ngraph_tf_are_variables_enabled() {
-#if defined(NGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS)
+bool ngraph_tf_is_openvino_enabled() {
+#if defined(ENABLE_OPENVINO)
   return true;
 #else
   return false;
 #endif
 }
 
-bool ngraph_tf_is_distributed_enabled() {
-#if defined(NGRAPH_DISTRIBUTED)
-  return true;
-#else
-  return false;
-#endif
-}
+const char* tf_version() { return (TF_VERSION_STRING); }
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
