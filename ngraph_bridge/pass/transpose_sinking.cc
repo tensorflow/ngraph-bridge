@@ -36,6 +36,15 @@ namespace ngraph_bridge {
 using TransposeMap = unordered_map<shared_ptr<ngraph::Node>,
                                    shared_ptr<ngraph::opset3::Transpose>>;
 
+static ngraph::CoordinateDiff apply_permutation(ngraph::CoordinateDiff input,
+                                                ngraph::AxisVector order) {
+  ngraph::CoordinateDiff output(input.size());
+  for (size_t i = 0; i < order.size(); i++) {
+    output[i] = input.at(order.at(i));
+  }
+  return output;
+}
+
 static string describe_transpose(shared_ptr<ngraph::Node> node) {
   stringstream ss;
   auto transpose = ngraph::as_type_ptr<ngraph::opset3::Transpose>(node);
@@ -295,6 +304,41 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, TransposeMap& reorders,
   }
 }
 
+static void sink_pad(
+    shared_ptr<ngraph::opset3::Pad> n, TransposeMap& reorders,
+    set<shared_ptr<ngraph::Node>>& /* transposes_to_delete */) {
+  auto arg_transpose = reorders.at(n->get_argument(0));
+  auto arg_transpose_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
+      arg_transpose->input_value(1).get_node_shared_ptr());
+  auto order = arg_transpose_order->get_axis_vector_val();
+  // we need the correct input shape to produce the right output shape
+  // we are going to create a label of the right input shape,
+  // so a new pad will have the right shape
+  auto def_order = ngraph::get_permutation_to_default_order(order);
+  auto input_shape =
+      ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
+  auto dummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
+      arg_transpose->get_element_type(), input_shape);
+
+  auto pad_begin = apply_permutation(n->get_pads_begin(), def_order);
+  auto pad_end = apply_permutation(n->get_pads_end(), def_order);
+  auto new_begin = make_shared<ngraph::opset3::Constant>(
+      ngraph::element::i64, ngraph::Shape{pad_begin.size()}, pad_begin);
+  auto new_end = make_shared<ngraph::opset3::Constant>(
+      ngraph::element::i64, ngraph::Shape{pad_end.size()}, pad_end);
+  auto new_pad =
+      make_shared<ngraph::opset3::Pad>(dummy_correct_shape, new_begin, new_end,
+                                       n->get_argument(3), n->get_pad_mode());
+  ngraph::replace_node(dummy_correct_shape, n->get_argument(0));
+  NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
+                 << new_pad->get_name();
+  ngraph::replace_node(n, new_pad);
+  auto new_transpose = make_transpose(new_pad, order);
+  NGRAPH_VLOG(4) << "Propagating " << describe_transpose(new_transpose)
+                 << " for " << n->get_name();
+  write_transposemap(reorders, new_pad, new_transpose);
+}
+
 // The goal of TransposeSinking is to remove
 // round-trip transposes(i.e. nhwc->nchw(nchw-only-op)->nhwc)
 // around nchw-only-op (e.g.Convolution, Batchnorm, Avg/MaxPool)
@@ -323,6 +367,8 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
       sink_unary(n, reorders, transposes_to_delete);
     } else if (n->is_binary_elementwise_arithmetic()) {
       sink_binary(n, reorders, transposes_to_delete);
+    } else if (auto pad = ngraph::as_type_ptr<ngraph::opset3::Pad>(n)) {
+      sink_pad(pad, reorders, transposes_to_delete);
     } else {
       materialize_shapes(n, reorders, transposes_to_delete);
     }
