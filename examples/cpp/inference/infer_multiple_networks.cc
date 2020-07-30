@@ -33,6 +33,7 @@
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
+#include "ngraph_bridge/ngraph_backend.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -87,12 +88,6 @@ void PrintVersion() {
                     ? std::string("Yes")
                     : std::string("No"))
             << std::endl;
-  std::cout << "Variables Enabled? "
-            << (tf::ngraph_bridge::ngraph_tf_are_variables_enabled()
-                    ? std::string("Yes")
-                    : std::string("No"))
-            << std::endl;
-
   PrintAvailableBackends();
 }
 

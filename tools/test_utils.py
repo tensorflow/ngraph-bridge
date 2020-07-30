@@ -75,7 +75,7 @@ def run_ngtf_gtests(build_dir, filters):
     else:
         cmd = ['./gtest_ngtf']
 
-    command_executor(cmd, verbose=True, stderr=subprocess.DEVNULL)
+    command_executor(cmd)
 
     os.chdir(root_pwd)
 
@@ -108,7 +108,7 @@ def run_ngtf_cpp_gtests(artifacts_dir, log_dir, filters):
     else:
         cmd = ['./gtest_ngtf']
 
-    command_executor(cmd, verbose=True, stderr=subprocess.DEVNULL)
+    command_executor(cmd)
     os.chdir(root_pwd)
 
 
@@ -277,16 +277,16 @@ def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
     # Now run the TensorFlow python tests
     test_src_dir = os.path.join(ngraph_tf_src_dir, "test/python/tensorflow")
     test_script = os.path.join(test_src_dir, "tf_unittest_runner.py")
-    if backend is not None and 'GPU' in backend:
+    if get_os_type() == 'Darwin':
         test_manifest_file = os.path.join(test_src_dir,
-                                          "python_tests_list_gpu.txt")
+                                          "python_tests_list_mac.txt")
     else:
-        if get_os_type() == 'Darwin':
+        test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
+    if backend is not None:
+        if 'INTERPRETER' in backend:
             test_manifest_file = os.path.join(test_src_dir,
-                                              "python_tests_list_mac.txt")
-        else:
-            test_manifest_file = os.path.join(test_src_dir,
-                                              "python_tests_list.txt")
+                                              "python_tests_list_int.txt")
+
     test_xml_report = './junit_tensorflow_tests.xml'
 
     import psutil
@@ -575,6 +575,154 @@ def run_resnet50_forward_pass_from_artifacts(ngraph_tf_src_dir, artifact_dir,
     os.chdir(root_pwd)
 
 
+# See https://github.com/IntelAI/models/blob/master/benchmarks/image_recognition/tensorflow/resnet50v1_5/README.md#fp32-inference-instructions
+def run_intelaimodels_resnet50_infer_from_artifacts(
+        ngraph_tf_src_dir, artifact_dir, batch_size, iterations):
+    root_pwd = os.getcwd(
+    )  # e.g. /localdisk/buildkite-agent/builds/aipg-ra-skx-168-2/ngraph/ngtf-cpu-ubuntu
+    artifact_dir = os.path.abspath(artifact_dir)
+    if not os.path.exists(artifact_dir):
+        raise Exception("Can't find artifact dir: " + artifact_dir)
+    ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
+    if (len(glob.glob(artifact_dir + "/ngraph_tensorflow_bridge-*.whl")) == 0):
+        install_ngraph_bridge(artifact_dir)
+
+    # Check/download pretrained model
+    pretrained_models_dir = root_pwd + '/pretrained_models'
+    if not os.path.exists(pretrained_models_dir):
+        os.mkdir(pretrained_models_dir, 0o755)
+    os.chdir(pretrained_models_dir)
+    pretrained_model = pretrained_models_dir + '/resnet50_v1.pb'
+    if not os.path.exists(pretrained_model):
+        # wget https://zenodo.org/record/2535873/files/resnet50_v1.pb
+        command_executor(
+            ['wget', 'https://zenodo.org/record/2535873/files/resnet50_v1.pb'],
+            verbose=True)
+        if not os.path.exists(pretrained_model):
+            raise Exception("Can't download pretrained model: " +
+                            pretrained_model)
+    else:
+        print("Using existing pretrained model file: " + pretrained_model)
+
+    # Now clone the IntelAI repo and proceed
+    os.chdir(root_pwd)
+    IntelAIModels_dir = root_pwd + '/IntelAI-MODELS'
+    if not os.path.exists(IntelAIModels_dir):
+        call([
+            'git', 'clone', 'https://github.com/IntelAI/models.git',
+            'IntelAI-MODELS'
+        ])
+        os.chdir('IntelAI-MODELS')
+        call(['git', 'checkout', 'ae52473'])  # == master as of 2020-04-21
+
+    # Update file: ./models/image_recognition/tensorflow/resnet50v1_5/inference/eval_image_classifier_inference.py
+    script_file = IntelAIModels_dir + '/models/image_recognition/tensorflow/resnet50v1_5/inference/eval_image_classifier_inference.py'
+    if not os.path.exists(script_file):
+        raise Exception("Can't find script file: " + script_file)
+    # ^[ ]*import[ ]*ngraph_bridge[ ]*$
+    res = subprocess.run(
+        'grep \'import ngraph_bridge\' ' + script_file + ' | wc -l',
+        shell=True,
+        stdout=subprocess.PIPE)
+    if res.stdout.decode('utf-8').rstrip() == '0':
+        print('Updating script with \'import ngraph_bridge\' ...')
+        with open(script_file, 'r') as filedesc:
+            data = filedesc.readlines()  # data[0], data[1], ...
+        data[166] = data[166] + '    import ngraph_bridge\n'
+        with open(script_file, 'w') as filedesc:
+            filedesc.writelines(data)
+        res = subprocess.run(
+            'grep \'import ngraph_bridge\' ' + script_file + ' | wc -l',
+            shell=True,
+            stdout=subprocess.PIPE)
+        if res.stdout.decode('utf-8').rstrip() == 0:
+            raise Exception("Can't add 'import ngraph_bridge' to script file: "
+                            + script_file)
+
+    # Setup the env flags
+    import psutil
+    num_cores = int(psutil.cpu_count(logical=False))
+    print("OMP_NUM_THREADS: %s " % str(num_cores))
+    os.environ['OMP_NUM_THREADS'] = str(num_cores)
+    os.environ["KMP_AFFINITY"] = 'granularity=fine,compact,1,0'
+
+    # Delete older logs
+    log_dir = IntelAIModels_dir + '/benchmarks/common/tensorflow/logs'
+    if os.path.exists(log_dir):
+        #os.rmdir(log_dir)
+        filelist = glob.glob(os.path.join(log_dir, "*.log"))
+        for f in filelist:
+            os.remove(f)
+
+    os.chdir(IntelAIModels_dir + '/benchmarks/')
+    # python launch_benchmark.py  --in-graph resnet50_v1.pb  --model-name resnet50v1_5
+    # --framework tensorflow  --precision fp32  --mode inference  --batch-size=1  --socket-id=0
+    cmd = [
+        'python',
+        'launch_benchmark.py',
+        '--in-graph',
+        pretrained_model,
+        '--model-name resnet50v1_5',
+        '--framework tensorflow',
+        '--precision fp32',
+        '--mode inference',
+        '--batch-size=1',
+        '--socket-id=0',
+    ]
+    command_executor(cmd, verbose=True)
+    os.chdir(root_pwd)
+
+
+def run_resnet50_infer_from_artifacts(ngraph_tf_src_dir, artifact_dir,
+                                      batch_size, iterations):
+    root_pwd = os.getcwd(
+    )  # e.g. /localdisk/buildkite-agent/builds/aipg-ra-skx-168-2/ngraph/ngtf-cpu-ubuntu
+    artifact_dir = os.path.abspath(artifact_dir)
+    if not os.path.exists(artifact_dir):
+        raise Exception("Can't find artifact dir: " + artifact_dir)
+    ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
+    if (len(glob.glob(artifact_dir + "/ngraph_tensorflow_bridge-*.whl")) == 0):
+        install_ngraph_bridge(artifact_dir)
+
+    # Check/download pretrained model
+    pretrained_models_dir = root_pwd + '/pretrained_models'
+    if not os.path.exists(pretrained_models_dir):
+        os.mkdir(pretrained_models_dir, 0o755)
+    os.chdir(pretrained_models_dir)
+    pretrained_model = pretrained_models_dir + '/resnet50_v1.pb'
+    if not os.path.exists(pretrained_model):
+        # wget https://zenodo.org/record/2535873/files/resnet50_v1.pb
+        command_executor(
+            ['wget', 'https://zenodo.org/record/2535873/files/resnet50_v1.pb'],
+            verbose=True)
+        if not os.path.exists(pretrained_model):
+            raise Exception("Can't download pretrained model: " +
+                            pretrained_model)
+    else:
+        print("Using existing pretrained model file: " + pretrained_model)
+
+    # Setup the env flags
+    import psutil
+    num_cores = int(psutil.cpu_count(logical=False))
+    print("OMP_NUM_THREADS: %s " % str(num_cores))
+    os.environ['OMP_NUM_THREADS'] = str(num_cores)
+    os.environ["KMP_AFFINITY"] = 'granularity=fine,compact,1,0'
+
+    os.chdir(root_pwd)
+    cmd = [
+        'python',
+        ngraph_tf_src_dir + '/test/python/test_rn50_infer.py',
+        '--input-graph',
+        pretrained_model,
+        '--batch-size',
+        str(batch_size),
+        '--num-images',
+        str(batch_size * iterations),
+    ]
+    command_executor(cmd, verbose=True)
+    os.chdir(root_pwd)
+
+
 def run_cpp_example_test(build_dir):
 
     root_pwd = os.getcwd()
@@ -610,49 +758,6 @@ def run_cpp_example_test(build_dir):
 
     os.environ[ld_path_name] = '../artifacts/lib:../artifacts/tensorflow'
     command_executor('./hello_tf')
-
-    # Return to the original directory
-    os.chdir(root_pwd)
-
-
-def run_bazel_build_test(venv_dir, build_dir):
-    # Load the virtual env
-    venv_dir_absolute = load_venv(venv_dir)
-
-    # Next patch the TensorFlow so that the tests run using ngraph_bridge
-    root_pwd = os.getcwd()
-
-    # Now run the configure
-    command_executor(['bash', 'configure_bazel.sh'])
-
-    # Build the cpp app - hello_tf
-    command_executor(['bazel', 'build', 'hello_tf'])
-
-    # Run the cpp app - hello_tf
-    command_executor(['bazel-bin/hello_tf'])
-
-    # Now built the bigger app
-    command_executor(['bazel', 'build', 'infer_multiple_networks'])
-
-    # Return to the original directory
-    os.chdir(root_pwd)
-
-
-def run_bazel_build():
-    # Next patch the TensorFlow so that the tests run using ngraph_bridge
-    root_pwd = os.getcwd()
-
-    # Now run the configure
-    command_executor(['bash', 'configure_bazel.sh'])
-
-    # Build the cpp app - hello_tf
-    command_executor(['bazel', 'build', 'hello_tf'])
-
-    # Run the cpp app - hello_tf
-    command_executor(['bazel-bin/hello_tf'])
-
-    # Now built the bigger app
-    command_executor(['bazel', 'build', 'infer_multiple_networks'])
 
     # Return to the original directory
     os.chdir(root_pwd)

@@ -34,15 +34,13 @@ int ngraph_tf_cxx11_abi_flag();
 // graph rewriting
 bool ngraph_tf_is_grappler_enabled();
 
-// Returns true when nGraph-bridge is built with
-// --enable_variables_and_optimizers flag
-bool ngraph_tf_are_variables_enabled();
+// Returns true when nGraph is using openvino
+bool ngraph_tf_is_openvino_enabled();
 
 // Returns the tensorflow version
 const char* tf_version();
 
-// Returns true when nGraph is using tf2
-bool ngraph_tf_is_tf2_enabled();
+// Return
 }
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

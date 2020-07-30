@@ -17,10 +17,13 @@
 
 from tools.build_utils import *
 
+flag_string_map = {True: 'YES', False: 'NO'}
 
-def version_check(use_prebuilt_tensorflow, disable_cpp_api):
+
+def version_check(use_prebuilt_tensorflow, use_tensorflow_from_location,
+                  disable_cpp_api):
     # Check pre-requisites
-    if use_prebuilt_tensorflow:
+    if use_prebuilt_tensorflow and not disable_cpp_api:
         # Check if the gcc version is at least 5.3.0
         if (platform.system() != 'Darwin'):
             gcc_ver = get_gcc_version()
@@ -35,18 +38,13 @@ def version_check(use_prebuilt_tensorflow, disable_cpp_api):
         raise Exception("Need minimum cmake version 3.4\n"
                         "Got: " + '.'.join(cmake_ver))
 
-    if not disable_cpp_api:
+    if not use_tensorflow_from_location and not disable_cpp_api:
         # Check bazel version
         bazel_kind, bazel_ver = get_bazel_version()
         got_correct_bazel_version = bazel_kind == 'Bazelisk version'
-        if (not got_correct_bazel_version and int(bazel_ver[1]) > 24 and
-                int(bazel_ver[1]) <= 25):
-            if (int(bazel_ver[2]) >= 1 and int(bazel_ver[2]) <= 2):
-                got_correct_bazel_version = True
-
-            if not got_correct_bazel_version:
-                raise Exception("Need bazel 0.24.1 < version <= 0.25.2 \n" +
-                                "Got: " + '.'.join(bazel_ver))
+        if (not got_correct_bazel_version and int(bazel_ver[0]) < 2):
+            raise Exception("Need bazel version >= 2.0.0 \n" + "Got: " +
+                            '.'.join(bazel_ver))
 
 
 def main():
@@ -56,7 +54,7 @@ def main():
 
     # Component versions
     ngraph_version = "94456090176ad6abda633b496b89cc16157ed4b0"  #add codegen support to cpu backend (#4679) ,May 26
-    tf_version = "v1.15.2"
+    tf_version = "v2.2.0"
 
     # Command line parser options
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
@@ -78,23 +76,16 @@ def main():
     )
 
     parser.add_argument(
-        '--build_gpu_backend',
-        help=
-        "nGraph backends will include nVidia GPU. Use: NGRAPH_TF_BACKEND=GPU\n"
-        "Note: You need to have CUDA headers and libraries available on the build system.\n",
+        '--build_openvino_backend',
+        help="Build OpenVINO backend\n",
         action="store_true")
 
     parser.add_argument(
-        '--build_plaidml_backend',
+        '--use_prebuilt_openvino',
+        type=str,
         help=
-        "nGraph backends will include PlaidML backend. Use: NGRAPH_TF_BACKEND=PLAIDML\n",
-        action="store_true")
-
-    parser.add_argument(
-        '--build_intelgpu_backend',
-        help=
-        "nGraph backends will include Intel GPU bckend. Use: NGRAPH_TF_BACKEND=INTELGPU\n",
-        action="store_true")
+        "Skip building OpenVINO and use the pre-built version from the specified directory.\n",
+        action="store")
 
     parser.add_argument(
         '--use_prebuilt_tensorflow',
@@ -114,12 +105,6 @@ def main():
         help=
         "Skip building ngraph and use pre-built version from the specified directory.\n",
         action="store")
-
-    parser.add_argument(
-        '--enable_variables_and_optimizers',
-        help=
-        "Ops like variable and optimizers are supported by nGraph in this version of the bridge\n",
-        action="store_true")
 
     parser.add_argument(
         '--use_grappler_optimizer',
@@ -160,9 +145,6 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        '--use_tensorflow_2', help="Builds with TF 2.0\n", action="store_true")
-
-    parser.add_argument(
         '--disable_cpp_api',
         help="Disables C++ API, unit tests and examples\n",
         action="store_true")
@@ -182,9 +164,6 @@ def main():
     # Recipe
     #-------------------------------
 
-    version_check((arguments.use_prebuilt_tensorflow != ''),
-                  arguments.disable_cpp_api)
-
     # Default directories
     build_dir = 'build_cmake'
 
@@ -193,6 +172,10 @@ def main():
         arguments.use_prebuilt_tensorflow != ''
     ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\" "
     "cannot be used together."
+
+    version_check((arguments.use_prebuilt_tensorflow != ''),
+                  (arguments.use_tensorflow_from_location != ''),
+                  arguments.disable_cpp_api)
 
     if arguments.use_tensorflow_from_location != '':
         # Check if the prebuilt folder has necessary files
@@ -255,16 +238,8 @@ def main():
 
     print("Target Arch: %s" % target_arch)
 
-    use_tensorflow_2 = False
-    if arguments.use_tensorflow_2:
-        tf_version = "v2.0.0"
-        use_tensorflow_2 = True
-
     if arguments.use_prebuilt_tensorflow != '':
         tf_version = arguments.use_prebuilt_tensorflow
-
-    if tf_version.startswith("v2.") or tf_version.startswith("2."):
-        use_tensorflow_2 = True
 
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
     # For gcc older than 5.3, this flag is set to 0 and for newer ones,
@@ -273,16 +248,6 @@ def main():
     # Normally the shipped TensorFlow going forward is built with gcc 7.3
     # and thus this flag is set to 1
     cxx_abi = "1"
-
-    if use_tensorflow_2:
-        # For building NGTF with TF2.0 we need to apply the following patch
-        patch_file = os.path.abspath(
-            os.path.join(ngraph_tf_src_dir, "tf2changes.patch"))
-        pwd = os.getcwd()
-        os.chdir(ngraph_tf_src_dir)
-        print("CURRENT DIR: " + os.getcwd())
-        apply_patch(patch_file)
-        os.chdir(pwd)
 
     if arguments.use_tensorflow_from_location != "":
         # Some asserts to make sure the directory structure of
@@ -337,30 +302,6 @@ def main():
                 # Now build the libtensorflow_cc.so - the C++ library
                 build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
                                     target_arch, verbosity)
-
-            # Copy the libtensorflow_framework.so to the artifacts so that
-            # we can run c++ tests from that location later
-            if use_tensorflow_2:
-                tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
-            else:
-                tf_fmwk_lib_name = 'libtensorflow_framework.so.1'
-            if (platform.system() == 'Darwin'):
-                if use_tensorflow_2:
-                    tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
-                else:
-                    tf_fmwk_lib_name = 'libtensorflow_framework.1.dylib'
-            import tensorflow as tf
-            tf_lib_dir = tf.sysconfig.get_lib()
-            tf_lib_file = os.path.join(tf_lib_dir, tf_fmwk_lib_name)
-            print("SYSCFG LIB: ", tf_lib_file)
-
-            dst_dir = os.path.join(artifacts_location, "tensorflow")
-            if not os.path.isdir(dst_dir):
-                os.mkdir(dst_dir)
-
-            dst = os.path.join(dst_dir, tf_fmwk_lib_name)
-            shutil.copyfile(tf_lib_file, dst)
-
         else:
             print("Building TensorFlow from source")
             # Download TensorFlow
@@ -369,16 +310,6 @@ def main():
                           tf_version)
             tf_src_dir = os.path.join(os.getcwd(), "tensorflow")
             print("TF_SRC_DIR: ", tf_src_dir)
-
-            if use_tensorflow_2:
-                # For building TF 2.0 we need to apply the following patch
-                patch_file = os.path.abspath(
-                    os.path.join(ngraph_tf_src_dir, "tf2update.patch"))
-                pwd = os.getcwd()
-                os.chdir(tf_src_dir)
-                print("CURRENT DIR: " + os.getcwd())
-                apply_patch(patch_file)
-                os.chdir(pwd)
 
             # Build TensorFlow
             build_tensorflow(tf_version, "tensorflow", artifacts_location,
@@ -393,64 +324,96 @@ def main():
             # will be 1
             cxx_abi = install_tensorflow(venv_dir, artifacts_location)
 
-    flag_string_map = {True: 'YES', False: 'NO'}
-    # Build nGraph if required.
-    if not arguments.use_prebuilt_ngraph:
-        ngraph_src_dir = './ngraph'
-        if arguments.ngraph_src_dir:
-            ngraph_src_dir = arguments.ngraph_src_dir
-            print("Using local nGraph source in directory ", ngraph_src_dir)
-        else:
-            if arguments.ngraph_version:
-                ngraph_version = arguments.ngraph_version
+        # Finally, copy the libtensorflow_framework.so to the artifacts so that
+        # we can run c++ tests from that location later
+        tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
+        if (platform.system() == 'Darwin'):
+            tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
+        import tensorflow as tf
+        tf_lib_dir = tf.sysconfig.get_lib()
+        tf_lib_file = os.path.join(tf_lib_dir, tf_fmwk_lib_name)
+        print("SYSCFG LIB: ", tf_lib_file)
+        dst_dir = os.path.join(artifacts_location, "tensorflow")
+        if not os.path.isdir(dst_dir):
+            os.mkdir(dst_dir)
+        dst = os.path.join(dst_dir, tf_fmwk_lib_name)
+        shutil.copyfile(tf_lib_file, dst)
 
-            print("nGraph Version: ", ngraph_version)
-            download_repo("ngraph",
-                          "https://github.com/NervanaSystems/ngraph.git",
-                          ngraph_version)
+    # Build OpenVINO if required.
+    if arguments.build_openvino_backend:
+        if not arguments.use_prebuilt_openvino:
+            openvino_version = "releases/2020/4"
+            openvino_src_dir = "./openvino"
+            download_repo(
+                "openvino",
+                "https://github.com/openvinotoolkit/openvino",
+                openvino_version,
+                submodule_update=True)
 
-        # Now build nGraph
-        ngraph_cmake_flags = [
-            "-DNGRAPH_INSTALL_PREFIX=" + artifacts_location,
-            "-DNGRAPH_USE_CXX_ABI=" + cxx_abi, "-DNGRAPH_DEX_ONLY=TRUE",
-            "-DNGRAPH_DEBUG_ENABLE=NO", "-DNGRAPH_UNIT_TEST_ENABLE=NO",
-            "-DNGRAPH_TARGET_ARCH=" + target_arch,
-            "-DNGRAPH_TUNE_ARCH=" + target_arch, "-DNGRAPH_TBB_ENABLE=FALSE"
-        ]
+            # Now build OpenVINO
+            openvino_cmake_flags = [
+                "-DENABLE_TESTS=OFF",
+                "-DENABLE_FUNCTIONAL_TESTS=OFF",
+                "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
+                "-DENABLE_CPPLINT=OFF",
+                "-DENABLE_SPEECH_DEMO=FALSE",
+                "-DCMAKE_INSTALL_RPATH=\"$ORIGIN\"",
+                "-DCMAKE_INSTALL_PREFIX=" + os.path.join(
+                    artifacts_location, "openvino")
+            ]
 
-        if arguments.use_ngraph_staticlibs:
-            ngraph_cmake_flags.extend(["-DNGRAPH_STATIC_LIB_ENABLE=TRUE"])
-            ngraph_cmake_flags.extend(["-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"])
-            ngraph_cmake_flags.extend(
-                ["-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE"])
-            ngraph_cmake_flags.extend(
-                ["-DNGRAPH_DYNAMIC_COMPONENTS_ENABLE=OFF"])
+            if arguments.debug_build:
+                openvino_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
-        if arguments.debug_build:
-            ngraph_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
+            cmake_build(build_dir, openvino_src_dir, openvino_cmake_flags,
+                        verbosity)
+    else:
+        # Skip building nGraph if we're building OpenVINO
+        # Build nGraph if required.
+        if not arguments.use_prebuilt_ngraph:
+            ngraph_src_dir = './ngraph'
+            if arguments.ngraph_src_dir:
+                ngraph_src_dir = arguments.ngraph_src_dir
+                print("Using local nGraph source in directory ", ngraph_src_dir)
+            else:
+                if arguments.ngraph_version:
+                    ngraph_version = arguments.ngraph_version
 
-        if arguments.build_plaidml_backend:
-            command_executor(["pip", "install", "-U", "plaidML"])
+                print("nGraph Version: ", ngraph_version)
+                download_repo("ngraph",
+                              "https://github.com/NervanaSystems/ngraph.git",
+                              ngraph_version)
 
-        ngraph_cmake_flags.extend([
-            "-DNGRAPH_TOOLS_ENABLE=" +
-            flag_string_map[platform.system() != 'Darwin']
-        ])
-        ngraph_cmake_flags.extend([
-            "-DNGRAPH_GPU_ENABLE=" +
-            flag_string_map[arguments.build_gpu_backend]
-        ])
-        ngraph_cmake_flags.extend([
-            "-DNGRAPH_PLAIDML_ENABLE=" +
-            flag_string_map[arguments.build_plaidml_backend]
-        ])
-        ngraph_cmake_flags.extend([
-            "-DNGRAPH_INTELGPU_ENABLE=" +
-            flag_string_map[arguments.build_intelgpu_backend]
-        ])
+            # Now build nGraph
+            ngraph_cmake_flags = [
+                "-DNGRAPH_INSTALL_PREFIX=" + artifacts_location,
+                "-DNGRAPH_USE_CXX_ABI=" + cxx_abi, "-DNGRAPH_DEX_ONLY=TRUE",
+                "-DNGRAPH_DEBUG_ENABLE=NO", "-DNGRAPH_UNIT_TEST_ENABLE=NO",
+                "-DNGRAPH_TARGET_ARCH=" + target_arch,
+                "-DNGRAPH_TUNE_ARCH=" + target_arch, "-DNGRAPH_TBB_ENABLE=FALSE"
+            ]
 
-        build_ngraph(build_dir, ngraph_src_dir, ngraph_cmake_flags, verbosity)
+            if arguments.use_ngraph_staticlibs:
+                ngraph_cmake_flags.extend(["-DNGRAPH_STATIC_LIB_ENABLE=TRUE"])
+                ngraph_cmake_flags.extend(
+                    ["-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"])
+                ngraph_cmake_flags.extend(
+                    ["-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE"])
+                ngraph_cmake_flags.extend(
+                    ["-DNGRAPH_DYNAMIC_COMPONENTS_ENABLE=OFF"])
 
+            if arguments.debug_build:
+                ngraph_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
+
+            ngraph_cmake_flags.extend([
+                "-DNGRAPH_TOOLS_ENABLE=" +
+                flag_string_map[platform.system() != 'Darwin']
+            ])
+
+            cmake_build(build_dir, ngraph_src_dir, ngraph_cmake_flags,
+                        verbosity)
+
+    # Next build CMAKE options for the bridge
     ngraph_tf_cmake_flags = [
         "-DNGRAPH_TF_INSTALL_PREFIX=" + artifacts_location,
         "-DUSE_PRE_BUILT_NGRAPH=ON",
@@ -458,14 +421,30 @@ def main():
         "-DNGRAPH_TUNE_ARCH=" + target_arch,
     ]
 
-    if not arguments.use_prebuilt_ngraph:
+    if arguments.build_openvino_backend:
+        openvino_artifacts_dir = ""
+        if not arguments.use_prebuilt_openvino:
+            openvino_artifacts_dir = os.path.join(artifacts_location,
+                                                  "openvino")
+        else:
+            openvino_artifacts_dir = os.path.abspath(
+                arguments.use_prebuilt_openvino)
+            ngraph_tf_cmake_flags.extend(["-DUSE_PREBUILT_OPENVINO=TRUE"])
+
+        ngraph_tf_cmake_flags.extend(["-DENABLE_OPENVINO=ON"])
         ngraph_tf_cmake_flags.extend(
-            ["-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location])
+            ["-DOPENVINO_ARTIFACTS_DIR=" + openvino_artifacts_dir])
+        ngraph_tf_cmake_flags.extend(
+            ["-DNGRAPH_ARTIFACTS_DIR=" + openvino_artifacts_dir])
     else:
-        ngraph_tf_cmake_flags.extend([
-            "-DNGRAPH_ARTIFACTS_DIR=" + os.path.abspath(
-                arguments.use_prebuilt_ngraph)
-        ])
+        if not arguments.use_prebuilt_ngraph:
+            ngraph_tf_cmake_flags.extend(
+                ["-DNGRAPH_ARTIFACTS_DIR=" + artifacts_location])
+        else:
+            ngraph_tf_cmake_flags.extend([
+                "-DNGRAPH_ARTIFACTS_DIR=" + os.path.abspath(
+                    arguments.use_prebuilt_ngraph)
+            ])
 
     if (arguments.use_ngraph_staticlibs):
         ngraph_tf_cmake_flags.extend(["-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE=TRUE"])
@@ -491,17 +470,9 @@ def main():
         ])
 
     ngraph_tf_cmake_flags.extend([
-        "-DNGRAPH_TF_ENABLE_VARIABLES_AND_OPTIMIZERS=" +
-        flag_string_map[arguments.enable_variables_and_optimizers]
-    ])
-
-    ngraph_tf_cmake_flags.extend([
         "-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=" +
         flag_string_map[arguments.use_grappler_optimizer]
     ])
-
-    ngraph_tf_cmake_flags.extend(
-        ["-DNGRAPH_TF_USE_TENSORFLOW_2=" + flag_string_map[use_tensorflow_2]])
 
     # Now build the bridge
     ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,

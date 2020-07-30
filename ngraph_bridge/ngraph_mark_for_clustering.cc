@@ -18,8 +18,6 @@
 
 #include "ngraph/opsets/opset3.hpp"
 
-#include "ngraph/runtime/backend.hpp"
-#include "ngraph/runtime/backend_manager.hpp"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -29,7 +27,6 @@
 using namespace std;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 //
@@ -151,7 +148,7 @@ static ConfirmationFunction FusedBatchNormConfirmationFunction() {
 
 // Check if op is supported by backend using is_supported API
 Status IsSupportedByBackend(
-    const Node* node, const ng::runtime::Backend* op_backend,
+    const Node* node, const Backend* op_backend,
     const std::map<std::string, std::set<shared_ptr<ng::Node>>>&
         TFtoNgraphOpMap,
     bool& is_supported) {
@@ -202,7 +199,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["ArgMax"] = SetStaticInputs({1});
     set_attributes_map["ArgMin"] = SetStaticInputs({1});
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
-    set_attributes_map["Conv2DBackpropFilter"] = SetStaticInputs({1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
     set_attributes_map["ExpandDims"] = SetStaticInputs({1});
     set_attributes_map["Fill"] = SetStaticInputs({0});
@@ -210,9 +206,11 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Max"] = SetStaticInputs({1});
     set_attributes_map["Mean"] = SetStaticInputs({1});
     set_attributes_map["Min"] = SetStaticInputs({1});
+    set_attributes_map["MirrorPad"] = SetStaticInputs({1});
     set_attributes_map["NonMaxSuppressionV4"] = SetStaticInputs({2, 3, 4});
     set_attributes_map["OneHot"] = SetStaticInputs({1});
     set_attributes_map["Pad"] = SetStaticInputs({1});
+    set_attributes_map["PadV2"] = SetStaticInputs({1, 2});
     set_attributes_map["Prod"] = SetStaticInputs({1});
 
     set_attributes_map["QuantizeAndDequantizeV2"] = SetStaticInputs({1, 2});
@@ -299,13 +297,12 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["ConcatV2"] = SimpleConfirmationFunction();
     confirmation_function_map["Const"] = SimpleConfirmationFunction();
     confirmation_function_map["Conv2D"] = SimpleConfirmationFunction();
-    confirmation_function_map["Conv2DBackpropFilter"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Conv2DBackpropInput"] =
         SimpleConfirmationFunction();
     confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
     confirmation_function_map["CropAndResize"] = SimpleConfirmationFunction();
     confirmation_function_map["Cos"] = SimpleConfirmationFunction();
+    confirmation_function_map["Cosh"] = SimpleConfirmationFunction();
     confirmation_function_map["Cumsum"] = SimpleConfirmationFunction();
     confirmation_function_map["DepthwiseConv2dNative"] =
         SimpleConfirmationFunction();
@@ -362,13 +359,17 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Mean"] = SimpleConfirmationFunction();
     confirmation_function_map["Min"] = SimpleConfirmationFunction();
     confirmation_function_map["Minimum"] = SimpleConfirmationFunction();
+    confirmation_function_map["MirrorPad"] = SimpleConfirmationFunction();
     confirmation_function_map["Mul"] = SimpleConfirmationFunction();
+    confirmation_function_map["Mod"] = SimpleConfirmationFunction();
     confirmation_function_map["Neg"] = SimpleConfirmationFunction();
+    confirmation_function_map["NotEqual"] = SimpleConfirmationFunction();
     confirmation_function_map["NonMaxSuppressionV4"] =
         SimpleConfirmationFunction();
     confirmation_function_map["NoOp"] = SimpleConfirmationFunction();
     confirmation_function_map["OneHot"] = SimpleConfirmationFunction();
     confirmation_function_map["Pad"] = SimpleConfirmationFunction();
+    confirmation_function_map["PadV2"] = SimpleConfirmationFunction();
     confirmation_function_map["Pow"] = SimpleConfirmationFunction();
     confirmation_function_map["PreventGradient"] = SimpleConfirmationFunction();
     confirmation_function_map["Prod"] = SimpleConfirmationFunction();
@@ -418,6 +419,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
     confirmation_function_map["Sign"] = SimpleConfirmationFunction();
     confirmation_function_map["Sin"] = SimpleConfirmationFunction();
+    confirmation_function_map["Sinh"] = SimpleConfirmationFunction();
     confirmation_function_map["Size"] = SimpleConfirmationFunction();
     confirmation_function_map["Slice"] = SimpleConfirmationFunction();
     confirmation_function_map["Snapshot"] = SimpleConfirmationFunction();
@@ -436,6 +438,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Pack"] = SimpleConfirmationFunction();
     confirmation_function_map["Sub"] = SimpleConfirmationFunction();
     confirmation_function_map["Sum"] = SimpleConfirmationFunction();
+    confirmation_function_map["Tan"] = SimpleConfirmationFunction();
     confirmation_function_map["Tanh"] = SimpleConfirmationFunction();
     confirmation_function_map["Tile"] = SimpleConfirmationFunction();
     confirmation_function_map["TopKV2"] = [](Node* n, bool* result) {
@@ -505,6 +508,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Conv3D"]["T"] = NGraphNumericDTypes();
     type_constraint_map["CropAndResize"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cos"]["T"] = NGraphRealDTypes();
+    type_constraint_map["Cosh"]["T"] = NGraphRealDTypes();
     type_constraint_map["Cumsum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cumsum"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["DepthToSpace"]["T"] = NGraphDTypes();
@@ -551,8 +555,12 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Min"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Min"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Minimum"]["T"] = NGraphNumericDTypes();
+    type_constraint_map["MirrorPad"]["T"] = NGraphDTypes();
+    type_constraint_map["MirrorPad"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Mul"]["T"] = NGraphNumericDTypes();
+    type_constraint_map["Mod"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Neg"]["T"] = NGraphNumericDTypes();
+    type_constraint_map["NotEqual"]["T"] = NGraphDTypes();
     type_constraint_map["NonMaxSuppressionV4"]["T"] = {
         DT_FLOAT};  // TF allows half too
     type_constraint_map["OneHot"]["T"] = NGraphDTypes();
@@ -560,6 +568,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Pack"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
+    type_constraint_map["PadV2"]["T"] = NGraphDTypes();
+    type_constraint_map["PadV2"]["Tpaddings"] = NGraphIndexDTypes();
     type_constraint_map["Pow"]["T"] = NGraphNumericDTypes();
     type_constraint_map["PreventGradient"]["T"] = NGraphDTypes();
     type_constraint_map["Prod"]["T"] = NGraphNumericDTypes();
@@ -620,6 +630,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sign"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sin"]["T"] = NGraphRealDTypes();
+    type_constraint_map["Sinh"]["T"] = NGraphRealDTypes();
     type_constraint_map["Size"]["T"] = NGraphDTypes();
     type_constraint_map["Size"]["out_type"] = NGraphIndexDTypes();
     type_constraint_map["Slice"]["T"] = NGraphDTypes();
@@ -640,6 +651,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Sub"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["Tidx"] = NGraphIndexDTypes();
+    type_constraint_map["Tan"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tanh"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Tile"]["Tmultiples"] = NGraphIndexDTypes();
@@ -652,6 +664,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
         NGraphIndexDTypes();
     type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
+    type_constraint_map["ZerosLike"]["T"] = NGraphNumericDTypes();
     initialized = true;
   }
   return type_constraint_map;
@@ -661,8 +674,8 @@ const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
 GetTFToNgOpMap() {
   // Constant Op does not have default Constructor
   // in ngraph, so passing a dummy node
-  auto constant = ngraph::op::Constant::create(ngraph::element::f32,
-                                               ngraph::Shape{}, {2.0f});
+  auto constant = ngraph::opset3::Constant::create(ngraph::element::f32,
+                                                   ngraph::Shape{}, {2.0f});
   // Map:: TF ops to NG Ops to track if all the Ngraph ops
   // are supported by backend
   // Update this Map if a new TF Op translation is
@@ -672,10 +685,7 @@ GetTFToNgOpMap() {
       {"Acos", {std::make_shared<ngraph::opset3::Acos>()}},
       {"Add", {std::make_shared<ngraph::opset3::Add>()}},
       {"AddN", {std::make_shared<ngraph::opset3::Add>()}},
-      {"AddV2",
-       {std::make_shared<ngraph::opset3::Add>(),
-        std::make_shared<ngraph::op::Broadcast>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+      {"AddV2", {std::make_shared<ngraph::opset3::Add>()}},
       {"Any", {std::make_shared<ngraph::opset3::ReduceLogicalOr>(), constant}},
       {"All", {std::make_shared<ngraph::opset3::ReduceLogicalAnd>(), constant}},
       {"ArgMax", {std::make_shared<ngraph::op::ArgMax>()}},
@@ -693,27 +703,25 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::op::MatMul>(),
         std::make_shared<ngraph::op::Reshape>()}},
       {"BiasAdd",
-       {std::make_shared<ngraph::opset3::Add>(),
-        std::make_shared<ngraph::op::Broadcast>()}},
+       {constant, std::make_shared<ngraph::opset3::Add>(),
+        std::make_shared<ngraph::opset3::Reshape>()}},
       {"Cast", {std::make_shared<ngraph::opset3::Convert>()}},
       {"Ceil", {std::make_shared<ngraph::opset3::Ceiling>()}},
-      {"ConcatV2", {std::make_shared<ngraph::op::Concat>()}},
+      {"ConcatV2", {std::make_shared<ngraph::opset3::Concat>()}},
       {"Const", {constant}},
       {"Conv2D",
-       {std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::Convolution>()}},
-      {"Conv2DBackpropFilter",
-       {std::make_shared<ngraph::op::ConvolutionBackpropFilters>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {std::make_shared<ngraph::opset3::Transpose>(),
+        std::make_shared<ngraph::opset3::Convolution>()}},
       {"Conv2DBackpropInput",
-       {std::make_shared<ngraph::op::ConvolutionBackpropData>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {std::make_shared<ngraph::opset3::ConvolutionBackpropData>(),
+        std::make_shared<ngraph::opset3::Transpose>(), constant}},
       {"Conv3D",
-       {std::make_shared<ngraph::op::Convolution>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {constant, std::make_shared<ngraph::opset3::Convolution>(),
+        std::make_shared<ngraph::opset3::Transpose>()}},
       {"Cos", {std::make_shared<ngraph::opset3::Cos>()}},
+      {"Cosh", {std::make_shared<ngraph::opset3::Cosh>()}},
       {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
-      {"Cumsum", {std::make_shared<ngraph::op::CumSum>()}},
+      {"Cumsum", {std::make_shared<ngraph::opset3::CumSum>()}},
       {"DepthToSpace", {std::make_shared<ngraph::op::Reshape>()}},
       {"DepthwiseConv2dNative",
        {std::make_shared<ngraph::op::Slice>(),
@@ -728,7 +736,7 @@ GetTFToNgOpMap() {
       {"Equal", {std::make_shared<ngraph::opset3::Equal>()}},
       {"Exp", {std::make_shared<ngraph::opset3::Exp>()}},
       {"ExpandDims", {constant, std::make_shared<ngraph::opset3::Reshape>()}},
-      {"Fill", {std::make_shared<ngraph::op::Broadcast>()}},
+      {"Fill", {constant, std::make_shared<ngraph::opset3::Broadcast>()}},
       {"Floor", {std::make_shared<ngraph::opset3::Floor>()}},
       {"FloorDiv",
        {std::make_shared<ngraph::opset3::Divide>(),
@@ -737,13 +745,13 @@ GetTFToNgOpMap() {
       //{"FloorMod", {std::make_shared<ngraph::opset3::FloorMod>()}},
       {"FusedBatchNorm", {std::make_shared<ngraph::op::BatchNormInference>()}},
       {"FusedBatchNormV2",
-       {std::make_shared<ngraph::op::BatchNormInference>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {constant, std::make_shared<ngraph::op::BatchNormInference>(),
+        std::make_shared<ngraph::opset3::Transpose>()}},
       {"FusedBatchNormV3",
        {constant, std::make_shared<ngraph::op::BatchNormInference>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+        std::make_shared<ngraph::opset3::Transpose>()}},
       {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
-      {"GatherV2", {std::make_shared<ngraph::op::Gather>()}},
+      {"GatherV2", {constant, std::make_shared<ngraph::opset3::Gather>()}},
       {"_FusedConv2D",
        {std::make_shared<ngraph::opset3::Convolution>(), constant,
         std::make_shared<ngraph::opset3::Minimum>(),
@@ -751,19 +759,17 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::opset3::Add>(),
         std::make_shared<ngraph::opset3::BatchNormInference>()}},
       {"_FusedMatMul",
-       {std::make_shared<ngraph::op::MatMul>(),
-        std::make_shared<ngraph::op::Relu>(),
-        std::make_shared<ngraph::op::Broadcast>(),
-        std::make_shared<ngraph::op::Add>(), constant,
-        std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {std::make_shared<ngraph::opset3::MatMul>(),
+        std::make_shared<ngraph::opset3::Relu>(),
+        std::make_shared<ngraph::opset3::Add>(), constant,
+        std::make_shared<ngraph::opset3::Minimum>()}},
       {"Greater", {std::make_shared<ngraph::opset3::Greater>()}},
       {"GreaterEqual", {std::make_shared<ngraph::opset3::GreaterEqual>()}},
       {"Identity", {}},
       {"IsFinite",
-       {constant, std::make_shared<ngraph::op::NotEqual>(),
-        std::make_shared<ngraph::op::Equal>(),
-        std::make_shared<ngraph::op::And>()}},
+       {constant, std::make_shared<ngraph::opset3::NotEqual>(),
+        std::make_shared<ngraph::opset3::Equal>(),
+        std::make_shared<ngraph::opset3::LogicalAnd>()}},
       {"L2Loss",
        {constant, std::make_shared<ngraph::opset3::Multiply>(),
         std::make_shared<ngraph::op::Sum>(),
@@ -780,33 +786,35 @@ GetTFToNgOpMap() {
       {"Log", {std::make_shared<ngraph::opset3::Log>()}},
       {"Log1p",
        {constant, std::make_shared<ngraph::opset3::Add>(),
-        std::make_shared<ngraph::op::Log>()}},
+        std::make_shared<ngraph::opset3::Log>()}},
       {"LogicalAnd", {std::make_shared<ngraph::opset3::LogicalAnd>()}},
       {"LogicalNot", {std::make_shared<ngraph::opset3::LogicalNot>()}},
       {"LogicalOr", {std::make_shared<ngraph::opset3::LogicalOr>()}},
-      {"MatMul",
-       {std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::MatMul>()}},
+      {"MatMul", {std::make_shared<ngraph::opset3::MatMul>()}},
       {"Max", {std::make_shared<ng::opset3::ReduceMax>(), constant}},
       {"Maximum", {std::make_shared<ngraph::opset3::Maximum>()}},
       {"MaxPool",
-       {std::make_shared<ngraph::op::Reshape>(),
+       {constant, std::make_shared<ngraph::opset3::Transpose>(),
         std::make_shared<ngraph::opset3::MaxPool>()}},
       {"MaxPool3D",
-       {std::make_shared<ngraph::op::Reshape>(),
+       {constant, std::make_shared<ngraph::opset3::Transpose>(),
         std::make_shared<ngraph::opset3::MaxPool>()}},
       {"Mean", {std::make_shared<ngraph::opset3::ReduceMean>(), constant}},
       {"Min", {std::make_shared<ngraph::opset3::ReduceMin>(), constant}},
       {"Minimum", {std::make_shared<ngraph::opset3::Minimum>()}},
+      {"MirrorPad", {constant, std::make_shared<ngraph::opset3::Pad>()}},
       {"Mul", {std::make_shared<ngraph::opset3::Multiply>()}},
+      {"Mod", {std::make_shared<ngraph::opset3::Mod>()}},
       {"Neg", {std::make_shared<ngraph::opset3::Negative>()}},
+      {"NotEqual", {std::make_shared<ngraph::opset3::NotEqual>()}},
       {"NonMaxSuppressionV4",
        {std::make_shared<ngraph::opset3::NonMaxSuppression>(), constant}},
       {"OneHot", {std::make_shared<ngraph::opset3::OneHot>(), constant}},
       {"Pack",
        {std::make_shared<ngraph::op::Concat>(),
         std::make_shared<ngraph::op::Reshape>()}},
-      {"Pad", {constant, std::make_shared<ngraph::op::Pad>()}},
+      {"Pad", {constant, std::make_shared<ngraph::opset3::Pad>()}},
+      {"PadV2", {constant, std::make_shared<ngraph::opset3::Pad>()}},
       {"Pow", {std::make_shared<ngraph::opset3::Power>()}},
       {"PreventGradient", {}},
       {"Prod", {std::make_shared<ngraph::opset3::ReduceProd>(), constant}},
@@ -815,8 +823,8 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::op::Dequantize>()}},
       // Next few are CPU only ops
       {"QuantizedAvgPool",
-       {std::make_shared<ngraph::op::AvgPool>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {constant, std::make_shared<ngraph::opset3::AvgPool>(),
+        std::make_shared<ngraph::opset3::Transpose>()}},
       {"QuantizedConcat",
        {constant, std::make_shared<ngraph::op::Reshape>(),
         std::make_shared<ngraph::op::Min>(),
@@ -883,8 +891,8 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::op::Reshape>(),
         std::make_shared<ngraph::op::Convert>()}},
       {"QuantizedMaxPool",
-       {std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::MaxPool>()}},
+       {constant, std::make_shared<ngraph::opset3::Transpose>(),
+        std::make_shared<ngraph::opset3::MaxPool>()}},
       // End of CPU only ops
       {"QuantizeV2",
        {constant, std::make_shared<ngraph::op::Minimum>(),
@@ -900,27 +908,24 @@ GetTFToNgOpMap() {
       {"Reciprocal", {constant, std::make_shared<ngraph::opset3::Power>()}},
       {"Relu", {std::make_shared<ngraph::opset3::Relu>()}},
       {"Relu6",
-       {constant, std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Relu>()}},
+       {constant, std::make_shared<ngraph::opset3::Minimum>(),
+        std::make_shared<ngraph::opset3::Relu>()}},
       {"Rsqrt", {constant, std::make_shared<ngraph::opset3::Power>()}},
       {"Select", {std::make_shared<ngraph::opset3::Select>()}},
       {"Reshape", {std::make_shared<ngraph::opset3::Reshape>()}},
       {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},
       {"Shape", {constant}},
-      {"Sigmoid",
-       {constant, std::make_shared<ngraph::op::Exp>(),
-        std::make_shared<ngraph::op::Negative>(),
-        std::make_shared<ngraph::opset3::Add>(),
-        std::make_shared<ngraph::opset3::Divide>()}},
+      {"Sigmoid", {std::make_shared<ngraph::opset3::Sigmoid>()}},
       {"Sin", {std::make_shared<ngraph::opset3::Sin>()}},
+      {"Sinh", {std::make_shared<ngraph::opset3::Sinh>()}},
       {"Size", {constant}},
       {"Sign", {std::make_shared<ngraph::opset3::Sign>()}},
       {"Slice", {std::make_shared<ngraph::op::Slice>()}},
       {"Snapshot", {}},
       {"Softmax", {std::make_shared<ngraph::opset3::Softmax>()}},
       {"Softplus",
-       {constant, std::make_shared<ngraph::op::Exp>(),
-        std::make_shared<ngraph::op::Log>(),
+       {constant, std::make_shared<ngraph::opset3::Exp>(),
+        std::make_shared<ngraph::opset3::Log>(),
         std::make_shared<ngraph::opset3::Add>()}},
       {"SpaceToDepth",
        {std::make_shared<ngraph::op::Slice>(),
@@ -938,8 +943,9 @@ GetTFToNgOpMap() {
         std::make_shared<ngraph::op::Reshape>()}},
       {"Sub", {std::make_shared<ngraph::opset3::Subtract>()}},
       {"Sum", {std::make_shared<ngraph::opset3::ReduceSum>(), constant}},
+      {"Tan", {std::make_shared<ngraph::opset3::Tan>()}},
       {"Tanh", {std::make_shared<ngraph::opset3::Tanh>()}},
-      {"Tile", {constant, std::make_shared<ngraph::op::Concat>()}},
+      {"Tile", {constant, std::make_shared<ngraph::opset3::Concat>()}},
       {"TopKV2",
        {std::make_shared<ngraph::op::TopK>(),
         std::make_shared<ngraph::op::GetOutputElement>()}},
@@ -1024,22 +1030,15 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   std::unordered_map<string, int> fail_confirmation_histogram;
   std::unordered_map<string, int> fail_constraint_histogram;
   vector<Node*> nodes_marked_for_clustering;
-  vector<Node*> variable_type_nodes;
   string ng_backend_type;
   // Create nGraph backend
   BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
   // Create backend to query is_supported
   TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
-  ng::runtime::Backend* op_backend =
-      BackendManager::GetBackend(ng_backend_type);
+  Backend* op_backend = BackendManager::GetBackend(ng_backend_type);
 
   for (auto node : graph->op_nodes()) {
     bool mark_for_clustering = false;
-
-    if (IsNGVariableType(node->type_string())) {
-      variable_type_nodes.push_back(node);
-      continue;
-    }
 
     do {
       // check if output node
@@ -1143,9 +1142,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     }
   }
 
-  for (auto node : variable_type_nodes) {
-    SetNodeBackend(node, current_backend);
-  }
   return Status::OK();
 }
 

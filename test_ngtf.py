@@ -42,11 +42,6 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        '--gpu_unit_tests_enable',
-        help="Builds and tests the examples on GPU.\n",
-        action="store_true")
-
-    parser.add_argument(
         '--plaidml_unit_tests_enable',
         help="Builds and tests the examples on PLAIDML.\n",
         action="store_true")
@@ -64,23 +59,8 @@ def main():
     venv_dir = 'build_cmake/venv-tf-py3'
     tf_src_dir = 'build_cmake/tensorflow'
 
-    if (platform.system() != 'Darwin'):
-        # Run the bazel based build
-        run_bazel_build_test(venv_dir, build_dir)
-
     # First run the C++ gtests
     run_ngtf_gtests(build_dir, None)
-
-    # If the GPU tests are requested, then run them as well
-    if (arguments.gpu_unit_tests_enable):
-        os.environ['NGRAPH_TF_BACKEND'] = 'GPU'
-        run_ngtf_gtests(
-            build_dir,
-            str("-ArrayOps.Quanti*:ArrayOps.Dequant*:BackendManager.BackendAssignment:"
-                "MathOps.AnyKeepDims:MathOps.AnyNegativeAxis:MathOps.AnyPositiveAxis:"
-                "MathOps.AllKeepDims:MathOps.AllNegativeAxis:MathOps.AllPositiveAxis:"
-                "NNOps.Qu*:NNOps.SoftmaxZeroDimTest*:"
-                "NNOps.SparseSoftmaxCrossEntropyWithLogits"))
 
     # If the PLAIDML tests are requested, then run them as well
     if (arguments.plaidml_unit_tests_enable):
@@ -99,7 +79,7 @@ def main():
 
     if (not os.path.isdir(build_dir + '/tensorflow')):
         download_repo(build_dir + "/tensorflow",
-                      "https://github.com/tensorflow/tensorflow.git", "v1.15.2")
+                      "https://github.com/tensorflow/tensorflow.git", "v2.2.0")
 
     # Next run the TensorFlow python tests
     os.environ['NGRAPH_TF_LOG_0_DISABLED'] = '1'
