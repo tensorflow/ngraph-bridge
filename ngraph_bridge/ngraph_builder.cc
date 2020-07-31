@@ -3645,8 +3645,10 @@ static Status TranslateTileOp(
   std::vector<int64> multiples;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &multiples));
 
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Tile>(
-                                      op->name(), ng_input, ng_multiples));
+  auto ng_repeats = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::i64, ng::Shape{multiples.size()}, multiples);
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::opset3::Tile>(op->name(), ng_input, ng_repeats));
   return Status::OK();
 }
 
