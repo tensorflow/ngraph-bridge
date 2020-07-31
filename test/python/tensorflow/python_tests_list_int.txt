@@ -499,7 +499,7 @@ scatter_nd_ops_test.StatefulScatterNdTest.test_session
 
 slice_op_test.SliceTest.testComplex
 #slice_op_test.SliceTest.testEmpty # Unsupported op 'Tile'
-slice_op_test.SliceTest.testGradientsAll
+#slice_op_test.SliceTest.testGradientsAll  # Unsupported op 'Tile'
 slice_op_test.SliceTest.testInt32
 slice_op_test.SliceTest.testInvalidIndex
 slice_op_test.SliceTest.testRandom
