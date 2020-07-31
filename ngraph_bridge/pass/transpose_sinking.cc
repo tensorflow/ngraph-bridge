@@ -292,7 +292,7 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, TransposeMap& reorders,
                         ngraph::get_default_order(right->get_shape()));
 
   if ((left_order.size() == right_order.size() && left_order == right_order) ||
-      !(left_mismatch && right_mismatch)) {
+      (!left_mismatch && !right_mismatch)) {
     // Propagate the reshape which matches the shape of the binary node
     auto new_transpose =
         (binary->get_output_shape(0) == left->get_shape()) ? left : right;
