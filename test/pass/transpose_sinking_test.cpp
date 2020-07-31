@@ -53,13 +53,14 @@ TEST(TransposeSinking, PassProperty) {
 }
 
 TEST(TransposeSinking, EdgeSplitting) {
-  // checks if Transpose is pushed through op::Abs, but stopped by ReduceSum
+  // checks if Transpose is pushed through ng::opset3::Abs, but stopped by
+  // ReduceSum
   ng::Shape shape_nhwc{16, 28, 28, 1};
   ng::Shape shape_nchw{16, 1, 28, 28};
 
   auto a = make_shared<ng::opset3::Parameter>(ng::element::i32, shape_nhwc);
-  auto ng_order = std::make_shared<ngraph::opset3::Constant>(
-      ngraph::element::u64, ngraph::Shape{4}, ngraph::Shape{0, 3, 1, 2});
+  auto ng_order = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 3, 1, 2});
   auto transpose = make_shared<ng::opset3::Transpose>(a, ng_order);
   auto absn = make_shared<ng::opset3::Abs>(transpose);
   auto absn2 = make_shared<ng::opset3::Abs>(absn);
@@ -78,6 +79,50 @@ TEST(TransposeSinking, EdgeSplitting) {
       func->get_results().at(0)->get_argument(0));
   ASSERT_TRUE(new_transpose);
   ASSERT_EQ(new_transpose->get_output_shape(0), shape_nchw);
+}
+
+TEST(TransposeSinking, NasnetPoolAdd) {
+  ng::Shape input_shape{1, 3, 3, 1};
+
+  auto input_type = ng::element::f32;
+  auto output_type = ng::element::f32;
+
+  auto X = make_shared<ng::opset3::Parameter>(input_type, input_shape);
+  auto c_weights =
+      ng::opset3::Constant::create(input_type, ng::Shape{1, 1, 1, 1}, {3});
+
+  auto ng_order1 = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 3, 1, 2});
+  auto transpose1 = make_shared<ng::opset3::Transpose>(X, ng_order1);
+
+  auto avgpool = make_shared<ng::opset3::AvgPool>(
+      transpose1, ng::Strides{1, 1}, ng::Shape{0, 0}, ng::Shape{0, 0},
+      ng::Shape{1, 1}, true, ng::op::RoundingType::FLOOR,
+      ng::op::PadType::VALID);
+
+  auto ng_order2 = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 2, 3, 1});
+  auto transpose2 = make_shared<ng::opset3::Transpose>(avgpool, ng_order2);
+  auto maxpool = make_shared<ng::opset3::MaxPool>(
+      transpose1, ng::Strides{1, 1}, ng::Shape{0, 0}, ng::Shape{0, 0},
+      ng::Shape{1, 1}, ng::op::RoundingType::FLOOR, ng::op::PadType::VALID);
+
+  auto ng_order3 = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 2, 3, 1});
+  auto transpose3 = make_shared<ng::opset3::Transpose>(maxpool, ng_order3);
+
+  auto const1 =
+      ng::opset3::Constant::create(input_type, ng::Shape{1, 3, 3, 1}, {3});
+  auto add1 = make_shared<ng::opset3::Add>(transpose3, const1);
+  auto add2 = make_shared<ng::opset3::Add>(add1, transpose2);
+  auto func = make_shared<ng::Function>(add2, ng::ParameterVector{X});
+
+  ng::pass::Manager pass_manager;
+  size_t before_count = count_ops_of_type<ng::opset3::Transpose>(func);
+  pass_manager.register_pass<TransposeSinking>();
+  pass_manager.run_passes(func);
+  size_t before_after = count_ops_of_type<ng::opset3::Transpose>(func);
+  ASSERT_LE(before_after, before_count);
 }
 
 }  // namespace testing
