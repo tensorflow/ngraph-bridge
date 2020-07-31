@@ -3095,7 +3095,8 @@ static Status TranslateRelu6Op(const Node* op,
                                Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Clamp>(op->name(), ng_input, 0, 6));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::opset3::Clamp>(op->name(), ng_input, 0, 6));
   return Status::OK();
 }
 
