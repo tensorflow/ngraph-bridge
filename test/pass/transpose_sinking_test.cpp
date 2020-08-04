@@ -174,9 +174,7 @@ TEST(TransposeSinking, PoolAdd2) {
   ng::pass::Manager pass_manager;
   size_t before_count = count_ops_of_type<ng::opset3::Transpose>(func);
   pass_manager.register_pass<TransposeSinking>();
-  ng::plot_graph(func, "debug-pool-before2.png");
   pass_manager.run_passes(func);
-  ng::plot_graph(func, "debug-pool-after2.png");
   size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
   ASSERT_LE(before_count, after_count);
   auto new_transpose = ng::as_type_ptr<ng::opset3::Transpose>(
@@ -218,10 +216,8 @@ TEST(TransposeSinking, PoolAdd3) {
 
   ng::pass::Manager pass_manager;
   size_t before_count = count_ops_of_type<ng::opset3::Transpose>(func);
-  ng::plot_graph(func, "reshape-before.png");
   pass_manager.register_pass<TransposeSinking>();
   pass_manager.run_passes(func);
-  ng::plot_graph(func, "reshape-after.png");
   size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
   ASSERT_LE(before_count, after_count);
   auto new_transpose = ng::as_type_ptr<ng::opset3::Transpose>(
