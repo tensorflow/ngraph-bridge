@@ -176,7 +176,7 @@ TEST(TransposeSinking, PoolAdd2) {
   pass_manager.register_pass<TransposeSinking>();
   pass_manager.run_passes(func);
   size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
-  ASSERT_LE(before_count, after_count);
+  ASSERT_LE(after_count, before_count);
   auto new_transpose = ng::as_type_ptr<ng::opset3::Transpose>(
       func->get_results().at(0)->get_argument(0));
   ASSERT_TRUE(new_transpose);
@@ -219,7 +219,7 @@ TEST(TransposeSinking, PoolAdd3) {
   pass_manager.register_pass<TransposeSinking>();
   pass_manager.run_passes(func);
   size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
-  ASSERT_LE(before_count, after_count);
+  ASSERT_LE(after_count, before_count);
   auto new_transpose = ng::as_type_ptr<ng::opset3::Transpose>(
       func->get_results().at(0)->get_argument(0));
   ASSERT_TRUE(new_transpose);
