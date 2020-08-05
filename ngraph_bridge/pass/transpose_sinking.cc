@@ -361,7 +361,7 @@ static void sink_concat(shared_ptr<ngraph::opset3::Concat> n,
   auto order = arg_transpose_order->get_axis_vector_val();
   // we need the correct input shape to produce the right output shape
   // we are going to create a label of the right input shape,
-  // so a new slice will have the right shape
+  // so a new concat will have the right shape
   auto def_order = ngraph::get_permutation_to_default_order(order);
   auto input_shape =
       ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
