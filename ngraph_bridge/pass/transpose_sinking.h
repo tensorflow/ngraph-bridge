@@ -22,6 +22,7 @@
 
 namespace tensorflow {
 namespace ngraph_bridge {
+namespace pass {
 
 class TransposeSinking : public ngraph::pass::FunctionPass {
  public:
@@ -31,5 +32,6 @@ class TransposeSinking : public ngraph::pass::FunctionPass {
   bool run_on_function(std::shared_ptr<ngraph::Function> function) override;
 };
 
+}  // namespace pass
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

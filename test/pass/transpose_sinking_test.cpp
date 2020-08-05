@@ -39,13 +39,11 @@ using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
-
 namespace testing {
 
 TEST(TransposeSinking, PassProperty) {
-  auto pass = std::make_shared<TransposeSinking>();
+  auto pass = std::make_shared<pass::TransposeSinking>();
   ASSERT_TRUE(
       pass->get_property(ngraph::pass::PassProperty::REQUIRE_STATIC_SHAPE));
   ASSERT_FALSE(
@@ -72,7 +70,7 @@ TEST(TransposeSinking, EdgeSplitting) {
   auto func = make_shared<ng::Function>(ng::OutputVector{absn2, sum},
                                         ng::ParameterVector{a});
   ng::pass::Manager pass_manager;
-  pass_manager.register_pass<TransposeSinking>();
+  pass_manager.register_pass<pass::TransposeSinking>();
   pass_manager.run_passes(func);
   ASSERT_EQ(func->get_results().at(1)->get_argument(0), sum);
   auto new_transpose = ng::as_type_ptr<ng::opset3::Transpose>(
@@ -125,7 +123,7 @@ TEST(TransposeSinking, PoolAdd1) {
 
   ng::pass::Manager pass_manager;
   size_t before_count = count_ops_of_type<ng::opset3::Transpose>(func);
-  pass_manager.register_pass<TransposeSinking>();
+  pass_manager.register_pass<pass::TransposeSinking>();
   pass_manager.run_passes(func);
   size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
   ASSERT_LE(before_count, after_count);
@@ -173,7 +171,7 @@ TEST(TransposeSinking, PoolAdd2) {
 
   ng::pass::Manager pass_manager;
   size_t before_count = count_ops_of_type<ng::opset3::Transpose>(func);
-  pass_manager.register_pass<TransposeSinking>();
+  pass_manager.register_pass<pass::TransposeSinking>();
   pass_manager.run_passes(func);
   size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
   ASSERT_LE(after_count, before_count);
@@ -216,7 +214,7 @@ TEST(TransposeSinking, PoolAdd3) {
 
   ng::pass::Manager pass_manager;
   size_t before_count = count_ops_of_type<ng::opset3::Transpose>(func);
-  pass_manager.register_pass<TransposeSinking>();
+  pass_manager.register_pass<pass::TransposeSinking>();
   pass_manager.run_passes(func);
   size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
   ASSERT_LE(after_count, before_count);
@@ -243,7 +241,7 @@ TEST(TransposeSinking, Concat) {
   auto func =
       make_shared<ng::Function>(ng::OutputVector{c}, ng::ParameterVector{a, b});
   ng::pass::Manager pass_manager;
-  pass_manager.register_pass<TransposeSinking>();
+  pass_manager.register_pass<pass::TransposeSinking>();
   pass_manager.run_passes(func);
   size_t transpose_count = count_ops_of_type<ng::opset3::Transpose>(func);
   ASSERT_EQ(0, transpose_count);
