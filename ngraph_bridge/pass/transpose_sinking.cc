@@ -378,7 +378,8 @@ static void sink_pad(
 
 static void sink_concat(shared_ptr<ngraph::opset3::Concat> n,
                         TransposeMap& reorders,
-                        set<shared_ptr<ngraph::Node>>& transposes_to_delete) {
+                        set<shared_ptr<ngraph::Node>>& transposes_to_delete,
+                        TransposeMap& reuse_map) {
   auto arg_transpose = reorders.at(n->get_argument(0));
   auto arg_transpose_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
       arg_transpose->input_value(1).get_node_shared_ptr());
@@ -403,7 +404,7 @@ static void sink_concat(shared_ptr<ngraph::opset3::Concat> n,
     if (iorder != order) {
       NGRAPH_VLOG(4) << " input order at " << i
                      << "-th arg is different from first arg";
-      materialize_shapes(n, reorders, transposes_to_delete);
+      materialize_shapes(n, reorders, transposes_to_delete, reuse_map);
       return;
     }
 
@@ -462,7 +463,7 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
     } else if (auto pad = ngraph::as_type_ptr<ngraph::opset3::Pad>(n)) {
       sink_pad(pad, reorders, transposes_to_delete);
     } else if (auto concat = ngraph::as_type_ptr<ngraph::opset3::Concat>(n)) {
-      sink_concat(concat, reorders, transposes_to_delete);
+      sink_concat(concat, reorders, transposes_to_delete, reuse_map);
     } else {
       materialize_shapes(n, reorders, transposes_to_delete, reuse_map);
     }
