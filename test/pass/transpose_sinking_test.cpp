@@ -250,6 +250,59 @@ TEST(TransposeSinking, Concat) {
   ASSERT_EQ(result->get_output_shape(0), expected_shape);
 }
 
+// The Transpose should sink through Pad op but stopped by ReduceSum
+TEST(TransposeSinking, Pad) {
+  ng::Shape shape_nhwc{100, 8, 8, 1};
+
+  auto a = make_shared<ng::opset3::Parameter>(ng::element::f32, shape_nhwc);
+  auto pad_value = ng::opset3::Constant::create<float>(
+      ng::element::f32, ng::Shape{}, std::vector<float>{0.0f});
+
+  ng::CoordinateDiff pad_end{0, 0, 0, 0};
+  ng::CoordinateDiff pad_begin{0, 1, 1, 0};
+
+  auto a_to_nchw = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 3, 1, 2});
+  auto a_transpose = make_shared<ng::opset3::Transpose>(a, a_to_nchw);
+
+  auto maxpool = make_shared<ng::opset3::MaxPool>(
+      a_transpose, ng::Strides{2, 2}, ng::Shape{0, 0}, ng::Shape{0, 0},
+      ng::Shape{1, 1}, ng::op::RoundingType::FLOOR, ng::op::PadType::VALID);
+
+  auto m_to_nhwc = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 2, 3, 1});
+  auto m_transpose = make_shared<ng::opset3::Transpose>(maxpool, m_to_nhwc);
+
+  shared_ptr<ng::opset3::Constant> pads_begin_node, pads_end_node;
+  pads_begin_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{pad_begin.size()}, pad_begin);
+  pads_end_node = make_shared<ng::opset3::Constant>(
+      ng::element::i64, ng::Shape{pad_end.size()}, pad_end);
+  auto pad =
+      make_shared<ng::opset3::Pad>(m_transpose, pads_begin_node, pads_end_node,
+                                   pad_value, ng::op::PadMode::CONSTANT);
+
+  auto axes = make_shared<ng::opset3::Constant>(ng::element::i64, ng::Shape{4},
+                                                vector<int64_t>{0, 1, 2, 3});
+  auto sum = make_shared<ng::opset3::ReduceSum>(pad, axes, true);
+
+  auto f =
+      make_shared<ng::Function>(ng::OutputVector{sum}, ng::ParameterVector{a});
+
+  ng::pass::Manager pass_manager;
+  size_t before_count = count_ops_of_type<ng::opset3::Transpose>(f);
+  pass_manager.register_pass<pass::TransposeSinking>();
+  pass_manager.run_passes(f);
+  size_t after_count = count_ops_of_type<ng::opset3::Transpose>(f);
+  ASSERT_LE(after_count, before_count);
+  auto result = f->get_results().at(0)->get_argument(0);
+  ng::Shape expected_shape{1, 1, 1, 1};
+  ASSERT_EQ(result->get_output_shape(0), expected_shape);
+  auto out = ng::as_type_ptr<ng::opset3::ReduceSum>(
+      f->get_results().at(0)->get_argument(0));
+  ASSERT_TRUE(out);
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
