@@ -126,7 +126,7 @@ static shared_ptr<ngraph::opset3::Transpose> combine_transposes(
 
 static void insert_transpose(shared_ptr<ngraph::Node> target,
                              shared_ptr<ngraph::Node> transpose,
-                             size_t input_index) {
+                             size_t input_index, TransposeMap& reuse_map) {
   NGRAPH_VLOG(4) << "Inserting transpose at input " << target->get_name()
                  << " input index " << input_index;
   auto arg = target->input(input_index).get_source_output();
@@ -139,7 +139,30 @@ static void insert_transpose(shared_ptr<ngraph::Node> target,
                  << describe<ngraph::opset3::Transpose>(new_transpose)
                  << " at input " << target->get_name() << " input index "
                  << input_index;
-  target->input(input_index).replace_source_output(new_transpose->output(0));
+
+  auto transpose_users = transpose->get_users().size();
+  NGRAPH_VLOG(4) << "Users " << transpose->get_users().size();
+  if (transpose_users > 1) {
+    if (reuse_map.find(transpose) != reuse_map.end()) {
+      // use the existing transpose
+      auto existing_transpose = reuse_map.at(transpose);
+      NGRAPH_VLOG(4) << "Using existing transpose "
+                     << describe<ngraph::opset3::Transpose>(existing_transpose);
+      target->input(input_index)
+          .replace_source_output(existing_transpose->output(0));
+    } else {
+      NGRAPH_VLOG(4) << "Write ReuseMap[" << transpose->get_name() << "] = "
+                     << describe<ngraph::opset3::Transpose>(new_transpose);
+      // update reuse_map
+      reuse_map[transpose] = new_transpose;
+      NGRAPH_VLOG(4) << "Using new transpose "
+                     << describe<ngraph::opset3::Transpose>(new_transpose);
+      target->input(input_index)
+          .replace_source_output(new_transpose->output(0));
+    }
+  } else {
+    target->input(input_index).replace_source_output(new_transpose->output(0));
+  }
 }
 
 static void delete_transpose(shared_ptr<ngraph::Node> transpose) {
@@ -208,7 +231,8 @@ static void convert_binary_to_default_order(
 
 static void materialize_shapes(
     shared_ptr<ngraph::Node> n, TransposeMap& reorders,
-    set<shared_ptr<ngraph::Node>>& transposes_to_delete) {
+    set<shared_ptr<ngraph::Node>>& transposes_to_delete,
+    TransposeMap& reuse_map) {
   // skip multiple output nodes and deal with GOEs exclusively
   if (n->get_output_size() > 1) {
     return;
@@ -229,7 +253,7 @@ static void materialize_shapes(
       if (arg_transpose_order->get_axis_vector_val() !=
           get_default_order(arg->get_shape())) {
         // Insert if arg needs to be transposed.
-        insert_transpose(n, arg_transpose, i);
+        insert_transpose(n, arg_transpose, i, reuse_map);
       }
     }
   }
@@ -362,7 +386,7 @@ static void sink_pad(
 // two transposes by replacing the existing Transpose,
 // materialize pending transposes if they can't be propagated through op
 bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
-  TransposeMap reorders;
+  TransposeMap reorders, reuse_map;
   ngraph::NodeVector results;
   set<shared_ptr<ngraph::Node>> transposes_to_delete;
 
@@ -383,7 +407,7 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
     } else if (auto pad = ngraph::as_type_ptr<ngraph::opset3::Pad>(n)) {
       sink_pad(pad, reorders, transposes_to_delete);
     } else {
-      materialize_shapes(n, reorders, transposes_to_delete);
+      materialize_shapes(n, reorders, transposes_to_delete, reuse_map);
     }
     NGRAPH_VLOG(4) << "End: Processing node " << n->get_name();
   }
