@@ -226,6 +226,32 @@ TEST(TransposeSinking, PoolAdd3) {
   ASSERT_EQ(new_transpose->get_output_shape(0), (ng::Shape{1, 3, 3, 1}));
 }
 
+TEST(TransposeSinking, Concat) {
+  // checks if Transpose is pushed through ng::opset3::Concat
+  ng::Shape shape_nhwc{16, 28, 28, 1};
+  auto a = make_shared<ng::opset3::Parameter>(ng::element::i32, shape_nhwc);
+  auto b = make_shared<ng::opset3::Parameter>(ng::element::i32, shape_nhwc);
+  auto to_nchw = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 3, 1, 2});
+  auto a_transpose = make_shared<ng::opset3::Transpose>(a, to_nchw);
+  auto b_transpose = make_shared<ng::opset3::Transpose>(b, to_nchw);
+  auto concat = make_shared<ng::opset3::Concat>(
+      ng::OutputVector{a_transpose, b_transpose}, 0);
+  auto to_nhwc = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 2, 3, 1});
+  auto c = make_shared<ng::opset3::Transpose>(concat, to_nhwc);
+  auto func =
+      make_shared<ng::Function>(ng::OutputVector{c}, ng::ParameterVector{a, b});
+  ng::pass::Manager pass_manager;
+  pass_manager.register_pass<TransposeSinking>();
+  pass_manager.run_passes(func);
+  size_t transpose_count = count_ops_of_type<ng::opset3::Transpose>(func);
+  ASSERT_EQ(0, transpose_count);
+  auto result = func->get_results().at(0)->get_argument(0);
+  ng::Shape expected_shape{32, 28, 28, 1};
+  ASSERT_EQ(result->get_output_shape(0), expected_shape);
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

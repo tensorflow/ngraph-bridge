@@ -376,6 +376,62 @@ static void sink_pad(
   write_transposemap(reorders, new_pad, new_transpose);
 }
 
+static void sink_concat(shared_ptr<ngraph::opset3::Concat> n,
+                        TransposeMap& reorders,
+                        set<shared_ptr<ngraph::Node>>& transposes_to_delete,
+                        TransposeMap& reuse_map) {
+  auto arg_transpose = reorders.at(n->get_argument(0));
+  auto arg_transpose_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
+      arg_transpose->input_value(1).get_node_shared_ptr());
+  auto order = arg_transpose_order->get_axis_vector_val();
+  // we need the correct input shape to produce the right output shape
+  // we are going to create a label of the right input shape,
+  // so a new concat will have the right shape
+  auto def_order = ngraph::get_permutation_to_default_order(order);
+  auto input_shape =
+      ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
+  auto dummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
+      arg_transpose->get_element_type(), input_shape);
+
+  ngraph::NodeVector new_args;
+  new_args.push_back(dummy_correct_shape);
+
+  for (size_t i = 1; i < n->get_input_size(); i++) {
+    auto iarg_transpose = reorders.at(n->get_argument(i));
+    auto iarg_transpose_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
+        iarg_transpose->input_value(1).get_node_shared_ptr());
+    auto iorder = iarg_transpose_order->get_axis_vector_val();
+    if (iorder != order) {
+      NGRAPH_VLOG(4) << " input order at " << i
+                     << "-th arg is different from first arg";
+      materialize_shapes(n, reorders, transposes_to_delete, reuse_map);
+      return;
+    }
+
+    auto iinput_shape =
+        ngraph::apply_permutation(iarg_transpose->get_shape(), def_order);
+    auto idummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
+        iarg_transpose->get_element_type(), iinput_shape);
+    new_args.push_back(idummy_correct_shape);
+  }
+
+  auto new_axis = order.at(n->get_concatenation_axis());
+  auto new_concat = make_shared<ngraph::opset3::Concat>(new_args, new_axis);
+  // put back the original arguments
+  for (size_t i = 0; i < new_concat->get_input_size(); i++) {
+    ngraph::replace_node(new_args.at(i), n->get_argument(i));
+  }
+  NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
+                 << new_concat->get_name();
+  ngraph::replace_node(n, new_concat);
+
+  auto new_transpose = make_transpose(new_concat, order);
+  NGRAPH_VLOG(4) << "Propagating "
+                 << describe<ngraph::opset3::Transpose>(new_transpose)
+                 << " for " << n->get_name();
+  write_transposemap(reorders, new_concat, new_transpose);
+}
+
 // The goal of TransposeSinking is to remove
 // round-trip transposes(i.e. nhwc->nchw(nchw-only-op)->nhwc)
 // around nchw-only-op (e.g.Convolution, Batchnorm, Avg/MaxPool)
@@ -406,6 +462,8 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
       sink_binary(n, reorders, transposes_to_delete);
     } else if (auto pad = ngraph::as_type_ptr<ngraph::opset3::Pad>(n)) {
       sink_pad(pad, reorders, transposes_to_delete);
+    } else if (auto concat = ngraph::as_type_ptr<ngraph::opset3::Concat>(n)) {
+      sink_concat(concat, reorders, transposes_to_delete, reuse_map);
     } else {
       materialize_shapes(n, reorders, transposes_to_delete, reuse_map);
     }
