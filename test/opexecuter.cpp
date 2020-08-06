@@ -68,10 +68,10 @@ OpExecuter::OpExecuter(const Scope sc, const string test_op,
 OpExecuter::~OpExecuter() {}
 
 void OpExecuter::RunTest(float rtol, float atol) {
-  vector<Tensor> ngraph_outputs;
-  ExecuteOnNGraph(ngraph_outputs);
   vector<Tensor> tf_outputs;
   ExecuteOnTF(tf_outputs);
+  vector<Tensor> ngraph_outputs;
+  ExecuteOnNGraph(ngraph_outputs);
 
   // Override the test result tolerance
   if (std::getenv("NGRAPH_TF_UTEST_RTOL") != nullptr) {
