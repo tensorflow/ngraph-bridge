@@ -303,6 +303,35 @@ TEST(TransposeSinking, Pad) {
   ASSERT_TRUE(out);
 }
 
+TEST(TransposeSinking, SimpleUnary) {
+  ng::Shape shape_nhwc{16, 28, 28, 1};
+  ng::Shape shape_nchw{16, 1, 28, 28};
+  auto a = make_shared<ng::opset3::Parameter>(ng::element::i32, shape_nhwc);
+
+  auto ng_order = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 3, 1, 2});
+  auto transpose = make_shared<ng::opset3::Transpose>(a, ng_order);
+
+  auto a_t = make_shared<ng::opset3::Transpose>(a, ng_order);
+  auto absn = make_shared<ng::opset3::Abs>(a_t);
+  auto absn2 = make_shared<ng::opset3::Abs>(absn);
+
+  auto tf_order = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 2, 3, 1});
+  auto absn2_t = make_shared<ng::opset3::Transpose>(absn2, tf_order);
+
+  auto func = make_shared<ng::Function>(ng::OutputVector{absn2_t},
+                                        ng::ParameterVector{a});
+  size_t before_count = count_ops_of_type<ng::opset3::Transpose>(func);
+  ng::pass::Manager pass_manager;
+  pass_manager.register_pass<pass::TransposeSinking>();
+  pass_manager.run_passes(func);
+  size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
+  ASSERT_EQ(func->get_results().at(0)->get_argument(0), absn2);
+  EXPECT_NE(before_count, after_count);
+  EXPECT_EQ(after_count, 0);
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

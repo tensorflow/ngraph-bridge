@@ -446,6 +446,7 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   TransposeMap reorders, reuse_map;
   ngraph::NodeVector results;
   set<shared_ptr<ngraph::Node>> transposes_to_delete;
+  vector<ngraph::Shape> results_out_shape;
 
   // STEP 1 : Sink or Swim transposes away for op clusters
   for (auto n : f->get_ordered_ops()) {
@@ -453,6 +454,7 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
     // collect all Result nodes for a sanity check
     if (n->is_output()) {
       results.push_back(n);
+      results_out_shape.push_back(n->get_output_shape(0));
     }
 
     if (auto transpose = ngraph::as_type_ptr<ngraph::opset3::Transpose>(n)) {
@@ -487,6 +489,18 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
         r->get_shape() == r->get_input_shape(0) &&
             r->get_element_type() == r->get_argument(0)->get_element_type(),
         " op::Result = ", *r, ", Arg = ", *r->get_argument(0));
+  }
+
+  // make sure that after TransposeSinking pass the output_shape for Result
+  // does not change from the expected output_shape before the pass
+  int i = 0;
+  for (auto n : f->get_ordered_ops()) {
+    if (n->is_output()) {
+      NGRAPH_CHECK(n->get_output_shape(0) == results_out_shape[i],
+                   " op::Result = ", *n, " expected output shape = ",
+                   results_out_shape[i]);
+      i++;
+    }
   }
 
   return true;
