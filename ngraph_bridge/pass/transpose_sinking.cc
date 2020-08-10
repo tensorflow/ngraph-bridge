@@ -480,6 +480,15 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   for (auto n : f->get_ordered_ops()) {
     n->revalidate_and_infer_types();
   }
+
+  // make sure shapes are always materialized before results
+  for (auto r : results) {
+    NGRAPH_CHECK(
+        r->get_shape() == r->get_input_shape(0) &&
+            r->get_element_type() == r->get_argument(0)->get_element_type(),
+        " op::Result = ", *r, ", Arg = ", *r->get_argument(0));
+  }
+
   return true;
 }
 
