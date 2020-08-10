@@ -130,8 +130,12 @@ static void insert_transpose(shared_ptr<ngraph::Node> target,
                              size_t input_index, TransposeMap& reuse_map) {
   NGRAPH_VLOG(4) << "Inserting transpose at input " << target->get_name()
                  << " input index " << input_index;
-  auto new_transpose =
-      transpose->clone_with_new_inputs(transpose->input_values());
+  auto arg = target->input(input_index).get_source_output();
+  NGRAPH_VLOG(4) << "Arg shape: " << arg.get_shape();
+  auto new_order = ngraph::as_type_ptr<ngraph::opset3::Constant>(
+      transpose->input_value(1).get_node_shared_ptr());
+  auto new_transpose = make_transpose(arg.get_node_shared_ptr(),
+                                      new_order->get_axis_vector_val());
   NGRAPH_VLOG(4) << "Inserting transpose "
                  << describe<ngraph::opset3::Transpose>(new_transpose)
                  << " at input " << target->get_name() << " input index "
@@ -151,8 +155,7 @@ static void insert_transpose(shared_ptr<ngraph::Node> target,
       NGRAPH_VLOG(4) << "Write ReuseMap[" << transpose->get_name() << "] = "
                      << describe<ngraph::opset3::Transpose>(new_transpose);
       // update reuse_map
-      reuse_map[transpose] =
-          ngraph::as_type_ptr<ngraph::opset3::Transpose>(new_transpose);
+      reuse_map[transpose] = new_transpose;
       NGRAPH_VLOG(4) << "Using new transpose "
                      << describe<ngraph::opset3::Transpose>(new_transpose);
       target->input(input_index)
@@ -471,14 +474,6 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   // STEP 2: purge all the transposes we either sunk or swam.
   for (auto r : transposes_to_delete) {
     delete_transpose(r);
-  }
-
-  // make sure shapes are always materialized before results
-  for (auto r : results) {
-    NGRAPH_CHECK(
-        r->get_shape() == r->get_input_shape(0) &&
-            r->get_element_type() == r->get_argument(0)->get_element_type(),
-        " op::Result = ", *r, ", Arg = ", *r->get_argument(0));
   }
 
   // STEP 3: fix wrong shape info wholesale
