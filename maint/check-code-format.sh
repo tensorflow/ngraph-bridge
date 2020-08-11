@@ -32,7 +32,11 @@ declare REQUIRED_CLANG_FORMAT_VERSION=3.9
 declare YAPF_FORMAT_BASENAME="yapf"
 declare REQUIRED_YAPF_FORMAT_VERSION=0.26.0
 
-source "${_maint_SCRIPT_DIR}/bash_lib.sh"
+declare THIS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "${THIS_SCRIPT_DIR}/bash_lib.sh"
+source "${THIS_SCRIPT_DIR}/clang_format_lib.sh"
+
 declare SED_FLAGS
 if [[ "$(uname)" == 'Darwin' ]]; then
     SED_FLAGS='-En'
@@ -50,20 +54,16 @@ if [[ "${YAPF_VERSION}" != "${REQUIRED_YAPF_FORMAT_VERSION}" ]] ; then
     exit -1
 fi
 
-declare THIS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-source "${THIS_SCRIPT_DIR}/bash_lib.sh"
-source "${THIS_SCRIPT_DIR}/clang_format_lib.sh"
+declare YAPF_FORMAT_PROG="python3 -m ${YAPF_FORMAT_BASENAME}"
 
 declare CLANG_FORMAT_PROG
 if ! CLANG_FORMAT_PROG="$(which "${CLANG_FORMAT_BASENAME}")"; then
     bash_lib_die "Unable to find program  ${CLANG_FORMAT_BASENAME}" >&2
 fi
 
-declare YAPF_FORMAT_PROG="python3 -m ${YAPF_FORMAT_BASENAME}"
-
 format_lib_verify_version "${CLANG_FORMAT_PROG}" "${REQUIRED_CLANG_FORMAT_VERSION}" "CLANG"
 bash_lib_status "Verified that '${CLANG_FORMAT_PROG}' has version '${REQUIRED_CLANG_FORMAT_VERSION}'"
+
 declare -a FAILED_FILES_CLANG=()
 declare NUM_FILES_CHECKED_CLANG=0
 
