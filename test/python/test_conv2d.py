@@ -22,14 +22,14 @@ from __future__ import print_function
 
 import pytest
 import platform
+import numpy as np
 
 import tensorflow as tf
 from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import array_ops
-from common import NgraphTest
 from tensorflow.python.framework import dtypes
 
-import numpy as np
+from common import NgraphTest
 
 
 class TestConv2D(NgraphTest):
