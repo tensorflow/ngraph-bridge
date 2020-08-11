@@ -450,7 +450,7 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   // STEP 1 : Sink or Swim transposes away for op clusters
   for (auto n : f->get_ordered_ops()) {
     NGRAPH_VLOG(4) << "-----Start: Processing node----- " << n->get_name();
-    // collect all Result nodes for a sanity check
+    // collect output shape of all Result nodes for a sanity check
     if (n->is_output()) {
       orig_result_out_shape[n->get_name()] = n->get_output_shape(0);
     }
