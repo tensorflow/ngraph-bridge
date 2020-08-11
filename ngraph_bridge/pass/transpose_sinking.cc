@@ -444,17 +444,15 @@ static void sink_concat(shared_ptr<ngraph::opset3::Concat> n,
 // materialize pending transposes if they can't be propagated through op
 bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   TransposeMap reorders, reuse_map;
-  ngraph::NodeVector results;
   set<shared_ptr<ngraph::Node>> transposes_to_delete;
-  vector<ngraph::Shape> results_out_shape;
+  unordered_map<std::string, ngraph::Shape> orig_result_out_shape;
 
   // STEP 1 : Sink or Swim transposes away for op clusters
   for (auto n : f->get_ordered_ops()) {
-    NGRAPH_VLOG(4) << "Start: Processing node " << n->get_name();
+    NGRAPH_VLOG(4) << "-----Start: Processing node----- " << n->get_name();
     // collect all Result nodes for a sanity check
     if (n->is_output()) {
-      results.push_back(n);
-      results_out_shape.push_back(n->get_output_shape(0));
+      orig_result_out_shape[n->get_name()] = n->get_output_shape(0);
     }
 
     if (auto transpose = ngraph::as_type_ptr<ngraph::opset3::Transpose>(n)) {
@@ -470,7 +468,7 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
     } else {
       materialize_shapes(n, reorders, transposes_to_delete, reuse_map);
     }
-    NGRAPH_VLOG(4) << "End: Processing node " << n->get_name();
+    NGRAPH_VLOG(4) << "-----End: Processing node----- " << n->get_name();
   }
 
   // STEP 2: purge all the transposes we either sunk or swam.
@@ -483,24 +481,19 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
     n->revalidate_and_infer_types();
   }
 
-  // make sure shapes are always materialized before results
+  const ngraph::ResultVector& results = f->get_results();
   for (auto r : results) {
+    // make sure shapes are always materialized before results
     NGRAPH_CHECK(
         r->get_shape() == r->get_input_shape(0) &&
             r->get_element_type() == r->get_argument(0)->get_element_type(),
         " op::Result = ", *r, ", Arg = ", *r->get_argument(0));
-  }
 
-  // make sure that after TransposeSinking pass the output_shape for Result
-  // does not change from the expected output_shape before the pass
-  int i = 0;
-  for (auto n : f->get_ordered_ops()) {
-    if (n->is_output()) {
-      NGRAPH_CHECK(n->get_output_shape(0) == results_out_shape[i],
-                   " op::Result = ", *n, " expected output shape = ",
-                   results_out_shape[i]);
-      i++;
-    }
+    // make sure that after TransposeSinking pass the output_shape for Result
+    // does not change from the expected output_shape before the pass
+    NGRAPH_CHECK(r->get_output_shape(0) == orig_result_out_shape[r->get_name()],
+                 " op::Result = ", *r, " expected output shape = ",
+                 orig_result_out_shape[r->get_name()]);
   }
 
   return true;
