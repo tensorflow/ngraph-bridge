@@ -97,7 +97,9 @@ Status ValuesFromConstNode(const NodeDef& node,
     return errors::InvalidArgument("Node not a Const");
   }
 
-  if (node.attr().at("dtype").type() != DataTypeToEnum<T>::value) {
+  auto dt = node.attr().at("dtype").type();
+  if (node.attr().count("dtype") == 0 || node.attr().count("value") == 0 ||
+      (dt != DT_HALF && dt != DataTypeToEnum<T>::value)) {
     std::stringstream ss;
     ss << "Invalid data type defined for Const. Defined: "
        << node.attr().at("dtype").type();
@@ -151,25 +153,29 @@ Status ValuesFromConstNode(const NodeDef& node,
       switch (dt) {
         // TODO(amprocte/NGRAPH-2502): there are more element types to support
         // here
+        case DT_HALF:
+          val_size = tensor.half_val_size();
+          if (val_size > 0) val_i = static_cast<T>(tensor.half_val()[i]);
+          break;
         case DT_INT32:
           val_size = tensor.int_val_size();
-          if (val_size > 0) val_i = tensor.int_val()[i];
+          if (val_size > 0) val_i = static_cast<T>(tensor.int_val()[i]);
           break;
         case DT_INT64:
           val_size = tensor.int64_val_size();
-          if (val_size > 0) val_i = tensor.int64_val()[i];
+          if (val_size > 0) val_i = static_cast<T>(tensor.int64_val()[i]);
           break;
         case DT_FLOAT:
           val_size = tensor.float_val_size();
-          if (val_size > 0) val_i = tensor.float_val()[i];
+          if (val_size > 0) val_i = static_cast<T>(tensor.float_val()[i]);
           break;
         case DT_BOOL:
           val_size = tensor.bool_val_size();
-          if (val_size > 0) val_i = tensor.bool_val()[i];
+          if (val_size > 0) val_i = static_cast<T>(tensor.bool_val()[i]);
           break;
         case DT_DOUBLE:
           val_size = tensor.double_val_size();
-          if (val_size > 0) val_i = tensor.double_val()[i];
+          if (val_size > 0) val_i = static_cast<T>(tensor.double_val()[i]);
           break;
         default:
           NGRAPH_VLOG(0)

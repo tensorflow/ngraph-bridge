@@ -77,9 +77,7 @@ static Status TypeConstraintOk(Node* node,
     for (const auto& name_and_set : itr->second) {
       auto& type_attr_name = name_and_set.first;
       auto& allowed_types = name_and_set.second;
-
       DataType dt;
-
       if (GetNodeAttr(node->attrs(), type_attr_name, &dt) != Status::OK() ||
           std::find(allowed_types.begin(), allowed_types.end(), dt) ==
               allowed_types.end()) {
@@ -566,6 +564,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["NonMaxSuppressionV4"]["T"] = {
         DT_FLOAT};  // TF allows half too
     type_constraint_map["OneHot"]["T"] = NGraphDTypes();
+    type_constraint_map["OneHot"]["TI"] = NGraphIndexDTypes();
     type_constraint_map["Pack"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["T"] = NGraphDTypes();
     type_constraint_map["Pad"]["Tpaddings"] = NGraphIndexDTypes();
