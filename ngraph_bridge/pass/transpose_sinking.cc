@@ -64,7 +64,7 @@ static string describe(shared_ptr<ngraph::Node> node) {
      << ngraph::vector_to_string(const1->get_axis_vector_val())
      << " , shape = " << ngraph::vector_to_string(transpose->get_shape())
      << " ) "
-     << " , child = " << transpose->get_argument(0)->get_name();
+     << " , input = " << transpose->get_argument(0)->get_name();
   return ss.str();
 }
 
@@ -192,9 +192,9 @@ static shared_ptr<ngraph::opset3::Transpose> create_default_transpose(
 
 // convert_binary_to_default_order is used when one of the arguments
 // of a binary op isn't in the default format (i.e. nhwc instead of nchw)
-// We have to normalize this other argument to nchw by swimming nchw towards
-// parameters
-// as far as we can
+// We normalize the "left" argument to match the order of the "right" argument
+// by either inserting a transpose or a reshape, depending on the shape of the
+// "left" argument.
 static void convert_binary_to_default_order(
     shared_ptr<ngraph::Node> binary, const ngraph::Input<ngraph::Node>& input,
     shared_ptr<ngraph::Node> right, TransposeMap& reorders,
