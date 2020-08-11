@@ -150,6 +150,8 @@ void Compare(const Tensor& T1, const Tensor& T2,
 // Compares Tensors considering tolerance
 void Compare(Tensor& T1, Tensor& T2, float tol);
 
+tf::SessionOptions GetSessionOptions(const string& backend_name);
+
 Status CreateSession(const string& graph_filename, const string& backend_name,
                      unique_ptr<tf::Session>& session);
 
@@ -158,6 +160,18 @@ Status LoadGraph(const string& graph_file_name,
                  const tensorflow::SessionOptions& options);
 
 Status LoadGraphFromPbTxt(const string& pb_file, Graph* input_graph);
+
+template <typename T>
+size_t count_ops_of_type(std::shared_ptr<ng::Function> f) {
+  size_t count = 0;
+  for (auto op : f->get_ops()) {
+    if (ng::is_type<T>(op)) {
+      count++;
+    }
+  }
+
+  return count;
+}
 
 }  // namespace testing
 

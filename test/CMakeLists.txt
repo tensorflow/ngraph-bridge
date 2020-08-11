@@ -15,7 +15,6 @@
 # ******************************************************************************
 
 add_subdirectory(python)
-add_subdirectory(python/bfloat16)
 add_subdirectory(model_level_tests)
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
@@ -96,10 +95,9 @@ set(SRC
     test_math_ops.cpp
     test_nn_ops.cpp
     test_array_ops.cpp
-    test_variable_ops.cpp
-    test_momentum_op.cpp
     opexecuter.cpp
     test_thread_safe_queue.cc
+    pass/transpose_sinking_test.cpp
 )
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
