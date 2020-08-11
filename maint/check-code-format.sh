@@ -82,9 +82,6 @@ for ROOT_SUBDIR in ${SRC_DIRS}; do
         # Note that we restrict to "-type f" to exclude symlinks. Emacs sometimes
         # creates dangling symlinks with .cpp/.hpp suffixes as a sort of locking
         # mechanism, and this confuses clang-format.
-        #
-        # We also skip any dir named "cpu_codegen" in case there are
-        # nGraph-generated files lying around from a test run.
         for SRC_FILE in $(find "${ROOT_SUBDIR}"                                      \
                            \( -type f -and \( -name '*.cc' -or -name '*.h'           \
                                               -or -name '*.cpp' -or -name '*.hpp' \) \
