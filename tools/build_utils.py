@@ -487,17 +487,41 @@ def install_ngraph_tf(tf_version, venv_dir, ngtf_pip_whl):
     print(ngraph_bridge.__version__)
 
 
+# Note: version can be a branch-name or tag or commit-id
 def download_repo(target_name, repo, version, submodule_update=False):
-    # First download to a temp folder
-    call(["git", "clone", repo, target_name])
+    if not os.path.exists(target_name):
+        call(["git", "clone", repo, target_name])
 
     pwd = os.getcwd()
-    os.chdir(target_name)
+    try:
+        os.chdir(target_name)
+    except:
+        raise Exception("Cannot find dir: " + target_name)
 
-    # checkout the specified branch and get the latest changes
-    call(["git", "fetch"])
-    command_executor(["git", "checkout", version])
-    call(["git", "pull"])
+    curr_remote = subprocess.check_output(
+        "git remote get-url origin", shell=True).rstrip()
+    if curr_remote != repo:
+        command_executor(["git", "remote set-url origin " + repo])
+    command_executor(["git", "fetch"])
+
+    is_branch = ""
+    try:
+        is_branch = subprocess.check_output(
+            "git show-ref --verify refs/heads/" + version, shell=True).rstrip()
+    except:
+        pass
+    if is_branch == "":
+        # we were given a tag/commit ref
+        curr_git_branch = subprocess.check_output(
+            "git branch | grep '*' | sed -e 's#.* ##'", shell=True).rstrip()
+        if curr_git_branch == "temp_branch":
+            call(["git", "checkout", "master"])
+        call(["git", "branch", "-D", "temp_branch"])
+        command_executor(["git", "checkout", "-b temp_branch", version])
+    else:
+        # switch to the branch
+        command_executor(["git", "checkout", version])
+        call(["git", "pull"])
 
     if submodule_update:
         call(["git", "submodule", "update", "--init", "--recursive"])
