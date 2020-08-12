@@ -40,13 +40,13 @@
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/pass/transpose_folding.h"
+#include "ngraph_bridge/pass/transpose_sinking.h"
 
 using tensorflow::int32;
 using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 static bool VecStrCmp(const std::vector<string>& a,
@@ -1358,151 +1358,20 @@ static Status TranslateDepthToSpaceOp(const Node* op,
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "block_size", &block_size));
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
 
-  ng::Shape input_shape = ng_input->get_shape();
-  std::map<std::string, int> format_to_int_map = {
-      {"NHWC", 0}, {"NCHW", 1}, {"NCHW_VECT_C", 1}};
-
-  int channel_dimension;
-  int num_spatial_dimensions = 2;  // H, W are spatial dimensions
-
-  switch (format_to_int_map[tf_data_format]) {
-    // NHWC
-    case 0:
-      channel_dimension = 3;
-      break;
-    // NCHW
-    case 1:
-      channel_dimension = 1;
-      break;
-    // NCHW_VEC_C
-    case 2:
-      return errors::InvalidArgument(
-          "NCHW_VECT_C is not supported in DepthToSpace for now");
-    default:
-      return errors::InvalidArgument(
-          "DepthToSpace supported data format is NCHW, NHWC, or NCHW_VECT_C");
-  }
-
-  // Error checking : depth must be divisible by square of the block_size
-  if (input_shape[channel_dimension] % (block_size * block_size) != 0) {
+  if (tf_data_format != "NHWC" && tf_data_format != "NCHW") {
     return errors::InvalidArgument(
-        "Input tensor's channel dimension ,", input_shape[channel_dimension],
-        " is not divisible by square of the block_size ", block_size);
+        "DepthToSpace data format is neither NHWC nor NCHW");
   }
 
-  ng::AxisVector ng_reshape_shape;
-  ng::AxisVector ng_transpose_permutation;
-  ng::AxisVector ng_output_shape;
+  bool is_nhwc = (tf_data_format == "NHWC");
 
-  switch (format_to_int_map[tf_data_format]) {
-    // NHWC
-    case 0: {
-      // ng_reshape_shape = [batch_size,
-      //                     height,
-      //                     width,
-      //                     block_size,
-      //                     block_size,
-      //                     channel / (block_size * block_size)]
-      ng_reshape_shape.push_back(input_shape[0]);
-      for (int i = 0; i < num_spatial_dimensions; i++) {
-        ng_reshape_shape.push_back(input_shape[i + 1]);
-      }
-
-      int64 num_blocks = 1;
-      for (int i = 0; i < num_spatial_dimensions; i++) {
-        ng_reshape_shape.push_back(block_size);
-        num_blocks *= block_size;
-      }
-      ng_reshape_shape.push_back(input_shape[channel_dimension] / num_blocks);
-
-      // ng_transpose_shape = [batch_size,
-      //                       height,
-      //                       block_size,
-      //                       width,
-      //                       block_size,
-      //                       channel / (block_size * block_size)]
-      ng_transpose_permutation.push_back(0);
-      for (int i = 0; i < num_spatial_dimensions; i++) {
-        ng_transpose_permutation.push_back(i + 1);
-        ng_transpose_permutation.push_back(i + 1 + num_spatial_dimensions);
-      }
-      ng_transpose_permutation.push_back(channel_dimension +
-                                         num_spatial_dimensions);
-
-      // ng_output_shape = [batch_size,
-      //                    height * block_size,
-      //                    width * block_size,
-      //                    channel / (block_size * block_size)]
-      ng_output_shape.push_back(input_shape[0]);
-      for (int i = 0; i < num_spatial_dimensions; i++) {
-        ng_output_shape.push_back(input_shape[i + 1] * block_size);
-      }
-      ng_output_shape.push_back(input_shape[channel_dimension] / num_blocks);
-      break;
-    }  // end of case NHWC
-
-    // NCHW
-    case 1: {
-      // ng_reshape_shape = [batch_size,
-      //                     block_size,
-      //                     block_size,
-      //                     channel / (block_size * block_size),
-      //                     height,
-      //                     width]
-      int64 num_blocks = 1;
-      ng_reshape_shape.push_back(input_shape[0]);  // N dimension
-      for (int i = 0; i < num_spatial_dimensions; i++) {
-        ng_reshape_shape.push_back(block_size);
-        num_blocks *= block_size;
-      }
-      ng_reshape_shape.push_back(input_shape[channel_dimension] / num_blocks);
-
-      for (int i = 0; i < num_spatial_dimensions; i++) {
-        ng_reshape_shape.push_back(input_shape[i + 2]);
-      }
-
-      // ng_transpose_shape = [batch_size,
-      //                       channel / (block_size * block_size)
-      //                       height,
-      //                       block_size,
-      //                       width,
-      //                       block_size]
-      ng_transpose_permutation.push_back(0);
-      ng_transpose_permutation.push_back(1 + num_spatial_dimensions);
-      for (int i = 0; i < num_spatial_dimensions; i++) {
-        ng_transpose_permutation.push_back(i + 2 + num_spatial_dimensions);
-        ng_transpose_permutation.push_back(i + 1);
-      }
-
-      // ng_output_shape = [batch_size,
-      //                    channel / (block_size * block_size)
-      //                    height * block_size,
-      //                    width * block_size]
-      ng_output_shape.push_back(input_shape[0]);
-      ng_output_shape.push_back(input_shape[channel_dimension] / num_blocks);
-      for (int i = 0; i < num_spatial_dimensions; i++) {
-        ng_output_shape.push_back(input_shape[i + 2] * block_size);
-      }
-      break;
-    }  // end of case NCHW
-  }
-
-  ng::AxisVector ng_axis_order(input_shape.size());
-  std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
-  auto reshaped = ConstructNgNode<ng::op::Reshape>(
-      op->name(), ng_input, ng_axis_order, ng_reshape_shape);
-
-  auto transposed =
-      ng::builder::numpy_transpose(reshaped, ng_transpose_permutation);
-  Builder::SetTracingInfo(op->name(), transposed);
-
-  ng::AxisVector ng_axis_order_second_reshape(transposed->get_shape().size());
-  std::iota(ng_axis_order_second_reshape.begin(),
-            ng_axis_order_second_reshape.end(), 0);
-  auto final_reshape = ConstructNgNode<ng::op::Reshape>(
-      op->name(), transposed, ng_axis_order_second_reshape, ng_output_shape);
-  SaveNgOp(ng_op_map, op->name(), final_reshape);
-
+  BatchToNGraph(op->name(), is_nhwc, ng_input);
+  auto ng_mode = ng::opset3::DepthToSpace::DepthToSpaceMode::BLOCKS_FIRST;
+  std::shared_ptr<ng::Node> depth_to_space =
+      ConstructNgNode<ng::opset3::DepthToSpace>(op->name(), ng_input, ng_mode,
+                                                block_size);
+  BatchToTensorflow(op->name(), is_nhwc, depth_to_space);
+  SaveNgOp(ng_op_map, op->name(), depth_to_space);
   return Status::OK();
 }
 
@@ -1730,21 +1599,17 @@ static Status TranslateFusedBatchNormOp(
   std::shared_ptr<ng::Node> ng_batch_norm;
 
   ng_batch_norm = ConstructNgNode<ng::opset3::BatchNormInference>(
-      op->name(), tf_epsilon, ng_scale, ng_offset, ng_input, ng_mean,
-      ng_variance);
+      op->name(), ng_input, ng_scale, ng_offset, ng_mean, ng_variance,
+      tf_epsilon);
   BatchToTensorflow(op->name(), is_nhwc, ng_batch_norm);
   SaveNgOp(ng_op_map, op->name(), ng_batch_norm);
+  SaveNgOp(ng_op_map, op->name(), ng_mean);
+  SaveNgOp(ng_op_map, op->name(), ng_variance);
+  SaveNgOp(ng_op_map, op->name(), ng_mean);      // reserve_space_1
+  SaveNgOp(ng_op_map, op->name(), ng_variance);  // reserve_space_2
   if (is_v3) {
-    SaveNgOp(ng_op_map, op->name(), ng_mean);
-    SaveNgOp(ng_op_map, op->name(), ng_variance);
-    SaveNgOp(ng_op_map, op->name(), ng_mean);
-    SaveNgOp(ng_op_map, op->name(), ng_variance);
-    // FusedBatchNormV3 has 6 outputs (reserve_space_3)
-    shared_ptr<ng::Node> ng_reserved_3 =
-        ConstructNgNode<ngraph::opset3::Constant>(
-            op->name(), ng_mean->get_element_type(), ng::Shape{},
-            std::vector<std::string>{""});
-    SaveNgOp(ng_op_map, op->name(), ng_reserved_3);
+    // FusedBatchNormV3 has 6 outputs
+    SaveNgOp(ng_op_map, op->name(), ng_mean);  // reserve_space_3
   }
   return Status::OK();
 }
@@ -1819,14 +1684,8 @@ static Status TranslateFusedMatMulOp(const Node* op,
       SaveNgOp(ng_op_map, op->name(),
                ConstructNgNode<ng::opset3::Relu>(op->name(), ng_add));
     } else if (fused_ops[1] == "Relu6") {
-      // TODO fill
-      auto constant_6 = ConstructNgNode<ng::opset3::Constant>(
-          op->name(), ng_add->get_element_type(), ng_add->get_shape(),
-          std::vector<std::string>(ng::shape_size(ng_add->get_shape()), "6"));
-      auto relu6_op = ConstructNgNode<ng::opset3::Minimum>(
-          op->name(), ConstructNgNode<ng::opset3::Relu>(op->name(), ng_add),
-          constant_6);
-      SaveNgOp(ng_op_map, op->name(), relu6_op);
+      SaveNgOp(ng_op_map, op->name(),
+               ConstructNgNode<ng::opset3::Clamp>(op->name(), ng_add, 0, 6));
     } else {
       return errors::Internal(
           "Expected activation to be Relu or Relu6 but got ", fused_ops[1]);
@@ -1965,18 +1824,6 @@ static Status TranslateFusedConv2DOp(const Node* op,
     return Status::OK();
   };
 
-  auto create_relu6 = [](const string& op_name,
-                         const shared_ptr<ng::Node>& ng_node) {
-    auto constant_6 = ConstructNgNode<ng::opset3::Constant>(
-        op_name, ng_node->get_element_type(), ng_node->get_shape(),
-        std::vector<std::string>(ng::shape_size(ng_node->get_shape()), "6"));
-    auto relu6_op = ConstructNgNode<ng::opset3::Minimum>(
-        op_name, ConstructNgNode<ng::opset3::Relu>(
-                     op_name + "_FusedConv2D_Relu", ng_node),
-        constant_6);
-    return relu6_op;
-  };
-
   if (VecStrCmp(fused_ops, {"BiasAdd"}) ||
       VecStrCmp(fused_ops, {"BiasAdd", "Relu"}) ||
       VecStrCmp(fused_ops, {"BiasAdd", "Relu6"})) {
@@ -2016,7 +1863,8 @@ static Status TranslateFusedConv2DOp(const Node* op,
       BatchToTensorflow(op->name(), is_nhwc, ng_relu);
       SaveNgOp(ng_op_map, op->name(), ng_relu);
     } else if (VecStrCmp(fused_ops, {"BiasAdd", "Relu6"})) {
-      shared_ptr<ng::Node> ng_relu6 = create_relu6(op->name(), ng_add);
+      shared_ptr<ng::Node> ng_relu6 = ConstructNgNode<ng::opset3::Clamp>(
+          op->name() + "_FusedConv2D_Relu6", ng_add, 0, 6);
       BatchToTensorflow(op->name(), is_nhwc, ng_relu6);
       SaveNgOp(ng_op_map, op->name(), ng_relu6);
     } else {
@@ -2052,7 +1900,8 @@ static Status TranslateFusedConv2DOp(const Node* op,
       BatchToTensorflow(op->name(), is_nhwc, ng_relu);
       SaveNgOp(ng_op_map, op->name(), ng_relu);
     } else if (VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu6"})) {
-      shared_ptr<ng::Node> ng_relu6 = create_relu6(op->name(), ng_batch_norm);
+      shared_ptr<ng::Node> ng_relu6 = ConstructNgNode<ng::opset3::Clamp>(
+          op->name() + "_FusedConv2D_BatchNormRelu", ng_batch_norm, 0, 6);
       BatchToTensorflow(op->name(), is_nhwc, ng_relu6);
       SaveNgOp(ng_op_map, op->name(), ng_relu6);
     } else {
@@ -3111,15 +2960,8 @@ static Status TranslateRelu6Op(const Node* op,
                                Builder::OpMap& ng_op_map) {
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-
-  auto constant_6 = ConstructNgNode<ng::opset3::Constant>(
-      op->name(), ng_input->get_element_type(), ng_input->get_shape(),
-      std::vector<std::string>(ng::shape_size(ng_input->get_shape()), "6"));
-  auto relu6_op = ConstructNgNode<ng::opset3::Minimum>(
-      op->name(), ConstructNgNode<ng::opset3::Relu>(op->name(), ng_input),
-      constant_6);
-
-  SaveNgOp(ng_op_map, op->name(), relu6_op);
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::opset3::Clamp>(op->name(), ng_input, 0, 6));
   return Status::OK();
 }
 
@@ -3138,7 +2980,6 @@ static Status TranslateReshapeOp(
 
   auto ng_shape = ConstructNgNode<ng::opset3::Constant>(
       op->name(), ng::element::u64, ng::Shape{shape.size()}, shape);
-
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Reshape>(
                                       op->name(), ng_input, ng_shape, false));
   return Status::OK();
@@ -3334,71 +3175,20 @@ static Status TranslateSpaceToDepthOp(const Node* op,
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "block_size", &block_size));
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
 
-  ng::Shape input_shape = ng_input->get_shape();
-  std::map<std::string, int> format_to_int_map = {
-      {"NHWC", 0}, {"NCHW", 1}, {"NCHW_VECT_C", 1}};
-
-  int height_index;
-  int width_index;
-  int channel_index;
-
-  switch (format_to_int_map[tf_data_format]) {
-    // NHWC
-    case 0:
-      height_index = 1;
-      width_index = 2;
-      channel_index = 3;
-      break;
-    // NCHW
-    case 1:
-      height_index = 2;
-      width_index = 3;
-      channel_index = 1;
-      break;
-    // NCHW_VEC_C
-    case 2:
-      return errors::InvalidArgument(
-          "NCHW_VECT_C is not supported in SpaceToDepth for now");
-    default:
-      return errors::InvalidArgument(
-          "SpaceToDepth supported data format is NCHW, NHWC, or NCHW_VECT_C");
-  }
-
-  // Error checking: width and height must be divisible by block_size
-  if (input_shape[height_index] % block_size != 0) {
+  if (tf_data_format != "NHWC" && tf_data_format != "NCHW") {
     return errors::InvalidArgument(
-        "Input tensor's height ,", input_shape[height_index],
-        " is not divisible by block_size ", block_size);
+        "DepthToSpace data format is neither NHWC nor NCHW");
   }
 
-  if (input_shape[width_index] % block_size != 0) {
-    return errors::InvalidArgument(
-        "Input tensor's width ,", input_shape[width_index],
-        " is not divisible by block_size ", block_size);
-  }
+  bool is_nhwc = (tf_data_format == "NHWC");
 
-  // Upper indexes will be the same for all strided slices
-  std::vector<size_t> upper = {input_shape[0], input_shape[1], input_shape[2],
-                               input_shape[3]};
-  // Store the strided_slice result for concat
-  std::vector<std::shared_ptr<ng::Node>> strided_slice_result;
-
-  for (int counter_height = 0; counter_height < block_size; counter_height++) {
-    for (int counter_width = 0; counter_width < block_size; counter_width++) {
-      std::vector<size_t> begin = {0, 0, 0, 0};
-      begin[width_index] = counter_width;
-      begin[height_index] = counter_height;
-      std::vector<size_t> strides = {1, 1, 1, 1};
-      strides[width_index] = size_t(block_size);
-      strides[height_index] = size_t(block_size);
-      strided_slice_result.push_back(ConstructNgNode<ng::op::Slice>(
-          op->name(), ng_input, begin, upper, strides));
-    }
-  }
-
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ngraph::op::Concat>(op->name(), strided_slice_result,
-                                               channel_index));
+  BatchToNGraph(op->name(), is_nhwc, ng_input);
+  auto ng_mode = ng::opset3::SpaceToDepth::SpaceToDepthMode::BLOCKS_FIRST;
+  std::shared_ptr<ng::Node> space_to_depth =
+      ConstructNgNode<ng::opset3::SpaceToDepth>(op->name(), ng_input, ng_mode,
+                                                block_size);
+  BatchToTensorflow(op->name(), is_nhwc, space_to_depth);
+  SaveNgOp(ng_op_map, op->name(), space_to_depth);
   return Status::OK();
 }
 
@@ -3649,41 +3439,10 @@ static Status TranslateTileOp(
   std::vector<int64> multiples;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &multiples));
 
-  auto ng_input_shape = ng_input->get_shape();
-  if (ng_input_shape.size() != multiples.size()) {
-    return errors::InvalidArgument(
-        "dimension of input does not match length of multiples");
-  }
-  std::shared_ptr<ng::Node> ng_output = ng_input;
-  ng::Shape output_shape = ng_input_shape;
-  bool is_empty = false;
-  for (size_t i = 0; i < ng_input_shape.size(); i++) {
-    if (multiples[i] == 0) {
-      is_empty = true;
-    }
-    output_shape[i] = ng_input_shape[i] * multiples[i];
-  }
-  if (is_empty) {
-    SaveNgOp(ng_op_map, op->name(),
-             ConstructNgNode<ngraph::opset3::Constant>(
-                 op->name(), ng_input->get_element_type(), output_shape,
-                 std::vector<std::string>(ng::shape_size(output_shape), "0")));
-  } else {
-    for (size_t i = 0; i < ng_input_shape.size(); i++) {
-      if (multiples[i] < 0) {
-        return errors::InvalidArgument("Expected multiples[", i,
-                                       "] >= 0, but got ", multiples[i]);
-      }
-      vector<shared_ptr<ng::Node>> tmp_tensors;
-      for (int k = 0; k < multiples[i]; k++) {
-        tmp_tensors.push_back(ng_output);
-      }
-      auto ng_concat =
-          ConstructNgNode<ngraph::opset3::Concat>(op->name(), tmp_tensors, i);
-      ng_output = ng_concat;
-    }
-    SaveNgOp(ng_op_map, op->name(), ng_output);
-  }
+  auto ng_repeats = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::i64, ng::Shape{multiples.size()}, multiples);
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::opset3::Tile>(op->name(), ng_input, ng_repeats));
   return Status::OK();
 }
 
@@ -3728,9 +3487,8 @@ static Status TranslateTopKV2Op(
 static Status TranslateTransposeOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input, ng_permutation_op;
-  TF_RETURN_IF_ERROR(
-      GetInputNodes(ng_op_map, op, &ng_input, &ng_permutation_op));
+  shared_ptr<ng::Node> ng_input, ng_permutation;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_permutation));
 
   std::vector<int64> permutation;
   TF_RETURN_IF_ERROR(
@@ -3755,20 +3513,12 @@ static Status TranslateTransposeOp(
     }
   }
 
-  ng::AxisVector ng_axis_order;
-  ng_axis_order.reserve(permutation.size());
-
   NGRAPH_VLOG(3) << ng::join(permutation);
 
-  for (auto i : permutation) {
-    ng_axis_order.push_back(i);
-  }
-
-  NGRAPH_VLOG(3) << ng::join(ng_axis_order);
-
-  auto ng_node = ng::builder::numpy_transpose(ng_input, ng_axis_order);
-  Builder::SetTracingInfo(op->name(), ng_node);
-  SaveNgOp(ng_op_map, op->name(), ng_node);
+  auto input_order = ConstructNgNode<ng::opset3::Constant>(
+      op->name(), ng::element::u64, ng::Shape{permutation.size()}, permutation);
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::opset3::Transpose>(
+                                      op->name(), ng_input, input_order));
   return Status::OK();
 }
 
@@ -4196,7 +3946,8 @@ Status Builder::TranslateGraph(
   // Apply additional passes on the nGraph function here.
   //
   ngraph::pass::Manager passes;
-  passes.register_pass<TransposeFolding>();
+  passes.register_pass<pass::TransposeFolding>();
+  passes.register_pass<pass::TransposeSinking>();
   passes.run_passes(ng_function);
 
   //
@@ -4210,5 +3961,4 @@ Status Builder::TranslateGraph(
 }
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
