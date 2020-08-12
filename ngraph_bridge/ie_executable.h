@@ -42,6 +42,7 @@ class IE_Executable final : public Executable {
  private:
   InferenceEngine::CNNNetwork m_network;
   InferenceEngine::InferRequest m_infer_req;
+  unordered_map<string, shared_ptr<ngraph::runtime::Tensor>> m_params;
   string m_device;
 };
 }
