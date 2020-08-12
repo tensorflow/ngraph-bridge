@@ -342,7 +342,9 @@ def main():
     # Build OpenVINO if required.
     if arguments.build_openvino_backend:
         if not arguments.use_prebuilt_openvino:
-            openvino_version = "releases/2020/4"
+            # "bani/cnn_ngraph_precisions" or "releases/2020/4"
+            # master as of 2020/08/11, PR# 1716
+            openvino_version = "40ce418" 
             openvino_src_dir = "./openvino"
             download_repo(
                 "openvino",
