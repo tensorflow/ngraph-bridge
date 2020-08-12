@@ -507,8 +507,8 @@ def download_repo(target_name, repo, version, submodule_update=False):
     is_branch = ""
     try:
         is_branch = subprocess.check_output(
-            "git show-ref --verify refs/heads/" + version +
-            " refs/remotes/origin/" + version,
+            "git show-ref refs/heads/" + version + " refs/remotes/origin/" +
+            version,
             shell=True).rstrip()
     except:
         pass
