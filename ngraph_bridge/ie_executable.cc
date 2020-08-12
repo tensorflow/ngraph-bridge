@@ -40,12 +40,15 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     }
   }
 
-  NGRAPH_VLOG(2) << "Checking for parameters in IE backend";
+  NGRAPH_VLOG(2) << "Checking for function parameters in IE backend";
   if (func->get_parameters().size() == 0) {
     NGRAPH_VLOG(1) << "No parameters found in nGraph function!";
     // Try to find a node that can be converted into a "static input"
     bool param_replaced = false;
     for (const auto& node : func->get_ordered_ops()) {
+      // Only try to convert constant nodes at the edge to parameters
+      // FIXME: IE cannot handle input parameters with i64/u6 precision
+      // at the moment
       if (node->get_input_size() == 0 && node->is_constant() &&
           !(node->get_element_type() == ngraph::element::i64 ||
             node->get_element_type() == ngraph::element::u64)) {
@@ -54,6 +57,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         auto shape = constant->get_shape();
         auto param = std::make_shared<opset::Parameter>(element_type, shape);
         ngraph::replace_node(node, param);
+        // nGraph doesn't provide a way to set a parameter to an existing
+        // function, so we clone the function here...
         func = make_shared<Function>(func->get_results(),
                                      ParameterVector{param}, func->get_name());
         auto ie_tensor = make_shared<IETensor>(element_type, shape);
@@ -100,10 +105,13 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
         << "Function inputs number differ from number of given inputs";
   }
 
+  //  Prepare input blobs
   size_t i = 0;
   for (const auto& it : input_info) {
     shared_ptr<IETensor> tv;
+    // First check if there were any constants we converted to parameters
     if (m_params.size() > 0) {
+      // We only support one parameter replacement for nullary functions
       CHECK(m_params.size() == 1)
           << "Multiple input constants were converted to parameters.";
       CHECK(input_info.size() == 1) << "Expecting one input that was converted "
