@@ -3479,7 +3479,7 @@ static Status TranslateTopKV2Op(
 static Status TranslateTransposeOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input, ng_permutation;
+  ng::Output<ng::Node> ng_input, ng_permutation;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_permutation));
 
   std::vector<int64> permutation;
@@ -3519,10 +3519,10 @@ static Status TranslateUnpackOp(const Node* op,
                                 Builder::OpMap& ng_op_map) {
   TF_RETURN_IF_ERROR(ValidateInputCount(op, 1));
 
-  shared_ptr<ng::Node> ng_input;
+  ng::Output<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
 
-  ng::Shape input_shape = ng_input->get_shape();
+  ng::Shape input_shape = ng_input.get_node_shared_ptr()->get_shape();
   size_t input_rank = input_shape.size();
 
   int32 tf_axis;
@@ -3570,11 +3570,11 @@ static Status TranslateUnpackOp(const Node* op,
 static Status TranslateXdivyOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input1, ng_input2;
+  ng::Output<ng::Node> ng_input1, ng_input2;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input1, &ng_input2));
   std::tie(ng_input1, ng_input2) =
       Builder::PerformNgBroadcast(op->name(), ng_input1, ng_input2);
-  ng::Shape input1_shape = ng_input1->get_shape();
+  ng::Shape input1_shape = ng_input1.get_node_shared_ptr()->get_shape();
   std::vector<std::string> const_values(ng::shape_size(input1_shape), "0");
   auto const_zero = ConstructNgNode<ng::op::Constant>(
       op->name(), ng_input1->get_element_type(), input1_shape, const_values);
@@ -3591,7 +3591,7 @@ static Status TranslateXdivyOp(
 static Status TranslateUnsortedSegmentSumOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input, ng_segment_ids;
+  ng::Output<ng::Node> ng_input, ng_segment_ids;
   TF_RETURN_IF_ERROR(
       GetInputNodes(ng_op_map, op, &ng_input, &ng_segment_ids, nullptr));
 
@@ -3608,8 +3608,8 @@ static Status TranslateUnsortedSegmentSumOp(
 
   num_segments = tmp_num_segments[0];
 
-  auto& input_shape = ng_input->get_shape();
-  auto& segment_shape = ng_segment_ids->get_shape();
+  auto& input_shape = ng_input.get_node_shared_ptr()->get_shape();
+  auto& segment_shape = ng_segment_ids.get_node_shared_ptr()->get_shape();
 
   ng::Shape output_shape;
   output_shape.push_back(num_segments);
@@ -3631,10 +3631,10 @@ static Status TranslateUnsortedSegmentSumOp(
 static Status TranslateSelectOp(const Node* op,
                                 const std::vector<const Tensor*>&,
                                 Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input1, ng_input2, ng_input3;
+  ng::Output<ng::Node> ng_input1, ng_input2, ng_input3;
   TF_RETURN_IF_ERROR(
       GetInputNodes(ng_op_map, op, &ng_input1, &ng_input2, &ng_input3));
-  shared_ptr<ng::Node> ng_select;
+  ng::Output<ng::Node> ng_select;
   ng_select = ConstructNgNode<opset::Select>(op->name(), ng_input1, ng_input2,
                                              ng_input3);
   SaveNgOp(ng_op_map, op->name(), ng_select);
@@ -3644,10 +3644,10 @@ static Status TranslateSelectOp(const Node* op,
 static Status TranslateZerosLikeOp(const Node* op,
                                    const std::vector<const Tensor*>&,
                                    Builder::OpMap& ng_op_map) {
-  shared_ptr<ng::Node> ng_input;
+  ng::Output<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
 
-  ng::Shape input_shape = ng_input->get_shape();
+  ng::Shape input_shape = ng_input.get_node_shared_ptr()->get_shape();
   std::vector<std::string> const_values(ng::shape_size(input_shape), "0");
   auto ng_result = ConstructNgNode<opset::Constant>(
       op->name(), ng_input->get_element_type(), input_shape, const_values);
@@ -3838,7 +3838,7 @@ Status Builder::TranslateGraph(
 
   //
   // The op map holds a mapping from TensorFlow op names (strings) to
-  // vector of generated nGraph nodes.
+  // vector of generated nGraph Output<Node>.
   //
   Builder::OpMap ng_op_map;
 
@@ -3908,7 +3908,7 @@ Status Builder::TranslateGraph(
   //
   // Populate the result list.
   //
-  vector<shared_ptr<ng::Node>> ng_result_list(tf_ret_vals.size());
+  vector<ng::Output<ng::Node>> ng_result_list(tf_ret_vals.size());
 
   for (auto n : tf_ret_vals) {
     // Make sure that this _Retval only has one input node.
@@ -3922,7 +3922,7 @@ Status Builder::TranslateGraph(
       return errors::InvalidArgument("No index defined for _Retval");
     }
 
-    shared_ptr<ng::Node> result;
+    ng::Output<ng::Node> result;
     TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, n, 0, &result));
 
     ng_result_list[index] = result;
