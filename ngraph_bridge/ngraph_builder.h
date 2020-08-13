@@ -157,7 +157,7 @@ class Builder {
   // 2. Attaches friendly names.
   // 3. Prints a log if NGRAPH_TF_LOG_PLACEMENT=1
   static void SetTracingInfo(const std::string& op_name,
-                             const std::shared_ptr<ngraph::Node> ng_node);
+                             const ngraph::Output<ngraph::Node> ng_node);
 
  private:
   static void ComputeScaleOffsetFolded(const uint& num_bits,

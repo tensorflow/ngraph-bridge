@@ -94,7 +94,7 @@ static void SaveNgOp(Builder::OpMap& ng_op_map, const std::string& op_name,
 }
 
 void Builder::SetTracingInfo(const std::string& op_name,
-                             const shared_ptr<ng::Node> ng_node) {
+                             const ng::Output<ng::Node> ng_node) {
   ng_node->set_friendly_name(op_name + "/" + ng_node->get_name());
   ng_node->add_provenance_tag(op_name);
   if (config::IsLoggingPlacement()) {
@@ -103,7 +103,7 @@ void Builder::SetTracingInfo(const std::string& op_name,
 }
 
 template <class TOpType, class... TArg>
-std::shared_ptr<TOpType> ConstructNgNode(const std::string& op_name,
+ng::Output<TOpType> ConstructNgNode(const std::string& op_name,
                                          TArg&&... Args) {
   auto ng_node = std::make_shared<TOpType>(std::forward<TArg>(Args)...);
   Builder::SetTracingInfo(op_name, ng_node);
@@ -474,9 +474,9 @@ ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
 static Status TranslateUnaryOp(
     const Node* op, const std::vector<const Tensor*>&,
     Builder::OpMap& ng_op_map,
-    std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>)>
+    std::function<ng::Output<ng::Node>(ng::Output<ng::Node>)>
         create_unary_op) {
-  shared_ptr<ng::Node> ng_input;
+  ng::Output<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
   auto ng_node = create_unary_op(ng_input);
   if (ng_node != ng_input) {
@@ -501,7 +501,7 @@ static Status TranslateUnaryOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   return TranslateUnaryOp(op, static_input_map, ng_op_map,
-                          [&op](std::shared_ptr<ng::Node> n) {
+                          [&op](ng::Output<ng::Node> n) {
                             return ConstructNgNode<T>(op->name(), n);
                           });
 }
@@ -534,10 +534,10 @@ static Status TranslateUnaryOp(
 static Status TranslateBinaryOp(
     const Node* op, const std::vector<const Tensor*>&,
     Builder::OpMap& ng_op_map,
-    std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>,
-                                            std::shared_ptr<ng::Node>)>
+    std::function<ng::Output<ng::Node>(ng::Output<ng::Node>,
+                                            ng::Output<ng::Node>)>
         create_binary_op) {
-  std::shared_ptr<ng::Node> ng_lhs, ng_rhs;
+  ng::Output<ng::Node> ng_lhs, ng_rhs;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
   auto ng_node = create_binary_op(ng_lhs, ng_rhs);
   if (ng_node != ng_lhs && ng_node != ng_rhs) {
@@ -565,8 +565,8 @@ static Status TranslateBinaryOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   return TranslateBinaryOp(
-      op, static_input_map, ng_op_map, [&op](std::shared_ptr<ng::Node> ng_lhs,
-                                             std::shared_ptr<ng::Node> ng_rhs) {
+      op, static_input_map, ng_op_map, [&op](ng::Output<ng::Node> ng_lhs,
+                                             ng::Output<ng::Node> ng_rhs) {
         return ConstructNgNode<T>(op->name(), ng_lhs, ng_rhs);
       });
 }
@@ -655,7 +655,7 @@ static Status TranslateQuantizedPoolOp(const Node* op,
 
 static Status TranslateAddNOp(const Node* op, const std::vector<const Tensor*>&,
                               Builder::OpMap& ng_op_map) {
-  std::vector<shared_ptr<ng::Node>> ng_arg_vec(op->num_inputs());
+  std::vector<ng::Output<ng::Node>> ng_arg_vec(op->num_inputs());
 
   for (int inp_idx = 0; inp_idx < op->num_inputs(); inp_idx++)
     TF_RETURN_IF_ERROR(
@@ -665,7 +665,7 @@ static Status TranslateAddNOp(const Node* op, const std::vector<const Tensor*>&,
       ng_op_map, op->name(),
       std::accumulate(std::next(ng_arg_vec.begin()), ng_arg_vec.end(),
                       ng_arg_vec.at(0),
-                      [&op](shared_ptr<ng::Node> a, shared_ptr<ng::Node> b) {
+                      [&op](ng::Output<ng::Node> a, ng::Output<ng::Node> b) {
                         return ConstructNgNode<opset::Add>(op->name(), a, b);
                       }));  // accumulation: start with
                             // first element. default op is
@@ -683,13 +683,13 @@ static Status TranslateArgMinMaxOp(
     return errors::InvalidArgument("Expected node to be argmin or argmax type");
   }
 
-  shared_ptr<ng::Node> ng_input;
+  ng::Output<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
 
   std::vector<int64> tf_dim;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &tf_dim));
 
-  ng::Shape input_shape = ng_input->get_shape();
+  ng::Shape input_shape = ng_input.get_node_shared_ptr()->get_shape();
   size_t input_rank = input_shape.size();
 
   if (tf_dim.size() != 1) {
