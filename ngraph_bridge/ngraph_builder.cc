@@ -87,7 +87,7 @@ static Status ValidateInputCountMin(const Node* op, tensorflow::int32 count) {
 //
 
 static void SaveNgOp(Builder::OpMap& ng_op_map, const std::string& op_name,
-                     const shared_ptr<ng::Node>& output_node) {
+                     const ng::Output<ng::Node>& output_node) {
   // no need to try-catch, map[key] will create vector object
   // if not exists
   ng_op_map[op_name].push_back(output_node);
@@ -159,7 +159,7 @@ static Status GetInputNode(const Builder::OpMap& ng_op_map, const Node* op,
 
   Node* tf_input;
   TF_RETURN_IF_ERROR(op->input_node(input_idx, &tf_input));
-  const std::vector<shared_ptr<ng::Node>>* ng_op = nullptr;
+  const std::vector<ng::Output<ng::Node>>* ng_op = nullptr;
   try {
     ng_op = &ng_op_map.at(tf_input->name());
   } catch (const out_of_range&) {
@@ -167,7 +167,7 @@ static Status GetInputNode(const Builder::OpMap& ng_op_map, const Node* op,
                   string("Ngraph op not found for ") + tf_input->name());
   }
   try {
-    *result = ng_op->at(src_output_idx);
+    *result = ng_op->at(src_output_idx).get_node_shared_ptr();
   } catch (const out_of_range&) {
     return Status(error::NOT_FOUND, string("Input node not found at index ") +
                                         to_string(src_output_idx));

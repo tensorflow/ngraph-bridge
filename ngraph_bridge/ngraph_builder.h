@@ -38,7 +38,7 @@ class Builder {
       std::shared_ptr<ngraph::Function>& ng_function);
 
   using OpMap = std::unordered_map<std::string,
-                                   std::vector<std::shared_ptr<ngraph::Node>>>;
+                                   std::vector<ngraph::Output<ngraph::Node>>>;
 
   template <typename T>
   static void MakePadding(const std::string& tf_padding_type,
