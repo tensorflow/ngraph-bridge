@@ -145,7 +145,7 @@ std::shared_ptr<TOpType> ConstructNgNode(const std::string& op_name,
 //
 
 static Status GetInputNode(const Builder::OpMap& ng_op_map, const Node* op,
-                           size_t input_idx, shared_ptr<ng::Node>* result) {
+                           size_t input_idx, ng::Output<ng::Node>* result) {
   // input op may have resulted in more than one ng::Node (eg. Split)
   // we need to look at Edge to check index of the input op
   std::vector<const Edge*> edges;
@@ -167,7 +167,7 @@ static Status GetInputNode(const Builder::OpMap& ng_op_map, const Node* op,
                   string("Ngraph op not found for ") + tf_input->name());
   }
   try {
-    *result = ng_op->at(src_output_idx).get_node_shared_ptr();
+    *result = ng_op->at(src_output_idx);
   } catch (const out_of_range&) {
     return Status(error::NOT_FOUND, string("Input node not found at index ") +
                                         to_string(src_output_idx));
@@ -182,7 +182,7 @@ static Status GetInputNodes(const Builder::OpMap&, const Node*, size_t) {
 
 template <typename... Arguments>
 static Status GetInputNodes(const Builder::OpMap& ng_op_map, const Node* op,
-                            size_t index, shared_ptr<ng::Node>* result,
+                            size_t index, ng::Output<ng::Node>* result,
                             Arguments&&... remaining) {
   if (result != nullptr) {
     TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, index, result));
