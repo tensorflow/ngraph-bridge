@@ -144,7 +144,7 @@ ng::Output<TOpType> ConstructNgNode(const std::string& op_name,
 //
 
 static Status GetInputNode(const Builder::OpMap& ng_op_map, const Node* op,
-                           size_t input_idx, ng::Output<ng::Node>* result) {
+                           size_t input_idx, ng::Output<ng::Node>& result) {
   // input op may have resulted in more than one ng::Node (eg. Split)
   // we need to look at Edge to check index of the input op
   std::vector<const Edge*> edges;
@@ -181,7 +181,7 @@ static Status GetInputNodes(const Builder::OpMap&, const Node*, size_t) {
 
 template <typename... Arguments>
 static Status GetInputNodes(const Builder::OpMap& ng_op_map, const Node* op,
-                            size_t index, ng::Output<ng::Node>* result,
+                            size_t index, ng::Output<ng::Node>& result,
                             Arguments&&... remaining) {
   if (result != nullptr) {
     TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, index, result));
@@ -669,7 +669,7 @@ static Status TranslateArgMinMaxOp(
   std::vector<int64> tf_dim;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &tf_dim));
 
-  ng::Shape input_shape = ng_input.get_node_shared_ptr()->get_shape();
+  ng::Shape input_shape = ng_input.get_shape();
   size_t input_rank = input_shape.size();
 
   if (tf_dim.size() != 1) {
@@ -3502,7 +3502,7 @@ static Status TranslateUnpackOp(const Node* op,
   ng::Output<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
 
-  ng::Shape input_shape = ng_input.get_node_shared_ptr()->get_shape();
+  ng::Shape input_shape = ng_input.get_shape();
   size_t input_rank = input_shape.size();
 
   int32 tf_axis;
@@ -3582,8 +3582,8 @@ static Status TranslateUnsortedSegmentSumOp(
 
   num_segments = tmp_num_segments[0];
 
-  auto& input_shape = ng_input.get_node_shared_ptr()->get_shape();
-  auto& segment_shape = ng_segment_ids.get_node_shared_ptr()->get_shape();
+  auto& input_shape = ng_input.get_shape();
+  auto& segment_shape = ng_segment_ids.get_shape();
 
   ng::Shape output_shape;
   output_shape.push_back(num_segments);
