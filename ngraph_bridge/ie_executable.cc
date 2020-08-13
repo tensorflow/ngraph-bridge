@@ -64,7 +64,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         auto ie_tensor = make_shared<IETensor>(element_type, shape);
         ie_tensor->write(constant->get_data_ptr(),
                          shape_size(shape) * element_type.size());
-        m_params[param->get_name()] = ie_tensor;
+        m_hoisted_params[param->get_name()] = ie_tensor;
         NGRAPH_VLOG(1) << "Converted node " << constant << " to a parameter "
                        << param;
         param_replaced = true;
@@ -100,7 +100,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
   InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  if (input_info.size() != (inputs.size() + m_params.size())) {
+  if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
     THROW_IE_EXCEPTION
         << "Function inputs number differ from number of given inputs";
   }
@@ -110,14 +110,14 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
   for (const auto& it : input_info) {
     shared_ptr<IETensor> tv;
     // First check if there were any constants we converted to parameters
-    if (m_params.size() > 0) {
+    if (m_hoisted_params.size() > 0) {
       // We only support one parameter replacement for nullary functions
-      CHECK(m_params.size() == 1)
+      CHECK(m_hoisted_params.size() == 1)
           << "Multiple input constants were converted to parameters.";
       CHECK(input_info.size() == 1) << "Expecting one input that was converted "
                                        "from constant to parameter.";
-      auto input = m_params.find(it.first);
-      if (input != m_params.end()) {
+      auto input = m_hoisted_params.find(it.first);
+      if (input != m_hoisted_params.end()) {
         tv = static_pointer_cast<IETensor>((*input).second);
       } else {
         THROW_IE_EXCEPTION << "Input value not found for parameter "
