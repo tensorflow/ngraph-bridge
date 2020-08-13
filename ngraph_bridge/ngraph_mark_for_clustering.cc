@@ -911,7 +911,7 @@ GetTFToNgOpMap() {
       {"Sinh", {std::make_shared<opset::Sinh>()}},
       {"Size", {constant}},
       {"Sign", {std::make_shared<opset::Sign>()}},
-      {"Slice", {std::make_shared<ngraph::op::Slice>()}},
+      {"Slice", {std::make_shared<opset::StridedSlice>()}},
       {"Snapshot", {}},
       {"Softmax", {std::make_shared<opset::Softmax>()}},
       {"Softplus",

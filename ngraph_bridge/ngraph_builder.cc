@@ -3012,53 +3012,58 @@ static Status TranslateSliceOp(
   TF_RETURN_IF_ERROR(
       GetInputNodes(ng_op_map, op, &ng_input, &ng_begin, &ng_size));
 
-  std::vector<int64> lower_vec;
+  std::vector<int64> begin_vec;
   std::vector<int64> size_vec;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &lower_vec));
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &begin_vec));
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &size_vec));
 
-  if (lower_vec.size() != size_vec.size())
+  if (begin_vec.size() != size_vec.size())
     return errors::InvalidArgument(
-        "Cannot translate sliceop: Size of lower = ", lower_vec.size(),
+        "Cannot translate slice op: size of begin = ", begin_vec.size(),
         ", size of size_vec = ", size_vec.size(), ". Expected them to match.");
 
-  NGRAPH_VLOG(3) << "Begin input for Slice: " << ng::join(lower_vec);
+  NGRAPH_VLOG(3) << "Begin input for Slice: " << ng::join(begin_vec);
   NGRAPH_VLOG(3) << "Size input for Slice: " << ng::join(size_vec);
 
-  std::vector<int> upper_vec(lower_vec.size());
+  std::vector<int64> end_vec(begin_vec.size());
   const auto ng_input_shape = ng_input->get_shape();
   stringstream err_stream;
   string err_msg;
   for (size_t i = 0; i < size_vec.size(); i++) {
     if (size_vec[i] != -1) {
-      upper_vec[i] = lower_vec[i] + size_vec[i];
+      end_vec[i] = begin_vec[i] + size_vec[i];
     } else {
       // support -1 for size_vec, to the end of the tensor
-      upper_vec[i] = ng_input_shape[i];
+      end_vec[i] = ng_input_shape[i];
     }
 
     // check for this condition: 0 <= begin[i] <= begin[i] + size[i] <= Di
-    if (0 > lower_vec[i])
-      err_stream << "lower < 0: " << lower_vec[i]
+    if (0 > begin_vec[i])
+      err_stream << "lower < 0: " << begin_vec[i]
                  << ". It should have been positive.\n";
-    if (lower_vec[i] > upper_vec[i])
-      err_stream << "upper < lower: upper = " << upper_vec[i]
-                 << ", lower = " << lower_vec[i] << "\n";
-    if (upper_vec[i] > ng_input_shape[i])
+    if (begin_vec[i] > end_vec[i])
+      err_stream << "upper < lower: upper = " << end_vec[i]
+                 << ", lower = " << begin_vec[i] << "\n";
+    if (begin_vec[i] > ng_input_shape[i])
       err_stream << "dim < upper: dim = " << ng_input_shape[i]
-                 << ", upper = " << upper_vec[i] << "\n";
+                 << ", upper = " << end_vec[i] << "\n";
 
     err_msg = err_stream.str();
     if (!err_msg.empty())
-      return errors::InvalidArgument("Cannot translate sliceop at position ", i,
-                                     " of ", size_vec.size(),
+      return errors::InvalidArgument("Cannot translate slice op at position ",
+                                     i, " of ", size_vec.size(),
                                      ". The reasons are:\n", err_msg);
   }
 
-  std::vector<size_t> l(lower_vec.begin(), lower_vec.end());
-  std::vector<size_t> u(upper_vec.begin(), upper_vec.end());
-  auto ng_slice = ConstructNgNode<ng::op::Slice>(op->name(), ng_input, l, u);
-  SaveNgOp(ng_op_map, op->name(), ng_slice);
+  auto begin = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{begin_vec.size()}, begin_vec);
+  auto end = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{end_vec.size()}, end_vec);
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::StridedSlice>(op->name(), ng_input, begin,
+                                                end, std::vector<int64_t>{},
+                                                std::vector<int64_t>{}));
   return Status::OK();
 }
 
