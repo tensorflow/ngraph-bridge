@@ -373,81 +373,6 @@ Builder::PerformNgBroadcast(const string& prov_tag,
   return make_pair(ng_lhs_new, ng_rhs_new);
 }
 
-ng::AxisSet ConvertMaskToAxes(const int mask) {
-  ng::AxisSet axes{};
-  for (auto i = 0; i < sizeof(int) * 8; ++i) {
-    if ((unsigned char)(mask >> i & 0x01) == 1) {
-      axes.emplace(i);
-    }
-  }
-  return axes;
-};
-
-struct strided_slice_mask_attrs {
-  int begin;
-  int end;
-  int new_axis;
-  int shrink_axis;
-  int ellipsis;
-};
-
-static Status GetStridedSliceAttrs(const Node* op,
-                                   strided_slice_mask_attrs& attrs) {
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "begin_mask", &attrs.begin));
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "end_mask", &attrs.end));
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(op->attrs(), "new_axis_mask", &attrs.new_axis));
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(op->attrs(), "shrink_axis_mask", &attrs.shrink_axis));
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(op->attrs(), "ellipsis_mask", &attrs.ellipsis));
-
-  NGRAPH_VLOG(5) << "Strided Slice Mask Attributes: "
-                 << "  begin mask: " << attrs.begin
-                 << "  end mask: " << attrs.end
-                 << "  new axis mask: " << attrs.new_axis
-                 << "  shrink axis mask: " << attrs.shrink_axis
-                 << "  ellipsis mask: " << attrs.ellipsis;
-
-  return Status::OK();
-}
-
-ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
-                           const std::vector<int64_t>& begin,
-                           const std::vector<int64_t>& end,
-                           const std::vector<int64_t>& stride,
-                           const strided_slice_mask_attrs& mask_attrs) {
-  ng::SlicePlan slice_plan = ng::make_slice_plan(
-      shape, begin, end, stride, ConvertMaskToAxes(mask_attrs.begin),
-      ConvertMaskToAxes(mask_attrs.end), ConvertMaskToAxes(mask_attrs.new_axis),
-      ConvertMaskToAxes(mask_attrs.shrink_axis),
-      ConvertMaskToAxes(mask_attrs.ellipsis));
-
-  // To handle cases like x[2:2], where shape(x) = [1],
-  // TF returns shape = [0], empty vector
-  // make_slice_plan returns begin=2, end=2, but that is > 1
-  // So must clamp them
-  // Another example:
-  // for dimension 3, Also 2:3:-1 gives 4:4, which will also fail if we try to
-  // construct slice. So must clamp to 2:2 etc
-  auto clamp = [](int64_t x, int64_t min, int64_t max) {
-    return x > max ? max : (x < min ? min : x);
-  };
-  for (int i = 0; i < shape.size(); i++) {
-    slice_plan.begins[i] = clamp(slice_plan.begins[i], 0, shape[i]);
-    slice_plan.ends[i] = clamp(slice_plan.ends[i], 0, shape[i]);
-  }
-
-  NGRAPH_VLOG(5) << "Slice_plan: begin: " << ng::join(slice_plan.begins)
-                 << ", end: " << ng::join(slice_plan.ends)
-                 << ", stride: " << ng::join(slice_plan.strides)
-                 << ", reshape input shape: " << slice_plan.reshape_in_shape
-                 << ", reshape output shape: " << slice_plan.reshape_out_shape
-                 << ", reverse axis: " << slice_plan.reverse_axes;
-
-  return slice_plan;
-}
-
 // Helper function to translate a unary op.
 //
 // Parameters:
@@ -3342,83 +3267,52 @@ static Status TranslateStridedSliceOp(
   shared_ptr<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
 
-  strided_slice_mask_attrs mask_attrs;
-  TF_RETURN_IF_ERROR(GetStridedSliceAttrs(op, mask_attrs));
+  int32 begin_mask, end_mask, new_axis_mask, shrink_axis_mask, ellipsis_mask;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "begin_mask", &begin_mask));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "end_mask", &end_mask));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "new_axis_mask", &new_axis_mask));
+  TF_RETURN_IF_ERROR(
+      GetNodeAttr(op->attrs(), "shrink_axis_mask", &shrink_axis_mask));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "ellipsis_mask", &ellipsis_mask));
+
+  NGRAPH_VLOG(5) << "strided slice attributes: "
+                 << "  begin mask: " << begin_mask << "  end mask: " << end_mask
+                 << "  new axis mask: " << new_axis_mask
+                 << "  shrink axis mask: " << shrink_axis_mask
+                 << "  ellipsis mask: " << ellipsis_mask;
 
   std::vector<int64> begin_vec;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &begin_vec));
-
   std::vector<int64> end_vec;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &end_vec));
-
   std::vector<int64> stride_vec;
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 3, static_input_map, &stride_vec));
 
-  // Desired implementation ==>
-  // SaveNgOp(ng_op_map, op->name(),
-  //          ConstructNgNode<ng::op::StridedSlice>(op->name(), begin_vec,
-  //          end_vec, stride_vec,
-  //                             tf_begin_mask, tf_end_mask,
-  //                             tf_new_axis_mask, tf_shrink_axis_mask,
-  //                             tf_ellipsis_mask));
+  auto begin = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{begin_vec.size()}, begin_vec);
+  auto end = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{end_vec.size()}, end_vec);
+  auto strides = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{stride_vec.size()}, stride_vec);
 
-  // Temporarily we are borrowing this implementation from nGraph-core until
-  // ng::op::StridedSlice is released for use in ngraph-bridge
-
-  ng::Shape input_shape = ng_input->get_shape();
-
-  std::vector<int64_t> begin_vec_longint(begin_vec.begin(), begin_vec.end());
-  std::vector<int64_t> end_vec_longint(end_vec.begin(), end_vec.end());
-  std::vector<int64_t> stride_vec_longint(stride_vec.begin(), stride_vec.end());
-
-  NGRAPH_VLOG(5) << "Arguments to make_slice_plan: Input shape: " << input_shape
-                 << ", begin vector: " << ng::join(begin_vec_longint)
-                 << ", end vector: " << ng::join(end_vec_longint)
-                 << ", stride vector: " << ng::join(stride_vec_longint);
-
-  auto in_rank = ng_input->get_shape().size();
-  if (mask_attrs.new_axis == 0) {
-    if (begin_vec_longint.size() > in_rank) {
-      return errors::InvalidArgument("Index out of range using input dim ",
-                                     begin_vec_longint.size(),
-                                     "; input has only ", in_rank, " dims");
+  auto mask_to_vec = [](int32 mask) {
+    auto length = sizeof(mask) * CHAR_BIT;
+    std::vector<int64_t> vec(length, 0);
+    for (auto i = 0; i < length; ++i) {
+      if ((unsigned char)(mask >> i & 0x01) == 1) {
+        vec[i] = 1;
+      }
     }
-  }
+    return vec;
+  };
 
-  ng::SlicePlan sp =
-      GetSlicePlan(input_shape, begin_vec_longint, end_vec_longint,
-                   stride_vec_longint, mask_attrs);
-
-  // Need to convert int64_t to size_t
-  std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
-  std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
-  std::vector<size_t> sp_strides(sp.strides.begin(), sp.strides.end());
-
-  shared_ptr<ng::Node> ng_result = ConstructNgNode<ng::op::Slice>(
-      op->name(), ng_input, sp_begins, sp_ends, sp_strides);
-
-  if (sp.reshape_in_shape != sp.reshape_out_shape) {
-    ng::Shape ng_out_shape(sp.reshape_out_shape);
-    ng::AxisVector ng_axis_order(sp.reshape_in_shape.size());
-    // std::iota Fills the range [first, last) with sequentially increasing
-    // values,
-    // starting with value and repetitively evaluating ++value
-    std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
-
-    NGRAPH_VLOG(3) << " Output  shape " << ng::join(ng_out_shape);
-    NGRAPH_VLOG(3) << " NG  axis order " << ng::join(ng_axis_order);
-
-    ng_result = ConstructNgNode<ng::op::Reshape>(op->name(), ng_result,
-                                                 ng_axis_order, ng_out_shape);
-  }
-
-  if (!sp.reverse_axes.empty()) {
-    ng_result = ConstructNgNode<ng::op::Reverse>(op->name(), ng_result,
-                                                 sp.reverse_axes);
-  }
-
-  SaveNgOp(ng_op_map, op->name(), ng_result);
+  SaveNgOp(
+      ng_op_map, op->name(),
+      ConstructNgNode<opset::StridedSlice>(
+          op->name(), ng_input, begin, end, strides, mask_to_vec(begin_mask),
+          mask_to_vec(end_mask), mask_to_vec(new_axis_mask),
+          mask_to_vec(shrink_axis_mask), mask_to_vec(ellipsis_mask)));
   return Status::OK();
 }
 
