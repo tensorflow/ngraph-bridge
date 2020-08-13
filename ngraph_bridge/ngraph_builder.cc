@@ -158,9 +158,9 @@ static Status GetInputNode(const Builder::OpMap& ng_op_map, const Node* op,
 
   Node* tf_input;
   TF_RETURN_IF_ERROR(op->input_node(input_idx, &tf_input));
-  const std::vector<ng::Output<ng::Node>>* ng_op = nullptr;
+  std::vector<ng::Output<ng::Node>> ng_op;
   try {
-    ng_op = &ng_op_map.at(tf_input->name());
+    ng_op = ng_op_map.at(tf_input->name());
   } catch (const out_of_range&) {
     return Status(error::NOT_FOUND,
                   string("Ngraph op not found for ") + tf_input->name());
