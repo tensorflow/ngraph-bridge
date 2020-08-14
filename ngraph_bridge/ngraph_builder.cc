@@ -3378,38 +3378,46 @@ static Status TranslateTileOp(
   return Status::OK();
 }
 
-// Translate TopKV2 Op using ngraph core op TopK
-static Status TranslateTopKV2Op(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  ng::Output<ngraph::Node> ng_input;
-  TF_RETURN_IF_ERROR(ValidateInputCount(op, 2));
-  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
+// // Translate TopKV2 Op using ngraph core op TopK
+// static Status TranslateTopKV2Op(
+//     const Node* op, const std::vector<const Tensor*>& static_input_map,
+//     Builder::OpMap& ng_op_map) {
+//   ng::Output<ngraph::Node> ng_input;
 
-  size_t k_axis = ng_input.get_shape().size() - 1;
+//   TF_RETURN_IF_ERROR(ValidateInputCount(op, 2));
+//   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
 
-  std::vector<int32> ng_k;
-  size_t k;
-  bool sorted = true;
+//   size_t k_axis = ng_input.get_shape().size() - 1;
+//   std::vector<int32> ng_k;
+//   size_t k;
+//   bool sorted = true;
+//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &ng_k));
 
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &ng_k));
-  k = ng_k[0];
+//   k = ng_k[0];
+//   // sorted = false is not supported right now, it falls back to TF if set to
+//   // false.
+//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "sorted", &sorted));
 
-  // sorted = false is not supported right now, it falls back to TF if set to
-  // false.
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "sorted", &sorted));
+//   // index element type - currently only int32 or int64 are supported by
+//   // ngraph
+//   auto ng_result = std::make_shared<ngraph::op::TopK>(ng_input, k_axis,
+//   ng::element::i32, k, sorted);
+//   Builder::SetTracingInfo(op->name(), ng_result);
 
-  // index element type - currently only int32 or int64 are supported by
-  // ngraph
+//   // ng::Output<ng::Node> ng_values = ng_result->output(1);
+//   // ng::Output<ng::Node> ng_indices = ng_result->output(0);
+//  auto ng_values = std::make_shared<ngraph::op::GetOutputElement>(ng_result,
+//  1);
+//  Builder::SetTracingInfo(op->name(), ng_values);
+//  auto ng_indices = std::make_shared<ngraph::op::GetOutputElement>(ng_result,
+//  0);
+//  Builder::SetTracingInfo(op->name(), ng_indices);
 
-  auto ng_result = ConstructNgNode<ngraph::op::TopK>(
-      op->name(), ng_input, k_axis, ng::element::i32, k, sorted);
-  ng::Output<ng::Node> ng_values = ng_result.get_node_shared_ptr()->output(1);
-  ng::Output<ng::Node> ng_indices = ng_result.get_node_shared_ptr()->output(0);
-  SaveNgOp(ng_op_map, op->name(), ng_values);
-  SaveNgOp(ng_op_map, op->name(), ng_indices);
-  return Status::OK();
-}
+//   SaveNgOp(ng_op_map, op->name(), ng_values);
+//   SaveNgOp(ng_op_map, op->name(), ng_indices);
+
+//   return Status::OK();
+// }
 
 static Status TranslateTransposeOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
@@ -3717,7 +3725,7 @@ const static std::map<
         {"Tan", TranslateUnaryOp<opset::Tan>},
         {"Tanh", TranslateUnaryOp<opset::Tanh>},
         {"Tile", TranslateTileOp},
-        {"TopKV2", TranslateTopKV2Op},
+        // {"TopKV2", TranslateTopKV2Op},
         {"Transpose", TranslateTransposeOp},
         {"UnsortedSegmentSum", TranslateUnsortedSegmentSumOp},
         {"Unpack", TranslateUnpackOp},
