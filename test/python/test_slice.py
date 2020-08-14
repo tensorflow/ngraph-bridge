@@ -282,4 +282,4 @@ class TestSliceOperations(NgraphTest):
 
         with pytest.raises(Exception) as excinfo:
             slice_vals = self.with_ngraph(run_test)
-        assert "Index out of range using input dim 1; input has only 0 dims" in excinfo.value.message
+        assert "number of new axis has to be at least the size of Lower and Upper bounds vector" in excinfo.value.message
