@@ -71,7 +71,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         break;
       }
       if (!param_replaced) {
-        THROW_IE_EXCEPTION << "Unable to add a parameter to a function with no parameters!";
+        THROW_IE_EXCEPTION
+            << "Unable to add a parameter to a function with no parameters!";
       }
     }
   }
