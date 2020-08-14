@@ -3098,33 +3098,31 @@ static Status TranslateBinaryOp(
 //   return Status::OK();
 // }
 
-// static Status TranslateSizeOp(const Node* op, const std::vector<const
-// Tensor*>&,
-//                               Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
+                              Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
 
-//   DataType dtype;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
+  DataType dtype;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
 
-//   // Size has an attribute to specify output, int32 or int64
-//   ng::element::Type type;
-//   TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &type));
+  // Size has an attribute to specify output, int32 or int64
+  ng::element::Type type;
+  TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &type));
 
-//   auto ng_input_shape = ng_input->get_shape();
+  auto ng_input_shape = ng_input.get_shape();
+  int64 result = 1;
+  for (auto dim : ng_input_shape) {
+    result *= dim;
+  }
 
-//   int64 result = 1;
-//   for (auto dim : ng_input_shape) {
-//     result *= dim;
-//   }
+  // make a scalar with value equals to result
+  auto ng_result = ConstructNgNode<opset::Constant>(
+      op->name(), type, ng::Shape(0), std::vector<int64>({result}));
 
-//   // make a scalar with value equals to result
-//   auto ng_result = ConstructNgNode<opset::Constant>(
-//       op->name(), type, ng::Shape(0), std::vector<int64>({result}));
-
-//   SaveNgOp(ng_op_map, op->name(), ng_result);
-//   return Status::OK();
-// }
+  SaveNgOp(ng_op_map, op->name(), ng_result);
+  return Status::OK();
+}
 
 // static Status TranslateSliceOp(
 //     const Node* op, const std::vector<const Tensor*>& static_input_map,
@@ -3692,34 +3690,32 @@ static Status TranslateBinaryOp(
 //   return Status::OK();
 // }
 
-// static Status TranslateSelectOp(const Node* op,
-//                                 const std::vector<const Tensor*>&,
-//                                 Builder::OpMap& ng_op_map) {
-//   ng::Output<ng::Node> ng_input1, ng_input2, ng_input3;
-//   TF_RETURN_IF_ERROR(
-//       GetInputNodes(ng_op_map, op, &ng_input1, &ng_input2, &ng_input3));
-//   ng::Output<ng::Node> ng_select;
-//   ng_select = ConstructNgNode<opset::Select>(op->name(), ng_input1,
-//   ng_input2,
-//                                              ng_input3);
-//   SaveNgOp(ng_op_map, op->name(), ng_select);
-//   return Status::OK();
-// }
+static Status TranslateSelectOp(const Node* op,
+                                const std::vector<const Tensor*>&,
+                                Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input1, ng_input2, ng_input3;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, ng_input1, ng_input2, ng_input3));
+  auto ng_select = ConstructNgNode<opset::Select>(op->name(), ng_input1,
+                                                  ng_input2, ng_input3);
+  SaveNgOp(ng_op_map, op->name(), ng_select);
+  return Status::OK();
+}
 
-// static Status TranslateZerosLikeOp(const Node* op,
-//                                    const std::vector<const Tensor*>&,
-//                                    Builder::OpMap& ng_op_map) {
-//   ng::Output<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+static Status TranslateZerosLikeOp(const Node* op,
+                                   const std::vector<const Tensor*>&,
+                                   Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
 
-//   ng::Shape input_shape = ng_input.get_node_shared_ptr()->get_shape();
-//   std::vector<std::string> const_values(ng::shape_size(input_shape), "0");
-//   auto ng_result = ConstructNgNode<opset::Constant>(
-//       op->name(), ng_input->get_element_type(), input_shape, const_values);
+  ng::Shape input_shape = ng_input.get_shape();
+  std::vector<std::string> const_values(ng::shape_size(input_shape), "0");
+  auto ng_result = ConstructNgNode<opset::Constant>(
+      op->name(), ng_input.get_element_type(), input_shape, const_values);
 
-//   SaveNgOp(ng_op_map, op->name(), ng_result);
-//   return Status::OK();
-// }
+  SaveNgOp(ng_op_map, op->name(), ng_result);
+  return Status::OK();
+}
 
 const static std::map<
     const string,
@@ -3728,7 +3724,7 @@ const static std::map<
     TRANSLATE_OP_MAP{
         {"Abs", TranslateUnaryOp<opset::Abs>},
         {"Acos", TranslateUnaryOp<opset::Acos>},
-        {"Add", TranslateBinaryOp<opset::Add>}
+        {"Add", TranslateBinaryOp<opset::Add>},
         // {"AddN", TranslateAddNOp},
         // {"AddV2", TranslateBinaryOp<opset::Add>},
         // {"Any", TranslateDirectReduceOp<opset::ReduceLogicalOr>},
@@ -3834,11 +3830,11 @@ const static std::map<
         // {"ScatterNd", TranslateScatterNdOp},
         // {"Select", TranslateSelectOp},
         // {"Shape", TranslateShapeOp},
-        // {"Sigmoid", TranslateUnaryOp<opset::Sigmoid>},
-        // {"Sin", TranslateUnaryOp<opset::Sin>},
-        // {"Sinh", TranslateUnaryOp<opset::Sinh>},
-        // {"Size", TranslateSizeOp},
-        // {"Sign", TranslateUnaryOp<opset::Sign>},
+        {"Sigmoid", TranslateUnaryOp<opset::Sigmoid>},
+        {"Sin", TranslateUnaryOp<opset::Sin>},
+        {"Sinh", TranslateUnaryOp<opset::Sinh>},
+        {"Size", TranslateSizeOp},
+        {"Sign", TranslateUnaryOp<opset::Sign>},
         // {"Slice", TranslateSliceOp},
         // {"Snapshot", TranslateIdentityOp},
         // {"Softmax", TranslateSoftmaxOp},
@@ -3846,15 +3842,15 @@ const static std::map<
         // {"SpaceToDepth", TranslateSpaceToDepthOp},
         // {"Split", TranslateSplitOp},
         // {"SplitV", TranslateSplitVOp},
-        // {"Sqrt", TranslateUnaryOp<opset::Sqrt>},
+        {"Sqrt", TranslateUnaryOp<opset::Sqrt>},
         // {"Square", TranslateSquareOp},
-        // {"SquaredDifference", TranslateBinaryOp<opset::SquaredDifference>},
+        {"SquaredDifference", TranslateBinaryOp<opset::SquaredDifference>},
         // {"Squeeze", TranslateSqueezeOp},
         // {"StridedSlice", TranslateStridedSliceOp},
         // {"Sub", TranslateBinaryOp<opset::Subtract>},
         // {"Sum", TranslateDirectReduceOp<opset::ReduceSum>},
-        // {"Tan", TranslateUnaryOp<opset::Tan>},
-        // {"Tanh", TranslateUnaryOp<opset::Tanh>},
+        {"Tan", TranslateUnaryOp<opset::Tan>},
+        {"Tanh", TranslateUnaryOp<opset::Tanh>},
         // {"Tile", TranslateTileOp},
         // {"TopKV2", TranslateTopKV2Op},
         // {"Transpose", TranslateTransposeOp},
