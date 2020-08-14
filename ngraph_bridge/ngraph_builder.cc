@@ -639,48 +639,47 @@ static Status TranslateAddNOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
-// template <typename T>
-// static Status TranslateArgMinMaxOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   bool is_argmin = std::is_same<T, ng::op::ArgMin>::value;
-//   bool is_argmax = std::is_same<T, ng::op::ArgMax>::value;
-//   if (!(is_argmin || is_argmax)) {
-//     return errors::InvalidArgument("Expected node to be argmin or argmax
-//     type");
-//   }
+template <typename T>
+static Status TranslateArgMinMaxOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  bool is_argmin = std::is_same<T, ng::op::ArgMin>::value;
+  bool is_argmax = std::is_same<T, ng::op::ArgMax>::value;
+  if (!(is_argmin || is_argmax)) {
+    return errors::InvalidArgument("Expected node to be argmin or argmax type");
+  }
 
-//   ng::Output<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
 
-//   std::vector<int64> tf_dim;
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &tf_dim));
+  std::vector<int64> tf_dim;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &tf_dim));
 
-//   ng::Shape input_shape = ng_input.get_shape();
-//   size_t input_rank = input_shape.size();
+  ng::Shape input_shape = ng_input.get_shape();
+  size_t input_rank = input_shape.size();
 
-//   if (tf_dim.size() != 1) {
-//     return errors::InvalidArgument(
-//         (is_argmin ? "ArgMin" : "ArgMax"),
-//         " Op: dimension must be scalar, operates on a single axis");
-//   }
+  if (tf_dim.size() != 1) {
+    return errors::InvalidArgument(
+        (is_argmin ? "ArgMin" : "ArgMax"),
+        " Op: dimension must be scalar, operates on a single axis");
+  }
 
-//   // If input dimension is negative, make it positive
-//   if (tf_dim[0] < 0) {
-//     tf_dim[0] = (int64)input_rank + tf_dim[0];
-//   }
-//   size_t input_dims = tf_dim[0];
+  // If input dimension is negative, make it positive
+  if (tf_dim[0] < 0) {
+    tf_dim[0] = (int64)input_rank + tf_dim[0];
+  }
+  size_t input_dims = tf_dim[0];
 
-//   DataType dtype;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "output_type", &dtype));
+  DataType dtype;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "output_type", &dtype));
 
-//   ng::element::Type ng_et;
-//   TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
+  ng::element::Type ng_et;
+  TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
 
-//   SaveNgOp(ng_op_map, op->name(),
-//            ConstructNgNode<T>(op->name(), ng_input, input_dims, ng_et));
-//   return Status::OK();
-// }
+  auto ng_argminmax = ConstructNgNode<T>(op->name(), ng_input, input_dims, ng_et);
+  SaveNgOp(ng_op_map, op->name(), ng_argminmax);
+  return Status::OK();
+}
 
 // static Status TranslateAvgPoolOp(const Node* op,
 //                                  const std::vector<const Tensor*>&,
@@ -3724,11 +3723,11 @@ const static std::map<
         {"AddV2", TranslateBinaryOp<opset::Add>},
         {"Any", TranslateDirectReduceOp<opset::ReduceLogicalOr>},
         {"All", TranslateDirectReduceOp<opset::ReduceLogicalAnd>},
-        // {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
-        // {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
-        // {"Asin", TranslateUnaryOp<opset::Asin>},
-        // {"Atan", TranslateUnaryOp<opset::Atan>},
-        // {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
+        {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
+        {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
+        {"Asin", TranslateUnaryOp<opset::Asin>},
+        {"Atan", TranslateUnaryOp<opset::Atan>},
+        {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
         // {"AvgPool", TranslateAvgPoolOp},
         // {"BatchMatMul", TranslateBatchMatMulOp},
         // {"BatchMatMulV2", TranslateBatchMatMulV2Op},
@@ -3740,20 +3739,20 @@ const static std::map<
         // {"Conv2D", TranslateConv2DOp},
         // {"Conv2DBackpropInput", TranslateConv2DBackpropInputOp},
         // {"Conv3D", TranslateConv3DOp},
-        // {"Cos", TranslateUnaryOp<opset::Cos>},
-        // {"Cosh", TranslateUnaryOp<opset::Cosh>},
+        {"Cos", TranslateUnaryOp<opset::Cos>},
+        {"Cosh", TranslateUnaryOp<opset::Cosh>},
         // {"CropAndResize", TranslateCropAndResizeOp},
         // {"Cumsum", TranslateCumsumOp},
         // {"DepthToSpace", TranslateDepthToSpaceOp},
         // {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
         // {"Dequantize", TranslateDequantizeOp},
-        // {"Equal", TranslateBinaryOp<opset::Equal>},
-        // {"Exp", TranslateUnaryOp<opset::Exp>},
+        {"Equal", TranslateBinaryOp<opset::Equal>},
+        {"Exp", TranslateUnaryOp<opset::Exp>},
         // {"ExpandDims", TranslateExpandDimsOp},
         // {"Fill", TranslateFillOp},
-        // {"Floor", TranslateUnaryOp<opset::Floor>},
+        {"Floor", TranslateUnaryOp<opset::Floor>},
         // {"FloorDiv", TranslateFloorDivOp},
-        // {"FloorMod", TranslateBinaryOp<opset::FloorMod>},
+        {"FloorMod", TranslateBinaryOp<opset::FloorMod>},
         // {"FusedBatchNorm", TranslateFusedBatchNormOp},
         // {"FusedBatchNormV2", TranslateFusedBatchNormOp},
         // {"FusedBatchNormV3", TranslateFusedBatchNormOp},
@@ -3761,33 +3760,33 @@ const static std::map<
         // {"GatherV2", TranslateGatherV2Op},
         // {"_FusedConv2D", TranslateFusedConv2DOp},
         // {"_FusedMatMul", TranslateFusedMatMulOp},
-        // {"Greater", TranslateBinaryOp<opset::Greater>},
-        // {"GreaterEqual", TranslateBinaryOp<opset::GreaterEqual>},
+        {"Greater", TranslateBinaryOp<opset::Greater>},
+        {"GreaterEqual", TranslateBinaryOp<opset::GreaterEqual>},
         // {"Identity", TranslateIdentityOp},
         // {"IsFinite", TranslateIsFiniteOp},
         // {"L2Loss", TranslateL2LossOp},
         // {"LogSoftmax", TranslateLogSoftmaxOp},
-        // {"Less", TranslateBinaryOp<opset::Less>},
-        // {"LessEqual", TranslateBinaryOp<opset::LessEqual>},
-        // {"Log", TranslateUnaryOp<opset::Log>},
+        {"Less", TranslateBinaryOp<opset::Less>},
+        {"LessEqual", TranslateBinaryOp<opset::LessEqual>},
+        {"Log", TranslateUnaryOp<opset::Log>},
         // {"Log1p", TranslateLog1pOp},
-        // {"LogicalAnd", TranslateBinaryOp<opset::LogicalAnd>},
-        // {"LogicalNot", TranslateUnaryOp<opset::LogicalNot>},
-        // {"LogicalOr", TranslateBinaryOp<opset::LogicalOr>},
+        {"LogicalAnd", TranslateBinaryOp<opset::LogicalAnd>},
+        {"LogicalNot", TranslateUnaryOp<opset::LogicalNot>},
+        {"LogicalOr", TranslateBinaryOp<opset::LogicalOr>},
         // {"MatMul", TranslateMatMulOp},
         {"Max", TranslateDirectReduceOp<opset::ReduceMax>},
-        // {"Maximum", TranslateBinaryOp<opset::Maximum>},
+        {"Maximum", TranslateBinaryOp<opset::Maximum>},
         // {"MaxPool", TranslateMaxPoolOp},
         // {"MaxPool3D", TranslateMaxPool3DOp},
         // {"NonMaxSuppressionV4", TranslateNonMaxSuppressionV4Op},
         {"Mean", TranslateDirectReduceOp<opset::ReduceMean>},
         {"Min", TranslateDirectReduceOp<opset::ReduceMin>},
-        // {"Minimum", TranslateBinaryOp<opset::Minimum>},
+        {"Minimum", TranslateBinaryOp<opset::Minimum>},
         // {"MirrorPad", TranslatePadOp},
-        // {"Mul", TranslateBinaryOp<opset::Multiply>},
-        // {"Mod", TranslateBinaryOp<opset::Mod>},
-        // {"Neg", TranslateUnaryOp<opset::Negative>},
-        // {"NotEqual", TranslateBinaryOp<opset::NotEqual>},
+        {"Mul", TranslateBinaryOp<opset::Multiply>},
+        {"Mod", TranslateBinaryOp<opset::Mod>},
+        {"Neg", TranslateUnaryOp<opset::Negative>},
+        {"NotEqual", TranslateBinaryOp<opset::NotEqual>},
         // // Do nothing! NoOps sometimes get placed on nGraph for bureaucratic
         // // reasons, but they have no data flow inputs or outputs.
         // {"NoOp", [](const Node*, const std::vector<const Tensor*>&,
@@ -3796,7 +3795,7 @@ const static std::map<
         // {"Pack", TranslatePackOp},
         // {"Pad", TranslatePadOp},
         // {"PadV2", TranslatePadOp},
-        // {"Pow", TranslateBinaryOp<opset::Power>},
+        {"Pow", TranslateBinaryOp<opset::Power>},
         // // PreventGradient is just Identity in data-flow terms, so reuse
         // that.
         // {"PreventGradient", TranslateIdentityOp},
@@ -3816,9 +3815,9 @@ const static std::map<
         // {"QuantizedMaxPool", TranslateQuantizedMaxPoolOp},
         // {"QuantizeV2", TranslateQuantizeV2Op},
         // {"Rank", TranslateRankOp},
-        // {"RealDiv", TranslateBinaryOp<opset::Divide>},
+        {"RealDiv", TranslateBinaryOp<opset::Divide>},
         // {"Reciprocal", TranslateReciprocalOp},
-        // {"Relu", TranslateUnaryOp<opset::Relu>},
+        {"Relu", TranslateUnaryOp<opset::Relu>},
         // {"Relu6", TranslateRelu6Op},
         // {"Reshape", TranslateReshapeOp},
         // {"Rsqrt", TranslateRsqrtOp},
