@@ -1707,9 +1707,9 @@ static Status TranslateFusedConv2DOp(const Node* op,
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
   bool is_nhwc = (tf_data_format == "NHWC");
 
-  auto CreateNgConv = [&](ng::Output<ng::Node> ng_input,
-                          ng::Output<ng::Node> ng_filter,
-                          ng::Output<ng::Node> ng_conv) {
+  auto CreateNgConv = [&](ng::Output<ng::Node>& ng_input,
+                          ng::Output<ng::Node>& ng_filter,
+                          ng::Output<ng::Node>& ng_conv) {
     std::vector<int32> tf_strides;
     std::vector<int32> tf_dilations;
     std::string tf_padding_type;
