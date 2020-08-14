@@ -1653,8 +1653,9 @@ static Status TranslateFusedMatMulOp(const Node* op,
 static Status TranslateGatherV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_input, ng_input_coords;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_input_coords));
+  ng::Output<ng::Node> ng_input, ng_input_coords, ng_unused;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, ng_input, ng_input_coords, ng_unused));
 
   std::vector<int64> tf_axis;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &tf_axis));
@@ -2515,8 +2516,9 @@ Status QuantizeAndDequantizeV2Helper(
 static Status TranslateQuantizeAndDequantizeV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
+  ng::Output<ng::Node> ng_input, ng_unused1, ng_unused2;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, ng_input, ng_unused1, ng_unused2));
   bool range_given;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "range_given", &range_given));
 
@@ -2941,8 +2943,9 @@ static Status TranslateRsqrtOp(
 static Status TranslateScatterNdOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_indices, ng_updates;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_indices, ng_updates));
+  ng::Output<ng::Node> ng_indices, ng_updates, ng_unused;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, ng_indices, ng_updates, ng_unused));
 
   std::vector<int> ng_shape;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &ng_shape));
@@ -3517,8 +3520,9 @@ static Status TranslateXdivyOp(
 static Status TranslateUnsortedSegmentSumOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_input, ng_segment_ids;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_segment_ids));
+  ng::Output<ng::Node> ng_input, ng_segment_ids, ng_unused;
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, ng_input, ng_segment_ids, ng_unused));
 
   int num_segments;
   std::vector<int64> tmp_num_segments;
