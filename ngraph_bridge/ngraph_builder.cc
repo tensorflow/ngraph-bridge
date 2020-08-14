@@ -3191,36 +3191,34 @@ static Status TranslateSoftmaxOp(const Node* op,
   return Status::OK();
 }
 
-// // Translate SpaceToDepthOp
-// static Status TranslateSpaceToDepthOp(const Node* op,
-//                                       const std::vector<const Tensor*>&,
-//                                       Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+// Translate SpaceToDepthOp
+static Status TranslateSpaceToDepthOp(const Node* op,
+                                      const std::vector<const Tensor*>&,
+                                      Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
 
-//   // Get the attributes
-//   int64 block_size;
-//   std::string tf_data_format;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "block_size", &block_size));
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format",
-//   &tf_data_format));
+  // Get the attributes
+  int64 block_size;
+  std::string tf_data_format;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "block_size", &block_size));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
 
-//   if (tf_data_format != "NHWC" && tf_data_format != "NCHW") {
-//     return errors::InvalidArgument(
-//         "DepthToSpace data format is neither NHWC nor NCHW");
-//   }
+  if (tf_data_format != "NHWC" && tf_data_format != "NCHW") {
+    return errors::InvalidArgument(
+        "DepthToSpace data format is neither NHWC nor NCHW");
+  }
 
-//   bool is_nhwc = (tf_data_format == "NHWC");
+  bool is_nhwc = (tf_data_format == "NHWC");
 
-//   BatchToNGraph(op->name(), is_nhwc, ng_input);
-//   auto ng_mode = opset::SpaceToDepth::SpaceToDepthMode::BLOCKS_FIRST;
-//   std::shared_ptr<ng::Node> space_to_depth =
-//       ConstructNgNode<opset::SpaceToDepth>(op->name(), ng_input, ng_mode,
-//                                            block_size);
-//   BatchToTensorflow(op->name(), is_nhwc, space_to_depth);
-//   SaveNgOp(ng_op_map, op->name(), space_to_depth);
-//   return Status::OK();
-// }
+  BatchToNGraph(op->name(), is_nhwc, ng_input);
+  auto ng_mode = opset::SpaceToDepth::SpaceToDepthMode::BLOCKS_FIRST;
+  auto space_to_depth = ConstructNgNode<opset::SpaceToDepth>(
+      op->name(), ng_input, ng_mode, block_size);
+  BatchToTensorflow(op->name(), is_nhwc, space_to_depth);
+  SaveNgOp(ng_op_map, op->name(), space_to_depth);
+  return Status::OK();
+}
 
 static Status TranslateSplitOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
@@ -3801,7 +3799,7 @@ const static std::map<
         {"Snapshot", TranslateIdentityOp},
         {"Softmax", TranslateSoftmaxOp},
         {"Softplus", TranslateSoftplusOp},
-        // {"SpaceToDepth", TranslateSpaceToDepthOp},
+        {"SpaceToDepth", TranslateSpaceToDepthOp},
         {"Split", TranslateSplitOp},
         {"SplitV", TranslateSplitVOp},
         {"Sqrt", TranslateUnaryOp<opset::Sqrt>},
