@@ -86,7 +86,7 @@ static Status ValidateInputCountMin(const Node* op, tensorflow::int32 count) {
 //
 
 static void SaveNgOp(Builder::OpMap& ng_op_map, const std::string& op_name,
-                     const ng::Output<ng::Node>& output_node) {
+                     ng::Output<ng::Node>& output_node) {
   // no need to try-catch, map[key] will create vector object
   // if not exists
   ng_op_map[op_name].push_back(output_node);
@@ -94,16 +94,17 @@ static void SaveNgOp(Builder::OpMap& ng_op_map, const std::string& op_name,
 
 void Builder::SetTracingInfo(const std::string& op_name,
                              const ng::Output<ng::Node> ng_node) {
-  ng_node.get_node_shared_ptr()->set_friendly_name(op_name + "/" + ng_node.get_node_shared_ptr()->get_name());
-  ng_node.get_node_shared_ptr()->add_provenance_tag(op_name);
+  auto node = ng_node.get_node_shared_ptr();
+  node->set_friendly_name(op_name + "/" + node->get_name());
+  node->add_provenance_tag(op_name);
   if (config::IsLoggingPlacement()) {
-    cout << "TF_to_NG: " << op_name << " --> " << ng_node.get_node_shared_ptr()->get_name() << "\n";
+    cout << "TF_to_NG: " << op_name << " --> " << node->get_name() << "\n";
   }
 }
 
 template <class TOpType, class... TArg>
-ng::Output<TOpType> ConstructNgNode(const std::string& op_name,
-                                         TArg&&... Args) {
+ng::Output<ng::Node> ConstructNgNode(const std::string& op_name,
+                                     TArg&&... Args) {
   auto ng_node = std::make_shared<TOpType>(std::forward<TArg>(Args)...);
   Builder::SetTracingInfo(op_name, ng_node);
   return ng_node;
@@ -166,7 +167,7 @@ static Status GetInputNode(const Builder::OpMap& ng_op_map, const Node* op,
                   string("Ngraph op not found for ") + tf_input->name());
   }
   try {
-    *result = ng_op->at(src_output_idx);
+    result = ng_op.at(src_output_idx);
   } catch (const out_of_range&) {
     return Status(error::NOT_FOUND, string("Input node not found at index ") +
                                         to_string(src_output_idx));
@@ -182,17 +183,15 @@ static Status GetInputNodes(const Builder::OpMap&, const Node*, size_t) {
 template <typename... Arguments>
 static Status GetInputNodes(const Builder::OpMap& ng_op_map, const Node* op,
                             size_t index, ng::Output<ng::Node>& result,
-                            Arguments&&... remaining) {
-  if (result != nullptr) {
-    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, index, result));
-  }
+                            Arguments&... remaining) {
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, index, result));
   return GetInputNodes(ng_op_map, op, index + 1, remaining...);
 }
 }  // namespace detail
 
 template <typename... Arguments>
 static Status GetInputNodes(const Builder::OpMap& ng_op_map, const Node* op,
-                            Arguments&&... remaining) {
+                            Arguments&... remaining) {
   constexpr size_t args_len = sizeof...(Arguments);
   TF_RETURN_IF_ERROR(ValidateInputCount(op, args_len));
   return detail::GetInputNodes(ng_op_map, op, 0, remaining...);
@@ -306,7 +305,7 @@ static Status GetStaticInputVector(
 // Helper for Builder::TranslateGraph ("Const" op)
 template <typename T, typename VecT = T>
 static Status MakeConstOp(const Node* op, ng::element::Type et,
-                          std::shared_ptr<ng::Node>* ng_node) {
+                          ng::Output<ng::Node>& ng_node) {
   vector<VecT> const_values;
   TensorShapeProto shape_proto;
 
@@ -318,38 +317,26 @@ static Status MakeConstOp(const Node* op, ng::element::Type et,
   ng::Shape ng_shape;
   TF_RETURN_IF_ERROR(TFTensorShapeToNGraphShape(const_shape, &ng_shape));
 
-  *ng_node =
+  ng_node =
       ConstructNgNode<opset::Constant>(op->name(), et, ng_shape, const_values);
   return Status::OK();
 }
 
-const std::map<DataType,
-               std::pair<std::function<Status(const Node*, ng::element::Type,
-                                              std::shared_ptr<ng::Node>*)>,
-                         const ngraph::element::Type>>&
-Builder::TF_NGRAPH_CONST_MAP() {
-  static const std::map<
-      DataType, std::pair<std::function<Status(const Node*, ng::element::Type,
-                                               std::shared_ptr<ng::Node>*)>,
-                          const ngraph::element::Type>>
-      the_map = {
-          {DataType::DT_FLOAT, make_pair(MakeConstOp<float>, ng::element::f32)},
-          {DataType::DT_DOUBLE,
-           make_pair(MakeConstOp<double>, ng::element::f64)},
-          {DataType::DT_INT8, make_pair(MakeConstOp<int8>, ng::element::i8)},
-          {DataType::DT_INT16, make_pair(MakeConstOp<int16>, ng::element::i16)},
-          {DataType::DT_QINT8, make_pair(MakeConstOp<qint8>, ng::element::i8)},
-          {DataType::DT_QUINT8,
-           make_pair(MakeConstOp<quint8>, ng::element::u8)},
-          {DataType::DT_QUINT16,
-           make_pair(MakeConstOp<quint16>, ng::element::u16)},
-          {DataType::DT_INT32, make_pair(MakeConstOp<int32>, ng::element::i32)},
-          {DataType::DT_INT64, make_pair(MakeConstOp<int64>, ng::element::i64)},
-          {DataType::DT_UINT8, make_pair(MakeConstOp<uint8>, ng::element::u8)},
-          {DataType::DT_UINT16,
-           make_pair(MakeConstOp<uint16>, ng::element::u16)},
-          {DataType::DT_BOOL,
-           make_pair(MakeConstOp<bool, char>, ng::element::boolean)}};
+const Builder::ConstMap& Builder::TF_NGRAPH_CONST_MAP() {
+  static const Builder::ConstMap the_map = {
+      {DataType::DT_FLOAT, make_pair(MakeConstOp<float>, ng::element::f32)},
+      {DataType::DT_DOUBLE, make_pair(MakeConstOp<double>, ng::element::f64)},
+      {DataType::DT_INT8, make_pair(MakeConstOp<int8>, ng::element::i8)},
+      {DataType::DT_INT16, make_pair(MakeConstOp<int16>, ng::element::i16)},
+      {DataType::DT_QINT8, make_pair(MakeConstOp<qint8>, ng::element::i8)},
+      {DataType::DT_QUINT8, make_pair(MakeConstOp<quint8>, ng::element::u8)},
+      {DataType::DT_QUINT16, make_pair(MakeConstOp<quint16>, ng::element::u16)},
+      {DataType::DT_INT32, make_pair(MakeConstOp<int32>, ng::element::i32)},
+      {DataType::DT_INT64, make_pair(MakeConstOp<int64>, ng::element::i64)},
+      {DataType::DT_UINT8, make_pair(MakeConstOp<uint8>, ng::element::u8)},
+      {DataType::DT_UINT16, make_pair(MakeConstOp<uint16>, ng::element::u16)},
+      {DataType::DT_BOOL,
+       make_pair(MakeConstOp<bool, char>, ng::element::boolean)}};
   return the_map;
 }
 
@@ -454,10 +441,9 @@ ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
 static Status TranslateUnaryOp(
     const Node* op, const std::vector<const Tensor*>&,
     Builder::OpMap& ng_op_map,
-    std::function<ng::Output<ng::Node>(ng::Output<ng::Node>)>
-        create_unary_op) {
+    std::function<ng::Output<ng::Node>(ng::Output<ng::Node>)> create_unary_op) {
   ng::Output<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
   auto ng_node = create_unary_op(ng_input);
   if (ng_node != ng_input) {
     Builder::SetTracingInfo(op->name(), ng_node);
@@ -511,21 +497,19 @@ static Status TranslateUnaryOp(
 //    }
 //
 
-static Status TranslateBinaryOp(
-    const Node* op, const std::vector<const Tensor*>&,
-    Builder::OpMap& ng_op_map,
-    std::function<ng::Output<ng::Node>(ng::Output<ng::Node>,
-                                            ng::Output<ng::Node>)>
-        create_binary_op) {
+static Status TranslateBinaryOp(const Node* op,
+                                const std::vector<const Tensor*>&,
+                                Builder::OpMap& ng_op_map,
+                                std::function<ng::Output<ng::Node>(
+                                    ng::Output<ng::Node>, ng::Output<ng::Node>)>
+                                    create_binary_op) {
   ng::Output<ng::Node> ng_lhs, ng_rhs;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_lhs, &ng_rhs));
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_lhs, ng_rhs));
   auto ng_node = create_binary_op(ng_lhs, ng_rhs);
   if (ng_node != ng_lhs && ng_node != ng_rhs) {
     Builder::SetTracingInfo(op->name(), ng_node);
   }
-
   SaveNgOp(ng_op_map, op->name(), ng_node);
-
   return Status::OK();
 }
 
@@ -545,8 +529,8 @@ static Status TranslateBinaryOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   return TranslateBinaryOp(
-      op, static_input_map, ng_op_map, [&op](ng::Output<ng::Node> ng_lhs,
-                                             ng::Output<ng::Node> ng_rhs) {
+      op, static_input_map, ng_op_map,
+      [&op](ng::Output<ng::Node>& ng_lhs, ng::Output<ng::Node>& ng_rhs) {
         return ConstructNgNode<T>(op->name(), ng_lhs, ng_rhs);
       });
 }
@@ -3819,7 +3803,7 @@ Status Builder::TranslateGraph(
   //
   // Populate the parameter list, and also put parameters into the op map.
   //
-  vector<shared_ptr<ng::op::Parameter>> ng_parameter_list(tf_params.size());
+  ng::ParameterVector ng_parameter_list(tf_params.size());
 
   for (auto parm : tf_params) {
     DataType dtype;
@@ -3840,9 +3824,10 @@ Status Builder::TranslateGraph(
     string prov_tag;
     GetNodeAttr(parm->attrs(), "_prov_tag", &prov_tag);
     auto ng_param =
-        ConstructNgNode<ng::op::Parameter>(prov_tag, ng_et, ng_shape);
+        ConstructNgNode<opset::Parameter>(prov_tag, ng_et, ng_shape);
     SaveNgOp(ng_op_map, parm->name(), ng_param);
-    ng_parameter_list[index] = ng_param;
+    ng_parameter_list[index] =
+        ngraph::as_type_ptr<opset::Parameter>(ng_param.get_node_shared_ptr());
   }
 
   //
@@ -3882,7 +3867,7 @@ Status Builder::TranslateGraph(
   //
   // Populate the result list.
   //
-  vector<ng::Output<ng::Node>> ng_result_list(tf_ret_vals.size());
+  ng::ResultVector ng_result_list(tf_ret_vals.size());
 
   for (auto n : tf_ret_vals) {
     // Make sure that this _Retval only has one input node.
@@ -3897,9 +3882,12 @@ Status Builder::TranslateGraph(
     }
 
     ng::Output<ng::Node> result;
-    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, n, 0, &result));
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, n, 0, result));
 
-    ng_result_list[index] = result;
+    ng_result_list[index] =
+        ng::is_type<opset::Result>(result.get_node_shared_ptr())
+            ? ng::as_type_ptr<opset::Result>(result.get_node_shared_ptr())
+            : make_shared<opset::Result>(result);
   }
 
   //

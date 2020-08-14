@@ -137,12 +137,12 @@ class Builder {
     NGRAPH_VLOG(3) << "ng_padding_above: " << ngraph::join(ng_padding_above);
   }
 
-  static const std::map<
+  using ConstMap = std::map<
       DataType,
       std::pair<std::function<Status(const Node*, ngraph::element::Type,
-                                     std::shared_ptr<ngraph::Node>*)>,
-                const ngraph::element::Type>>&
-  TF_NGRAPH_CONST_MAP();
+                                     ngraph::Output<ngraph::Node>&)>,
+                const ngraph::element::Type>>;
+  static const Builder::ConstMap& TF_NGRAPH_CONST_MAP();
 
   // This function is used to trace which ng node came from which tf node
   // It does 3 things:
