@@ -364,29 +364,63 @@ TEST(MathOps, Cumsum) {
   opexecuter.RunTest();
 }  // end of test op Cumsum
 
-// BEGIN: An example of how to use parametrized Google Tests...
+// BEGIN: parametrized Google Tests
 class MathOpsSum : public ::testing::TestWithParam<
-                       std::tuple<TensorShape, std::vector<int>, bool>> {
-  // tuple: tensor-shape, reduction axis vector, keep_dims
- protected:
-  std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6,
-                           1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
+                       std::tuple<std::vector<int>, std::vector<int>, bool>> {
+ public:
+  static std::vector<std::tuple<std::vector<int>, std::vector<int>, bool>>
+  get_testing_params() {
+    std::vector<std::tuple<std::vector<int>, std::vector<int>, bool>>
+        testing_params;
+    vector<vector<int>> tshapes = {{2, 3},         {2, 2, 3},    {6, 2},
+                                   {2, 4, 3},      {4, 3, 2, 1}, {1, 2, 3, 4},
+                                   {3, 1, 2, 4, 1}};
+    vector<bool> v_keep_dims = {true, false};
+
+    for (auto tshp : tshapes) {
+      vector<vector<int>> vv_axis;
+      for (auto ax = 0; ax < tshp.size(); ax++) {
+        vv_axis.push_back({ax});
+      }
+      for (auto v_axis : vv_axis) {
+        for (auto keep_dims : v_keep_dims) {
+          testing_params.push_back(std::make_tuple(tshp, v_axis, keep_dims));
+        }
+      }
+    }
+    // Add few more tests with axes-combos
+    testing_params.push_back(
+        std::make_tuple(std::vector<int>{6, 2}, std::vector<int>{0, 1}, false));
+    testing_params.push_back(
+        std::make_tuple(std::vector<int>{6, 2}, std::vector<int>{0, 1}, true));
+    testing_params.push_back(std::make_tuple(std::vector<int>{2, 4, 3},
+                                             std::vector<int>{0, 1, 2}, false));
+
+    return testing_params;
+  }
 };
 
 TEST_P(MathOpsSum, SubTests) {
-  TensorShape tshp = std::get<0>(GetParam());
+  auto tshpvec = std::get<0>(GetParam());
   auto axisvec = std::get<1>(GetParam());
   auto keep_dims = std::get<2>(GetParam());
+  // TensorShape tshp({tshpvec.begin(), tshpvec.end()});
+  TensorShape tshp;
+  for (auto dim : tshpvec) {
+    tshp.AddDim(dim);
+  }
 
   std::stringstream axisvec_ss;
   std::copy(axisvec.begin(), axisvec.end(),
             std::ostream_iterator<int>(axisvec_ss, ","));
-  NGRAPH_VLOG(5) << ">> Running MathOpsSum parameterized sub-test"
+  NGRAPH_VLOG(5) << ">> Running parameterized sub-test"
                  << ", tensor-shape=" << tshp << ", axis=" << axisvec_ss.str()
                  << ", keep_dims=" << keep_dims;
   Scope root = Scope::NewRootScope();
   auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
 
+  std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6,
+                           1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
   Tensor A(DT_INT32, TensorShape(tshp));
   AssignInputValues<int>(A, vals);
 
@@ -402,32 +436,12 @@ TEST_P(MathOpsSum, SubTests) {
 // Run like: .../build_cmake$ ./test/gtest_ngtf
 // --gtest_filter="TestsWithParams*"
 // or, --gtest_filter="TestsWithParams/MathOpsSum.SubTests/0"
-INSTANTIATE_TEST_CASE_P(
-    TestsWithParams, MathOpsSum,
-    ::testing::Values(
-        std::make_tuple(TensorShape{2, 3}, std::vector<int>{0}, false),
-        std::make_tuple(TensorShape{2, 3}, std::vector<int>{1}, false),
-        std::make_tuple(TensorShape{2, 2, 3}, std::vector<int>{0}, false),
-        std::make_tuple(TensorShape{2, 2, 3}, std::vector<int>{1}, false),
-        std::make_tuple(TensorShape{2, 2, 3}, std::vector<int>{2}, false),
-        std::make_tuple(TensorShape{2, 1, 2, 3}, std::vector<int>{0}, false),
-        std::make_tuple(TensorShape{2, 1, 2, 3}, std::vector<int>{1}, false),
-        std::make_tuple(TensorShape{2, 1, 2, 3}, std::vector<int>{2}, false),
-        std::make_tuple(TensorShape{2, 1, 2, 3}, std::vector<int>{3}, false),
-        std::make_tuple(TensorShape{2, 1, 2, 3}, std::vector<int>{0, 1, 3},
-                        false),
-        std::make_tuple(TensorShape{6, 2}, std::vector<int>{0}, false),
-        std::make_tuple(TensorShape{6, 2}, std::vector<int>{1}, false),
-        std::make_tuple(TensorShape{6, 2}, std::vector<int>{0, 1}, false),
-        std::make_tuple(TensorShape{2, 4, 3}, std::vector<int>{0}, false),
-        std::make_tuple(TensorShape{2, 4, 3}, std::vector<int>{1}, false),
-        std::make_tuple(TensorShape{2, 4, 3}, std::vector<int>{2}, false),
-        std::make_tuple(TensorShape{2, 4, 3}, std::vector<int>{0, 1, 2},
-                        false)));
+INSTANTIATE_TEST_CASE_P(TestsWithParams, MathOpsSum,
+                        ::testing::ValuesIn(MathOpsSum::get_testing_params()));
 // END: parametrized Google Tests
 
 // Test op: Sum with & without keep dims & with both positive & negative axis
-// Conatins several sub-tests with varying parameters
+// Contains several sub-tests with varying parameters
 TEST(MathOps, Sum) {
   std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6,
                            1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};

@@ -314,6 +314,8 @@ void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
   auto T2_data = T2.flat<T>().data();
   bool is_comparable = false;
   bool any_idxcomp_failed = false;
+  std::stringstream failure_info_tf;
+  std::stringstream failure_info_ng;
   for (int k = 0; k < T_size; k++) {
     auto a = T1_data[k];
     auto b = T2_data[k];
@@ -323,11 +325,16 @@ void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
     } else {
       is_comparable = compare_integral_data<T>(a, b);
     }
-    if (!is_comparable) any_idxcomp_failed = true;
-    EXPECT_TRUE(is_comparable) << " TF output idx#" << k << " " << a << endl
-                               << " NG output idx#" << k << " " << b;
+    if (!is_comparable) {
+      any_idxcomp_failed = true;
+      failure_info_tf << a << ", ";
+      failure_info_ng << b << ", ";
+    }
   }
   _LastCompareSuccessful = !any_idxcomp_failed;
+  EXPECT_TRUE(_LastCompareSuccessful)
+      << "TF output: " << failure_info_tf.str() << endl
+      << "NG output: " << failure_info_ng.str() << endl;
 }
 
 bool Compare(std::vector<string> desired, std::vector<string> actual) {
