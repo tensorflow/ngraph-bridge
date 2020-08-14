@@ -3018,65 +3018,61 @@ static Status TranslateDirectReduceOp(
 //       });
 // }
 
-// static Status TranslateScatterNdOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_indices;
-//   shared_ptr<ng::Node> ng_updates;
-//   TF_RETURN_IF_ERROR(
-//       GetInputNodes(ng_op_map, op, &ng_indices, &ng_updates, nullptr));
+static Status TranslateScatterNdOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_indices, ng_updates;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_indices, ng_updates));
 
-//   std::vector<int> ng_shape;
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map,
-//   &ng_shape));
-//   // Copy the int vector to a size_t vector, because that is what ng::Shape
-//   // accepts
-//   std::vector<size_t> ng_shape_size_t(ng_shape.begin(), ng_shape.end());
+  std::vector<int> ng_shape;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &ng_shape));
+  // Copy the int vector to a size_t vector, because that is what ng::Shape
+  // accepts
+  std::vector<size_t> ng_shape_size_t(ng_shape.begin(), ng_shape.end());
 
-//   // Create a tensor and populate the tensor with "0" to Add to ScatterNd
-//   auto et = ng_updates->get_element_type();
-//   std::vector<std::string> constant_values(ng::shape_size(ng_shape_size_t),
-//                                            "0");
-//   auto ng_inputs = ConstructNgNode<ng::op::Constant>(
-//       op->name(), et, ng::Shape(ng_shape_size_t), constant_values);
+  // Create a tensor and populate the tensor with "0" to Add to ScatterNd
+  auto et = ng_updates.get_element_type();
+  std::vector<std::string> constant_values(ng::shape_size(ng_shape_size_t),
+                                           "0");
+  auto ng_inputs = ConstructNgNode<ng::op::Constant>(
+      op->name(), et, ng::Shape(ng_shape_size_t), constant_values);
 
-//   SaveNgOp(ng_op_map, op->name(),
-//            ConstructNgNode<ng::op::ScatterNDAdd>(op->name(), ng_inputs,
-//                                                  ng_indices, ng_updates));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<ng::op::ScatterNDAdd>(op->name(), ng_inputs,
+                                                 ng_indices, ng_updates));
 
-//   return Status::OK();
-// }
+  return Status::OK();
+}
 
-// static Status TranslateShapeOp(const Node* op,
-//                                const std::vector<const Tensor*>&,
-//                                Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
+static Status TranslateShapeOp(const Node* op,
+                               const std::vector<const Tensor*>&,
+                               Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
 
-//   // the shape of the input tensor which will be the value to the Constant Op
-//   auto input_shape = ng_input->get_shape();
+  // the shape of the input tensor which will be the value to the Constant Op
+  auto input_shape = ng_input.get_shape();
 
-//   // the rank of the input tensor which will be the shape to the Constant Op
-//   size_t rank = input_shape.size();
+  // the rank of the input tensor which will be the shape to the Constant Op
+  size_t rank = input_shape.size();
 
-//   DataType dtype;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
+  DataType dtype;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
 
-//   // the inputs to the Constant Op
-//   ng::element::Type type;
-//   TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &type));
+  // the inputs to the Constant Op
+  ng::element::Type type;
+  TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &type));
 
-//   auto shape = ng::Shape(1, rank);
+  auto shape = ng::Shape(1, rank);
 
-//   std::vector<int> values(rank);
-//   for (size_t i = 0; i < rank; i++) {
-//     values[i] = input_shape[i];
-//   }
-//   SaveNgOp(ng_op_map, op->name(),
-//            ConstructNgNode<opset::Constant>(op->name(), type, shape,
-//            values));
-//   return Status::OK();
-// }
+  std::vector<int> values(rank);
+  for (size_t i = 0; i < rank; i++) {
+    values[i] = input_shape[i];
+  }
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Constant>(op->name(), type, shape, values));
+  return Status::OK();
+}
 
 static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
                               Builder::OpMap& ng_op_map) {
@@ -3773,9 +3769,9 @@ const static std::map<
         // {"Relu6", TranslateRelu6Op},
         // {"Reshape", TranslateReshapeOp},
         // {"Rsqrt", TranslateRsqrtOp},
-        // {"ScatterNd", TranslateScatterNdOp},
-        // {"Select", TranslateSelectOp},
-        // {"Shape", TranslateShapeOp},
+        {"ScatterNd", TranslateScatterNdOp},
+        {"Select", TranslateSelectOp},
+        {"Shape", TranslateShapeOp},
         {"Sigmoid", TranslateUnaryOp<opset::Sigmoid>},
         {"Sin", TranslateUnaryOp<opset::Sin>},
         {"Sinh", TranslateUnaryOp<opset::Sinh>},
