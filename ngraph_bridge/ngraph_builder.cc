@@ -86,7 +86,7 @@ static Status ValidateInputCountMin(const Node* op, tensorflow::int32 count) {
 //
 
 static void SaveNgOp(Builder::OpMap& ng_op_map, const std::string& op_name,
-                     ng::Output<ng::Node>& output_node) {
+                     ng::Output<ng::Node> output_node) {
   // no need to try-catch, map[key] will create vector object
   // if not exists
   ng_op_map[op_name].push_back(output_node);
@@ -1910,14 +1910,14 @@ static Status TranslateArgMinMaxOp(
 //   return Status::OK();
 // }
 
-// static Status TranslateIdentityOp(const Node* op,
-//                                   const std::vector<const Tensor*>&,
-//                                   Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_arg;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_arg));
-//   SaveNgOp(ng_op_map, op->name(), ng_arg);
-//   return Status::OK();
-// }
+static Status TranslateIdentityOp(const Node* op,
+                                  const std::vector<const Tensor*>&,
+                                  Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_arg;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_arg));
+  SaveNgOp(ng_op_map, op->name(), ng_arg);
+  return Status::OK();
+}
 
 // static Status TranslateIsFiniteOp(
 //     const Node* op, const std::vector<const Tensor*>& static_input_map,
@@ -2023,21 +2023,20 @@ static Status TranslateArgMinMaxOp(
 //   return Status::OK();
 // }
 
-// static Status TranslateSoftplusOp(const Node* op,
-//                                   const std::vector<const Tensor*>&,
-//                                   Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_inp;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_inp));
-//   auto ng_exp = ConstructNgNode<opset::Exp>(op->name(), ng_inp);
-//   auto constant_1 = ConstructNgNode<opset::Constant>(
-//       op->name(), ng_inp->get_element_type(), ng_inp->get_shape(),
-//       std::vector<std::string>(ng::shape_size(ng_inp->get_shape()), "1"));
-//   auto ng_output = ConstructNgNode<opset::Log>(
-//       op->name(), ConstructNgNode<opset::Add>(op->name(), ng_exp,
-//       constant_1));
-//   SaveNgOp(ng_op_map, op->name(), ng_output);
-//   return Status::OK();
-// }
+static Status TranslateSoftplusOp(const Node* op,
+                                  const std::vector<const Tensor*>&,
+                                  Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_inp;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_inp));
+  auto ng_exp = ConstructNgNode<opset::Exp>(op->name(), ng_inp);
+  auto constant_1 = ConstructNgNode<opset::Constant>(
+      op->name(), ng_inp.get_element_type(), ng_inp.get_shape(),
+      std::vector<std::string>(ng::shape_size(ng_inp.get_shape()), "1"));
+  auto ng_output = ConstructNgNode<opset::Log>(
+      op->name(), ConstructNgNode<opset::Add>(op->name(), ng_exp, constant_1));
+  SaveNgOp(ng_op_map, op->name(), ng_output);
+  return Status::OK();
+}
 
 // static Status TranslateMatMulOp(const Node* op,
 //                                 const std::vector<const Tensor*>&,
@@ -3118,571 +3117,538 @@ static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
-// static Status TranslateSliceOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input, ng_begin, ng_size;
-//   TF_RETURN_IF_ERROR(
-//       GetInputNodes(ng_op_map, op, &ng_input, &ng_begin, &ng_size));
-
-//   std::vector<int64> lower_vec;
-//   std::vector<int64> size_vec;
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map,
-//   &lower_vec));
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map,
-//   &size_vec));
-
-//   if (lower_vec.size() != size_vec.size())
-//     return errors::InvalidArgument(
-//         "Cannot translate sliceop: Size of lower = ", lower_vec.size(),
-//         ", size of size_vec = ", size_vec.size(), ". Expected them to
-//         match.");
-
-//   NGRAPH_VLOG(3) << "Begin input for Slice: " << ng::join(lower_vec);
-//   NGRAPH_VLOG(3) << "Size input for Slice: " << ng::join(size_vec);
-
-//   std::vector<int> upper_vec(lower_vec.size());
-//   const auto ng_input_shape = ng_input->get_shape();
-//   stringstream err_stream;
-//   string err_msg;
-//   for (size_t i = 0; i < size_vec.size(); i++) {
-//     if (size_vec[i] != -1) {
-//       upper_vec[i] = lower_vec[i] + size_vec[i];
-//     } else {
-//       // support -1 for size_vec, to the end of the tensor
-//       upper_vec[i] = ng_input_shape[i];
-//     }
-
-//     // check for this condition: 0 <= begin[i] <= begin[i] + size[i] <= Di
-//     if (0 > lower_vec[i])
-//       err_stream << "lower < 0: " << lower_vec[i]
-//                  << ". It should have been positive.\n";
-//     if (lower_vec[i] > upper_vec[i])
-//       err_stream << "upper < lower: upper = " << upper_vec[i]
-//                  << ", lower = " << lower_vec[i] << "\n";
-//     if (upper_vec[i] > ng_input_shape[i])
-//       err_stream << "dim < upper: dim = " << ng_input_shape[i]
-//                  << ", upper = " << upper_vec[i] << "\n";
-
-//     err_msg = err_stream.str();
-//     if (!err_msg.empty())
-//       return errors::InvalidArgument("Cannot translate sliceop at position ",
-//       i,
-//                                      " of ", size_vec.size(),
-//                                      ". The reasons are:\n", err_msg);
-//   }
-
-//   std::vector<size_t> l(lower_vec.begin(), lower_vec.end());
-//   std::vector<size_t> u(upper_vec.begin(), upper_vec.end());
-//   auto ng_slice = ConstructNgNode<ng::op::Slice>(op->name(), ng_input, l, u);
-//   SaveNgOp(ng_op_map, op->name(), ng_slice);
-//   return Status::OK();
-// }
-
-// static Status TranslateSoftmaxOp(const Node* op,
-//                                  const std::vector<const Tensor*>&,
-//                                  Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-
-//   auto ng_input_shape = ng_input->get_shape();
-//   auto rank = ng_input_shape.size();
-//   if (rank < 1) {
-//     return errors::InvalidArgument("TF Softmax logits must be >=1
-//     dimension");
-//   }
-
-//   SaveNgOp(ng_op_map, op->name(),
-//            ConstructNgNode<opset::Softmax>(op->name(), ng_input, rank - 1));
-//   return Status::OK();
-// }
-
-// // Translate SpaceToDepthOp
-// static Status TranslateSpaceToDepthOp(const Node* op,
-//                                       const std::vector<const Tensor*>&,
-//                                       Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-
-//   // Get the attributes
-//   int64 block_size;
-//   std::string tf_data_format;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "block_size", &block_size));
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format",
-//   &tf_data_format));
-
-//   if (tf_data_format != "NHWC" && tf_data_format != "NCHW") {
-//     return errors::InvalidArgument(
-//         "DepthToSpace data format is neither NHWC nor NCHW");
-//   }
-
-//   bool is_nhwc = (tf_data_format == "NHWC");
-
-//   BatchToNGraph(op->name(), is_nhwc, ng_input);
-//   auto ng_mode = opset::SpaceToDepth::SpaceToDepthMode::BLOCKS_FIRST;
-//   std::shared_ptr<ng::Node> space_to_depth =
-//       ConstructNgNode<opset::SpaceToDepth>(op->name(), ng_input, ng_mode,
-//                                            block_size);
-//   BatchToTensorflow(op->name(), is_nhwc, space_to_depth);
-//   SaveNgOp(ng_op_map, op->name(), space_to_depth);
-//   return Status::OK();
-// }
-
-// static Status TranslateSplitOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, nullptr, &ng_input));
-//   // num_split : The number of ways to split. Must evenly divide
-//   // value.shape[split_dim]
-//   int32 num_split;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "num_split", &num_split));
-
-//   ng::Shape shape = ng_input->get_shape();
-//   int rank = shape.size();
-//   std::vector<size_t> lower;
-//   std::vector<size_t> upper;
-//   for (int i = 0; i < rank; ++i) {
-//     lower.push_back(0);
-//     upper.push_back(shape[i]);
-//   }
-//   std::vector<int> split_dim_vec;
-//   TF_RETURN_IF_ERROR(
-//       GetStaticInputVector(op, 0, static_input_map, &split_dim_vec));
-//   int split_dim = split_dim_vec[0] + (split_dim_vec[0] < 0 ? (int64)rank :
-//   0);
-
-//   int size = shape[split_dim] / num_split;
-//   int cursor = 0;
-
-//   for (int i = 0; i < num_split; ++i) {
-//     lower[split_dim] = cursor;
-//     cursor += size;
-//     upper[split_dim] = cursor;
-
-//     std::string output_name = op->name();
-//     SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Slice>(
-//                                         op->name(), ng_input, lower, upper));
-//   }
-//   return Status::OK();
-// }
-
-// static Status TranslateSplitVOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input, ng_length, ng_split_dim;
-
-//   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
-
-//   std::vector<int> lengths;
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map,
-//   &lengths));
-
-//   ng::Shape shape = ng_input->get_shape();
-//   int rank = shape.size();
-//   std::vector<size_t> lower(rank, 0);
-//   std::vector<size_t> upper(shape);
-
-//   std::vector<int64> split_dim_vec;
-
-//   TF_RETURN_IF_ERROR(
-//       GetStaticInputVector(op, 2, static_input_map, &split_dim_vec));
-
-//   // there should be at least one element specified as axis and not more than
-//   // one
-//   // as axis is 0-D
-//   if (split_dim_vec.size() != 1) {
-//     return errors::InvalidArgument(
-//         "split_dim_tensor must have "
-//         "exactly one element.");
-//   }
-
-//   TF_RETURN_IF_ERROR(CheckAxisDimInRange(split_dim_vec, rank));
-
-//   int split_dim = split_dim_vec[0] + (split_dim_vec[0] < 0 ? (int64)rank :
-//   0);
-
-//   // length: Length of size_splits
-//   int length = 0;
-//   int idx = -1;
-
-//   // Find out the total length of the splits and locate -1 's index, if any
-//   bool has_one_neg = false;
-//   for (size_t i = 0; i < lengths.size(); ++i) {
-//     if (lengths[i] != -1) {
-//       length += lengths[i];
-//     } else {
-//       if (has_one_neg) {
-//         return errors::InvalidArgument("size_splits can only have one -1");
-//       } else {
-//         idx = i;
-//         has_one_neg = true;
-//       }
-//     }
-//   }
-
-//   // Size splits must sum to the dimension of value along split_dim
-//   if (idx > 0) {
-//     lengths[idx] = shape[split_dim] - length;
-//   }
-
-//   if ((!has_one_neg && length != shape[split_dim]) ||
-//       (has_one_neg && lengths[idx] < 0)) {
-//     return errors::InvalidArgument(
-//         "The length of size_splits must sum to the value of the dimension "
-//         "along split_dim");
-//   }
-
-//   int cursor = 0;
-
-//   if (lengths.size() != 1) {
-//     for (size_t i = 0; i < lengths.size(); ++i) {
-//       lower[split_dim] = cursor;
-//       cursor += lengths[i];
-//       upper[split_dim] = cursor;
-//       SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Slice>(
-//                                           op->name(), ng_input, lower,
-//                                           upper));
-//     }
-//   } else {
-//     SaveNgOp(ng_op_map, op->name(), ng_input);
-//   }
-
-//   return Status::OK();
-// }
-
-// static Status TranslateSquareOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   return TranslateUnaryOp(
-//       op, static_input_map, ng_op_map, [&op](std::shared_ptr<ng::Node> n) {
-//         return ConstructNgNode<opset::Multiply>(op->name(), n, n);
-//       });
-// }
-
-// static Status TranslateSqueezeOp(const Node* op,
-//                                  const std::vector<const Tensor*>&,
-//                                  Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input));
-//   size_t input_dims = ng_input->get_shape().size();
-
-//   std::vector<int32> tf_axis;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "squeeze_dims", &tf_axis));
-
-//   // If input dimension is negative, make it positive
-//   for (size_t i = 0; i < tf_axis.size(); i++) {
-//     tf_axis[i] = tf_axis[i] < 0 ? (int32)(input_dims) + tf_axis[i] :
-//     tf_axis[i];
-//   }
-
-//   auto ng_const = ConstructNgNode<opset::Constant>(
-//       op->name(), ng::element::i32, ng::Shape{tf_axis.size()}, tf_axis);
-
-//   SaveNgOp(ng_op_map, op->name(),
-//            ConstructNgNode<opset::Squeeze>(op->name(), ng_input, ng_const));
-
-//   return Status::OK();
-// }
-
-// static Status TranslateStridedSliceOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
-
-//   strided_slice_mask_attrs mask_attrs;
-//   TF_RETURN_IF_ERROR(GetStridedSliceAttrs(op, mask_attrs));
-
-//   std::vector<int64> begin_vec;
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map,
-//   &begin_vec));
-
-//   std::vector<int64> end_vec;
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map,
-//   &end_vec));
-
-//   std::vector<int64> stride_vec;
-//   TF_RETURN_IF_ERROR(
-//       GetStaticInputVector(op, 3, static_input_map, &stride_vec));
-
-//   // Desired implementation ==>
-//   // SaveNgOp(ng_op_map, op->name(),
-//   //          ConstructNgNode<ng::op::StridedSlice>(op->name(), begin_vec,
-//   //          end_vec, stride_vec,
-//   //                             tf_begin_mask, tf_end_mask,
-//   //                             tf_new_axis_mask, tf_shrink_axis_mask,
-//   //                             tf_ellipsis_mask));
-
-//   // Temporarily we are borrowing this implementation from nGraph-core until
-//   // ng::op::StridedSlice is released for use in ngraph-bridge
-
-//   ng::Shape input_shape = ng_input->get_shape();
-
-//   std::vector<int64_t> begin_vec_longint(begin_vec.begin(), begin_vec.end());
-//   std::vector<int64_t> end_vec_longint(end_vec.begin(), end_vec.end());
-//   std::vector<int64_t> stride_vec_longint(stride_vec.begin(),
-//   stride_vec.end());
-
-//   NGRAPH_VLOG(5) << "Arguments to make_slice_plan: Input shape: " <<
-//   input_shape
-//                  << ", begin vector: " << ng::join(begin_vec_longint)
-//                  << ", end vector: " << ng::join(end_vec_longint)
-//                  << ", stride vector: " << ng::join(stride_vec_longint);
-
-//   auto in_rank = ng_input->get_shape().size();
-//   if (mask_attrs.new_axis == 0) {
-//     if (begin_vec_longint.size() > in_rank) {
-//       return errors::InvalidArgument("Index out of range using input dim ",
-//                                      begin_vec_longint.size(),
-//                                      "; input has only ", in_rank, " dims");
-//     }
-//   }
-
-//   ng::SlicePlan sp =
-//       GetSlicePlan(input_shape, begin_vec_longint, end_vec_longint,
-//                    stride_vec_longint, mask_attrs);
-
-//   // Need to convert int64_t to size_t
-//   std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
-//   std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
-//   std::vector<size_t> sp_strides(sp.strides.begin(), sp.strides.end());
-
-//   shared_ptr<ng::Node> ng_result = ConstructNgNode<ng::op::Slice>(
-//       op->name(), ng_input, sp_begins, sp_ends, sp_strides);
-
-//   if (sp.reshape_in_shape != sp.reshape_out_shape) {
-//     ng::Shape ng_out_shape(sp.reshape_out_shape);
-//     ng::AxisVector ng_axis_order(sp.reshape_in_shape.size());
-//     // std::iota Fills the range [first, last) with sequentially increasing
-//     // values,
-//     // starting with value and repetitively evaluating ++value
-//     std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
-
-//     NGRAPH_VLOG(3) << " Output  shape " << ng::join(ng_out_shape);
-//     NGRAPH_VLOG(3) << " NG  axis order " << ng::join(ng_axis_order);
-
-//     ng_result = ConstructNgNode<ng::op::Reshape>(op->name(), ng_result,
-//                                                  ng_axis_order,
-//                                                  ng_out_shape);
-//   }
-
-//   if (!sp.reverse_axes.empty()) {
-//     ng_result = ConstructNgNode<ng::op::Reverse>(op->name(), ng_result,
-//                                                  sp.reverse_axes);
-//   }
-
-//   SaveNgOp(ng_op_map, op->name(), ng_result);
-//   return Status::OK();
-// }
-
-// static Status TranslateTileOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   shared_ptr<ng::Node> ng_input, ng_multiples;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input, &ng_multiples));
-
-//   std::vector<int64> multiples;
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map,
-//   &multiples));
-
-//   auto ng_repeats = ConstructNgNode<opset::Constant>(
-//       op->name(), ng::element::i64, ng::Shape{multiples.size()}, multiples);
-//   SaveNgOp(ng_op_map, op->name(),
-//            ConstructNgNode<opset::Tile>(op->name(), ng_input, ng_repeats));
-//   return Status::OK();
-// }
-
-// // Translate TopKV2 Op using ngraph core op TopK
-// static Status TranslateTopKV2Op(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   shared_ptr<ngraph::Node> ng_input;
-//   TF_RETURN_IF_ERROR(ValidateInputCount(op, 2));
-//   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
-
-//   size_t k_axis = ng_input->get_shape().size() - 1;
-
-//   std::vector<int32> ng_k;
-//   size_t k;
-//   bool sorted = true;
-
-//   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &ng_k));
-//   k = ng_k[0];
-
-//   // sorted = false is not supported right now, it falls back to TF if set to
-//   // false.
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "sorted", &sorted));
-
-//   // index element type - currently only int32 or int64 are supported by
-//   // ngraph
-
-//   shared_ptr<ngraph::Node> ng_result = ConstructNgNode<ngraph::op::TopK>(
-//       op->name(), ng_input, k_axis, ng::element::i32, k, sorted);
-
-//   shared_ptr<ngraph::Node> ng_values =
-//       ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_result,
-//       1);
-//   shared_ptr<ngraph::Node> ng_indices =
-//       ConstructNgNode<ngraph::op::GetOutputElement>(op->name(), ng_result,
-//       0);
-
-//   SaveNgOp(ng_op_map, op->name(), ng_values);
-//   SaveNgOp(ng_op_map, op->name(), ng_indices);
-
-//   return Status::OK();
-// }
-
-// static Status TranslateTransposeOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   ng::Output<ng::Node> ng_input, ng_permutation;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_input,
-//   &ng_permutation));
-
-//   std::vector<int64> permutation;
-//   TF_RETURN_IF_ERROR(
-//       GetStaticInputVector(op, 1, static_input_map, &permutation));
-
-//   // Check to make sure that the permutation requested for transpose
-//   // is valid for example:
-//   // - it should not have duplicates,
-//   // - it should have all the dimensions.
-
-//   int ng_input_rank = ng_input->get_shape().size();
-//   vector<bool> count(ng_input_rank, false);
-//   for (auto p : permutation) {
-//     if (0 <= p && p < ng_input_rank) {
-//       count[p] = true;
-//     }
-//   }
-//   for (int i = 0; i < ng_input_rank; i++) {
-//     if (!count[i]) {
-//       return errors::InvalidArgument(i, " is missing from {",
-//                                      ng::join(permutation), "}.");
-//     }
-//   }
-
-//   NGRAPH_VLOG(3) << ng::join(permutation);
-
-//   auto input_order = ConstructNgNode<opset::Constant>(
-//       op->name(), ng::element::u64, ng::Shape{permutation.size()},
-//       permutation);
-//   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Transpose>(
-//                                       op->name(), ng_input, input_order));
-//   return Status::OK();
-// }
-
-// static Status TranslateUnpackOp(const Node* op,
-//                                 const std::vector<const Tensor*>&,
-//                                 Builder::OpMap& ng_op_map) {
-//   TF_RETURN_IF_ERROR(ValidateInputCount(op, 1));
-
-//   ng::Output<ng::Node> ng_input;
-//   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input));
-
-//   ng::Shape input_shape = ng_input.get_shape();
-//   size_t input_rank = input_shape.size();
-
-//   int32 tf_axis;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "axis", &tf_axis));
-//   auto unpack_axis = tf_axis;
-//   if (unpack_axis == -1) {
-//     unpack_axis = input_rank - 1;
-//   }
-
-//   int32 tf_num;
-//   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "num", &tf_num));
-//   int num_outputs = tf_num;
-
-//   ng::Shape output_shape;
-//   for (size_t i = 0; i < input_rank; ++i) {
-//     if ((int)i != unpack_axis) {
-//       output_shape.push_back(input_shape[i]);
-//     }
-//   }
-
-//   ng::AxisVector ng_axis_order;
-//   for (size_t i = 0; i < input_rank; i++) {
-//     ng_axis_order.push_back(i);
-//   }
-
-//   std::vector<size_t> lower_bound(input_rank, 0);
-//   std::vector<size_t> upper_bound(input_rank);
-
-//   for (size_t i = 0; i < input_rank; i++) {
-//     upper_bound[i] = input_shape[i];
-//   }
-
-//   for (int i = 0; i < num_outputs; ++i) {
-//     lower_bound[unpack_axis] = i;
-//     upper_bound[unpack_axis] = i + 1;
-//     auto slice = ConstructNgNode<ngraph::op::Slice>(op->name(), ng_input,
-//                                                     lower_bound,
-//                                                     upper_bound);
-//     auto reshaped = ConstructNgNode<ng::op::Reshape>(
-//         op->name(), slice, ng_axis_order, output_shape);
-//     SaveNgOp(ng_op_map, op->name(), reshaped);
-//   }
-//   return Status::OK();
-// }
-
-// static Status TranslateXdivyOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   shared_ptr<ngraph::Node> ng_x, ng_y;
-//   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, &ng_x, &ng_y));
-//   auto zero =
-//       ConstructNgNode<opset::Constant>(op->name(), ng_x->get_element_type(),
-//                                        ngraph::Shape{},
-//                                        std::vector<int>({0}));
-//   auto x_is_zero = ConstructNgNode<opset::Equal>(op->name(), ng_x, zero);
-//   auto ng_xdivy = ConstructNgNode<opset::Divide>(op->name(), ng_x, ng_y);
-//   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Select>(
-//                                       op->name(), x_is_zero, ng_x,
-//                                       ng_xdivy));
-//   return Status::OK();
-// }
-
-// static Status TranslateUnsortedSegmentSumOp(
-//     const Node* op, const std::vector<const Tensor*>& static_input_map,
-//     Builder::OpMap& ng_op_map) {
-//   ng::Output<ng::Node> ng_input, ng_segment_ids;
-//   TF_RETURN_IF_ERROR(
-//       GetInputNodes(ng_op_map, op, &ng_input, &ng_segment_ids, nullptr));
-
-//   int num_segments;
-//   std::vector<int64> tmp_num_segments;
-//   TF_RETURN_IF_ERROR(
-//       GetStaticInputVector(op, 2, static_input_map, &tmp_num_segments));
-
-//   if (tmp_num_segments.size() != 1) {
-//     return errors::InvalidArgument(
-//         "num_segments should be scalar, not tensor with ",
-//         tmp_num_segments.size(), " dimensions");
-//   }
-
-//   num_segments = tmp_num_segments[0];
-
-//   auto& input_shape = ng_input.get_shape();
-//   auto& segment_shape = ng_segment_ids.get_shape();
-
-//   ng::Shape output_shape;
-//   output_shape.push_back(num_segments);
-//   output_shape.insert(output_shape.end(),
-//                       input_shape.begin() + segment_shape.size(),
-//                       input_shape.end());
-
-//   auto result = ConstructNgNode<ng::op::Constant>(
-//       op->name(), ng_input->get_element_type(), output_shape,
-//       std::vector<std::string>(ng::shape_size(output_shape), "0"));
-
-//   auto unsorted_segment_sum = ConstructNgNode<ng::op::ScatterAdd>(
-//       op->name(), result, ng_segment_ids, ng_input);
-
-//   SaveNgOp(ng_op_map, op->name(), unsorted_segment_sum);
-//   return Status::OK();
-// }
+static Status TranslateSliceOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input, ng_begin, ng_size;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_begin, ng_size));
+
+  std::vector<int64> lower_vec;
+  std::vector<int64> size_vec;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &lower_vec));
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &size_vec));
+
+  if (lower_vec.size() != size_vec.size())
+    return errors::InvalidArgument(
+        "Cannot translate sliceop: Size of lower = ", lower_vec.size(),
+        ", size of size_vec = ", size_vec.size(), ". Expected them to match.");
+
+  NGRAPH_VLOG(3) << "Begin input for Slice: " << ng::join(lower_vec);
+  NGRAPH_VLOG(3) << "Size input for Slice: " << ng::join(size_vec);
+
+  std::vector<int> upper_vec(lower_vec.size());
+  const auto ng_input_shape = ng_input.get_shape();
+  stringstream err_stream;
+  string err_msg;
+  for (size_t i = 0; i < size_vec.size(); i++) {
+    if (size_vec[i] != -1) {
+      upper_vec[i] = lower_vec[i] + size_vec[i];
+    } else {
+      // support -1 for size_vec, to the end of the tensor
+      upper_vec[i] = ng_input_shape[i];
+    }
+
+    // check for this condition: 0 <= begin[i] <= begin[i] + size[i] <= Di
+    if (0 > lower_vec[i])
+      err_stream << "lower < 0: " << lower_vec[i]
+                 << ". It should have been positive.\n";
+    if (lower_vec[i] > upper_vec[i])
+      err_stream << "upper < lower: upper = " << upper_vec[i]
+                 << ", lower = " << lower_vec[i] << "\n";
+    if (upper_vec[i] > ng_input_shape[i])
+      err_stream << "dim < upper: dim = " << ng_input_shape[i]
+                 << ", upper = " << upper_vec[i] << "\n";
+
+    err_msg = err_stream.str();
+    if (!err_msg.empty())
+      return errors::InvalidArgument("Cannot translate sliceop at position ", i,
+                                     " of ", size_vec.size(),
+                                     ". The reasons are:\n", err_msg);
+  }
+
+  std::vector<size_t> l(lower_vec.begin(), lower_vec.end());
+  std::vector<size_t> u(upper_vec.begin(), upper_vec.end());
+  auto ng_slice = ConstructNgNode<ng::op::Slice>(op->name(), ng_input, l, u);
+  SaveNgOp(ng_op_map, op->name(), ng_slice);
+  return Status::OK();
+}
+
+static Status TranslateSoftmaxOp(const Node* op,
+                                 const std::vector<const Tensor*>&,
+                                 Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
+
+  auto input_shape = ng_input.get_shape();
+  auto rank = input_shape.size();
+  if (rank < 1) {
+    return errors::InvalidArgument("TF Softmax logits must be >=1 dimension");
+  }
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Softmax>(op->name(), ng_input, rank - 1));
+  return Status::OK();
+}
+
+// Translate SpaceToDepthOp
+static Status TranslateSpaceToDepthOp(const Node* op,
+                                      const std::vector<const Tensor*>&,
+                                      Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
+
+  // Get the attributes
+  int64 block_size;
+  std::string tf_data_format;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "block_size", &block_size));
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "data_format", &tf_data_format));
+
+  if (tf_data_format != "NHWC" && tf_data_format != "NCHW") {
+    return errors::InvalidArgument(
+        "DepthToSpace data format is neither NHWC nor NCHW");
+  }
+
+  bool is_nhwc = (tf_data_format == "NHWC");
+
+  BatchToNGraph(op->name(), is_nhwc, ng_input);
+  auto ng_mode = opset::SpaceToDepth::SpaceToDepthMode::BLOCKS_FIRST;
+  auto space_to_depth = ConstructNgNode<opset::SpaceToDepth>(
+      op->name(), ng_input, ng_mode, block_size);
+  BatchToTensorflow(op->name(), is_nhwc, space_to_depth);
+  SaveNgOp(ng_op_map, op->name(), space_to_depth);
+  return Status::OK();
+}
+
+static Status TranslateSplitOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 1, ng_input));
+  // num_split : The number of ways to split. Must evenly divide
+  // value.shape[split_dim]
+  int32 num_split;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "num_split", &num_split));
+
+  ng::Shape shape = ng_input.get_shape();
+  int rank = shape.size();
+  std::vector<size_t> lower;
+  std::vector<size_t> upper;
+  for (int i = 0; i < rank; ++i) {
+    lower.push_back(0);
+    upper.push_back(shape[i]);
+  }
+  std::vector<int> split_dim_vec;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 0, static_input_map, &split_dim_vec));
+  int split_dim = split_dim_vec[0] + (split_dim_vec[0] < 0 ? (int64)rank : 0);
+
+  int size = shape[split_dim] / num_split;
+  int cursor = 0;
+
+  for (int i = 0; i < num_split; ++i) {
+    lower[split_dim] = cursor;
+    cursor += size;
+    upper[split_dim] = cursor;
+
+    std::string output_name = op->name();
+    SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Slice>(
+                                        op->name(), ng_input, lower, upper));
+  }
+  return Status::OK();
+}
+
+static Status TranslateSplitVOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input, ng_length, ng_split_dim;
+
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
+
+  std::vector<int> lengths;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &lengths));
+
+  ng::Shape shape = ng_input.get_shape();
+  int rank = shape.size();
+  std::vector<size_t> lower(rank, 0);
+  std::vector<size_t> upper(shape);
+
+  std::vector<int64> split_dim_vec;
+
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 2, static_input_map, &split_dim_vec));
+
+  // there should be at least one element specified as axis and not more than
+  // one
+  // as axis is 0-D
+  if (split_dim_vec.size() != 1) {
+    return errors::InvalidArgument(
+        "split_dim_tensor must have "
+        "exactly one element.");
+  }
+
+  TF_RETURN_IF_ERROR(CheckAxisDimInRange(split_dim_vec, rank));
+
+  int split_dim = split_dim_vec[0] + (split_dim_vec[0] < 0 ? (int64)rank : 0);
+
+  // length: Length of size_splits
+  int length = 0;
+  int idx = -1;
+
+  // Find out the total length of the splits and locate -1 's index, if any
+  bool has_one_neg = false;
+  for (size_t i = 0; i < lengths.size(); ++i) {
+    if (lengths[i] != -1) {
+      length += lengths[i];
+    } else {
+      if (has_one_neg) {
+        return errors::InvalidArgument("size_splits can only have one -1");
+      } else {
+        idx = i;
+        has_one_neg = true;
+      }
+    }
+  }
+
+  // Size splits must sum to the dimension of value along split_dim
+  if (idx > 0) {
+    lengths[idx] = shape[split_dim] - length;
+  }
+
+  if ((!has_one_neg && length != shape[split_dim]) ||
+      (has_one_neg && lengths[idx] < 0)) {
+    return errors::InvalidArgument(
+        "The length of size_splits must sum to the value of the dimension "
+        "along split_dim");
+  }
+
+  int cursor = 0;
+
+  if (lengths.size() != 1) {
+    for (size_t i = 0; i < lengths.size(); ++i) {
+      lower[split_dim] = cursor;
+      cursor += lengths[i];
+      upper[split_dim] = cursor;
+      SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::Slice>(
+                                          op->name(), ng_input, lower, upper));
+    }
+  } else {
+    SaveNgOp(ng_op_map, op->name(), ng_input);
+  }
+
+  return Status::OK();
+}
+
+static Status TranslateSquareOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  return TranslateUnaryOp(
+      op, static_input_map, ng_op_map, [&op](ng::Output<ng::Node> n) {
+        return ConstructNgNode<opset::Multiply>(op->name(), n, n);
+      });
+}
+
+static Status TranslateSqueezeOp(const Node* op,
+                                 const std::vector<const Tensor*>&,
+                                 Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
+  size_t input_dims = ng_input.get_shape().size();
+
+  std::vector<int32> tf_axis;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "squeeze_dims", &tf_axis));
+
+  // If input dimension is negative, make it positive
+  for (size_t i = 0; i < tf_axis.size(); i++) {
+    tf_axis[i] = tf_axis[i] < 0 ? (int32)(input_dims) + tf_axis[i] : tf_axis[i];
+  }
+
+  auto ng_const = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i32, ng::Shape{tf_axis.size()}, tf_axis);
+
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Squeeze>(op->name(), ng_input, ng_const));
+  return Status::OK();
+}
+
+static Status TranslateStridedSliceOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
+
+  strided_slice_mask_attrs mask_attrs;
+  TF_RETURN_IF_ERROR(GetStridedSliceAttrs(op, mask_attrs));
+
+  std::vector<int64> begin_vec;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &begin_vec));
+
+  std::vector<int64> end_vec;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &end_vec));
+
+  std::vector<int64> stride_vec;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 3, static_input_map, &stride_vec));
+
+  // Desired implementation ==>
+  // SaveNgOp(ng_op_map, op->name(),
+  //          ConstructNgNode<ng::op::StridedSlice>(op->name(), begin_vec,
+  //          end_vec, stride_vec,
+  //                             tf_begin_mask, tf_end_mask,
+  //                             tf_new_axis_mask, tf_shrink_axis_mask,
+  //                             tf_ellipsis_mask));
+
+  // Temporarily we are borrowing this implementation from nGraph-core until
+  // ng::op::StridedSlice is released for use in ngraph-bridge
+
+  ng::Shape input_shape = ng_input.get_shape();
+
+  std::vector<int64_t> begin_vec_longint(begin_vec.begin(), begin_vec.end());
+  std::vector<int64_t> end_vec_longint(end_vec.begin(), end_vec.end());
+  std::vector<int64_t> stride_vec_longint(stride_vec.begin(), stride_vec.end());
+
+  NGRAPH_VLOG(5) << "Arguments to make_slice_plan: Input shape: " << input_shape
+                 << ", begin vector: " << ng::join(begin_vec_longint)
+                 << ", end vector: " << ng::join(end_vec_longint)
+                 << ", stride vector: " << ng::join(stride_vec_longint);
+
+  auto in_rank = input_shape.size();
+  if (mask_attrs.new_axis == 0) {
+    if (begin_vec_longint.size() > in_rank) {
+      return errors::InvalidArgument("Index out of range using input dim ",
+                                     begin_vec_longint.size(),
+                                     "; input has only ", in_rank, " dims");
+    }
+  }
+
+  ng::SlicePlan sp =
+      GetSlicePlan(input_shape, begin_vec_longint, end_vec_longint,
+                   stride_vec_longint, mask_attrs);
+
+  // Need to convert int64_t to size_t
+  std::vector<size_t> sp_begins(sp.begins.begin(), sp.begins.end());
+  std::vector<size_t> sp_ends(sp.ends.begin(), sp.ends.end());
+  std::vector<size_t> sp_strides(sp.strides.begin(), sp.strides.end());
+
+  auto ng_result = ConstructNgNode<ng::op::Slice>(
+      op->name(), ng_input, sp_begins, sp_ends, sp_strides);
+
+  if (sp.reshape_in_shape != sp.reshape_out_shape) {
+    ng::Shape ng_out_shape(sp.reshape_out_shape);
+    ng::AxisVector ng_axis_order(sp.reshape_in_shape.size());
+    // std::iota Fills the range [first, last) with sequentially increasing
+    // values,
+    // starting with value and repetitively evaluating ++value
+    std::iota(ng_axis_order.begin(), ng_axis_order.end(), 0);
+
+    NGRAPH_VLOG(3) << " Output  shape " << ng::join(ng_out_shape);
+    NGRAPH_VLOG(3) << " NG  axis order " << ng::join(ng_axis_order);
+
+    ng_result = ConstructNgNode<ng::op::Reshape>(op->name(), ng_result,
+                                                 ng_axis_order, ng_out_shape);
+  }
+
+  if (!sp.reverse_axes.empty()) {
+    ng_result = ConstructNgNode<ng::op::Reverse>(op->name(), ng_result,
+                                                 sp.reverse_axes);
+  }
+
+  SaveNgOp(ng_op_map, op->name(), ng_result);
+  return Status::OK();
+}
+
+static Status TranslateTileOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input, ng_multiples;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_multiples));
+
+  std::vector<int64> multiples;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &multiples));
+
+  auto ng_repeats = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{multiples.size()}, multiples);
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Tile>(op->name(), ng_input, ng_repeats));
+  return Status::OK();
+}
+
+// Translate TopKV2 Op using ngraph core op TopK
+static Status TranslateTopKV2Op(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ngraph::Node> ng_input;
+  TF_RETURN_IF_ERROR(ValidateInputCount(op, 2));
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
+
+  size_t k_axis = ng_input.get_shape().size() - 1;
+
+  std::vector<int32> ng_k;
+  size_t k;
+  bool sorted = true;
+
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &ng_k));
+  k = ng_k[0];
+
+  // sorted = false is not supported right now, it falls back to TF if set to
+  // false.
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "sorted", &sorted));
+
+  // index element type - currently only int32 or int64 are supported by
+  // ngraph
+
+  auto ng_result = ConstructNgNode<ngraph::op::TopK>(
+      op->name(), ng_input, k_axis, ng::element::i32, k, sorted);
+  ng::Output<ng::Node> ng_values = ng_result.get_node_shared_ptr()->output(1);
+  ng::Output<ng::Node> ng_indices = ng_result.get_node_shared_ptr()->output(0);
+  SaveNgOp(ng_op_map, op->name(), ng_values);
+  SaveNgOp(ng_op_map, op->name(), ng_indices);
+  return Status::OK();
+}
+
+static Status TranslateTransposeOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input, ng_permutation;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_permutation));
+
+  std::vector<int64> permutation;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 1, static_input_map, &permutation));
+
+  // Check to make sure that the permutation requested for transpose
+  // is valid for example:
+  // - it should not have duplicates,
+  // - it should have all the dimensions.
+
+  int ng_input_rank = ng_input.get_shape().size();
+  vector<bool> count(ng_input_rank, false);
+  for (auto p : permutation) {
+    if (0 <= p && p < ng_input_rank) {
+      count[p] = true;
+    }
+  }
+  for (int i = 0; i < ng_input_rank; i++) {
+    if (!count[i]) {
+      return errors::InvalidArgument(i, " is missing from {",
+                                     ng::join(permutation), "}.");
+    }
+  }
+
+  NGRAPH_VLOG(3) << ng::join(permutation);
+
+  auto input_order = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::u64, ng::Shape{permutation.size()}, permutation);
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Transpose>(
+                                      op->name(), ng_input, input_order));
+  return Status::OK();
+}
+
+static Status TranslateUnpackOp(const Node* op,
+                                const std::vector<const Tensor*>&,
+                                Builder::OpMap& ng_op_map) {
+  TF_RETURN_IF_ERROR(ValidateInputCount(op, 1));
+
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
+
+  ng::Shape input_shape = ng_input.get_shape();
+  size_t input_rank = input_shape.size();
+
+  int32 tf_axis;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "axis", &tf_axis));
+  auto unpack_axis = tf_axis;
+  if (unpack_axis == -1) {
+    unpack_axis = input_rank - 1;
+  }
+
+  int32 tf_num;
+  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "num", &tf_num));
+  int num_outputs = tf_num;
+
+  ng::Shape output_shape;
+  for (size_t i = 0; i < input_rank; ++i) {
+    if ((int)i != unpack_axis) {
+      output_shape.push_back(input_shape[i]);
+    }
+  }
+
+  ng::AxisVector ng_axis_order;
+  for (size_t i = 0; i < input_rank; i++) {
+    ng_axis_order.push_back(i);
+  }
+
+  std::vector<size_t> lower_bound(input_rank, 0);
+  std::vector<size_t> upper_bound(input_rank);
+
+  for (size_t i = 0; i < input_rank; i++) {
+    upper_bound[i] = input_shape[i];
+  }
+
+  for (int i = 0; i < num_outputs; ++i) {
+    lower_bound[unpack_axis] = i;
+    upper_bound[unpack_axis] = i + 1;
+    auto slice = ConstructNgNode<ngraph::op::Slice>(op->name(), ng_input,
+                                                    lower_bound, upper_bound);
+    auto reshaped = ConstructNgNode<ng::op::Reshape>(
+        op->name(), slice, ng_axis_order, output_shape);
+    SaveNgOp(ng_op_map, op->name(), reshaped);
+  }
+  return Status::OK();
+}
+
+static Status TranslateXdivyOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ngraph::Node> ng_x, ng_y;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_x, ng_y));
+  auto zero =
+      ConstructNgNode<opset::Constant>(op->name(), ng_x.get_element_type(),
+                                       ngraph::Shape{}, std::vector<int>({0}));
+  auto x_is_zero = ConstructNgNode<opset::Equal>(op->name(), ng_x, zero);
+  auto ng_xdivy = ConstructNgNode<opset::Divide>(op->name(), ng_x, ng_y);
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Select>(
+                                      op->name(), x_is_zero, ng_x, ng_xdivy));
+  return Status::OK();
+}
+
+static Status TranslateUnsortedSegmentSumOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input, ng_segment_ids;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_segment_ids));
+
+  int num_segments;
+  std::vector<int64> tmp_num_segments;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputVector(op, 2, static_input_map, &tmp_num_segments));
+
+  if (tmp_num_segments.size() != 1) {
+    return errors::InvalidArgument(
+        "num_segments should be scalar, not tensor with ",
+        tmp_num_segments.size(), " dimensions");
+  }
+
+  num_segments = tmp_num_segments[0];
+
+  auto& input_shape = ng_input.get_shape();
+  auto& segment_shape = ng_segment_ids.get_shape();
+
+  ng::Shape output_shape;
+  output_shape.push_back(num_segments);
+  output_shape.insert(output_shape.end(),
+                      input_shape.begin() + segment_shape.size(),
+                      input_shape.end());
+
+  auto result = ConstructNgNode<ng::op::Constant>(
+      op->name(), ng_input.get_element_type(), output_shape,
+      std::vector<std::string>(ng::shape_size(output_shape), "0"));
+
+  auto unsorted_segment_sum = ConstructNgNode<ng::op::ScatterAdd>(
+      op->name(), result, ng_segment_ids, ng_input);
+
+  SaveNgOp(ng_op_map, op->name(), unsorted_segment_sum);
+  return Status::OK();
+}
 
 static Status TranslateSelectOp(const Node* op,
                                 const std::vector<const Tensor*>&,
@@ -3706,7 +3672,6 @@ static Status TranslateZerosLikeOp(const Node* op,
   std::vector<std::string> const_values(ng::shape_size(input_shape), "0");
   auto ng_result = ConstructNgNode<opset::Constant>(
       op->name(), ng_input.get_element_type(), input_shape, const_values);
-
   SaveNgOp(ng_op_map, op->name(), ng_result);
   return Status::OK();
 }
@@ -3762,7 +3727,7 @@ const static std::map<
         // {"_FusedMatMul", TranslateFusedMatMulOp},
         {"Greater", TranslateBinaryOp<opset::Greater>},
         {"GreaterEqual", TranslateBinaryOp<opset::GreaterEqual>},
-        // {"Identity", TranslateIdentityOp},
+        {"Identity", TranslateIdentityOp},
         // {"IsFinite", TranslateIsFiniteOp},
         // {"L2Loss", TranslateL2LossOp},
         // {"LogSoftmax", TranslateLogSoftmaxOp},
@@ -3798,7 +3763,7 @@ const static std::map<
         {"Pow", TranslateBinaryOp<opset::Power>},
         // // PreventGradient is just Identity in data-flow terms, so reuse
         // that.
-        // {"PreventGradient", TranslateIdentityOp},
+        {"PreventGradient", TranslateIdentityOp},
         {"Prod", TranslateDirectReduceOp<opset::ReduceProd>},
         // {"QuantizeAndDequantizeV2", TranslateQuantizeAndDequantizeV2Op},
         // {"QuantizedAvgPool", TranslateQuantizedAvgPoolOp},
@@ -3829,30 +3794,29 @@ const static std::map<
         {"Sinh", TranslateUnaryOp<opset::Sinh>},
         {"Size", TranslateSizeOp},
         {"Sign", TranslateUnaryOp<opset::Sign>},
-        // {"Slice", TranslateSliceOp},
-        // {"Snapshot", TranslateIdentityOp},
-        // {"Softmax", TranslateSoftmaxOp},
-        // {"Softplus", TranslateSoftplusOp},
-        // {"SpaceToDepth", TranslateSpaceToDepthOp},
-        // {"Split", TranslateSplitOp},
-        // {"SplitV", TranslateSplitVOp},
+        {"Slice", TranslateSliceOp},
+        {"Snapshot", TranslateIdentityOp},
+        {"Softmax", TranslateSoftmaxOp},
+        {"Softplus", TranslateSoftplusOp},
+        {"SpaceToDepth", TranslateSpaceToDepthOp},
+        {"Split", TranslateSplitOp},
+        {"SplitV", TranslateSplitVOp},
         {"Sqrt", TranslateUnaryOp<opset::Sqrt>},
-        // {"Square", TranslateSquareOp},
+        {"Square", TranslateSquareOp},
         {"SquaredDifference", TranslateBinaryOp<opset::SquaredDifference>},
-        // {"Squeeze", TranslateSqueezeOp},
-        // {"StridedSlice", TranslateStridedSliceOp},
-        // {"Sub", TranslateBinaryOp<opset::Subtract>},
+        {"Squeeze", TranslateSqueezeOp},
+        {"StridedSlice", TranslateStridedSliceOp},
+        {"Sub", TranslateBinaryOp<opset::Subtract>},
         {"Sum", TranslateDirectReduceOp<opset::ReduceSum>},
         {"Tan", TranslateUnaryOp<opset::Tan>},
-        {"Tanh", TranslateUnaryOp<opset::Tanh>}
-        // {"Tile", TranslateTileOp},
-        // {"TopKV2", TranslateTopKV2Op},
-        // {"Transpose", TranslateTransposeOp},
-        // {"UnsortedSegmentSum", TranslateUnsortedSegmentSumOp},
-        // {"Unpack", TranslateUnpackOp},
-        // {"Xdivy", TranslateXdivyOp},
-        // {"ZerosLike", TranslateZerosLikeOp}
-    };
+        {"Tanh", TranslateUnaryOp<opset::Tanh>},
+        {"Tile", TranslateTileOp},
+        {"TopKV2", TranslateTopKV2Op},
+        {"Transpose", TranslateTransposeOp},
+        {"UnsortedSegmentSum", TranslateUnsortedSegmentSumOp},
+        {"Unpack", TranslateUnpackOp},
+        {"Xdivy", TranslateXdivyOp},
+        {"ZerosLike", TranslateZerosLikeOp}};
 
 Status Builder::TranslateGraph(
     const std::vector<TensorShape>& inputs,
