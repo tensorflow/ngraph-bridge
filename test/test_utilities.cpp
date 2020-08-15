@@ -31,6 +31,8 @@ namespace ngraph_bridge {
 
 namespace testing {
 
+static bool _LastCompareSuccessful = false;
+
 void ActivateNGraph() {
   setenv("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", "1", 1);
   unsetenv("NGRAPH_TF_DISABLE");
@@ -271,6 +273,7 @@ static bool compare_float_data(float a, float b, float rtol, float atol) {
 
 template <typename T>
 void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
+  _LastCompareSuccessful = false;
   // Assert rank
   ASSERT_EQ(T1.dims(), T2.dims())
       << "Ranks unequal for T1 and T2. T1.shape = " << T1.shape()
@@ -310,7 +313,9 @@ void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
   auto T1_data = T1.flat<T>().data();
   auto T2_data = T2.flat<T>().data();
   bool is_comparable = false;
-
+  bool any_idxcomp_failed = false;
+  std::stringstream failure_info_tf;
+  std::stringstream failure_info_ng;
   for (int k = 0; k < T_size; k++) {
     auto a = T1_data[k];
     auto b = T2_data[k];
@@ -320,10 +325,16 @@ void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
     } else {
       is_comparable = compare_integral_data<T>(a, b);
     }
-
-    EXPECT_TRUE(is_comparable) << " TF output " << a << endl
-                               << " NG output " << b;
+    if (!is_comparable) {
+      any_idxcomp_failed = true;
+      failure_info_tf << a << ", ";
+      failure_info_ng << b << ", ";
+    }
   }
+  _LastCompareSuccessful = !any_idxcomp_failed;
+  EXPECT_TRUE(_LastCompareSuccessful)
+      << "TF output: " << failure_info_tf.str() << endl
+      << "NG output: " << failure_info_ng.str() << endl;
 }
 
 bool Compare(std::vector<string> desired, std::vector<string> actual) {
@@ -337,6 +348,8 @@ bool Compare(std::vector<string> desired, std::vector<string> actual) {
   }
   return true;
 }
+
+bool LastCompareSuccessful() { return _LastCompareSuccessful; }
 
 tf::SessionOptions GetSessionOptions(const string& backend_name) {
   tf::SessionOptions options;
