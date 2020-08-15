@@ -3294,22 +3294,6 @@ static Status TranslateStridedSliceOp(
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 3, static_input_map, &stride_vec));
 
-  // To handle cases like x[2:2], where shape(x) = [1],
-  // TF returns shape = [0], empty vector
-  // make_slice_plan returns begin=2, end=2, but that is > 1
-  // So must clamp them
-  // Another example:
-  // for dimension 3, Also 2:3:-1 gives 4:4, which will also fail if we try to
-  // construct slice. So must clamp to 2:2 etc
-  auto clamp = [](int64_t x, int64_t min, int64_t max) {
-    return x > max ? max : (x < min ? min : x);
-  };
-  auto input_shape = ng_input->get_shape();
-  for (int i = 0; i < input_shape.size(); i++) {
-    begin_vec[i] = clamp(begin_vec[i], 0, input_shape[i]);
-    end_vec[i] = clamp(end_vec[i], 0, input_shape[i]);
-  }
-
   auto begin = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::i64, ng::Shape{begin_vec.size()}, begin_vec);
   auto end = ConstructNgNode<opset::Constant>(
