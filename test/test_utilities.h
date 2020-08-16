@@ -74,6 +74,10 @@ bool IsNGraphTFBackendSet();
 string GetBackendFromEnvVar();
 void UnsetBackendUsingEnvVar();
 void SetBackendUsingEnvVar(const string& bname);
+#define BACKEND_IE_CPU \
+  (IsNGraphTFBackendSet() && GetBackendFromEnvVar() == "IE:CPU")
+#define BACKEND_IE \
+  (IsNGraphTFBackendSet() && GetBackendFromEnvVar().substr(0, 3) == "IE:")
 
 // Print Functions
 void PrintTensor(const Tensor& T1);

@@ -377,6 +377,17 @@ class MathOpsSum : public ::testing::TestWithParam<
                                    {3, 1, 2, 4, 1}};
     vector<bool> v_keep_dims = {true, false};
 
+    if (BACKEND_IE) {
+      testing_params.push_back(
+          std::make_tuple(std::vector<int>{2, 3}, std::vector<int>{1}, false));
+      testing_params.push_back(
+          std::make_tuple(std::vector<int>{6, 2}, std::vector<int>{0}, false));
+      testing_params.push_back(std::make_tuple(std::vector<int>{2, 4, 3},
+                                               std::vector<int>{0}, false));
+      return testing_params;
+    }
+
+    // other backends
     for (auto tshp : tshapes) {
       vector<vector<int>> vv_axis;
       for (auto ax = 0; ax < tshp.size(); ax++) {
@@ -395,7 +406,6 @@ class MathOpsSum : public ::testing::TestWithParam<
         std::make_tuple(std::vector<int>{6, 2}, std::vector<int>{0, 1}, true));
     testing_params.push_back(std::make_tuple(std::vector<int>{2, 4, 3},
                                              std::vector<int>{0, 1, 2}, false));
-
     return testing_params;
   }
 };
@@ -451,41 +461,43 @@ TEST(MathOps, Sum) {
   vector<bool> v_keep_dims = {true, false};
   std::vector<std::string> run_results;
   int counter = 1;
-  for (auto tshp : tshapes) {
-    Tensor A(DT_INT32, TensorShape(tshp));
-    vector<int> v_axis(tshp.dims());
-    std::iota(v_axis.begin(), v_axis.end(), 0);
-    for (auto axis : v_axis) {
-      for (auto keep_dims : v_keep_dims) {
-        NGRAPH_VLOG(5) << ">> Running Sum sub-test #" << counter++
-                       << ", tensor-shape=" << tshp << ", axis=" << axis
-                       << ", keep_dims=" << keep_dims;
-        Scope root = Scope::NewRootScope();
-        auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
+  if (!BACKEND_IE) {
+    for (auto tshp : tshapes) {
+      Tensor A(DT_INT32, TensorShape(tshp));
+      vector<int> v_axis(tshp.dims());
+      std::iota(v_axis.begin(), v_axis.end(), 0);
+      for (auto axis : v_axis) {
+        for (auto keep_dims : v_keep_dims) {
+          NGRAPH_VLOG(5) << ">> Running Sum sub-test #" << counter++
+                         << ", tensor-shape=" << tshp << ", axis=" << axis
+                         << ", keep_dims=" << keep_dims;
+          Scope root = Scope::NewRootScope();
+          auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
 
-        AssignInputValues<int>(A, vals);
+          AssignInputValues<int>(A, vals);
 
-        auto R = ops::Sum(root, A, axis, keep_dims_attr);
-        std::vector<Output> sess_run_fetchoutputs = {R};
-        OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs);
-        opexecuter.RunTest();
+          auto R = ops::Sum(root, A, axis, keep_dims_attr);
+          std::vector<Output> sess_run_fetchoutputs = {R};
+          OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs);
+          opexecuter.RunTest();
 
-        // Save sub-test status for reporting later
-        run_results.push_back(std::string("Status ") +
-                              (LastCompareSuccessful() ? "  PASS" : "* FAIL") +
-                              " -> " + "tensor-shape=" + tshp.DebugString() +
-                              ", axis=" + std::to_string(axis) +
-                              ", keep_dims=" + std::to_string(keep_dims));
+          // Save sub-test status for reporting later
+          run_results.push_back(
+              std::string("Status ") +
+              (LastCompareSuccessful() ? "  PASS" : "* FAIL") + " -> " +
+              "tensor-shape=" + tshp.DebugString() + ", axis=" +
+              std::to_string(axis) + ", keep_dims=" +
+              std::to_string(keep_dims));
+        }
       }
     }
+    // print consolidated summary of sub-tests on stdout
+    std::cout << "\nReport of sub-tests...\n";
+    for (auto& str : run_results) {
+      std::cout << str + "\n";
+    }
+    std::cout << "\n";
   }
-
-  // print consolidated summary of sub-tests on stdout
-  std::cout << "\nReport of sub-tests...\n";
-  for (auto& str : run_results) {
-    std::cout << str + "\n";
-  }
-  std::cout << "\n";
 }
 
 // Test op: Mean with & without keep dims & with both positive & negative axis
