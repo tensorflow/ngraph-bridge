@@ -104,7 +104,7 @@ TEST(NNOps, Conv2DBackpropInputNCHWSame) {
   opexecuter_tf.ExecuteOnTF(tf_outputs);
 
   // Compare NGraph and TF Outputs
-  Compare(tf_outputs, ngraph_outputs, 1e-05, 1e-05);
+  Compare(tf_outputs, ngraph_outputs, nullptr, 1e-05, 1e-05);
 }  // end of op Conv2DBackpropInputNCHWSame
 
 // Conv2DBackpropInput op : compute the graidents of conv with respects to input
@@ -224,7 +224,7 @@ TEST(NNOps, Conv2DBackpropInputNCHWValid) {
   opexecuter_tf.ExecuteOnTF(tf_outputs);
 
   // Compare NGraph and TF Outputs
-  Compare(tf_outputs, ngraph_outputs, 1e-05, 1e-05);
+  Compare(tf_outputs, ngraph_outputs, nullptr, 1e-05, 1e-05);
 }  // end of op Conv2DBackpropInputNCHWValid
 
 // Conv2DBackpropInput op : compute the graidents of conv with respects to input

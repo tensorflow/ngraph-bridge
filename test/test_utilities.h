@@ -78,6 +78,8 @@ void SetBackendUsingEnvVar(const string& bname);
   (IsNGraphTFBackendSet() && GetBackendFromEnvVar() == "IE:CPU")
 #define BACKEND_IE \
   (IsNGraphTFBackendSet() && GetBackendFromEnvVar().substr(0, 3) == "IE:")
+#define SKIP_TEST_FOR_BACKEND_IE \
+  if (BACKEND_IE) return;
 
 // Print Functions
 void PrintTensor(const Tensor& T1);
@@ -138,7 +140,7 @@ void AssignInputValuesRandom(Tensor& A, T min, T max) {
 
 // Compares two Tensor vectors
 void Compare(const vector<Tensor>& v1, const vector<Tensor>& v2,
-             float rtol = static_cast<float>(1e-05),
+             bool* comparable = nullptr, float rtol = static_cast<float>(1e-05),
              float atol = static_cast<float>(1e-08));
 
 bool Compare(std::vector<string> arg0, std::vector<string> arg1);
@@ -147,14 +149,12 @@ bool Compare(std::vector<string> arg0, std::vector<string> arg1);
 // Right now only tensors contain float values will modify the tolerance
 // parameters
 template <typename T>
-void Compare(const Tensor& T1, const Tensor& T2,
+void Compare(const Tensor& T1, const Tensor& T2, bool* comparable,
              float rtol = static_cast<float>(1e-05),
              float atol = static_cast<float>(1e-08));
 
 // Compares Tensors considering tolerance
-void Compare(Tensor& T1, Tensor& T2, float tol);
-
-bool LastCompareSuccessful();
+void Compare(Tensor& T1, Tensor& T2, bool* comparable, float tol);
 
 tf::SessionOptions GetSessionOptions(const string& backend_name);
 
@@ -178,6 +178,20 @@ size_t count_ops_of_type(std::shared_ptr<ng::Function> f) {
 
   return count;
 }
+
+// BEGIN For sub-test management
+#define INIT_SUBTESTS std::vector<std::string> subtest_results;
+#define SAVE_SUBTEST_INFO(comparable, info)                               \
+  subtest_results.push_back(std::string("Status ") +                      \
+                            (comparable ? "  PASS" : "* FAIL") + " -> " + \
+                            info);
+#define PRINT_SUBTESTS_SUMMARY               \
+  std::cout << "\nReport of sub-tests...\n"; \
+  for (auto& str : subtest_results) {        \
+    std::cout << str + "\n";                 \
+  }                                          \
+  std::cout << "\n";
+// END
 
 }  // namespace testing
 

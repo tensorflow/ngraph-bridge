@@ -31,8 +31,6 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-static bool _LastCompareSuccessful = false;
-
 void ActivateNGraph() {
   setenv("NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS", "1", 1);
   unsetenv("NGRAPH_TF_DISABLE");
@@ -215,36 +213,36 @@ void Compare(Tensor& T1, Tensor& T2, float tol) {
 }
 
 // Compares Tensor vectors
-void Compare(const vector<Tensor>& v1, const vector<Tensor>& v2, float rtol,
-             float atol) {
+void Compare(const vector<Tensor>& v1, const vector<Tensor>& v2,
+             bool* comparable, float rtol, float atol) {
   ASSERT_EQ(v1.size(), v2.size()) << "Length of 2 tensor vectors do not match.";
   for (size_t i = 0; i < v1.size(); i++) {
     NGRAPH_VLOG(3) << "Comparing output at index " << i;
     auto expected_dtype = v1[i].dtype();
     switch (expected_dtype) {
       case DT_FLOAT:
-        Compare<float>(v1[i], v2[i], rtol, atol);
+        Compare<float>(v1[i], v2[i], comparable, rtol, atol);
         break;
       case DT_INT8:
-        Compare<int8>(v1[i], v2[i]);
+        Compare<int8>(v1[i], v2[i], comparable);
         break;
       case DT_INT16:
-        Compare<int16>(v1[i], v2[i]);
+        Compare<int16>(v1[i], v2[i], comparable);
         break;
       case DT_INT32:
-        Compare<int>(v1[i], v2[i]);
+        Compare<int>(v1[i], v2[i], comparable);
         break;
       case DT_INT64:
-        Compare<int64>(v1[i], v2[i]);
+        Compare<int64>(v1[i], v2[i], comparable);
         break;
       case DT_BOOL:
-        Compare<bool>(v1[i], v2[i]);
+        Compare<bool>(v1[i], v2[i], comparable);
         break;
       case DT_QINT8:
-        Compare<qint8>(v1[i], v2[i]);
+        Compare<qint8>(v1[i], v2[i], comparable);
         break;
       case DT_QUINT8:
-        Compare<quint8>(v1[i], v2[i]);
+        Compare<quint8>(v1[i], v2[i], comparable);
         break;
       default:
         ASSERT_TRUE(false)
@@ -272,8 +270,9 @@ static bool compare_float_data(float a, float b, float rtol, float atol) {
 }
 
 template <typename T>
-void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
-  _LastCompareSuccessful = false;
+void Compare(const Tensor& T1, const Tensor& T2, bool* comparable, float rtol,
+             float atol) {
+  bool comp_success = false;
   // Assert rank
   ASSERT_EQ(T1.dims(), T2.dims())
       << "Ranks unequal for T1 and T2. T1.shape = " << T1.shape()
@@ -331,10 +330,10 @@ void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
       failure_info_ng << b << ", ";
     }
   }
-  _LastCompareSuccessful = !any_idxcomp_failed;
-  EXPECT_TRUE(_LastCompareSuccessful)
-      << "TF output: " << failure_info_tf.str() << endl
-      << "NG output: " << failure_info_ng.str() << endl;
+  comp_success = !any_idxcomp_failed;
+  EXPECT_TRUE(comp_success) << "TF output: " << failure_info_tf.str() << endl
+                            << "NG output: " << failure_info_ng.str() << endl;
+  if (comparable) *comparable = comp_success;
 }
 
 bool Compare(std::vector<string> desired, std::vector<string> actual) {
@@ -348,8 +347,6 @@ bool Compare(std::vector<string> desired, std::vector<string> actual) {
   }
   return true;
 }
-
-bool LastCompareSuccessful() { return _LastCompareSuccessful; }
 
 tf::SessionOptions GetSessionOptions(const string& backend_name) {
   tf::SessionOptions options;

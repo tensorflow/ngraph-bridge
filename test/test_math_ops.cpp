@@ -134,27 +134,27 @@ TEST(MathOps, AddV2) {
       {2, 4}, {1, 1},  // sub-test# 6
       {1, 1}, {2, 4},  // sub-test# 7
   };
-
+  INIT_SUBTESTS
   for (int i = 0; i < tensors_combs.size(); i += 2) {
-    NGRAPH_VLOG(5) << "========>> Running AddV2 sub-test# " << (int)(i / 2 + 1)
-                   << " ...";
+    NGRAPH_VLOG(5) << ">> Running sub-test# " << (int)(i / 2 + 1);
 
     Scope root = Scope::NewRootScope();
-
-    Tensor A(DT_FLOAT, TensorShape(tensors_combs[i]));
-    Tensor B(DT_FLOAT, TensorShape(tensors_combs[i + 1]));
-
+    auto tshpA = TensorShape(tensors_combs[i]);
+    auto tshpB = TensorShape(tensors_combs[i + 1]);
+    Tensor A(DT_FLOAT, tshpA);
+    Tensor B(DT_FLOAT, tshpB);
     AssignInputValues(A, 2.1f);
     AssignInputValues(B, 4.1f);
 
     auto R = ops::AddV2(root, A, B);
-
     std::vector<Output> sess_run_fetchoutputs = {R};
     OpExecuter opexecuter(root, "AddV2", sess_run_fetchoutputs);
-
-    opexecuter.RunTest();
+    bool comparable = opexecuter.RunTest();
+    std::string info_str =
+        "A=" + tshpA.DebugString() + " B=" + tshpB.DebugString();
+    SAVE_SUBTEST_INFO(comparable, info_str)
   }
-
+  PRINT_SUBTESTS_SUMMARY
 }  // end of test op AddV2
 
 // Test op: AddN
@@ -459,45 +459,34 @@ TEST(MathOps, Sum) {
                                  {2, 4, 3},      {4, 3, 2, 1}, {1, 2, 3, 4},
                                  {3, 1, 2, 4, 1}};
   vector<bool> v_keep_dims = {true, false};
-  std::vector<std::string> run_results;
+  INIT_SUBTESTS
   int counter = 1;
-  if (!BACKEND_IE) {
-    for (auto tshp : tshapes) {
-      Tensor A(DT_INT32, TensorShape(tshp));
-      vector<int> v_axis(tshp.dims());
-      std::iota(v_axis.begin(), v_axis.end(), 0);
-      for (auto axis : v_axis) {
-        for (auto keep_dims : v_keep_dims) {
-          NGRAPH_VLOG(5) << ">> Running Sum sub-test #" << counter++
-                         << ", tensor-shape=" << tshp << ", axis=" << axis
-                         << ", keep_dims=" << keep_dims;
-          Scope root = Scope::NewRootScope();
-          auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
+  for (auto tshp : tshapes) {
+    Tensor A(DT_INT32, TensorShape(tshp));
+    vector<int> v_axis(tshp.dims());
+    std::iota(v_axis.begin(), v_axis.end(), 0);
+    for (auto axis : v_axis) {
+      for (auto keep_dims : v_keep_dims) {
+        NGRAPH_VLOG(5) << ">> Running Sum sub-test #" << counter++
+                       << ", tensor-shape=" << tshp << ", axis=" << axis
+                       << ", keep_dims=" << keep_dims;
+        Scope root = Scope::NewRootScope();
+        auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
 
-          AssignInputValues<int>(A, vals);
+        AssignInputValues<int>(A, vals);
 
-          auto R = ops::Sum(root, A, axis, keep_dims_attr);
-          std::vector<Output> sess_run_fetchoutputs = {R};
-          OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs);
-          opexecuter.RunTest();
-
-          // Save sub-test status for reporting later
-          run_results.push_back(
-              std::string("Status ") +
-              (LastCompareSuccessful() ? "  PASS" : "* FAIL") + " -> " +
-              "tensor-shape=" + tshp.DebugString() + ", axis=" +
-              std::to_string(axis) + ", keep_dims=" +
-              std::to_string(keep_dims));
-        }
+        auto R = ops::Sum(root, A, axis, keep_dims_attr);
+        std::vector<Output> sess_run_fetchoutputs = {R};
+        OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs);
+        bool comparable = opexecuter.RunTest();
+        std::string info_str = "tensor-shape=" + tshp.DebugString() +
+                               ", axis=" + std::to_string(axis) +
+                               ", keep_dims=" + std::to_string(keep_dims);
+        SAVE_SUBTEST_INFO(comparable, info_str)
       }
     }
-    // print consolidated summary of sub-tests on stdout
-    std::cout << "\nReport of sub-tests...\n";
-    for (auto& str : run_results) {
-      std::cout << str + "\n";
-    }
-    std::cout << "\n";
   }
+  PRINT_SUBTESTS_SUMMARY
 }
 
 // Test op: Mean with & without keep dims & with both positive & negative axis
@@ -511,8 +500,13 @@ TEST(MathOps, Mean) {
   // axis at which the dimension will be inserted
   // should be -rank <= axis < rank
   vector<int> v_axis = {-1, 0, 1};
+  if (BACKEND_IE) v_axis = {0};
+  INIT_SUBTESTS
+  int counter = 1;
   for (auto axis : v_axis) {
     for (auto keep_dims : v_keep_dims) {
+      NGRAPH_VLOG(5) << ">> Running sub-test #" << counter++ << " axis=" << axis
+                     << ", keep_dims=" << keep_dims;
       Scope root = Scope::NewRootScope();
       auto keep_dims_attr = ops::Mean::Attrs().KeepDims(keep_dims);
 
@@ -521,10 +515,13 @@ TEST(MathOps, Mean) {
       auto R = ops::Mean(root, A, axis, keep_dims_attr);
       std::vector<Output> sess_run_fetchoutputs = {R};
       OpExecuter opexecuter(root, "Mean", sess_run_fetchoutputs);
-
-      opexecuter.RunTest();
+      bool comparable = opexecuter.RunTest();
+      std::string info_str = "axis=" + std::to_string(axis) + ", keep_dims=" +
+                             std::to_string(keep_dims);
+      SAVE_SUBTEST_INFO(comparable, info_str)
     }
   }
+  PRINT_SUBTESTS_SUMMARY
 }
 
 // Test op: Prod with & without keep dims & with both positive & negative axis
@@ -556,6 +553,11 @@ TEST(MathOps, Prod) {
 
 // ArgMax test for negative dimension
 TEST(MathOps, ArgMaxNeg) {
+  // IE doesn't support Param->Result nodes, and hence throws
+  // "data [Parameter_xxxx] doesn't exist" exception in
+  // InferenceEngine::details::CNNNetworkImpl::addOutput(...)
+  SKIP_TEST_FOR_BACKEND_IE
+
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
   int dim2 = 3;
@@ -574,6 +576,11 @@ TEST(MathOps, ArgMaxNeg) {
 
 // ArgMax test for positive dimension
 TEST(MathOps, ArgMaxPos) {
+  // IE doesn't support Param->Result nodes, and hence throws
+  // "data [Parameter_xxxx] doesn't exist" exception in
+  // InferenceEngine::details::CNNNetworkImpl::addOutput(...)
+  SKIP_TEST_FOR_BACKEND_IE
+
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
   int dim2 = 3;
@@ -595,6 +602,11 @@ TEST(MathOps, ArgMaxPos) {
 
 // ArgMin test for negative dimension
 TEST(MathOps, ArgMinNeg) {
+  // IE doesn't support Param->Result nodes, and hence throws
+  // "data [Parameter_xxxx] doesn't exist" exception in
+  // InferenceEngine::details::CNNNetworkImpl::addOutput(...)
+  SKIP_TEST_FOR_BACKEND_IE
+
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
   int dim2 = 3;
@@ -613,6 +625,11 @@ TEST(MathOps, ArgMinNeg) {
 
 // ArgMin test for positive dimension
 TEST(MathOps, ArgMinPos) {
+  // IE doesn't support Param->Result nodes, and hence throws
+  // "data [Parameter_xxxx] doesn't exist" exception in
+  // InferenceEngine::details::CNNNetworkImpl::addOutput(...)
+  SKIP_TEST_FOR_BACKEND_IE
+
   Scope root = Scope::NewRootScope();
   int dim1 = 2;
   int dim2 = 3;

@@ -67,7 +67,7 @@ OpExecuter::OpExecuter(const Scope sc, const string test_op,
 
 OpExecuter::~OpExecuter() {}
 
-void OpExecuter::RunTest(float rtol, float atol) {
+bool OpExecuter::RunTest(float rtol, float atol) {
   vector<Tensor> ngraph_outputs;
   ExecuteOnNGraph(ngraph_outputs);
   vector<Tensor> tf_outputs;
@@ -82,7 +82,9 @@ void OpExecuter::RunTest(float rtol, float atol) {
     atol = std::atof(std::getenv("NGRAPH_TF_UTEST_ATOL"));
   }
 
-  Compare(tf_outputs, ngraph_outputs, rtol, atol);
+  bool comparable = false;
+  Compare(tf_outputs, ngraph_outputs, &comparable, rtol, atol);
+  return comparable;
 }
 
 // Uses tf_scope to execute on TF
@@ -116,8 +118,11 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs) {
   TF_CHECK_OK(BackendManager::GetCurrentlySetBackendName(&backend_name));
   tf::SessionOptions options = GetSessionOptions(backend_name);
   ClientSession session(tf_scope_, options);
-  TF_CHECK_OK(session.Run(sess_run_fetchoutputs_, &ngraph_outputs))
-      << "Failed to run opexecutor on NGTF";
+  try {
+    session.Run(sess_run_fetchoutputs_, &ngraph_outputs);
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
   for (size_t i = 0; i < ngraph_outputs.size(); i++) {
     NGRAPH_VLOG(5) << " NGTF op " << i << " "
                    << ngraph_outputs[i].DebugString();

@@ -77,7 +77,8 @@ class OpExecuter {
   void ExecuteOnTF(vector<Tensor>& outputs);
 
   // Executes on NGraph backend, then executes on TF, and compares the results
-  void RunTest(float rtol = static_cast<float>(1e-05),
+  // returns comparison true/false status
+  bool RunTest(float rtol = static_cast<float>(1e-05),
                float atol = static_cast<float>(1e-08));
 
  private:
