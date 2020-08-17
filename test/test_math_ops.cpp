@@ -453,6 +453,7 @@ INSTANTIATE_TEST_CASE_P(TestsWithParams, MathOpsSum,
 // Test op: Sum with & without keep dims & with both positive & negative axis
 // Contains several sub-tests with varying parameters
 TEST(MathOps, Sum) {
+  SKIP_TEST_FOR_BACKEND_IE // see TEST_P(MathOpsSum, SubTests)
   std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6,
                            1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
   vector<TensorShape> tshapes = {{2, 3},         {2, 2, 3},    {6, 2},

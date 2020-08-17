@@ -42,6 +42,7 @@ These tests test the Backend Handling by the bridge.
 
 // Test SetBackendAPI
 TEST(BackendManager, SetBackend) {
+  SKIP_TEST_FOR_BACKEND_IE
   // If NGRAPH_TF_BACKEND is set, unset it
   list<string> env_vars{"NGRAPH_TF_BACKEND"};
   const unordered_map<string, string>& env_map = StoreEnv(env_vars);
@@ -69,47 +70,55 @@ TEST(BackendManager, SetBackend) {
 // Test GetCurrentlySetBackendNameAPI
 // Test with env variable set
 TEST(BackendManager, GetCurrentlySetBackendName) {
+  SKIP_TEST_FOR_BACKEND_IE
   // If NGRAPH_TF_BACKEND is set, unset it
   list<string> env_vars{"NGRAPH_TF_BACKEND"};
   const unordered_map<string, string>& env_map = StoreEnv(env_vars);
 
-  string cpu_backend = "CPU";
-  string intp_backend = "INTERPRETER";
+  std::function<void()> cleanup_func = [&]() {
+    // Clean up & restore
+    UnsetBackendUsingEnvVar();
+    ASSERT_OK(BackendManager::SetBackendName("CPU"));
+    RestoreEnv(env_map);
+  };
 
-  // set backend to interpreter and env variable to CPU
-  // expected CPU
-  ASSERT_OK(BackendManager::SetBackendName(intp_backend));
-  SetBackendUsingEnvVar(cpu_backend);
-  string backend;
-  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
-  ASSERT_EQ(cpu_backend, backend);
+  try {
+    string cpu_backend = "CPU";
+    string intp_backend = "INTERPRETER";
 
-  // unset env variable
-  // expected interpreter
-  UnsetBackendUsingEnvVar();
-  ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
-  ASSERT_EQ(intp_backend, backend);
+    // set backend to interpreter and env variable to CPU
+    // expected CPU
+    ASSERT_OK(BackendManager::SetBackendName(intp_backend));
+    SetBackendUsingEnvVar(cpu_backend);
+    string backend;
+    ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+    ASSERT_EQ(cpu_backend, backend);
 
-  // set env variable to DUMMY
-  // expected ERROR
-  SetBackendUsingEnvVar("DUMMY");
-  ASSERT_NOT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+    // unset env variable
+    // expected interpreter
+    UnsetBackendUsingEnvVar();
+    ASSERT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+    ASSERT_EQ(intp_backend, backend);
 
-  // set env variable to ""
-  // expected ERROR
-  SetBackendUsingEnvVar("");
-  ASSERT_NOT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+    // set env variable to DUMMY
+    // expected ERROR
+    SetBackendUsingEnvVar("DUMMY");
+    ASSERT_NOT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
 
-  // Clean up
-  UnsetBackendUsingEnvVar();
-  ASSERT_OK(BackendManager::SetBackendName("CPU"));
-  // restore
-  // If NGRAPH_TF_BACKEND was set, set it back
-  RestoreEnv(env_map);
+    // set env variable to ""
+    // expected ERROR
+    SetBackendUsingEnvVar("");
+    ASSERT_NOT_OK(BackendManager::GetCurrentlySetBackendName(&backend));
+
+    cleanup_func();
+  } catch (...) {
+    cleanup_func();
+  }
 }
 
 // Test CanCreateBackend
 TEST(BackendManager, CanCreateBackend) {
+  SKIP_TEST_FOR_BACKEND_IE
   ASSERT_OK(BackendManager::CanCreateBackend("CPU"));
   ASSERT_OK(BackendManager::CanCreateBackend("CPU:0"));
   ASSERT_NOT_OK(BackendManager::CanCreateBackend("temp"));
