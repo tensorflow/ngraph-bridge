@@ -54,12 +54,12 @@ static void set_filters_for_backend() {
     std::string line;
     bool excluded_section = false;
     while (getline(fs, line)) {
+      line = std::regex_replace(line, std::regex("^\\s+"), "");
+      line = std::regex_replace(line, std::regex("#.*$"), "");
+      line = std::regex_replace(line, std::regex("\\s+$"), "");
       if (line.empty()) continue;
-      if (std::all_of(line.begin(), line.end(),
-                      [](unsigned char c) { return std::isspace(c); }))
-        continue;
-      if (line.find("#") == 0) continue;
       if (!excluded_section && line.find("[EXCLUDED]") == 0) {
+        if (filters.back() == ':') filters.pop_back();  // remove last :
         filters += "-";
         excluded_section = true;
         continue;

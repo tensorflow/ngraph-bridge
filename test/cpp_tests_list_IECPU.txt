@@ -7,7 +7,7 @@
 ####  EXCLUDED GTEST PATTERNS ####
 [EXCLUDED]
 
-BackendManager.*
+BackendManager.* # backend tests don't apply for IE
 NGraphExecTest.Axpy
 NGraphExecTest.Axpy8bit
 NGraphExecTest.MixedTensors
