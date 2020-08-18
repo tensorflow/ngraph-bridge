@@ -33,6 +33,8 @@ namespace ngraph_bridge {
 // A Inference Engine executable object produced by compiling an nGraph
 // function.
 class IE_Executable final : public Executable {
+  using TensorMap = unordered_map<string, shared_ptr<ngraph::runtime::Tensor>>;
+
  public:
   IE_Executable(shared_ptr<ngraph::Function> func, string device);
   virtual ~IE_Executable() {}
@@ -42,9 +44,8 @@ class IE_Executable final : public Executable {
  private:
   InferenceEngine::CNNNetwork m_network;
   InferenceEngine::InferRequest m_infer_req;
-  // This map holds the parameters we insert for functions with no input
-  // parameters
-  unordered_map<string, shared_ptr<ngraph::runtime::Tensor>> m_hoisted_params;
+  TensorMap m_inputs;
+  TensorMap m_outputs;
   string m_device;
 };
 }

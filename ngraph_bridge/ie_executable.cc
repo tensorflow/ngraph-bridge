@@ -56,7 +56,6 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         auto element_type = constant->get_element_type();
         auto shape = constant->get_shape();
         auto param = std::make_shared<opset::Parameter>(element_type, shape);
-        param->set_friendly_name(node->get_friendly_name());
         ngraph::replace_node(node, param);
         // nGraph doesn't provide a way to set a parameter to an existing
         // function, so we clone the function here...
@@ -65,7 +64,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         auto ie_tensor = make_shared<IETensor>(element_type, shape);
         ie_tensor->write(constant->get_data_ptr(),
                          shape_size(shape) * element_type.size());
-        m_hoisted_params[param->get_friendly_name()] = ie_tensor;
+        m_inputs[param->get_name()] = ie_tensor;
         NGRAPH_VLOG(1) << "Converted node " << constant << " to a parameter "
                        << param;
         param_replaced = true;
@@ -91,59 +90,56 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
 
   InferenceEngine::Core ie;
-  // Load model to the plugin (m_device)
+  // Load network to the plugin (m_device) and create an infer request
   InferenceEngine::ExecutableNetwork exe_network =
       ie.LoadNetwork(m_network, m_device);
-
-  // Create infer request
   m_infer_req = exe_network.CreateInferRequest();
 }
 
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
   InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
+  if (input_info.size() != (inputs.size() + m_inputs.size())) {
     THROW_IE_EXCEPTION
         << "Function inputs number differ from number of given inputs";
   }
 
-  //  Prepare input blobs
-  size_t i = 0;
-  for (const auto& it : input_info) {
-    shared_ptr<IETensor> tv;
-    // First check if there were any constants we converted to parameters
-    if (m_hoisted_params.size() > 0) {
-      // We only support one parameter replacement for nullary functions
-      CHECK(m_hoisted_params.size() == 1)
-          << "Multiple input constants were converted to parameters.";
-      CHECK(input_info.size() == 1) << "Expecting one input that was converted "
-                                       "from constant to parameter.";
-      auto input = m_hoisted_params.find(it.first);
-      if (input != m_hoisted_params.end()) {
-        tv = static_pointer_cast<IETensor>((*input).second);
-      } else {
-        THROW_IE_EXCEPTION << "Input value not found for parameter "
-                           << it.first;
-      }
-    } else {
-      tv = static_pointer_cast<IETensor>(inputs[i]);
-    }
-    m_infer_req.SetBlob(it.first, tv->get_blob());
-    i++;
+  auto func = m_network.getFunction();
+  auto parameters = func->get_parameters();
+  for (int i = 0; i < inputs.size(); i++) {
+    m_inputs[parameters[i]->get_name()] = inputs[i];
   }
 
-  //  Prepare output blobs
   InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
   if (output_info.size() != outputs.size()) {
     THROW_IE_EXCEPTION
         << "Function outputs number differ from number of given outputs";
   }
 
-  i = 0;
-  for (const auto& it : output_info) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
+  auto results = func->get_results();
+  for (int i = 0; i < outputs.size(); i++) {
+    m_outputs[results[i]->get_name()] = outputs[i];
+  }
+
+  auto get_tensor = [](const string key, const TensorMap& tmap) {
+    auto val = tmap.find(key);
+    if (val != tmap.end()) {
+      return static_pointer_cast<IETensor>((*val).second);
+    } else {
+      THROW_IE_EXCEPTION << "Tensor not found for parameter " << key;
+    }
+  };
+
+  //  Prepare input blobs
+  for (const auto& it : m_network.getInputsInfo()) {
+    shared_ptr<IETensor> tv = get_tensor(it.first, m_inputs);
     m_infer_req.SetBlob(it.first, tv->get_blob());
-    i++;
+  }
+
+  //  Prepare output blobs
+  for (const auto& it : m_network.getOutputsInfo()) {
+    shared_ptr<IETensor> tv = get_tensor(it.first, m_outputs);
+    m_infer_req.SetBlob(it.first, tv->get_blob());
   }
 
   m_infer_req.Infer();
