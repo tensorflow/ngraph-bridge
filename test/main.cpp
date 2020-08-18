@@ -34,19 +34,10 @@
 
 using namespace std;
 
-static void set_filters_for_backend() {
-  std::string backend = "GENERIC";
-  char* pBE = getenv("NGRAPH_TF_BACKEND");
-  if (pBE) {
-    backend = std::string(pBE);
-    // backend.replace(backend.begin(), backend.end(), ":", "");
-    backend = std::regex_replace(backend, std::regex(":"), "");
-  }
-  std::string this_filepath = __FILE__;
-  this_filepath =
-      std::regex_replace(this_filepath, std::regex("^(.*)/.*$"), "$1");
-  std::string filter_file =
-      this_filepath + "/" + "cpp_tests_list_" + backend + ".txt";
+static void set_filters_from_file() {
+  char* pEnv = getenv("NGTF_GTEST_FILE");
+  if (!pEnv) return;
+  std::string filter_file = std::string(pEnv);
   fstream fs;
   fs.open(filter_file, ios::in);
   if (fs.is_open()) {
@@ -77,7 +68,7 @@ static void set_filters_for_backend() {
 }
 
 int main(int argc, char** argv) {
-  set_filters_for_backend();
+  set_filters_from_file();
 
   ::testing::InitGoogleTest(&argc, argv);
 
