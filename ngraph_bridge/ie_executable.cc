@@ -56,7 +56,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         auto element_type = constant->get_element_type();
         auto shape = constant->get_shape();
         auto param = std::make_shared<opset::Parameter>(element_type, shape);
-        ngraph::replace_node_update_name(node, param);
+        param->set_friendly_name(node->get_friendly_name());
+        ngraph::replace_node(node, param);
         // nGraph doesn't provide a way to set a parameter to an existing
         // function, so we clone the function here...
         func = make_shared<Function>(func->get_results(),
@@ -64,7 +65,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         auto ie_tensor = make_shared<IETensor>(element_type, shape);
         ie_tensor->write(constant->get_data_ptr(),
                          shape_size(shape) * element_type.size());
-        m_hoisted_params[param->get_name()] = ie_tensor;
+        m_hoisted_params[param->get_friendly_name()] = ie_tensor;
         NGRAPH_VLOG(1) << "Converted node " << constant << " to a parameter "
                        << param;
         param_replaced = true;
