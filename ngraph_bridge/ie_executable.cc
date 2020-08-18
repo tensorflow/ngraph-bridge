@@ -65,7 +65,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         auto ie_tensor = make_shared<IETensor>(element_type, shape);
         ie_tensor->write(constant->get_data_ptr(),
                          shape_size(shape) * element_type.size());
-        m_inputs[param->get_friendly_name()] = ie_tensor;
+        m_hoisted_params.push_back(make_pair(param->get_friendly_name(), ie_tensor));
         NGRAPH_VLOG(1) << "Converted node " << constant << " to a parameter "
                        << param;
         param_replaced = true;
@@ -99,16 +99,25 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
+  // Check if the number of inputs that the CNN network expects is equal to the sum of the
+  // inputs specified and the inputs we hoisted, if any.
   InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  if (input_info.size() != (inputs.size() + m_inputs.size())) {
+  if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
     THROW_IE_EXCEPTION
         << "Function inputs number differ from number of given inputs";
   }
 
+  //  Prepare input blobs
   auto func = m_network.getFunction();
   auto parameters = func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
-    m_inputs[parameters[i]->get_friendly_name()] = inputs[i];
+    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
+    m_infer_req.SetBlob(parameters[i]->get_friendly_name(), tv->get_blob());
+  }
+
+  for (const auto& it : m_hoisted_params) {
+    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
+    m_infer_req.SetBlob(it.first, tv->get_blob());
   }
 
   InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
@@ -117,30 +126,11 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
         << "Function outputs number differ from number of given outputs";
   }
 
+  //  Prepare output blobs
   auto results = func->get_results();
   for (int i = 0; i < outputs.size(); i++) {
-    m_outputs[results[i]->get_friendly_name()] = outputs[i];
-  }
-
-  auto get_tensor = [](const string key, const TensorMap& tmap) {
-    auto val = tmap.find(key);
-    if (val != tmap.end()) {
-      return static_pointer_cast<IETensor>((*val).second);
-    } else {
-      THROW_IE_EXCEPTION << "Tensor not found for i/o layer " << key;
-    }
-  };
-
-  //  Prepare input blobs
-  for (const auto& it : m_network.getInputsInfo()) {
-    shared_ptr<IETensor> tv = get_tensor(it.first, m_inputs);
-    m_infer_req.SetBlob(it.first, tv->get_blob());
-  }
-
-  //  Prepare output blobs
-  for (const auto& it : m_network.getOutputsInfo()) {
-    shared_ptr<IETensor> tv = get_tensor(it.first, m_outputs);
-    m_infer_req.SetBlob(it.first, tv->get_blob());
+    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
+    m_infer_req.SetBlob(results[i]->get_friendly_name(), tv->get_blob());
   }
 
   m_infer_req.Infer();
