@@ -88,8 +88,6 @@ def main():
     # Decide which tests to run
     if (arguments.test_cpp):
         test_filter = None
-        if 'INTERPRETER' in backend:
-            test_filter = str("-NNOps.QuantizedAvgPoolEvenInput:ArrayOps.Tile")
         os.environ['NGRAPH_TF_LOG_0_DISABLED'] = '1'
         run_ngtf_cpp_gtests(arguments.artifacts_dir, './', test_filter)
     elif (arguments.test_python):
