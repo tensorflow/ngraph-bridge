@@ -3391,6 +3391,7 @@ static Status TranslateTopKV2Op(
   int64 k_axis = ng_input.get_shape().size() - 1;
 
   // scalar input tensor specifying how many max/min elts should be computed
+  // CPU backend only supports element type i64
   std::vector<int64> ng_k_vec;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &ng_k_vec));
   auto ng_k = ConstructNgNode<opset::Constant>(op->name(), ng::element::i64,
@@ -3405,8 +3406,6 @@ static Status TranslateTopKV2Op(
     sort = "index";
   }
 
-  // index element type - currently only int32 or int64 are supported by
-  // ngraph
   auto ng_result =
       std::make_shared<opset::TopK>(ng_input, ng_k, k_axis, mode, sort);
 
