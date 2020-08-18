@@ -65,7 +65,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         auto ie_tensor = make_shared<IETensor>(element_type, shape);
         ie_tensor->write(constant->get_data_ptr(),
                          shape_size(shape) * element_type.size());
-        m_hoisted_params.push_back(make_pair(param->get_friendly_name(), ie_tensor));
+        m_hoisted_params.push_back(
+            make_pair(param->get_friendly_name(), ie_tensor));
         NGRAPH_VLOG(1) << "Converted node " << constant << " to a parameter "
                        << param;
         param_replaced = true;
@@ -99,7 +100,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
-  // Check if the number of inputs that the CNN network expects is equal to the sum of the
+  // Check if the number of inputs that the CNN network expects is equal to the
+  // sum of the
   // inputs specified and the inputs we hoisted, if any.
   InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
   if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
