@@ -240,6 +240,7 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
 
     os.chdir(root_pwd)
 
+
 def run_resnet50_infer_from_artifacts(artifact_dir, batch_size, iterations):
     root_pwd = os.getcwd()
     artifact_dir = os.path.abspath(artifact_dir)
@@ -249,7 +250,8 @@ def run_resnet50_infer_from_artifacts(artifact_dir, batch_size, iterations):
         install_ngraph_bridge(artifact_dir)
 
     # Check/download pretrained model
-    pretrained_models_dir = os.path.abspath(os.path.join(root_pwd, '../pretrained_models'))
+    pretrained_models_dir = os.path.abspath(
+        os.path.join(root_pwd, '../pretrained_models'))
     if not os.path.exists(pretrained_models_dir):
         os.mkdir(pretrained_models_dir, 0o755)
     os.chdir(pretrained_models_dir)
