@@ -15,8 +15,12 @@
  *******************************************************************************/
 
 #include <dlfcn.h>
+#include <stdlib.h>
+#include <cctype>
 #include <chrono>
+#include <fstream>
 #include <iostream>
+#include <regex>
 
 #include "gtest/gtest.h"
 
@@ -30,7 +34,51 @@
 
 using namespace std;
 
+static void set_filters_for_backend() {
+  std::string backend = "GENERIC";
+  char* pBE = getenv("NGRAPH_TF_BACKEND");
+  if (pBE) {
+    backend = std::string(pBE);
+    // backend.replace(backend.begin(), backend.end(), ":", "");
+    backend = std::regex_replace(backend, std::regex(":"), "");
+  }
+  std::string this_filepath = __FILE__;
+  this_filepath =
+      std::regex_replace(this_filepath, std::regex("^(.*)/.*$"), "$1");
+  std::string filter_file =
+      this_filepath + "/" + "cpp_tests_list_" + backend + ".txt";
+  fstream fs;
+  fs.open(filter_file, ios::in);
+  if (fs.is_open()) {
+    std::string filters = "";
+    std::string line;
+    bool excluded_section = false;
+    while (getline(fs, line)) {
+      if (line.empty()) continue;
+      if (std::all_of(line.begin(), line.end(),
+                      [](unsigned char c) { return std::isspace(c); }))
+        continue;
+      if (line.find("#") == 0) continue;
+      if (!excluded_section && line.find("[EXCLUDED]") == 0) {
+        filters += "-";
+        excluded_section = true;
+        continue;
+      }
+      if (excluded_section) {
+        if (line.at(0) == '-') line = line.erase(0, 1);
+      }
+      filters += line + ":";
+    }
+    fs.close();
+    if (filters.back() == ':') filters.pop_back();  // remove last :
+
+    ::testing::GTEST_FLAG(filter) = filters;
+  }
+}
+
 int main(int argc, char** argv) {
+  set_filters_for_backend();
+
   ::testing::InitGoogleTest(&argc, argv);
 
   int rc = RUN_ALL_TESTS();

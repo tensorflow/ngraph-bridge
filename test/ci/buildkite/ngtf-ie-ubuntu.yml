@@ -14,7 +14,7 @@
 
   - wait
   - command: |
-      PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
+      NGRAPH_TF_BACKEND=IE:CPU PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_cpp
     label: ":chrome: C++ Unit Test"
     timeout_in_minutes: 30

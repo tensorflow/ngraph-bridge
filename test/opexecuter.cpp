@@ -118,7 +118,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs) {
   ClientSession session(tf_scope_, options);
   try {
     session.Run(sess_run_fetchoutputs_, &ngraph_outputs);
-  } catch(...) {
+  } catch (...) {
     EXPECT_TRUE(false);
   }
   for (size_t i = 0; i < ngraph_outputs.size(); i++) {
