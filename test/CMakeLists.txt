@@ -16,6 +16,7 @@
 
 add_subdirectory(python)
 add_subdirectory(model_level_tests)
+add_dependencies(ext_gtest)
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
