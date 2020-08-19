@@ -16,7 +16,6 @@
 
 add_subdirectory(python)
 add_subdirectory(model_level_tests)
-add_dependencies(ext_gtest)
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
@@ -117,6 +116,7 @@ message(STATUS "Compile Flags for test dir: ${CMAKE_CXX_FLAGS}")
 message(STATUS "Shared Link Flags: ${CMAKE_SHARED_LINKER_FLAGS}")
 
 add_executable(gtest_ngtf ${SRC})
+add_dependencies(gtest_ngtf ext_gtest)
 message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
 
 # The following custom commands are used to create symlinks for various
