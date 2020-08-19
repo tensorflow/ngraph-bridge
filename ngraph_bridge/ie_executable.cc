@@ -132,7 +132,10 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
   auto results = func->get_results();
   for (int i = 0; i < outputs.size(); i++) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
-    m_infer_req.SetBlob(results[i]->get_friendly_name(), tv->get_blob());
+    // Since IE has no "result" nodes, we set the blob corresponding to the
+    // parent of this result node
+    auto parent = results[i]->input_value(0).get_node_shared_ptr();
+    m_infer_req.SetBlob(parent->get_friendly_name(), tv->get_blob());
   }
 
   m_infer_req.Infer();
