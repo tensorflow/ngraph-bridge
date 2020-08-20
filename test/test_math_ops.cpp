@@ -45,8 +45,6 @@ namespace ngraph_bridge {
 
 namespace testing {
 
-using MathOpTests = ::testing::Test;
-
 // Test(TestCaseName, TestName)
 // Please ensure
 // Neither TestCaseName nor TestName should contain underscore
