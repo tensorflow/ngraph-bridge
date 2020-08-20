@@ -64,7 +64,7 @@ static string describe(shared_ptr<ngraph::Node> node) {
      << ngraph::vector_to_string(const1->get_axis_vector_val())
      << " , shape = " << ngraph::vector_to_string(transpose->get_shape())
      << " ) "
-     << " , input = " << transpose->get_argument(0)->get_name();
+     << " , input = " << transpose->input_value(0).get_node()->get_name();
   return ss.str();
 }
 
@@ -165,7 +165,8 @@ static void insert_transpose(shared_ptr<ngraph::Node> target,
 static void delete_transpose(shared_ptr<ngraph::Node> transpose) {
   NGRAPH_VLOG(4) << "Removing transpose " << transpose->get_name();
   if (!transpose->get_users().empty()) {
-    ngraph::replace_node(transpose, transpose->get_argument(0));
+    ngraph::replace_node(transpose,
+                         transpose->input_value(0).get_node_shared_ptr());
   }
 }
 
@@ -379,8 +380,9 @@ static void sink_pad(
       ngraph::element::i64, ngraph::Shape{pad_end.size()}, pad_end);
   auto new_pad =
       make_shared<opset::Pad>(dummy_correct_shape, new_begin, new_end,
-                              n->get_argument(3), n->get_pad_mode());
-  ngraph::replace_node(dummy_correct_shape, n->get_argument(0));
+                              n->input_value(3), n->get_pad_mode());
+  ngraph::replace_node(dummy_correct_shape,
+                       n->input_value(0).get_node_shared_ptr());
   NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
                  << new_pad->get_name();
   ngraph::replace_node(n, new_pad);
@@ -438,7 +440,8 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
   auto new_concat = make_shared<opset::Concat>(new_args, new_axis);
   // put back the original arguments
   for (size_t i = 0; i < new_concat->get_input_size(); i++) {
-    ngraph::replace_node(new_args.at(i), n->get_argument(i));
+    ngraph::replace_node(new_args.at(i),
+                         n->input_value(i).get_node_shared_ptr());
   }
   NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
                  << new_concat->get_name();
@@ -503,8 +506,8 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
     // make sure shapes are always materialized before results
     NGRAPH_CHECK(
         r->get_shape() == r->get_input_shape(0) &&
-            r->get_element_type() == r->get_argument(0)->get_element_type(),
-        " op::Result = ", *r, ", Arg = ", *r->get_argument(0));
+            r->get_element_type() == r->input_value(0).get_element_type(),
+        " op::Result = ", *r, ", Arg = ", r->input_value(0));
 
     // make sure that after TransposeSinking pass the output_shape for Result
     // does not change from the expected output_shape before the pass
