@@ -507,7 +507,7 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
     NGRAPH_CHECK(
         r->get_shape() == r->get_input_shape(0) &&
             r->get_element_type() == r->input_value(0).get_element_type(),
-        " op::Result = ", *r, ", Arg = ", r->input_value(0));
+        " op::Result = ", *r, ", Arg = ", r->input_value(0).get_node());
 
     // make sure that after TransposeSinking pass the output_shape for Result
     // does not change from the expected output_shape before the pass
