@@ -95,12 +95,12 @@ static void write_transposemap(TransposeMap& reorders,
 }
 
 static shared_ptr<opset::Transpose> read_transposemap(
-    TransposeMap& reorders, shared_ptr<ngraph::Node> target,
-    size_t output_index = 0) {
-  auto transpose = reorders.at(target);
-  NGRAPH_VLOG(4) << "Read TransposeMap[" << target->get_name() << "]  -> "
-                 << describe<opset::Transpose>(transpose[output_index]);
-  return transpose[output_index];
+    TransposeMap& reorders, ngraph::Output<ngraph::Node> target) {
+  auto transpose = reorders.at(target.get_node_shared_ptr());
+  NGRAPH_VLOG(4) << "Read TransposeMap[" << target.get_node()->get_name()
+                 << "]  -> "
+                 << describe<opset::Transpose>(transpose[target.get_index()]);
+  return transpose[target.get_index()];
 }
 
 static shared_ptr<opset::Transpose> combine_transposes(
@@ -195,12 +195,9 @@ static shared_ptr<opset::Transpose> create_default_transpose(
 static void convert_binary_to_default_order(
     shared_ptr<ngraph::Node> binary, const ngraph::Input<ngraph::Node>& input,
     ngraph::Output<ngraph::Node> right, TransposeMap& reorders,
-    set<shared_ptr<ngraph::Node>>& transposes_to_delete,
-    size_t other_input_index) {
+    set<shared_ptr<ngraph::Node>>& transposes_to_delete) {
   auto left = input.get_source_output().get_node_shared_ptr();
-  size_t output_index = right.get_index();
-  auto right_t =
-      read_transposemap(reorders, right.get_node_shared_ptr(), output_index);
+  auto right_t = read_transposemap(reorders, right);
   auto right_const = ngraph::as_type_ptr<opset::Constant>(
       right_t->input_value(1).get_node_shared_ptr());
 
@@ -244,9 +241,7 @@ static void materialize_shapes(
     // materialize all pending transposes, flush pending transposes
     auto arg = n->input_value(i);
     if (reorders.count(arg.get_node_shared_ptr()) != 0) {
-      size_t output_index = arg.get_index();
-      auto arg_transpose =
-          read_transposemap(reorders, arg.get_node_shared_ptr(), output_index);
+      auto arg_transpose = read_transposemap(reorders, arg);
       NGRAPH_VLOG(4) << "Materializing "
                      << describe<opset::Transpose>(arg_transpose) << " for "
                      << arg.get_node_shared_ptr()->get_name();
@@ -270,9 +265,7 @@ static void sink_transpose(
   NGRAPH_VLOG(4) << "Sinking Transpose :"
                  << describe<opset::Transpose>(transpose);
   auto transpose_in = transpose->input_value(0);
-  size_t output_index = transpose_in.get_index();
-  auto orig_transpose = read_transposemap(
-      reorders, transpose_in.get_node_shared_ptr(), output_index);
+  auto orig_transpose = read_transposemap(reorders, transpose_in);
   // combine both transposes
   auto new_transpose = combine_transposes(orig_transpose, transpose);
   // remove original transpose now it's combined with a new one
@@ -288,9 +281,7 @@ static void sink_unary(
     shared_ptr<ngraph::Node> n, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& /* transposes_to_delete */) {
   auto in = n->input_value(0);
-  size_t in_output_index = in.get_index();
-  auto arg_transpose =
-      read_transposemap(reorders, in.get_node_shared_ptr(), in_output_index);
+  auto arg_transpose = read_transposemap(reorders, in);
   NGRAPH_VLOG(4) << "Propagating " << describe<opset::Transpose>(arg_transpose)
                  << " for " << n->get_name();
   write_transposemap(reorders, n, arg_transpose);
@@ -300,12 +291,8 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, TransposeMap& reorders,
                         set<shared_ptr<ngraph::Node>>& transposes_to_delete) {
   auto left = binary->input_value(0);
   auto right = binary->input_value(1);
-  size_t left_output_index = left.get_index();
-  size_t right_output_index = right.get_index();
-  auto left_t = read_transposemap(reorders, left.get_node_shared_ptr(),
-                                  left_output_index);
-  auto right_t = read_transposemap(reorders, right.get_node_shared_ptr(),
-                                   right_output_index);
+  auto left_t = read_transposemap(reorders, left);
+  auto right_t = read_transposemap(reorders, right);
   auto left_const = ngraph::as_type_ptr<opset::Constant>(
       left_t->input_value(1).get_node_shared_ptr());
   auto right_const = ngraph::as_type_ptr<opset::Constant>(
@@ -343,11 +330,11 @@ static void sink_binary(shared_ptr<ngraph::Node> binary, TransposeMap& reorders,
   } else {
     if (right_mismatch) {
       convert_binary_to_default_order(binary, binary->input(0), right, reorders,
-                                      transposes_to_delete, 1);
+                                      transposes_to_delete);
     }
     if (left_mismatch) {
       convert_binary_to_default_order(binary, binary->input(1), left, reorders,
-                                      transposes_to_delete, 0);
+                                      transposes_to_delete);
     }
   }
 }
@@ -356,9 +343,7 @@ static void sink_pad(
     shared_ptr<opset::Pad> n, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& /* transposes_to_delete */) {
   auto n_in = n->input_value(0);
-  size_t output_index = n_in.get_index();
-  auto arg_transpose =
-      read_transposemap(reorders, n_in.get_node_shared_ptr(), output_index);
+  auto arg_transpose = read_transposemap(reorders, n_in);
   describe<opset::Transpose>(arg_transpose);
   auto arg_transpose_order = ngraph::as_type_ptr<opset::Constant>(
       arg_transpose->input_value(1).get_node_shared_ptr());
@@ -396,9 +381,7 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
                         set<shared_ptr<ngraph::Node>>& transposes_to_delete,
                         TransposeMap& reuse_map) {
   auto n_in = n->input_value(0);
-  size_t output_index = n_in.get_index();
-  auto arg_transpose =
-      read_transposemap(reorders, n_in.get_node_shared_ptr(), output_index);
+  auto arg_transpose = read_transposemap(reorders, n_in);
   auto arg_transpose_order = ngraph::as_type_ptr<opset::Constant>(
       arg_transpose->input_value(1).get_node_shared_ptr());
   auto order = arg_transpose_order->get_axis_vector_val();
@@ -416,9 +399,7 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
 
   for (size_t i = 1; i < n->get_input_size(); i++) {
     auto iarg = n->input_value(i);
-    size_t output_index = iarg.get_index();
-    auto iarg_transpose =
-        read_transposemap(reorders, iarg.get_node_shared_ptr(), output_index);
+    auto iarg_transpose = read_transposemap(reorders, iarg);
     auto iarg_transpose_order = ngraph::as_type_ptr<opset::Constant>(
         iarg_transpose->input_value(1).get_node_shared_ptr());
     auto iorder = iarg_transpose_order->get_axis_vector_val();
