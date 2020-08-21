@@ -248,7 +248,9 @@ static void materialize_shapes(
                      << describe<opset::Transpose>(default_transpose);
       write_transposemap(reorders, n, default_transpose);
     }
-    return;
+  } else {
+    // For single output nodes
+    write_transposemap(reorders, n, create_default_transpose(n));
   }
 
   for (size_t i = 0; i < n->input_values().size(); i++) {
@@ -270,7 +272,6 @@ static void materialize_shapes(
       }
     }
   }
-  write_transposemap(reorders, n, create_default_transpose(n));
 }
 
 static void sink_transpose(
