@@ -232,8 +232,22 @@ static void materialize_shapes(
     shared_ptr<ngraph::Node> n, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& transposes_to_delete,
     TransposeMap& reuse_map) {
-  // skip multiple output nodes and deal with GOEs exclusively
+  // For multi-output nodes, create a default transpose for
+  // each of the outputs and store in the map
   if (n->get_output_size() > 1) {
+    for (auto& it : n->outputs()) {
+      NGRAPH_VLOG(4) << "Handling multi-output node with "
+                     << n->get_output_size() << " outputs.";
+      auto default_order = ngraph::get_default_order(it.get_shape());
+      auto ng_input_order = std::make_shared<opset::Constant>(
+          ngraph::element::u64, ngraph::Shape{default_order.size()},
+          default_order);
+      auto default_transpose =
+          make_shared<opset::Transpose>(it, ng_input_order);
+      NGRAPH_VLOG(4) << "Default transpose: "
+                     << describe<opset::Transpose>(default_transpose);
+      write_transposemap(reorders, n, default_transpose);
+    }
     return;
   }
 
@@ -447,7 +461,6 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   TransposeMap reorders, reuse_map;
   set<shared_ptr<ngraph::Node>> transposes_to_delete;
   unordered_map<std::string, ngraph::Shape> orig_result_out_shape;
-
   // STEP 1 : Sink or Swim transposes away for op clusters
   for (auto n : f->get_ordered_ops()) {
     NGRAPH_VLOG(4) << "-----Start: Processing node----- " << n->get_name();
@@ -496,7 +509,6 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
                  " op::Result = ", *r, " expected output shape = ",
                  orig_result_out_shape[r->get_name()]);
   }
-
   return true;
 }
 
