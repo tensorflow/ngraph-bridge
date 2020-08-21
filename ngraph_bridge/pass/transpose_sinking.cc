@@ -433,12 +433,7 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
   }
 
   auto new_axis = order.at(n->get_concatenation_axis());
-  auto new_concat = make_shared<opset::Concat>(new_args, new_axis);
-  // put back the original arguments
-  for (size_t i = 0; i < new_concat->get_input_size(); i++) {
-    ngraph::replace_node(new_args.at(i),
-                         n->input_value(i).get_node_shared_ptr());
-  }
+  auto new_concat = make_shared<opset::Concat>(n->input_values(), new_axis);
   NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
                  << new_concat->get_name();
   ngraph::replace_node(n, new_concat);
