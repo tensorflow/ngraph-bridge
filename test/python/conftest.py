@@ -27,3 +27,87 @@ def reset_graph():
 @pytest.fixture(scope='session', autouse=True)
 def cleanup():
     yield
+
+
+def pytest_configure(config):
+    pytest.tests_to_skip = []
+    print("pytest_load_initial_conftests args=", config.invocation_params.args,
+          "dir=", config.invocation_params.dir)
+    # Get list of tests to run
+    if ('PYTEST_SKIPFILTERS' in os.environ):
+        filterfile = os.path.abspath(os.environ['PYTEST_SKIPFILTERS'])
+        file = open(filterfile, mode='r')
+        if file is not None:
+            file_str = file.read()
+            file.close()
+            tests_to_skip = eval(file_str)
+            print("[ skip-filter = " + filterfile + " ]")
+            pytest.tests_to_skip = tests_to_skip
+
+
+# ==============================================================================
+# ==============================================================================
+
+
+def pytest_collection_modifyitems(config, items):
+    skip_listed = pytest.mark.skip(reason="skipped as per conftest.py")
+    print("")
+    skip_counter = 0
+    for item in items:
+        skip = False
+        #print("\n\nchecking item:", item.name, item.function.__name__, "\nDetails:", item , "\n", item.module.__name__, item.cls.__qualname__, item.function.__qualname__)
+        #pprint.pprint(dir(item.cls))
+        #print(item.function.__name__, item.function.__qualname__)
+        #debug_object(item)
+        #pprint.pprint(dir(item.function))
+        #pprint.pprint(item.__dict__)
+        #debug_object(item)
+
+        #print("fspath", item.fspath, "parent", item.parent)
+        tests_to_skip = pytest.tests_to_skip
+        if item.name in tests_to_skip:
+            skip = True
+            print("will skip test by name:", item.name,
+                  "(" + item.function.__qualname__ + ")")
+        elif item.cls.__qualname__ + "." + item.name in tests_to_skip:
+            skip = True
+            print("will skip test by class.name:",
+                  item.cls.__qualname__ + "." + item.name)
+        elif item.module.__name__ + "." + item.cls.__qualname__ + "." + item.name in tests_to_skip:
+            skip = True
+            print(
+                "will skip test by module.class.name:", item.module.__name__ +
+                "." + item.cls.__qualname__ + "." + item.name)
+
+        # for parametrized tests, if we specify filter to exclude a test (i.e. all params)
+        elif item.function.__name__ in tests_to_skip:
+            skip = True
+            print("will skip test by name[...]:", item.function.__name__,
+                  "(" + item.name + ")")
+        elif item.cls.__qualname__ + "." + item.function.__name__ in tests_to_skip:
+            skip = True
+            print("will skip test by class.name[...]:",
+                  item.cls.__qualname__ + "." + item.name)
+        elif item.module.__name__ + "." + item.cls.__qualname__ + "." + item.function.__name__ in tests_to_skip:
+            skip = True
+            print(
+                "will skip test by module.class.name[...]:",
+                item.module.__name__ + "." + item.cls.__qualname__ + "." +
+                item.name)
+
+        elif item.cls.__qualname__ in tests_to_skip:
+            skip = True
+            print("will skip test by class:", item.cls.__qualname__)
+        elif item.module.__name__ + "." + item.cls.__qualname__ in tests_to_skip:
+            skip = True
+            print("will skip test by module.class:",
+                  item.module.__name__ + "." + item.cls.__qualname__)
+        elif item.module.__name__ in tests_to_skip:
+            skip = True
+            print("will skip test by module:", item.module.__name__)
+
+        if skip:
+            item.add_marker(skip_listed)
+            skip_counter += 1
+
+    print("\nTotal skipped via filter:", skip_counter, "\n")
