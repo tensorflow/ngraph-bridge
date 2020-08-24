@@ -179,9 +179,11 @@ static void mark_transpose_for_deletion(
 }
 
 static shared_ptr<opset::Transpose> create_default_transpose(
-    shared_ptr<ngraph::Node> n) {
-  auto default_order = ngraph::get_default_order(n->get_shape());
-  auto default_transpose = make_transpose(n, default_order);
+    ngraph::Output<ngraph::Node> n) {
+  auto default_order = ngraph::get_default_order(n.get_shape());
+  auto ng_input_order = std::make_shared<opset::Constant>(
+      ngraph::element::u64, ngraph::Shape{default_order.size()}, default_order);
+  auto default_transpose = make_shared<opset::Transpose>(n, ng_input_order);
   NGRAPH_VLOG(4) << "Default transpose: "
                  << describe<opset::Transpose>(default_transpose);
   return default_transpose;
@@ -232,25 +234,12 @@ static void materialize_shapes(
     shared_ptr<ngraph::Node> n, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& transposes_to_delete,
     TransposeMap& reuse_map) {
-  // For multi-output nodes, create a default transpose for
+  // For each node, create a default transpose for
   // each of the outputs and store in the map
-  if (n->get_output_size() > 1) {
-    for (auto& it : n->outputs()) {
-      NGRAPH_VLOG(4) << "Handling multi-output node with "
-                     << n->get_output_size() << " outputs.";
-      auto default_order = ngraph::get_default_order(it.get_shape());
-      auto ng_input_order = std::make_shared<opset::Constant>(
-          ngraph::element::u64, ngraph::Shape{default_order.size()},
-          default_order);
-      auto default_transpose =
-          make_shared<opset::Transpose>(it, ng_input_order);
-      NGRAPH_VLOG(4) << "Default transpose: "
-                     << describe<opset::Transpose>(default_transpose);
-      write_transposemap(reorders, n, default_transpose);
-    }
-  } else {
-    // For single output nodes
-    write_transposemap(reorders, n, create_default_transpose(n));
+  for (auto& it : n->outputs()) {
+    NGRAPH_VLOG(4) << "Handling node with " << n->get_output_size()
+                   << " output/s.";
+    write_transposemap(reorders, n, create_default_transpose(it));
   }
 
   for (size_t i = 0; i < n->input_values().size(); i++) {
