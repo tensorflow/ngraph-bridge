@@ -22,7 +22,10 @@ import fnmatch
 import time
 from datetime import timedelta
 import warnings
+
 import multiprocessing
+mpmanager = multiprocessing.Manager()
+mpmanager_return_dict = mpmanager.dict()
 
 try:
     import xmlrunner
@@ -270,16 +273,20 @@ def skip_tests_from_list(orig_list_of_tests):
 def func_utrunner_testcase_run(return_dict, runner, aTest):
     test_result = runner.run(aTest)
     return_dict[aTest.id()] = {
-        'wasSuccessful': test_result.wasSuccessful(),
-        'failures': test_result.failures,
-        'errors': test_result.errors,
-        'skipped': test_result.skipped
+        'wasSuccessful':
+        test_result.wasSuccessful(),
+        'failures':
+        test_result.failures,
+        'errors':
+        test_result.errors,
+        'skipped': [('', test_result.skipped[0][1])] if
+        (test_result.skipped) else None
     }
 
 
 def run_singletest_in_new_child_process(runner, aTest):
-    manager = multiprocessing.Manager()
-    return_dict = manager.dict()
+    mpmanager_return_dict.clear()
+    return_dict = mpmanager_return_dict
     p = multiprocessing.Process(
         target=func_utrunner_testcase_run, args=(return_dict, runner, aTest))
     p.start()
@@ -364,11 +371,15 @@ def run_test(test_list, xml_report, verbosity=0):
                     failures.append(test_result_map['errors'])
                     result_str = " \033[91m FAIL \033[0m " + aTest.id() + \
                         '\n\033[91m' + ''.join(test_result_map['errors'][0][1]) + '\033[0m'
-                skipped.append(test_result_map['skipped'])
+
+                if 'skipped' in test_result_map and bool(
+                        test_result_map['skipped']):
+                    skipped.append(test_result_map['skipped'])
                 print('took', elapsed, 'RESULT =>', result_str)
         summary = {
             "TOTAL": test_list,
             "PASSED": succeeded,
+            "SKIPPED": skipped,
             "FAILED": failures,
         }
         return summary
@@ -378,6 +389,8 @@ def check_and_print_summary(test_results, invalid_list):
     print('========================================================')
     print("TOTAL: ", len(test_results['TOTAL']))
     print("PASSED: ", len(test_results['PASSED']))
+    if len(test_results['SKIPPED']) > 0:
+        print("   with skipped: ", len(test_results['SKIPPED']))
     print("FAILED: ", len(test_results['FAILED']))
 
     if (len(invalid_list) > 0):
