@@ -22,6 +22,7 @@ import fnmatch
 import time
 from datetime import timedelta
 import warnings
+import multiprocessing
 
 try:
     import xmlrunner
@@ -71,9 +72,11 @@ def main():
     arguments = parser.parse_args()
 
     xml_report = arguments.xml_report
+
     if (arguments.list_tests):
         test_list = get_test_list(arguments.tensorflow_path,
                                   arguments.list_tests)
+        skip_tests_from_list(test_list[0])
         print('\n'.join(test_list[0]))
         return None, None
 
@@ -87,10 +90,12 @@ def main():
                 result_str = "\033[91m INVALID \033[0m " + test + \
                 '\033[91m' + '\033[0m'
                 print('TEST:', result_str)
-        test_results = run_test(test_list[0], xml_report)
+        skip_tests_from_list(test_list[0])
+        test_results = run_test(test_list[0], xml_report,
+                                (2 if arguments.verbose else 0))
         elapsed = time.time() - start
-        print("Testing results\nTime elapsed: ", str(
-            timedelta(seconds=elapsed)))
+        print("\n\nTesting results\nTime elapsed: ",
+              str(timedelta(seconds=elapsed)))
         return check_and_print_summary(test_results, test_list[1])
 
     if (arguments.run_tests_from_file):
@@ -98,6 +103,8 @@ def main():
         invalid_list = []
         start = time.time()
         list_of_tests = read_tests_from_file(arguments.run_tests_from_file)
+        list_of_tests = list(dict.fromkeys(list_of_tests))  # remove dups
+        skip_tests_from_list(list_of_tests)
         for test in list_of_tests:
             test_list = get_test_list(arguments.tensorflow_path, test)
             for test in test_list[1]:
@@ -110,10 +117,11 @@ def main():
             for test_name in test_list:
                 if test_name not in all_test_list:
                     all_test_list.append(test_name)
-        test_results = run_test(all_test_list, xml_report)
+        test_results = run_test(all_test_list, xml_report,
+                                (2 if arguments.verbose else 0))
         elapsed = time.time() - start
-        print("Testing results\nTime elapsed: ", str(
-            timedelta(seconds=elapsed)))
+        print("\n\nTesting results\nTime elapsed: ",
+              str(timedelta(seconds=elapsed)))
         return check_and_print_summary(test_results, invalid_list)
 
 
@@ -240,6 +248,60 @@ def read_tests_from_file(filename):
         ]
 
 
+def skip_tests_from_list(orig_list_of_tests):
+    if ('TFPYTEST_SKIPLIST' in os.environ):
+        filename = os.path.abspath(os.environ['TFPYTEST_SKIPLIST'])
+        with open(filename) as skipfile:
+            orig_count = len(orig_list_of_tests)
+            print()
+            for line in skipfile.readlines():
+                line = line.split('#')[0].rstrip('\n').strip(' ')
+                if line == '':
+                    continue
+                if line in orig_list_of_tests:
+                    print('will skip test:', line)
+                    orig_list_of_tests.remove(line)
+            new_count = len(orig_list_of_tests)
+            print('\nTest count: Initial={} Skipped={} New-Total={}\n'.format(
+                orig_count, orig_count - new_count, new_count))
+            #return orig_list_of_tests
+
+
+def func_utrunner_testcase_run(return_dict, runner, aTest):
+    test_result = runner.run(aTest)
+    return_dict[aTest.id()] = {
+        'wasSuccessful': test_result.wasSuccessful(),
+        'failures': test_result.failures,
+        'errors': test_result.errors,
+        'skipped': test_result.skipped
+    }
+
+
+def run_singletest_in_new_child_process(runner, aTest):
+    manager = multiprocessing.Manager()
+    return_dict = manager.dict()
+    p = multiprocessing.Process(
+        target=func_utrunner_testcase_run, args=(return_dict, runner, aTest))
+    p.start()
+    p.join()
+
+    #  A negative exitcode -N indicates that the child was terminated by signal N.
+    if p.exitcode != 0:
+        error_msg = '!!! RUNTIME ERROR !!! Test ' + aTest.id(
+        ) + ' exited with code: ' + str(p.exitcode)
+        print(error_msg)
+        return_dict[aTest.id()] = {
+            'wasSuccessful': False,
+            'failures': [('', error_msg)],
+            'errors': [('', error_msg)],
+            'skipped': []
+        }
+        return return_dict[aTest.id()]
+
+    test_result_map = return_dict[aTest.id()]
+    return test_result_map
+
+
 def run_test(test_list, xml_report, verbosity=0):
     """
     Runs a specific test suite or test case given with the fully qualified 
@@ -256,10 +318,11 @@ def run_test(test_list, xml_report, verbosity=0):
     suite = unittest.TestSuite()
     succeeded = []
     failures = []
+    skipped = []
     if xml_report is not None:
-        for test in test_list:
-            names = loader.loadTestsFromName(test)
-            suite.addTest(names)
+        for testpattern in test_list:
+            tests = loader.loadTestsFromName(testpattern)
+            suite.addTest(tests)
         with open(xml_report, 'wb') as output:
             sys.stdout = open(os.devnull, "w")
             sys.stderr = open(os.devnull, "w")
@@ -274,44 +337,53 @@ def run_test(test_list, xml_report, verbosity=0):
         summary = {"TOTAL": test_list, "PASSED": succeeded, "FAILED": failures}
         return summary
     else:
-        for test in test_list:
-            start = time.time()
-            saved_stdout = sys.stdout
-            sys.stdout = open(os.devnull, "w")
-            #sys.stderr = open(os.devnull, "w")
+        runner = unittest.TextTestRunner(verbosity=verbosity)
+        for testpattern in test_list:
+            tests = loader.loadTestsFromName(testpattern)
+            for aTest in tests:
+                print()
+                print('>> >> >> >> Testing:', aTest.id(), '...')
+                start = time.time()
+                test_result_map = run_singletest_in_new_child_process(
+                    runner, aTest)
+                elapsed = time.time() - start
+                elapsed = str(timedelta(seconds=elapsed))
 
-            test_result = unittest.TextTestRunner(verbosity=verbosity).run(
-                loader.loadTestsFromName(test))
-
-            #sys.stderr = sys.__stderr__
-            #sys.stdout = sys.__stdout__
-            sys.stdout = saved_stdout
-            elapsed = time.time() - start
-            elapsed = str(timedelta(seconds=elapsed))
-
-            if test_result.wasSuccessful():
-                succeeded.append(test)
-                result_str = " \033[92m OK \033[0m " + test
-            elif test_result.failures:
-                failures.append(test_result.failures)
-                result_str = " \033[91m FAIL \033[0m " + test + \
-                    '\n\033[91m' + ''.join(test_result.failures[0][1]) + '\033[0m'
-            elif test_result.errors:
-                failures.append(test_result.errors)
-                result_str = " \033[91m FAIL \033[0m " + test + \
-                    '\n\033[91m' + ''.join(test_result.errors[0][1]) + '\033[0m'
-            print('TEST: ', elapsed, result_str)
-        summary = {"TOTAL": test_list, "PASSED": succeeded, "FAILED": failures}
+                if test_result_map['wasSuccessful'] == True:
+                    succeeded.append(aTest.id())
+                    result_str = " \033[92m OK \033[0m " + aTest.id()
+                elif 'failures' in test_result_map and bool(
+                        test_result_map['failures']):
+                    failures.append(test_result_map['failures'])
+                    print('test_result_map[\'failures\']',
+                          test_result_map['failures'])
+                    result_str = " \033[91m FAIL \033[0m " + aTest.id() + \
+                        '\n\033[91m' + ''.join(test_result_map['failures'][0][1]) + '\033[0m'
+                elif 'errors' in test_result_map and bool(
+                        test_result_map['errors']):
+                    failures.append(test_result_map['errors'])
+                    result_str = " \033[91m FAIL \033[0m " + aTest.id() + \
+                        '\n\033[91m' + ''.join(test_result_map['errors'][0][1]) + '\033[0m'
+                skipped.append(test_result_map['skipped'])
+                print('took', elapsed, 'RESULT =>', result_str)
+        summary = {
+            "TOTAL": test_list,
+            "PASSED": succeeded,
+            "FAILED": failures,
+        }
         return summary
 
 
 def check_and_print_summary(test_results, invalid_list):
+    print('========================================================')
     print("TOTAL: ", len(test_results['TOTAL']))
     print("PASSED: ", len(test_results['PASSED']))
     print("FAILED: ", len(test_results['FAILED']))
 
     if (len(invalid_list) > 0):
         print("INVALID: ", len(invalid_list))
+
+    print('========================================================\n')
 
     if len(test_results['FAILED']) == 0:
         return True
