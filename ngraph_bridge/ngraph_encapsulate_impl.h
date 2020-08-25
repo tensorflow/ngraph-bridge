@@ -58,19 +58,9 @@ class NGraphEncapsulateImpl {
                          std::vector<const Tensor*>& static_input_map,
                          std::shared_ptr<Executable>& ng_exec);
 
-  // Allocate tensors for input arguments. Creates ngraph input tensors using
-  // tensorflow tensors required to execute ngraph function
-  Status AllocateNGInputTensors(
-      const std::vector<Tensor>& tf_input_tensors,
-      const std::shared_ptr<Executable>& ng_exec,
-      vector<shared_ptr<ng::runtime::Tensor>>& ng_inputs);
-
-  // Allocate tensors for output results.  Creates ngraph output tensors using
-  // tensorflow tensors required to execute ngraph function
-  Status AllocateNGOutputTensors(
-      const std::vector<Tensor*>& tf_output_tensors,
-      const std::shared_ptr<Executable>& ng_exec,
-      vector<shared_ptr<ng::runtime::Tensor>>& ng_outputs);
+  // Allocate nGraph tensors for TF tensors
+  Status AllocateNGTensors(const std::vector<Tensor>& tf_tensors,
+                           vector<shared_ptr<ng::runtime::Tensor>>& ng_tensors);
 
   // Clear all maps with ng_exec as keys
   void ClearExecMaps();
