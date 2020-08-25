@@ -58,7 +58,7 @@ class NGraphEncapsulateImpl {
                          std::vector<const Tensor*>& static_input_map,
                          std::shared_ptr<Executable>& ng_exec);
 
-  // Allocate nGraph tensors for TF tensors
+  // Allocate nGraph tensors for given TF tensors
   Status AllocateNGTensors(const std::vector<Tensor>& tf_tensors,
                            vector<shared_ptr<ng::runtime::Tensor>>& ng_tensors);
 

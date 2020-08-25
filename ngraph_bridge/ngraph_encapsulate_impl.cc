@@ -261,8 +261,6 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
   return Status::OK();
 }
 
-// Allocate tensors for output results.  Creates ngraph output tensors using
-// tensorflow tensors required to execute ngraph function
 Status NGraphEncapsulateImpl::AllocateNGTensors(
     const std::vector<Tensor>& tf_tensors,
     vector<shared_ptr<ng::runtime::Tensor>>& ng_tensors) {
