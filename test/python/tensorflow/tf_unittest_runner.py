@@ -79,8 +79,9 @@ def main():
     if (arguments.list_tests):
         test_list = get_test_list(arguments.tensorflow_path,
                                   arguments.list_tests)
-        skip_tests_from_list(test_list[0])
+        skip_tests_from_list(test_list[0], arguments.tensorflow_path)
         print('\n'.join(test_list[0]))
+        print('Total:', len(test_list[0]))
         return None, None
 
     if (arguments.run_test):
@@ -93,7 +94,7 @@ def main():
                 result_str = "\033[91m INVALID \033[0m " + test + \
                 '\033[91m' + '\033[0m'
                 print('TEST:', result_str)
-        skip_tests_from_list(test_list[0])
+        skip_tests_from_list(test_list[0], arguments.tensorflow_path)
         test_results = run_test(test_list[0], xml_report,
                                 (2 if arguments.verbose else 0))
         elapsed = time.time() - start
@@ -107,7 +108,7 @@ def main():
         start = time.time()
         list_of_tests = read_tests_from_file(arguments.run_tests_from_file)
         list_of_tests = list(dict.fromkeys(list_of_tests))  # remove dups
-        skip_tests_from_list(list_of_tests)
+        skip_tests_from_list(list_of_tests, arguments.tensorflow_path)
         for test in list_of_tests:
             test_list = get_test_list(arguments.tensorflow_path, test)
             for test in test_list[1]:
@@ -251,23 +252,27 @@ def read_tests_from_file(filename):
         ]
 
 
-def skip_tests_from_list(orig_list_of_tests):
+def skip_tests_from_list(orig_list_of_tests, tensorflow_path):
     if ('TFPYTEST_SKIPLIST' in os.environ):
         filename = os.path.abspath(os.environ['TFPYTEST_SKIPLIST'])
+        orig_count = len(orig_list_of_tests)
+        skipitems = []
         with open(filename) as skipfile:
-            orig_count = len(orig_list_of_tests)
-            print()
             for line in skipfile.readlines():
                 line = line.split('#')[0].rstrip('\n').strip(' ')
                 if line == '':
                     continue
-                if line in orig_list_of_tests:
-                    print('will skip test:', line)
-                    orig_list_of_tests.remove(line)
-            new_count = len(orig_list_of_tests)
-            print('\nTest count: Initial={} Skipped={} New-Total={}\n'.format(
-                orig_count, orig_count - new_count, new_count))
-            #return orig_list_of_tests
+                skipitems.extend(get_test_list(tensorflow_path, line)[0])
+        skipitems = list(dict.fromkeys(skipitems))  # remove dups
+        print()
+        for aSkipTest in skipitems:
+            if aSkipTest in orig_list_of_tests:
+                print('will skip test:', aSkipTest)
+                orig_list_of_tests.remove(aSkipTest)
+        new_count = len(orig_list_of_tests)
+        print('\nTest count: Initial={} Skipped={} New-Total={}\n'.format(
+            orig_count, orig_count - new_count, new_count))
+        #return orig_list_of_tests
 
 
 def func_utrunner_testcase_run(return_dict, runner, aTest):
