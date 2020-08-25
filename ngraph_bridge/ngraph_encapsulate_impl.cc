@@ -178,9 +178,9 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     const char* cache_depth_specified =
         std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
     if (cache_depth_specified != nullptr) {
-      my_function_cache_depth_in_items = atoi(cache_depth_specified);
+      m_function_cache_depth_in_items = atoi(cache_depth_specified);
     }
-    if (m_ng_exec_map.size() >= my_function_cache_depth_in_items) {
+    if (m_ng_exec_map.size() >= m_function_cache_depth_in_items) {
       evicted_ng_exec = m_ng_exec_map[m_lru.back()];
       m_ng_exec_map.erase(m_lru.back());
       m_serialized_ng_function_map.erase(evicted_ng_exec);
