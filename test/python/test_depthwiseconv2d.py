@@ -58,3 +58,29 @@ class TestDepthwiseConv2dOperations(NgraphTest):
 
         assert np.isclose(
             self.with_ngraph(sess_fn), self.without_ngraph(sess_fn)).all()
+
+    @pytest.mark.skipif(platform.system() == 'Darwin', reason='Only for Linux')
+    @pytest.mark.parametrize("padding", ("VALID", "SAME"))
+    def test_depthwise_conv2d_1(self, padding):
+        tensor_in_sizes = [1, 3, 2, 1]
+        filter_in_sizes = [2, 1, 1, 2]
+        total_size_1 = 1
+        total_size_2 = 1
+
+        for s in tensor_in_sizes:
+            total_size_1 *= s
+        for s in filter_in_sizes:
+            total_size_2 *= s
+
+        x1 = [f * 1.0 for f in range(1, total_size_1 + 1)]
+        x2 = [f * 1.0 for f in range(1, total_size_2 + 1)]
+
+        t1 = constant_op.constant(x1, shape=tensor_in_sizes)
+        t1.set_shape(tensor_in_sizes)
+        t2 = constant_op.constant(x2, shape=filter_in_sizes)
+        conv = nn_ops.depthwise_conv2d_native(
+            t1, t2, strides=[1, 1, 1, 1], padding=padding)
+        sess_fn = lambda sess: sess.run(conv)
+
+        assert np.isclose(
+            self.with_ngraph(sess_fn), self.without_ngraph(sess_fn)).all()
