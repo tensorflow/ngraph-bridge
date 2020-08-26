@@ -38,14 +38,16 @@ def pytest_configure(config):
           "dir=", config.invocation_params.dir)
     # Get list of tests to run
     if ('PYTEST_SKIPFILTERS' in os.environ):
-        filterfile = os.path.abspath(os.environ['PYTEST_SKIPFILTERS'])
-        file = open(filterfile, mode='r')
-        if file is not None:
-            file_str = file.read()
-            file.close()
-            tests_to_skip = eval(file_str)
-            print("[ skip-filter = " + filterfile + " ]")
-            pytest.tests_to_skip = tests_to_skip
+        filename = os.path.abspath(os.environ['PYTEST_SKIPFILTERS'])
+        skipitems = []
+        with open(filename) as skipfile:
+            print("[ skip-filter = " + filename + " ]")
+            for line in skipfile.readlines():
+                line = line.split('#')[0].rstrip('\n').strip(' ')
+                if line == '':
+                    continue
+                skipitems.append(line)
+        pytest.tests_to_skip = list(dict.fromkeys(skipitems))  # remove dups
 
 
 # ==============================================================================
