@@ -253,8 +253,8 @@ def read_tests_from_file(filename):
 
 
 def skip_tests_from_list(orig_list_of_tests, tensorflow_path):
-    if ('TFPYTEST_SKIPLIST' in os.environ):
-        filename = os.path.abspath(os.environ['TFPYTEST_SKIPLIST'])
+    if ('TFPYTEST_SKIPFILTERS' in os.environ):
+        filename = os.path.abspath(os.environ['TFPYTEST_SKIPFILTERS'])
         orig_count = len(orig_list_of_tests)
         skipitems = []
         with open(filename) as skipfile:

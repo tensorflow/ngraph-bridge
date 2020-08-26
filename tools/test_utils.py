@@ -120,10 +120,10 @@ def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
     ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
     tf_src_dir = os.path.abspath(tf_src_dir)
 
-    if ('TFPYTEST_SKIPLIST' in os.environ):
+    if ('TFPYTEST_SKIPFILTERS' in os.environ):
         # Use abs path. Do this early, before we change dir
-        filterfile = os.path.abspath(os.environ['TFPYTEST_SKIPLIST'])
-        os.environ['TFPYTEST_SKIPLIST'] = filterfile
+        filterfile = os.path.abspath(os.environ['TFPYTEST_SKIPFILTERS'])
+        os.environ['TFPYTEST_SKIPFILTERS'] = filterfile
 
     # Check to see if we need to apply the patch for Grappler
     import ngraph_bridge
