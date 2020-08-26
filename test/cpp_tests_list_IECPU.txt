@@ -34,6 +34,8 @@ ArrayOps.SizeOpAttrsChange
 ArrayOps.Slice
 ArrayOps.SpaceToDepthNHWC
 ArrayOps.StridedSliceTest1
+ArrayOps.SplitNegativeAxis
+ArrayOps.SplitPositiveAxis
 ArrayOps.SplitVNegSizeSplit
 ArrayOps.SplitVNegativeAxis
 ArrayOps.SplitVPositiveSizeSplits
