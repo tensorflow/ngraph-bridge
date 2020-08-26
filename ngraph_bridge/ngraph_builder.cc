@@ -3077,7 +3077,6 @@ const static std::map<
         {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
         {"Asin", TranslateUnaryOp<opset::Asin>},
         {"Atan", TranslateUnaryOp<opset::Atan>},
-        {"Atan2", TranslateBinaryOp<ngraph::op::Atan2>},
         {"AvgPool", TranslateAvgPoolOp},
         {"BatchMatMul", TranslateBatchMatMulOp},
         {"BatchMatMulV2", TranslateBatchMatMulV2Op},
