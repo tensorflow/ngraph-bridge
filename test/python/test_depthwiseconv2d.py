@@ -36,7 +36,7 @@ class TestDepthwiseConv2dOperations(NgraphTest):
     @pytest.mark.skipif(platform.system() == 'Darwin', reason='Only for Linux')
     @pytest.mark.parametrize("padding", ["VALID", "SAME"])
     @pytest.mark.parametrize(('tensor_in_sizes', 'filter_in_sizes'),
-                             [([1, 3, 1, 2], [1, 1, 2, 2]),
+                             [([1, 2, 3, 2], [2, 2, 2, 2]),
                               ([1, 3, 2, 1], [2, 1, 1, 2]),
                               ([1, 3, 1, 2], [1, 1, 2, 2])])
     def test_depthwise_conv2d(self, padding, tensor_in_sizes, filter_in_sizes):
