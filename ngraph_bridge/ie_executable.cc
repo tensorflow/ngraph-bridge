@@ -85,7 +85,6 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   auto nodes = func->get_ordered_ops();
   if (nodes.size() == 2 && ngraph::is_type<opset::Parameter>(nodes[0]) &&
       ngraph::is_type<opset::Result>(nodes[1])) {
-    auto param = ngraph::as_type_ptr<opset::Parameter>(nodes[0]);
     m_trivial_fn = true;
     return;
   }
@@ -161,11 +160,8 @@ bool IE_Executable::call_trivial(
     const vector<shared_ptr<runtime::Tensor>>& outputs,
     const vector<shared_ptr<runtime::Tensor>>& inputs) {
   // Do basic sanity checking first
-  if (!outputs.size()) {
-    THROW_IE_EXCEPTION << "Called trivial IE function with no outputs";
-  }
-  if (outputs.size() && outputs.size() != 1) {
-    THROW_IE_EXCEPTION << "Called trivial IE function with multiple outputs";
+  if (outputs.size() != 1) {
+    THROW_IE_EXCEPTION << "Expected only one output for trivial functions";
   }
   if (!inputs.size() && !m_hoisted_params.size()) {
     THROW_IE_EXCEPTION
