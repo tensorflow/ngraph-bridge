@@ -143,3 +143,5 @@ test_topkv2.TestTopKV2.test_topkv2_3d
 test_topkv2.TestTopKV2.test_topkv2_nosort
 test_variableops_static_input.TestVariableStaticInputs.test_variable_static_input_variables
 test_while_loop.TestWhileLoop.test_while_loop
+testl2loss.TestL2Loss.test_l2loss_empty
+testl2loss.TestL2Loss.test_l2loss[1]
