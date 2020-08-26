@@ -29,7 +29,7 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
-    : m_device{device} {
+    : m_device{device}, m_trivial_fn{false} {
   NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
   const auto& opset = ngraph::get_opset3();
   for (const auto& node : func->get_ops()) {
@@ -110,6 +110,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
   if (m_trivial_fn) {
+    NGRAPH_VLOG(2) << "Calling trivial IE function with inputs="
+                   << inputs.size() << " outputs=" << outputs.size();
     return call_trivial(outputs, inputs);
   }
 
