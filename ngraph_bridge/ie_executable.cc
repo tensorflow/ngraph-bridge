@@ -81,6 +81,15 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
   set_parameters_and_results(*func);
 
+  NGRAPH_VLOG(2) << "Checking for trivial functions in IE backend";
+  auto nodes = func->get_ordered_ops();
+  if (nodes.size() == 2 && ngraph::is_type<opset::Parameter>(nodes[0]) &&
+      ngraph::is_type<opset::Result>(nodes[1])) {
+    auto param = ngraph::as_type_ptr<opset::Parameter>(nodes[0]);
+    m_trivial_fn = true;
+    return;
+  }
+
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
 
@@ -100,6 +109,10 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
+  if (m_trivial_fn) {
+    return call_trivial(outputs, inputs);
+  }
+
   // Check if the number of inputs that the CNN network expects is equal to the
   // sum of the
   // inputs specified and the inputs we hoisted, if any.
@@ -139,6 +152,37 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
   }
 
   m_infer_req.Infer();
+  return true;
+}
+
+bool IE_Executable::call_trivial(
+    const vector<shared_ptr<runtime::Tensor>>& outputs,
+    const vector<shared_ptr<runtime::Tensor>>& inputs) {
+  // Do basic sanity checking first
+  if (!outputs.size()) {
+    THROW_IE_EXCEPTION << "Called trivial IE function with no outputs";
+  }
+  if (outputs.size() && outputs.size() != 1) {
+    THROW_IE_EXCEPTION << "Called trivial IE function with multiple outputs";
+  }
+  if (!inputs.size() && !m_hoisted_params.size()) {
+    THROW_IE_EXCEPTION
+        << "Called trivial IE function with no inputs or hoisted params";
+  }
+  if (inputs.size() && inputs.size() != 1) {
+    THROW_IE_EXCEPTION << "Called trivial IE function with multiple inputs";
+  }
+  if (m_hoisted_params.size() && m_hoisted_params.size() != 1) {
+    THROW_IE_EXCEPTION
+        << "Called trivial IE function with multiple hoisted params";
+  }
+
+  auto input = m_hoisted_params.size() ? m_hoisted_params[0].second : inputs[0];
+  auto size = input->get_size_in_bytes();
+  unsigned char* buf_ptr = new unsigned char[size];
+  input->read(buf_ptr, size);
+  outputs[0]->write(buf_ptr, size);
+  delete buf_ptr;
   return true;
 }
 }
