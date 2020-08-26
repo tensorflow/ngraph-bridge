@@ -179,9 +179,11 @@ static void mark_transpose_for_deletion(
 }
 
 static shared_ptr<opset::Transpose> create_default_transpose(
-    shared_ptr<ngraph::Node> n) {
-  auto default_order = ngraph::get_default_order(n->get_shape());
-  auto default_transpose = make_transpose(n, default_order);
+    ngraph::Output<ngraph::Node> n) {
+  auto default_order = ngraph::get_default_order(n.get_shape());
+  auto ng_input_order = std::make_shared<opset::Constant>(
+      ngraph::element::u64, ngraph::Shape{default_order.size()}, default_order);
+  auto default_transpose = make_shared<opset::Transpose>(n, ng_input_order);
   NGRAPH_VLOG(4) << "Default transpose: "
                  << describe<opset::Transpose>(default_transpose);
   return default_transpose;
@@ -232,9 +234,12 @@ static void materialize_shapes(
     shared_ptr<ngraph::Node> n, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& transposes_to_delete,
     TransposeMap& reuse_map) {
-  // skip multiple output nodes and deal with GOEs exclusively
-  if (n->get_output_size() > 1) {
-    return;
+  // For each node, create a default transpose for
+  // each of the outputs and store in the map
+  for (auto& it : n->outputs()) {
+    NGRAPH_VLOG(4) << "Handling node with " << n->get_output_size()
+                   << " output/s.";
+    write_transposemap(reorders, n, create_default_transpose(it));
   }
 
   for (size_t i = 0; i < n->input_values().size(); i++) {
@@ -256,7 +261,6 @@ static void materialize_shapes(
       }
     }
   }
-  write_transposemap(reorders, n, create_default_transpose(n));
 }
 
 static void sink_transpose(
@@ -385,17 +389,6 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
   auto arg_transpose_order = ngraph::as_type_ptr<opset::Constant>(
       arg_transpose->input_value(1).get_node_shared_ptr());
   auto order = arg_transpose_order->get_axis_vector_val();
-  // we need the correct input shape to produce the right output shape
-  // we are going to create a label of the right input shape,
-  // so a new concat will have the right shape
-  auto def_order = ngraph::get_permutation_to_default_order(order);
-  auto input_shape =
-      ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
-  auto dummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
-      arg_transpose->get_element_type(), input_shape);
-
-  ngraph::NodeVector new_args;
-  new_args.push_back(dummy_correct_shape);
 
   for (size_t i = 1; i < n->get_input_size(); i++) {
     auto iarg = n->input_value(i);
@@ -409,21 +402,10 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
       materialize_shapes(n, reorders, transposes_to_delete, reuse_map);
       return;
     }
-
-    auto iinput_shape =
-        ngraph::apply_permutation(iarg_transpose->get_shape(), def_order);
-    auto idummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
-        iarg_transpose->get_element_type(), iinput_shape);
-    new_args.push_back(idummy_correct_shape);
   }
 
   auto new_axis = order.at(n->get_concatenation_axis());
-  auto new_concat = make_shared<opset::Concat>(new_args, new_axis);
-  // put back the original arguments
-  for (size_t i = 0; i < new_concat->get_input_size(); i++) {
-    ngraph::replace_node(new_args.at(i),
-                         n->input_value(i).get_node_shared_ptr());
-  }
+  auto new_concat = make_shared<opset::Concat>(n->input_values(), new_axis);
   NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
                  << new_concat->get_name();
   ngraph::replace_node(n, new_concat);
@@ -447,7 +429,6 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   TransposeMap reorders, reuse_map;
   set<shared_ptr<ngraph::Node>> transposes_to_delete;
   unordered_map<std::string, ngraph::Shape> orig_result_out_shape;
-
   // STEP 1 : Sink or Swim transposes away for op clusters
   for (auto n : f->get_ordered_ops()) {
     NGRAPH_VLOG(4) << "-----Start: Processing node----- " << n->get_name();
@@ -496,7 +477,6 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
                  " op::Result = ", *r, " expected output shape = ",
                  orig_result_out_shape[r->get_name()]);
   }
-
   return true;
 }
 
