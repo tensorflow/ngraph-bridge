@@ -98,3 +98,22 @@ ArrayOps.Tile
 ArrayOps.TransposeConstant
 ArrayOps.Unpack
 ArrayOps.ZerosLike
+
+# Some parametrized tests
+TestsWithParams/MathOpsSum.SubTests/0 # where GetParam() = ({ 2, 3 }, { 0 }, true)
+TestsWithParams/MathOpsSum.SubTests/1 # where GetParam() = ({ 2, 3 }, { 0 }, false)
+TestsWithParams/MathOpsSum.SubTests/6 # where GetParam() = ({ 2, 2, 3 }, { 1 }, true)
+TestsWithParams/MathOpsSum.SubTests/7 # where GetParam() = ({ 2, 2, 3 }, { 1 }, false)
+TestsWithParams/MathOpsSum.SubTests/12 # where GetParam() = ({ 6, 2 }, { 1 }, true)
+TestsWithParams/MathOpsSum.SubTests/13 # where GetParam() = ({ 6, 2 }, { 1 }, false)
+TestsWithParams/MathOpsSum.SubTests/16 # where GetParam() = ({ 2, 4, 3 }, { 1 }, true)
+TestsWithParams/MathOpsSum.SubTests/17 # where GetParam() = ({ 2, 4, 3 }, { 1 }, false)
+TestsWithParams/MathOpsSum.SubTests/24 # where GetParam() = ({ 4, 3, 2, 1 }, { 2 }, true)
+TestsWithParams/MathOpsSum.SubTests/25 # where GetParam() = ({ 4, 3, 2, 1 }, { 2 }, false)
+TestsWithParams/MathOpsSum.SubTests/34 # where GetParam() = ({ 1, 2, 3, 4 }, { 3 }, true)
+TestsWithParams/MathOpsSum.SubTests/35 # where GetParam() = ({ 1, 2, 3, 4 }, { 3 }, false)
+TestsWithParams/MathOpsSum.SubTests/42 # where GetParam() = ({ 3, 1, 2, 4, 1 }, { 3 }, true)
+TestsWithParams/MathOpsSum.SubTests/43 # where GetParam() = ({ 3, 1, 2, 4, 1 }, { 3 }, false)
+TestsWithParams/MathOpsSum.SubTests/46 # where GetParam() = ({ 6, 2 }, { 0, 1 }, false)
+TestsWithParams/MathOpsSum.SubTests/47 # where GetParam() = ({ 6, 2 }, { 0, 1 }, true)
+TestsWithParams/MathOpsSum.SubTests/48 # where GetParam() = ({ 2, 4, 3 }, { 0, 1, 2 }, false)
