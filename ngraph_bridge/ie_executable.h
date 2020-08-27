@@ -42,7 +42,6 @@ class IE_Executable final : public Executable {
  private:
   bool call_trivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
                     const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs);
-
   InferenceEngine::CNNNetwork m_network;
   InferenceEngine::InferRequest m_infer_req;
   string m_device;
@@ -50,7 +49,7 @@ class IE_Executable final : public Executable {
   vector<pair<string, shared_ptr<ngraph::runtime::Tensor>>> m_hoisted_params;
   // This keeps track of whether the original function was trivial: either a
   // constant function or an identity function
-  bool m_trivial_fn;
+  shared_ptr<ngraph::Function> m_trivial_fn;
 };
 }
 }
