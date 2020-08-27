@@ -31,7 +31,6 @@
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/ngraph_api.h"
-#include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_conversions.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -663,9 +662,6 @@ static Status TranslateBatchMatMulOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_lhs, ng_rhs;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_lhs, ng_rhs));
-
-  std::string backend_name;
-  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
 
   auto ng_lhs_shape = ng_lhs.get_shape();
   auto ng_rhs_shape = ng_rhs.get_shape();
@@ -1601,9 +1597,6 @@ static Status TranslateGatherV2Op(
                             ") translation to be non scalar, of size ",
                             tf_axis.size());
   }
-
-  std::string backend_name;
-  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
 
   // Negative axis is supported. Accounting for that
   auto ng_input_shape = ng_input.get_shape();

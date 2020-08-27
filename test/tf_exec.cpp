@@ -124,9 +124,6 @@ TEST(TFExec, axpy) {
                               ->add_custom_optimizers();
 
     custom_config->set_name("ngraph-optimizer");
-    (*custom_config->mutable_parameter_map())["ngraph_backend"].set_s("CPU");
-    (*custom_config->mutable_parameter_map())["device_id"].set_s("0");
-
     options.config.mutable_graph_options()
         ->mutable_rewrite_options()
         ->set_min_graph_nodes(-1);

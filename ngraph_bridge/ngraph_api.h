@@ -35,11 +35,10 @@ extern void ngraph_enable();
 extern void ngraph_disable();
 extern bool ngraph_is_enabled();
 
-extern size_t ngraph_backends_len();
 extern bool ngraph_list_backends(char** backends, size_t backends_len);
 extern bool ngraph_set_backend(const char* backend);
 extern bool ngraph_is_supported_backend(const char* backend);
-extern bool ngraph_get_currently_set_backend_name(char** backend);
+extern bool ngraph_get_backend(char** backend);
 
 extern void ngraph_start_logging_placement();
 extern void ngraph_stop_logging_placement();
@@ -58,7 +57,7 @@ extern size_t BackendsLen();
 extern vector<string> ListBackends();
 extern tensorflow::Status SetBackend(const string& type);
 extern bool IsSupportedBackend(const string& type);
-extern Status GetCurrentlySetBackendName(string* backend);
+extern string GetBackend();
 
 extern void StartLoggingPlacement();
 extern void StopLoggingPlacement();

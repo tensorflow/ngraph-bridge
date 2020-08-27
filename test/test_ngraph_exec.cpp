@@ -22,7 +22,6 @@
 #include "tensorflow/core/graph/graph_constructor.h"
 #include "tensorflow/core/platform/env.h"
 
-#include "ngraph_bridge/ngraph_backend.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_executable.h"
@@ -45,12 +44,6 @@ class NGraphExecTest : public ::testing::Test {
     TF_RETURN_IF_ERROR(ReadTextProto(Env::Default(), graph_pbtxt_file, &gdef));
     GraphConstructorOptions opts;
 
-// Register backends for static linking
-#if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
-    ngraph_register_cpu_backend();
-    ngraph_register_interpreter_backend();
-#endif
-
     // Set the allow_internal_ops to true so that graphs with node names such as
     // _arg_Placeholder_1_0_1_0_arg are allowed. These op names are generated
     // during the graph rewrite passes and considered internal
@@ -68,15 +61,6 @@ class NGraphExecTest : public ::testing::Test {
                                                 nullptr);
     TF_RETURN_IF_ERROR(ngraph_bridge::Builder::TranslateGraph(
         tf_input_shapes, static_input_map, &input_graph, ng_function));
-    return Status::OK();
-  }
-
-  // Overrides the backend with backend requested by env-flag (if set)
-  Status OverrideBackendFromEnv(string* backend_name) {
-    string env_name = "NGRAPH_TF_BACKEND";
-    if (IsEnvVariableSet(env_name)) {
-      *backend_name = GetEnvVariable(env_name);
-    }
     return Status::OK();
   }
 
@@ -156,7 +140,7 @@ TEST_F(NGraphExecTest, Axpy) {
   ASSERT_OK(TranslateTFGraphNoStatic(input_shapes, input_graph, ng_function));
 
   // Create the nGraph backend
-  auto backend = Backend::create("CPU");
+  auto backend = BackendManager::GetBackend("CPU");
 
   // Allocate tensors for arguments a, b, c
   ng::Shape ng_shape_x(x.shape().dims());
@@ -215,7 +199,7 @@ TEST_F(NGraphExecTest, Axpy8bit) {
   ASSERT_OK(TranslateTFGraphNoStatic(input_shapes, input_graph, ng_function));
 
   // Create the nGraph backend
-  auto backend = Backend::create("CPU");
+  auto backend = BackendManager::GetBackend("CPU");
 
   // Allocate tensors for arguments a, b, c
   ng::Shape ng_shape_x(x.shape().dims());
@@ -287,10 +271,7 @@ TEST_F(NGraphExecTest, MixedTensors) {
       TranslateTFGraphNoStatic(tf_input_shapes, input_graph, ng_function));
 
   // Create the nGraph backend
-  string backend_name = "INTERPRETER";
-  OverrideBackendFromEnv(&backend_name);
-  auto backend = Backend::create(backend_name);
-  NGRAPH_VLOG(0) << "NGraph using backend " << backend_name << endl;
+  auto backend = BackendManager::GetBackend("CPU");
 
   // Compile the nGraph function.
   auto exec = backend->compile(ng_function);
