@@ -42,8 +42,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
   NGRAPH_VLOG(2) << "Checking for trivial functions in IE backend";
   bool trivial_fn = true;
-  for (auto results : func->get_results()) {
-    auto parent = results->input_value(0).get_node_shared_ptr();
+  for (auto result : func->get_results()) {
+    auto parent = result->input_value(0).get_node_shared_ptr();
     trivial_fn &= ngraph::is_type<opset::Parameter>(parent) ||
                   ngraph::is_type<opset::Constant>(parent);
   }
