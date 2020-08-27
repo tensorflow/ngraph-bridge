@@ -9,8 +9,6 @@
 
 NGraphExecTest.Axpy8bit
 NGraphExecTest.MixedTensors
-EncapsulateOp.AllocateNGInputTensors
-EncapsulateOp.AllocateNGOutputTensors
 BackendManager.SetBackend
 BackendManager.GetCurrentlySetBackendName
 BackendManager.CanCreateBackend
