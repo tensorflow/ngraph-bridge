@@ -455,10 +455,9 @@ TEST_F(MathOpsSumFixture, FullSet) {
 }
 // END MathOpsSumFixture
 
-
 // BEGIN: parametrized Google Tests
-class MathOpsSum : public ::testing::TestWithParam<
-                       std::tuple<std::vector<int>, std::vector<int>, bool>> {
+class Sum : public ::testing::TestWithParam<
+                std::tuple<std::vector<int>, std::vector<int>, bool>> {
  public:
   static std::vector<std::tuple<std::vector<int>, std::vector<int>, bool>>
   get_testing_params() {
@@ -492,7 +491,7 @@ class MathOpsSum : public ::testing::TestWithParam<
   }
 };
 
-TEST_P(MathOpsSum, SubTests) {
+TEST_P(Sum, SubTests) {
   auto tshpvec = std::get<0>(GetParam());
   auto axisvec = std::get<1>(GetParam());
   auto keep_dims = std::get<2>(GetParam());
@@ -526,12 +525,11 @@ TEST_P(MathOpsSum, SubTests) {
 }
 
 // Run like:
-// --gtest_filter="TestsWithParams*"
-// or, --gtest_filter="TestsWithParams/MathOpsSum.SubTests/0"
-INSTANTIATE_TEST_CASE_P(TestsWithParams, MathOpsSum,
-                        ::testing::ValuesIn(MathOpsSum::get_testing_params()));
+// --gtest_filter="MathOps*"
+// or, --gtest_filter="MathOps/Sum.SubTests/0"
+INSTANTIATE_TEST_CASE_P(MathOps, Sum,
+                        ::testing::ValuesIn(Sum::get_testing_params()));
 // END: parametrized Google Tests
-
 
 // Test op: Mean with & without keep dims & with both positive & negative axis
 TEST(MathOps, Mean) {
