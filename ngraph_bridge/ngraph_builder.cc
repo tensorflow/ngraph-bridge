@@ -1842,35 +1842,6 @@ static Status TranslateIsFiniteOp(
   return Status::OK();
 }
 
-static Status TranslateL2LossOp(const Node* op,
-                                const std::vector<const Tensor*>&,
-                                Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
-
-  std::vector<float> val;
-  val.push_back(2.0);
-  auto const_2 = ConstructNgNode<opset::Constant>(
-      op->name(), ng_input.get_element_type(), ng::Shape{}, val[0]);
-
-  auto ng_pow =
-      ConstructNgNode<opset::Multiply>(op->name(), ng_input, ng_input);
-
-  size_t input_rank = ng_input.get_shape().size();
-  std::vector<int64> axes;
-  for (size_t i = 0; i < input_rank; ++i) {
-    axes.push_back(i);
-  }
-
-  auto ng_reduction_axes = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{axes.size()}, axes);
-  auto ng_sum =
-      ConstructNgNode<opset::ReduceSum>(op->name(), ng_pow, ng_reduction_axes);
-  auto ng_l2loss = ConstructNgNode<opset::Divide>(op->name(), ng_sum, const_2);
-  SaveNgOp(ng_op_map, op->name(), ng_l2loss);
-  return Status::OK();
-}
-
 static Status TranslateLog1pOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -3130,7 +3101,6 @@ const static std::map<
         {"GreaterEqual", TranslateBinaryOp<opset::GreaterEqual>},
         {"Identity", TranslateIdentityOp},
         {"IsFinite", TranslateIsFiniteOp},
-        {"L2Loss", TranslateL2LossOp},
         {"LogSoftmax", TranslateLogSoftmaxOp},
         {"Less", TranslateBinaryOp<opset::Less>},
         {"LessEqual", TranslateBinaryOp<opset::LessEqual>},

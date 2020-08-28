@@ -512,27 +512,6 @@ TEST(NNOps, FusedBatchNormV3NHWCInference) {
   opexecuter.RunTest(1e-05, 1e-06);
 }  // end of FusedBatchNormV3NHWCInference
 
-// Test Op :"L2Loss"
-TEST(NNOps, L2Loss) {
-  std::vector<std::vector<int64>> input_sizes;
-  input_sizes.push_back({2, 3, 4});
-  input_sizes.push_back({0});
-
-  for (auto const& input_size : input_sizes) {
-    Scope root = Scope::NewRootScope();
-
-    Tensor input_data(DT_FLOAT, TensorShape(input_size));
-    AssignInputValuesRandom<float>(input_data, -10, 10);
-
-    auto R = ops::L2Loss(root, input_data);
-    std::vector<Output> sess_run_fetchoutputs = {R};
-
-    OpExecuter opexecuter(root, "L2Loss", sess_run_fetchoutputs);
-
-    opexecuter.RunTest();
-  }
-}
-
 // Test Op :"LogSoftmax"
 TEST(NNOps, LogSoftmax) {
   std::vector<std::vector<int64>> input_sizes = {
