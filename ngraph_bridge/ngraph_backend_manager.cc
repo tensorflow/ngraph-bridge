@@ -63,10 +63,7 @@ shared_ptr<Backend> BackendManager::GetBackend(const string& backend_name) {
 string BackendManager::GetBackendName() {
   NGRAPH_VLOG(2) << "BackendManager::GetBackendName()";
   if (m_backend == nullptr) {
-    auto backend = GetBackend();
-    if (backend == nullptr) {
-      throw errors::Internal("Failed to get backend name");
-    }
+    GetBackend();
   }
   lock_guard<mutex> lock(m_backend_mutex);
   return m_backend_name;

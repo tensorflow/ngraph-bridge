@@ -114,10 +114,12 @@ def requested():
 
 if ngraph_classic_loaded:
     ngraph_bridge_lib.ngraph_is_enabled.restype = ctypes.c_bool
+    ngraph_bridge_lib.ngraph_list_backends.argtypes = [ctypes.POINTER(ctypes.c_char_p)]
     ngraph_bridge_lib.ngraph_list_backends.restype = ctypes.c_bool
     ngraph_bridge_lib.ngraph_set_backend.argtypes = [ctypes.c_char_p]
     ngraph_bridge_lib.ngraph_set_backend.restype = ctypes.c_bool
-    ngraph_bridge_lib.ngraph_get_backend.restype = ctypes.c_char_p
+    ngraph_bridge_lib.ngraph_get_backend.argtypes = [ctypes.POINTER(ctypes.c_char_p)]
+    ngraph_bridge_lib.ngraph_get_backend.restype = ctypes.c_bool
     ngraph_bridge_lib.ngraph_is_logging_placement.restype = ctypes.c_bool
     ngraph_bridge_lib.ngraph_tf_version.restype = ctypes.c_char_p
     ngraph_bridge_lib.ngraph_lib_version.restype = ctypes.c_char_p
@@ -130,16 +132,15 @@ if ngraph_classic_loaded:
     def enable():
         ngraph_bridge_lib.ngraph_enable()
 
-
     def disable():
         ngraph_bridge_lib.ngraph_disable()
-
 
     def is_enabled():
         return ngraph_bridge_lib.ngraph_is_enabled()
 
     def list_backends():
-        result = ctypes.POINTER(ctypes.c_char_p)
+        len_backends = ngraph_bridge_lib.ngraph_backends_len()
+        result = (ctypes.c_char_p * len_backends)()
         if not ngraph_bridge_lib.ngraph_list_backends(result):
             raise Exception("Expected " + str(len_backends) +
                             " backends, but got some  other number of backends")
@@ -155,11 +156,10 @@ if ngraph_classic_loaded:
             raise Exception("Backend " + backend + " unavailable.")
 
     def get_backend():
-        result = (ctypes.c_char_p * 1)()
-        if not ngraph_bridge_lib.ngraph_get_backend(result):
+        result = ctypes.c_char_p()
+        if not ngraph_bridge_lib.ngraph_get_backend(ctypes.byref(result)):
             raise Exception("Cannot get currently set backend")
-        list_result = list(result)
-        return list_result[0].decode("utf-8")
+        return result.value.decode("utf-8")
 
     def start_logging_placement():
         ngraph_bridge_lib.ngraph_start_logging_placement()

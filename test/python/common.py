@@ -32,6 +32,7 @@ _ext = 'dylib' if platform.system() == 'Darwin' else 'so'
 
 LIBNGRAPH_BRIDGE = 'libngraph_bridge.' + _ext
 
+
 class NgraphTest(object):
 
     def get_tensor(self, graph, tname, loading_from_protobuf):

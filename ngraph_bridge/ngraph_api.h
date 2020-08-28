@@ -35,6 +35,7 @@ extern void ngraph_enable();
 extern void ngraph_disable();
 extern bool ngraph_is_enabled();
 
+extern size_t ngraph_backends_len();
 extern bool ngraph_list_backends(char** backends);
 extern bool ngraph_set_backend(const char* backend);
 extern bool ngraph_is_supported_backend(const char* backend);
