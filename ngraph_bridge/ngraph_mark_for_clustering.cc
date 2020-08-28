@@ -314,6 +314,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["GreaterEqual"] = SimpleConfirmationFunction();
     confirmation_function_map["Identity"] = SimpleConfirmationFunction();
     confirmation_function_map["IsFinite"] = SimpleConfirmationFunction();
+    confirmation_function_map["L2Loss"] = SimpleConfirmationFunction();
     confirmation_function_map["LogSoftmax"] = SimpleConfirmationFunction();
     confirmation_function_map["Less"] = SimpleConfirmationFunction();
     confirmation_function_map["LessEqual"] = SimpleConfirmationFunction();
@@ -472,6 +473,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["GreaterEqual"]["T"] = NGraphDTypes();
     type_constraint_map["Identity"]["T"] = NGraphDTypes();
     type_constraint_map["IsFinite"]["T"] = NGraphRealDTypes();
+    type_constraint_map["L2Loss"]["T"] = NGraphNumericDTypes();
     type_constraint_map["LogSoftmax"]["T"] = NGraphRealDTypes();
     type_constraint_map["Less"]["T"] = NGraphDTypes();
     type_constraint_map["LessEqual"]["T"] = NGraphDTypes();
@@ -655,6 +657,10 @@ GetTFToNgOpMap() {
        {constant, std::make_shared<opset::NotEqual>(),
         std::make_shared<opset::Equal>(),
         std::make_shared<opset::LogicalAnd>()}},
+      {"L2Loss",
+       {constant, std::make_shared<opset::Multiply>(),
+        std::make_shared<opset::ReduceSum>(),
+        std::make_shared<opset::Divide>()}},
       {"LogSoftmax",
        {std::make_shared<ngraph::op::Broadcast>(),
         std::make_shared<ngraph::op::Max>(),
