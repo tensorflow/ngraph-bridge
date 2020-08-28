@@ -194,7 +194,7 @@ TEST(GrapplerConfig, RConfig3) {
 
   // Get Currently Set Backend Name -> returns NOP as
   // env variable NGRAPH_TF_BACKEND takes precedence
-  ASSERT_OK(BackendManager::GetBackendName(), "CPU");
+  ASSERT_EQ(BackendManager::GetBackendName(), "CPU");
 
   // Though we set the backend and NGRAPH_TF_BACKEND
   // the rewriter-config takes affect
@@ -298,6 +298,8 @@ TEST(GrapplerConfig, RConfig4) {
     ng_encap = node;
   }
   ASSERT_NE(ng_encap, nullptr);
+  string ng_test_echo;
+  ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_test_echo", &ng_test_echo));
   ASSERT_EQ(ng_test_echo, "hi");
 }
 

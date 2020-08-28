@@ -41,8 +41,8 @@ class TestSetBackend(NgraphTest):
         found_cpu = False
         found_interpreter = False
         # These will only print when running pytest with flag "-s"
-        print("Number of supported backends ", ngraph_bridge.backends_len())
         supported_backends = ngraph_bridge.list_backends()
+        print("Number of supported backends ", len(supported_backends))
         print(" ****** Supported Backends ****** ")
         for backend_name in supported_backends:
             print(backend_name)
