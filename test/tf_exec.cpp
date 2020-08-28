@@ -41,10 +41,11 @@ namespace testing {
 
 TEST(TFExec, SingleGraphOn2Threads) {
   string graph_name = "test_axpy.pbtxt";
-  vector<string> backends{"CPU", "INTERPRETER"};
+  vector<string> backends{"CPU"};
   for (auto be : backends) {
+    SetBackendUsingEnvVar(be);
     unique_ptr<Session> session;
-    ASSERT_OK(CreateSession(graph_name, be, session));
+    ASSERT_OK(CreateSession(graph_name, session));
 
     auto worker = [&session](size_t thread_id) {
       string inp_tensor_name_0{"x"};

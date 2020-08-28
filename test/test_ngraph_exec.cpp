@@ -141,6 +141,7 @@ TEST_F(NGraphExecTest, Axpy) {
 
   // Create the nGraph backend
   auto backend = BackendManager::GetBackend("CPU");
+  ASSERT_NE(backend, nullptr);
 
   // Allocate tensors for arguments a, b, c
   ng::Shape ng_shape_x(x.shape().dims());
@@ -200,6 +201,7 @@ TEST_F(NGraphExecTest, Axpy8bit) {
 
   // Create the nGraph backend
   auto backend = BackendManager::GetBackend("CPU");
+  ASSERT_NE(backend, nullptr);
 
   // Allocate tensors for arguments a, b, c
   ng::Shape ng_shape_x(x.shape().dims());
@@ -272,6 +274,7 @@ TEST_F(NGraphExecTest, MixedTensors) {
 
   // Create the nGraph backend
   auto backend = BackendManager::GetBackend("CPU");
+  ASSERT_NE(backend, nullptr);
 
   // Compile the nGraph function.
   auto exec = backend->compile(ng_function);

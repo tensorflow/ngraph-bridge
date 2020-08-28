@@ -76,7 +76,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                 .Attr("value", t_input_0)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_0)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node1));
 
   int cluster_idx_1 = NGraphClusterManager::NewCluster();
@@ -88,7 +87,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                 .Attr("value", t_input_1)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_1)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node2));
 
   Node* node3;
@@ -98,7 +96,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_1)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node3));
 
   Node* node4;
@@ -197,7 +194,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
 
   // Now perform the actual rewrite
   std::unordered_map<std::string, std::string> config_map;
-  config_map["ngraph_device_id"] = "";
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
   ASSERT_OK(enc.RewritePass(fdeflib_new, 0, config_map));
 
@@ -239,7 +235,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
                 .Attr("value", t_input_0)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node1));
 
   Node* node2;
@@ -248,7 +243,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
                 .Attr("value", t_input_1)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node2));
 
   Node* node3;
@@ -258,7 +252,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node3));
 
   Node* source = g.source_node();
@@ -270,7 +263,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
   std::unordered_map<std::string, std::string> config_map;
-  config_map["ngraph_device_id"] = "";
   ASSERT_EQ(g.num_edges(), 6);
   ASSERT_EQ(g.num_op_nodes(), 3);
   ASSERT_EQ(g.num_nodes(), 5);
@@ -348,7 +340,6 @@ TEST(EncapsulateClusters, AOT0) {
                     .Attr("value", t_shape)
                     .Attr("_ngraph_marked_for_clustering", true)
                     .Attr("_ngraph_cluster", cluster_idx)
-                    .Attr("_ngraph_backend", "INTERPRETER")
                     .Finalize(&g, &node2));
     }
 
@@ -359,7 +350,6 @@ TEST(EncapsulateClusters, AOT0) {
                   .Attr("T", DT_FLOAT)
                   .Attr("_ngraph_marked_for_clustering", true)
                   .Attr("_ngraph_cluster", cluster_idx)
-                  .Attr("_ngraph_backend", "INTERPRETER")
                   .Finalize(&g, &node3));
     Node* node4;
     std::vector<NodeBuilder::NodeOut> inputs;
@@ -484,7 +474,6 @@ TEST(EncapsulateClusters, AOT1) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "INTERPRETER")
                 .Finalize(&g, &node3));
 
   Node* node4;
@@ -494,7 +483,6 @@ TEST(EncapsulateClusters, AOT1) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "INTERPRETER")
                 .Finalize(&g, &node4));
 
   Node* node5;
@@ -553,7 +541,6 @@ TEST(EncapsulateClusters, AOT2) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "INTERPRETER")
                 .Finalize(&g, &node3));
 
   Node* node4;
@@ -563,7 +550,6 @@ TEST(EncapsulateClusters, AOT2) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "INTERPRETER")
                 .Finalize(&g, &node4));
 
   Node* node5;
@@ -686,7 +672,6 @@ TEST(EncapsulateClusters, AOT3) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "INTERPRETER")
                 .Finalize(&g, &node3));
   Node* node4;
   std::vector<NodeBuilder::NodeOut> inputs;
@@ -753,7 +738,6 @@ TEST(EncapsulateClusters, AOT4) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "INTERPRETER")
                 .Finalize(&g, &node3));
   Node* node4;
   std::vector<NodeBuilder::NodeOut> inputs;

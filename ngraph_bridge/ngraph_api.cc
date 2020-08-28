@@ -29,13 +29,9 @@ void ngraph_enable() { Enable(); }
 void ngraph_disable() { Disable(); }
 bool ngraph_is_enabled() { return IsEnabled(); }
 
-bool ngraph_list_backends(char** backends, size_t backends_len) {
+bool ngraph_list_backends(char** backends) {
   const auto ngraph_backends = ListBackends();
-  if (backends_len != ngraph_backends.size()) {
-    return false;
-  }
-
-  for (size_t idx = 0; idx < backends_len; idx++) {
+  for (size_t idx = 0; idx < ngraph_backends.size(); idx++) {
     backends[idx] = strdup(ngraph_backends[idx].c_str());
   }
   return true;
@@ -46,7 +42,8 @@ bool ngraph_set_backend(const char* backend) {
 }
 
 extern bool ngraph_get_backend(char** backend) {
-  backend[0] = strdup(GetBackend().c_str());
+  string b = GetBackend();
+  backend[0] = strdup(b.c_str());
   return true;
 }
 

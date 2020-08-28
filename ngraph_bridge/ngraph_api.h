@@ -35,7 +35,7 @@ extern void ngraph_enable();
 extern void ngraph_disable();
 extern bool ngraph_is_enabled();
 
-extern bool ngraph_list_backends(char** backends, size_t backends_len);
+extern bool ngraph_list_backends(char** backends);
 extern bool ngraph_set_backend(const char* backend);
 extern bool ngraph_is_supported_backend(const char* backend);
 extern bool ngraph_get_backend(char** backend);
@@ -52,11 +52,9 @@ extern void Enable();
 extern void Disable();
 extern bool IsEnabled();
 
-extern size_t BackendsLen();
 // TODO: why is this not const?
 extern vector<string> ListBackends();
 extern tensorflow::Status SetBackend(const string& type);
-extern bool IsSupportedBackend(const string& type);
 extern string GetBackend();
 
 extern void StartLoggingPlacement();

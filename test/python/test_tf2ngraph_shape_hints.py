@@ -80,7 +80,7 @@ def check_pbtxt_has_exec(pbtxt_filename, num_expected_execs):
 
 def helper(self, p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
            shapehints):
-    ng_device = ngraph_bridge.get_currently_set_backend_name()
+    ng_device = ngraph_bridge.get_backend()
     if ng_device != "INTERPRETER":
         print("Only INTERPRETER backend supports precompilation")
         env_var_map = self.store_env_variables(["NGRAPH_TF_BACKEND"])

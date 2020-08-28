@@ -25,50 +25,54 @@ using namespace std;
 namespace tensorflow {
 namespace ngraph_bridge {
 
+shared_ptr<Backend> BackendManager::m_backend;
+string BackendManager::m_backend_name;
+mutex BackendManager::m_backend_mutex;
+
 BackendManager::~BackendManager() {
   NGRAPH_VLOG(2) << "BackendManager::~BackendManager()";
 }
 
 Status BackendManager::SetBackend(const string& backend_name) {
+  NGRAPH_VLOG(2) << "BackendManager::SetBackend(" << backend_name << ")";
   shared_ptr<Backend> backend;
-  auto status = BackendManager::CreateBackend(backend, backend_name);
-  if (!status.ok()) {
+  auto status = CreateBackend(backend, backend_name);
+  if (!status.ok() || backend == nullptr) {
     return errors::Internal("Failed to set backend: ", status.error_message());
   }
 
   lock_guard<mutex> lock(m_backend_mutex);
-  m_backend.swap(backend);
+  m_backend = backend;
   m_backend_name = backend_name;
   return Status::OK();
 }
 
 shared_ptr<Backend> BackendManager::GetBackend(const string& backend_name) {
-  m_backend_mutex.lock();
+  NGRAPH_VLOG(2) << "BackendManager::GetBackend(" << backend_name << ")";
   if (m_backend == nullptr) {
-    m_backend_mutex.unlock();
     auto status = SetBackend(backend_name);
     if (!status.ok()) {
+      NGRAPH_VLOG(1) << "Failed to get backend: " << status.error_message();
       throw errors::Internal("Failed to get backend: ", status.error_message());
     }
   }
-  m_backend_mutex.unlock();
+  lock_guard<mutex> lock(m_backend_mutex);
   return m_backend;
 }
 
 string BackendManager::GetBackendName() {
-  m_backend_mutex.lock();
+  NGRAPH_VLOG(2) << "BackendManager::GetBackendName()";
   if (m_backend == nullptr) {
-    m_backend_mutex.unlock();
     auto backend = GetBackend();
     if (backend == nullptr) {
       throw errors::Internal("Failed to get backend name");
     }
   }
-  m_backend_mutex.unlock();
+  lock_guard<mutex> lock(m_backend_mutex);
   return m_backend_name;
 }
 
-Status BackendManager::CreateBackend(shared_ptr<Backend> backend,
+Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
                                      const string& backend_name) {
 // Register backends for static linking
 #if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
