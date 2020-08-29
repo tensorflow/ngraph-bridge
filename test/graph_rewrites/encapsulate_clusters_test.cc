@@ -27,9 +27,7 @@ using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
-
 namespace testing {
 
 // Test that calls the functions of encapsulator in the wrong order
@@ -393,8 +391,7 @@ TEST(EncapsulateClusters, AOT0) {
         }
       }
       auto status =
-          EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
-                              make_pair(true, hint));
+          EncapsulateClusters(&g, 0, fdeflib_new, {}, make_pair(true, hint));
       if (did_aot[i]) {
         ASSERT_OK(status);
       } else {
@@ -507,9 +504,8 @@ TEST(EncapsulateClusters, AOT1) {
       {}, {{{"node1", {2, 2}}, {"node2", {2, 2}}}}};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
-    ASSERT_NOT_OK(
-        EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
-                            make_pair(true, node_shapes_hints_vect[i])));
+    ASSERT_NOT_OK(EncapsulateClusters(
+        &g, 0, fdeflib_new, {}, make_pair(true, node_shapes_hints_vect[i])));
   }
 
   free(fdeflib_new);
@@ -587,9 +583,8 @@ TEST(EncapsulateClusters, AOT2) {
   std::vector<bool> did_aot = {true, true};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
-    auto status =
-        EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
-                            make_pair(true, node_shapes_hints_vect[i]));
+    auto status = EncapsulateClusters(
+        &g, 0, fdeflib_new, {}, make_pair(true, node_shapes_hints_vect[i]));
     if (did_aot[i]) {
       ASSERT_OK(status);
     } else {
@@ -696,9 +691,8 @@ TEST(EncapsulateClusters, AOT3) {
       {{{"node1", {3, 2}}, {"node2", {2, 2}}}}};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
-    ASSERT_NOT_OK(
-        EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
-                            make_pair(true, node_shapes_hints_vect[i])));
+    ASSERT_NOT_OK(EncapsulateClusters(
+        &g, 0, fdeflib_new, {}, make_pair(true, node_shapes_hints_vect[i])));
   }
 
   free(fdeflib_new);
@@ -768,9 +762,8 @@ TEST(EncapsulateClusters, AOT4) {
   std::vector<bool> did_aot = {true, true, false};
   int num_cases = node_shapes_hints_vect.size();
   for (int i = 0; i < num_cases; i++) {
-    auto encapsulate_status =
-        EncapsulateClusters(&g, 0, fdeflib_new, {{"ngraph_device_id", ""}},
-                            make_pair(true, node_shapes_hints_vect[i]));
+    auto encapsulate_status = EncapsulateClusters(
+        &g, 0, fdeflib_new, {}, make_pair(true, node_shapes_hints_vect[i]));
     if (did_aot[i]) {
       ASSERT_OK(encapsulate_status);
     } else {
