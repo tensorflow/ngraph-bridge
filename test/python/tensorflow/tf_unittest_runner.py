@@ -106,20 +106,20 @@ def main():
         start = time.time()
         list_of_tests = read_tests_from_manifest(arguments.run_tests_from_file,
                                                  arguments.tensorflow_path)
-        list_of_tests = list(dict.fromkeys(list_of_tests))  # remove dups
-        for test in list_of_tests:
-            test_list = get_test_list(arguments.tensorflow_path, test)
-            for test in test_list[1]:
-                if test is not None:
-                    invalid_list.append(test_list[1])
-                    result_str = "\033[91m INVALID \033[0m " + test + \
-                    '\033[91m' + '\033[0m'
-                    print('TEST:', result_str)
-            test_list = list(set(test_list[0]))
-            for test_name in test_list:
-                if test_name not in all_test_list:
-                    all_test_list.append(test_name)
-        test_results = run_test(all_test_list, xml_report,
+        # list_of_tests = list(dict.fromkeys(list_of_tests))  # remove dups
+        # for test in list_of_tests:
+        #     test_list = get_test_list(arguments.tensorflow_path, test)
+        #     for test in test_list[1]:
+        #         if test is not None:
+        #             invalid_list.append(test_list[1])
+        #             result_str = "\033[91m INVALID \033[0m " + test + \
+        #             '\033[91m' + '\033[0m'
+        #             print('TEST:', result_str)
+        #     test_list = list(set(test_list[0]))
+        #     for test_name in test_list:
+        #         if test_name not in all_test_list:
+        #             all_test_list.append(test_name)
+        test_results = run_test(list_of_tests, xml_report,
                                 (2 if arguments.verbose else 0))
         elapsed = time.time() - start
         print("\n\nTesting results\nTime elapsed: ",
@@ -260,6 +260,10 @@ def list_tests(module_list, regex_input):
 
 
 def read_tests_from_manifest(manifestfile, tensorflow_path):
+    """
+    Reads a file that has include & exclude patterns,
+    Returns a list of leaf-level single testcase, no duplicates
+    """
     list_of_tests = []
     with open(manifestfile) as fh:
         include_pattern = r'^\s*include\s+(\S+)\s*$'
