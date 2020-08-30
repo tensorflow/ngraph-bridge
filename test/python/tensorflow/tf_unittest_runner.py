@@ -304,17 +304,27 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
 
 
 def func_utrunner_testcase_run(return_dict, runner, aTest):
-    test_result = runner.run(aTest)
-    return_dict[aTest.id()] = {
-        'wasSuccessful':
-        test_result.wasSuccessful(),
-        'failures':
-        test_result.failures,
-        'errors':
-        test_result.errors,
-        'skipped': [('', test_result.skipped[0][1])] if
-        (test_result.skipped) else None
-    }
+    # This func runs in a separate process
+    try:
+        test_result = runner.run(aTest)
+        return_dict[aTest.id()] = {
+            'wasSuccessful':
+            test_result.wasSuccessful(),
+            'failures':
+            test_result.failures,
+            'errors':
+            test_result.errors,
+            'skipped': [('', test_result.skipped[0][1])] if
+            (test_result.skipped) else None
+        }
+    except Exception as e:
+        #print('DBG: func_utrunner_testcase_run test_result.errors', test_result.errors, '\n')
+        return_dict[aTest.id()] = {
+            'wasSuccessful': False,
+            'failures': [('', test_result.errors[0][1])],
+            'errors': [('', test_result.errors[0][1])],
+            'skipped': []
+        }
 
 
 def run_singletest_in_new_child_process(runner, aTest):
@@ -398,8 +408,6 @@ def run_test(test_list, xml_report, verbosity=0):
                 elif 'failures' in test_result_map and bool(
                         test_result_map['failures']):
                     failures.append(test_result_map['failures'])
-                    print('test_result_map[\'failures\']',
-                          test_result_map['failures'])
                     result_str = " \033[91m FAIL \033[0m " + aTest.id() + \
                         '\n\033[91m' + ''.join(test_result_map['failures'][0][1]) + '\033[0m'
                 elif 'errors' in test_result_map and bool(
