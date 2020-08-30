@@ -49,11 +49,11 @@
   - wait
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
-      TFPYTEST_SKIPFILTERS=`pwd`/test/python/tensorflow/skiplist_IECPU.txt PYTHONPATH=`pwd` \
+      TFPYTEST_MANIFEST=`pwd`/test/python/tensorflow/tests_linux_ie_cpu.txt PYTHONPATH=`pwd` \
         python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_tf_python
     
-    label: ":python: TensorFlow Pytest"
+    label: ":python: TensorFlow Pytest IE-CPU"
     timeout_in_minutes: 30
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}

@@ -1,6 +1,40 @@
+# Manifest to specify included & excluded tests
+# Comment lines start with #
+# This manifest is consumed by .../test/python/tensorflow/tf_unittest_runner.py
+
+#  Few examples of valid regex/pattern :
+#    *test* --> module
+#    *test*.*test* --> module.class
+#    *_op_test*.*[Tt]est* --> e.g. pad_op_test.PadOpTest.testInputDims
+#    math_ops_test.DivNoNanTest.testBasic --> module.class.testfunc
+#    math_ops_test.DivNoNanTest.* --> module.class.testfunc
+#    math_ops_test.D* --> module.class
+#    math_ops_test.* --> module.class
+#    math_*_test --> module
+#    math_*_*_test --> module
+#    math*_test --> module
+
+###################################################
+# First specify the included tests/patterns/regex
+# or, just include a filename relative to this file's path
+
+include python_tests_list.txt # --> include a filename relative to this file's path
+
+#math_ops_test
+#pool*test
+#*_op_test*.*[Tt]est* # count 2756
+#*_ops_test*.*[Tt]est* # count 4706
+#nn_fused_batchnorm_test
+
+# *test*.*test* --> module.class
+# *_op_test*.*[Tt]est* # count 2756
+# *_ops_test*.*[Tt]est* # count 4706
+
+
+
+###################################################
+[EXCLUDED]
 # Specify tests that should be skipped
-# The base list is specified within run_tensorflow_pytests_from_artifacts(...)
-# in file .../SRCROOT/tools/test_utils.py
 
 argmax_op_test.ArgMaxTest.testDouble
 argmax_op_test.ArgMaxTest.testFloat
@@ -332,6 +366,7 @@ sparse_xent_op_test.SparseXentTest.testGradient
 sparse_xent_op_test.SparseXentTest.testHalf
 sparse_xent_op_test.SparseXentTest.testHighDim
 sparse_xent_op_test.SparseXentTest.testHighDim2
+sparse_xent_op_test.SparseXentTest.testScalarHandling
 sparse_xent_op_test.SparseXentTest.testSingleClass
 sparse_xent_op_test.SparseXentTest.testVector
 split_op_test.SplitOpTest.testEmpty

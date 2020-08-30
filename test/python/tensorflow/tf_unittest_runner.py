@@ -79,7 +79,6 @@ def main():
     if (arguments.list_tests):
         test_list = get_test_list(arguments.tensorflow_path,
                                   arguments.list_tests)
-        skip_tests_from_list(test_list[0], arguments.tensorflow_path)
         print('\n'.join(test_list[0]))
         print('Total:', len(test_list[0]))
         return None, None
@@ -94,7 +93,6 @@ def main():
                 result_str = "\033[91m INVALID \033[0m " + test + \
                 '\033[91m' + '\033[0m'
                 print('TEST:', result_str)
-        skip_tests_from_list(test_list[0], arguments.tensorflow_path)
         test_results = run_test(test_list[0], xml_report,
                                 (2 if arguments.verbose else 0))
         elapsed = time.time() - start
@@ -106,9 +104,9 @@ def main():
         all_test_list = []
         invalid_list = []
         start = time.time()
-        list_of_tests = read_tests_from_file(arguments.run_tests_from_file)
+        list_of_tests = read_tests_from_manifest(arguments.run_tests_from_file,
+                                                 arguments.tensorflow_path)
         list_of_tests = list(dict.fromkeys(list_of_tests))  # remove dups
-        skip_tests_from_list(list_of_tests, arguments.tensorflow_path)
         for test in list_of_tests:
             test_list = get_test_list(arguments.tensorflow_path, test)
             for test in test_list[1]:
@@ -131,9 +129,9 @@ def main():
 
 def get_test_list(tf_path, test_regex):
     accepted_formats = [
-        "math_ops_test.DivNoNanTest.testBasic", "math_ops_test.DivNoNanTest.*",
-        "math_ops_test.D*", "math_ops_test.*", "math_*_test", "math_*_*_test",
-        "math*_test"
+        "*test*", "math_ops_test.DivNoNanTest.testBasic",
+        "math_ops_test.DivNoNanTest.*", "math_ops_test.D*", "math_ops_test.*",
+        "math_*_test", "math_*_*_test", "math*_test"
     ]
     try:
         module_list = regex_walk(tf_path, test_regex)
@@ -153,6 +151,7 @@ def get_test_list(tf_path, test_regex):
             "\nEnter a valid argument to --list_tests or --run_test.\n \nLIST OF ACCEPTED FORMATS:"
         )
         print('\n'.join(accepted_formats))
+
     return test_list
 
 
@@ -178,20 +177,24 @@ def regex_walk(dirname, regex_input):
     math_*_*_test
     math*_test
     """
-    if (re.search("\.", regex_input) is None):
+    if (re.search(r'\.', regex_input) is None):
+        # a module name regex was given
         test = regex_input + '.py'
     else:
+        # regex has dot(s) e.g. module.class.testfunc
         test = (re.split("\.", regex_input))[0] + '.py'
     module_list = []
     for path, subdirs, files in os.walk(dirname):
         for name in files:
             if fnmatch(name, test):
-                sys.path.append(path)
+                if path not in sys.path:
+                    sys.path.append(os.path.abspath(path))
                 name = os.path.splitext(name)[0]
                 module_list.append(name)
     if not module_list:
-        print("Test name does not exist")
-        sys.exit(1)
+        print("Test pattern/name does not exist:", regex_input, "dirname",
+              dirname)
+        #sys.exit(1)
     return module_list
 
 
@@ -221,21 +224,34 @@ def list_tests(module_list, regex_input):
     listtests = []
     invalidtests = []
     for test_module in module_list:
-        module = __import__(test_module)
-        if (module is None):
-            print("Enter a valid test name to run")
-        test_modules = loader.loadTestsFromModule(module)
-        for test_class in test_modules:
-            for i in test_class:
-                alltests.append(i.id())
+        try:
+            moduleobj = __import__(test_module)
+        except Exception as e:
+            print("Exception in __import__({})".format(test_module), 'ERROR:',
+                  str(e))
+            module_list.remove(test_module)
+            continue
+        try:
+            test_suites = loader.loadTestsFromModule(moduleobj)
+        except Exception as e:
+            print(
+                "Exception in loader.loadTestsFromModule({})".format(moduleobj),
+                'ERROR:', str(e))
+            module_list.remove(test_module)
+            continue
+        for aTestSuite in test_suites:
+            for aTestCase in aTestSuite:
+                alltests.append(aTestCase.id())
 
-    for test in alltests:
-        if test == regex_input:
-            listtests.append(test)
-        elif (re.search("\*", regex_input)):
-            test_name = (re.split("\*", regex_input))[0]
-            if test_name in test:
-                listtests.append(test)
+    for aTestCaseID in alltests:
+        if regex_input in aTestCaseID:  # substring match
+            listtests.append(aTestCaseID)
+        elif regex_input.count('*') > 0:
+            regex_pattern = regex_input
+            regex_pattern = re.sub(r'\.', '\\.', regex_pattern)
+            regex_pattern = re.sub(r'\*', '.*', regex_pattern)
+            if re.search(regex_pattern, aTestCaseID):
+                listtests.append(aTestCaseID)
 
     if not listtests:
         invalidtests.append(regex_input)
@@ -243,36 +259,44 @@ def list_tests(module_list, regex_input):
     return listtests, invalidtests
 
 
-def read_tests_from_file(filename):
-    with open(filename) as list_of_tests:
-        return [
-            line.split('#')[0].rstrip('\n').strip(' ')
-            for line in list_of_tests.readlines()
-            if line[0] != '#' and line != '\n'
-        ]
-
-
-def skip_tests_from_list(orig_list_of_tests, tensorflow_path):
-    if ('TFPYTEST_SKIPFILTERS' in os.environ):
-        filename = os.path.abspath(os.environ['TFPYTEST_SKIPFILTERS'])
-        orig_count = len(orig_list_of_tests)
-        skipitems = []
-        with open(filename) as skipfile:
-            for line in skipfile.readlines():
-                line = line.split('#')[0].rstrip('\n').strip(' ')
-                if line == '':
+def read_tests_from_manifest(manifestfile, tensorflow_path):
+    list_of_tests = []
+    with open(manifestfile) as fh:
+        include_pattern = r'^\s*include\s+(\S+)\s*$'
+        excluded_section = False
+        excluded_items = []
+        for line in fh.readlines():
+            line = line.split('#')[0].rstrip('\n').strip(' ')
+            if line == '':
+                continue
+            if not excluded_section:
+                if re.search(include_pattern, line):
+                    match_object = re.search(include_pattern, line)
+                    include_file = match_object.group(1)
+                    if not os.path.isabs(include_file):
+                        include_file = os.path.abspath(
+                            os.path.dirname(manifestfile) + '/' + include_file)
+                    list_of_tests.extend(
+                        read_tests_from_manifest(include_file, tensorflow_path))
                     continue
-                skipitems.extend(get_test_list(tensorflow_path, line)[0])
-        skipitems = list(dict.fromkeys(skipitems))  # remove dups
+                if re.search(r'\[EXCLUDED\]', line):
+                    excluded_section = True
+                    continue
+                list_of_tests.extend(get_test_list(tensorflow_path, line)[0])
+            if excluded_section:
+                excluded_items.extend(get_test_list(tensorflow_path, line)[0])
+        # remove dups
+        list_of_tests = list(dict.fromkeys(list_of_tests))
+        excluded_items = list(dict.fromkeys(excluded_items))
         print()
-        for aSkipTest in skipitems:
-            if aSkipTest in orig_list_of_tests:
-                print('will skip test:', aSkipTest)
-                orig_list_of_tests.remove(aSkipTest)
-        new_count = len(orig_list_of_tests)
-        print('\nTest count: Initial={} Skipped={} New-Total={}\n'.format(
-            orig_count, orig_count - new_count, new_count))
-        #return orig_list_of_tests
+        for aTest in excluded_items:
+            if aTest in list_of_tests:
+                #print('will exclude test:', aTest)
+                list_of_tests.remove(aTest)
+        print('\nTotal Tests To Be Run = {} (manifest = {})\n'.format(
+            len(list_of_tests), manifestfile))
+
+    return list_of_tests
 
 
 def func_utrunner_testcase_run(return_dict, runner, aTest):
@@ -331,6 +355,7 @@ def run_test(test_list, xml_report, verbosity=0):
     succeeded = []
     failures = []
     skipped = []
+    run_test_counter = 0
     if xml_report is not None:
         for testpattern in test_list:
             tests = loader.loadTestsFromName(testpattern)
@@ -351,10 +376,12 @@ def run_test(test_list, xml_report, verbosity=0):
     else:
         runner = unittest.TextTestRunner(verbosity=verbosity)
         for testpattern in test_list:
-            tests = loader.loadTestsFromName(testpattern)
-            for aTest in tests:
+            testsuite = loader.loadTestsFromName(testpattern)
+            for aTest in testsuite:
                 print()
-                print('>> >> >> >> Testing:', aTest.id(), '...')
+                run_test_counter += 1
+                print('>> >> >> >> ({}) Testing: {} ...'.format(
+                    run_test_counter, aTest.id()))
                 start = time.time()
                 test_result_map = run_singletest_in_new_child_process(
                     runner, aTest)

@@ -112,8 +112,6 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
 def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
                                           tf_src_dir, xml_output):
     root_pwd = os.getcwd()
-    ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
-    tf_src_dir = os.path.abspath(tf_src_dir)
 
     if ('TFPYTEST_SKIPFILTERS' in os.environ):
         # Use abs path. Do this early, before we change dir
@@ -152,13 +150,15 @@ def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
     # Now run the TensorFlow python tests
     test_src_dir = os.path.join(ngraph_tf_src_dir, "test/python/tensorflow")
     test_script = os.path.join(test_src_dir, "tf_unittest_runner.py")
-    if get_os_type() == 'Darwin':
-        test_manifest_file = os.path.join(test_src_dir,
-                                          "python_tests_list_mac.txt")
-    else:
+
+    if ('TFPYTEST_MANIFEST' in os.environ):
+        test_manifest_file = os.path.abspath(os.environ['TFPYTEST_MANIFEST'])
+    else:  # refactor later to use separate manifests from CI
         test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
-    if backend is not None:
-        if 'INTERPRETER' in backend:
+        if get_os_type() == 'Darwin':
+            test_manifest_file = os.path.join(test_src_dir,
+                                              "python_tests_list_mac.txt")
+        if backend and 'INTERPRETER' in backend:
             test_manifest_file = os.path.join(test_src_dir,
                                               "python_tests_list_int.txt")
 
