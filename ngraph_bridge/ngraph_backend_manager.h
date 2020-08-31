@@ -58,7 +58,7 @@ class BackendManager {
  private:
   // Creates backend of backend_name type
   static Status CreateBackend(shared_ptr<Backend>& backend,
-                              const string& backend_name);
+                              string& backend_name);
 
   static shared_ptr<Backend> m_backend;
   static string m_backend_name;

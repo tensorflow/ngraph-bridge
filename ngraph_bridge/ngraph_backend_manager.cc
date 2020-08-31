@@ -70,7 +70,7 @@ string BackendManager::GetBackendName() {
 }
 
 Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
-                                     const string& backend_name) {
+                                     string& backend_name) {
 // Register backends for static linking
 #if defined(NGRAPH_BRIDGE_STATIC_LIB_ENABLE)
   ngraph_register_cpu_backend();
@@ -94,6 +94,7 @@ Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
                             " got nullptr");
   }
 
+  backend_name = bname;
   NGRAPH_VLOG(2) << "BackendManager::CreateBackend(): " << backend_name;
   return Status::OK();
 }
