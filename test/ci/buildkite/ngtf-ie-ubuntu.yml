@@ -49,7 +49,7 @@
   - wait
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
-      TFPYTEST_MANIFEST=`pwd`/test/python/tensorflow/tests_linux_ie_cpu.txt PYTHONPATH=`pwd` \
+      NGRAPH_TF_TEST_MANIFEST=`pwd`/test/python/tensorflow/tests_linux_ie_cpu.txt PYTHONPATH=`pwd` \
         python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_tf_python
     

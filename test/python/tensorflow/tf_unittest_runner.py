@@ -54,13 +54,18 @@ def main():
         help=
         "Prints the list of test cases in this package. Eg:math_ops_test.* \n")
     optional.add_argument(
+        '--list_tests_from_file',
+        help=
+        """Reads the test names/patterns specified in a manifest file and displays a consolidated list. 
+        Eg:--list_tests_from_file=tests_linux_ie_cpu.txt""")
+    optional.add_argument(
         '--run_test',
         help=
-        "Runs the testcase and returns the output. Eg:math_ops_test.DivNoNanTest.testBasic"
+        "Runs the testcase(s), specified by name or pattern. Eg: math_ops_test.DivNoNanTest.testBasic or math_ops_test.*"
     )
     optional.add_argument(
         '--run_tests_from_file',
-        help="""Reads the test names specified in a file and runs them. 
+        help="""Reads the test names specified in a manifest file and runs them. 
         Eg:--run_tests_from_file=tests_to_run.txt""")
     optional.add_argument(
         '--xml_report',
@@ -81,6 +86,13 @@ def main():
                                   arguments.list_tests)
         print('\n'.join(test_list[0]))
         print('Total:', len(test_list[0]))
+        return None, None
+
+    if (arguments.list_tests_from_file):
+        test_list = read_tests_from_manifest(arguments.list_tests_from_file,
+                                             arguments.tensorflow_path)
+        print('\n'.join(test_list))
+        print('Total:', len(test_list))
         return None, None
 
     if (arguments.run_test):
@@ -106,19 +118,6 @@ def main():
         start = time.time()
         list_of_tests = read_tests_from_manifest(arguments.run_tests_from_file,
                                                  arguments.tensorflow_path)
-        # list_of_tests = list(dict.fromkeys(list_of_tests))  # remove dups
-        # for test in list_of_tests:
-        #     test_list = get_test_list(arguments.tensorflow_path, test)
-        #     for test in test_list[1]:
-        #         if test is not None:
-        #             invalid_list.append(test_list[1])
-        #             result_str = "\033[91m INVALID \033[0m " + test + \
-        #             '\033[91m' + '\033[0m'
-        #             print('TEST:', result_str)
-        #     test_list = list(set(test_list[0]))
-        #     for test_name in test_list:
-        #         if test_name not in all_test_list:
-        #             all_test_list.append(test_name)
         test_results = run_test(list_of_tests, xml_report,
                                 (2 if arguments.verbose else 0))
         elapsed = time.time() - start
@@ -266,28 +265,32 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
     """
     list_of_tests = []
     with open(manifestfile) as fh:
-        include_pattern = r'^\s*include\s+(\S+)\s*$'
-        excluded_section = False
-        excluded_items = []
+        includefile_pattern = r'^\s*include\s+(\S+)\s*$'
+        curr_section = ''
+        excluded_items = []  # this is temporary to each manifest
         for line in fh.readlines():
             line = line.split('#')[0].rstrip('\n').strip(' ')
             if line == '':
                 continue
-            if not excluded_section:
-                if re.search(include_pattern, line):
-                    match_object = re.search(include_pattern, line)
-                    include_file = match_object.group(1)
-                    if not os.path.isabs(include_file):
-                        include_file = os.path.abspath(
-                            os.path.dirname(manifestfile) + '/' + include_file)
-                    list_of_tests.extend(
-                        read_tests_from_manifest(include_file, tensorflow_path))
-                    continue
-                if re.search(r'\[EXCLUDED\]', line):
-                    excluded_section = True
-                    continue
+            if re.search(r'\[IMPORT\]', line):
+                curr_section = 'import_section'
+                continue
+            if re.search(r'\[RUN\]', line):
+                curr_section = 'included_section'
+                continue
+            if re.search(r'\[SKIP\]', line):
+                curr_section = 'excluded_section'
+                continue
+            if curr_section == 'import_section':
+                if not os.path.isabs(line):
+                    line = os.path.abspath(
+                        os.path.dirname(manifestfile) + '/' + line)
+                list_of_tests.extend(
+                    read_tests_from_manifest(line, tensorflow_path))
+                continue
+            if curr_section == 'included_section':
                 list_of_tests.extend(get_test_list(tensorflow_path, line)[0])
-            if excluded_section:
+            if curr_section == 'excluded_section':
                 excluded_items.extend(get_test_list(tensorflow_path, line)[0])
         # remove dups
         list_of_tests = list(dict.fromkeys(list_of_tests))

@@ -2,10 +2,11 @@
 # Comment lines start with #
 # This manifest is consumed by .../test/python/tensorflow/tf_unittest_runner.py
 
-#  Few examples of valid regex/pattern :
-#    *test* --> module
+#  Few examples of valid regex/pattern (dots are treated literally):
+#    math_ops_test --> module
+#    *test* --> module (* means zero/more of anything)
 #    *test*.*test* --> module.class
-#    *_op_test*.*[Tt]est* --> e.g. pad_op_test.PadOpTest.testInputDims
+#    *_op_test*.*[Tt]est* --> e.g. pad_op_test.PadOpTest.testInputDims ([xy] means either x or y)
 #    math_ops_test.DivNoNanTest.testBasic --> module.class.testfunc
 #    math_ops_test.DivNoNanTest.* --> module.class.testfunc
 #    math_ops_test.D* --> module.class
@@ -15,26 +16,21 @@
 #    math*_test --> module
 
 ###################################################
-# First specify the included tests/patterns/regex
-# or, just include a filename relative to this file's path
+[IMPORT]
+# Read in one/more external manifest file(s)
+# Path specified is relative to this file's path
 
-include python_tests_list.txt # --> include a filename relative to this file's path
-
-#math_ops_test
-#pool*test
-#*_op_test*.*[Tt]est* # count 2756
-#*_ops_test*.*[Tt]est* # count 4706
-#nn_fused_batchnorm_test
-
-# *test*.*test* --> module.class
-# *_op_test*.*[Tt]est* # count 2756
-# *_ops_test*.*[Tt]est* # count 4706
-
-
+tests_common.txt
 
 ###################################################
-[EXCLUDED]
-# Specify tests that should be skipped
+[RUN]
+# Specify tests/patterns/regex that should be included
+
+# None
+
+###################################################
+[SKIP]
+# Specify tests/patterns/regex that should be excluded/skipped
 
 argmax_op_test.ArgMaxTest.testDouble
 argmax_op_test.ArgMaxTest.testFloat

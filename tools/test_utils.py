@@ -112,11 +112,7 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
 def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
                                           tf_src_dir, xml_output):
     root_pwd = os.getcwd()
-
-    if ('TFPYTEST_SKIPFILTERS' in os.environ):
-        # Use abs path. Do this early, before we change dir
-        filterfile = os.path.abspath(os.environ['TFPYTEST_SKIPFILTERS'])
-        os.environ['TFPYTEST_SKIPFILTERS'] = filterfile
+    ngraph_tf_src_dir = os.path.abspath(ngraph_tf_src_dir)
 
     # Check to see if we need to apply the patch for Grappler
     import ngraph_bridge
@@ -151,16 +147,19 @@ def run_tensorflow_pytests_from_artifacts(backend, ngraph_tf_src_dir,
     test_src_dir = os.path.join(ngraph_tf_src_dir, "test/python/tensorflow")
     test_script = os.path.join(test_src_dir, "tf_unittest_runner.py")
 
-    if ('TFPYTEST_MANIFEST' in os.environ):
-        test_manifest_file = os.path.abspath(os.environ['TFPYTEST_MANIFEST'])
-    else:  # refactor later to use separate manifests from CI
-        test_manifest_file = os.path.join(test_src_dir, "python_tests_list.txt")
+    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
+        test_manifest_file = os.path.abspath(
+            os.environ['NGRAPH_TF_TEST_MANIFEST'])
+    else:
+        # TODO refactor to auto-set manifest from platform/executor/backend
+        # e.g. tests_${PLATFORM}_${NGRAPH_TF_EXECUTOR}_${NGRAPH_TF_BACKEND}.txt
+        test_manifest_file = os.path.join(test_src_dir, "tests_common.txt")
         if get_os_type() == 'Darwin':
             test_manifest_file = os.path.join(test_src_dir,
-                                              "python_tests_list_mac.txt")
+                                              "tests_osx_ngraph_cpu.txt")
         if backend and 'INTERPRETER' in backend:
-            test_manifest_file = os.path.join(test_src_dir,
-                                              "python_tests_list_int.txt")
+            test_manifest_file = os.path.join(
+                test_src_dir, "tests_linux_ngraph_interpreter.txt")
 
     test_xml_report = './junit_tensorflow_tests.xml'
 
