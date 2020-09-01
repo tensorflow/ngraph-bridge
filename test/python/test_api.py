@@ -37,9 +37,9 @@ class TestNgraphAPI(NgraphTest):
 
     def test_set_backend_invalid(self):
         current_backend = ngraph_bridge.get_backend()
+        error_thrown = False
         try:
             ngraph_bridge.set_backend('POTATO')
-            error_thrown = False
         except:
             error_thrown = True
         ngraph_bridge.set_backend(current_backend)
