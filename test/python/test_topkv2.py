@@ -65,8 +65,6 @@ class TestTopKV2(NgraphTest):
         assert (
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
 
-    @pytest.mark.skip(
-        reason="Falls back to TF, sorted=False is not supported currently")
     def test_topkv2_nosort(self):
         input = [[40.0, 30.0, 20.0, 10.0], [10.0, 20.0, 15.0, 70.0]]
         p = tf.compat.v1.placeholder(dtype=tf.float32)

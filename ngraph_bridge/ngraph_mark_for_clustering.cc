@@ -213,29 +213,8 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Pad"] = SetStaticInputs({1});
     set_attributes_map["PadV2"] = SetStaticInputs({1, 2});
     set_attributes_map["Prod"] = SetStaticInputs({1});
-
-    set_attributes_map["QuantizeAndDequantizeV2"] = SetStaticInputs({1, 2});
-    set_attributes_map["QuantizedConcat"] = [](Node* n) {
-      SetStaticInputs(n, {0});  // the axis
-      auto num_of_tensors_to_concat = (n->num_inputs() - 1) / 3;
-      // mark all mins and maxes static
-      for (int idx = num_of_tensors_to_concat + 1; idx < n->num_inputs();
-           idx++) {
-        SetStaticInputs(n, {idx});
-      }
-      return Status::OK();
-    };
-    set_attributes_map["QuantizedConcatV2"] = [](Node* n) {
-      auto num_of_tensors_to_concat = (n->num_inputs() - 1) / 3;
-      // mark axis, all mins and maxes static
-      std::vector<int> static_input_vec;
-      for (int idx = num_of_tensors_to_concat; idx < n->num_inputs(); idx++) {
-        static_input_vec.push_back(idx);
-      }
-      SetStaticInputs(n, static_input_vec);
-      return Status::OK();
-    };
     set_attributes_map["Reshape"] = SetStaticInputs({1});
+    set_attributes_map["Shape"] = SetStaticInputs({0});
     set_attributes_map["ScatterNd"] = SetStaticInputs({2});
     set_attributes_map["Slice"] = SetStaticInputs({1, 2});
     set_attributes_map["Split"] = SetStaticInputs({0});
@@ -288,7 +267,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["ArgMin"] = SimpleConfirmationFunction();
     confirmation_function_map["Asin"] = SimpleConfirmationFunction();
     confirmation_function_map["Atan"] = SimpleConfirmationFunction();
-    confirmation_function_map["Atan2"] = SimpleConfirmationFunction();
     confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
@@ -312,12 +290,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
       TF_RETURN_IF_ERROR(
           GetNodeAttr(n->attrs(), "data_format", &tf_data_format));
       *result = tf_data_format != "NCHW_VECT_C";
-      return Status::OK();
-    };
-    confirmation_function_map["Dequantize"] = [](Node* n, bool* result) {
-      string mode;
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "mode", &mode));
-      *result = (mode.compare("SCALED") == 0);
       return Status::OK();
     };
     confirmation_function_map["Equal"] = SimpleConfirmationFunction();
@@ -375,39 +347,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["PreventGradient"] = SimpleConfirmationFunction();
     confirmation_function_map["Prod"] = SimpleConfirmationFunction();
     confirmation_function_map["Rank"] = SimpleConfirmationFunction();
-    confirmation_function_map["QuantizeAndDequantizeV2"] = [](Node* n,
-                                                              bool* result) {
-      // accept only when num_bits == 8 and range is given
-      bool range_given;
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "range_given", &range_given));
-      int num_bits;
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "num_bits", &num_bits));
-      *result = (num_bits == 8) && range_given;
-      return Status::OK();
-    };
-    confirmation_function_map["QuantizedAvgPool"] =
-        SimpleConfirmationFunction();
-    confirmation_function_map["QuantizedConcat"] = SimpleConfirmationFunction();
-    confirmation_function_map["QuantizedConcatV2"] =
-        SimpleConfirmationFunction();
-    confirmation_function_map["QuantizedConv2DWithBiasAndReluAndRequantize"] =
-        SimpleConfirmationFunction();
-    confirmation_function_map["QuantizedConv2DWithBiasAndRequantize"] =
-        SimpleConfirmationFunction();
-    confirmation_function_map
-        ["QuantizedConv2DWithBiasSignedSumAndReluAndRequantize"] =
-            SimpleConfirmationFunction();
-    confirmation_function_map
-        ["QuantizedConv2DWithBiasSumAndReluAndRequantize"] =
-            SimpleConfirmationFunction();
-    confirmation_function_map["QuantizedMaxPool"] =
-        SimpleConfirmationFunction();
-    confirmation_function_map["QuantizeV2"] = [](Node* n, bool* result) {
-      string mode;
-      TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), "mode", &mode));
-      *result = (mode.compare("SCALED") == 0);
-      return Status::OK();
-    };
     confirmation_function_map["RealDiv"] = SimpleConfirmationFunction();
     confirmation_function_map["Reciprocal"] = SimpleConfirmationFunction();
     confirmation_function_map["Relu"] = SimpleConfirmationFunction();
@@ -493,7 +432,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["ArgMin"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Asin"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Atan"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["Atan2"]["T"] = NGraphRealDTypes();
     type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
@@ -514,7 +452,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Cumsum"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["DepthToSpace"]["T"] = NGraphDTypes();
     type_constraint_map["DepthwiseConv2dNative"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["Dequantize"]["T"] = NGraphSupportedQuantizedDTypes();
     type_constraint_map["Equal"]["T"] = NGraphDTypes();
     type_constraint_map["Exp"]["T"] = NGraphNumericDTypes();
     type_constraint_map["ExpandDims"]["T"] = NGraphDTypes();
@@ -574,46 +511,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["PreventGradient"]["T"] = NGraphDTypes();
     type_constraint_map["Prod"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Prod"]["Tidx"] = NGraphIndexDTypes();
-    type_constraint_map["QuantizeAndDequantizeV2"]["T"] = NGraphRealDTypes();
-    type_constraint_map["QuantizedAvgPool"]["T"] =
-        NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConcat"]["T"] =
-        NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConcatV2"]["T"] =
-        NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasAndReluAndRequantize"]
-                       ["Tinput"] = NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasAndReluAndRequantize"]
-                       ["Tfilter"] = NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasAndReluAndRequantize"]
-                       ["Tbias"] = NGraphBiasDTypes();
-    // TODO: check if any other type constraint is required
-    // https://github.com/tensorflow/tensorflow/blob/c95ca05536144451ef78ca6e2c15f0f65ebaaf95/tensorflow/core/ops/nn_ops.cc#L2780
-    type_constraint_map["QuantizedConv2DWithBiasSignedSumAndReluAndRequantize"]
-                       ["Tinput"] = NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasSignedSumAndReluAndRequantize"]
-                       ["Tsummand"] = NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasSignedSumAndReluAndRequantize"]
-                       ["Tfilter"] = NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasSignedSumAndReluAndRequantize"]
-                       ["Tbias"] = NGraphBiasDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasSumAndReluAndRequantize"]
-                       ["Tinput"] = NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasSumAndReluAndRequantize"]
-                       ["Tsummand"] = NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasSumAndReluAndRequantize"]
-                       ["Tfilter"] = NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasSumAndReluAndRequantize"]
-                       ["Tbias"] = NGraphBiasDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasAndRequantize"]["Tinput"] =
-        NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasAndRequantize"]["Tfilter"] =
-        NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizedConv2DWithBiasAndRequantize"]["Tbias"] =
-        NGraphBiasDTypes();
-    type_constraint_map["QuantizedMaxPool"]["T"] =
-        NGraphSupportedQuantizedDTypes();
-    type_constraint_map["QuantizeV2"]["T"] = NGraphSupportedQuantizedDTypes();
     type_constraint_map["Rank"]["T"] = NGraphNumericDTypes();
     type_constraint_map["RealDiv"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Reciprocal"]["T"] = NGraphNumericDTypes();
@@ -692,7 +589,6 @@ GetTFToNgOpMap() {
       {"ArgMin", {std::make_shared<ngraph::op::ArgMin>()}},
       {"Asin", {std::make_shared<opset::Asin>()}},
       {"Atan", {std::make_shared<opset::Atan>()}},
-      {"Atan2", {std::make_shared<ngraph::op::Atan2>()}},
       {"AvgPool", {std::make_shared<opset::AvgPool>()}},
       {"BatchMatMul",
        {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
@@ -724,15 +620,10 @@ GetTFToNgOpMap() {
       {"Cumsum", {std::make_shared<opset::CumSum>()}},
       {"DepthToSpace", {std::make_shared<opset::DepthToSpace>()}},
       {"DepthwiseConv2dNative",
-       {std::make_shared<ngraph::op::Slice>(),
-        std::make_shared<ngraph::op::Convolution>(),
-        std::make_shared<ngraph::op::Concat>(),
-        std::make_shared<ngraph::op::Reshape>()}},
-      {"Dequantize",
-       {std::make_shared<ngraph::op::Dequantize>(), constant,
-        std::make_shared<ngraph::op::Divide>(),
-        std::make_shared<ngraph::op::Maximum>(),
-        std::make_shared<ngraph::op::Abs>()}},
+       {std::make_shared<opset::StridedSlice>(),
+        std::make_shared<opset::Convolution>(),
+        std::make_shared<opset::Concat>(), std::make_shared<opset::Transpose>(),
+        constant}},
       {"Equal", {std::make_shared<opset::Equal>()}},
       {"Exp", {std::make_shared<opset::Exp>()}},
       {"ExpandDims", {constant, std::make_shared<opset::Reshape>()}},
@@ -769,7 +660,7 @@ GetTFToNgOpMap() {
         std::make_shared<opset::LogicalAnd>()}},
       {"L2Loss",
        {constant, std::make_shared<opset::Multiply>(),
-        std::make_shared<ngraph::op::Sum>(),
+        std::make_shared<opset::ReduceSum>(),
         std::make_shared<opset::Divide>()}},
       {"LogSoftmax",
        {std::make_shared<ngraph::op::Broadcast>(),
@@ -808,96 +699,14 @@ GetTFToNgOpMap() {
        {std::make_shared<opset::NonMaxSuppression>(), constant}},
       {"OneHot", {std::make_shared<opset::OneHot>(), constant}},
       {"Pack",
-       {std::make_shared<ngraph::op::Concat>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {constant, std::make_shared<opset::Concat>(),
+        std::make_shared<opset::Reshape>()}},
       {"Pad", {constant, std::make_shared<opset::Pad>()}},
       {"PadV2", {constant, std::make_shared<opset::Pad>()}},
       {"Pow", {std::make_shared<opset::Power>()}},
-      {"PreventGradient", {}},
       {"Prod", {std::make_shared<opset::ReduceProd>(), constant}},
-      {"QuantizeAndDequantizeV2",
-       {constant, std::make_shared<ngraph::op::Quantize>(),
-        std::make_shared<ngraph::op::Dequantize>()}},
-      // Next few are CPU only ops
-      {"QuantizedAvgPool",
-       {constant, std::make_shared<opset::AvgPool>(),
-        std::make_shared<opset::Transpose>()}},
-      {"QuantizedConcat",
-       {constant, std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::Min>(),
-        std::make_shared<ngraph::op::Max>(),
-        std::make_shared<ngraph::op::Abs>(),
-        std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Maximum>(),
-        std::make_shared<ngraph::op::Divide>(),
-        std::make_shared<ngraph::op::Dequantize>(),
-        std::make_shared<ngraph::op::Quantize>(),
-        std::make_shared<ngraph::op::Concat>(),
-        std::make_shared<ngraph::op::Broadcast>()}},
-      {"QuantizedConcatV2",
-       {constant, std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::Min>(),
-        std::make_shared<ngraph::op::Max>(),
-        std::make_shared<ngraph::op::Abs>(),
-        std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Maximum>(),
-        std::make_shared<ngraph::op::Divide>(),
-        std::make_shared<ngraph::op::Dequantize>(),
-        std::make_shared<ngraph::op::Quantize>(),
-        std::make_shared<ngraph::op::Concat>()}},
-      {"QuantizedConv2DWithBiasAndReluAndRequantize",
-       {constant, std::make_shared<ngraph::op::Broadcast>(),
-        std::make_shared<ngraph::op::Abs>(),
-        std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Maximum>(),
-        std::make_shared<opset::Divide>(), std::make_shared<opset::Multiply>(),
-        std::make_shared<ngraph::op::Quantize>(),
-        std::make_shared<ngraph::op::QuantizedConvolutionBias>(),
-        std::make_shared<ngraph::op::Reshape>()}},
-      {"QuantizedConv2DWithBiasAndRequantize",
-       {constant, std::make_shared<ngraph::op::Broadcast>(),
-        std::make_shared<ngraph::op::Abs>(),
-        std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Maximum>(),
-        std::make_shared<opset::Divide>(), std::make_shared<opset::Multiply>(),
-        std::make_shared<ngraph::op::Quantize>(),
-        std::make_shared<ngraph::op::QuantizedConvolutionBias>(),
-        std::make_shared<ngraph::op::Reshape>()}},
-      {"QuantizedConv2DWithBiasSignedSumAndReluAndRequantize",
-       {constant, std::make_shared<ngraph::op::Broadcast>(),
-        std::make_shared<ngraph::op::Abs>(),
-        std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Maximum>(),
-        std::make_shared<opset::Divide>(), std::make_shared<opset::Multiply>(),
-        std::make_shared<ngraph::op::Quantize>(),
-        std::make_shared<ngraph::op::QuantizedConvolutionBiasSignedAdd>(),
-        std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::Convert>()}},
-      {"QuantizedConv2DWithBiasSumAndReluAndRequantize",
-       {constant, std::make_shared<ngraph::op::Broadcast>(),
-        std::make_shared<ngraph::op::Abs>(),
-        std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Maximum>(),
-        std::make_shared<opset::Divide>(), std::make_shared<opset::Multiply>(),
-        std::make_shared<ngraph::op::Quantize>(),
-        std::make_shared<ngraph::op::QuantizedConvolutionBiasAdd>(),
-        std::make_shared<ngraph::op::Reshape>(),
-        std::make_shared<ngraph::op::Convert>()}},
-      {"QuantizedMaxPool",
-       {constant, std::make_shared<opset::Transpose>(),
-        std::make_shared<opset::MaxPool>()}},
-      // End of CPU only ops
-      {"QuantizeV2",
-       {constant, std::make_shared<ngraph::op::Minimum>(),
-        std::make_shared<ngraph::op::Abs>(),
-        std::make_shared<ngraph::op::Maximum>(),
-        std::make_shared<ngraph::op::Quantize>(),
-        std::make_shared<ngraph::op::Divide>(),
-        std::make_shared<ngraph::op::Add>()}},
       {"Rank", {constant}},
-      {"RealDiv",
-       {std::make_shared<opset::Divide>(),
-        std::make_shared<ngraph::op::Broadcast>()}},
+      {"RealDiv", {std::make_shared<opset::Divide>()}},
       {"Reciprocal", {constant, std::make_shared<opset::Power>()}},
       {"Relu", {std::make_shared<opset::Relu>()}},
       {"Relu6", {std::make_shared<opset::Clamp>()}},
@@ -905,7 +714,7 @@ GetTFToNgOpMap() {
       {"Select", {std::make_shared<opset::Select>()}},
       {"Reshape", {std::make_shared<opset::Reshape>()}},
       {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},
-      {"Shape", {constant}},
+      {"Shape", {std::make_shared<opset::ShapeOf>()}},
       {"Sigmoid", {std::make_shared<opset::Sigmoid>()}},
       {"Sin", {std::make_shared<opset::Sin>()}},
       {"Sinh", {std::make_shared<opset::Sinh>()}},
@@ -918,8 +727,8 @@ GetTFToNgOpMap() {
        {constant, std::make_shared<opset::Exp>(),
         std::make_shared<opset::Log>(), std::make_shared<opset::Add>()}},
       {"SpaceToDepth", {std::make_shared<opset::SpaceToDepth>()}},
-      {"Split", {std::make_shared<ngraph::op::Slice>()}},
-      {"SplitV", {std::make_shared<ngraph::op::Slice>()}},
+      {"Split", {std::make_shared<opset::Split>(), constant}},
+      {"SplitV", {std::make_shared<opset::VariadicSplit>(), constant}},
       {"Sqrt", {std::make_shared<opset::Sqrt>()}},
       {"Square", {std::make_shared<opset::Multiply>()}},
       {"SquaredDifference", {std::make_shared<opset::SquaredDifference>()}},
@@ -930,21 +739,16 @@ GetTFToNgOpMap() {
       {"Tan", {std::make_shared<opset::Tan>()}},
       {"Tanh", {std::make_shared<opset::Tanh>()}},
       {"Tile", {std::make_shared<opset::Tile>()}},
-      {"TopKV2",
-       {std::make_shared<ngraph::op::TopK>(),
-        std::make_shared<ngraph::op::GetOutputElement>()}},
+      {"TopKV2", {std::make_shared<opset::TopK>(), constant}},
       {"Transpose", {std::make_shared<opset::Transpose>()}},
       {"Xdivy",
-       {constant, std::make_shared<ngraph::op::Divide>(),
-        std::make_shared<ngraph::op::Equal>(),
-        std::make_shared<ngraph::op::Convert>(),
-        std::make_shared<ngraph::op::Select>(),
-        std::make_shared<ngraph::op::Broadcast>()}},
+       {constant, std::make_shared<opset::Divide>(),
+        std::make_shared<opset::Equal>(), std::make_shared<opset::Select>()}},
       {"UnsortedSegmentSum",
        {constant, std::make_shared<ngraph::op::ScatterAdd>()}},
       {"Unpack",
-       {std::make_shared<ngraph::op::Slice>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {constant, std::make_shared<opset::StridedSlice>(),
+        std::make_shared<opset::Reshape>()}},
       {"ZerosLike", {constant}},
       {"NoOp", {}},
   };
