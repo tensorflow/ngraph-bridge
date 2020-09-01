@@ -36,14 +36,15 @@ BackendManager::~BackendManager() {
 Status BackendManager::SetBackend(const string& backend_name) {
   NGRAPH_VLOG(2) << "BackendManager::SetBackend(" << backend_name << ")";
   shared_ptr<Backend> backend;
-  auto status = CreateBackend(backend, backend_name);
+  string bname(backend_name);
+  auto status = CreateBackend(backend, std::ref(bname));
   if (!status.ok() || backend == nullptr) {
     return errors::Internal("Failed to set backend: ", status.error_message());
   }
 
   lock_guard<mutex> lock(m_backend_mutex);
   m_backend = backend;
-  m_backend_name = backend_name;
+  m_backend_name = bname;
   return Status::OK();
 }
 
@@ -77,14 +78,13 @@ Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
   ngraph_register_interpreter_backend();
 #endif
 
-  auto bname = backend_name;
   const char* env = std::getenv("NGRAPH_TF_BACKEND");
   if (env != nullptr) {
-    bname = string(env);
+    backend_name = string(env);
   }
 
   try {
-    backend = Backend::create(bname);
+    backend = Backend::create(backend_name);
   } catch (const std::exception& e) {
     return errors::Internal("Could not create backend of type ", backend_name,
                             ". Got exception: ", e.what());
@@ -94,7 +94,6 @@ Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
                             " got nullptr");
   }
 
-  backend_name = bname;
   NGRAPH_VLOG(2) << "BackendManager::CreateBackend(): " << backend_name;
   return Status::OK();
 }
