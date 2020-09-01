@@ -6,6 +6,8 @@ echo "BUILDKITE_AGENT_META_DATA_QUEUE: ${BUILDKITE_AGENT_META_DATA_QUEUE}"
 echo "BUILDKITE_AGENT_META_DATA_NAME: ${BUILDKITE_AGENT_META_DATA_NAME}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+# Any env-var you want to export to BuildKite commands, should be also set in setup.yml
 export NGRAPH_TF_EXECUTOR=ngraph
 
 # Always run setup for now
