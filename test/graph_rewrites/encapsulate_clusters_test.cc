@@ -18,6 +18,7 @@
 
 #include "tensorflow/core/graph/node_builder.h"
 
+#include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/version.h"
@@ -311,6 +312,9 @@ TEST(EncapsulateClusters, PopulateLibrary) {
 TEST(EncapsulateClusters, AOT0) {
   if (!ngraph_tf_is_grappler_enabled()) return;
 
+  auto env_map = StoreEnv({"NGRAPH_TF_BACKEND"});
+  ASSERT_OK(BackendManager::SetBackend("INTERPRETER"));
+
   vector<bool> fed_by_placeholder{true, false};
   for (auto using_placeholder : fed_by_placeholder) {
     NGraphClusterManager::EvictAllClusters();
@@ -440,6 +444,8 @@ TEST(EncapsulateClusters, AOT0) {
 
     free(fdeflib_new);
   }
+  ASSERT_OK(BackendManager::SetBackend("CPU"));
+  RestoreEnv(env_map);
 }
 
 //   Placeholder-->Add(0)--->Abs(1)-->IdN
@@ -448,7 +454,11 @@ TEST(EncapsulateClusters, AOT0) {
 //              Placeholder
 // 2 Encapsulates connected in serial. Cannot AOT here
 TEST(EncapsulateClusters, AOT1) {
-  if (!ngraph_tf_is_grappler_enabled()) return;  // GTEST_SKIP() did not compile
+  if (!ngraph_tf_is_grappler_enabled()) return;
+
+  auto env_map = StoreEnv({"NGRAPH_TF_BACKEND"});
+  ASSERT_OK(BackendManager::SetBackend("INTERPRETER"));
+
   NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
 
@@ -509,6 +519,8 @@ TEST(EncapsulateClusters, AOT1) {
   }
 
   free(fdeflib_new);
+  ASSERT_OK(BackendManager::SetBackend("CPU"));
+  RestoreEnv(env_map);
 }
 
 //   Placeholder-->Abs(0)-->IdN
@@ -517,6 +529,10 @@ TEST(EncapsulateClusters, AOT1) {
 // 2 Encapsulates connected in parallel
 TEST(EncapsulateClusters, AOT2) {
   if (!ngraph_tf_is_grappler_enabled()) return;
+
+  auto env_map = StoreEnv({"NGRAPH_TF_BACKEND"});
+  ASSERT_OK(BackendManager::SetBackend("INTERPRETER"));
+
   NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
 
@@ -634,6 +650,8 @@ TEST(EncapsulateClusters, AOT2) {
   }
 
   free(fdeflib_new);
+  ASSERT_OK(BackendManager::SetBackend("CPU"));
+  RestoreEnv(env_map);
 }
 
 //   Placeholder-->Add(0)--->IdN
@@ -706,6 +724,9 @@ TEST(EncapsulateClusters, AOT3) {
 // empty
 TEST(EncapsulateClusters, AOT4) {
   if (!ngraph_tf_is_grappler_enabled()) return;
+
+  auto env_map = StoreEnv({"NGRAPH_TF_BACKEND"});
+  ASSERT_OK(BackendManager::SetBackend("INTERPRETER"));
 
   NGraphClusterManager::EvictAllClusters();
   Graph g(OpRegistry::Global());
@@ -801,6 +822,8 @@ TEST(EncapsulateClusters, AOT4) {
   }
 
   free(fdeflib_new);
+  ASSERT_OK(BackendManager::SetBackend("CPU"));
+  RestoreEnv(env_map);
 }
 
 // Test cases for AOT:

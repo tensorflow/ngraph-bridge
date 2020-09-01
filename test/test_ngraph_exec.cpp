@@ -125,10 +125,7 @@ class NGraphExecTest : public ::testing::Test {
 };
 
 TEST_F(NGraphExecTest, Axpy) {
-  // If NGRAPH_TF_BACKEND is set, unset it
-  list<string> env_vars{"NGRAPH_TF_BACKEND"};
-  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
-
+  auto env_map = StoreEnv({"NGRAPH_TF_BACKEND"});
   SetBackendUsingEnvVar("CPU");
 
   Graph input_graph(OpRegistry::Global());
@@ -192,10 +189,7 @@ TEST_F(NGraphExecTest, Axpy) {
 }
 
 TEST_F(NGraphExecTest, Axpy8bit) {
-  // If NGRAPH_TF_BACKEND is set, unset it
-  list<string> env_vars{"NGRAPH_TF_BACKEND"};
-  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
-
+  auto env_map = StoreEnv({"NGRAPH_TF_BACKEND"});
   SetBackendUsingEnvVar("CPU");
 
   Graph input_graph(OpRegistry::Global());

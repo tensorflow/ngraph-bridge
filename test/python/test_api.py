@@ -36,6 +36,8 @@ class TestNgraphAPI(NgraphTest):
         assert ngraph_bridge.is_enabled() == 1
 
     def test_set_backend_invalid(self):
+        env_var_map = self.store_env_variables(["NGRAPH_TF_BACKEND"])
+        self.unset_env_variable("NGRAPH_TF_BACKEND")
         current_backend = ngraph_bridge.get_backend()
         error_thrown = False
         try:
@@ -44,6 +46,7 @@ class TestNgraphAPI(NgraphTest):
             error_thrown = True
         ngraph_bridge.set_backend(current_backend)
         assert error_thrown
+        self.restore_env_variables(env_var_map)
 
     def test_list_backends(self):
         assert len(ngraph_bridge.list_backends())
