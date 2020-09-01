@@ -2468,16 +2468,11 @@ static Status TranslateScatterNdOp(
   return Status::OK();
 }
 
-static Status TranslateShapeOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  std::vector<int64> shape;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 0, static_input_map, &shape));
-
-  NGRAPH_VLOG(3) << "Requested result shape: " << ng::join(shape);
-
-  auto ng_shape = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::u64, ng::Shape{shape.size()}, shape);
+static Status TranslateShapeOp(const Node* op,
+                               const std::vector<const Tensor*>&,
+                               Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_input;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
 
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
@@ -2487,7 +2482,7 @@ static Status TranslateShapeOp(
 
   // default output_type = element::i64
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<opset::ShapeOf>(op->name(), ng_shape, type));
+           ConstructNgNode<opset::ShapeOf>(op->name(), ng_input, type));
   return Status::OK();
 }
 
