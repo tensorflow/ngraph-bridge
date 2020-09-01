@@ -81,6 +81,7 @@ class Testtf2ngraph(NgraphTest):
         # implicitly tests with different options
         env_var_map = self.store_env_variables(["NGRAPH_TF_BACKEND"])
         self.unset_env_variable("NGRAPH_TF_BACKEND")
+        ngraph_bridge.set_backend(ng_device)
 
         assert Testtf2ngraph.format_and_loc_match(inp_format, inp_loc)
         out_loc = inp_loc.split('.')[0] + '_modified' + (

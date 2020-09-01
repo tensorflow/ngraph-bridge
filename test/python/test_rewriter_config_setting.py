@@ -37,11 +37,7 @@ class TestRewriterConfigBackendSetting(NgraphTest):
     @pytest.mark.skipif(
         not ngraph_bridge.is_grappler_enabled(),
         reason='Rewriter config only works for grappler path')
-    @pytest.mark.parametrize(("backend",), (
-        ('CPU',),
-        ('INTERPRETER',),
-    ))
-    def test_config_updater_api(self, backend):
+    def test_config_updater_api(self):
         dim1 = 3
         dim2 = 4
         a = tf.compat.v1.placeholder(tf.float32, shape=(dim1, dim2), name='a')
@@ -49,7 +45,6 @@ class TestRewriterConfigBackendSetting(NgraphTest):
         b = tf.compat.v1.placeholder(tf.float32, shape=(dim1, dim2), name='y')
         axpy = (a * x) + b
 
-        ngraph_bridge.set_backend(backend.encode())
         config = tf.compat.v1.ConfigProto()
         rewriter_options = rewriter_config_pb2.RewriterConfig()
         rewriter_options.meta_optimizer_iterations = (

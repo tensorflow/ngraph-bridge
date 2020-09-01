@@ -85,6 +85,7 @@ def helper(self, p0_shape, p1_shape, p0_actual_shape, p1_actual_shape,
         print("Only INTERPRETER backend supports precompilation")
         env_var_map = self.store_env_variables(["NGRAPH_TF_BACKEND"])
         self.unset_env_variable("NGRAPH_TF_BACKEND")
+        ngraph_bridge.set_backend("INTERPRETER")
 
     inp0 = get_inputs(p0_actual_shape)
     inp1 = get_inputs(p1_actual_shape)

@@ -32,6 +32,7 @@ class TestSetBackend(NgraphTest):
         # by storing and restoring the env_variables we run the tests independent of the backend set
         # currently we store and restore only the NGRAPH_TF_BACKEND
         env_var_map = self.store_env_variables(["NGRAPH_TF_BACKEND"])
+        self.unset_env_variable("NGRAPH_TF_BACKEND")
 
         # test
         ngraph_bridge.enable()
