@@ -125,6 +125,12 @@ class NGraphExecTest : public ::testing::Test {
 };
 
 TEST_F(NGraphExecTest, Axpy) {
+  // If NGRAPH_TF_BACKEND is set, unset it
+  list<string> env_vars{"NGRAPH_TF_BACKEND"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+
+  SetBackendUsingEnvVar("CPU");
+
   Graph input_graph(OpRegistry::Global());
   ASSERT_OK(LoadGraph("test_axpy_launchop.pbtxt", &input_graph));
 
@@ -140,7 +146,7 @@ TEST_F(NGraphExecTest, Axpy) {
   ASSERT_OK(TranslateTFGraphNoStatic(input_shapes, input_graph, ng_function));
 
   // Create the nGraph backend
-  auto backend = BackendManager::GetBackend("CPU");
+  auto backend = BackendManager::GetBackend();
   ASSERT_NE(backend, nullptr);
 
   // Allocate tensors for arguments a, b, c
@@ -182,9 +188,16 @@ TEST_F(NGraphExecTest, Axpy) {
   }
   // Add the validation logic
   // TODO
+  RestoreEnv(env_map);
 }
 
 TEST_F(NGraphExecTest, Axpy8bit) {
+  // If NGRAPH_TF_BACKEND is set, unset it
+  list<string> env_vars{"NGRAPH_TF_BACKEND"};
+  const unordered_map<string, string>& env_map = StoreEnv(env_vars);
+
+  SetBackendUsingEnvVar("CPU");
+
   Graph input_graph(OpRegistry::Global());
   ASSERT_OK(LoadGraph("test_axpy_int8_launchop.pbtxt", &input_graph));
 
@@ -200,7 +213,7 @@ TEST_F(NGraphExecTest, Axpy8bit) {
   ASSERT_OK(TranslateTFGraphNoStatic(input_shapes, input_graph, ng_function));
 
   // Create the nGraph backend
-  auto backend = BackendManager::GetBackend("CPU");
+  auto backend = BackendManager::GetBackend();
   ASSERT_NE(backend, nullptr);
 
   // Allocate tensors for arguments a, b, c
@@ -242,6 +255,7 @@ TEST_F(NGraphExecTest, Axpy8bit) {
   }
   // Add the validation logic
   // TODO
+  RestoreEnv(env_map);
 }
 
 TEST_F(NGraphExecTest, MixedTensors) {
@@ -273,7 +287,7 @@ TEST_F(NGraphExecTest, MixedTensors) {
       TranslateTFGraphNoStatic(tf_input_shapes, input_graph, ng_function));
 
   // Create the nGraph backend
-  auto backend = BackendManager::GetBackend("CPU");
+  auto backend = BackendManager::GetBackend();
   ASSERT_NE(backend, nullptr);
 
   // Compile the nGraph function.

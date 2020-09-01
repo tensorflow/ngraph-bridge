@@ -48,10 +48,10 @@ Status BackendManager::SetBackend(const string& backend_name) {
   return Status::OK();
 }
 
-shared_ptr<Backend> BackendManager::GetBackend(const string& backend_name) {
-  NGRAPH_VLOG(2) << "BackendManager::GetBackend(" << backend_name << ")";
+shared_ptr<Backend> BackendManager::GetBackend() {
+  NGRAPH_VLOG(2) << "BackendManager::GetBackend()";
   if (m_backend == nullptr) {
-    auto status = SetBackend(backend_name);
+    auto status = SetBackend();
     if (!status.ok()) {
       NGRAPH_VLOG(1) << "Failed to get backend: " << status.error_message();
       throw errors::Internal("Failed to get backend: ", status.error_message());
@@ -64,7 +64,13 @@ shared_ptr<Backend> BackendManager::GetBackend(const string& backend_name) {
 string BackendManager::GetBackendName() {
   NGRAPH_VLOG(2) << "BackendManager::GetBackendName()";
   if (m_backend == nullptr) {
-    GetBackend();
+    auto status = SetBackend();
+    if (!status.ok()) {
+      NGRAPH_VLOG(1) << "Failed to get backend name: "
+                     << status.error_message();
+      throw errors::Internal("Failed to get backend name: ",
+                             status.error_message());
+    }
   }
   lock_guard<mutex> lock(m_backend_mutex);
   return m_backend_name;

@@ -43,10 +43,10 @@ class BackendManager {
   static vector<string> GetSupportedBackends();
 
   // Set the BackendManager backend ng_backend_name_
-  static Status SetBackend(const string& backend_name);
+  static Status SetBackend(const string& backend_name = "CPU");
 
   // Returns the currently set backend
-  static shared_ptr<Backend> GetBackend(const string& backend_name = "CPU");
+  static shared_ptr<Backend> GetBackend();
 
   // Returns the currently set backend's name
   static string GetBackendName();

@@ -57,7 +57,7 @@ TEST(OpByOpCapability, Backend) {
   TF_CHECK_OK(root.ToGraph(&graph));
 
   bool is_supported;
-  auto backend = BackendManager::GetBackend("CPU");
+  auto backend = BackendManager::GetBackend();
   ASSERT_NE(backend, nullptr);
 
   auto constant = ngraph::op::Constant::create(ngraph::element::f32,
