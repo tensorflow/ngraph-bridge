@@ -154,8 +154,7 @@ class TestSliceOperations(NgraphTest):
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
-    @pytest.mark.skip(
-        reason="Temporarily disabled for non-opset3 backends")
+    @pytest.mark.skip(reason="Temporarily disabled for non-opset3 backends")
     def test_strided_slice_2(self):
         inp = np.random.rand(3, 2, 3).astype("f")
 
@@ -178,8 +177,7 @@ class TestSliceOperations(NgraphTest):
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
-    @pytest.mark.skip(
-        reason="Temporarily disabled for non-opset3 backends")
+    @pytest.mark.skip(reason="Temporarily disabled for non-opset3 backends")
     def test_strided_slice_3(self):
         inp = np.random.rand(3, 2, 3).astype("f")
 
@@ -202,8 +200,7 @@ class TestSliceOperations(NgraphTest):
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
-    @pytest.mark.skip(
-        reason="Temporarily disabled for non-opset3 backends")
+    @pytest.mark.skip(reason="Temporarily disabled for non-opset3 backends")
     def test_strided_slice_4(self):
         inp = np.random.rand(3, 2, 3).astype("f")
 
