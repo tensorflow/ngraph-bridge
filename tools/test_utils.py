@@ -46,7 +46,7 @@ class TestEnv:
     @staticmethod
     def get_platform_lib_dir():
         lib_dir = 'lib'
-        if 'CentOS' in get_linux_type():
+        if 'CentOS' in TestEnv.get_linux_type():
             lib_dir = 'lib64'
         return lib_dir
 
