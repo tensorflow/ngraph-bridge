@@ -37,7 +37,7 @@ Status BackendManager::SetBackend(const string& backend_name) {
   NGRAPH_VLOG(2) << "BackendManager::SetBackend(" << backend_name << ")";
   shared_ptr<Backend> backend;
   string bname(backend_name);
-  auto status = CreateBackend(backend, std::ref(bname));
+  auto status = CreateBackend(backend, bname);
   if (!status.ok() || backend == nullptr) {
     return errors::Internal("Failed to set backend: ", status.error_message());
   }
