@@ -560,7 +560,7 @@ TEST(MathOps, ArgMinNeg) {
   AssignInputValuesRandom(A);
 
   int dim = -1;
-  auto attrs = ops::ArgMax::Attrs();
+  auto attrs = ops::ArgMin::Attrs();
   attrs.output_type_ = DT_INT32;
 
   auto R = ops::ArgMin(root, A, dim, attrs);
