@@ -366,11 +366,6 @@ TEST(MathOps, Cumsum) {
 
 // Test op: Sum with & without keep dims & with both positive & negative axis
 TEST(MathOps, Sum) {
-  int dim1 = 2;
-  int dim2 = 2;
-
-  std::vector<int> v = {1, 2, 3, 4};
-  Tensor A(DT_INT32, TensorShape({dim1, dim2}));
   vector<bool> v_keep_dims = {true, false};
   // axis at which the dimension will be inserted
   // should be -rank <= axis < rank
@@ -380,11 +375,15 @@ TEST(MathOps, Sum) {
       Scope root = Scope::NewRootScope();
       auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
 
-      AssignInputValues<int>(A, v);
+      auto plc_a = ops::Placeholder(root, DT_INT32);
+      Tensor t_a(DT_INT32, TensorShape({2, 2}));
+      std::vector<int> v = {1, 2, 3, 4};
+      AssignInputValues<int>(t_a, v);
+      tensorflow::ClientSession::FeedType feeds = {{plc_a, t_a}};
 
-      auto R = ops::Sum(root, A, axis, keep_dims_attr);
+      auto R = ops::Sum(root, plc_a, axis, keep_dims_attr);
       std::vector<Output> sess_run_fetchoutputs = {R};
-      OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs);
+      OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs, feeds);
 
       opexecuter.RunTest();
     }
@@ -413,15 +412,17 @@ class MathOpsSumFixture : public ::testing::Test {
 
     std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6,
                              1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
-    Tensor A(DT_INT32, TensorShape(tshp));
-    AssignInputValues<int>(A, vals);
+    auto plc_a = ops::Placeholder(root, DT_INT32);
+    Tensor t_a(DT_INT32, TensorShape(tshp));
+    AssignInputValues<int>(t_a, vals);
+    tensorflow::ClientSession::FeedType feeds = {{plc_a, t_a}};
 
     Tensor B(DT_INT32, TensorShape({(int64)axisvec.size()}));
     AssignInputValues<int>(B, axisvec);
 
-    auto R = ops::Sum(root, A, B, keep_dims_attr);
+    auto R = ops::Sum(root, plc_a, B, keep_dims_attr);
     std::vector<Output> sess_run_fetchoutputs = {R};
-    OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs);
+    OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs, feeds);
     opexecuter.RunTest();
   }
 };

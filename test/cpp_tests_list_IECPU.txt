@@ -50,7 +50,7 @@ MathOps.BatchMatMulV24D
 MathOps.BatchMatMulV24DAdjX
 MathOps.BatchMatMulV24DAdjY
 MathOps.BatchMatMulV24DAdjXY
-MathOps.Ceil
+MathOps.Ceil*
 MathOps.FloorDiv
 MathOps.FloorDivInt
 MathOps.FloorDivBroadcasting
