@@ -551,10 +551,9 @@ static Status TranslateAddNOp(const Node* op, const std::vector<const Tensor*>&,
   SaveNgOp(ng_op_map, op->name(), ng_addn);
   return Status::OK();
 }
-
-static Status TranslateArgMaxOp(
+static Status TranslateArgMinMax(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
+    Builder::OpMap& ng_op_map, std::string mode) {
   ng::Output<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
 
@@ -584,7 +583,6 @@ static Status TranslateArgMaxOp(
   auto ng_k = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::i64, ng::Shape{}, std::vector<int>({1}));
 
-  std::string mode = "max";
   std::string sort = "none";
   auto ng_topk =
       std::make_shared<opset::TopK>(ng_input, ng_k, k_axis, mode, sort, ng_et);
@@ -597,6 +595,18 @@ static Status TranslateArgMaxOp(
   Builder::SetTracingInfo(op->name(), reshaped_indices);
   SaveNgOp(ng_op_map, op->name(), reshaped_indices);
   return Status::OK();
+}
+
+static Status TranslateArgMaxOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  return (TranslateArgMinMax(op, static_input_map, ng_op_map, "max"));
+}
+
+static Status TranslateArgMinOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  return (TranslateArgMinMax(op, static_input_map, ng_op_map, "min"));
 }
 
 static Status TranslateAvgPoolOp(const Node* op,
@@ -3098,7 +3108,7 @@ const static std::map<
         {"Any", TranslateDirectReduceOp<opset::ReduceLogicalOr>},
         {"All", TranslateDirectReduceOp<opset::ReduceLogicalAnd>},
         {"ArgMax", TranslateArgMaxOp},
-        // {"ArgMin", TranslateArgMinOp},
+        {"ArgMin", TranslateArgMinOp},
         {"Asin", TranslateUnaryOp<opset::Asin>},
         {"Atan", TranslateUnaryOp<opset::Atan>},
         {"AvgPool", TranslateAvgPoolOp},
