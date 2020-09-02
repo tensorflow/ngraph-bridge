@@ -193,7 +193,7 @@ def regex_walk(dirname, regex_input):
     if not module_list:
         print("Test pattern/name does not exist:", regex_input, "dirname",
               dirname)
-        #sys.exit(1)
+
     return module_list
 
 
