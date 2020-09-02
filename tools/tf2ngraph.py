@@ -261,7 +261,7 @@ def prepare_argparser(formats):
         required=False,
         default=None)
     parser.add_argument(
-        "--ng_backend", default='CPU', help="Ngraph backend. Eg, NNPI")
+        "--ng_backend", default='CPU', help="Ngraph backend. Eg, CPU")
     parser.add_argument("--device_id", default='', help="Device id. Eg, 0")
     parser.add_argument(
         "--config_file",
