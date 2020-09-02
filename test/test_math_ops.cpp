@@ -519,8 +519,10 @@ TEST(MathOps, ArgMaxNeg) {
   AssignInputValuesRandom(A);
 
   int dim = -1;
+  auto attrs = ops::ArgMax::Attrs();
+  attrs.output_type_ = DT_INT32;
 
-  auto R = ops::ArgMax(root, A, dim);
+  auto R = ops::ArgMax(root, A, dim, attrs);
 
   std::vector<Output> sess_run_fetchoutputs = {R};
   OpExecuter opexecuter(root, "ArgMax", sess_run_fetchoutputs);
@@ -558,8 +560,10 @@ TEST(MathOps, ArgMinNeg) {
   AssignInputValuesRandom(A);
 
   int dim = -1;
+  auto attrs = ops::ArgMax::Attrs();
+  attrs.output_type_ = DT_INT32;
 
-  auto R = ops::ArgMin(root, A, dim);
+  auto R = ops::ArgMin(root, A, dim, attrs);
 
   std::vector<Output> sess_run_fetchoutputs = {R};
   OpExecuter opexecuter(root, "ArgMin", sess_run_fetchoutputs);

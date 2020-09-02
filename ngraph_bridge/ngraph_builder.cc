@@ -568,8 +568,11 @@ static Status TranslateArgMinMax(
 
   // If input dimension is negative, make it positive
   if (tf_dim[0] < 0) {
+    NGRAPH_VLOG(3) << "Input dimension is negative, make it positive "
+                   << tf_dim[0];
     tf_dim[0] = (int64)input_rank + tf_dim[0];
   }
+  NGRAPH_VLOG(3) << "Axis along which to compute " << tf_dim[0];
   size_t k_axis = tf_dim[0];
 
   DataType dtype;
