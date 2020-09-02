@@ -152,13 +152,14 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
-                                                &m_graph, ng_function));
+                                               &m_graph, ng_function));
     ng_function->set_friendly_name(m_name);
 
     // Serialize to nGraph if needed
     if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
       int json_indentation = 4;
-      string serialized_ng_func = ngraph::serialize(ng_function, json_indentation);
+      string serialized_ng_func =
+          ngraph::serialize(ng_function, json_indentation);
       std::string file_name = "tf_function_" + m_name + ".json";
       TF_RETURN_IF_ERROR(
           StringToFile("tf_function_" + m_name + ".json", serialized_ng_func));
@@ -243,7 +244,7 @@ Status NGraphEncapsulateImpl::ParseNodeAttributes(
       auto attr_name = itx.first;
       auto attr_value = itx.second.s();
       NGRAPH_VLOG(4) << "Attribute: " << attr_name.substr(strlen("_ngraph_"))
-                      << " Value: " << attr_value;
+                     << " Value: " << attr_value;
       additional_attribute_map->insert(
           {attr_name.substr(strlen("_ngraph_")), attr_value});
     }

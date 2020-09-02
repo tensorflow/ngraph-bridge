@@ -313,7 +313,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   ASSERT_EQ(present, expected);
   free(fdeflib_new);
 }
-
 }
 }
 }

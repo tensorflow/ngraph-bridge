@@ -202,8 +202,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  auto status =
-      EncapsulateClusters(&graph, idx, fdeflib_new, config_map);
+  auto status = EncapsulateClusters(&graph, idx, fdeflib_new, config_map);
   if (status != Status::OK()) {
     delete (fdeflib_new);
     return status;
