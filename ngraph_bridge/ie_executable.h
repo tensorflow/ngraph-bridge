@@ -46,6 +46,7 @@ class IE_Executable final : public Executable {
   vector<pair<string, shared_ptr<ngraph::runtime::Tensor>>> m_hoisted_params;
   string m_device;
 
+  void CheckUnsupportedOps(shared_ptr<ngraph::Function>&);
   void HandleNoParamsCase(shared_ptr<ngraph::Function>&);
   ngraph::ResultVector m_results_orig;
   ngraph::ParameterVector m_params_orig;
