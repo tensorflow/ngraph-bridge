@@ -45,14 +45,12 @@
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_executable.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
-#include "ngraph_bridge/ngraph_partial_shapes.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
 
 using namespace std;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 //
@@ -631,5 +629,4 @@ Status Encapsulator::GetNewClusterIDs(set<int>& result) {
 }
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow

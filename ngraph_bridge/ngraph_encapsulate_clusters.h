@@ -28,10 +28,7 @@
 
 #include "ngraph/ngraph.hpp"
 
-#include "ngraph_bridge/ngraph_partial_shapes.h"
-
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 // TODO: an optimization would be to separate the analysis and rewriting passes
