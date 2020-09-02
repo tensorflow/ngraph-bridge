@@ -80,7 +80,13 @@ Status SetBackend(const string& type) {
   return BackendManager::SetBackend(type);
 }
 
-string GetBackend() { return BackendManager::GetBackendName(); }
+string GetBackend() {
+  string backend;
+  if (BackendManager::GetBackendName(backend) != Status::OK()) {
+    return "";
+  }
+  return backend;
+}
 
 void StartLoggingPlacement() { _is_logging_placement = true; }
 void StopLoggingPlacement() { _is_logging_placement = false; }

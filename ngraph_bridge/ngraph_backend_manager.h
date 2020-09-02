@@ -49,7 +49,7 @@ class BackendManager {
   static shared_ptr<Backend> GetBackend();
 
   // Returns the currently set backend's name
-  static string GetBackendName();
+  static Status GetBackendName(string& backend_name);
 
   static void SetConfig(const map<string, string>& config);
 

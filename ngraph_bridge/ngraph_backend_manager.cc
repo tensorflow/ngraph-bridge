@@ -61,19 +61,20 @@ shared_ptr<Backend> BackendManager::GetBackend() {
   return m_backend;
 }
 
-string BackendManager::GetBackendName() {
+Status BackendManager::GetBackendName(string& backend_name) {
   NGRAPH_VLOG(2) << "BackendManager::GetBackendName()";
   if (m_backend == nullptr) {
     auto status = SetBackend();
     if (!status.ok()) {
       NGRAPH_VLOG(1) << "Failed to get backend name: "
                      << status.error_message();
-      throw errors::Internal("Failed to get backend name: ",
-                             status.error_message());
+      return errors::Internal("Failed to get backend name: ",
+                              status.error_message());
     }
   }
   lock_guard<mutex> lock(m_backend_mutex);
-  return m_backend_name;
+  backend_name = m_backend_name;
+  return Status::OK();
 }
 
 Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
@@ -85,7 +86,7 @@ Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
 #endif
 
   const char* env = std::getenv("NGRAPH_TF_BACKEND");
-  if (env != nullptr) {
+  if (env != nullptr && strlen(env) > 0) {
     backend_name = string(env);
   }
 

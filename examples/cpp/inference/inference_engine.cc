@@ -75,8 +75,9 @@ Status InferenceEngine::LoadImage(const string& network,
   // Preload the image is requested
   if (m_preload_images) {
     // Set the CPU as the backend before these ops
-    string current_backend =
-        tf::ngraph_bridge::BackendManager::GetBackendName();
+    string current_backend;
+    TF_CHECK_OK(
+        tf::ngraph_bridge::BackendManager::GetBackendName(current_backend));
     TF_CHECK_OK(tf::ngraph_bridge::BackendManager::SetBackend("CPU"));
     std::vector<tf::Tensor> resized_tensors;
     TF_CHECK_OK(ReadTensorFromImageFile(

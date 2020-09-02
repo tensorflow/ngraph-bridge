@@ -45,11 +45,12 @@ TEST(BackendManager, SetBackend) {
   auto env_map = StoreEnv({"NGRAPH_TF_BACKEND"});
 
   ASSERT_OK(BackendManager::SetBackend("CPU"));
-  ASSERT_EQ(BackendManager::GetBackendName(), "CPU");
+  string backend;
+  ASSERT_OK(BackendManager::GetBackendName(backend));
+  ASSERT_EQ(backend, "CPU");
   ASSERT_NOT_OK(BackendManager::SetBackend("temp"));
 
   // Clean Up
-  ASSERT_OK(BackendManager::SetBackend("CPU"));
   // If NGRAPH_TF_BACKEND was set, set it back
   RestoreEnv(env_map);
 }
@@ -57,24 +58,34 @@ TEST(BackendManager, SetBackend) {
 // Test GetBackend API
 TEST(BackendManager, GetBackendName) {
   auto env_map = StoreEnv({"NGRAPH_TF_BACKEND"});
+
+  ASSERT_OK(BackendManager::SetBackend("CPU"));
+  string backend;
+  ASSERT_OK(BackendManager::GetBackendName(backend));
+  ASSERT_EQ(backend, "CPU");
+
   // expected ERROR
   SetBackendUsingEnvVar("DUMMY");
-  ASSERT_EQ(BackendManager::GetBackendName(), "CPU");
+  ASSERT_OK(BackendManager::GetBackendName(backend));
+  ASSERT_EQ(backend, "CPU");
 
   // set env variable to ""
   SetBackendUsingEnvVar("");
-  ASSERT_EQ(BackendManager::GetBackendName(), "CPU");
+  ASSERT_OK(BackendManager::GetBackendName(backend));
+  ASSERT_EQ(backend, "CPU");
 
-  // set backend to interpreter and env variable to CPU
+  // set backend to dummy and env variable to CPU
   // expected CPU
   ASSERT_NOT_OK(BackendManager::SetBackend("DUMMY"));
   SetBackendUsingEnvVar("CPU");
-  ASSERT_EQ(BackendManager::GetBackendName(), "CPU");
+  ASSERT_OK(BackendManager::GetBackendName(backend));
+  ASSERT_EQ(backend, "CPU");
 
   // unset env variable
   // expected interpreter
   UnsetBackendUsingEnvVar();
-  ASSERT_EQ(BackendManager::GetBackendName(), "CPU");
+  ASSERT_OK(BackendManager::GetBackendName(backend));
+  ASSERT_EQ(backend, "CPU");
 
   // Clean up
   UnsetBackendUsingEnvVar();

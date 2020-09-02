@@ -27,6 +27,7 @@
 #include "tensorflow/core/public/session.h"
 
 #include "logging/tf_graph_writer.h"
+#include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_backend.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
@@ -65,10 +66,10 @@ TEST(OpByOpCapability, Backend) {
   std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>
       TFtoNgraphOpMap{
           {"Const", {constant}},
-          {"Add", {std::make_shared<ngraph::op::Add>()}},
+          {"Add", {std::make_shared<opset::Add>()}},
           {"Mul",
-           {std::make_shared<ngraph::op::Multiply>(),
-            std::make_shared<ngraph::op::Subtract>()}},
+           {std::make_shared<opset::Multiply>(),
+            std::make_shared<opset::Subtract>()}},
       };
 
   for (auto node : graph.op_nodes()) {
