@@ -552,16 +552,9 @@ static Status TranslateAddNOp(const Node* op, const std::vector<const Tensor*>&,
   return Status::OK();
 }
 
-template <typename T>
-static Status TranslateArgMinMaxOp(
+static Status TranslateArgMaxOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  bool is_argmin = std::is_same<T, ng::op::ArgMin>::value;
-  bool is_argmax = std::is_same<T, ng::op::ArgMax>::value;
-  if (!(is_argmin || is_argmax)) {
-    return errors::InvalidArgument("Expected node to be argmin or argmax type");
-  }
-
   ng::Output<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
 
@@ -573,15 +566,14 @@ static Status TranslateArgMinMaxOp(
 
   if (tf_dim.size() != 1) {
     return errors::InvalidArgument(
-        (is_argmin ? "ArgMin" : "ArgMax"),
-        " Op: dimension must be scalar, operates on a single axis");
+        "ArgMax Op: dimension must be scalar, operates on a single axis");
   }
 
   // If input dimension is negative, make it positive
   if (tf_dim[0] < 0) {
     tf_dim[0] = (int64)input_rank + tf_dim[0];
   }
-  size_t input_dims = tf_dim[0];
+  size_t k_axis = tf_dim[0];
 
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "output_type", &dtype));
@@ -589,9 +581,21 @@ static Status TranslateArgMinMaxOp(
   ng::element::Type ng_et;
   TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
 
-  auto ng_argminmax =
-      ConstructNgNode<T>(op->name(), ng_input, input_dims, ng_et);
-  SaveNgOp(ng_op_map, op->name(), ng_argminmax);
+  auto ng_k = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{}, std::vector<int>({1}));
+
+  std::string mode = "max";
+  std::string sort = "none";
+  auto ng_topk =
+      std::make_shared<opset::TopK>(ng_input, ng_k, k_axis, mode, sort, ng_et);
+  auto ng_indices = ng_topk->output(1);
+  int axis = ng_topk->get_axis();
+  auto axis_to_remove = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{}, std::vector<int>({axis}));
+  auto reshaped_indices =
+      ConstructNgNode<opset::Squeeze>(op->name(), ng_indices, axis_to_remove);
+  Builder::SetTracingInfo(op->name(), reshaped_indices);
+  SaveNgOp(ng_op_map, op->name(), reshaped_indices);
   return Status::OK();
 }
 
@@ -2890,6 +2894,7 @@ static Status TranslateTopKV2Op(
   ng::Output<ng::Node> ng_values = ng_result->output(0);
   Builder::SetTracingInfo(op->name(), ng_values);
   ng::Output<ng::Node> ng_indices = ng_result->output(1);
+  NGRAPH_VLOG(0) << "ng_indices " << ng_indices;
   Builder::SetTracingInfo(op->name(), ng_indices);
 
   SaveNgOp(ng_op_map, op->name(), ng_values);
@@ -3092,8 +3097,8 @@ const static std::map<
         {"AddV2", TranslateBinaryOp<opset::Add>},
         {"Any", TranslateDirectReduceOp<opset::ReduceLogicalOr>},
         {"All", TranslateDirectReduceOp<opset::ReduceLogicalAnd>},
-        {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
-        {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
+        {"ArgMax", TranslateArgMaxOp},
+        // {"ArgMin", TranslateArgMinOp},
         {"Asin", TranslateUnaryOp<opset::Asin>},
         {"Atan", TranslateUnaryOp<opset::Atan>},
         {"AvgPool", TranslateAvgPoolOp},

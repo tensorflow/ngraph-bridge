@@ -585,7 +585,7 @@ GetTFToNgOpMap() {
       {"AddV2", {std::make_shared<opset::Add>()}},
       {"Any", {std::make_shared<opset::ReduceLogicalOr>(), constant}},
       {"All", {std::make_shared<opset::ReduceLogicalAnd>(), constant}},
-      {"ArgMax", {std::make_shared<ngraph::op::ArgMax>()}},
+      {"ArgMax", {std::make_shared<opset::Squeeze>(), constant}},
       {"ArgMin", {std::make_shared<ngraph::op::ArgMin>()}},
       {"Asin", {std::make_shared<opset::Asin>()}},
       {"Atan", {std::make_shared<opset::Atan>()}},
