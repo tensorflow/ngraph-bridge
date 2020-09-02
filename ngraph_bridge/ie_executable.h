@@ -22,7 +22,7 @@
 
 #include <ie_core.hpp>
 #include "ngraph/ngraph.hpp"
-
+#include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_executable.h"
 
 using namespace std;
@@ -68,5 +68,25 @@ class IE_Executable final : public Executable {
       const shared_ptr<ngraph::Function>&);
 
 };
+
+// Customize THROW_IE_EXCEPTION so you can see a VLOG. Call like this:
+// NGTF_THROW_IE_EXCEPTION << "Some details about error" << var1 << "more";
+#define NGTF_THROW_IE_EXCEPTION throw NGTF_IE_EXCEPTION_CLASS(__FILE__, __LINE__)
+class NGTF_IE_EXCEPTION_CLASS : public InferenceEngine::details::InferenceEngineException {
+  std::string _file;
+  int _line;
+public:
+  NGTF_IE_EXCEPTION_CLASS(const std::string& filename, const int line, const std::string& message = "") :
+    InferenceEngine::details::InferenceEngineException(filename, line, message) {
+    _file = filename;
+    _line = line;
+  }
+
+  InferenceEngine::details::InferenceEngineException& operator<<(const std::string& message) {
+    NGRAPH_VLOG(2) <<  "!! IE EXCEPTION !! " << message << " at " << _file << ":" << _line;
+    return InferenceEngine::details::InferenceEngineException::operator<<(message);
+  }
+};
+
 }
 }

@@ -29,6 +29,11 @@ using namespace ngraph;
 namespace tensorflow {
 namespace ngraph_bridge {
 
+
+#undef THROW_IE_EXCEPTION
+#define THROW_IE_EXCEPTION NGTF_THROW_IE_EXCEPTION
+
+
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     : m_device{device} {
   NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
@@ -48,12 +53,14 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   shared_ptr<Function> func2 = StripOffUnhandledNodes(func);
 
   HandleNoParamsCase(func2);
+  set_parameters_and_results(*func2);
 
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func2);
 
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
     auto& name = m_network.getName();
+    NGRAPH_VLOG(5) << "Dumping IE network xml/bin " << name;
     m_network.serialize(name + ".xml", name + ".bin");
   }
 
@@ -75,8 +82,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   try {
     exe_network = ie.LoadNetwork(m_network, m_device);
     NGRAPH_VLOG(5) << "IE LoadNetwork done";
-  } catch(const std::exception& e) {
-      THROW_IE_EXCEPTION << "Exception in IE LoadNetwork: " << e.what();
+  } catch(const InferenceEngine::details::InferenceEngineException& e) {
+      THROW_IE_EXCEPTION << "Exception in IE LoadNetwork: " << e.what() << " (" << e.getStatus() << ")";
   }
   m_infer_req = exe_network.CreateInferRequest();
   NGRAPH_VLOG(5) << "IE CreateInferRequest done";
@@ -92,18 +99,25 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
   NGRAPH_VLOG(5) << "IE call BEGIN";
+  // sanity check #inputs
+  if (m_params_orig.size() != inputs.size()) {
+    THROW_IE_EXCEPTION
+        << "Ng-Function inputs number differ from number of given inputs";
+  }
+#if 0
   // Check if the number of inputs that the CNN network expects is equal to the
   // sum of the
   // inputs specified and the inputs we hoisted, if any.
   InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
   if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
-    THROW_IE_EXCEPTION
-        << "Function inputs number differ from number of given inputs";
+    std::stringstream msg;
+    msg << "Function #inputs " << input_info.size() << " differ from #tensor-inputs " 
+      << inputs.size() << ", with hoisted inputs=" << m_hoisted_params.size();
+    // NGRAPH_VLOG(2) << msg.str();
+    THROW_IE_EXCEPTION << msg.str();
   }
-  if (m_params_orig.size() != inputs.size()) {
-    THROW_IE_EXCEPTION
-        << "Ng-Function inputs number differ from number of given inputs";
-  }
+#endif
+
   //  Prepare input blobs
   auto func = m_network.getFunction();
   auto parameters = func->get_parameters();
