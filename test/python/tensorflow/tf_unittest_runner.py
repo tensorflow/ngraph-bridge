@@ -265,7 +265,6 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
     """
     list_of_tests = []
     with open(manifestfile) as fh:
-        includefile_pattern = r'^\s*include\s+(\S+)\s*$'
         curr_section = ''
         excluded_items = []  # this is temporary to each manifest
         for line in fh.readlines():
@@ -276,10 +275,10 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
                 curr_section = 'import_section'
                 continue
             if re.search(r'\[RUN\]', line):
-                curr_section = 'included_section'
+                curr_section = 'run_section'
                 continue
             if re.search(r'\[SKIP\]', line):
-                curr_section = 'excluded_section'
+                curr_section = 'skip_section'
                 continue
             if curr_section == 'import_section':
                 if not os.path.isabs(line):
@@ -288,9 +287,9 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
                 list_of_tests.extend(
                     read_tests_from_manifest(line, tensorflow_path))
                 continue
-            if curr_section == 'included_section':
+            if curr_section == 'run_section':
                 list_of_tests.extend(get_test_list(tensorflow_path, line)[0])
-            if curr_section == 'excluded_section':
+            if curr_section == 'skip_section':
                 excluded_items.extend(get_test_list(tensorflow_path, line)[0])
         # remove dups
         list_of_tests = list(dict.fromkeys(list_of_tests))
