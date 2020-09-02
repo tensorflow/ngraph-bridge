@@ -1273,7 +1273,7 @@ TEST(MathOps, CeilWithComboOps) {
   AssignInputValuesRandom(B);
   auto plc_b = ops::Placeholder(root, DT_FLOAT);
 
-  auto m = ops::MatMul(root, plc_a, plc_b);
+  auto m = ops::Add(root, plc_a, plc_b);
   auto R = ops::Ceil(root, m);
 
   tensorflow::ClientSession::FeedType feeds = {{plc_a, A}, {plc_b, B}};
