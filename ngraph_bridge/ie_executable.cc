@@ -29,10 +29,8 @@ using namespace ngraph;
 namespace tensorflow {
 namespace ngraph_bridge {
 
-
 #undef THROW_IE_EXCEPTION
 #define THROW_IE_EXCEPTION NGTF_THROW_IE_EXCEPTION
-
 
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     : m_device{device} {
@@ -72,7 +70,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
   InfoSaveInOutIndexMaps();
 
-  NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device 
+  NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device
                  << ", ng-function="
                  << m_network.getFunction()->get_friendly_name();
 
@@ -82,8 +80,9 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   try {
     exe_network = ie.LoadNetwork(m_network, m_device);
     NGRAPH_VLOG(5) << "IE LoadNetwork done";
-  } catch(const InferenceEngine::details::InferenceEngineException& e) {
-      THROW_IE_EXCEPTION << "Exception in IE LoadNetwork: " << e.what() << " (" << e.getStatus() << ")";
+  } catch (const InferenceEngine::details::InferenceEngineException& e) {
+    THROW_IE_EXCEPTION << "Exception in IE LoadNetwork: " << e.what() << " ("
+                       << e.getStatus() << ")";
   }
   m_infer_req = exe_network.CreateInferRequest();
   NGRAPH_VLOG(5) << "IE CreateInferRequest done";
@@ -99,85 +98,16 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
   NGRAPH_VLOG(5) << "IE call BEGIN";
-  // sanity check #inputs
-  if (m_params_orig.size() != inputs.size()) {
-    THROW_IE_EXCEPTION
-        << "Ng-Function inputs number differ from number of given inputs";
-  }
-#if 0
-  // Check if the number of inputs that the CNN network expects is equal to the
-  // sum of the
-  // inputs specified and the inputs we hoisted, if any.
-  InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
-    std::stringstream msg;
-    msg << "Function #inputs " << input_info.size() << " differ from #tensor-inputs " 
-      << inputs.size() << ", with hoisted inputs=" << m_hoisted_params.size();
-    // NGRAPH_VLOG(2) << msg.str();
-    THROW_IE_EXCEPTION << msg.str();
-  }
-#endif
+  SetUpInputTensors(inputs);
+  SetUpOutputTensors(outputs);
 
-  //  Prepare input blobs
-  auto func = m_network.getFunction();
-  auto parameters = func->get_parameters();
-  for (int i = 0; i < inputs.size(); i++) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
-    m_infer_req.SetBlob(parameters[i]->get_friendly_name(), tv->get_blob());
-  }
-
-  for (const auto& it : m_hoisted_params) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
-    m_infer_req.SetBlob(it.first, tv->get_blob());
-  }
-
-  InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
-  if (output_info.size() != outputs.size()) {
-    THROW_IE_EXCEPTION
-        << "Function outputs number differ from number of given outputs";
-  }
-  NGRAPH_CHECK(m_results_orig.size() == outputs.size(),
-               "Mismatching number of output items between tensors (",
-               outputs.size(), ") and results (", m_results_orig.size(), ")");
-
-  // Shortcut the Const -> Result values
-  for (const auto& it : m_map_cnnconstresult_to_ngnodeptr) {
-    auto output_name = it.first;
-    const ngraph::op::Constant* const_node = (ngraph::op::Constant*)(it.second);
-    if (const_node) {
-      int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
-      auto num_bytes = shape_size(const_node->get_shape()) *
-                       const_node->get_element_type().size();
-#if 0  // DBG_ONLY
-      std::cout << "    ... shortcut value from Const node " << output_name
-                << " to TF Output " << m_nongraph_const_outputs.at(output_name)
-                << ", index="
-                << ", num_bytes=" << num_bytes << "\n";
-#endif
-      const void* value = const_node->get_data_ptr();
-      outputs[idx_tensor_output]->write(value, num_bytes);
-    } else {
-      THROW_IE_EXCEPTION << "\n!!! Cannot get const_node = " << output_name
-                         << " for value shortcut !!!\n";
-    }
-  }
-
-  //  Prepare output blobs
-  auto results = func->get_results();
-  for (int i = 0; i < outputs.size(); i++) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
-    // Since IE has no "result" nodes, we set the blob corresponding to the
-    // parent of this result node
-    auto parent = results[i]->input_value(0).get_node_shared_ptr();
-    m_infer_req.SetBlob(parent->get_friendly_name(), tv->get_blob());
-  }
-
+  NGRAPH_VLOG(5) << "IE_Executable::call -> m_infer_req.Infer() --> "
+                 << m_network.getFunction()->get_friendly_name();
   m_infer_req.Infer();
 
   NGRAPH_VLOG(5) << "IE call END";
   return true;
 }
-
 
 void IE_Executable::HandleNoParamsCase(shared_ptr<ngraph::Function>& func) {
   NGRAPH_VLOG(2) << "Checking for function parameters in IE backend";
@@ -201,7 +131,8 @@ void IE_Executable::HandleNoParamsCase(shared_ptr<ngraph::Function>& func) {
         // nGraph doesn't provide a way to set a parameter to an existing
         // function, so we clone the function here...
         auto saved_func_friendly_name = func->get_friendly_name();
-        func = make_shared<Function>(func->get_results(), ParameterVector{param});
+        func =
+            make_shared<Function>(func->get_results(), ParameterVector{param});
         func->set_friendly_name(saved_func_friendly_name);
         auto ie_tensor = make_shared<IETensor>(element_type, shape);
         ie_tensor->write(constant->get_data_ptr(),
@@ -220,7 +151,6 @@ void IE_Executable::HandleNoParamsCase(shared_ptr<ngraph::Function>& func) {
     }
   }
 }
-
 
 void IE_Executable::InfoSaveResultMaps() {
   // We need to save the mapping from CNN network's Result nodes to the original
@@ -424,6 +354,134 @@ void IE_Executable::InfoSaveInOutIndexMaps() {
 #endif
 }
 
+void IE_Executable::SetUpInputTensors(
+    const vector<shared_ptr<runtime::Tensor>>& inputs) {
+  // sanity check #inputs
+  if (m_params_orig.size() != inputs.size()) {
+    THROW_IE_EXCEPTION
+        << "Ng-Function inputs number differ from number of given inputs";
+  }
 
+#if 0
+  // Check if the number of inputs that the CNN network expects is equal to the
+  // sum of the
+  // inputs specified and the inputs we hoisted, if any.
+  InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
+  if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
+    std::stringstream msg;
+    msg << "Function #inputs " << input_info.size() << " differ from #tensor-inputs " 
+      << inputs.size() << ", with hoisted inputs=" << m_hoisted_params.size();
+    // NGRAPH_VLOG(2) << msg.str();
+    THROW_IE_EXCEPTION << msg.str();
+  }
+#endif
+
+  //  Prepare input blobs
+  // auto func = m_network.getFunction();
+  // auto parameters = func->get_parameters();
+  // for (int i = 0; i < inputs.size(); i++) {
+  //   shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
+  //   m_infer_req.SetBlob(parameters[i]->get_friendly_name(), tv->get_blob());
+  // }
+
+  if (inputs.size() == 0) {
+    NGRAPH_CHECK(m_hoisted_params.size() > 0,
+                 "#tensor-inputs=0, but no m_hoisted_params");
+    for (const auto& it : m_hoisted_params) {
+      shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
+      m_infer_req.SetBlob(it.first, tv->get_blob());
+    }
+  } else {
+    // Align input tensor index with IE-CNN's param index
+    size_t i = 0;
+    for (const auto& it : m_network.getInputsInfo()) {
+      auto input_name = it.first;
+      // Check which TF-tensor-input# this input_name matches with
+      if (m_map_cnnparam_to_tfidx.find(input_name) ==
+          m_map_cnnparam_to_tfidx.end()) {
+        THROW_IE_EXCEPTION
+            << "Cannot locate in m_map_cnnparam_to_tfidx, input/param = "
+            << input_name;
+      }
+      int idx_tensor_input = m_map_cnnparam_to_tfidx.at(input_name);
+      std::stringstream ss;
+      ss << "Bad idx_tensor_input for " << input_name
+         << ", idx_tensor_input = " << idx_tensor_input;
+      if (idx_tensor_input >= inputs.size() + m_hoisted_params.size()) {
+        THROW_IE_EXCEPTION << ss.str();
+      }
+
+      shared_ptr<IETensor> tv =
+          static_pointer_cast<IETensor>(inputs[idx_tensor_input]);
+      m_infer_req.SetBlob(input_name, tv->get_blob());
+      i++;
+    }
+  }
+}
+
+void IE_Executable::SetUpOutputTensors(
+    const vector<shared_ptr<runtime::Tensor>>& outputs) {
+  NGRAPH_CHECK(m_results_orig.size() == outputs.size(),
+               "Mismatching number of output items between tensors (",
+               outputs.size(), ") and results (", m_results_orig.size(), ")");
+  InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
+  if (output_info.size() != outputs.size()) {
+    THROW_IE_EXCEPTION
+        << "Function outputs number differ from number of given outputs";
+  }
+
+  // Shortcut the Const -> Result values
+  for (const auto& it : m_map_cnnconstresult_to_ngnodeptr) {
+    auto output_name = it.first;
+    const ngraph::op::Constant* const_node = (ngraph::op::Constant*)(it.second);
+    if (const_node) {
+      int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
+      auto num_bytes = shape_size(const_node->get_shape()) *
+                       const_node->get_element_type().size();
+#if 0  // DBG_ONLY
+      std::cout << "    ... shortcut value from Const node " << output_name
+                << " to TF Output " << m_nongraph_const_outputs.at(output_name)
+                << ", index="
+                << ", num_bytes=" << num_bytes << "\n";
+#endif
+      const void* value = const_node->get_data_ptr();
+      outputs[idx_tensor_output]->write(value, num_bytes);
+    } else {
+      THROW_IE_EXCEPTION << "\n!!! Cannot get const_node = " << output_name
+                         << " for value shortcut !!!\n";
+    }
+  }
+
+  // Pass the other output tensors
+  for (const auto& it : m_network.getOutputsInfo()) {
+    auto output_name = it.first;
+    NGRAPH_CHECK(m_map_cnnresult_to_tfidx.count(output_name) == 1,
+                 "!!! Output ", output_name, " not found !!!");
+    int idx_tensor_output = m_map_cnnresult_to_tfidx.at(output_name);
+
+    shared_ptr<IETensor> tv =
+        static_pointer_cast<IETensor>(outputs[idx_tensor_output]);
+#if 1  // DBG_ONLY
+    NGRAPH_VLOG(5) << "func => " << m_network.getFunction()->get_friendly_name()
+                   << " Calling m_infer_req.SetBlob for output " << output_name
+                   << ", count=" << tv->get_element_count()
+                   << ", network precision="
+                   << it.second->getTensorDesc().getPrecision().name()
+                   << ", tensor type=" << tv->get_element_type().get_type_name()
+                   << "\n";
+#endif
+    m_infer_req.SetBlob(output_name, tv->get_blob());
+  }
+
+  //  Prepare output blobs
+  // auto results = m_network.getFunction()->get_results();
+  // for (int i = 0; i < outputs.size(); i++) {
+  //   shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
+  //   // Since IE has no "result" nodes, we set the blob corresponding to the
+  //   // parent of this result node
+  //   auto parent = results[i]->input_value(0).get_node_shared_ptr();
+  //   m_infer_req.SetBlob(parent->get_friendly_name(), tv->get_blob());
+  // }
+}
 }
 }

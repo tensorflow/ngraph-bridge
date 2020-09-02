@@ -21,8 +21,8 @@
 #include <vector>
 
 #include <ie_core.hpp>
-#include "ngraph/ngraph.hpp"
 #include "logging/ngraph_log.h"
+#include "ngraph/ngraph.hpp"
 #include "ngraph_bridge/ngraph_executable.h"
 
 using namespace std;
@@ -66,27 +66,37 @@ class IE_Executable final : public Executable {
   void InfoSaveInOutIndexMaps();
   shared_ptr<ngraph::Function> StripOffUnhandledNodes(
       const shared_ptr<ngraph::Function>&);
-
+  void SetUpInputTensors(
+      const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs);
+  void SetUpOutputTensors(
+      const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);
 };
 
 // Customize THROW_IE_EXCEPTION so you can see a VLOG. Call like this:
 // NGTF_THROW_IE_EXCEPTION << "Some details about error" << var1 << "more";
-#define NGTF_THROW_IE_EXCEPTION throw NGTF_IE_EXCEPTION_CLASS(__FILE__, __LINE__)
-class NGTF_IE_EXCEPTION_CLASS : public InferenceEngine::details::InferenceEngineException {
+#define NGTF_THROW_IE_EXCEPTION \
+  throw NGTF_IE_EXCEPTION_CLASS(__FILE__, __LINE__)
+class NGTF_IE_EXCEPTION_CLASS
+    : public InferenceEngine::details::InferenceEngineException {
   std::string _file;
   int _line;
-public:
-  NGTF_IE_EXCEPTION_CLASS(const std::string& filename, const int line, const std::string& message = "") :
-    InferenceEngine::details::InferenceEngineException(filename, line, message) {
+
+ public:
+  NGTF_IE_EXCEPTION_CLASS(const std::string& filename, const int line,
+                          const std::string& message = "")
+      : InferenceEngine::details::InferenceEngineException(filename, line,
+                                                           message) {
     _file = filename;
     _line = line;
   }
 
-  InferenceEngine::details::InferenceEngineException& operator<<(const std::string& message) {
-    NGRAPH_VLOG(2) <<  "!! IE EXCEPTION !! " << message << " at " << _file << ":" << _line;
-    return InferenceEngine::details::InferenceEngineException::operator<<(message);
+  InferenceEngine::details::InferenceEngineException& operator<<(
+      const std::string& message) {
+    NGRAPH_VLOG(2) << "!! IE EXCEPTION !! " << message << " at " << _file << ":"
+                   << _line;
+    return InferenceEngine::details::InferenceEngineException::operator<<(
+        message);
   }
 };
-
 }
 }

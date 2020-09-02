@@ -20,8 +20,10 @@ using namespace std;
 namespace ng = ngraph;
 
 #define MAXNUM_TENSOR_DEBUGSTRING 256
-#define TENSOR_DEBUGSTRING(X) (X).DebugString((X).NumElements() > MAXNUM_TENSOR_DEBUGSTRING ? MAXNUM_TENSOR_DEBUGSTRING : (X).NumElements())
-
+#define TENSOR_DEBUGSTRING(X)                                   \
+  (X).DebugString((X).NumElements() > MAXNUM_TENSOR_DEBUGSTRING \
+                      ? MAXNUM_TENSOR_DEBUGSTRING               \
+                      : (X).NumElements())
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -69,7 +71,7 @@ OpExecuter::OpExecuter(const Scope sc, const string test_op,
     : tf_scope_(sc),
       test_op_type_(test_op),
       sess_run_fetchoutputs_(sess_run_fetchops),
-      sess_run_feeds_(feeds)  {}
+      sess_run_feeds_(feeds) {}
 
 OpExecuter::~OpExecuter() {}
 
@@ -96,10 +98,12 @@ void OpExecuter::ExecuteOnTF(vector<Tensor>& tf_outputs) {
   // Deactivate nGraph to be able to run on TF
   DeactivateNGraph();
   ClientSession session(tf_scope_);
-  ASSERT_EQ(Status::OK(), session.Run(sess_run_feeds_, sess_run_fetchoutputs_, &tf_outputs))
+  ASSERT_EQ(Status::OK(),
+            session.Run(sess_run_feeds_, sess_run_fetchoutputs_, &tf_outputs))
       << "Failed to run opexecutor on TF";
   for (size_t i = 0; i < tf_outputs.size(); i++) {
-    NGRAPH_VLOG(5) << " TF op " << i << " " << TENSOR_DEBUGSTRING(tf_outputs[i]);
+    NGRAPH_VLOG(5) << " TF op " << i << " "
+                   << TENSOR_DEBUGSTRING(tf_outputs[i]);
   }
   // Activate nGraph again
   ActivateNGraph();
@@ -115,7 +119,7 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs) {
     GraphToPbTextFile(&graph, "unit_test_tf_graph_" + test_op_type_ + ".pbtxt");
   }
 
-  //ValidateGraph(graph, {"Const"});
+  // ValidateGraph(graph, {"Const"});
 
   ActivateNGraph();
   string backend_name;

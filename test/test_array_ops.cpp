@@ -449,9 +449,9 @@ TEST(ArrayOps, Pad) {
 
   Tensor paddings(DT_INT32, TensorShape({2, 2}));
 
-  //AssignInputValuesRandom<int>(input, 1, 4);
+  // AssignInputValuesRandom<int>(input, 1, 4);
   AssignInputValues<int>(input, {1, 2, 3, 4, 5, 6});
-  //AssignInputValuesRandom<int>(paddings, 2, 5);
+  // AssignInputValuesRandom<int>(paddings, 2, 5);
   AssignInputValues<int>(paddings, {1, 1, 2, 2});
 
   auto R = ops::Pad(root, input, paddings);
@@ -469,14 +469,15 @@ TEST(ArrayOps, PadWithParams) {
   Tensor input(DT_INT32, TensorShape({2, 3}));
   AssignInputValues<int>(input, {1, 2, 3, 4, 5, 6});
   auto plc_input = ops::Placeholder(root, DT_INT32);
-  
+
   Tensor paddings(DT_INT32, TensorShape({2, 2}));
   AssignInputValues<int>(paddings, {1, 1, 2, 2});
   auto plc_paddings = ops::Placeholder(root, DT_INT32);
 
   auto R = ops::Pad(root, plc_input, plc_paddings);
 
-  tensorflow::ClientSession::FeedType feeds = { {plc_input, input}, {plc_paddings, paddings} };
+  tensorflow::ClientSession::FeedType feeds = {{plc_input, input},
+                                               {plc_paddings, paddings}};
 
   std::vector<Output> sess_run_fetchoutputs = {R};
   OpExecuter opexecuter(root, "Pad", sess_run_fetchoutputs, feeds);
