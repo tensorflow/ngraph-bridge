@@ -45,6 +45,7 @@ class IE_Executable final : public Executable {
   // This holds the parameters we insert for functions with no input parameters
   vector<pair<string, shared_ptr<ngraph::runtime::Tensor>>> m_hoisted_params;
   string m_device;
+  bool m_func_empty;
 
   void CheckUnsupportedOps(shared_ptr<ngraph::Function>&);
   void HandleNoParamsCase(shared_ptr<ngraph::Function>&);

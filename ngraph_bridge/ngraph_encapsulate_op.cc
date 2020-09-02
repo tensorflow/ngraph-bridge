@@ -66,7 +66,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
       ngraph_backend, ngraph_device_id);
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name()
-                 << "Backend: " << backend_name;
+                 << ", Backend: " << backend_name;
   OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(backend_name));
 
   auto backend = BackendManager::GetBackend(backend_name);

@@ -551,14 +551,13 @@ TEST(MathOps, ArgMaxPos) {
 TEST(MathOps, ArgMaxPosWithComboOps) {
   Scope root = Scope::NewRootScope();
 
-  // auto a = ops::Const(root, { {1, 2}, {2, 4} });
   auto plc_a = ops::Placeholder(root, DT_INT32);
-  // Tensor t_a(DT_INT32, TensorShape({2, 2}));
-  // FeedType val_a = std::make_tuple<ops::Placeholder, Tensor>(plc_a, {{5,
-  // 2},{2, 4}});
-  tensorflow::ClientSession::FeedType feeds = {{plc_a, {{5, 2}, {2, 4}}}};
+  Tensor t_a(DT_INT32, TensorShape({2, 2}));
+  AssignInputValues<int>(t_a, {5, 2, 2, 4});
+
+  tensorflow::ClientSession::FeedType feeds = {{plc_a, t_a}};
   auto b = ops::Const(root, {{1, 2}, {3, 4}});
-  auto m = ops::MatMul(root, plc_a, b);
+  auto m = ops::Add(root, plc_a, b);
 
   int dim = 1;
 

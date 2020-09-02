@@ -34,56 +34,65 @@ namespace ngraph_bridge {
 
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     : m_device{device} {
+  NGRAPH_VLOG(5) << "IE_Executable init for " << func->get_friendly_name();
   set_parameters_and_results(*func);
   m_results_orig = m_results;
   m_params_orig = m_parameters;
+  m_func_empty = false;
 
-  CheckUnsupportedOps(func);
+  CheckUnsupportedOps(func); // opset sanity
 
   InfoSaveResultMaps();
 
   auto func2 = StripOffUnhandledNodes(func);
-  HandleNoParamsCase(func2);  // this may update #params
-  set_parameters_and_results(*func2);
+  m_func_empty = func2->get_ops().size() == 0;
 
-  NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
-  m_network = InferenceEngine::CNNNetwork(func2);
+  if(!m_func_empty) {
+    HandleNoParamsCase(func2);  // this may update #params
+    set_parameters_and_results(*func2);
 
-  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
-    auto& name = m_network.getName();
-    NGRAPH_VLOG(5) << "Dumping IE network xml/bin " << name;
-    m_network.serialize(name + ".xml", name + ".bin");
-    auto fn = m_network.getFunction();
-    string fn_name = fn->get_friendly_name();
-    NgraphSerialize("cnn_func_" + fn_name + ".json", fn);
+    NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
+    m_network = InferenceEngine::CNNNetwork(func2);
+  } else {
+    NGRAPH_VLOG(2) << "! Given func has no usable IE layers, won't create CNN";
   }
 
+  // After m_network is finalized...
   InfoSaveInOutIndexMaps();
 
-  NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device
+  if(!m_func_empty) {
+    if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
+      auto& name = m_network.getName();
+      NGRAPH_VLOG(5) << "Dumping IE network xml/bin " << name;
+      m_network.serialize(name + ".xml", name + ".bin");
+    }
+    NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device
                  << ", ng-function="
                  << m_network.getFunction()->get_friendly_name();
-
-  InferenceEngine::Core ie;
-  // Load network to the plugin (m_device) and create an infer request
-  InferenceEngine::ExecutableNetwork exe_network;
-  try {
-    exe_network = ie.LoadNetwork(m_network, m_device);
-  } catch (const InferenceEngine::details::InferenceEngineException& e) {
-    THROW_IE_EXCEPTION << "Exception in IE LoadNetwork: " << e.what() << " ("
-                       << e.getStatus() << ")";
+    InferenceEngine::Core ie;
+    // Load network to the plugin (m_device) and create an infer request
+    InferenceEngine::ExecutableNetwork exe_network;
+    try {
+      exe_network = ie.LoadNetwork(m_network, m_device);
+    } catch (const InferenceEngine::details::InferenceEngineException& e) {
+      THROW_IE_EXCEPTION << "Exception in IE LoadNetwork: " << e.what() << " ("
+                        << e.getStatus() << ")";
+    }
+    m_infer_req = exe_network.CreateInferRequest();
+  } else {
+    NGRAPH_VLOG(2) << "! CNN has no layers, skipping IE";
   }
-  m_infer_req = exe_network.CreateInferRequest();
 }
 
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
                          const vector<shared_ptr<runtime::Tensor>>& inputs) {
-  SetUpInputTensors(inputs);
   SetUpOutputTensors(outputs);
-
-  NGRAPH_VLOG(5) << "IE_Executable::call -> m_infer_req.Infer() --> "
+  if(!m_func_empty) {
+    NGRAPH_VLOG(5) << "IE_Executable::call -> m_infer_req.Infer() --> "
                  << m_network.getFunction()->get_friendly_name();
-  m_infer_req.Infer();
+    SetUpInputTensors(inputs);
+    m_infer_req.Infer();
+  }
   return true;
 }
 
@@ -100,9 +109,12 @@ void IE_Executable::CheckUnsupportedOps(shared_ptr<ngraph::Function>& func) {
 }
 
 void IE_Executable::HandleNoParamsCase(shared_ptr<ngraph::Function>& func) {
-  NGRAPH_VLOG(2) << "Checking for function parameters in IE backend";
+  if(func->get_ops().size() == 0) {
+    return;
+  }
+  NGRAPH_VLOG(5) << "Checking for function parameters in IE backend";
   if (func->get_parameters().size() == 0) {
-    NGRAPH_VLOG(1) << "No parameters found in nGraph function!";
+    NGRAPH_VLOG(5) << "No parameters found in nGraph function!";
     // Try to find a node that can be converted into a "static input"
     bool param_replaced = false;
     for (const auto& node : func->get_ordered_ops()) {
@@ -177,9 +189,9 @@ void IE_Executable::InfoSaveResultMaps() {
         m_map_cnnconstresult_to_ngnodeptr.insert(
             std::pair<std::string, void*>(cnn_result_name, (void*)const_node));
       } else {
-        THROW_IE_EXCEPTION << "\n!!! Cannot dynamic_cast<const "
+        THROW_IE_EXCEPTION << "Cannot dynamic_cast<const "
                               "ngraph::op::Constant*>, const-node = "
-                           << cnn_result_name << " !!!\n";
+                           << cnn_result_name;
       }
     }
   }
@@ -193,8 +205,8 @@ void IE_Executable::InfoSaveResultMaps() {
         std::cout << op2->get_name() << ", ";
       }
       std::cout << "\n";
-      THROW_IE_EXCEPTION << "\n!!! m_results op " << op->get_name()
-                         << " not found in m_map_result_to_ngnode !!!\n";
+      THROW_IE_EXCEPTION << "m_results op " << op->get_name()
+                         << " not found in m_map_result_to_ngnode";
     }
   }
 }
@@ -244,6 +256,7 @@ shared_ptr<Function> IE_Executable::StripOffUnhandledNodes(
 void IE_Executable::InfoSaveInOutIndexMaps() {
   // Save the input index mappings from CNN's param name to TF/NGraph's input
   // index
+  if(!m_func_empty) {
   for (const auto& node :
        m_network.getFunction()->get_ops()) {  // node is a shared_ptr of Node
     if (node->is_parameter()) {
@@ -253,17 +266,20 @@ void IE_Executable::InfoSaveInOutIndexMaps() {
         m_map_cnnparam_to_tfidx.insert(
             std::pair<std::string, int>(node->get_friendly_name(), idx));
       } else {
-        THROW_IE_EXCEPTION << "\n!!! Cannot dynamic_cast parameter node = "
-                           << node->get_friendly_name() << " !!!\n";
+        THROW_IE_EXCEPTION << "Cannot dynamic_cast parameter node = "
+                           << node->get_friendly_name();
       }
     }
+  }
   }
 
   // Save the output index mappings from CNN's result name to TF tensor's output
   // index, as, order of Output TF tensors follow the order of m_results, but
   // *NOT* the order of m_network.getOutputsInfo()
-  NGRAPH_CHECK(m_results.size() >= m_network.getOutputsInfo().size(),
+  if(!m_func_empty) {
+    NGRAPH_CHECK(m_results.size() >= m_network.getOutputsInfo().size(),
                "Mismatching number of output items");
+  }
   NGRAPH_CHECK(m_results_orig.size() >= m_results.size(),
                "m_results_orig must be >= m_results");
   int idx = 0;
@@ -272,8 +288,8 @@ void IE_Executable::InfoSaveInOutIndexMaps() {
     if (m_map_result_to_ngnode.find(ng_result_name) ==
         m_map_result_to_ngnode.end()) {
       THROW_IE_EXCEPTION
-          << "\n!!! Cannot locate in m_map_result_to_ngnode, ng_result_name = "
-          << ng_result_name << " !!!\n";
+          << "Cannot locate in m_map_result_to_ngnode, ng_result_name = "
+          << ng_result_name;
     }
     string output_name =
         m_map_result_to_ngnode.at(ng_result_name);  // e.g. Constant_673
@@ -289,6 +305,10 @@ void IE_Executable::SetUpInputTensors(
   if (m_params_orig.size() != inputs.size()) {
     THROW_IE_EXCEPTION
         << "Ng-Function inputs number differ from number of given inputs";
+  }
+
+  if(m_func_empty) {
+    return;
   }
 
   if (inputs.size() == 0) {
@@ -330,12 +350,7 @@ void IE_Executable::SetUpOutputTensors(
   NGRAPH_CHECK(m_results_orig.size() == outputs.size(),
                "Mismatching number of output items between tensors (",
                outputs.size(), ") and results (", m_results_orig.size(), ")");
-  InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
-  if (output_info.size() != outputs.size()) {
-    THROW_IE_EXCEPTION
-        << "Function outputs number differ from number of given outputs";
-  }
-
+  
   // Shortcut the Const -> Result values
   for (const auto& it : m_map_cnnconstresult_to_ngnodeptr) {
     auto output_name = it.first;
@@ -346,10 +361,16 @@ void IE_Executable::SetUpOutputTensors(
                        const_node->get_element_type().size();
       const void* value = const_node->get_data_ptr();
       outputs[idx_tensor_output]->write(value, num_bytes);
+      NGRAPH_VLOG(5) << "Shortcut Const->Result tensor: "
+                     << const_node->get_friendly_name();
     } else {
       THROW_IE_EXCEPTION << "Cannot get const_node = " << output_name
                          << " for value shortcut ";
     }
+  }
+
+  if(m_func_empty) {
+    return;
   }
 
   // Pass the other output tensors
