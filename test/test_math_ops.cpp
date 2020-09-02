@@ -548,6 +548,30 @@ TEST(MathOps, ArgMaxPos) {
   opexecuter.RunTest();
 }  // end of test op ArgMax
 
+
+TEST(MathOps, ArgMaxPosWithComboOps) {
+  Scope root = Scope::NewRootScope();
+
+  //auto a = ops::Const(root, { {1, 2}, {2, 4} });
+  auto plc_a = ops::Placeholder(root, DT_INT32);
+  //Tensor t_a(DT_INT32, TensorShape({2, 2}));
+  //FeedType val_a = std::make_tuple<ops::Placeholder, Tensor>(plc_a, {{5, 2},{2, 4}});
+  tensorflow::ClientSession::FeedType feeds = { {plc_a, {{5, 2},{2, 4}}} };
+  auto b = ops::Const(root, { {1, 2}, {3, 4} });
+  auto m = ops::MatMul(root, plc_a, b);
+
+  int dim = 1;
+
+  auto attrs = ops::ArgMax::Attrs();
+  attrs.output_type_ = DT_INT32;
+
+  auto R = ops::ArgMax(root, m, dim, attrs);
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "ArgMax", sess_run_fetchoutputs, feeds);
+  opexecuter.RunTest();
+}
+
 // ArgMin test for negative dimension
 TEST(MathOps, ArgMinNeg) {
   Scope root = Scope::NewRootScope();
@@ -643,6 +667,26 @@ TEST(MathOps, BatchMatMul2D) {
   std::vector<Output> sess_run_fetchoutputs = {R};
   OpExecuter opexecuter(root, "BatchMatMul", sess_run_fetchoutputs);
 
+  opexecuter.RunTest();
+}
+
+TEST(MathOps, BatchMatMul2DWithComboOps) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 3}));
+  AssignInputValues(A, 2.0f);
+  auto plc_a = ops::Placeholder(root, DT_FLOAT);
+  
+  Tensor B(DT_FLOAT, TensorShape({3, 4}));
+  AssignInputValues(B, 7.0f);
+  auto plc_b = ops::Placeholder(root, DT_FLOAT);
+
+  auto R = ops::BatchMatMul(root, plc_a, plc_b);
+
+  tensorflow::ClientSession::FeedType feeds = { {plc_a, A}, {plc_b, B} };
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "BatchMatMul", sess_run_fetchoutputs, feeds);
   opexecuter.RunTest();
 }
 
@@ -1218,6 +1262,27 @@ TEST(MathOps, Ceil) {
 
   opexecuter.RunTest();
 }  // end of test op Ceil
+
+TEST(MathOps, CeilWithComboOps) {
+  Scope root = Scope::NewRootScope();
+
+  Tensor A(DT_FLOAT, TensorShape({2, 2}));
+  AssignInputValuesRandom(A);
+  auto plc_a = ops::Placeholder(root, DT_FLOAT);
+  
+  Tensor B(DT_FLOAT, TensorShape({2, 2}));
+  AssignInputValuesRandom(B);
+  auto plc_b = ops::Placeholder(root, DT_FLOAT);
+
+  auto m = ops::MatMul(root, plc_a, plc_b);
+  auto R = ops::Ceil(root, m);
+
+  tensorflow::ClientSession::FeedType feeds = { {plc_a, A}, {plc_b, B} };
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Ceil", sess_run_fetchoutputs, feeds);
+  opexecuter.RunTest();
+}
 
 // Test op: Cos
 TEST(MathOps, Cos) {

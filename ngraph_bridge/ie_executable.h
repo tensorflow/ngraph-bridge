@@ -45,6 +45,28 @@ class IE_Executable final : public Executable {
   // This holds the parameters we insert for functions with no input parameters
   vector<pair<string, shared_ptr<ngraph::runtime::Tensor>>> m_hoisted_params;
   string m_device;
+
+  void HandleNoParamsCase(shared_ptr<ngraph::Function>&);
+  ngraph::ResultVector m_results_orig;
+  ngraph::ParameterVector m_params_orig;
+  std::map<std::string, int> m_map_cnnparam_to_tfidx;   // which CNN param maps
+                                                        // to which index of the
+                                                        // TF input tensor
+  std::map<std::string, int> m_map_cnnresult_to_tfidx;  // which CNN result maps
+                                                        // to which index of the
+                                                        // TF output tensor
+  std::map<std::string, void*> m_map_cnnconstresult_to_ngnodeptr;
+  std::map<std::string, std::string>
+      m_nongraph_const_outputs;  // (input-const, output-result)
+  std::map<std::string, std::string>
+      m_map_result_to_ngnode;  // (result, from) e.g. Result_353->Constant_673,
+                               // Result_350->ngraph_output_1
+  std::map<std::string, void*> m_map_result_to_ngnodeptr;  // same as above one
+  void InfoSaveResultMaps();
+  void InfoSaveInOutIndexMaps();
+  shared_ptr<ngraph::Function> StripOffUnhandledNodes(
+      const shared_ptr<ngraph::Function>&);
+
 };
 }
 }

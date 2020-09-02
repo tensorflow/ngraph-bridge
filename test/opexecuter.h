@@ -62,7 +62,8 @@ class OpExecuter {
   // const std::vector<Output>& fetch_ops    : Output ops to be fetched,
   //                                           is passed to tf.session.run()
   OpExecuter(const Scope sc, const string test_op,
-             const vector<Output>& fetch_ops);
+             const vector<Output>& fetch_ops,
+             tensorflow::ClientSession::FeedType feeds = {});
 
   ~OpExecuter();
 
@@ -84,6 +85,7 @@ class OpExecuter {
   Scope tf_scope_;
   const string test_op_type_;
   const std::vector<Output> sess_run_fetchoutputs_;
+  const tensorflow::ClientSession::FeedType sess_run_feeds_;
 
   void ValidateGraph(const Graph& graph, const vector<string> allowed_nodes);
 };
