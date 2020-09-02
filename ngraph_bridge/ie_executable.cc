@@ -41,13 +41,13 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
     }
   }
 
-  HandleNoParamsCase(func);
-
   set_parameters_and_results(*func);
   m_results_orig = m_results;
   m_params_orig = m_parameters;
   InfoSaveResultMaps();
   shared_ptr<Function> func2 = StripOffUnhandledNodes(func);
+
+  HandleNoParamsCase(func2);
 
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func2);
@@ -71,9 +71,13 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
   InferenceEngine::Core ie;
   // Load network to the plugin (m_device) and create an infer request
-  InferenceEngine::ExecutableNetwork exe_network =
-      ie.LoadNetwork(m_network, m_device);
-  NGRAPH_VLOG(5) << "IE LoadNetwork done";
+  InferenceEngine::ExecutableNetwork exe_network;
+  try {
+    exe_network = ie.LoadNetwork(m_network, m_device);
+    NGRAPH_VLOG(5) << "IE LoadNetwork done";
+  } catch(const std::exception& e) {
+      THROW_IE_EXCEPTION << "Exception in IE LoadNetwork: " << e.what();
+  }
   m_infer_req = exe_network.CreateInferRequest();
   NGRAPH_VLOG(5) << "IE CreateInferRequest done";
 
