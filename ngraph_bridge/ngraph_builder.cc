@@ -21,8 +21,6 @@
 #include "tensorflow/core/lib/core/errors.h"
 
 #include "ngraph/builder/autobroadcast.hpp"
-#include "ngraph/op/argmax.hpp"
-#include "ngraph/op/argmin.hpp"
 #include "ngraph/op/experimental/layers/interpolate.hpp"
 #include "ngraph/op/util/logical_reduction.hpp"
 #include "ngraph/pass/constant_folding.hpp"
