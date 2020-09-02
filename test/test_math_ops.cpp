@@ -611,6 +611,27 @@ TEST(MathOps, ArgMinPos) {
   opexecuter.RunTest();
 }
 
+// ArgMin test for 3D
+TEST(MathOps, ArgMin3D) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 3;
+  int dim3 = 1;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2, dim3}));
+  AssignInputValuesRandom(A);
+
+  int dim = 1;
+  auto attrs = ops::ArgMin::Attrs();
+  attrs.output_type_ = DT_INT32;
+
+  auto R = ops::ArgMin(root, A, dim, attrs);
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "ArgMin", sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}
+
 // ArgMin test for empty output
 TEST(MathOps, ArgMinEmpty) {
   Scope root = Scope::NewRootScope();
