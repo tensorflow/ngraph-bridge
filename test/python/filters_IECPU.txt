@@ -82,6 +82,7 @@ test_select.TestSelect.test_select_complexshape2
 test_select.TestSelect.test_select_complexshape3
 test_serialize_name.TestDumpingGraphs  # all tests in the class
 test_set_backend.TestSetBackend.test_set_backend
+test_slice.TestSliceOperations.test_strided_slice
 test_slice.TestSliceOperations.test_incorrect_strided_slice
 test_split.TestSplitOperations.test_split_sizes[shape0-sizes0-1]
 test_split.TestSplitOperations.test_split_sizes[shape1-sizes1-0]
