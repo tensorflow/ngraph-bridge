@@ -3347,7 +3347,8 @@ Status Builder::TranslateGraph(
   // Apply additional passes on the nGraph function here.
   //
   ngraph::pass::Manager passes;
-  // passes.register_pass<ngraph::pass::ConstantFolding>();
+  if (PassEnabled(NGraphPassType::ConstFold))
+    passes.register_pass<ngraph::pass::ConstantFolding>();
   passes.register_pass<pass::TransposeFolding>();
   passes.register_pass<pass::TransposeSinking>();
   passes.run_passes(ng_function);
