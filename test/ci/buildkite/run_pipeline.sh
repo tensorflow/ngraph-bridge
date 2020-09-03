@@ -17,6 +17,7 @@ if [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-cpu-ubuntu-grappler" ]; then
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-cpu-ubuntu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-interpreter-ubuntu" ]; then
    export NGRAPH_TF_BACKEND=INTERPRETER
+   export NGTF_GTEST_FILE=`pwd`/test/cpp_tests_list_INT.txt
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-cpu-ubuntu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-ie-ubuntu" ]; then
    export NGRAPH_TF_EXECUTOR=IE

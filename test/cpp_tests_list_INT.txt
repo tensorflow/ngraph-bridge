@@ -1,0 +1,10 @@
+# Add the included tests first, then add the excluded tests later
+
+####  INCLUDED GTEST PATTERNS ####
+*
+
+
+####  EXCLUDED GTEST PATTERNS ####
+[EXCLUDED]
+
+MathOps.ArgMin3D
