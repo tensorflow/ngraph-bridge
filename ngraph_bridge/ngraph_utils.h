@@ -380,6 +380,10 @@ bool DumpDeclusteredGraphs();
 
 bool DumpEncapsulatedGraphs();
 
+enum NGraphPassType { ConstFold, TransposeFold, TransposeSink };
+bool PassEnabled(NGraphPassType type);
+
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow

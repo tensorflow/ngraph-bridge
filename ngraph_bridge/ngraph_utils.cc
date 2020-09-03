@@ -586,6 +586,20 @@ void ClearAttribute(Graph* g,
   }
 }
 
+bool PassEnabled(NGraphPassType type) {
+  std::map<NGraphPassType, const char*> _map = {
+    {NGraphPassType::ConstFold, "NGRAPH_TF_PASS_CONSTFOLD"},
+    {NGraphPassType::TransposeFold, "NGRAPH_TF_PASS_TRANSPOSEFOLD"},
+    {NGraphPassType::TransposeSink, "NGRAPH_TF_PASS_TRANSPOSESINK"},
+  };
+  const char* var = std::getenv(_map.at(type));
+  if(var != nullptr && var[0] != '0') {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow
