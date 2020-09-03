@@ -32,6 +32,8 @@
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
 
+#include "ngraph/pass/pass_config.hpp"
+
 using namespace std;
 namespace ng = ngraph;
 
@@ -588,16 +590,17 @@ void ClearAttribute(Graph* g,
 
 bool PassEnabled(NGraphPassType type) {
   std::map<NGraphPassType, const char*> _map = {
-      {NGraphPassType::ConstFold, "NGRAPH_TF_PASS_CONSTFOLD"},
-      {NGraphPassType::TransposeFold, "NGRAPH_TF_PASS_TRANSPOSEFOLD"},
-      {NGraphPassType::TransposeSink, "NGRAPH_TF_PASS_TRANSPOSESINK"},
+      {NGraphPassType::ConstFold, "ConstFold"},
+      {NGraphPassType::TransposeFold, "TransposeFold"},
+      {NGraphPassType::TransposeSink, "TransposeSink"},
   };
-  const char* var = std::getenv(_map.at(type));
-  if (var != nullptr && var[0] != '0') {
-    return true;
-  } else {
-    return false;
-  }
+
+  // reads from NGRAPH_PASS_ENABLES env var
+  // E.g., NGRAPH_PASS_ENABLES="ConstFold:0;LikeReplacement:1;TransposeFold"
+  // would set disables on ConstFold and enables on LikeReplacement and
+  // TransposeFold
+  auto pass_config = ngraph::pass::PassConfig();
+  return pass_config.get_pass_enable(_map.at(type));
 }
 
 }  // namespace ngraph_bridge
