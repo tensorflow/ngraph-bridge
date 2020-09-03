@@ -33,7 +33,7 @@ argmax_op_test.ArgMaxTest.testFloat
 argmax_op_test.ArgMaxTest.testFloatInt32Output
 #argmax_op_test.ArgMaxTest.testInt32
 #argmax_op_test.ArgMaxTest.testInt64
-#argmax_op_test.ArgMaxTest.testOutputEmpty
+argmax_op_test.ArgMaxTest.testOutputEmpty
 
 array_ops_test.SnapshotOpTest.testInvertPermutation
 
