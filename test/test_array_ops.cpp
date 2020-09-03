@@ -449,9 +449,7 @@ TEST(ArrayOps, Pad) {
 
   Tensor paddings(DT_INT32, TensorShape({2, 2}));
 
-  // AssignInputValuesRandom<int>(input, 1, 4);
   AssignInputValues<int>(input, {1, 2, 3, 4, 5, 6});
-  // AssignInputValuesRandom<int>(paddings, 2, 5);
   AssignInputValues<int>(paddings, {1, 1, 2, 2});
 
   auto R = ops::Pad(root, input, paddings);

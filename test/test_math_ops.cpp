@@ -366,6 +366,33 @@ TEST(MathOps, Cumsum) {
 
 // Test op: Sum with & without keep dims & with both positive & negative axis
 TEST(MathOps, Sum) {
+  int dim1 = 2;
+  int dim2 = 2;
+
+  std::vector<int> v = {1, 2, 3, 4};
+  Tensor A(DT_INT32, TensorShape({dim1, dim2}));
+  vector<bool> v_keep_dims = {true, false};
+  // axis at which the dimension will be inserted
+  // should be -rank <= axis < rank
+  vector<int> v_axis = {-1, 0, 1};
+  for (auto axis : v_axis) {
+    for (auto keep_dims : v_keep_dims) {
+      Scope root = Scope::NewRootScope();
+      auto keep_dims_attr = ops::Sum::Attrs().KeepDims(keep_dims);
+
+      AssignInputValues<int>(A, v);
+
+      auto R = ops::Sum(root, A, axis, keep_dims_attr);
+      std::vector<Output> sess_run_fetchoutputs = {R};
+      OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs);
+
+      opexecuter.RunTest();
+    }
+  }
+}
+
+// Same as above, but with params for tensors
+TEST(MathOps, SumWithParams) {
   vector<bool> v_keep_dims = {true, false};
   // axis at which the dimension will be inserted
   // should be -rank <= axis < rank
@@ -381,6 +408,7 @@ TEST(MathOps, Sum) {
       AssignInputValues<int>(t_a, v);
       tensorflow::ClientSession::FeedType feeds = {{plc_a, t_a}};
 
+      std::cout << ">> Running test with: axis=" << axis << ", keep_dims=" << keep_dims << endl;
       auto R = ops::Sum(root, plc_a, axis, keep_dims_attr);
       std::vector<Output> sess_run_fetchoutputs = {R};
       OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs, feeds);
@@ -396,7 +424,7 @@ class MathOpsSumFixture : public ::testing::Test {
   void SetUp() override {}
   void TearDown() override {}
   void TestWith(std::vector<int> tshpvec, std::vector<int> axisvec,
-                bool keep_dims) {
+                bool keep_dims, bool use_param_feed=false) {
     TensorShape tshp;
     for (auto dim : tshpvec) {
       tshp.AddDim(dim);
@@ -412,18 +440,25 @@ class MathOpsSumFixture : public ::testing::Test {
 
     std::vector<int> vals = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6,
                              1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
-    auto plc_a = ops::Placeholder(root, DT_INT32);
-    Tensor t_a(DT_INT32, TensorShape(tshp));
-    AssignInputValues<int>(t_a, vals);
-    tensorflow::ClientSession::FeedType feeds = {{plc_a, t_a}};
+    Tensor A(DT_INT32, TensorShape(tshp));
+    AssignInputValues<int>(A, vals);
 
     Tensor B(DT_INT32, TensorShape({(int64)axisvec.size()}));
     AssignInputValues<int>(B, axisvec);
 
-    auto R = ops::Sum(root, plc_a, B, keep_dims_attr);
-    std::vector<Output> sess_run_fetchoutputs = {R};
-    OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs, feeds);
-    opexecuter.RunTest();
+    if(use_param_feed) {
+      auto plc_a = ops::Placeholder(root, DT_INT32);
+      tensorflow::ClientSession::FeedType feeds = {{plc_a, A}};
+      auto R = ops::Sum(root, plc_a, B, keep_dims_attr);
+      std::vector<Output> sess_run_fetchoutputs = {R};
+      OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs, feeds);
+      opexecuter.RunTest();
+    } else {
+      auto R = ops::Sum(root, A, B, keep_dims_attr);
+      std::vector<Output> sess_run_fetchoutputs = {R};
+      OpExecuter opexecuter(root, "Sum", sess_run_fetchoutputs);
+      opexecuter.RunTest();
+    }
   }
 };
 
@@ -431,6 +466,12 @@ TEST_F(MathOpsSumFixture, LimitedSet1) {
   TestWith({2, 3}, {1}, false);
   TestWith({6, 2}, {0}, false);
   TestWith({2, 4, 3}, {0}, false);
+}
+
+TEST_F(MathOpsSumFixture, LimitedSet2) { // use_param_feed
+  TestWith({2, 3}, {1}, false, true);
+  TestWith({6, 2}, {0}, false, true);
+  TestWith({2, 4, 3}, {0}, false, true);
 }
 
 TEST_F(MathOpsSumFixture, FullSet) {
@@ -549,7 +590,7 @@ TEST(MathOps, ArgMaxPos) {
   opexecuter.RunTest();
 }  // end of test op ArgMax
 
-TEST(MathOps, ArgMaxPosWithComboOps) {
+TEST(MathOps, ArgMaxPosWithParamsAndComboOps) {
   Scope root = Scope::NewRootScope();
 
   auto plc_a = ops::Placeholder(root, DT_INT32);
@@ -670,7 +711,7 @@ TEST(MathOps, BatchMatMul2D) {
   opexecuter.RunTest();
 }
 
-TEST(MathOps, BatchMatMul2DWithComboOps) {
+TEST(MathOps, BatchMatMul2DWithParams) {
   Scope root = Scope::NewRootScope();
 
   Tensor A(DT_FLOAT, TensorShape({2, 3}));
@@ -1263,7 +1304,7 @@ TEST(MathOps, Ceil) {
   opexecuter.RunTest();
 }  // end of test op Ceil
 
-TEST(MathOps, CeilWithComboOps) {
+TEST(MathOps, CeilWithParamsAndComboOps) {
   Scope root = Scope::NewRootScope();
 
   Tensor A(DT_FLOAT, TensorShape({2, 2}));
