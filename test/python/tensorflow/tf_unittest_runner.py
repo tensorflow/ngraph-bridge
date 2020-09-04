@@ -137,7 +137,8 @@ def get_test_list(tf_path, test_regex):
     except Exception as e:
         module_list = []
         print(
-            "Exception occured in regex_walk. " + str(e) +
+            "Exception occured in regex_walk (" + test_regex + ") -> " +
+            str(e) +
             """\nInvalid module name. Use bazel query below to get list of tensorflow python test modules.
             bazel query 'kind(".*_test rule", //tensorflow/python:nn_test)' --output label\n"""
         )
@@ -211,7 +212,7 @@ def list_tests(module_list, regex_input):
     regex_input: Regular expression input strings to filter and list tests. 
     Few examples of accepted regex_input are:
     math_ops_test.DivNoNanTest.testBasic
-    math_ops_test.DivNoNanTest.*
+    math_ops_test.DivNoNanTest.* (or math_ops_test.DivNoNanTest)
     math_ops_test.D*
     math_ops_test.*
     math_*_test
@@ -243,10 +244,10 @@ def list_tests(module_list, regex_input):
                 alltests.append(aTestCase.id())
 
     for aTestCaseID in alltests:
-        if regex_input in aTestCaseID:  # substring match
+        if regex_input == aTestCaseID:  # exact match
             listtests.append(aTestCaseID)
-        elif regex_input.count('*') > 0:
-            regex_pattern = regex_input
+        else:
+            regex_pattern = '^' + regex_input + '$'
             regex_pattern = re.sub(r'\.', '\\.', regex_pattern)
             regex_pattern = re.sub(r'\*', '.*', regex_pattern)
             if re.search(regex_pattern, aTestCaseID):
@@ -268,10 +269,10 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
     Returns a list of leaf-level single testcase, no duplicates
     """
 
-    def invalidate_skips_after_runs(skips, runs):
-        for aTest in runs:
-            if aTest in skips:
-                skips.remove(aTest)
+    def invalidate_A_after_B(AList, BList):
+        for aTest in BList:
+            if aTest in AList:
+                AList.remove(aTest)
 
     run_items = []
     skipped_items = []
@@ -301,25 +302,24 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
                 g_imported_files.append(line)
                 new_runs, new_skips = read_tests_from_manifest(
                     line, tensorflow_path)
-                invalidate_skips_after_runs(new_skips, new_runs)
-                invalidate_skips_after_runs(skipped_items, new_runs)
+                invalidate_A_after_B(new_skips, new_runs)
+                invalidate_A_after_B(skipped_items, new_runs)
                 run_items.extend(new_runs)
                 skipped_items.extend(new_skips)
                 continue
             if curr_section == 'run_section':
                 new_runs = get_test_list(tensorflow_path, line)[0]
-                invalidate_skips_after_runs(skipped_items, new_runs)
+                invalidate_A_after_B(skipped_items, new_runs)
                 run_items.extend(new_runs)
             if curr_section == 'skip_section':
-                skipped_items.extend(get_test_list(tensorflow_path, line)[0])
+                new_skips = get_test_list(tensorflow_path, line)[0]
+                invalidate_A_after_B(run_items, new_skips)
+                skipped_items.extend(new_skips)
         # remove dups
         run_items = list(dict.fromkeys(run_items))
         skipped_items = list(dict.fromkeys(skipped_items))
         print()
-        for aTest in skipped_items:
-            if aTest in run_items:
-                #print('will exclude test:', aTest)
-                run_items.remove(aTest)
+        invalidate_A_after_B(run_items, skipped_items)
         print('\n#Tests to Run={}, Skip={} (manifest = {})\n'.format(
             len(run_items), len(skipped_items), manifestfile))
 
