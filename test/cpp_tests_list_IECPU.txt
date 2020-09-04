@@ -26,8 +26,6 @@ MathOpsSumFixture.FullSet
 NNOps.L2Loss
 NNOps.SoftmaxZeroDimTest1
 NNOps.SoftmaxZeroDimTest2
-ArrayOps.Slice
-ArrayOps.StridedSliceTest1
 ArrayOps.Fill
 ArrayOps.Shape2D
 ArrayOps.Shape3D

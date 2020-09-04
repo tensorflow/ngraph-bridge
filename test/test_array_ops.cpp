@@ -763,7 +763,7 @@ TEST(ArrayOps, StridedSliceTest1) {
   AssignInputValues<float>(input_data, data_vect);
 
   std::vector<int64> cstart = {0, 1};
-  std::vector<int64> cend = {0, 2};
+  std::vector<int64> cend = {1, 2};
   std::vector<int64> cstride = {1, 1};
 
   Tensor begin(DT_INT64, TensorShape({static_cast<int>(cstart.size())}));
