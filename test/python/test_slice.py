@@ -155,8 +155,6 @@ class TestSliceOperations(NgraphTest):
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
-    @pytest.mark.skipif(
-        not ngraph_bridge.is_openvino_enabled(), reason='Only for IE')
     def test_strided_slice_2(self):
         inp = np.random.rand(3, 2, 3).astype("f")
 
@@ -167,20 +165,18 @@ class TestSliceOperations(NgraphTest):
 
         x = tf.compat.v1.placeholder(dtype=dtypes.float32)
 
-        slice_ts.append(x[-1:0, 2:2, 2:3:-1])
+        slice_ts.append(x[0:2, 1:2, 2:1:-1])
 
         def run_test(sess):
             return sess.run(slice_ts, feed_dict={x: a})
 
         slice_vals = self.with_ngraph(run_test)
 
-        expected.append(inp[-1:0, 2:2, 2:3:-1])
+        expected.append(inp[0:2, 1:2, 2:1:-1])
 
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
-    @pytest.mark.skipif(
-        not ngraph_bridge.is_openvino_enabled(), reason='Only for IE')
     def test_strided_slice_3(self):
         inp = np.random.rand(3, 2, 3).astype("f")
 
@@ -191,20 +187,18 @@ class TestSliceOperations(NgraphTest):
 
         x = tf.compat.v1.placeholder(dtype=dtypes.float32)
 
-        slice_ts.append(x[-1:0, -10:-10, 2:3:-1])
+        slice_ts.append(x[0:2, -1:3, 2:1:-1])
 
         def run_test(sess):
             return sess.run(slice_ts, feed_dict={x: a})
 
         slice_vals = self.with_ngraph(run_test)
 
-        expected.append(inp[-1:0, -10:-10, 2:3:-1])
+        expected.append(inp[0:2, -1:3, 2:1:-1])
 
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
-    @pytest.mark.skipif(
-        not ngraph_bridge.is_openvino_enabled(), reason='Only for IE')
     def test_strided_slice_4(self):
         inp = np.random.rand(3, 2, 3).astype("f")
 
@@ -215,14 +209,14 @@ class TestSliceOperations(NgraphTest):
 
         x = tf.compat.v1.placeholder(dtype=dtypes.float32)
 
-        slice_ts.append(x[-1:0, 0:-10, 2:3:-1])
+        slice_ts.append(x[0:1, -2:3, 3:0:-2])
 
         def run_test(sess):
             return sess.run(slice_ts, feed_dict={x: a})
 
         slice_vals = self.with_ngraph(run_test)
 
-        expected.append(inp[-1:0, 0:-10, 2:3:-1])
+        expected.append(inp[0:1, -2:3, 3:0:-2])
 
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
