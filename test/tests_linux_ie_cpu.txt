@@ -1,11 +1,27 @@
-# Add the included tests first, then add the excluded tests later
+# GTEST Manifest to specify included & excluded tests
+# Comment lines start with #
+# This manifest is consumed by .../test/main.cpp (Google Test)
 
-####  INCLUDED GTEST PATTERNS ####
-*
+#  Follows --gtest_filter patterns:
+#    * --> all 
+#    MathOps.* --> all tests under MathOps class
+
+###################################################
+[IMPORT]
+# Read in one/more external manifest file(s)
+# Path specified is relative to this file's path
+
+tests_common.txt
+
+###################################################
+[RUN]
+# Specify tests/patterns/regex that should be included
 
 
-####  EXCLUDED GTEST PATTERNS ####
-[EXCLUDED]
+
+###################################################
+[SKIP]
+# Specify tests/patterns/regex that should be excluded/skipped
 
 NGraphExecTest.Axpy8bit
 NGraphExecTest.MixedTensors
