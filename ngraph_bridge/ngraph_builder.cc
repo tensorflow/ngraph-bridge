@@ -582,7 +582,7 @@ static Status TranslateArgMinMax(
   TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
 
   auto ng_k = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{}, std::vector<int>({1}));
+      op->name(), ng::element::i64, ng::Shape{}, std::vector<int64>({1}));
 
   std::string sort = "none";
   auto ng_topk =
@@ -590,7 +590,7 @@ static Status TranslateArgMinMax(
   auto ng_indices = ng_topk->output(1);
   int axis = ng_topk->get_axis();
   auto axis_to_remove = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{}, std::vector<int>({axis}));
+      op->name(), ng::element::i64, ng::Shape{1}, std::vector<int64>({axis}));
   auto reshaped_indices =
       ConstructNgNode<opset::Squeeze>(op->name(), ng_indices, axis_to_remove);
   Builder::SetTracingInfo(op->name(), reshaped_indices);
