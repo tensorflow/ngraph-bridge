@@ -39,6 +39,9 @@
 
 using namespace std;
 
+string SCRIPTDIR =
+    std::regex_replace(__FILE__, std::regex("^(.*)/[^/]+$"), "$1");
+
 // will only get stdout back, not stderr
 std::string exec_cmd(const char* cmd) {
   std::string result;
@@ -53,6 +56,7 @@ std::string exec_cmd(const char* cmd) {
   return result;
 }
 
+// manifestfile must be in abs path format
 static void read_tests_from_manifest(string manifestfile, set<string>& run_list,
                                      set<string>& skip_list) {
   static set<string> g_imported_files;
@@ -86,6 +90,7 @@ static void read_tests_from_manifest(string manifestfile, set<string>& run_list,
                << manifestfile << endl;
           exit(1);
         }
+        line = SCRIPTDIR + "/" + line;
         g_imported_files.insert(line);
         set<string> new_runs, new_skips;
         read_tests_from_manifest(line, new_runs, new_skips);
@@ -112,15 +117,13 @@ static void read_tests_from_manifest(string manifestfile, set<string>& run_list,
 // To keep the logic in one place, we will invoke function from test_utils.py
 static string get_test_manifest_filepath() {
   string cmdstr =
-      "python3 ../tools/test_utils.py --run_func print_test_manifest_filename";
+      "python3 " + SCRIPTDIR + "/../tools/test_utils.py --run_func print_test_manifest_filename";
   auto resp = exec_cmd(cmdstr.c_str());
   if (resp.back() == '\n') resp.pop_back();
   resp = std::regex_replace(resp, std::regex("^\\s+"), "");
   resp = std::regex_replace(resp, std::regex("\\s+$"), "");
   if (resp.front() != '/') {  // works in Linux
-    string dirname =
-        std::regex_replace(__FILE__, std::regex("^(.*)/[^/]+$"), "$1");
-    resp = dirname + "/" + resp;
+    resp = SCRIPTDIR + "/" + resp;
   }
   return resp;
 }

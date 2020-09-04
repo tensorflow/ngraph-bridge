@@ -22,3 +22,5 @@ tests_common.txt
 [SKIP]
 # Specify tests/patterns/regex that should be excluded/skipped
 
+ArrayOps.Tile
+
