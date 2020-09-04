@@ -117,7 +117,8 @@ static void read_tests_from_manifest(string manifestfile, set<string>& run_list,
 // To keep the logic in one place, we will invoke function from test_utils.py
 static string get_test_manifest_filepath() {
   string cmdstr =
-      "python3 " + SCRIPTDIR + "/../tools/test_utils.py --run_func print_test_manifest_filename";
+      "python3 " + SCRIPTDIR +
+      "/../tools/test_utils.py --run_func print_test_manifest_filename";
   auto resp = exec_cmd(cmdstr.c_str());
   if (resp.back() == '\n') resp.pop_back();
   resp = std::regex_replace(resp, std::regex("^\\s+"), "");
@@ -149,20 +150,15 @@ static void set_filters_from_file() {
 }
 
 int main(int argc, char** argv) {
-  bool filter_arg = false;
-  for (int i = 1; i < argc; i++) {
-    if (strncmp(argv[i], "--gtest_filter", 14) == 0) {
-      filter_arg = true;
-      break;
-    }
-  }
-  // if(::testing::GTEST_FLAG(filter) == "*") {
-  if (!filter_arg) {
+  ::testing::InitGoogleTest(&argc, argv);
+
+  // if you want to run all tests, do not provide any --gtest_filter arg,
+  // as we check for * to call manifest
+  if (::testing::GTEST_FLAG(filter) == "*") {
     cout << "Will use test manifest to set test filters...\n";
     set_filters_from_file();
   }
 
-  ::testing::InitGoogleTest(&argc, argv);
   int rc = RUN_ALL_TESTS();
   return rc;
 }
