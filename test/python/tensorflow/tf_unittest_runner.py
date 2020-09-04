@@ -267,7 +267,13 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
     Reads a file that has include & exclude patterns,
     Returns a list of leaf-level single testcase, no duplicates
     """
-    list_of_tests = []
+
+    def invalidate_skips_after_runs(skips, runs):
+        for aTest in runs:
+            if aTest in skips:
+                skips.remove(aTest)
+
+    run_items = []
     skipped_items = []
     g_imported_files.append(manifestfile)
     with open(manifestfile) as fh:
@@ -295,25 +301,29 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
                 g_imported_files.append(line)
                 new_runs, new_skips = read_tests_from_manifest(
                     line, tensorflow_path)
-                list_of_tests.extend(new_runs)
+                invalidate_skips_after_runs(new_skips, new_runs)
+                invalidate_skips_after_runs(skipped_items, new_runs)
+                run_items.extend(new_runs)
                 skipped_items.extend(new_skips)
                 continue
             if curr_section == 'run_section':
-                list_of_tests.extend(get_test_list(tensorflow_path, line)[0])
+                new_runs = get_test_list(tensorflow_path, line)[0]
+                invalidate_skips_after_runs(skipped_items, new_runs)
+                run_items.extend(new_runs)
             if curr_section == 'skip_section':
                 skipped_items.extend(get_test_list(tensorflow_path, line)[0])
         # remove dups
-        list_of_tests = list(dict.fromkeys(list_of_tests))
+        run_items = list(dict.fromkeys(run_items))
         skipped_items = list(dict.fromkeys(skipped_items))
         print()
         for aTest in skipped_items:
-            if aTest in list_of_tests:
+            if aTest in run_items:
                 #print('will exclude test:', aTest)
-                list_of_tests.remove(aTest)
+                run_items.remove(aTest)
         print('\n#Tests to Run={}, Skip={} (manifest = {})\n'.format(
-            len(list_of_tests), len(skipped_items), manifestfile))
+            len(run_items), len(skipped_items), manifestfile))
 
-    return list_of_tests, skipped_items
+    return run_items, skipped_items
 
 
 def func_utrunner_testcase_run(return_dict, runner, aTest):
