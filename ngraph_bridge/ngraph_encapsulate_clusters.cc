@@ -136,13 +136,7 @@ Status Encapsulator::AnalysisPass() {
       continue;
     }
 
-    string node_backend;
-    if (GetNodeBackend(node, &node_backend) != Status::OK()) {
-      continue;
-    }
-
     auto it = device_name_map.find(cluster_idx);
-
     if (it != device_name_map.end()) {
       if (it->second != node->assigned_device_name()) {
         std::stringstream ss_err;
@@ -158,24 +152,6 @@ Status Encapsulator::AnalysisPass() {
                      << " requested device to '" << node->assigned_device_name()
                      << "'";
       device_name_map[cluster_idx] = node->assigned_device_name();
-    }
-
-    auto itr = backend_name_map.find(cluster_idx);
-
-    if (itr != backend_name_map.end()) {
-      if (itr->second != node_backend) {
-        std::stringstream ss_err;
-        ss_err << "Node " << node->name() << " in cluster " << cluster_idx
-               << " has assigned backend " << node_backend
-               << " but another node with assigned backend " << it->second
-               << " has already been seen in the same cluster";
-
-        return errors::Internal(ss_err.str());
-      }
-    } else {
-      NGRAPH_VLOG(3) << "setting cluster " << cluster_idx
-                     << " requested backend to '" << node_backend << "'";
-      backend_name_map[cluster_idx] = node_backend;
     }
   }
 
@@ -445,8 +421,6 @@ Status Encapsulator::RewritePass(
   // Pass 3: Create encapsulation nodes for all clusters.
   for (auto& kv : device_name_map) {
     int cluster_idx = kv.first;
-    string cluster_backend = backend_name_map[cluster_idx];
-
     std::stringstream ss;
     ss << "ngraph_cluster_" << cluster_idx;
 
@@ -467,17 +441,13 @@ Status Encapsulator::RewritePass(
     }
 
     Node* n;
-    NodeBuilder nb =
-        NodeBuilder(encap_node_name, "NGraphEncapsulate")
-            .Attr("ngraph_cluster", cluster_idx)
-            .Attr("ngraph_backend",
-                  BackendManager::GetBackendAttributeValues(cluster_backend)
-                      .at("ngraph_backend"))
-            .Attr("Targuments", input_types)
-            .Attr("Tresults", cluster_output_dt_map[cluster_idx])
-            .Attr("ngraph_graph_id", graph_id)
-            .Device(device_name_map[cluster_idx])
-            .Input(inputs);
+    NodeBuilder nb = NodeBuilder(encap_node_name, "NGraphEncapsulate")
+                         .Attr("ngraph_cluster", cluster_idx)
+                         .Attr("Targuments", input_types)
+                         .Attr("Tresults", cluster_output_dt_map[cluster_idx])
+                         .Attr("ngraph_graph_id", graph_id)
+                         .Device(device_name_map[cluster_idx])
+                         .Input(inputs);
     if (!device_config.empty()) {
       NGRAPH_VLOG(3) << "Device config is not empty";
       for (auto const& i : device_config) {

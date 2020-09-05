@@ -18,6 +18,7 @@
 
 #include "tensorflow/core/graph/node_builder.h"
 
+#include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
 #include "ngraph_bridge/version.h"
@@ -27,9 +28,7 @@ using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
-
 namespace testing {
 
 // Test that calls the functions of encapsulator in the wrong order
@@ -76,7 +75,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                 .Attr("value", t_input_0)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_0)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node1));
 
   int cluster_idx_1 = NGraphClusterManager::NewCluster();
@@ -88,7 +86,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                 .Attr("value", t_input_1)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_1)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node2));
 
   Node* node3;
@@ -98,7 +95,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx_1)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node3));
 
   Node* node4;
@@ -197,7 +193,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
 
   // Now perform the actual rewrite
   std::unordered_map<std::string, std::string> config_map;
-  config_map["ngraph_device_id"] = "";
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
   ASSERT_OK(enc.RewritePass(fdeflib_new, 0, config_map));
 
@@ -239,7 +234,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
                 .Attr("value", t_input_0)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node1));
 
   Node* node2;
@@ -248,7 +242,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
                 .Attr("value", t_input_1)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node2));
 
   Node* node3;
@@ -258,7 +251,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
                 .Attr("T", DT_FLOAT)
                 .Attr("_ngraph_marked_for_clustering", true)
                 .Attr("_ngraph_cluster", cluster_idx)
-                .Attr("_ngraph_backend", "CPU")
                 .Finalize(&g, &node3));
 
   Node* source = g.source_node();
@@ -270,7 +262,6 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
 
   std::unordered_map<std::string, std::string> config_map;
-  config_map["ngraph_device_id"] = "";
   ASSERT_EQ(g.num_edges(), 6);
   ASSERT_EQ(g.num_op_nodes(), 3);
   ASSERT_EQ(g.num_nodes(), 5);
