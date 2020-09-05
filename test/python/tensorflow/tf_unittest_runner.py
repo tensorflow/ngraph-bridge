@@ -22,6 +22,7 @@ import fnmatch
 import time
 from datetime import timedelta
 import warnings
+from fnmatch import fnmatch
 
 import multiprocessing
 mpmanager = multiprocessing.Manager()
@@ -86,14 +87,14 @@ def main():
                                   arguments.list_tests)
         print('\n'.join(sorted(test_list[0])))
         print('Total:', len(test_list[0]))
-        return None, None
+        return True
 
     if (arguments.list_tests_from_file):
         test_list, skip_list = read_tests_from_manifest(
             arguments.list_tests_from_file, arguments.tensorflow_path)
         print('\n'.join(sorted(test_list)))
         print('Total:', len(test_list), 'Skipped:', len(skip_list))
-        return None, None
+        return True
 
     if (arguments.run_test):
         invalid_list = []
@@ -113,7 +114,6 @@ def main():
         return check_and_print_summary(test_results, test_list[1])
 
     if (arguments.run_tests_from_file):
-        all_test_list = []
         invalid_list = []
         start = time.time()
         list_of_tests = read_tests_from_manifest(arguments.run_tests_from_file,
@@ -124,6 +124,8 @@ def main():
         print("\n\nTesting results\nTime elapsed: ",
               str(timedelta(seconds=elapsed)))
         return check_and_print_summary(test_results, invalid_list)
+
+    return True
 
 
 def get_test_list(tf_path, test_regex):
@@ -153,9 +155,6 @@ def get_test_list(tf_path, test_regex):
         print('\n'.join(accepted_formats))
 
     return test_list
-
-
-from fnmatch import fnmatch
 
 
 def regex_walk(dirname, regex_input):
@@ -239,18 +238,18 @@ def list_tests(module_list, regex_input):
                 'ERROR:', str(e))
             module_list.remove(test_module)
             continue
-        for aTestSuite in test_suites:
-            for aTestCase in aTestSuite:
-                alltests.append(aTestCase.id())
+        for a_testsuite in test_suites:
+            for a_testcase in a_testsuite:
+                alltests.append(a_testcase.id())
 
     # change module.class to module.class.*
     regex_input = regex_input + ('.*' if (regex_input.count('.') == 1) else '')
     regex_pattern = '^' + regex_input + '$'
     regex_pattern = re.sub(r'\.', '\\.', regex_pattern)
     regex_pattern = re.sub(r'\*', '.*', regex_pattern)
-    for aTestCaseID in alltests:
-        if re.search(regex_pattern, aTestCaseID):
-            listtests.append(aTestCaseID)
+    for a_testcase_id in alltests:
+        if re.search(regex_pattern, a_testcase_id):
+            listtests.append(a_testcase_id)
 
     if not listtests:
         invalidtests.append(regex_input)
@@ -258,11 +257,9 @@ def list_tests(module_list, regex_input):
     return listtests, invalidtests
 
 
-global g_imported_files
-g_imported_files = set()
-
-
-def read_tests_from_manifest(manifestfile, tensorflow_path):
+def read_tests_from_manifest(manifestfile,
+                             tensorflow_path,
+                             g_imported_files=set()):
     """
     Reads a file that has include & exclude patterns,
     Returns a list of leaf-level single testcase, no duplicates
@@ -294,7 +291,7 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
                              manifestfile)
                 g_imported_files.add(line)
                 new_runs, new_skips = read_tests_from_manifest(
-                    line, tensorflow_path)
+                    line, tensorflow_path, g_imported_files)
                 assert (new_runs.isdisjoint(new_skips))
                 run_items |= new_runs
                 skipped_items |= new_skips
@@ -315,11 +312,11 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
     return run_items, skipped_items
 
 
-def func_utrunner_testcase_run(return_dict, runner, aTest):
+def func_utrunner_testcase_run(return_dict, runner, a_test):
     # This func runs in a separate process
     try:
-        test_result = runner.run(aTest)
-        return_dict[aTest.id()] = {
+        test_result = runner.run(a_test)
+        return_dict[a_test.id()] = {
             'wasSuccessful':
             test_result.wasSuccessful(),
             'failures':
@@ -331,7 +328,7 @@ def func_utrunner_testcase_run(return_dict, runner, aTest):
         }
     except Exception as e:
         #print('DBG: func_utrunner_testcase_run test_result.errors', test_result.errors, '\n')
-        return_dict[aTest.id()] = {
+        return_dict[a_test.id()] = {
             'wasSuccessful': False,
             'failures': [('', test_result.errors[0][1])],
             'errors': [('', test_result.errors[0][1])],
@@ -339,28 +336,28 @@ def func_utrunner_testcase_run(return_dict, runner, aTest):
         }
 
 
-def run_singletest_in_new_child_process(runner, aTest):
+def run_singletest_in_new_child_process(runner, a_test):
     mpmanager_return_dict.clear()
     return_dict = mpmanager_return_dict
     p = multiprocessing.Process(
-        target=func_utrunner_testcase_run, args=(return_dict, runner, aTest))
+        target=func_utrunner_testcase_run, args=(return_dict, runner, a_test))
     p.start()
     p.join()
 
     #  A negative exitcode -N indicates that the child was terminated by signal N.
     if p.exitcode != 0:
-        error_msg = '!!! RUNTIME ERROR !!! Test ' + aTest.id(
+        error_msg = '!!! RUNTIME ERROR !!! Test ' + a_test.id(
         ) + ' exited with code: ' + str(p.exitcode)
         print(error_msg)
-        return_dict[aTest.id()] = {
+        return_dict[a_test.id()] = {
             'wasSuccessful': False,
             'failures': [('', error_msg)],
             'errors': [('', error_msg)],
             'skipped': []
         }
-        return return_dict[aTest.id()]
+        return return_dict[a_test.id()]
 
-    test_result_map = return_dict[aTest.id()]
+    test_result_map = return_dict[a_test.id()]
     return test_result_map
 
 
@@ -403,29 +400,29 @@ def run_test(test_list, xml_report, verbosity=0):
         runner = unittest.TextTestRunner(verbosity=verbosity)
         for testpattern in test_list:
             testsuite = loader.loadTestsFromName(testpattern)
-            for aTest in testsuite:
+            for a_test in testsuite:
                 print()
                 run_test_counter += 1
                 print('>> >> >> >> ({}) Testing: {} ...'.format(
-                    run_test_counter, aTest.id()))
+                    run_test_counter, a_test.id()))
                 start = time.time()
                 test_result_map = run_singletest_in_new_child_process(
-                    runner, aTest)
+                    runner, a_test)
                 elapsed = time.time() - start
                 elapsed = str(timedelta(seconds=elapsed))
 
                 if test_result_map['wasSuccessful'] == True:
-                    succeeded.append(aTest.id())
-                    result_str = " \033[92m OK \033[0m " + aTest.id()
+                    succeeded.append(a_test.id())
+                    result_str = " \033[92m OK \033[0m " + a_test.id()
                 elif 'failures' in test_result_map and bool(
                         test_result_map['failures']):
                     failures.append(test_result_map['failures'])
-                    result_str = " \033[91m FAIL \033[0m " + aTest.id() + \
+                    result_str = " \033[91m FAIL \033[0m " + a_test.id() + \
                         '\n\033[91m' + ''.join(test_result_map['failures'][0][1]) + '\033[0m'
                 elif 'errors' in test_result_map and bool(
                         test_result_map['errors']):
                     failures.append(test_result_map['errors'])
-                    result_str = " \033[91m FAIL \033[0m " + aTest.id() + \
+                    result_str = " \033[91m FAIL \033[0m " + a_test.id() + \
                         '\n\033[91m' + ''.join(test_result_map['errors'][0][1]) + '\033[0m'
 
                 if 'skipped' in test_result_map and bool(
