@@ -84,14 +84,14 @@ def main():
     if (arguments.list_tests):
         test_list = get_test_list(arguments.tensorflow_path,
                                   arguments.list_tests)
-        print('\n'.join(test_list[0]))
+        print('\n'.join(sorted(test_list[0])))
         print('Total:', len(test_list[0]))
         return None, None
 
     if (arguments.list_tests_from_file):
         test_list, skip_list = read_tests_from_manifest(
             arguments.list_tests_from_file, arguments.tensorflow_path)
-        print('\n'.join(test_list))
+        print('\n'.join(sorted(test_list)))
         print('Total:', len(test_list), 'Skipped:', len(skip_list))
         return None, None
 
@@ -105,8 +105,8 @@ def main():
                 result_str = "\033[91m INVALID \033[0m " + test + \
                 '\033[91m' + '\033[0m'
                 print('TEST:', result_str)
-        test_results = run_test(test_list[0], xml_report,
-                                (2 if arguments.verbose else 0))
+        test_results = run_test(
+            sorted(test_list[0]), xml_report, (2 if arguments.verbose else 0))
         elapsed = time.time() - start
         print("\n\nTesting results\nTime elapsed: ",
               str(timedelta(seconds=elapsed)))
@@ -118,8 +118,8 @@ def main():
         start = time.time()
         list_of_tests = read_tests_from_manifest(arguments.run_tests_from_file,
                                                  arguments.tensorflow_path)[0]
-        test_results = run_test(list_of_tests, xml_report,
-                                (2 if arguments.verbose else 0))
+        test_results = run_test(
+            sorted(list_of_tests), xml_report, (2 if arguments.verbose else 0))
         elapsed = time.time() - start
         print("\n\nTesting results\nTime elapsed: ",
               str(timedelta(seconds=elapsed)))
@@ -243,15 +243,14 @@ def list_tests(module_list, regex_input):
             for aTestCase in aTestSuite:
                 alltests.append(aTestCase.id())
 
+    # change module.class to module.class.*
+    regex_input = regex_input + ('.*' if (regex_input.count('.') == 1) else '')
+    regex_pattern = '^' + regex_input + '$'
+    regex_pattern = re.sub(r'\.', '\\.', regex_pattern)
+    regex_pattern = re.sub(r'\*', '.*', regex_pattern)
     for aTestCaseID in alltests:
-        if regex_input == aTestCaseID:  # exact match
+        if re.search(regex_pattern, aTestCaseID):
             listtests.append(aTestCaseID)
-        else:
-            regex_pattern = '^' + regex_input + '$'
-            regex_pattern = re.sub(r'\.', '\\.', regex_pattern)
-            regex_pattern = re.sub(r'\*', '.*', regex_pattern)
-            if re.search(regex_pattern, aTestCaseID):
-                listtests.append(aTestCaseID)
 
     if not listtests:
         invalidtests.append(regex_input)
@@ -260,7 +259,7 @@ def list_tests(module_list, regex_input):
 
 
 global g_imported_files
-g_imported_files = []
+g_imported_files = set()
 
 
 def read_tests_from_manifest(manifestfile, tensorflow_path):
@@ -268,15 +267,9 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
     Reads a file that has include & exclude patterns,
     Returns a list of leaf-level single testcase, no duplicates
     """
-
-    def invalidate_A_after_B(AList, BList):
-        for aTest in BList:
-            if aTest in AList:
-                AList.remove(aTest)
-
-    run_items = []
-    skipped_items = []
-    g_imported_files.append(manifestfile)
+    run_items = set()
+    skipped_items = set()
+    g_imported_files.add(manifestfile)
     with open(manifestfile) as fh:
         curr_section = ''
         for line in fh.readlines():
@@ -299,27 +292,23 @@ def read_tests_from_manifest(manifestfile, tensorflow_path):
                 if line in g_imported_files:
                     sys.exit("ERROR: re-import of manifest " + line + " in " +
                              manifestfile)
-                g_imported_files.append(line)
+                g_imported_files.add(line)
                 new_runs, new_skips = read_tests_from_manifest(
                     line, tensorflow_path)
-                invalidate_A_after_B(new_skips, new_runs)
-                invalidate_A_after_B(skipped_items, new_runs)
-                run_items.extend(new_runs)
-                skipped_items.extend(new_skips)
+                assert (new_runs.isdisjoint(new_skips))
+                run_items |= new_runs
+                skipped_items |= new_skips
+                run_items -= skipped_items
                 continue
             if curr_section == 'run_section':
-                new_runs = get_test_list(tensorflow_path, line)[0]
-                invalidate_A_after_B(skipped_items, new_runs)
-                run_items.extend(new_runs)
+                new_runs = set(get_test_list(tensorflow_path, line)[0])
+                skipped_items -= new_runs
+                run_items |= new_runs
             if curr_section == 'skip_section':
-                new_skips = get_test_list(tensorflow_path, line)[0]
-                invalidate_A_after_B(run_items, new_skips)
-                skipped_items.extend(new_skips)
-        # remove dups
-        run_items = list(dict.fromkeys(run_items))
-        skipped_items = list(dict.fromkeys(skipped_items))
-        print()
-        invalidate_A_after_B(run_items, skipped_items)
+                new_skips = set(get_test_list(tensorflow_path, line)[0])
+                run_items -= new_skips
+                skipped_items |= new_skips
+        assert (run_items.isdisjoint(skipped_items))
         print('\n#Tests to Run={}, Skip={} (manifest = {})\n'.format(
             len(run_items), len(skipped_items), manifestfile))
 
