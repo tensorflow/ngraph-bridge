@@ -26,8 +26,6 @@ import platform
 import subprocess
 from distutils.sysconfig import get_python_lib
 
-this_script_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(this_script_dir + '/..')
 from tools.build_utils import load_venv, command_executor, apply_patch
 
 
@@ -92,10 +90,6 @@ class TestEnv:
             return os.environ['NGRAPH_TF_BACKEND']
         else:
             return 'CPU'
-
-
-def print_test_manifest_filename():
-    print(TestEnv.get_test_manifest_filename())
 
 
 def install_ngraph_bridge(artifacts_dir):
@@ -380,32 +374,3 @@ def run_cpp_example_test(build_dir):
 
     # Return to the original directory
     os.chdir(root_pwd)
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--run_func',
-        type=str,
-        help="runs a function in this file\n",
-        action="store")
-    parser.add_argument(
-        'func_args',
-        metavar='args',
-        type=str,
-        nargs='*',
-        help='optional argument(s) for the function')
-
-    arguments = parser.parse_args()
-
-    if (arguments.run_func):
-        if arguments.run_func in globals():
-            method_to_call = globals()[arguments.run_func]
-            dict_func_args = dict.fromkeys(arguments.func_args, 1)
-            method_to_call(*(arguments.func_args))
-        else:
-            sys.exit("Cannot find function!")
-
-
-if __name__ == '__main__':
-    main()
