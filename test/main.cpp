@@ -19,6 +19,7 @@
 #include <array>
 #include <cctype>
 #include <chrono>
+#include <clocale>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -42,18 +43,37 @@ using namespace std;
 string SCRIPTDIR =
     std::regex_replace(__FILE__, std::regex("^(.*)/[^/]+$"), "$1");
 
-// will only get stdout back, not stderr
-std::string exec_cmd(const char* cmd) {
-  std::string result;
-  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-  if (!pipe) {
-    throw std::runtime_error("popen() failed!");
+static string str_tolower(string s) {
+  std::transform(s.begin(), s.end(), s.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return s;
+}
+
+template <class Set1, class Set2>
+bool is_disjoint(const Set1& set1, const Set2& set2) {
+  if (set1.empty() || set2.empty()) return true;
+
+  typename Set1::const_iterator it1 = set1.begin(), it1End = set1.end();
+  typename Set2::const_iterator it2 = set2.begin(), it2End = set2.end();
+
+  if (*it1 > *set2.rbegin() || *it2 > *set1.rbegin()) return true;
+
+  while (it1 != it1End && it2 != it2End) {
+    if (*it1 == *it2) return false;
+    if (*it1 < *it2) {
+      it1++;
+    } else {
+      it2++;
+    }
   }
-  std::array<char, 128> buffer;  // transfer at a time
-  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-    result += buffer.data();
+
+  return true;
+}
+
+void set_diff(set<string>& set1, const set<string>& set2) {
+  for (const auto& elem : set2) {
+    set1.erase(elem);
   }
-  return result;
 }
 
 // manifestfile must be in abs path format
@@ -94,39 +114,83 @@ static void read_tests_from_manifest(string manifestfile, set<string>& run_list,
         g_imported_files.insert(line);
         set<string> new_runs, new_skips;
         read_tests_from_manifest(line, new_runs, new_skips);
+        assert((is_disjoint<set<string>, set<string>>(new_runs, new_skips)));
         run_list.insert(new_runs.begin(), new_runs.end());
         skip_list.insert(new_skips.begin(), new_skips.end());
+        set_diff(run_list, skip_list);
       }
       if (std::regex_search(line, std::regex("[:\\s]"))) {
         cout << "Bad pattern: [" << line << "], ignoring...\n";
         continue;
       }
       if (curr_section == "run_section") {
+        skip_list.erase(line);
         run_list.insert(line);
       }
       if (curr_section == "skip_section") {
+        run_list.erase(line);
         skip_list.insert(line);
       }
     }
     fs.close();
+    assert((is_disjoint<set<string>, set<string>>(run_list, skip_list)));
   } else {
     cout << "Cannot open file: <" << manifestfile << ">\n";
   }
 }
 
-// To keep the logic in one place, we will invoke function from test_utils.py
-static string get_test_manifest_filepath() {
-  string cmdstr =
-      "python3 " + SCRIPTDIR +
-      "/../tools/test_utils.py --run_func print_test_manifest_filename";
-  auto resp = exec_cmd(cmdstr.c_str());
-  if (resp.back() == '\n') resp.pop_back();
-  resp = std::regex_replace(resp, std::regex("^\\s+"), "");
-  resp = std::regex_replace(resp, std::regex("\\s+$"), "");
-  if (resp.front() != '/') {  // works in Linux
-    resp = SCRIPTDIR + "/" + resp;
+class TestEnv {
+ public:
+  static string get_platform_type() {
+// 'Linux', 'Windows', 'Darwin', or 'Unknown'
+#ifdef _WIN32
+    return "Windows";
+#elif __APPLE__ || __MACH__
+    return "Darwin";
+#elif __linux__
+    return "Linux";
+#else
+    return "Unknown";
+#endif
   }
-  return resp;
+
+  static string get_test_manifest_filename() {
+    char* env = getenv("NGRAPH_TF_TEST_MANIFEST");
+    if (env) {
+      return std::string(env);
+    }
+    // test manifest files are named like this:
+    // tests_${PLATFORM}_${NGRAPH_TF_EXECUTOR}_${NGRAPH_TF_BACKEND}.txt
+    return string("tests_") + str_tolower(TestEnv::PLATFORM()) + string("_") +
+           str_tolower(TestEnv::EXECUTOR()) + string("_") +
+           str_tolower(TestEnv::BACKEND()) + string(".txt");
+  }
+
+  static string PLATFORM() { return get_platform_type(); }
+
+  static string EXECUTOR() {
+    char* env = getenv("NGRAPH_TF_EXECUTOR");
+    if (env) {
+      return std::string(env);
+    }
+    return "ngraph";
+  }
+
+  static string BACKEND() {
+    char* env = getenv("NGRAPH_TF_BACKEND");
+    if (env) {
+      return std::string(env);
+    }
+    return "CPU";
+  }
+};
+
+static string get_test_manifest_filepath() {
+  string str = TestEnv::get_test_manifest_filename();
+  if (str.at(0) != '/') {
+    str = SCRIPTDIR + "/" + str;
+  }
+  return str;
 }
 
 static void set_filters_from_file() {
@@ -149,16 +213,35 @@ static void set_filters_from_file() {
   ::testing::GTEST_FLAG(filter) = filters;
 }
 
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
+bool is_arg_provided(int argc, char** argv, string which) {
+  bool provided = false;
+  for (int i = 1; i < argc; i++) {
+    string s(argv[i]);
+    if (s.rfind(which, 0) == 0) {
+      // s starts with prefix
+      provided = true;
+      break;
+    }
+  }
+  return provided;
+}
 
-  // if you want to run all tests, do not provide any --gtest_filter arg,
-  // as we check for * to call manifest
-  if (::testing::GTEST_FLAG(filter) == "*") {
-    cout << "Will use test manifest to set test filters...\n";
+int main(int argc, char** argv) {
+  bool filter_arg = is_arg_provided(argc, argv, "--gtest_filter");
+  bool list_tests_arg = is_arg_provided(argc, argv, "--gtest_list_tests");
+
+  if (list_tests_arg) {
+    cout << "Checking test manifest for listing...\n";
+    set_filters_from_file();
+    cout << "\n--gtest_list_tests : " << ::testing::GTEST_FLAG(filter)
+         << "\n\n";
+  } else if (!filter_arg && argc == 1) {
+    // user has not given any explicit filters
+    cout << "Using test manifest to set test filters...\n";
     set_filters_from_file();
   }
 
+  ::testing::InitGoogleTest(&argc, argv);
   int rc = RUN_ALL_TESTS();
   return rc;
 }
