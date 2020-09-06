@@ -1,0 +1,43 @@
+# Manifest to specify included & excluded tests
+# Comment lines start with #
+# This manifest is consumed by nGraph-Bridge PyTest framework via .../test/python/conftest.py
+# The Python test files can be found in TensorFlow repo under .../tensorflow/python tree
+
+# As per pytest documentation, specify/select tests via:
+#   some_python_test.py
+#   some_foldername (relative) or /path/to/some/folder (absolute)
+#   test_mod.py::test_func -> run a specific test within a module
+#   test_mod.py::TestClass::test_method -> specify a method
+#   -k "some predicate" e.g. -k "MyClass and not method" (case-insensitive)
+#       -> it will run TestMyClass.test_something but not TestMyClass.test_method_simple
+#   -m mymarker -> run tests by marker expressions
+#   --pyargs pkg.testing -> will import pkg.testing and use its filesystem location to find and run tests from
+
+# To see a list of tests, run:
+# .../test/python$ python -m pytest --collect-only <optional-args-to-specify-tests>
+# e.g. ROOT=/localdisk/WS1 PYTHONPATH=$ROOT:$ROOT/test/python:$ROOT/tools:$ROOT/examples:$ROOT/examples/mnist python -m pytest --collect-only test_elementwise_ops.py
+
+# Few examples of valid regex/pattern (dots are treated literally):
+# test_const_scalarval # can specify just test-name, but make sure it's unique
+# TestBfloat16.test_conv2d_bfloat16 # better: specify class & test-name
+# test_bfloat16.TestBfloat16 # all tests of class TestBfloat16, defined in file/module test_bfloat16.py
+# test_elementwise_ops.TestElementwiseOperations.test_less_equal[1.4-1.0-expected0] # specify exact parameters
+# TestElementwiseOperations.test_maximum # all parametrized-tests of function test_maximum in class TestElementwiseOperations
+
+###################################################
+[IMPORT]
+# Read in one/more external manifest file(s)
+# Path specified is relative to this file's path
+
+# None
+
+###################################################
+[RUN]
+# Specify tests/patterns/regex that should be included
+
+.  # all tests under current dir
+
+###################################################
+[SKIP]
+
+# None
