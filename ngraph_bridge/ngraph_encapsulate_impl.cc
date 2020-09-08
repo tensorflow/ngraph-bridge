@@ -168,7 +168,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     }  // cache eviction if cache size greater than cache depth
 
     NG_TRACE("Compile nGraph", m_name, "");
-    NGraphEncapsulateImpl::Compile(m_op_backend_name, ng_function, ng_exec);
+    NGraphEncapsulateImpl::Compile(ng_function, ng_exec);
     SetNgExecMap(signature, ng_exec);
 
     m_lru.push_front(signature);
