@@ -60,7 +60,6 @@ test_elementwise_ops.TestElementwiseOperations.test_logicalnot_2d
 test_flib.TestFlibOperations.test_flib_1  # TBD
 test_fusedbatchnorm.TestFusedBatchNorm.test_fusedbatchnorm_inference_nchw
 test_fusedbatchnorm.TestFusedBatchNorm.test_fusedbatchnorm_inference_nhwc
-test_gathernd.TestGatherNDOperations.test_gather_nd
 test_log1p.TestLog1pOperations.test_log1p
 test_mnist_training.TestMnistTraining.test_mnist_training[adam]
 test_mnist_training.TestMnistTraining.test_mnist_training[sgd]

@@ -1500,38 +1500,6 @@ static Status TranslateFusedBatchNormOp(
   return Status::OK();
 }
 
-static Status TranslateGatherNdOp(const Node* op,
-                                  const std::vector<const Tensor*>&,
-                                  Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_params;
-  ng::Output<ng::Node> ng_indices;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_params, ng_indices));
-
-  auto ng_params_shape = ng_params.get_shape();
-  size_t ng_params_rank = ng_params_shape.size();
-  auto ng_indices_shape = ng_indices.get_shape();
-  size_t ng_indices_rank = ng_indices_shape.size();
-
-  for (size_t i = 0; i < ng_params_rank; i++) {
-    if (ng_params_shape[i] == 0) {
-      return errors::InvalidArgument(
-          "Requested more than 0 entries, but params is empty.  Params shape:"
-          "[",
-          ng::join(ng_params_shape, ","), "]");
-    }
-  }
-
-  if ((ng_indices_shape[ng_indices_rank - 1]) > ng_params_rank) {
-    return errors::InvalidArgument(
-        "The last dimension of indices can be at most the rank of params");
-  }
-
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<ng::op::GatherND>(
-                                      op->name(), ng_params, ng_indices));
-
-  return Status::OK();
-}
-
 static Status TranslateFusedMatMulOp(const Node* op,
                                      const std::vector<const Tensor*>&,
                                      Builder::OpMap& ng_op_map) {
@@ -3076,7 +3044,6 @@ const static std::map<
         {"FusedBatchNorm", TranslateFusedBatchNormOp},
         {"FusedBatchNormV2", TranslateFusedBatchNormOp},
         {"FusedBatchNormV3", TranslateFusedBatchNormOp},
-        {"GatherNd", TranslateGatherNdOp},
         {"GatherV2", TranslateGatherV2Op},
         {"_FusedConv2D", TranslateFusedConv2DOp},
         {"_FusedMatMul", TranslateFusedMatMulOp},

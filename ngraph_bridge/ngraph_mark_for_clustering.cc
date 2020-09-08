@@ -305,7 +305,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["FusedBatchNormV3"] =
         FusedBatchNormConfirmationFunction();
     confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
-    confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
     confirmation_function_map["_FusedMatMul"] =
         SimpleConfirmationFunction();  // TODO accept under all conditions?
@@ -460,8 +459,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     // DT_FLOAT
     type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
     type_constraint_map["FusedBatchNormV3"]["T"] = {DT_FLOAT};
-    type_constraint_map["GatherNd"]["Tparams"] = {DT_FLOAT};  // NGraphDTypes();
-    type_constraint_map["GatherNd"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
     type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["GatherV2"]["Taxis"] = NGraphIndexDTypes();
@@ -633,7 +630,6 @@ GetTFToNgOpMap() {
       {"FusedBatchNormV3",
        {constant, std::make_shared<ngraph::op::BatchNormInference>(),
         std::make_shared<opset::Transpose>()}},
-      {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
       {"GatherV2", {constant, std::make_shared<opset::Gather>()}},
       {"_FusedConv2D",
        {std::make_shared<opset::Convolution>(), constant,
