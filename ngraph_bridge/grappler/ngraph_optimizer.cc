@@ -38,6 +38,12 @@ namespace ngraph_bridge {
 
 Status NgraphOptimizer::Init(
     const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
+  const auto params = config->parameter_map();
+  for (auto i : params) {
+    m_config_map["_ngraph_" + i.first] = i.second.s();
+    NGRAPH_VLOG(3) << "Attribute: " << i.first
+                   << " Value: " << m_config_map["_ngraph_" + i.first];
+  }
   return Status::OK();
 }
 
@@ -174,7 +180,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  auto status = EncapsulateClusters(&graph, idx, fdeflib_new, config_map);
+  auto status = EncapsulateClusters(&graph, idx, fdeflib_new, m_config_map);
   if (status != Status::OK()) {
     delete (fdeflib_new);
     return status;
@@ -219,5 +225,4 @@ int NgraphOptimizer::FreshIndex() {
 REGISTER_GRAPH_OPTIMIZER_AS(NgraphOptimizer, "ngraph-optimizer");
 
 }  // end namespace ngraph_bridge
-
 }  // end namespace tensorflow

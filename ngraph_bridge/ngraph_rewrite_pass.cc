@@ -136,6 +136,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
+    std::unordered_map<std::string, std::string> config_map;
     auto status =
         EncapsulateClusters(options.graph->get(), idx, fdeflib_new, config_map);
     if (status != Status::OK()) {
