@@ -658,125 +658,6 @@ static Status TranslateAvgPoolOp(const Node* op,
   return Status::OK();
 }
 
-static Status TranslateBatchMatMulOp(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_lhs, ng_rhs;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_lhs, ng_rhs));
-
-  auto ng_lhs_shape = ng_lhs.get_shape();
-  auto ng_rhs_shape = ng_rhs.get_shape();
-
-  if (ng_lhs_shape.size() != ng_rhs_shape.size()) {
-    return errors::InvalidArgument(
-        "Dimensions of two input args are not the same for BatchMatMul. Left "
-        "shape is ",
-        ng::join(ng_lhs_shape), " of rank ", ng_lhs_shape.size(),
-        " and Right shape is ", ng::join(ng_rhs_shape), " of rank ",
-        ng_rhs_shape.size());
-  }
-  size_t n_dims = ng_lhs_shape.size();
-  if (n_dims < 2) {
-    return errors::InvalidArgument(
-        "Dimensions of input args for BatchMatMul must be >=2 but is ", n_dims);
-  }
-
-  for (size_t i = 0; i < n_dims - 2; ++i) {
-    if (ng_lhs_shape[i] != ng_rhs_shape[i]) {
-      return errors::InvalidArgument(
-          "ng_lhs_shape and ng_rhs_shape must be the same for BatchMatMul "
-          "for each dimension but found ",
-          i, "th dimension different. Left shape is ", ng::join(ng_lhs_shape),
-          "and Right shape is ", ng::join(ng_rhs_shape));
-    }
-  }
-
-  bool tf_adj_x = false;
-  bool tf_adj_y = false;
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "adj_x", &tf_adj_x));
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "adj_y", &tf_adj_y));
-
-  if (n_dims == 2) {
-    SaveNgOp(ng_op_map, op->name(),
-             ConstructNgNode<ngraph::op::MatMul>(op->name(), ng_lhs, ng_rhs,
-                                                 tf_adj_x, tf_adj_y));
-  } else if (n_dims == 3) {
-    SaveNgOp(ng_op_map, op->name(),
-             ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
-                 op->name(), ng_lhs, ng_rhs, tf_adj_x, tf_adj_y));
-  } else {
-    ng::AxisVector out_axes(n_dims);
-    std::iota(out_axes.begin(), out_axes.end(), 0);
-
-    size_t compound_size = 1;
-    for (size_t i = 0; i < n_dims - 2; i++) {
-      compound_size *= ng_lhs_shape[i];
-    }
-
-    ng::Shape tmp_lhs_shape = {compound_size, ng_lhs_shape[n_dims - 2],
-                               ng_lhs_shape[n_dims - 1]};
-    ng::Shape tmp_rhs_shape = {compound_size, ng_rhs_shape[n_dims - 2],
-                               ng_rhs_shape[n_dims - 1]};
-
-    auto output_shape = ng_lhs_shape;
-    output_shape[n_dims - 2] = ng_lhs_shape[n_dims - (tf_adj_x ? 1 : 2)];
-    output_shape[n_dims - 1] = ng_rhs_shape[n_dims - (tf_adj_y ? 2 : 1)];
-    ng::AxisVector tmp_axes = {0, 1, 2};
-
-    ng::Output<ng::Node> lhs_reshape = ConstructNgNode<ngraph::op::Reshape>(
-        op->name(), ng_lhs, out_axes, tmp_lhs_shape);
-    ng::Output<ng::Node> rhs_reshape = ConstructNgNode<ngraph::op::Reshape>(
-        op->name(), ng_rhs, out_axes, tmp_rhs_shape);
-    ng::Output<ng::Node> batchmatmul_transpose =
-        ConstructNgNode<ngraph::op::BatchMatMulTranspose>(
-            op->name(), lhs_reshape, rhs_reshape, tf_adj_x, tf_adj_y);
-    SaveNgOp(ng_op_map, op->name(),
-             ConstructNgNode<ngraph::op::Reshape>(
-                 op->name(), batchmatmul_transpose, tmp_axes, output_shape));
-  }
-  return Status::OK();
-}
-
-static Status TranslateBatchMatMulV2Op(
-    const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_lhs, ng_rhs;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_lhs, ng_rhs));
-
-  auto ng_lhs_shape = ng_lhs.get_shape();
-  auto ng_rhs_shape = ng_rhs.get_shape();
-  size_t n_dims = ng_lhs_shape.size();
-
-  if (ng_lhs_shape.size() != ng_rhs_shape.size()) {
-    return errors::InvalidArgument(
-        "Dimensions of two input args are not the same for BatchMatMul. Left"
-        "shape is ",
-        ng::join(ng_lhs_shape), " of rank ", ng_lhs_shape.size(),
-        " and Right shape is ", ng::join(ng_rhs_shape), " of rank ",
-        ng_rhs_shape.size());
-  }
-
-  for (size_t i = 0; i < n_dims - 2; ++i) {
-    if (!((ng_lhs_shape[i] == ng_rhs_shape[i]) || (ng_lhs_shape[i] == 1) ||
-          (ng_rhs_shape[i] == 1))) {
-      return errors::InvalidArgument(
-          "ng_lhs_shape and ng_rhs_shape must be broadcastable for "
-          "BatchMatMulV2 "
-          "for each dimension. Failed to match dimension ",
-          i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
-          ng_rhs_shape[i]);
-    } else if (ng_lhs_shape[i] != ng_lhs_shape[i]) {
-      return errors::Unimplemented(
-          "ng_lhs_shape and ng_rhs_shape must be the same for each dimension,"
-          "for current implementation of BatchMatMulV2. "
-          "Failed to match dimension ",
-          i, " where lhs was ", ng_lhs_shape[i], " and rhs was ",
-          ng_rhs_shape[i]);
-    }
-  }
-  return TranslateBatchMatMulOp(op, static_input_map, ng_op_map);
-}
-
 static Status TranslateBiasAddOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
@@ -2955,8 +2836,6 @@ const static std::map<
         {"Asin", TranslateUnaryOp<opset::Asin>},
         {"Atan", TranslateUnaryOp<opset::Atan>},
         {"AvgPool", TranslateAvgPoolOp},
-        {"BatchMatMul", TranslateBatchMatMulOp},
-        {"BatchMatMulV2", TranslateBatchMatMulV2Op},
         {"BiasAdd", TranslateBiasAddOp},
         {"Cast", TranslateCastOp},
         {"Ceil", TranslateUnaryOp<opset::Ceiling>},

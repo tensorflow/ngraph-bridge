@@ -267,8 +267,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Asin"] = SimpleConfirmationFunction();
     confirmation_function_map["Atan"] = SimpleConfirmationFunction();
     confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
-    confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
-    confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
     confirmation_function_map["BiasAdd"] = SimpleConfirmationFunction();
     confirmation_function_map["Cast"] = SimpleConfirmationFunction();
     confirmation_function_map["Ceil"] = SimpleConfirmationFunction();
@@ -427,8 +425,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Asin"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Atan"]["T"] = NGraphNumericDTypes();
     type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BiasAdd"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cast"]["SrcT"] = NGraphDTypes();
     type_constraint_map["Cast"]["DstT"] = NGraphDTypes();
@@ -576,14 +572,6 @@ GetTFToNgOpMap() {
       {"Asin", {std::make_shared<opset::Asin>()}},
       {"Atan", {std::make_shared<opset::Atan>()}},
       {"AvgPool", {std::make_shared<opset::AvgPool>()}},
-      {"BatchMatMul",
-       {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
-        std::make_shared<ngraph::op::MatMul>(),
-        std::make_shared<ngraph::op::Reshape>()}},
-      {"BatchMatMulV2",
-       {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
-        std::make_shared<ngraph::op::MatMul>(),
-        std::make_shared<ngraph::op::Reshape>()}},
       {"BiasAdd",
        {constant, std::make_shared<opset::Add>(),
         std::make_shared<opset::Reshape>()}},
