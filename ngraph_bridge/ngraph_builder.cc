@@ -78,7 +78,7 @@ static Status ValidateInputCountMin(const Node* op, tensorflow::int32 count) {
 //    Builder::OpMap& ng_op_map        - The TF-to-nGraph op map.
 //    std::string op_name              - Name of the op.
 //
-//    shared_ptr<ng::Node> output_node - ng::Node to store
+//    ng::Output<ng::Node> output_node - ng::Node to store
 //
 
 static void SaveNgOp(Builder::OpMap& ng_op_map, const std::string& op_name,
@@ -115,7 +115,7 @@ ng::Output<ng::Node> ConstructNgNode(const std::string& op_name,
 //      Node* tf_input;
 //      TF_RETURN_IF_ERROR(op->input_node(0, &tf_input));
 //
-//      shared_ptr<ng::Node> ng_input;
+//      ng::Output<ng::Node> ng_input;
 //      try {
 //        ng_input = ng_op_map.at(tf_input->name());
 //      } catch (const std::out_of_range&) {
@@ -125,7 +125,7 @@ ng::Output<ng::Node> ConstructNgNode(const std::string& op_name,
 //
 // Into 2 lines:
 //
-//      shared_ptr<ng::node> ng_input;
+//      ng::Output<ng::node> ng_input;
 //      TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, &ng_input))
 //
 //
@@ -135,7 +135,7 @@ ng::Output<ng::Node> ConstructNgNode(const std::string& op_name,
 //    Node* op                  - TF op being translated.
 //    input_idx                     - index of input
 //
-//    shared_ptr<ng::Node> *result  - ng::Node pointer where result
+//    ng::Output<ng::Node> *result  - ng::Node pointer where result
 //                                    will be written
 //
 //
@@ -420,7 +420,7 @@ ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
 //                               - the static input map
 //    Builder::OpMap& ng_op_map  - The TF-to-nGraph op map.
 //
-//    std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>>
+//    std::function<ng::Output<ng::Node>(ng::Output<ng::Node>>
 //      create_unary_op           - Function to construct the graph implementing
 //                                 the unary op, given the input to the unop
 //                                 as an argument.
@@ -429,9 +429,9 @@ ng::SlicePlan GetSlicePlan(const ng::Shape& shape,
 //
 //  if (n->type_string == "Square") {
 //    TF_RETURN_IF_ERROR(TranslateUnaryOp(n, static_input_map, ng_op_map,
-//                       [] (std::shared_ptr<ng::Node> n) {
+//                       [] (ng::Output<ng::Node> n) {
 //                           return
-//                           (std::make_shared<opset::Multiply>(n,n));
+//                           (ng::Output<opset::Multiply>(n,n));
 //                       });
 //  }
 static Status TranslateUnaryOp(
@@ -475,8 +475,8 @@ static Status TranslateUnaryOp(
 //    inputs.
 //    const std::vector<const Tensor*>& static_input_map - the static input map
 //    Builder::OpMap& ng_op_map  - The TF-to-nGraph op map.
-//    std::function<std::shared_ptr<ng::Node>(std::shared_ptr<ng::Node>,
-//    std::shared_ptr<ng::Node>)>
+//    std::function<ng::Output<ng::Node>(ng::Output<ng::Node>,
+//    ng::Output<ng::Node>)>
 //    create_binary_op           - Function to construct the graph implementing
 //                                 the binary op, given the 2 ng_inputs to the
 //                                 binaryop
@@ -484,11 +484,11 @@ static Status TranslateUnaryOp(
 //
 // if (op->type_string() == "SquaredDifference") {
 //      TF_RETURN_IF_ERROR(TranslateBinaryOp(op, ng_op_map,
-//         [](std::shared_ptr<ng::Node> ng_input1, std::shared_ptr<ng::Node>
+//         [](ng::Output<ng::Node> ng_input1, ng::Output<ng::Node>
 //         ng_input2) {
-//           auto ng_diff = std::make_shared<opset::Subtract>(input1,
+//           auto ng_diff = ng::Output<opset::Subtract>(input1,
 //           input2);
-//           return std::make_shared<opset::Multiply>(ng_diff,ng_diff);
+//           return ng::Output<opset::Multiply>(ng_diff,ng_diff);
 //         }));
 //    }
 //
