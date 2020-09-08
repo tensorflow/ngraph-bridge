@@ -224,7 +224,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
     set_attributes_map["Transpose"] = SetStaticInputs({1});
-    set_attributes_map["UnsortedSegmentSum"] = SetStaticInputs({2});
     initialized = true;
   }
   return set_attributes_map;
@@ -392,8 +391,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     };
     confirmation_function_map["Transpose"] = SimpleConfirmationFunction();
     confirmation_function_map["Unpack"] = SimpleConfirmationFunction();
-    confirmation_function_map["UnsortedSegmentSum"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Xdivy"] = SimpleConfirmationFunction();
     confirmation_function_map["ZerosLike"] = SimpleConfirmationFunction();
     initialized = true;
@@ -556,10 +553,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Transpose"]["T"] = NGraphDTypes();
     type_constraint_map["Transpose"]["Tperm"] = NGraphIndexDTypes();
     type_constraint_map["Unpack"]["T"] = NGraphDTypes();
-    type_constraint_map["UnsortedSegmentSum"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["UnsortedSegmentSum"]["Tindices"] = NGraphIndexDTypes();
-    type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
-        NGraphIndexDTypes();
     type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
     type_constraint_map["ZerosLike"]["T"] = NGraphNumericDTypes();
     initialized = true;
@@ -747,8 +740,6 @@ GetTFToNgOpMap() {
       {"Xdivy",
        {constant, std::make_shared<opset::Divide>(),
         std::make_shared<opset::Equal>(), std::make_shared<opset::Select>()}},
-      {"UnsortedSegmentSum",
-       {constant, std::make_shared<ngraph::op::ScatterAdd>()}},
       {"Unpack",
        {constant, std::make_shared<opset::StridedSlice>(),
         std::make_shared<opset::Reshape>()}},
