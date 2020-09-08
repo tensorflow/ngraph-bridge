@@ -1168,41 +1168,6 @@ static Status TranslateConv3DOp(const Node* op,
   return Status::OK();
 }
 
-// Translate TranslateCropAndResizeOp op
-static Status TranslateCropAndResizeOp(const Node* op,
-                                       const std::vector<const Tensor*>&,
-                                       Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> image, boxes, box_ind, crop_size;
-  TF_RETURN_IF_ERROR(
-      GetInputNodes(ng_op_map, op, image, boxes, box_ind, crop_size));
-
-  // Get the attributes
-  float extrapolation_value;
-  std::string method;
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(op->attrs(), "extrapolation_value", &extrapolation_value));
-  TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "method", &method));
-
-  ng::op::CropAndResize::ResizeMethod ng_method =
-      ng::op::CropAndResize::ResizeMethod::unspecified;
-  if (method == "bilinear") {
-    ng_method = ng::op::CropAndResize::ResizeMethod::bilinear;
-  } else if (method == "nearest") {
-    ng_method = ng::op::CropAndResize::ResizeMethod::nearest;
-  } else {
-    return errors::Internal(
-        "Expected crop and resize's interpolation mode to be bilinear or "
-        "nearest, but got ",
-        extrapolation_value, " in op ", op->name());
-  }
-
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<ng::op::CropAndResize>(op->name(), image, boxes,
-                                                  box_ind, crop_size, ng_method,
-                                                  extrapolation_value));
-  return Status::OK();
-}
-
 static Status TranslateCumsumOp(const Node* op,
                                 const std::vector<const Tensor*>&,
                                 Builder::OpMap& ng_op_map) {
@@ -3002,7 +2967,6 @@ const static std::map<
         {"Conv3D", TranslateConv3DOp},
         {"Cos", TranslateUnaryOp<opset::Cos>},
         {"Cosh", TranslateUnaryOp<opset::Cosh>},
-        {"CropAndResize", TranslateCropAndResizeOp},
         {"Cumsum", TranslateCumsumOp},
         {"DepthToSpace", TranslateDepthToSpaceOp},
         {"DepthwiseConv2dNative", TranslateDepthwiseConv2dNativeOp},
