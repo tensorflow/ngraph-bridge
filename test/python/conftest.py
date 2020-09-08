@@ -14,6 +14,7 @@
 #  limitations under the License.
 # ==============================================================================
 import os
+import re
 import pytest
 from tensorflow.python.framework import ops
 #from tensorflow.tf_unittest_runner import regex_walk
@@ -34,90 +35,113 @@ def cleanup():
     yield
 
 
+def list_tests(manifest_line):
+    items = set()
+    items.add(manifest_line)
+    return items
+
+
+def read_tests_from_manifest(manifestfile, g_imported_files=set()):
+    """
+    Reads a file that has include & exclude patterns,
+    Returns a set of leaf-level single testcase, no duplicates
+    """
+    run_items = set()
+    skipped_items = set()
+    g_imported_files.add(manifestfile)
+    with open(manifestfile) as fh:
+        curr_section = ''
+        for line in fh.readlines():
+            line = line.split('#')[0].rstrip('\n').strip(' ')
+            if line == '':
+                continue
+            if re.search(r'\[IMPORT\]', line):
+                curr_section = 'import_section'
+                continue
+            if re.search(r'\[RUN\]', line):
+                curr_section = 'run_section'
+                continue
+            if re.search(r'\[SKIP\]', line):
+                curr_section = 'skip_section'
+                continue
+            if curr_section == 'import_section':
+                if not os.path.isabs(line):
+                    line = os.path.abspath(
+                        os.path.dirname(manifestfile) + '/' + line)
+                if line in g_imported_files:
+                    sys.exit("ERROR: re-import of manifest " + line + " in " +
+                             manifestfile)
+                g_imported_files.add(line)
+                new_runs, new_skips = read_tests_from_manifest(
+                    line, g_imported_files)
+                assert (new_runs.isdisjoint(new_skips))
+                run_items |= new_runs
+                skipped_items |= new_skips
+                run_items -= skipped_items
+                continue
+            if curr_section == 'run_section':
+                new_runs = list_tests(line)
+                skipped_items -= new_runs
+                run_items |= new_runs
+            if curr_section == 'skip_section':
+                new_skips = list_tests(line)
+                run_items -= new_skips
+                skipped_items |= new_skips
+        assert (run_items.isdisjoint(skipped_items))
+        print('#Tests to Run={}, Skip={} (manifest = {})\n'.format(
+            len(run_items), len(skipped_items), manifestfile))
+
+    return run_items, skipped_items  # 2 sets
+
+
 # PyTestHook: called at early stage of pytest setup
 def pytest_configure(config):
-    pytest.tests_to_skip = []
-    print("pytest_load_initial_conftests args=", config.invocation_params.args,
-          "dir=", config.invocation_params.dir)
+    pytest.tests_to_skip = set()
+    pytest.tests_to_run = set()
+    print("\npytest args=", config.invocation_params.args, "dir=",
+          config.invocation_params.dir)
     pytest.arg_collect_only = (
         '--collect-only' in config.invocation_params.args)
 
-    # Get list of tests to run
+    # Get list of tests to run/skip
     if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
         filename = os.path.abspath(os.environ['NGRAPH_TF_TEST_MANIFEST'])
-        skipitems = []
-        with open(filename) as skipfile:
-            print("[ skip-filter = " + filename + " ]")
-            for line in skipfile.readlines():
-                line = line.split('#')[0].rstrip('\n').strip(' ')
-                if line == '':
-                    continue
-                skipitems.append(line)
-        pytest.tests_to_skip = list(dict.fromkeys(skipitems))  # remove dups
+        pytest.tests_to_run, pytest.tests_to_skip = read_tests_from_manifest(
+            filename)
 
 
-def print_skip_debug(*args):
-    if False and pytest.arg_collect_only:
-        print(' '.join(args))
+def pattern_to_regex(pattern):
+    pattern_noparam = re.sub(r'\[.*$', '', pattern)
+    pattern = re.sub(r'\-', '\\-', pattern)
+    pattern = re.sub(r'\.', '\\.', pattern)
+    pattern = re.sub(r'\[', '\\[', pattern)
+    pattern = re.sub(r'\]', '\\]', pattern)
+    if pattern_noparam.count('.') == 0:
+        pattern = pattern + '\..*\..*'
+    if pattern_noparam.count('.') == 1:
+        pattern = pattern + '\..*'
+    return pattern
 
 
-def should_skip_test(item):
-    skip = False
-    #print("\n\nchecking item:", item.name, item.function.__name__, "\nDetails:", item , "\n", item.module.__name__, item.cls.__qualname__, item.function.__qualname__)
-    #pprint.pprint(dir(item.cls))
-    #print(item.function.__name__, item.function.__qualname__)
-    #debug_object(item)
-    #pprint.pprint(dir(item.function))
-    #pprint.pprint(item.__dict__)
-    #debug_object(item)
-
-    #print("fspath", item.fspath, "parent", item.parent)
-    tests_to_skip = pytest.tests_to_skip
-    if item.name in tests_to_skip:
-        skip = True
-        print_skip_debug("will skip test by name:", item.name,
-                         "(" + item.function.__qualname__ + ")")
-    elif item.cls.__qualname__ + "." + item.name in tests_to_skip:
-        skip = True
-        print_skip_debug("will skip test by class.name:",
-                         item.cls.__qualname__ + "." + item.name)
-    elif item.module.__name__ + "." + item.cls.__qualname__ + "." + item.name in tests_to_skip:
-        skip = True
-        print_skip_debug(
-            "will skip test by module.class.name:", item.module.__name__ + "." +
-            item.cls.__qualname__ + "." + item.name)
-
-    # for parametrized tests, if we specify filter to exclude a test (i.e. all params)
-    elif item.function.__name__ in tests_to_skip:
-        skip = True
-        print_skip_debug("will skip test by name[...]:", item.function.__name__,
-                         "(" + item.name + ")")
-    elif item.cls.__qualname__ + "." + item.function.__name__ in tests_to_skip:
-        skip = True
-        print_skip_debug("will skip test by class.name[...]:",
-                         item.cls.__qualname__ + "." + item.name)
-    elif item.module.__name__ + "." + item.cls.__qualname__ + "." + item.function.__name__ in tests_to_skip:
-        skip = True
-        print_skip_debug(
-            "will skip test by module.class.name[...]:", item.module.__name__ +
-            "." + item.cls.__qualname__ + "." + item.name)
-
-    elif item.cls.__qualname__ in tests_to_skip:
-        skip = True
-        print_skip_debug("will skip test by class:", item.cls.__qualname__)
-    elif item.module.__name__ + "." + item.cls.__qualname__ in tests_to_skip:
-        skip = True
-        print_skip_debug("will skip test by module.class:",
-                         item.module.__name__ + "." + item.cls.__qualname__)
-    elif item.module.__name__ in tests_to_skip:
-        skip = True
-        print_skip_debug("will skip test by module:", item.module.__name__)
-
-    # finally...
-    return skip
+def testfunc_matches_set(item, tests_to_match):
+    itemfullname = get_item_fullname(item)
+    # print('checking for item:', itemfullname)
+    for pattern in tests_to_match:
+        if pattern == get_item_fullname:
+            # print('  matched exact pattern')
+            return True
+        pattern = '^' + pattern_to_regex(pattern) + '$'
+        # print('  pattern regex:', pattern)
+        #p = re.compile(pattern)
+        if re.search(pattern, itemfullname):
+            # print('  matched pattern', pattern)
+            return True
+    # print('  no match')
+    return False
 
 
-pytest.skip_marker_tag = "skipped via manifest"
+# constant
+pytest.skip_marker_reason_manifest = "skipped via manifest"
 
 
 # item -> Function
@@ -127,7 +151,7 @@ def get_item_fullname(item):
 
 # param items is list of Function type
 # returns set
-def count_skipped_items(items, reason=pytest.skip_marker_tag):
+def count_skipped_items(items, reason=pytest.skip_marker_reason_manifest):
     skip_items = set()
     for item in items:
         # item -> Function
@@ -137,7 +161,7 @@ def count_skipped_items(items, reason=pytest.skip_marker_tag):
 
 
 # param item is of Function type
-def is_marked_skip(item, reason=pytest.skip_marker_tag):
+def is_marked_skip(item, reason=pytest.skip_marker_reason_manifest):
     has_skip_marker = False
     for skip_marker in item.iter_markers(name='skip'):
         # skip_marker -> Mark(name='skip', args=(), kwargs={'reason': 'skipped via manifest'})
@@ -150,13 +174,25 @@ def is_marked_skip(item, reason=pytest.skip_marker_tag):
     return has_skip_marker
 
 
+# param item is of Function type
+def remove_skip_marker(item):
+    for skip_marker in item.iter_markers(name='skip'):
+        # skip_marker -> Mark(name='skip', args=(), kwargs={'reason': 'skipped via manifest'})
+        print('removing skip marker:', get_item_fullname(item))
+        item.iter_markers.remove(skip_marker)
+
+
 # PyTestHook: called after collection has been performed, but
 # we may filter or re-order the items in-place
 def pytest_collection_modifyitems(config, items):
-    skip_marker = pytest.mark.skip(reason=pytest.skip_marker_tag)
+    skip_marker = pytest.mark.skip(reason=pytest.skip_marker_reason_manifest)
     for item in items:
-        if should_skip_test(item):
+        if testfunc_matches_set(item, pytest.tests_to_skip):
+            # print('  match skip:', get_item_fullname(item))
             item.add_marker(skip_marker)
+        elif testfunc_matches_set(item, pytest.tests_to_run):
+            # print('    match RUN:',  get_item_fullname(item))
+            remove_skip_marker(item)
     # summary
     print("\n\nTotal Available Tests:", len(items))
     print("Skipped via manifest:", len(count_skipped_items(items)))
@@ -173,6 +209,9 @@ def pytest_collection_finish(session):
             for item in session.items
             if not is_marked_skip(item, None))
         print('======================================================')
-        print('Active tests...\n', sorted(active_items))
+        skipped_items = count_skipped_items(session.items, None)
+        print('Skipped tests...\n', sorted(skipped_items))
+        print('\nTotal skipped tests:', len(skipped_items))
         print('======================================================')
-        print('Total active tests:', len(active_items))
+        print('Active tests...\n', sorted(active_items))
+        print('\nTotal active tests:', len(active_items))

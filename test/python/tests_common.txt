@@ -1,28 +1,18 @@
 # Manifest to specify included & excluded tests
 # Comment lines start with #
 # This manifest is consumed by nGraph-Bridge PyTest framework via .../test/python/conftest.py
-# The Python test files can be found in TensorFlow repo under .../tensorflow/python tree
 
-# As per pytest documentation, specify/select tests via:
-#   some_python_test.py
-#   some_foldername (relative) or /path/to/some/folder (absolute)
-#   test_mod.py::test_func -> run a specific test within a module
-#   test_mod.py::TestClass::test_method -> specify a method
-#   -k "some predicate" e.g. -k "MyClass and not method" (case-insensitive)
-#       -> it will run TestMyClass.test_something but not TestMyClass.test_method_simple
-#   -m mymarker -> run tests by marker expressions
-#   --pyargs pkg.testing -> will import pkg.testing and use its filesystem location to find and run tests from
+# To see a list of active/skipped tests, run:
+# .../WS1/test/python$ python -m pytest --collect-only <optional-args-to-specify-tests>
+# e.g. .../WS1/test/python$ ROOT=/localdisk/WS1 PYTHONPATH=$ROOT:$ROOT/test/python:$ROOT/tools:$ROOT/examples:$ROOT/examples/mnist python -m pytest --collect-only test_elementwise_ops.py
 
-# To see a list of tests, run:
-# .../test/python$ python -m pytest --collect-only <optional-args-to-specify-tests>
-# e.g. ROOT=/localdisk/WS1 PYTHONPATH=$ROOT:$ROOT/test/python:$ROOT/tools:$ROOT/examples:$ROOT/examples/mnist python -m pytest --collect-only test_elementwise_ops.py
-
-# Few examples of valid regex/pattern (dots are treated literally):
-# test_const_scalarval # can specify just test-name, but make sure it's unique
-# TestBfloat16.test_conv2d_bfloat16 # better: specify class & test-name
-# test_bfloat16.TestBfloat16 # all tests of class TestBfloat16, defined in file/module test_bfloat16.py
+# Few examples of valid regex/pattern (dots, [] are treated literally, * for any match):
+# Genereal format: module.class.testfunc[param]
 # test_elementwise_ops.TestElementwiseOperations.test_less_equal[1.4-1.0-expected0] # specify exact parameters
-# TestElementwiseOperations.test_maximum # all parametrized-tests of function test_maximum in class TestElementwiseOperations
+# *test_const_scalarval* # match substring in any module/class/testfunc
+# *.TestBfloat16.test_conv2d_bfloat16 # in any module, match by class TestBfloat16 & testfunc test_conv2d_bfloat16
+# test_bfloat16.TestBfloat16.* # all testfuncs of class TestBfloat16, defined in file/module test_bfloat16.py
+# *.TestElementwiseOperations.test_maximum* # all parametrized-tests of function test_maximum in class TestElementwiseOperations
 
 ###################################################
 [IMPORT]
@@ -35,9 +25,12 @@
 [RUN]
 # Specify tests/patterns/regex that should be included
 
-.  # all tests under current dir
+# by default, pytest includes all tests under current dir (or as per argument)
 
 ###################################################
 [SKIP]
 
-# None
+test_bfloat16.TestBfloat16.test_matmul_bfloat16 # most backends do not support dtype bf16 for MatMul/Dot Op
+test_cnms.TestFloorOperations.test_cmns # Backend specific test
+test_conv2dbackpropinput.TestConv2DBackpropInput.test_nhwc # parameterized; Fails, needs debugging
+

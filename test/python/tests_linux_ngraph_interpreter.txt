@@ -20,4 +20,6 @@ tests_common.txt
 ###################################################
 [SKIP]
 
-# None
+# INTERPRETER backend does not support dtype bf16 for Convolution op
+test_bfloat16.TestBfloat16.test_conv2d_bfloat16
+test_bfloat16.TestBfloat16.test_conv2d_cast_bfloat16

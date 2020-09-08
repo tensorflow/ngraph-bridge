@@ -1,7 +1,6 @@
 # Manifest to specify included & excluded tests
 # Comment lines start with #
 # This manifest is consumed by nGraph-Bridge PyTest framework via .../test/python/conftest.py
-# The Python test files can be found in TensorFlow repo under .../tensorflow/python tree
 
 # Read comments in tests_common.txt for allowed regex/patterns
 
