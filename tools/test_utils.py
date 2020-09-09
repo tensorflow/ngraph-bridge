@@ -156,8 +156,6 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
     command_executor(["pip", "install", "-U", "psutil"])
 
     test_manifest_file = TestEnv.get_test_manifest_filename()
-    if not os.path.isabs(test_manifest_file):
-        test_manifest_file = os.path.join(test_dir, test_manifest_file)
     os.environ['NGRAPH_TF_TEST_MANIFEST'] = test_manifest_file
 
     command_executor([

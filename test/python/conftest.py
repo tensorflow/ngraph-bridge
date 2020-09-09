@@ -41,28 +41,24 @@ def pattern_to_regex(pattern):
     pattern = re.sub(r'\.', '\\.', pattern)
     pattern = re.sub(r'\[', '\\[', pattern)
     pattern = re.sub(r'\]', '\\]', pattern)
-    # special case for M.C.F when it possibly macthes with parameterized tests
+    pattern = re.sub(r'\*', '.*', pattern)
+    # special case for M.C.F when it possibly matches with parameterized tests
     if pattern_noparam.count('.') == 2 and no_param:
-        pattern = '^' + pattern + '\[.*'
+        pattern = '^' + pattern + r'\[.*'
     if pattern_noparam.count('.') == 0:
-        pattern = '^' + pattern + '\..*\..*' + '$'
+        pattern = '^' + pattern + r'\..*\..*' + '$'
     if pattern_noparam.count('.') == 1:
-        pattern = '^' + pattern + '\..*' + '$'
+        pattern = '^' + pattern + r'\..*' + '$'
     return pattern
 
 
 def testfunc_matches_manifest(item, pattern):
     itemfullname = get_item_fullname(item)  # Module.Class.Func
-    # print('checking for item:', itemfullname, 'with pattern:', pattern)
     if pattern == itemfullname:  # trivial case
-        # print('  matched exact pattern')
         return True
     pattern = pattern_to_regex(pattern)
-    # print('  pattern regex:', pattern)
     if re.search(pattern, itemfullname):
-        # print('  matched pattern', pattern)
         return True
-    # print('  no match')
     return False
 
 
@@ -75,11 +71,7 @@ def list_matching_tests(manifest_line):
         # item: Function type
         if testfunc_matches_manifest(item, manifest_line):
             items.add(get_item_fullname(item))
-    # print('DBG: list_matching_tests for manifest_line:', manifest_line, '=>', items)
     return items
-
-
-pytest.g_imported_files = set()
 
 
 def read_tests_from_manifest(manifestfile):
@@ -114,7 +106,7 @@ def read_tests_from_manifest(manifestfile):
                              manifestfile)
                 pytest.g_imported_files.add(line)
                 new_runs, new_skips = read_tests_from_manifest(line)
-                assert (new_runs.isdisjoint(new_skips))
+                assert new_runs.isdisjoint(new_skips)
                 run_items |= new_runs
                 skipped_items |= new_skips
                 run_items -= skipped_items
@@ -127,7 +119,7 @@ def read_tests_from_manifest(manifestfile):
                 new_skips = list_matching_tests(line)
                 run_items -= new_skips
                 skipped_items |= new_skips
-        assert (run_items.isdisjoint(skipped_items))
+        assert run_items.isdisjoint(skipped_items)
         print('#Tests to Run={}, Skip={} (manifest = {})'.format(
             len(run_items), len(skipped_items), manifestfile))
 
@@ -152,15 +144,16 @@ def attach_run_markers():
 
 # PyTestHook: ahead of command line option parsing
 def pytest_cmdline_preparse(args):
-    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
+    if 'NGRAPH_TF_TEST_MANIFEST' in os.environ:
         args[:] = ["-m", 'temp_run_via_manifest'] + args
 
 
 # PyTestHook: called at early stage of pytest setup
 def pytest_configure(config):
-    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
+    if 'NGRAPH_TF_TEST_MANIFEST' in os.environ:
         pytest.tests_to_skip = set()
         pytest.tests_to_run = set()
+        pytest.g_imported_files = set()
 
         print("\npytest args=", config.invocation_params.args, "dir=",
               config.invocation_params.dir)
@@ -177,7 +170,7 @@ def pytest_configure(config):
 # PyTestHook: called after collection has been performed, but
 # we may modify or re-order the items in-place
 def pytest_collection_modifyitems(items):
-    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
+    if 'NGRAPH_TF_TEST_MANIFEST' in os.environ:
         # Get list of tests to run/skip
         filename = os.path.abspath(os.environ['NGRAPH_TF_TEST_MANIFEST'])
         pytest.all_test_items = items
