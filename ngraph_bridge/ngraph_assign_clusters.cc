@@ -627,7 +627,7 @@ Status AssignClusters(Graph* graph) {
   NGRAPH_VLOG(2) << "Tagging done";
 
   if (config::IsLoggingPlacement()) {
-    int num_reasons = 7;  // the number of elements in the reasons enum
+    int num_reasons = 6;  // the number of elements in the reasons enum
     // histogram of reasons of non-contraction of clusters
     vector<int> reason_count_clusters(num_reasons, 0);
     vector<int> reason_count_encapsulates(num_reasons, 0);
