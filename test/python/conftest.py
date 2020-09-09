@@ -16,8 +16,8 @@
 import os
 import re
 import pytest
+import _pytest.skipping
 from tensorflow.python.framework import ops
-#from tensorflow.tf_unittest_runner import regex_walk
 
 # Note: to see a list of tests, run:
 # .../test/python$ python -m pytest --collect-only <optional-args-to-specify-tests>
@@ -35,9 +35,48 @@ def cleanup():
     yield
 
 
-def list_tests(manifest_line):
+def pattern_to_regex(pattern):
+    no_param = (re.search(r'\[.*\]$', pattern) is None)
+    pattern_noparam = re.sub(r'\[.*$', '', pattern)
+    pattern = re.sub(r'\-', '\\-', pattern)
+    pattern = re.sub(r'\.', '\\.', pattern)
+    pattern = re.sub(r'\[', '\\[', pattern)
+    pattern = re.sub(r'\]', '\\]', pattern)
+    # special case for M.C.F when it possibly macthes with parameterized tests
+    if pattern_noparam.count('.') == 2 and no_param:
+        pattern = '^' + pattern + '\[.*'
+    if pattern_noparam.count('.') == 0:
+        pattern = '^' + pattern + '\..*\..*' + '$'
+    if pattern_noparam.count('.') == 1:
+        pattern = '^' + pattern + '\..*' + '$'
+    return pattern
+
+
+def testfunc_matches_manifest(item, pattern):
+    itemfullname = get_item_fullname(item)  # Module.Class.Func
+    # print('checking for item:', itemfullname, 'with pattern:', pattern)
+    if pattern == get_item_fullname:  # trivial case
+        # print('  matched exact pattern')
+        return True
+    pattern = pattern_to_regex(pattern)
+    # print('  pattern regex:', pattern)
+    if re.search(pattern, itemfullname):
+        # print('  matched pattern', pattern)
+        return True
+    # print('  no match')
+    return False
+
+
+# must be called after pytest.all_test_items has been set
+def list_matching_tests(manifest_line):
     items = set()
-    items.add(manifest_line)
+    if (not pytest.all_test_items) or (len(pytest.all_test_items) == 0):
+        return items
+    for item in pytest.all_test_items:
+        # item: Function type
+        if testfunc_matches_manifest(item, manifest_line):
+            items.add(get_item_fullname(item))
+    # print('DBG: list_matching_tests for manifest_line:', manifest_line, '=>', items)
     return items
 
 
@@ -80,64 +119,23 @@ def read_tests_from_manifest(manifestfile, g_imported_files=set()):
                 run_items -= skipped_items
                 continue
             if curr_section == 'run_section':
-                new_runs = list_tests(line)
+                new_runs = list_matching_tests(line)
                 skipped_items -= new_runs
                 run_items |= new_runs
             if curr_section == 'skip_section':
-                new_skips = list_tests(line)
+                new_skips = list_matching_tests(line)
                 run_items -= new_skips
                 skipped_items |= new_skips
         assert (run_items.isdisjoint(skipped_items))
-        print('#Tests to Run={}, Skip={} (manifest = {})\n'.format(
+        print('#Tests to Run={}, Skip={} (manifest = {})'.format(
             len(run_items), len(skipped_items), manifestfile))
 
     return run_items, skipped_items  # 2 sets
 
 
-# PyTestHook: called at early stage of pytest setup
-def pytest_configure(config):
-    pytest.tests_to_skip = set()
-    pytest.tests_to_run = set()
-    print("\npytest args=", config.invocation_params.args, "dir=",
-          config.invocation_params.dir)
-    pytest.arg_collect_only = (
-        '--collect-only' in config.invocation_params.args)
-
-    # Get list of tests to run/skip
-    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
-        filename = os.path.abspath(os.environ['NGRAPH_TF_TEST_MANIFEST'])
-        pytest.tests_to_run, pytest.tests_to_skip = read_tests_from_manifest(
-            filename)
-
-
-def pattern_to_regex(pattern):
-    pattern_noparam = re.sub(r'\[.*$', '', pattern)
-    pattern = re.sub(r'\-', '\\-', pattern)
-    pattern = re.sub(r'\.', '\\.', pattern)
-    pattern = re.sub(r'\[', '\\[', pattern)
-    pattern = re.sub(r'\]', '\\]', pattern)
-    if pattern_noparam.count('.') == 0:
-        pattern = pattern + '\..*\..*'
-    if pattern_noparam.count('.') == 1:
-        pattern = pattern + '\..*'
-    return pattern
-
-
 def testfunc_matches_set(item, tests_to_match):
     itemfullname = get_item_fullname(item)
-    # print('checking for item:', itemfullname)
-    for pattern in tests_to_match:
-        if pattern == get_item_fullname:
-            # print('  matched exact pattern')
-            return True
-        pattern = '^' + pattern_to_regex(pattern) + '$'
-        # print('  pattern regex:', pattern)
-        #p = re.compile(pattern)
-        if re.search(pattern, itemfullname):
-            # print('  matched pattern', pattern)
-            return True
-    # print('  no match')
-    return False
+    return (itemfullname in tests_to_match)
 
 
 # constant
@@ -174,44 +172,143 @@ def is_marked_skip(item, reason=pytest.skip_marker_reason_manifest):
     return has_skip_marker
 
 
+pytest.run_marker = pytest.mark.run
+
+
+def is_marked_run(item):
+    for run_marker in item.iter_markers(name='run'):
+        return True
+
+
 # param item is of Function type
 def remove_skip_marker(item):
     for skip_marker in item.iter_markers(name='skip'):
-        # skip_marker -> Mark(name='skip', args=(), kwargs={'reason': 'skipped via manifest'})
+        # skip_marker -> Mark(name='skip', args=(), kwargs={'reason': 'abc'})
         print('removing skip marker:', get_item_fullname(item))
-        item.iter_markers.remove(skip_marker)
+        # print(' skip_marker:', skip_marker)
+        item.add_marker(pytest.run_marker)
+
+        #item.iter_markers(name='skip').remove(skip_marker)
+        #item.iter_markers().remove(skip_marker)
+        #item.owner_markers.remove(skip_marker)
+        #item.get_closest_marker(name='skip') = None
+        # somelist[:] = (x for x in somelist if determine(x))
+        #?? skip_marker.name = 'remove_skip'
+
+
+# param items is list of Function type
+# returns set
+def count_run_items(items):
+    run_items = set()
+    for item in items:
+        # item -> Function
+        if is_marked_run(item):
+            run_items.add(get_item_fullname(item))
+    return run_items
+
+
+def attach_run_markers(items):
+    for item in items:
+        if is_marked_run(item) or (
+                get_item_fullname(item) in pytest.tests_to_run):
+            item.add_marker(pytest.mark.run_via_manifest)
+
+
+#--------------------------------------------------------------------------
+#--------------------------------------------------------------------------
+
+
+# PyTestHook: ahead of command line option parsing
+def pytest_cmdline_preparse(args):
+    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
+        args[:] = ["-m", 'run_via_manifest'] + args
+
+
+# def pytest_addoption(parser):
+#     os.environ['PYTEST_ADDOPTS'] = '-m run_via_manifest'
+
+# @pytest.fixture
+# def marker(request):
+#     return request.config.getoption("-m")
+
+# def pytest_collection(session):
+#     x
+
+
+# PyTestHook: called at early stage of pytest setup
+def pytest_configure(config):
+    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
+        pytest.tests_to_skip = set()
+        pytest.tests_to_run = set()
+        # config.invocation_params.args['-m'] = 'run_via_manifest'
+        print("\npytest args=", config.invocation_params.args, "dir=",
+              config.invocation_params.dir)
+        pytest.arg_collect_only = (
+            '--collect-only' in config.invocation_params.args)
+
+        # register an additional marker
+        config.addinivalue_line(
+            "markers",
+            "run_via_manifest: mark test to run via manifest filters")
+        config.addinivalue_line("addopts", "-m run_via_manifest")
+
+        # # Force ignore all skips present in test-scripts
+        # def no_skip(*args, **kwargs):
+        #     return
+        # _pytest.skipping.skip = no_skip
 
 
 # PyTestHook: called after collection has been performed, but
-# we may filter or re-order the items in-place
+# we may modify or re-order the items in-place
 def pytest_collection_modifyitems(config, items):
     skip_marker = pytest.mark.skip(reason=pytest.skip_marker_reason_manifest)
-    for item in items:
-        if testfunc_matches_set(item, pytest.tests_to_skip):
-            # print('  match skip:', get_item_fullname(item))
-            item.add_marker(skip_marker)
-        elif testfunc_matches_set(item, pytest.tests_to_run):
-            # print('    match RUN:',  get_item_fullname(item))
-            remove_skip_marker(item)
-    # summary
-    print("\n\nTotal Available Tests:", len(items))
-    print("Skipped via manifest:", len(count_skipped_items(items)))
-    all_skipped_count = len(count_skipped_items(items, None))
-    print("All skipped:", all_skipped_count)
-    print("Active Tests:", len(items) - all_skipped_count, "\n")
+    # Get list of tests to run/skip
+    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
+        filename = os.path.abspath(os.environ['NGRAPH_TF_TEST_MANIFEST'])
+        pytest.all_test_items = items
+        print('\nChecking manifest...')
+        pytest.tests_to_run, pytest.tests_to_skip = read_tests_from_manifest(
+            filename)
+        # print('pytest.tests_to_run:', pytest.tests_to_run)
+        # print('pytest.tests_to_skip:', pytest.tests_to_skip)
+        for item in items:
+            if testfunc_matches_set(item, pytest.tests_to_skip):
+                # print('  match skip:', get_item_fullname(item))
+                item.add_marker(skip_marker)
+            elif testfunc_matches_set(item, pytest.tests_to_run):
+                # print('    match RUN:',  get_item_fullname(item))
+                remove_skip_marker(item)
+        attach_run_markers(items)
+        # summary
+        print("\n\nTotal Available Tests:", len(items))
+        print("Enabled/Run via manifest:", len(pytest.tests_to_run))
+        print("Skipped via manifest:", len(count_skipped_items(items)))
+        # re-enable skip markers, if not explicitly requested in manifest
+
+        # unskipped = count_run_items(items)
+        # all_skipped_count = len(count_skipped_items(items, None)) - len(unskipped)
+        # print("All skipped:", all_skipped_count)
+        # print("Active Tests:", len(items) - all_skipped_count, "\n")
 
 
 # PyTestHook: called after collection has been performed & modified
 def pytest_collection_finish(session):
-    if pytest.arg_collect_only:
-        active_items = set(
-            get_item_fullname(item)
-            for item in session.items
-            if not is_marked_skip(item, None))
-        print('======================================================')
-        skipped_items = count_skipped_items(session.items, None)
-        print('Skipped tests...\n', sorted(skipped_items))
-        print('\nTotal skipped tests:', len(skipped_items))
-        print('======================================================')
-        print('Active tests...\n', sorted(active_items))
-        print('\nTotal active tests:', len(active_items))
+    if ('NGRAPH_TF_TEST_MANIFEST' in os.environ):
+        if pytest.arg_collect_only:
+            active_items = set(
+                get_item_fullname(item)
+                for item in session.items
+                if not is_marked_skip(item, None))
+            # ?? active_items |= pytest.tests_to_run
+            print('======================================================')
+            skipped_items = count_skipped_items(session.items, None)
+            # ?? skipped_items -= pytest.tests_to_run
+            print('Skipped tests... ({})\n'.format(len(skipped_items)),
+                  sorted(skipped_items))
+            print('======================================================')
+            unskipped = count_run_items(session.items)
+            print("Un-skipped Tests... ({})\n".format(len(unskipped)),
+                  unskipped)
+            print('======================================================')
+            print('Active tests... ({})\n'.format(len(active_items)),
+                  sorted(active_items))
