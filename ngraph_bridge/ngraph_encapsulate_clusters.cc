@@ -74,13 +74,13 @@ void Encapsulator::AddInput(NodeDef* dst, StringPiece src_name, int src_slot) {
 // ...end code copied and pasted (and modified) from graph.cc
 
 Status EncapsulateClusters(
-    Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
+    Graph* graph, int graph_id,
     const std::unordered_map<std::string, std::string>& device_config) {
   Encapsulator enc(graph);
   NGRAPH_VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
   TF_RETURN_IF_ERROR(enc.AnalysisPass());
   NGRAPH_VLOG(3) << "Running RewritePass in EncapsulateClusters";
-  TF_RETURN_IF_ERROR(enc.RewritePass(fdeflib, graph_id, device_config));
+  TF_RETURN_IF_ERROR(enc.RewritePass(graph_id, device_config));
 
   set<int> newly_created_cluster_ids;
   TF_RETURN_IF_ERROR(enc.GetNewClusterIDs(newly_created_cluster_ids));
@@ -386,9 +386,7 @@ Status Encapsulator::AnalysisPass() {
 
     auto node_def =
         NGraphClusterManager::GetClusterGraph(cluster_idx)->add_node();
-    cluster_indices_for_this_graph.insert(cluster_idx);
     *node_def = original_def;
-
     for (auto& input : *(node_def->mutable_input())) {
       TensorId tensor_id = ParseTensorName(input);
 
@@ -408,7 +406,7 @@ Status Encapsulator::AnalysisPass() {
 }
 
 Status Encapsulator::RewritePass(
-    FunctionDefLibrary* fdeflib, int graph_id,
+    int graph_id,
     const std::unordered_map<std::string, std::string>& device_config) {
   if (!analysis_done) {
     return errors::Internal(
@@ -562,25 +560,6 @@ Status Encapsulator::RewritePass(
     graph->RemoveNode(node);
   }
 
-  // Pass 7: Insert to function library
-  // Note: We loop over cluster_indices_for_this_graph and not all the
-  // contents of ClusterManager
-  for (const auto& cluster_idx : cluster_indices_for_this_graph) {
-    // The transformation happening inside this loop is:
-    // graphdef --> graph --> functiondef
-    // NGraphClusterManager::GetClusterGraph(cluster_idx)-->subgraph-->fdef
-    // TODO: whats the right flib to use in subgraph's constructor?
-    Graph subgraph(graph->flib_def());
-    // TODO: When this works, NGraphClusterManager can go away
-    TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
-        GraphConstructorOptions(),
-        *(NGraphClusterManager::GetClusterGraph(cluster_idx)), &subgraph));
-    FunctionDef* fdef = fdeflib->add_function();
-    // TODO: if func lib has func with same name etc?
-    TF_RETURN_IF_ERROR(GraphToFunctionDef(
-        subgraph, strings::StrCat("ngraph_cluster_", to_string(cluster_idx)),
-        fdef));
-  }
   rewrite_done = true;
   return Status::OK();
 }

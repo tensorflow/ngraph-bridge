@@ -38,10 +38,9 @@ namespace ngraph_bridge {
 
 /// Takes a TF graph where ngraph_cluster attributes has been marked in a
 /// preceeding pass (assign_clusters), then replaces TF subgraphs and inserts
-/// encapsulate ops in their place. Optionally can perform ahead of time
-/// compilation.
+/// encapsulate ops in their place.
 Status EncapsulateClusters(
-    Graph* graph, int graph_id, FunctionDefLibrary* fdeflib,
+    Graph* graph, int graph_id,
     const std::unordered_map<std::string, std::string>& device_config);
 
 // TODO Encapsulator is dependent on ClusterManager. They could be made
@@ -62,7 +61,7 @@ class Encapsulator {
   Status AnalysisPass();
   // Perform the actual graph surgery
   Status RewritePass(
-      FunctionDefLibrary* fdeflib, int graph_id,
+      int graph_id,
       const std::unordered_map<std::string, std::string>& device_config);
   // Returns the newly created cluster ids after AnalysisPass is done
   // Needed because ClusterManager (CM) might have contained old stuff,

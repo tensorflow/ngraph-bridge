@@ -36,7 +36,7 @@ namespace testing {
 TEST(EncapsulateClusters, EncapsulatorFail) {
   Encapsulator enc{nullptr};
   std::unordered_map<std::string, std::string> device_config;
-  ASSERT_NOT_OK(enc.RewritePass(nullptr, 0, device_config));
+  ASSERT_NOT_OK(enc.RewritePass(0, device_config));
   set<int> result;
   ASSERT_NOT_OK(enc.GetNewClusterIDs(result));
 }
@@ -193,14 +193,11 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
 
   // Now perform the actual rewrite
   std::unordered_map<std::string, std::string> config_map;
-  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  ASSERT_OK(enc.RewritePass(fdeflib_new, 0, config_map));
+  ASSERT_OK(enc.RewritePass(0, config_map));
 
   std::tie(num_encapsulates, num_tf_nodes) = node_counter(&g);
   ASSERT_EQ(num_tf_nodes, 1);  // Only Abs is left
   ASSERT_EQ(num_encapsulates, 2);
-  // Number of encapsulates == number of functions
-  ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
 
   // After RewritePass, the number of clusters is still 2 and it contains
   // populated graphdefs
@@ -212,8 +209,6 @@ TEST(EncapsulateClusters, EncapsulatorPass) {
   ASSERT_EQ(g.num_edges(), 6);
   ASSERT_EQ(g.num_op_nodes(), 3);
   ASSERT_EQ(g.num_nodes(), 5);
-
-  free(fdeflib_new);
 }
 
 // const(0) ---> add(0) <---const(0)
@@ -259,13 +254,11 @@ TEST(EncapsulateClusters, PopulateLibrary) {
   g.AddEdge(source, Graph::kControlSlot, node2, Graph::kControlSlot);
   g.AddEdge(node3, Graph::kControlSlot, sink, Graph::kControlSlot);
 
-  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-
   std::unordered_map<std::string, std::string> config_map;
   ASSERT_EQ(g.num_edges(), 6);
   ASSERT_EQ(g.num_op_nodes(), 3);
   ASSERT_EQ(g.num_nodes(), 5);
-  ASSERT_OK(EncapsulateClusters(&g, 0, fdeflib_new, config_map));
+  ASSERT_OK(EncapsulateClusters(&g, 0, config_map));
 
   ASSERT_EQ(g.num_edges(), 3);
   ASSERT_EQ(g.num_op_nodes(), 1);
@@ -279,30 +272,8 @@ TEST(EncapsulateClusters, PopulateLibrary) {
     num_tf_nodes += ((node_type == "Add" || node_type == "Const") ? 1 : 0);
   }
 
-  // Number of encapsulates == number of functions
-  ASSERT_EQ(num_encapsulates, fdeflib_new->function_size());
-
   // No Add or Const nodes left in the graph
   ASSERT_EQ(num_tf_nodes, 0);
-
-  // In this case, only 1 function has been added in the library
-  ASSERT_EQ(fdeflib_new->function_size(), 1);
-
-  // Check the name of the signature of the first (and only) function
-  auto first_func = fdeflib_new->function(0);
-  ASSERT_EQ(first_func.signature().name(),
-            ("ngraph_cluster_" + to_string(cluster_idx)));
-
-  // The first function in the flib should have 3 nodes
-  ASSERT_EQ(first_func.node_def_size(), 3);
-
-  // Ensure that the function is made of 2 op types, Add, Const, Const
-  auto present = multiset<string>{string(first_func.node_def(0).op()),
-                                  string(first_func.node_def(1).op()),
-                                  string(first_func.node_def(2).op())};
-  auto expected = multiset<string>{"Const", "Add", "Const"};
-  ASSERT_EQ(present, expected);
-  free(fdeflib_new);
 }
 }
 }
