@@ -21,8 +21,6 @@
 #include "tensorflow/core/lib/core/errors.h"
 
 #include "ngraph/builder/autobroadcast.hpp"
-#include "ngraph/op/argmax.hpp"
-#include "ngraph/op/argmin.hpp"
 #include "ngraph/op/experimental/layers/interpolate.hpp"
 #include "ngraph/op/util/logical_reduction.hpp"
 #include "ngraph/pass/constant_folding.hpp"
@@ -32,7 +30,6 @@
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/ngraph_api.h"
-#include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_conversions.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -476,17 +473,9 @@ static Status TranslateAddNOp(const Node* op, const std::vector<const Tensor*>&,
   SaveNgOp(ng_op_map, op->name(), ng_addn);
   return Status::OK();
 }
-
-template <typename T>
-static Status TranslateArgMinMaxOp(
+static Status TranslateArgMinMax(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
-    Builder::OpMap& ng_op_map) {
-  bool is_argmin = std::is_same<T, ng::op::ArgMin>::value;
-  bool is_argmax = std::is_same<T, ng::op::ArgMax>::value;
-  if (!(is_argmin || is_argmax)) {
-    return errors::InvalidArgument("Expected node to be argmin or argmax type");
-  }
-
+    Builder::OpMap& ng_op_map, std::string mode) {
   ng::Output<ng::Node> ng_input;
   TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
 
@@ -498,15 +487,17 @@ static Status TranslateArgMinMaxOp(
 
   if (tf_dim.size() != 1) {
     return errors::InvalidArgument(
-        (is_argmin ? "ArgMin" : "ArgMax"),
-        " Op: dimension must be scalar, operates on a single axis");
+        "ArgMax Op: dimension must be scalar, operates on a single axis");
   }
 
   // If input dimension is negative, make it positive
   if (tf_dim[0] < 0) {
+    NGRAPH_VLOG(3) << "Input dimension is negative, make it positive "
+                   << tf_dim[0];
     tf_dim[0] = (int64)input_rank + tf_dim[0];
   }
-  size_t input_dims = tf_dim[0];
+  NGRAPH_VLOG(3) << "Axis along which to compute " << tf_dim[0];
+  size_t k_axis = tf_dim[0];
 
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "output_type", &dtype));
@@ -514,10 +505,33 @@ static Status TranslateArgMinMaxOp(
   ng::element::Type ng_et;
   TF_RETURN_IF_ERROR(TFDataTypeToNGraphElementType(dtype, &ng_et));
 
-  auto ng_argminmax =
-      ConstructNgNode<T>(op->name(), ng_input, input_dims, ng_et);
-  SaveNgOp(ng_op_map, op->name(), ng_argminmax);
+  auto ng_k = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{}, std::vector<int64>({1}));
+
+  std::string sort = "none";
+  auto ng_topk =
+      std::make_shared<opset::TopK>(ng_input, ng_k, k_axis, mode, sort, ng_et);
+  auto ng_indices = ng_topk->output(1);
+  int axis = ng_topk->get_axis();
+  auto axis_to_remove = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{1}, std::vector<int64>({axis}));
+  auto reshaped_indices =
+      ConstructNgNode<opset::Squeeze>(op->name(), ng_indices, axis_to_remove);
+  Builder::SetTracingInfo(op->name(), reshaped_indices);
+  SaveNgOp(ng_op_map, op->name(), reshaped_indices);
   return Status::OK();
+}
+
+static Status TranslateArgMaxOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  return (TranslateArgMinMax(op, static_input_map, ng_op_map, "max"));
+}
+
+static Status TranslateArgMinOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  return (TranslateArgMinMax(op, static_input_map, ng_op_map, "min"));
 }
 
 static Status TranslateAvgPoolOp(const Node* op,
@@ -589,9 +603,6 @@ static Status TranslateBatchMatMulOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_lhs, ng_rhs;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_lhs, ng_rhs));
-
-  std::string backend_name;
-  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
 
   auto ng_lhs_shape = ng_lhs.get_shape();
   auto ng_rhs_shape = ng_rhs.get_shape();
@@ -1527,9 +1538,6 @@ static Status TranslateGatherV2Op(
                             ") translation to be non scalar, of size ",
                             tf_axis.size());
   }
-
-  std::string backend_name;
-  TF_RETURN_IF_ERROR(ngraph_bridge::GetNodeBackend(op, &backend_name));
 
   // Negative axis is supported. Accounting for that
   auto ng_input_shape = ng_input.get_shape();
@@ -2792,6 +2800,7 @@ static Status TranslateTopKV2Op(
   ng::Output<ng::Node> ng_values = ng_result->output(0);
   Builder::SetTracingInfo(op->name(), ng_values);
   ng::Output<ng::Node> ng_indices = ng_result->output(1);
+  NGRAPH_VLOG(0) << "ng_indices " << ng_indices;
   Builder::SetTracingInfo(op->name(), ng_indices);
 
   SaveNgOp(ng_op_map, op->name(), ng_values);
@@ -2994,8 +3003,8 @@ const static std::map<
         {"AddV2", TranslateBinaryOp<opset::Add>},
         {"Any", TranslateDirectReduceOp<opset::ReduceLogicalOr>},
         {"All", TranslateDirectReduceOp<opset::ReduceLogicalAnd>},
-        {"ArgMax", TranslateArgMinMaxOp<ng::op::ArgMax>},
-        {"ArgMin", TranslateArgMinMaxOp<ng::op::ArgMin>},
+        {"ArgMax", TranslateArgMaxOp},
+        {"ArgMin", TranslateArgMinOp},
         {"Asin", TranslateUnaryOp<opset::Asin>},
         {"Atan", TranslateUnaryOp<opset::Atan>},
         {"AvgPool", TranslateAvgPoolOp},

@@ -26,8 +26,6 @@ tests_common.txt
 [RUN]
 # Specify tests/patterns/regex that should be included
 
-# None
-
 ###################################################
 [SKIP]
 # Specify tests/patterns/regex that should be excluded/skipped
@@ -35,3 +33,5 @@ tests_common.txt
 array_ops_test.StridedSliceTest.testDegenerateSlices
 slice_op_test.SliceTest.testInvalidIndex
 slice_op_test.SliceTest.testScalarInput
+argmax_op_test.ArgMaxTest.testEmpty
+argmax_op_test.ArgMaxTest.testInt64
