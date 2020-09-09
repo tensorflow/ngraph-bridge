@@ -38,15 +38,11 @@
 #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
-namespace ng = ngraph;
 
 namespace tensorflow {
 namespace ngraph_bridge {
 
 // Ngraph Encapsulate Implementation class for EncapsulateOp class
-//---------------------------------------------------------------------------
-//  NGraphEncapsulateImpl::ctor
-//---------------------------------------------------------------------------
 NGraphEncapsulateImpl::NGraphEncapsulateImpl() : m_graph(OpRegistry::Global()) {
   my_instance_id = s_instance_count;
   s_instance_count++;
@@ -83,49 +79,20 @@ Status NGraphEncapsulateImpl::ComputeSignature(
   return Status::OK();
 }
 
-// Compiles the ngraph function and returns ngraph executable
-Status NGraphEncapsulateImpl::Compile(
-    std::shared_ptr<ngraph::Function> ng_function,
-    std::shared_ptr<Executable>& ng_exec) {
-  try {
-    auto backend = BackendManager::GetBackend();
-    ng_exec = backend->compile(ng_function);
-  } catch (const std::exception& ex) {
-    string fn_name = ng_function->get_friendly_name();
-    NgraphSerialize("tf_function_" + fn_name + ".json", ng_function);
-    return errors::Internal("Failed to compile ng_function: ", ex.what());
-  }
-  return Status::OK();
-}
-
-// Compiles the ngraph function and returns ngraph executable as a string
-Status NGraphEncapsulateImpl::GetCompiledString(
-    std::shared_ptr<ngraph::Function> ng_function, std::string* ng_exec_str) {
-  std::shared_ptr<Executable> ng_exec;
-  NGraphEncapsulateImpl::Compile(ng_function, ng_exec);
-  stringstream exec_dump;
-  ng_exec->save(exec_dump);
-  *ng_exec_str = exec_dump.str();
-  return Status::OK();
-}
-
 // Calls ComputeSignature and gets ngraph executable
 Status NGraphEncapsulateImpl::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
-    std::shared_ptr<Executable>& ng_exec) {
-  std::stringstream signature_ss;
-  string signature;
-
-  std::shared_ptr<ngraph::Function> ng_function;
-  std::shared_ptr<Executable> evicted_ng_exec;
+    std::shared_ptr<Executable>& ng_exec,
+    std::shared_ptr<ngraph::Function>& ng_function) {
   auto backend = BackendManager::GetBackend();
 
   // Compute Signature
+  std::stringstream signature_ss;
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,
                                       static_input_map, signature_ss));
-  signature = signature_ss.str();
+  string signature = signature_ss.str();
   NGRAPH_VLOG(5) << "Computed signature: " << signature;
   auto it = m_ng_exec_map.find(signature);
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
@@ -144,14 +111,11 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
     // Serialize to nGraph if needed
     if (std::getenv("NGRAPH_ENABLE_SERIALIZE") != nullptr) {
-      int json_indentation = 4;
-      string serialized_ng_func =
-          ngraph::serialize(ng_function, json_indentation);
-      std::string file_name = "tf_function_" + m_name + ".json";
-      TF_RETURN_IF_ERROR(
-          StringToFile("tf_function_" + m_name + ".json", serialized_ng_func));
+      NgraphSerialize("tf_function_" + m_name + ".json", ng_function);
     }
+
     // Evict the cache if the number of elements exceeds the limit
+    std::shared_ptr<Executable> evicted_ng_exec;
     const char* cache_depth_specified =
         std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
     if (cache_depth_specified != nullptr) {
@@ -168,10 +132,17 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     }  // cache eviction if cache size greater than cache depth
 
     NG_TRACE("Compile nGraph", m_name, "");
-    NGraphEncapsulateImpl::Compile(ng_function, ng_exec);
-    SetNgExecMap(signature, ng_exec);
+    try {
+      ng_exec = backend->compile(ng_function);
+    } catch (const std::exception& ex) {
+      string fn_name = ng_function->get_friendly_name();
+      NgraphSerialize("tf_function_" + fn_name + ".json", ng_function);
+      return errors::Internal("Failed to compile ng_function: ", ex.what());
+    }
 
+    SetNgExecMap(signature, ng_exec);
     m_lru.push_front(signature);
+
     // Memory after
     MemoryProfile(vm, rss);
     auto delta_vm_mem = vm - vm0;
@@ -197,18 +168,18 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
 Status NGraphEncapsulateImpl::AllocateNGTensors(
     const std::vector<Tensor>& tf_tensors,
-    vector<shared_ptr<ng::runtime::Tensor>>& ng_tensors) {
+    vector<shared_ptr<ngraph::runtime::Tensor>>& ng_tensors) {
   for (int i = 0; i < tf_tensors.size(); i++) {
-    ng::Shape ng_shape(tf_tensors[i].shape().dims());
+    ngraph::Shape ng_shape(tf_tensors[i].shape().dims());
     for (int j = 0; j < tf_tensors[i].shape().dims(); ++j) {
       ng_shape[j] = tf_tensors[i].shape().dim_size(j);
     }
-    ng::element::Type ng_element_type;
+    ngraph::element::Type ng_element_type;
     TF_RETURN_IF_ERROR(
         TFDataTypeToNGraphElementType(tf_tensors[i].dtype(), &ng_element_type));
 
     auto backend = BackendManager::GetBackend();
-    std::shared_ptr<ng::runtime::Tensor> ng_tensor =
+    std::shared_ptr<ngraph::runtime::Tensor> ng_tensor =
         backend->create_tensor(ng_element_type, ng_shape, tf_tensors[i].data());
     ng_tensors.push_back(ng_tensor);
   }
