@@ -29,8 +29,7 @@ from tensorflow.python.framework import constant_op
 from tensorflow.python.framework import dtypes
 from tensorflow.python.ops import array_ops
 
-from common import NgraphTest, NGTF_BACKEND
-import ngraph_bridge
+from common import NgraphTest
 
 
 class TestSliceOperations(NgraphTest):
@@ -221,12 +220,10 @@ class TestSliceOperations(NgraphTest):
         for v, e in zip(slice_vals, expected):
             np.testing.assert_array_equal(v, e)
 
-    # array_ops_test.StridedSliceTest.testTensorIndexing
     def test_strided_slice_5(self):
         a = [[[[[1, 2, 4, 5], [5, 6, 7, 8], [9, 10, 11, 12]]],
               [[[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]]]]]
 
-        x = tf.compat.v1.placeholder(dtype=dtypes.float32)
         bar = tf.constant(2)
         bar2 = tf.constant(3)
         x = tf.compat.v1.placeholder(dtype=dtypes.float32)
