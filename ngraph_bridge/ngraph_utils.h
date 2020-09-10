@@ -382,8 +382,7 @@ bool DumpDeclusteredGraphs();
 
 bool DumpEncapsulatedGraphs();
 
-enum NGraphPassType { ConstFold, TransposeFold, TransposeSink };
-bool PassEnabled(NGraphPassType type);
+bool PassEnabled(std::string pass_name);
 
 }  // namespace ngraph_bridge
 
