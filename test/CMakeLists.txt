@@ -38,6 +38,11 @@ install(
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
     FILES_MATCHING PATTERN "*.pb"
 )
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "tests_*.txt"
+)
 
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
@@ -102,7 +107,6 @@ set(SRC
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
     list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)
-    list(APPEND SRC graph_rewrites/partial_shapes_test.cc)
 endif()
 
 # The compile flag -DNDEBUG is required since
