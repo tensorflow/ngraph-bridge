@@ -1,10 +1,37 @@
-#argmax_op_test.ArgMaxTest.testDefaultAxis
+# Manifest to specify included & excluded tests
+# Comment lines start with #
+# This manifest is consumed by .../test/python/tensorflow/tf_unittest_runner.py
+
+#  Few examples of valid regex/pattern (dots are treated literally):
+#    math_ops_test --> module
+#    *test* --> module (* means zero/more of anything)
+#    *test*.*test* --> module.class
+#    *_op_test*.*[Tt]est* --> e.g. pad_op_test.PadOpTest.testInputDims ([xy] means either x or y)
+#    math_ops_test.DivNoNanTest.testBasic --> module.class.testfunc
+#    math_ops_test.DivNoNanTest.* --> module.class.testfunc
+#    math_ops_test.D* --> module.class
+#    math_ops_test.* --> module.class
+#    math_*_test --> module
+#    math_*_*_test --> module
+#    math*_test --> module
+
+###################################################
+[IMPORT]
+# Read in one/more external manifest file(s)
+# Path specified is relative to this file's path
+
+# None
+
+###################################################
+[RUN]
+# Specify tests/patterns/regex that should be included
+
+argmax_op_test.ArgMaxTest.testDefaultAxis
 argmax_op_test.ArgMaxTest.testDouble
-#argmax_op_test.ArgMaxTest.testEmpty
 argmax_op_test.ArgMaxTest.testFloat
 argmax_op_test.ArgMaxTest.testFloatInt32Output
-#argmax_op_test.ArgMaxTest.testInt32
-#argmax_op_test.ArgMaxTest.testInt64
+argmax_op_test.ArgMaxTest.testInt32
+argmax_op_test.ArgMaxTest.testInt64
 argmax_op_test.ArgMaxTest.testOutputEmpty
 
 array_ops_test.SnapshotOpTest.testInvertPermutation
@@ -262,7 +289,7 @@ math_ops_test.Xlog1pyTest.testXlog1pyWithNegOne
 math_ops_test.Xlog1pyTest.testXlog1pyWithZeroBroadcast
 
 #nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradGradConfig1
-nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradGradConfig2
+#nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradGradConfig2
 #nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradGradConfig3
 #nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradGradConfig4
 nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradShape1
@@ -331,10 +358,12 @@ pooling_ops_3d_test.PoolingTest.testMaxPool3dValidPadding
 #quantized_conv_ops_test.Conv2DTest.testConv2D2x2FilterStride2Same 
 
 #reduction_ops_test.AllReductionTest.testAll3D
-reduction_ops_test.AllReductionTest.testAxesType
+# Disabled because 'ReduceLogicalAnd' is not supported by INT backend
+#reduction_ops_test.AllReductionTest.testAxesType
 #reduction_ops_test.AllReductionTest.testEmpty
 #reduction_ops_test.AnyReductionTest.testAll3D
-reduction_ops_test.AnyReductionTest.testAxesType
+# Disabled because 'ReduceLogicalOr' is not supported by INT backend
+#reduction_ops_test.AnyReductionTest.testAxesType
 #reduction_ops_test.AnyReductionTest.testEmpty
 
 reduction_ops_test.MaxReductionTest.testAxesType
@@ -352,10 +381,10 @@ reduction_ops_test.MeanReductionTest.testAxesType
 reduction_ops_test.MeanReductionTest.testComplex128
 reduction_ops_test.MeanReductionTest.testComplex64
 reduction_ops_test.MeanReductionTest.testDegenerate
-reduction_ops_test.MeanReductionTest.testEmptyGradients
+#reduction_ops_test.MeanReductionTest.testEmptyGradients # Unsupported op 'Tile'
 reduction_ops_test.MeanReductionTest.testFloat32
 reduction_ops_test.MeanReductionTest.testFloat64
-reduction_ops_test.MeanReductionTest.testGradient
+#reduction_ops_test.MeanReductionTest.testGradient # Unsupported op 'Tile'
 reduction_ops_test.MeanReductionTest.testInfinity
 reduction_ops_test.MeanReductionTest.testInt32
 
@@ -373,12 +402,12 @@ reduction_ops_test.SumReductionTest.testAxesType
 reduction_ops_test.SumReductionTest.testComplex128
 reduction_ops_test.SumReductionTest.testComplex64
 reduction_ops_test.SumReductionTest.testDegenerate
-reduction_ops_test.SumReductionTest.testEmptyGradients
+#reduction_ops_test.SumReductionTest.testEmptyGradients # Unsupported op 'Tile'
 reduction_ops_test.SumReductionTest.testExpand
 reduction_ops_test.SumReductionTest.testFloat16
 #reduction_ops_test.SumReductionTest.testFloat32 # it might need lot of memory in some random runs and cause SIGSEGV crash, see .../tensorflow/tensorflow/python/kernel_tests/reduction_ops_test.py
 reduction_ops_test.SumReductionTest.testFloat64
-reduction_ops_test.SumReductionTest.testGradient
+#reduction_ops_test.SumReductionTest.testGradient # Unsupported op 'Tile'
 reduction_ops_test.SumReductionTest.testHighRank
 reduction_ops_test.SumReductionTest.testInfinity
 reduction_ops_test.SumReductionTest.testInt32
@@ -496,8 +525,8 @@ scatter_nd_ops_test.StatefulScatterNdTest.testSimpleResource
 scatter_nd_ops_test.StatefulScatterNdTest.test_session
 
 slice_op_test.SliceTest.testComplex
-slice_op_test.SliceTest.testEmpty
-slice_op_test.SliceTest.testGradientsAll
+#slice_op_test.SliceTest.testEmpty # Unsupported op 'Tile'
+#slice_op_test.SliceTest.testGradientsAll  # Unsupported op 'Tile'
 slice_op_test.SliceTest.testInt32
 slice_op_test.SliceTest.testInvalidIndex
 slice_op_test.SliceTest.testRandom
@@ -622,3 +651,9 @@ xent_op_test.XentTest.testSingleClass
 xent_op_test.XentTest.testWrapper
 xent_op_test.XentTest.testZeroDimension
 xent_op_test.XentTest.test_session
+
+###################################################
+[SKIP]
+# Specify tests/patterns/regex that should be excluded/skipped
+
+argmax_op_test.ArgMaxTest.testEmpty

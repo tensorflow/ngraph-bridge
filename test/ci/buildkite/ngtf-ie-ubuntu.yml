@@ -14,9 +14,9 @@
 
   - wait
   - command: |
-      NGTF_GTEST_FILE=`pwd`/test/cpp_tests_list_IECPU.txt PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
+      PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_cpp
-    label: ":chrome: C++ Unit Test"
+    label: ":chrome: C++ Unit Test (GTest) ${NGRAPH_TF_EXECUTOR}-${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
@@ -37,10 +37,21 @@
   - wait
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
-      PYTEST_SKIPFILTERS=`pwd`/test/python/filters_IECPU.txt PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
+      PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_python
+    label: ":python: nGraph Pytest ${NGRAPH_TF_EXECUTOR}-${NGRAPH_TF_BACKEND}"
+    timeout_in_minutes: 30
+    agents:
+      queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
+      name: ${BUILDKITE_AGENT_META_DATA_NAME}
+
+  - wait
+  - command: |
+      source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
+      PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
+        --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_tf_python
     
-    label: ":python: nGraph Pytest"
+    label: ":python: TensorFlow Pytest ${NGRAPH_TF_EXECUTOR}-${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}

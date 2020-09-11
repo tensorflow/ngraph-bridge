@@ -32,6 +32,9 @@
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
 
+#include "ngraph/env_util.hpp"
+#include "ngraph/pass/pass_config.hpp"
+
 using namespace std;
 namespace ng = ngraph;
 
@@ -586,18 +589,28 @@ void ClearAttribute(Graph* g,
   }
 }
 
-bool PassEnabled(NGraphPassType type) {
-  std::map<NGraphPassType, const char*> _map = {
-    {NGraphPassType::ConstFold, "NGRAPH_TF_PASS_CONSTFOLD"},
-    {NGraphPassType::TransposeFold, "NGRAPH_TF_PASS_TRANSPOSEFOLD"},
-    {NGraphPassType::TransposeSink, "NGRAPH_TF_PASS_TRANSPOSESINK"},
-  };
-  const char* var = std::getenv(_map.at(type));
-  if(var != nullptr && var[0] != '0') {
-    return true;
-  } else {
-    return false;
+static ngraph::pass::PassConfig* _p_pass_config = nullptr;
+
+static void InitPassConfig() {
+  // use a singleton config object
+  if (_p_pass_config) return;
+  _p_pass_config = new ngraph::pass::PassConfig();
+  // Set the defaults, unless already specified via env var
+  if (ngraph::getenv_string("NGRAPH_PASS_ENABLES").empty()) {
+    _p_pass_config->set_pass_enable("ConstantFolding", false);
+    _p_pass_config->set_pass_enable("TransposeSinking", true);
   }
+}
+
+bool PassEnabled(std::string pass_name) {
+  InitPassConfig();
+  // reads from NGRAPH_PASS_ENABLES env var
+  // E.g.,
+  // NGRAPH_PASS_ENABLES="ConstantFolding:0;LikeReplacement:1;TransposeSinking"
+  // would set disables on ConstantFolding and enables on LikeReplacement and
+  // TransposeSinking
+  // See .../ngraph/pass/pass_config.cpp for more info
+  return _p_pass_config->get_pass_enable(pass_name);
 }
 
 }  // namespace ngraph_bridge

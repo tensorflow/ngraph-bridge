@@ -30,7 +30,6 @@
 #include "tensorflow/core/graph/graph_constructor.h"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_backend.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
@@ -42,7 +41,6 @@
 #include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
-namespace ng = ngraph;
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -54,26 +52,6 @@ int NGraphEncapsulateOp::s_instance_id = 0;
 //---------------------------------------------------------------------------
 NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     : OpKernel(ctx) {
-  // Set the backend type for the this NGraphEncapsulate Op
-  std::string ngraph_backend;
-  OP_REQUIRES_OK(ctx, ctx->GetAttr<string>("ngraph_backend", &ngraph_backend));
-  std::string ngraph_device_id;
-  OP_REQUIRES_OK(ctx,
-                 ctx->GetAttr<string>("ngraph_device_id", &ngraph_device_id));
-
-  // Concatenate the backend_name:device_id
-  string backend_name = BackendManager::GetBackendCreationString(
-      ngraph_backend, ngraph_device_id);
-
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Create backend " << def().name()
-                 << ", Backend: " << backend_name;
-  OP_REQUIRES_OK(ctx, BackendManager::CreateBackend(backend_name));
-
-  auto backend = BackendManager::GetBackend(backend_name);
-  OP_REQUIRES(ctx, backend != nullptr,
-              errors::Internal("Cannot get the backend object for backend: ",
-                               backend_name));
-
   NGRAPH_VLOG(1) << "Create Executor " << name();
   ng_encap_impl_.SetName(name());
 
@@ -183,12 +161,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   auto node_def = ctx->def();
   OP_REQUIRES_OK(ctx, ng_encap_impl_.ParseNodeAttributes(
                           node_def.attr(), &additional_attribute_map));
-
-  ng_encap_impl_.SetOpBackend(backend_name);
-
-  // SetConfig will be called for each EncapsulateOp
-  BackendManager::SetConfig(ng_encap_impl_.GetOpBackend(),
-                            additional_attribute_map);
 }
 
 //---------------------------------------------------------------------------
@@ -201,10 +173,6 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
   ng_encap_impl_.ClearExecMaps();
-
-  // Release the backend
-  NGRAPH_VLOG(2) << "~NGraphEncapsulateOp():: ReleaseBackend";
-  BackendManager::ReleaseBackend(ng_encap_impl_.GetOpBackend());
 }
 
 //---------------------------------------------------------------------------
@@ -227,6 +195,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
   std::shared_ptr<Executable> ng_exec;
+  std::shared_ptr<ngraph::Function> ng_function;
+
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;
   int step_id;
@@ -239,9 +209,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     step_id = ctx->step_id();
 
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(
-        ctx, ng_encap_impl_.GetNgExecutable(tf_input_tensors, input_shapes,
-                                            static_input_map, ng_exec));
+    OP_REQUIRES_OK(ctx, ng_encap_impl_.GetNgExecutable(
+                            tf_input_tensors, input_shapes, static_input_map,
+                            ng_exec, ng_function));
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
@@ -257,7 +227,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   Timer create_or_lookup_tensors;
 
   // Allocate tensors for input arguments.
-  vector<shared_ptr<ng::runtime::Tensor>> ng_inputs;
+  vector<shared_ptr<ngraph::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
   {
     NG_TRACE("Input: maybe create", name(), "");
@@ -269,7 +239,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                     "for cluster "
                  << ng_encap_impl_.GetNgraphCluster();
   // Allocate tensors for the output results.
-  vector<shared_ptr<ng::runtime::Tensor>> ng_outputs;
+  vector<shared_ptr<ngraph::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
   std::vector<Tensor> tf_output_tensors;
   {
@@ -291,7 +261,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
       // Make sure the nGraph-inferred element type agrees with what TensorFlow
       // expected.
-      ng::element::Type expected_elem_type;
+      ngraph::element::Type expected_elem_type;
       OP_REQUIRES_OK(
           ctx, TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
                                              &expected_elem_type));
@@ -316,33 +286,27 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     NG_TRACE("Execute nGraph", name(), "");
     Timer execute_function;
     {
-      BackendManager::LockBackend(ng_encap_impl_.GetOpBackend());
       NGRAPH_VLOG(4)
           << "NGraphEncapsulateOp::Compute call starting for cluster "
           << ng_encap_impl_.GetNgraphCluster();
       try {
         ng_exec->call(ng_outputs, ng_inputs);
       } catch (const std::exception& exp) {
-        BackendManager::UnlockBackend(ng_encap_impl_.GetOpBackend());
-        Status st = ng_encap_impl_.DumpNgFunction(
-            "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
+        NgraphSerialize(
+            "tf_function_error_" + ctx->op_kernel().name() + ".json",
+            ng_function);
         string status_string =
             "Caught exception while executing nGraph computation: " +
-            string(exp.what()) +
-            (st.ok() ? "" : (" Also error in dumping serialized function: " +
-                             st.error_message()));
+            string(exp.what());
         OP_REQUIRES(ctx, false, errors::Internal(status_string));
       } catch (...) {
-        BackendManager::UnlockBackend(ng_encap_impl_.GetOpBackend());
-        Status st = ng_encap_impl_.DumpNgFunction(
-            "tf_function_error_" + ctx->op_kernel().name() + ".json", ng_exec);
+        NgraphSerialize(
+            "tf_function_error_" + ctx->op_kernel().name() + ".json",
+            ng_function);
         string status_string =
-            "Error in executing the nGraph computation." +
-            (st.ok() ? "" : (" Also error in dumping serialized function: " +
-                             st.error_message()));
+            "Caught exception while executing nGraph computation.";
         OP_REQUIRES(ctx, false, errors::Internal(status_string));
       }
-      BackendManager::UnlockBackend(ng_encap_impl_.GetOpBackend());
     }
     time_execute_function = execute_function.ElapsedInMS();
   }

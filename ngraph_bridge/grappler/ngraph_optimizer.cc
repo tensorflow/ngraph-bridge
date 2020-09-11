@@ -27,7 +27,6 @@
 #include "tensorflow/core/platform/protobuf.h"
 
 #include "ngraph_bridge/grappler/ngraph_optimizer.h"
-#include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 
 #include <iostream>
@@ -40,52 +39,11 @@ namespace ngraph_bridge {
 Status NgraphOptimizer::Init(
     const tensorflow::RewriterConfig_CustomGraphOptimizer* config) {
   const auto params = config->parameter_map();
-  for (size_t i = 0; i < compulsory_attrs.size(); i++) {
-    if (params.count(compulsory_attrs[i]) == 0) {
-      NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Compulsory attribute "
-                     << compulsory_attrs[i] << " not found.";
-      return errors::Internal("NGTF_OPTIMIZER: Missing compulsory attributes.");
-    }
-  }
-  config_backend_name = params.at("ngraph_backend").s();
-  config_device_id = params.at("device_id").s();
-  NGRAPH_VLOG(3) << "Backend name from config: " << config_backend_name;
-  std::set<ShapeHintMap> shape_hints;
-  // typedef std::map<std::string, std::vector<int>> ShapeHintMap;
   for (auto i : params) {
-    if (i.first != "ngraph_backend") {
-      // TODO: slightly hacky. The bridge reserves the right to use optional
-      // attributes whose names start with shape_hint
-      if (i.first.rfind("shape_hint", 0) != 0) {
-        config_map[(i.first == "device_id" ? "" : "_") +
-                   std::string("ngraph_") + i.first] = i.second.s();
-        NGRAPH_VLOG(3) << "Attribute: " << i.first
-                       << " Value: " << config_map["_ngraph_" + i.first];
-      } else {
-        ShapeHintMap hint;
-        for (auto k : i.second.func().attr().at("hint_body").func().attr()) {
-          vector<int> full_or_partial_shape;
-          for (auto dim : k.second.tensor().int_val()) {
-            full_or_partial_shape.push_back(dim);
-          }
-          hint[k.first] = full_or_partial_shape;
-        }
-        shape_hints.insert(hint);
-      }
-    }
+    m_config_map["_ngraph_" + i.first] = i.second.s();
+    NGRAPH_VLOG(3) << "Attribute: " << i.first
+                   << " Value: " << m_config_map["_ngraph_" + i.first];
   }
-  auto itr = params.find("aot_requested");
-  bool do_aot = false;
-  if (itr != params.end()) {
-    do_aot = itr->second.s() == "1";
-  }
-  if (!do_aot && shape_hints.size() > 0) {
-    return errors::Internal(
-        "Did not requested AOT, but passed shape hints. Please request to use "
-        "shape hints (by using --precompile in tf2ngraph.py), or if AOT is not "
-        "desired then do not pass shape hints");
-  }
-  aot_info = make_pair(do_aot, shape_hints);
   return Status::OK();
 }
 
@@ -201,27 +159,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     DumpGraphs(graph, idx, "unmarked", "Unmarked Graph");
   }
 
-  // Get backend + its configurations, to be attached to the nodes
-  // using RewriteConfig
-  string backend_creation_string = BackendManager::GetBackendCreationString(
-      config_backend_name, config_device_id);
-
-  // Override from the env. for debugging purposes
-  if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
-    backend_creation_string = std::getenv("NGRAPH_TF_BACKEND");
-  }
-
-  TF_RETURN_IF_ERROR(BackendManager::CanCreateBackend(backend_creation_string));
-  NGRAPH_VLOG(1) << "Setting backend from the RewriteConfig "
-                 << backend_creation_string;
-
-  if ((std::getenv("NGRAPH_TF_LOG_0_DISABLED") == nullptr)) {
-    NGRAPH_VLOG(0) << "NGraph using backend: " << backend_creation_string;
-  }
-
   // 1. Mark for clustering then, if requested, dump the graphs.
-  TF_RETURN_IF_ERROR(
-      MarkForClustering(&graph, skip_these_nodes, backend_creation_string));
+  TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes));
   if (DumpMarkedGraphs()) {
     DumpGraphs(graph, idx, "marked", "Graph Marked for Clustering");
   }
@@ -240,12 +179,8 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
   }
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
-  FunctionDefLibrary* fdeflib_new = new FunctionDefLibrary();
-  // TODO: right now _ngraph_aot_requested is passed along in config_map.
-  auto status =
-      EncapsulateClusters(&graph, idx, fdeflib_new, config_map, aot_info);
+  auto status = EncapsulateClusters(&graph, idx, m_config_map);
   if (status != Status::OK()) {
-    delete (fdeflib_new);
     return status;
   }
   if (DumpEncapsulatedGraphs()) {
@@ -254,10 +189,6 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // Convert the graph back to Graphdef
   graph.ToGraphDef(output);
-  // According to the doc, the message takes ownership of the allocated object
-  // https://developers.google.com/protocol-buffers/docs/reference/cpp-generated#proto3_string
-  // Hence no need to free fdeflib_new
-  output->set_allocated_library(fdeflib_new);
   return Status::OK();
 }
 
@@ -288,5 +219,4 @@ int NgraphOptimizer::FreshIndex() {
 REGISTER_GRAPH_OPTIMIZER_AS(NgraphOptimizer, "ngraph-optimizer");
 
 }  // end namespace ngraph_bridge
-
 }  // end namespace tensorflow

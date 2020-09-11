@@ -149,7 +149,7 @@ static ConfirmationFunction FusedBatchNormConfirmationFunction() {
 
 // Check if op is supported by backend using is_supported API
 Status IsSupportedByBackend(
-    const Node* node, const Backend* op_backend,
+    const Node* node, const shared_ptr<Backend> op_backend,
     const std::map<std::string, std::set<shared_ptr<ng::Node>>>&
         TFtoNgraphOpMap,
     bool& is_supported) {
@@ -214,6 +214,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["PadV2"] = SetStaticInputs({1, 2});
     set_attributes_map["Prod"] = SetStaticInputs({1});
     set_attributes_map["Reshape"] = SetStaticInputs({1});
+    set_attributes_map["Shape"] = SetStaticInputs({0});
     set_attributes_map["ScatterNd"] = SetStaticInputs({2});
     set_attributes_map["Slice"] = SetStaticInputs({1, 2});
     set_attributes_map["Split"] = SetStaticInputs({0});
@@ -266,7 +267,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["ArgMin"] = SimpleConfirmationFunction();
     confirmation_function_map["Asin"] = SimpleConfirmationFunction();
     confirmation_function_map["Atan"] = SimpleConfirmationFunction();
-    confirmation_function_map["Atan2"] = SimpleConfirmationFunction();
     confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
     confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
@@ -432,7 +432,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["ArgMin"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Asin"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Atan"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["Atan2"]["T"] = NGraphRealDTypes();
     type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
@@ -586,11 +585,14 @@ GetTFToNgOpMap() {
       {"AddV2", {std::make_shared<opset::Add>()}},
       {"Any", {std::make_shared<opset::ReduceLogicalOr>(), constant}},
       {"All", {std::make_shared<opset::ReduceLogicalAnd>(), constant}},
-      {"ArgMax", {std::make_shared<ngraph::op::ArgMax>()}},
-      {"ArgMin", {std::make_shared<ngraph::op::ArgMin>()}},
+      {"ArgMax",
+       {std::make_shared<opset::TopK>(), std::make_shared<opset::Squeeze>(),
+        constant}},
+      {"ArgMin",
+       {std::make_shared<opset::TopK>(), std::make_shared<opset::Squeeze>(),
+        constant}},
       {"Asin", {std::make_shared<opset::Asin>()}},
       {"Atan", {std::make_shared<opset::Atan>()}},
-      {"Atan2", {std::make_shared<ngraph::op::Atan2>()}},
       {"AvgPool", {std::make_shared<opset::AvgPool>()}},
       {"BatchMatMul",
        {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
@@ -662,7 +664,7 @@ GetTFToNgOpMap() {
         std::make_shared<opset::LogicalAnd>()}},
       {"L2Loss",
        {constant, std::make_shared<opset::Multiply>(),
-        std::make_shared<ngraph::op::Sum>(),
+        std::make_shared<opset::ReduceSum>(),
         std::make_shared<opset::Divide>()}},
       {"LogSoftmax",
        {std::make_shared<ngraph::op::Broadcast>(),
@@ -701,8 +703,8 @@ GetTFToNgOpMap() {
        {std::make_shared<opset::NonMaxSuppression>(), constant}},
       {"OneHot", {std::make_shared<opset::OneHot>(), constant}},
       {"Pack",
-       {std::make_shared<ngraph::op::Concat>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {constant, std::make_shared<opset::Concat>(),
+        std::make_shared<opset::Reshape>()}},
       {"Pad", {constant, std::make_shared<opset::Pad>()}},
       {"PadV2", {constant, std::make_shared<opset::Pad>()}},
       {"Pow", {std::make_shared<opset::Power>()}},
@@ -716,7 +718,7 @@ GetTFToNgOpMap() {
       {"Select", {std::make_shared<opset::Select>()}},
       {"Reshape", {std::make_shared<opset::Reshape>()}},
       {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},
-      {"Shape", {constant}},
+      {"Shape", {std::make_shared<opset::ShapeOf>()}},
       {"Sigmoid", {std::make_shared<opset::Sigmoid>()}},
       {"Sin", {std::make_shared<opset::Sin>()}},
       {"Sinh", {std::make_shared<opset::Sinh>()}},
@@ -752,8 +754,8 @@ GetTFToNgOpMap() {
       {"UnsortedSegmentSum",
        {constant, std::make_shared<ngraph::op::ScatterAdd>()}},
       {"Unpack",
-       {std::make_shared<ngraph::op::Slice>(),
-        std::make_shared<ngraph::op::Reshape>()}},
+       {constant, std::make_shared<opset::StridedSlice>(),
+        std::make_shared<opset::Reshape>()}},
       {"ZerosLike", {constant}},
       {"NoOp", {}},
   };
@@ -764,8 +766,8 @@ GetTFToNgOpMap() {
 //
 // Main entry point for the marking pass.
 //
-Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
-                         const string& current_backend) {
+Status MarkForClustering(Graph* graph,
+                         const std::set<string> skip_these_nodes) {
   const TypeConstraintMap& type_constraint_map = GetTypeConstraintMap();
 
   // confirmation_function_map is non-const unlike the other maps
@@ -823,13 +825,8 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   std::unordered_map<string, int> fail_confirmation_histogram;
   std::unordered_map<string, int> fail_constraint_histogram;
   vector<Node*> nodes_marked_for_clustering;
-  string ng_backend_type;
-  // Create nGraph backend
-  BackendManager::GetCurrentlySetBackendName(&ng_backend_type);
-  // Create backend to query is_supported
-  TF_RETURN_IF_ERROR(BackendManager::CreateBackend(ng_backend_type));
-  Backend* op_backend = BackendManager::GetBackend(ng_backend_type);
 
+  shared_ptr<Backend> op_backend = BackendManager::GetBackend();
   for (auto node : graph->op_nodes()) {
     bool mark_for_clustering = false;
 
@@ -886,9 +883,11 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
                                               is_supported));
 
       if (!is_supported) {
+        string backend;
+        BackendManager::GetBackendName(backend);
         NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
                        << node->type_string()
-                       << " is not supported by backend: " << ng_backend_type;
+                       << " is not supported by backend: " << backend;
         break;
       }
 
@@ -908,9 +907,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
     }
   }
 
-  // Release backend created to query is_supported
-  BackendManager::ReleaseBackend(ng_backend_type);
-
   if (config::IsLoggingPlacement()) {
     std::cout << "\n=============New sub-graph logs=============\n";
     // print summary for nodes failed to be marked
@@ -928,7 +924,6 @@ Status MarkForClustering(Graph* graph, const std::set<string> skip_these_nodes,
   for (auto node : nodes_marked_for_clustering) {
     // TODO(amprocte): move attr name to a constant
     node->AddAttr("_ngraph_marked_for_clustering", true);
-    SetNodeBackend(node, current_backend);
     auto it = set_attributes_map.find(node->type_string());
     if (it != set_attributes_map.end()) {
       TF_RETURN_IF_ERROR(it->second(node));
@@ -988,27 +983,10 @@ Status GetStaticInputs(Graph* graph, std::vector<int32>* static_input_indexes) {
   return Status::OK();
 }
 
-Status GetNodeBackend(const Node* node, string* backend_name) {
-  // TODO(amprocte): move attr name to a constant
-  NGRAPH_VLOG(5) << "Getting backend " << node->name();
-  TF_RETURN_IF_ERROR(
-      GetNodeAttr(node->attrs(), "_ngraph_backend", backend_name));
-  return Status::OK();
-}
-
-// Can be extended to check the TF Device placement and/or user specified
-// backend
-// and accordingly assign backend
-void SetNodeBackend(Node* node, const string& backend_name) {
-  NGRAPH_VLOG(5) << "Setting backend " << node->name() << " " << backend_name;
-  node->AddAttr("_ngraph_backend", backend_name);
-}
-
 void ResetMarkForClustering(Graph* graph) {
-  ClearAttribute(graph, {"_ngraph_marked_for_clustering", "_ngraph_backend",
-                         "_ngraph_static_inputs"});
+  ClearAttribute(graph,
+                 {"_ngraph_marked_for_clustering", "_ngraph_static_inputs"});
 }
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
