@@ -382,8 +382,6 @@ bool DumpDeclusteredGraphs();
 
 bool DumpEncapsulatedGraphs();
 
-bool PassEnabled(std::string pass_name);
-
 }  // namespace ngraph_bridge
 
 }  // namespace tensorflow
