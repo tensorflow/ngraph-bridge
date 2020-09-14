@@ -143,6 +143,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_general_graph.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_graph1.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_graph1.pbtxt
 )
 
 if (APPLE)
