@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+#include <regex>
 #include "gtest/gtest.h"
 
 #include "tensorflow/core/framework/graph.pb.h"
@@ -39,6 +40,14 @@ namespace ng = ngraph;
 namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
+
+string THISDIR =
+#if defined(WIN32) || defined(_WIN32) || \
+    defined(__WIN32) && !defined(__CYGWIN__)
+    std::regex_replace(__FILE__, std::regex("^(.*)\\[^\\]+$"), "$1\\");
+#else
+    std::regex_replace(__FILE__, std::regex("^(.*)/[^/]+$"), "$1/");
+#endif
 
 class NGraphExecTest : public ::testing::Test {
  protected:
@@ -133,7 +142,7 @@ TEST_F(NGraphExecTest, Axpy) {
   SetBackendUsingEnvVar("CPU");
 
   Graph input_graph(OpRegistry::Global());
-  ASSERT_OK(LoadGraph("test_axpy_launchop.pbtxt", &input_graph));
+  ASSERT_OK(LoadGraph(THISDIR + "test_axpy_launchop.pbtxt", &input_graph));
 
   // Create the inputs for this graph
   Tensor x(DT_FLOAT, TensorShape({2, 3}));
@@ -197,7 +206,7 @@ TEST_F(NGraphExecTest, Axpy8bit) {
   SetBackendUsingEnvVar("CPU");
 
   Graph input_graph(OpRegistry::Global());
-  ASSERT_OK(LoadGraph("test_axpy_int8_launchop.pbtxt", &input_graph));
+  ASSERT_OK(LoadGraph(THISDIR + "test_axpy_int8_launchop.pbtxt", &input_graph));
 
   // Create the inputs for this graph
   Tensor x(DT_INT8, TensorShape({2, 2}));
@@ -258,7 +267,7 @@ TEST_F(NGraphExecTest, Axpy8bit) {
 
 TEST_F(NGraphExecTest, MixedTensors) {
   Graph input_graph(OpRegistry::Global());
-  ASSERT_OK(LoadGraph("test_axpy_launchop.pbtxt", &input_graph));
+  ASSERT_OK(LoadGraph(THISDIR + "test_axpy_launchop.pbtxt", &input_graph));
 
   // Create the inputs for this graph
   DataType tf_dt = DT_FLOAT;
@@ -340,7 +349,7 @@ TEST_F(NGraphExecTest, MixedTensors) {
 
 TEST_F(NGraphExecTest, FindNumberOfNodesUtil1) {
   Graph input_graph(OpRegistry::Global());
-  ASSERT_OK(LoadGraph("test_axpy_launchop.pbtxt", &input_graph));
+  ASSERT_OK(LoadGraph(THISDIR + "test_axpy_launchop.pbtxt", &input_graph));
 
   int number_of_args = FindNumberOfNodes(&input_graph, "_Arg");
   int number_of_retvals = FindNumberOfNodes(&input_graph, "_Retval");
@@ -355,7 +364,7 @@ TEST_F(NGraphExecTest, FindNumberOfNodesUtil1) {
 
 TEST_F(NGraphExecTest, FindNumberOfNodesUtil2) {
   Graph input_graph(OpRegistry::Global());
-  ASSERT_OK(LoadGraph("test_general_graph.pbtxt", &input_graph));
+  ASSERT_OK(LoadGraph(THISDIR + "test_general_graph.pbtxt", &input_graph));
 
   int number_of_args = FindNumberOfNodes(&input_graph, "_Arg");
   int number_of_retvals = FindNumberOfNodes(&input_graph, "_Retval");
@@ -370,7 +379,7 @@ TEST_F(NGraphExecTest, FindNumberOfNodesUtil2) {
 
 TEST_F(NGraphExecTest, NGraphPassConstantFolding) {
   Graph input_graph(OpRegistry::Global());
-  ASSERT_OK(LoadGraph("test_graph1.pbtxt", &input_graph));
+  ASSERT_OK(LoadGraph(THISDIR + "test_graph1.pbtxt", &input_graph));
 
   auto expect_const_count = [this](const Graph& g, int expected) {
     std::vector<TensorShape> tf_input_shapes;
