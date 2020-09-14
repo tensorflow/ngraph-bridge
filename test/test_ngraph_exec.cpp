@@ -27,6 +27,10 @@
 #include "ngraph_bridge/ngraph_executable.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
+#include "ngraph/ngraph.hpp"
+#include "ngraph/opsets/opset.hpp"
+#include "ngraph_bridge/default_opset.h"
+
 #include "test/test_utilities.h"
 
 using namespace std;
@@ -362,6 +366,28 @@ TEST_F(NGraphExecTest, FindNumberOfNodesUtil2) {
   ASSERT_EQ(number_of_retvals, 3);
   ASSERT_EQ(number_of_add, 2);
   ASSERT_EQ(number_of_sub, 1);
+}
+
+TEST_F(NGraphExecTest, NGraphPassConstantFolding) {
+  Graph input_graph(OpRegistry::Global());
+  ASSERT_OK(LoadGraph("test_graph1.pbtxt", &input_graph));
+
+  auto expect_const_count = [this](const Graph& g, int expected) {
+    std::vector<TensorShape> tf_input_shapes;
+    shared_ptr<ng::Function> func;
+    ASSERT_OK(TranslateTFGraphNoStatic(tf_input_shapes, g, func));
+    int numconst = 0;
+    for (const auto& node : func->get_ops()) {
+      if (ngraph::is_type<opset::Constant>(node)) numconst++;
+    }
+    ASSERT_EQ(numconst, expected);
+  };
+
+  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:1", true);
+  expect_const_count(input_graph, 1);
+
+  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:0", true);
+  expect_const_count(input_graph, 3);
 }
 
 }  // namespace testing
