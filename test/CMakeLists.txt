@@ -123,6 +123,31 @@ add_executable(gtest_ngtf ${SRC})
 add_dependencies(gtest_ngtf ext_gtest)
 message(STATUS "TensorFlow_SRC_DIR: ${TensorFlow_SRC_DIR}")
 
+# The following custom commands are used to create symlinks for various
+# input files needed by the unit test
+add_custom_command(
+    TARGET gtest_ngtf
+    PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_launchop.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_int8_launchop.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_axpy_8bit.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_general_graph.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_graph1.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_graph1.pbtxt
+)
+
 if (APPLE)
     set(NGRAPH_TF_CXX11_ABI 0)
 endif()
