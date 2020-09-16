@@ -1898,14 +1898,29 @@ static Status TranslateLog1pOp(
 static Status TranslateLogSoftmaxOp(const Node* op,
                                     const std::vector<const Tensor*>&,
                                     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_input;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
-  auto input_shape = ng_input.get_shape();
-  auto rank = input_shape.size();
-  auto ng_log_softmax = ConstructNgNode<opset::Log>(
+  ng::Output<ng::Node> ng_inp;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_inp));
+  auto inp_shape = ng_inp.get_shape();
+  size_t rank = inp_shape.size();
+  // Batch i, class j
+  // logsoftmax[i, j] = logits[i, j] - log(sum(exp(logits[i])))
+  // Actually implementing: logsoftmax[i, j] = logits[i, j] - max(logits[i]) -
+  // log(sum(exp(logits[i] - max(logits[i]))))
+  std::vector<int64> axes;
+  axes.push_back(rank - 1);
+  auto ng_axis = ConstructNgNode<opset::Constant>(op->name(), ng::element::i64,
+                                                  ng::Shape{axes.size()}, axes);
+  auto ng_max =
+      ConstructNgNode<opset::ReduceMax>(op->name(), ng_inp, ng_axis, true);
+  auto ng_inp_minus_max =
+      ConstructNgNode<opset::Subtract>(op->name(), ng_inp, ng_max);
+  auto ng_exp = ConstructNgNode<opset::Exp>(op->name(), ng_inp_minus_max);
+  auto ng_log_sum = ConstructNgNode<opset::Log>(
       op->name(),
-      ConstructNgNode<opset::Softmax>(op->name(), ng_input, rank - 1));
-  SaveNgOp(ng_op_map, op->name(), ng_log_softmax);
+      ConstructNgNode<opset::ReduceSum>(op->name(), ng_exp, ng_axis, true));
+  auto ng_output = ConstructNgNode<opset::Subtract>(
+      op->name(), ng_inp_minus_max, ng_log_sum);
+  SaveNgOp(ng_op_map, op->name(), ng_output);
   return Status::OK();
 }
 
