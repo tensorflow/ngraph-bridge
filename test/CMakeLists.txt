@@ -38,6 +38,11 @@ install(
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
     FILES_MATCHING PATTERN "*.pb"
 )
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING PATTERN "tests_*.txt"
+)
 
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
@@ -101,7 +106,6 @@ set(SRC
 
 if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
     list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)
-    list(APPEND SRC graph_rewrites/partial_shapes_test.cc)
 endif()
 
 # The compile flag -DNDEBUG is required since
@@ -138,6 +142,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
         ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt
         ${CMAKE_CURRENT_BINARY_DIR}/test_general_graph.pbtxt
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_graph1.pbtxt
+        ${CMAKE_CURRENT_BINARY_DIR}/test_graph1.pbtxt
 )
 
 if (APPLE)
@@ -193,3 +200,4 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_launchop.pbtxt DESTINATION $
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_8bit.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_axpy_int8_launchop.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_general_graph.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test_graph1.pbtxt DESTINATION ${CMAKE_INSTALL_PREFIX}/test)
