@@ -36,4 +36,7 @@ class TestLogSoftmaxOperations(NgraphTest):
         out = self.with_ngraph(sess_fn)
         assert np.allclose(
             np.array([[-1.386294, -1.386294, -1.386294, -1.386294],
-                      [0, -max, -max, -max]]), out)
+                      [0, -max, -max, -max]]),
+            out,
+            rtol=1.e-5,
+            atol=1.e-5)
