@@ -25,6 +25,7 @@ from subprocess import check_output, call
 import sys
 import shutil
 import glob
+import multiprocessing
 import platform
 import shlex
 
@@ -104,13 +105,12 @@ def cmake_build(build_dir, src_location, cmake_flags, verbose):
 
     command_executor(cmake_cmd, verbose=True)
 
-    import psutil
-    num_cores = str(psutil.cpu_count(logical=True))
+    num_cores = str(multiprocessing.cpu_count())
     cmd = ["make", "-j" + num_cores]
     if verbose:
         cmd.extend(['VERBOSE=1'])
     command_executor(cmd, verbose=True)
-    cmd = ["make", "install"]
+    cmd = ["make", "-j", "install"]
     command_executor(cmd, verbose=True)
 
     os.chdir(pwd)
@@ -168,7 +168,6 @@ def setup_venv(venv_dir):
         "install",
         "-U",
         "pip",
-        "psutil",
         "six>=1.12.0",
         "numpy>=1.16.0,<1.19.0",
         "wheel>=0.26",
@@ -180,6 +179,8 @@ def setup_venv(venv_dir):
         "keras_preprocessing>=1.1.1,<1.2",
         "--no-deps",
         "yapf==0.26.0",
+        "pytest",
+        "keras==2.3.1",
     ]
     command_executor(package_list)
 
@@ -438,9 +439,7 @@ def build_ngraph_tf(build_dir, artifacts_location, ngtf_src_loc, venv_dir,
     cmake_cmd.extend([ngtf_src_loc])
     command_executor(cmake_cmd)
 
-    import psutil
-    num_cores = str(psutil.cpu_count(logical=True))
-    make_cmd = ["make", "-j" + num_cores, "install"]
+    make_cmd = ["make", "-j", "install"]
     if verbose:
         make_cmd.extend(['VERBOSE=1'])
 
