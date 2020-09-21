@@ -1,6 +1,7 @@
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       export PATH=/opt/llvm-3.9.0/bin/:$$PATH
+      pip install yapf==0.26.0
       maint/check-code-format.sh
       
     label: ":pencil: Code Format ?"
