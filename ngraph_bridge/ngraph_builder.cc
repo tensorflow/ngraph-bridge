@@ -2091,9 +2091,9 @@ static Status TranslateReduceOp(
         "type");
   }
 
-  shared_ptr<ng::Node> ng_input, ng_reduction_indices;
+  ng::Output<ng::Node> ng_input, ng_reduction_indices;
   TF_RETURN_IF_ERROR(
-      GetInputNodes(ng_op_map, op, &ng_input, &ng_reduction_indices));
+      GetInputNodes(ng_op_map, op, ng_input, ng_reduction_indices));
   bool keep_dims;
   if (GetNodeAttr(op->attrs(), "keep_dims", &keep_dims) != Status::OK()) {
     keep_dims = false;
