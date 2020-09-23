@@ -1642,23 +1642,24 @@ static Status TranslateLogSoftmaxOp(const Node* op,
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_inp));
   auto inp_shape = ng_inp.get_shape();
   size_t rank = inp_shape.size();
-  auto ng_axis = ng::AxisSet{rank - 1};
   // Batch i, class j
   // logsoftmax[i, j] = logits[i, j] - log(sum(exp(logits[i])))
   // Actually implementing: logsoftmax[i, j] = logits[i, j] - max(logits[i]) -
   // log(sum(exp(logits[i] - max(logits[i]))))
-  auto ng_max = ConstructNgNode<ng::op::Broadcast>(
-      op->name(), ConstructNgNode<ng::op::Max>(op->name(), ng_inp, ng_axis),
-      inp_shape, ng_axis);
+  std::vector<int64> axes;
+  axes.push_back(rank - 1);
+  auto ng_axis = ConstructNgNode<opset::Constant>(op->name(), ng::element::i64,
+                                                  ng::Shape{axes.size()}, axes);
+  auto ng_max =
+      ConstructNgNode<opset::ReduceMax>(op->name(), ng_inp, ng_axis, true);
   auto ng_inp_minus_max =
       ConstructNgNode<opset::Subtract>(op->name(), ng_inp, ng_max);
-  auto ng_exp = ConstructNgNode<ng::op::Exp>(op->name(), ng_inp_minus_max);
-  auto ng_log_sum = ConstructNgNode<ng::op::Log>(
-      op->name(), ConstructNgNode<ng::op::Sum>(op->name(), ng_exp, ng_axis));
-  auto ng_broadcast = ConstructNgNode<ng::op::Broadcast>(
-      op->name(), ng_log_sum, ng_inp.get_shape(), ng_axis);
+  auto ng_exp = ConstructNgNode<opset::Exp>(op->name(), ng_inp_minus_max);
+  auto ng_log_sum = ConstructNgNode<opset::Log>(
+      op->name(),
+      ConstructNgNode<opset::ReduceSum>(op->name(), ng_exp, ng_axis, true));
   auto ng_output = ConstructNgNode<opset::Subtract>(
-      op->name(), ng_inp_minus_max, ng_broadcast);
+      op->name(), ng_inp_minus_max, ng_log_sum);
   SaveNgOp(ng_op_map, op->name(), ng_output);
   return Status::OK();
 }
@@ -2078,25 +2079,24 @@ static Status TranslatePadOp(const Node* op,
   }
 
   // Set pads_begin & pads_end (from the pad_val_op)
-  shared_ptr<opset::Constant> pads_begin_node, pads_end_node;
   std::vector<int64> paddings;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &paddings));
-  NGRAPH_VLOG(6) << op->name() << " pads {" << ng::join(paddings) << "}";
+  NGRAPH_VLOG(3) << op->name() << " pads {" << ng::join(paddings) << "}";
   if (paddings.size() % 2 != 0) {
     return errors::InvalidArgument(
         "Constant node for paddings does not have an even number of "
         "elements");
   }
-  ng::CoordinateDiff pad_begin(paddings.size() / 2);
-  ng::CoordinateDiff pad_end(paddings.size() / 2);
+  std::vector<int64> pad_begin(paddings.size() / 2);
+  std::vector<int64> pad_end(paddings.size() / 2);
   for (size_t i = 0; i < paddings.size() / 2; i++) {
     pad_begin[i] = paddings[2 * i];
     pad_end[i] = paddings[2 * i + 1];
   }
-  pads_begin_node = make_shared<opset::Constant>(
-      ng::element::i64, ng::Shape{pad_begin.size()}, pad_begin);
-  pads_end_node = make_shared<opset::Constant>(
-      ng::element::i64, ng::Shape{pad_end.size()}, pad_end);
+  auto pads_begin_node = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{pad_begin.size()}, pad_begin);
+  auto pads_end_node = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{pad_end.size()}, pad_end);
 
   // Create final Op
   result_pad_op =
@@ -2856,7 +2856,7 @@ const static std::map<
         {"Reshape", TranslateReshapeOp},
         {"Rsqrt", TranslateRsqrtOp},
         {"ScatterNd", TranslateScatterNdOp},
-        {"Select", TranslateSelectOp},
+        {"SelectV2", TranslateSelectOp},
         {"Shape", TranslateShapeOp},
         {"Sigmoid", TranslateUnaryOp<opset::Sigmoid>},
         {"Sin", TranslateUnaryOp<opset::Sin>},
