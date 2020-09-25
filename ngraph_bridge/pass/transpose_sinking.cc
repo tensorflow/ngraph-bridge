@@ -425,8 +425,9 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
   auto new_concat = make_shared<opset::Concat>(new_args, new_axis);
   // put back the original arguments
   for (size_t i = 0; i < new_concat->get_input_size(); i++) {
-    ngraph::replace_node(new_args.at(i),
-                         n->input_value(i).get_node_shared_ptr());
+    NGRAPH_VLOG(4) << "Replacing " << new_concat->get_name() << " input " << i
+                   << " with " << n->get_name() << " input " << i;
+    new_concat->input(i).replace_source_output(n->input_value(i));
   }
   NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
                  << new_concat->get_name();
