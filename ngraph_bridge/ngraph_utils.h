@@ -31,7 +31,6 @@
 
 #include "ngraph/chrome_trace.hpp"
 #include "ngraph/ngraph.hpp"
-#include "ngraph/serializer.hpp"
 
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
