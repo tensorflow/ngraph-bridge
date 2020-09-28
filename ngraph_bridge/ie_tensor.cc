@@ -51,7 +51,7 @@ static InferenceEngine::Layout getLayoutByDims(size_t dims) {
 
 static InferenceEngine::Precision getPrecision(
     const element::Type& element_type) {
-  switch (element_type.get_type_enum()) {
+  switch (element_type) {
     case element::Type_t::f32:
       return InferenceEngine::Precision::FP32;
     case element::Type_t::u8:
