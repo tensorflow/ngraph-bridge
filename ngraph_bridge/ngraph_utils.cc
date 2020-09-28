@@ -381,7 +381,7 @@ void debugger_print_ngfunc(const ngraph::Function& func) {
         if (m_map_result_to_ngnode.count(outNode->get_friendly_name()) == 0) {
           continue;  // we are not interested, as it is not a Result_ node
         }
-        if (outNode->is_output()) {
+        if (ngraph::op::is_output(outNode)) {
           m_map_result_to_ngnode.erase(outNode->get_friendly_name());
           m_map_result_to_ngnode.insert(std::pair<std::string, std::string>(
               outNode->get_friendly_name(), node->get_friendly_name()));

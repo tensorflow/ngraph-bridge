@@ -70,7 +70,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
       // Only try to convert constant nodes at the edge to parameters
       // FIXME: IE cannot handle input parameters with i64/u6 precision
       // at the moment
-      if (node->get_input_size() == 0 && node->is_constant() &&
+      if (node->get_input_size() == 0 && ngraph::op::is_constant(node) &&
           !(node->get_element_type() == ngraph::element::i64 ||
             node->get_element_type() == ngraph::element::u64)) {
         auto constant = ngraph::as_type_ptr<opset::Constant>(node);

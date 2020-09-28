@@ -456,15 +456,15 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   for (auto n : f->get_ordered_ops()) {
     NGRAPH_VLOG(4) << "-----Start: Processing node----- " << n->get_name();
     // collect output shape of all Result nodes for a sanity check
-    if (n->is_output()) {
+    if (ngraph::op::is_output(n)) {
       orig_result_out_shape[n->get_name()] = n->get_output_shape(0);
     }
 
     if (auto transpose = ngraph::as_type_ptr<opset::Transpose>(n)) {
       sink_transpose(transpose, reorders, transposes_to_delete);
-    } else if (n->is_unary_elementwise_arithmetic()) {
+    } else if (ngraph::op::is_unary_elementwise_arithmetic(n)) {
       sink_unary(n, reorders, transposes_to_delete);
-    } else if (n->is_binary_elementwise_arithmetic()) {
+    } else if (ngraph::op::is_binary_elementwise_arithmetic(n)) {
       sink_binary(n, reorders, transposes_to_delete);
     } else if (auto pad = ngraph::as_type_ptr<opset::Pad>(n)) {
       sink_pad(pad, reorders, transposes_to_delete);
