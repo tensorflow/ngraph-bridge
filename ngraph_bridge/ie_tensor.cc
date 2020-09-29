@@ -80,9 +80,6 @@ IETensor::IETensor(const element::Type& element_type, const Shape& shape_,
                    void* memory_pointer)
     : runtime::Tensor(
           make_shared<descriptor::Tensor>(element_type, shape_, "")) {
-  m_descriptor->set_tensor_layout(
-      make_shared<descriptor::layout::DenseTensorLayout>(*m_descriptor));
-
   InferenceEngine::SizeVector shape = shape_;
   InferenceEngine::Precision precision = getPrecision(element_type);
   InferenceEngine::Layout layout = getLayoutByDims(shape.size());
