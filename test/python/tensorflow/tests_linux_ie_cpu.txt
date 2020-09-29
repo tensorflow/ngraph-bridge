@@ -28,7 +28,7 @@ tests_common.txt
 
 ###################################################
 [SKIP]
-# Specify tests/patterns/regex that should be excluded/skipped
+
 #Fails with this error : TopKImpl - Incorrect input data/index values precision.
 #https://github.com/openvinotoolkit/openvino/blob/master/inference-engine/src/mkldnn_plugin/nodes/topk.cpp#L39
 #OV TopK expects data to be F32 or BF16 and index I32
@@ -45,7 +45,6 @@ array_ops_test.StridedSliceTest.testExpand
 array_ops_test.StridedSliceTest.testExpandVariable
 array_ops_test.StridedSliceTest.testOptimizedCases
 array_ops_test.StridedSliceTest.testTensorIndexing
-array_ops_test.ShapeSizeRankTest.testSparseShape
 cast_op_test.CastOpTest.testBasic
 cast_op_test.CastOpTest.testBfloat16
 cast_op_test.CastOpTest.testIntToFloatBoundary
@@ -75,7 +74,6 @@ identity_bijector_test.IdentityBijectorTest.testBijector
 identity_bijector_test.IdentityBijectorTest.testScalarCongruency
 math_ops_test.AddNTest.testGrad
 math_ops_test.AddNTest.testInt
-math_ops_test.AddNTest.testPartials
 math_ops_test.DivAndModTest.testConsistent
 math_ops_test.DivAndModTest.testFloorDivGrad
 math_ops_test.LogSumExpTest.testInfinity
@@ -94,26 +92,15 @@ math_ops_test.XdivyTest.testXdivyWithZeroBroadcast
 math_ops_test.Xlog1pyTest.testXlog1pyNoNeg1
 math_ops_test.Xlog1pyTest.testXlog1pyWithZeroBroadcast
 nn_fused_batchnorm_test.BatchNormalizationTest.testBatchNormGradGradConfig2
-nn_fused_batchnorm_test.BatchNormalizationTest.testInferenceShape1
-nn_fused_batchnorm_test.BatchNormalizationTest.testInferenceShape4
-nn_fused_batchnorm_test.BatchNormalizationTest.testInferenceShape5
 nn_fused_batchnorm_test.BatchNormalizationTest.testTrainingShape4
 one_hot_op_test.OneHotTest.testFloatBasic
-one_hot_op_test.OneHotTest.testHalfBatch
 one_hot_op_test.OneHotTest.testIndicesTypes
 one_hot_op_test.OneHotTest.testInt32Basic
 one_hot_op_test.OneHotTest.testInt64Basic
 one_hot_op_test.OneHotTest.testPrefixDimOverflow
 one_hot_op_test.OneHotTest.testSimpleCases
 one_hot_op_test.OneHotTest.testSingleValueGiven
-one_hot_op_test.OneHotTest.testString
 pool_test.PoolingTest.testGradient1D
-pooling_test.Pooling1DTest.test_averagepooling_1d
-pooling_test.Pooling1DTest.test_maxpooling_1d
-pooling_test.Pooling2DTest.test_averagepooling_2d
-pooling_test.Pooling2DTest.test_maxpooling_2d
-pooling_test.Pooling3DTest.test_averagepooling_3d
-pooling_test.Pooling3DTest.test_maxpooling_3d
 reduction_ops_test.AllReductionTest.testAxesType
 reduction_ops_test.AnyReductionTest.testAxesType
 reduction_ops_test.MaxReductionTest.testFloatReduce3D
@@ -123,11 +110,7 @@ reduction_ops_test.MaxReductionTest.testGradient3
 reduction_ops_test.MaxReductionTest.testGradient4
 reduction_ops_test.MaxReductionTest.testInfinity
 reduction_ops_test.MaxReductionTest.testInt64Reduce3D
-reduction_ops_test.MeanReductionTest.testAxesType
-reduction_ops_test.MeanReductionTest.testComplex128
-reduction_ops_test.MeanReductionTest.testComplex64
 reduction_ops_test.MeanReductionTest.testDegenerate
-reduction_ops_test.MeanReductionTest.testEmptyGradients
 reduction_ops_test.MeanReductionTest.testFloat32
 reduction_ops_test.MeanReductionTest.testGradient
 reduction_ops_test.MeanReductionTest.testInfinity
@@ -138,22 +121,6 @@ reduction_ops_test.MinReductionTest.testGradient2
 reduction_ops_test.MinReductionTest.testGradient3
 reduction_ops_test.MinReductionTest.testGradient4
 reduction_ops_test.MinReductionTest.testInfinity
-reduction_ops_test.SumReductionTest.testAxesType
-reduction_ops_test.SumReductionTest.testComplex128
-reduction_ops_test.SumReductionTest.testComplex64
-reduction_ops_test.SumReductionTest.testDegenerate
-reduction_ops_test.SumReductionTest.testEmptyGradients
-reduction_ops_test.SumReductionTest.testExpand
-reduction_ops_test.SumReductionTest.testFloat16
-reduction_ops_test.SumReductionTest.testFloat64
-reduction_ops_test.SumReductionTest.testGradient # SEGV crashes on IECPU
-reduction_ops_test.SumReductionTest.testHighRank
-reduction_ops_test.SumReductionTest.testInfinity
-reduction_ops_test.SumReductionTest.testInt32
-reduction_ops_test.SumReductionTest.testPartialShapes
-reduction_ops_test.ProdReductionTest.testAxesType
-reduction_ops_test.ProdReductionTest.testComplex128
-reduction_ops_test.ProdReductionTest.testComplex64
 reduction_ops_test.ProdReductionTest.testDegenerate
 reduction_ops_test.ProdReductionTest.testEmptyGradients
 reduction_ops_test.ProdReductionTest.testFloat32
@@ -174,13 +141,10 @@ scan_ops_test.CumsumTest.test3D
 scan_ops_test.CumsumTest.test6D
 scan_ops_test.CumsumTest.testAxisType
 slice_op_test.SliceTest.testGradientsAll
-slice_op_test.SliceTest.testInt32
 slice_op_test.SliceTest.testInvalidIndex
-slice_op_test.SliceTest.testRandom
 slice_op_test.SliceTest.testScalarInput
 slice_op_test.SliceTest.testSimple
 slice_op_test.SliceTest.testSingleDimension
-slice_op_test.SliceTest.testSingleElementAll
 slice_op_test.SliceTest.testSliceOfSlice
 softmax_op_test.SoftmaxTest.testAlongFirstDimension #data doesn't exist; zero dim error with CF 
 softmax_op_test.SoftmaxTest.testAlongSecondDimension #data doesn't exist; zero dim error with CF 
@@ -189,13 +153,9 @@ softmax_op_test.SoftmaxTest.testDouble #Can't convert type f64 to IE precision!;
 spacetodepth_op_test.SpaceToDepthTest.testBasic
 sparse_xent_op_test.SparseXentTest.testHighDim
 sparse_xent_op_test.SparseXentTest.testHighDim2
-sparse_xent_op_test.SparseXentTest.testScalarHandling
-sparse_xent_op_test.SparseXentTest.testSingleClass
 sparse_xent_op_test.SparseXentTest.testVector
 topk_op_test.TopKTest.testTopKGradients
 transpose_op_test.TransposeTest.test1D
-transpose_op_test.TransposeTest.testHalf
-transpose_op_test.TransposeTest.testInt32
 transpose_op_test.TransposeTest.testInt64
 xent_op_test.XentTest.testGradient
 xent_op_test.XentTest.testGradientLabelWithV2
