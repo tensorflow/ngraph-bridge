@@ -215,7 +215,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Prod"] = SetStaticInputs({1});
     set_attributes_map["Reshape"] = SetStaticInputs({1});
     set_attributes_map["Shape"] = SetStaticInputs({0});
-    set_attributes_map["ScatterNd"] = SetStaticInputs({2});
     set_attributes_map["Slice"] = SetStaticInputs({1, 2});
     set_attributes_map["Split"] = SetStaticInputs({0});
     set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
@@ -224,7 +223,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
     set_attributes_map["Transpose"] = SetStaticInputs({1});
-    set_attributes_map["UnsortedSegmentSum"] = SetStaticInputs({2});
     initialized = true;
   }
   return set_attributes_map;
@@ -268,8 +266,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Asin"] = SimpleConfirmationFunction();
     confirmation_function_map["Atan"] = SimpleConfirmationFunction();
     confirmation_function_map["AvgPool"] = SimpleConfirmationFunction();
-    confirmation_function_map["BatchMatMul"] = SimpleConfirmationFunction();
-    confirmation_function_map["BatchMatMulV2"] = SimpleConfirmationFunction();
     confirmation_function_map["BiasAdd"] = SimpleConfirmationFunction();
     confirmation_function_map["Cast"] = SimpleConfirmationFunction();
     confirmation_function_map["Ceil"] = SimpleConfirmationFunction();
@@ -279,7 +275,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Conv2DBackpropInput"] =
         SimpleConfirmationFunction();
     confirmation_function_map["Conv3D"] = SimpleConfirmationFunction();
-    confirmation_function_map["CropAndResize"] = SimpleConfirmationFunction();
     confirmation_function_map["Cos"] = SimpleConfirmationFunction();
     confirmation_function_map["Cosh"] = SimpleConfirmationFunction();
     confirmation_function_map["Cumsum"] = SimpleConfirmationFunction();
@@ -306,7 +301,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["FusedBatchNormV3"] =
         FusedBatchNormConfirmationFunction();
     confirmation_function_map["_FusedConv2D"] = SimpleConfirmationFunction();
-    confirmation_function_map["GatherNd"] = SimpleConfirmationFunction();
     confirmation_function_map["GatherV2"] = SimpleConfirmationFunction();
     confirmation_function_map["_FusedMatMul"] =
         SimpleConfirmationFunction();  // TODO accept under all conditions?
@@ -353,8 +347,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Relu6"] = SimpleConfirmationFunction();
     confirmation_function_map["Reshape"] = SimpleConfirmationFunction();
     confirmation_function_map["Rsqrt"] = SimpleConfirmationFunction();
-    confirmation_function_map["ScatterNd"] = SimpleConfirmationFunction();
-    confirmation_function_map["Select"] = SimpleConfirmationFunction();
+    confirmation_function_map["SelectV2"] = SimpleConfirmationFunction();
     confirmation_function_map["Shape"] = SimpleConfirmationFunction();
     confirmation_function_map["Sigmoid"] = SimpleConfirmationFunction();
     confirmation_function_map["Sign"] = SimpleConfirmationFunction();
@@ -392,8 +385,6 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     };
     confirmation_function_map["Transpose"] = SimpleConfirmationFunction();
     confirmation_function_map["Unpack"] = SimpleConfirmationFunction();
-    confirmation_function_map["UnsortedSegmentSum"] =
-        SimpleConfirmationFunction();
     confirmation_function_map["Xdivy"] = SimpleConfirmationFunction();
     confirmation_function_map["ZerosLike"] = SimpleConfirmationFunction();
     initialized = true;
@@ -433,8 +424,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Asin"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Atan"]["T"] = NGraphNumericDTypes();
     type_constraint_map["AvgPool"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["BatchMatMul"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["BatchMatMulV2"]["T"] = NGraphNumericDTypes();
     type_constraint_map["BiasAdd"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cast"]["SrcT"] = NGraphDTypes();
     type_constraint_map["Cast"]["DstT"] = NGraphDTypes();
@@ -445,7 +434,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Conv2D"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Conv2DBackpropInput"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Conv3D"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["CropAndResize"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Cos"]["T"] = NGraphRealDTypes();
     type_constraint_map["Cosh"]["T"] = NGraphRealDTypes();
     type_constraint_map["Cumsum"]["T"] = NGraphNumericDTypes();
@@ -463,8 +451,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     // DT_FLOAT
     type_constraint_map["FusedBatchNormV2"]["T"] = {DT_FLOAT};
     type_constraint_map["FusedBatchNormV3"]["T"] = {DT_FLOAT};
-    type_constraint_map["GatherNd"]["Tparams"] = {DT_FLOAT};  // NGraphDTypes();
-    type_constraint_map["GatherNd"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["GatherV2"]["Tparams"] = NGraphDTypes();
     type_constraint_map["GatherV2"]["Tindices"] = NGraphIndexDTypes();
     type_constraint_map["GatherV2"]["Taxis"] = NGraphIndexDTypes();
@@ -519,9 +505,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Reshape"]["T"] = NGraphDTypes();
     type_constraint_map["Reshape"]["Tshape"] = NGraphIndexDTypes();
     type_constraint_map["Rsqrt"]["T"] = NGraphDTypes();
-    type_constraint_map["ScatterNd"]["T"] = NGraphDTypes();
-    type_constraint_map["ScatterNd"]["Tindices"] = NGraphIndexDTypes();
-    type_constraint_map["Select"]["T"] = NGraphDTypes();
+    type_constraint_map["SelectV2"]["T"] = NGraphDTypes();
     type_constraint_map["Shape"]["T"] = NGraphDTypes();
     type_constraint_map["Shape"]["out_type"] = NGraphIndexDTypes();
     type_constraint_map["Sigmoid"]["T"] = NGraphNumericDTypes();
@@ -556,10 +540,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Transpose"]["T"] = NGraphDTypes();
     type_constraint_map["Transpose"]["Tperm"] = NGraphIndexDTypes();
     type_constraint_map["Unpack"]["T"] = NGraphDTypes();
-    type_constraint_map["UnsortedSegmentSum"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["UnsortedSegmentSum"]["Tindices"] = NGraphIndexDTypes();
-    type_constraint_map["UnsortedSegmentSum"]["Tnumsegments"] =
-        NGraphIndexDTypes();
     type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
     type_constraint_map["ZerosLike"]["T"] = NGraphNumericDTypes();
     initialized = true;
@@ -594,14 +574,6 @@ GetTFToNgOpMap() {
       {"Asin", {std::make_shared<opset::Asin>()}},
       {"Atan", {std::make_shared<opset::Atan>()}},
       {"AvgPool", {std::make_shared<opset::AvgPool>()}},
-      {"BatchMatMul",
-       {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
-        std::make_shared<ngraph::op::MatMul>(),
-        std::make_shared<ngraph::op::Reshape>()}},
-      {"BatchMatMulV2",
-       {std::make_shared<ngraph::op::BatchMatMulTranspose>(),
-        std::make_shared<ngraph::op::MatMul>(),
-        std::make_shared<ngraph::op::Reshape>()}},
       {"BiasAdd",
        {constant, std::make_shared<opset::Add>(),
         std::make_shared<opset::Reshape>()}},
@@ -620,7 +592,6 @@ GetTFToNgOpMap() {
         std::make_shared<opset::Transpose>()}},
       {"Cos", {std::make_shared<opset::Cos>()}},
       {"Cosh", {std::make_shared<opset::Cosh>()}},
-      {"CropAndResize", {std::make_shared<ngraph::op::CropAndResize>()}},
       {"Cumsum", {std::make_shared<opset::CumSum>()}},
       {"DepthToSpace", {std::make_shared<opset::DepthToSpace>()}},
       {"DepthwiseConv2dNative",
@@ -644,7 +615,6 @@ GetTFToNgOpMap() {
       {"FusedBatchNormV3",
        {constant, std::make_shared<ngraph::op::BatchNormInference>(),
         std::make_shared<opset::Transpose>()}},
-      {"GatherNd", {std::make_shared<ngraph::op::GatherND>()}},
       {"GatherV2", {constant, std::make_shared<opset::Gather>()}},
       {"_FusedConv2D",
        {std::make_shared<opset::Convolution>(), constant,
@@ -713,9 +683,8 @@ GetTFToNgOpMap() {
       {"Relu", {std::make_shared<opset::Relu>()}},
       {"Relu6", {std::make_shared<opset::Clamp>()}},
       {"Rsqrt", {constant, std::make_shared<opset::Power>()}},
-      {"Select", {std::make_shared<opset::Select>()}},
+      {"SelectV2", {std::make_shared<opset::Select>()}},
       {"Reshape", {std::make_shared<opset::Reshape>()}},
-      {"ScatterNd", {constant, std::make_shared<ngraph::op::ScatterNDAdd>()}},
       {"Shape", {std::make_shared<opset::ShapeOf>()}},
       {"Sigmoid", {std::make_shared<opset::Sigmoid>()}},
       {"Sin", {std::make_shared<opset::Sin>()}},
@@ -746,8 +715,6 @@ GetTFToNgOpMap() {
       {"Xdivy",
        {constant, std::make_shared<opset::Divide>(),
         std::make_shared<opset::Equal>(), std::make_shared<opset::Select>()}},
-      {"UnsortedSegmentSum",
-       {constant, std::make_shared<ngraph::op::ScatterAdd>()}},
       {"Unpack",
        {constant, std::make_shared<opset::StridedSlice>(),
         std::make_shared<opset::Reshape>()}},
