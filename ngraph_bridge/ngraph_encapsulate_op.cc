@@ -292,17 +292,11 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       try {
         ng_exec->call(ng_outputs, ng_inputs);
       } catch (const std::exception& exp) {
-        NgraphSerialize(
-            "tf_function_error_" + ctx->op_kernel().name() + ".json",
-            ng_function);
         string status_string =
             "Caught exception while executing nGraph computation: " +
             string(exp.what());
         OP_REQUIRES(ctx, false, errors::Internal(status_string));
       } catch (...) {
-        NgraphSerialize(
-            "tf_function_error_" + ctx->op_kernel().name() + ".json",
-            ng_function);
         string status_string =
             "Caught exception while executing nGraph computation.";
         OP_REQUIRES(ctx, false, errors::Internal(status_string));
