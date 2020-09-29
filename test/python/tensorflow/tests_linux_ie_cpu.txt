@@ -36,7 +36,6 @@ argmax_op_test.ArgMaxTest.testDefaultAxis
 argmax_op_test.ArgMaxTest.testEmpty
 argmax_op_test.ArgMaxTest.testFloat #Failed to set Blob with precision not corresponding to user output precision.
 argmax_op_test.ArgMaxTest.testInt32
-
 argmax_op_test.ArgMaxTest.testFloat #Failed to set Blob with precision not corresponding to user output precision.
 argmax_op_test.ArgMaxTest.testInt64 #Unable to add a parameter to a function with no parameters!
 array_ops_test.ShapeSizeRankTest.testSparseShape
