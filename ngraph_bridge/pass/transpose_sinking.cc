@@ -46,7 +46,7 @@ static ngraph::CoordinateDiff apply_permutation(ngraph::CoordinateDiff input,
   return output;
 }
 
-ngraph::AxisVector get_permutation_to_default_order(
+static ngraph::AxisVector permutation_to_default_order(
     const ngraph::AxisVector& axis_order) {
   ngraph::AxisVector out(axis_order.size());
   for (size_t i = 0; i < axis_order.size(); i++) {
@@ -213,7 +213,7 @@ static void convert_binary_to_default_order(
       right_t->input_value(1).get_node_shared_ptr());
 
   auto perm_to_def =
-      get_permutation_to_default_order(right_const->get_axis_vector_val());
+      permutation_to_default_order(right_const->get_axis_vector_val());
 
   // if right input is being implicitly broadcasted, insert a reshape
   // instead of a transpose
@@ -364,7 +364,7 @@ static void sink_pad(
   // we need the correct input shape to produce the right output shape
   // we are going to create a label of the right input shape,
   // so a new pad will have the right shape
-  auto def_order = get_permutation_to_default_order(order);
+  auto def_order = permutation_to_default_order(order);
   auto input_shape =
       ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
   auto dummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
@@ -401,7 +401,7 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
   // we need the correct input shape to produce the right output shape
   // we are going to create a label of the right input shape,
   // so a new concat will have the right shape
-  auto def_order = get_permutation_to_default_order(order);
+  auto def_order = permutation_to_default_order(order);
   auto input_shape =
       ngraph::apply_permutation(arg_transpose->get_shape(), def_order);
   auto dummy_correct_shape = make_shared<ngraph::pattern::op::Label>(
