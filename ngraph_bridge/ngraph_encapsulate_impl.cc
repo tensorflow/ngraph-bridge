@@ -134,7 +134,8 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     try {
       ng_exec = backend->compile(ng_function);
     } catch (const std::exception& ex) {
-      return errors::Internal("Failed to compile ng_function: ", ex.what());
+      return errors::Internal("Failed to compile function " + m_name,
+                              ex.what());
     }
 
     SetNgExecMap(signature, ng_exec);
