@@ -93,7 +93,7 @@ void Builder::SetTracingInfo(const std::string& op_name,
   node->set_friendly_name(op_name + "/" + node->get_name());
   node->add_provenance_tag(op_name);
   if (config::IsLoggingPlacement()) {
-    cout << "TF_to_NG: " << op_name << " --> " << node->get_name() << "\n";
+    cout << "TF_to_NG: " << op_name << " --> " << node << "\n";
   }
 }
 
