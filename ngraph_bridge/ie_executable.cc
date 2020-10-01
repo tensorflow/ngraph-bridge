@@ -93,10 +93,10 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
         param_replaced = true;
         break;
       }
-      if (!param_replaced) {
-        THROW_IE_EXCEPTION
-            << "Unable to add a parameter to a function with no parameters!";
-      }
+    }
+    if (!param_replaced) {
+      THROW_IE_EXCEPTION
+          << "Unable to add a parameter to a function with no parameters!";
     }
   }
 
@@ -108,6 +108,7 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
     auto& name = m_network.getName();
     m_network.serialize(name + ".xml", name + ".bin");
+    ngraph::plot_graph(func, "tf_function_" + name + "_ie.dot");
   }
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
