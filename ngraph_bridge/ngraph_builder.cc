@@ -1922,7 +1922,6 @@ static Status TranslateReduceOp(
 
   ng::Output<ng::Node> ng_node =
       create_ng_node(ng_input, ng_reduction_axes, tf_keep_dims);
-  Builder::SetTracingInfo(op->name(), ng_node);
 
   SaveNgOp(ng_op_map, op->name(), ng_node);
   return Status::OK();
