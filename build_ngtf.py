@@ -352,6 +352,7 @@ def main():
 
             # Now build OpenVINO
             openvino_cmake_flags = [
+                "-DENABLE_V7_SERIALIZE=ON",
                 "-DENABLE_TESTS=OFF",
                 "-DENABLE_FUNCTIONAL_TESTS=OFF",
                 "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
