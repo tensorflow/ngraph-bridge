@@ -2162,7 +2162,7 @@ static Status TranslateReshapeOp(
   NGRAPH_VLOG(3) << "Requested result shape: " << ng::join(shape);
 
   auto ng_shape = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::u64, ng::Shape{shape.size()}, shape);
+      op->name(), ng::element::i64, ng::Shape{shape.size()}, shape);
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Reshape>(
                                       op->name(), ng_input, ng_shape, false));
   return Status::OK();
