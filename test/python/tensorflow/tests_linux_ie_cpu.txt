@@ -205,3 +205,9 @@ reduction_ops_test.ReducedShapeTest.testZeros
 reduction_ops_test.MeanReductionTest.testGradient
 reduction_ops_test.MinReductionTest.testGradient
 reduction_ops_test.ReducedShapeTest.testNegAxes
+
+# Unable to add a parameter to a function with no parameters!
+math_ops_test.ModTest.testFixed
+
+# Floor_mod supports only I32 precision of inputs
+math_ops_test.ModTest.testFloat
