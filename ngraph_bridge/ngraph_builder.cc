@@ -2808,6 +2808,7 @@ const static std::map<
         {"Relu6", TranslateRelu6Op},
         {"Reshape", TranslateReshapeOp},
         {"Rsqrt", TranslateRsqrtOp},
+        {"Select", TranslateSelectOp},
         {"SelectV2", TranslateSelectOp},
         {"Shape", TranslateShapeOp},
         {"Sigmoid", TranslateUnaryOp<opset::Sigmoid>},
