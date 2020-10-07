@@ -38,17 +38,15 @@ function get_artifacts {
     fi
 }
 
+cd ${ARTIFACTS_DIR}/examples
 MODEL=inception_v3_2016_08_28_frozen.pb
 get_artifacts ${MODEL} "https://www.dropbox.com/sh/racv0tcy60j49cf/AAD-Fcs1afPhc0tLWmhhQwIUa/inception_v3_2016_08_28_frozen.pb?dl=0"
-
 IMAGE=peacock1.jpg
 get_artifacts ${IMAGE} "https://www.dropbox.com/sh/racv0tcy60j49cf/AABcRP96YCFHJdnaeJI6XzOfa/peacock1.jpg?dl=0"
-
 LABELS=imagenet_slim_labels.txt
 #get_artifacts ${LABELS} "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
 get_artifacts ${LABELS} "https://www.dropbox.com/sh/racv0tcy60j49cf/AAA1GdoG1-oiSQfydBzvH833a/imagenet_slim_labels.txt?dl=0"
 
-cd ${ARTIFACTS_DIR}/examples
 ./cpp/inference/infer_single_network --graph=${MODEL} \
     --labels=${LABELS} \
     --image=${IMAGE} \
