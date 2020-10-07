@@ -146,4 +146,4 @@ else()
     set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/../install/")
 endif()
 
-install(TARGETS ${APP_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
+install(TARGETS ${APP_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/cpp/inference)
