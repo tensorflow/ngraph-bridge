@@ -24,9 +24,7 @@
 
   - wait
   - command: |
-      PWD=`pwd`
-      cd /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/examples
-      ${PWD}/test/ci/buildkite/run_cppexample_infer.sh
+      ./test/ci/buildkite/run_cppexample_infer.sh /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":bar_chart: Example C++ Inference"
     timeout_in_minutes: 5
     agents:
