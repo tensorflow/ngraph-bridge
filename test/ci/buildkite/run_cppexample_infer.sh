@@ -21,7 +21,6 @@ fi
 LOCALSTORE=${LOCALSTORE_PREFIX}/pretrained_models
 if [ ! -d "${LOCALSTORE}" ]; then mkdir -p ${LOCALSTORE}; fi
 
-
 function get_artifacts {
     TYPE=$1
     LINK=$2
@@ -29,7 +28,12 @@ function get_artifacts {
         if [ ! -f "${LOCALSTORE}/${TYPE}" ]; then
             # download
             echo "Downloading ${TYPE} ..."
-            wget ${LINK} -O "${LOCALSTORE}/${TYPE}"
+            if [[ ${LINK} =~ tar.gz$ ]]; then
+                targzfile="${LOCALSTORE}/${TYPE}.tar.gz"
+                wget ${LINK} -O "${targzfile}" && tar xvf "${targzfile}" -C "${LOCALSTORE}" && rm "${targzfile}"
+            else
+                wget ${LINK} -O "${LOCALSTORE}/${TYPE}"
+            fi
             # check if successful...
             if [ ! -f "${LOCALSTORE}/${TYPE}" ]; then echo "Failed!"; exit 1; fi
         fi
@@ -40,12 +44,11 @@ function get_artifacts {
 
 cd ${ARTIFACTS_DIR}/examples
 MODEL=inception_v3_2016_08_28_frozen.pb
-get_artifacts ${MODEL} "https://www.dropbox.com/sh/racv0tcy60j49cf/AAD-Fcs1afPhc0tLWmhhQwIUa/inception_v3_2016_08_28_frozen.pb?dl=0"
-IMAGE=peacock1.jpg
-get_artifacts ${IMAGE} "https://www.dropbox.com/sh/racv0tcy60j49cf/AABcRP96YCFHJdnaeJI6XzOfa/peacock1.jpg?dl=0"
+get_artifacts ${MODEL} "https://storage.googleapis.com/download.tensorflow.org/models/inception_v3_2016_08_28_frozen.pb.tar.gz"
+IMAGE=grace_hopper.jpg
+get_artifacts ${IMAGE} "https://github.com/tensorflow/tensorflow/raw/master/tensorflow/examples/label_image/data/grace_hopper.jpg"
 LABELS=imagenet_slim_labels.txt
-#get_artifacts ${LABELS} "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
-get_artifacts ${LABELS} "https://www.dropbox.com/sh/racv0tcy60j49cf/AAA1GdoG1-oiSQfydBzvH833a/imagenet_slim_labels.txt?dl=0"
+get_artifacts ${LABELS} "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
 
 ./cpp/inference/infer_single_network --graph=${MODEL} \
     --labels=${LABELS} \
@@ -56,7 +59,7 @@ get_artifacts ${LABELS} "https://www.dropbox.com/sh/racv0tcy60j49cf/AAA1GdoG1-oi
 echo
 echo "Checking inference result..."
 ret_code=1
-grep 'peacock (85): 0.925' tmp_output && echo "TEST PASSED" && ret_code=0
+grep 'military uniform (653): 0.834' tmp_output && echo "TEST PASSED" && ret_code=0
 rm tmp_output
 
 exit $((ret_code))
