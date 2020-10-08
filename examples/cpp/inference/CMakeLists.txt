@@ -147,3 +147,4 @@ else()
 endif()
 
 install(TARGETS ${APP_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/cpp/inference)
+install(TARGETS ${APP_NAME_MULTI} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/cpp/inference)
