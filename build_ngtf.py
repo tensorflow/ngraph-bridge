@@ -324,8 +324,8 @@ def main():
             "-DENABLE_SAMPLES=OFF",
             "-DENABLE_FUNCTIONAL_TESTS=OFF",
             "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
-            "-DNGRAPH_USE_CXX_ABI=0",
-            "-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=0",
+            "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
+            "-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=" + cxx_abi,
             "-DENABLE_CPPLINT=OFF",
             "-DENABLE_SPEECH_DEMO=FALSE",
             "-DCMAKE_INSTALL_RPATH=\"$ORIGIN\"",
