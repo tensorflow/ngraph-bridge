@@ -146,11 +146,6 @@ def main():
         default='')
 
     parser.add_argument(
-        '--use_ngraph_staticlibs',
-        help="Builds and links ngraph statically\n",
-        action="store_true")
-
-    parser.add_argument(
         '--disable_cpp_api',
         help="Disables C++ API, unit tests and examples\n",
         action="store_true")
@@ -403,15 +398,6 @@ def main():
                 "-DNGRAPH_TUNE_ARCH=" + target_arch, "-DNGRAPH_TBB_ENABLE=FALSE"
             ]
 
-            if arguments.use_ngraph_staticlibs:
-                ngraph_cmake_flags.extend(["-DNGRAPH_STATIC_LIB_ENABLE=TRUE"])
-                ngraph_cmake_flags.extend(
-                    ["-DNGRAPH_CPU_STATIC_LIB_ENABLE=TRUE"])
-                ngraph_cmake_flags.extend(
-                    ["-DNGRAPH_INTERPRETER_STATIC_LIB_ENABLE=TRUE"])
-                ngraph_cmake_flags.extend(
-                    ["-DNGRAPH_DYNAMIC_COMPONENTS_ENABLE=OFF"])
-
             if arguments.debug_build:
                 ngraph_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
@@ -455,9 +441,6 @@ def main():
                 "-DNGRAPH_ARTIFACTS_DIR=" + os.path.abspath(
                     arguments.use_prebuilt_ngraph)
             ])
-
-    if (arguments.use_ngraph_staticlibs):
-        ngraph_tf_cmake_flags.extend(["-DNGRAPH_BRIDGE_STATIC_LIB_ENABLE=TRUE"])
 
     if (arguments.debug_build):
         ngraph_tf_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
