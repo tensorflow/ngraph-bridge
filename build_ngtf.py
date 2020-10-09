@@ -325,7 +325,8 @@ def main():
             "-DENABLE_FUNCTIONAL_TESTS=OFF",
             "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
             "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
-            "-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=" + cxx_abi,
+            "-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=" + cxx_abi + " -march="
+            + target_arch,
             "-DENABLE_CPPLINT=OFF",
             "-DENABLE_SPEECH_DEMO=FALSE",
             "-DCMAKE_INSTALL_RPATH=\"$ORIGIN\"",
@@ -342,8 +343,7 @@ def main():
     # Next build CMAKE options for the bridge
     ngraph_tf_cmake_flags = [
         "-DNGRAPH_TF_INSTALL_PREFIX=" + artifacts_location,
-        "-DNGRAPH_TARGET_ARCH=" + target_arch,
-        "-DNGRAPH_TUNE_ARCH=" + target_arch,
+        "-DCMAKE_CXX_FLAGS=-march=" + target_arch,
     ]
 
     openvino_artifacts_dir = ""
