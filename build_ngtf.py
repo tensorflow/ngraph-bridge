@@ -326,8 +326,8 @@ def main():
             "-DENABLE_CPPLINT=OFF",
             "-DENABLE_SPEECH_DEMO=FALSE",
             "-DCMAKE_INSTALL_RPATH=\"$ORIGIN\"",
-            "-DCMAKE_INSTALL_PREFIX=" + os.path.join(
-                artifacts_location, "openvino")
+            "-DCMAKE_INSTALL_PREFIX=" + os.path.join(artifacts_location,
+                                                     "openvino")
         ]
 
         if arguments.debug_build:
@@ -345,8 +345,7 @@ def main():
 
     openvino_artifacts_dir = ""
     if not arguments.use_prebuilt_openvino:
-        openvino_artifacts_dir = os.path.join(artifacts_location,
-                                                "openvino")
+        openvino_artifacts_dir = os.path.join(artifacts_location, "openvino")
     else:
         openvino_artifacts_dir = os.path.abspath(
             arguments.use_prebuilt_openvino)
