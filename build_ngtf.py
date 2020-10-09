@@ -122,11 +122,11 @@ def main():
     arguments = parser.parse_args()
 
     if (arguments.debug_build):
-        print("Building in DEBUG mode\n")
+        print("Building in debug mode\n")
 
     verbosity = False
     if (arguments.verbose_build):
-        print("Building in with VERBOSE output messages\n")
+        print("Building with verbose output messages\n")
         verbosity = True
 
     #-------------------------------
