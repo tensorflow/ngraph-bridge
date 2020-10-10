@@ -70,7 +70,8 @@ class TestEnv:
             # test manifest files are named like this:
             # tests_${PLATFORM}_${NGRAPH_TF_BACKEND}.txt
             return 'tests_' + TestEnv.PLATFORM().lower(
-            ) + '_' + TestEnv.BACKEND().lower() + '.txt'
+            ) + '_' + TestEnv.BACKEND(
+            ).lower() + '.txt'
 
     @staticmethod
     def PLATFORM():
