@@ -513,7 +513,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["SquaredDifference"]["T"] = NGraphDTypes();
     type_constraint_map["Squeeze"]["T"] = NGraphDTypes();
     type_constraint_map["StridedSlice"]["T"] = NGraphDTypes();
-    type_constraint_map["StridedSlice"]["Index"] = { DT_INT64 };
+    type_constraint_map["StridedSlice"]["Index"] = {DT_INT64};
     type_constraint_map["Sub"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Sum"]["Tidx"] = NGraphIndexDTypes();

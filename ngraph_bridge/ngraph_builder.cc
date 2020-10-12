@@ -1183,8 +1183,8 @@ static Status TranslateFillOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_value, ng_dims;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_dims, ng_value));
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Broadcast>(
-                                      op->name(), ng_value, ng_dims));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Broadcast>(op->name(), ng_value, ng_dims));
   return Status::OK();
 }
 
@@ -1316,8 +1316,9 @@ static Status TranslateGatherV2Op(
   ng::Output<ng::Node> ng_input, ng_input_coords, ng_axis;
   TF_RETURN_IF_ERROR(
       GetInputNodes(ng_op_map, op, ng_input, ng_input_coords, ng_axis));
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Gather>(op->name(), ng_input,
-                                                  ng_input_coords, ng_axis));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Gather>(op->name(), ng_input, ng_input_coords,
+                                          ng_axis));
   return Status::OK();
 }
 
@@ -1777,8 +1778,11 @@ static Status TranslateMaxPool3DOp(const Node* op,
 static Status TranslateNonMaxSuppressionV4Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_boxes, ng_scores, max_output_size, iou_threshold, score_threshold;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_boxes, ng_scores, max_output_size, iou_threshold, score_threshold));
+  ng::Output<ng::Node> ng_boxes, ng_scores, max_output_size, iou_threshold,
+      score_threshold;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_boxes, ng_scores,
+                                   max_output_size, iou_threshold,
+                                   score_threshold));
 
   bool pad_to_max_output_size;
   if (GetNodeAttr(op->attrs(), "pad_to_max_output_size",
@@ -1816,7 +1820,8 @@ static Status TranslateReduceOp(
   if (GetNodeAttr(op->attrs(), "keep_dims", &tf_keep_dims) != Status::OK()) {
     tf_keep_dims = false;
   }
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<T>(op->name(), ng_input, ng_axes, tf_keep_dims));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<T>(op->name(), ng_input, ng_axes, tf_keep_dims));
   return Status::OK();
 }
 
@@ -1828,8 +1833,9 @@ static Status TranslateOneHotOp(
       GetInputNodes(ng_op_map, op, ng_features, ng_depth, ng_on, ng_off));
   int axis;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "axis", &axis));
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::OneHot>(
-      op->name(), ng_features, ng_depth, ng_on, ng_off, axis));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::OneHot>(op->name(), ng_features, ng_depth,
+                                          ng_on, ng_off, axis));
   return Status::OK();
 }
 
@@ -2147,7 +2153,7 @@ static Status TranslateSoftmaxOp(const Node* op,
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input));
   auto rank = ng_input.get_partial_shape().rank().get_length();
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<opset::Softmax>(op->name(), ng_input, rank-1));
+           ConstructNgNode<opset::Softmax>(op->name(), ng_input, rank - 1));
   return Status::OK();
 }
 
@@ -2314,7 +2320,8 @@ static Status TranslateStridedSliceOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input, ng_begin, ng_end, ng_strides;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_begin, ng_end, ng_strides));
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, ng_input, ng_begin, ng_end, ng_strides));
 
   int32 begin_mask, end_mask, new_axis_mask, shrink_axis_mask, ellipsis_mask;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "begin_mask", &begin_mask));
@@ -2344,12 +2351,12 @@ static Status TranslateStridedSliceOp(
     return vec;
   };
 
-  SaveNgOp(
-      ng_op_map, op->name(),
-      ConstructNgNode<opset::StridedSlice>(
-          op->name(), ng_input, ng_begin, ng_end, ng_strides, mask_to_vec(begin_mask),
-          mask_to_vec(end_mask), mask_to_vec(new_axis_mask),
-          mask_to_vec(shrink_axis_mask), mask_to_vec(ellipsis_mask)));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::StridedSlice>(
+               op->name(), ng_input, ng_begin, ng_end, ng_strides,
+               mask_to_vec(begin_mask), mask_to_vec(end_mask),
+               mask_to_vec(new_axis_mask), mask_to_vec(shrink_axis_mask),
+               mask_to_vec(ellipsis_mask)));
   return Status::OK();
 }
 
