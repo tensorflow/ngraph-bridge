@@ -49,11 +49,10 @@ def version_check(use_prebuilt_tensorflow, use_tensorflow_from_location,
 
 def main():
     '''
-    Builds TensorFlow, ngraph, and ngraph-tf for python 3
+    Builds TensorFlow, OpenVino, and ngraph-tf for python 3
     '''
 
     # Component versions
-    ngraph_version = "94456090176ad6abda633b496b89cc16157ed4b0"  #add codegen support to cpu backend (#4679) ,May 26
     tf_version = "v2.2.0"
     use_intel_tf = False
 
