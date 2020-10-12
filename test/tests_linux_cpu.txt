@@ -48,7 +48,6 @@ MathOps.Pow0D1D
 # Const layer Squeeze/Constant_3544 has incorrect dimensions in the output data 0
 MathOps.SqueezeNoAttributes
 
-
 # Const/Const/Constant_1260 has zero dimension which is not allowed
 NNOps.L2Loss
 
@@ -59,8 +58,3 @@ ArrayOps.Shape3D
 # zero dimension
 ArrayOps.SplitVZeroSizeSplit
 ArrayOps.SplitVZeroSizeNegSplit
-
-MathOps.FloorModNegFloat #Floor_mod supports only I32 precision of inputs
-
-
-
