@@ -2819,7 +2819,7 @@ const static std::map<
         {"Slice", TranslateSliceOp},
         {"Snapshot", TranslateIdentityOp},
         {"Softmax", TranslateSoftmaxOp},
-        {"Softplus", TranslateSoftplusOp},
+        {"Softplus", TranslateUnaryOp<opset::SoftPlus>},
         {"SpaceToDepth", TranslateSpaceToDepthOp},
         {"Split", TranslateSplitOp},
         {"SplitV", TranslateSplitVOp},
