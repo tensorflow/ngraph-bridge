@@ -103,21 +103,9 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   set_parameters_and_results(*func);
 
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
-  m_network = InferenceEngine::CNNNetwork(func);
-
-  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
-    auto& name = m_network.getName();
-    m_network.serialize(name + ".xml", name + ".bin");
-    ngraph::plot_graph(func, "tf_function_" + name + "_ie.dot");
-  }
-
-  NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
-
-  InferenceEngine::Core ie;
-  // Load network to the plugin (m_device) and create an infer request
-  InferenceEngine::ExecutableNetwork exe_network =
-      ie.LoadNetwork(m_network, m_device);
-  m_infer_req = exe_network.CreateInferRequest();
+  InferenceEngine::CNNNetwork ie_network(func);
+  m_ie_executor = make_shared<IE_Executor>(ie_network, m_device);
+  m_ng_func = ie_network.getFunction();
 }
 
 bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
@@ -128,36 +116,26 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
     return call_trivial(outputs, inputs);
   }
 
-  // Check if the number of inputs that the CNN network expects is equal to the
-  // sum of the
-  // inputs specified and the inputs we hoisted, if any.
-  InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
-    THROW_IE_EXCEPTION
-        << "Function inputs number differ from number of given inputs";
-  }
-
   //  Prepare input blobs
-  auto func = m_network.getFunction();
-  auto parameters = func->get_parameters();
+  std::vector<std::shared_ptr<IE_Data>> ie_inputs(inputs.size());
+  auto parameters = m_ng_func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
-    m_infer_req.SetBlob(parameters[i]->get_friendly_name(), tv->get_blob());
+    ie_inputs[i] = tv->get_ie_data();
+    ie_inputs[i]->set_name(parameters[i]->get_friendly_name());
   }
 
+  std::vector<std::shared_ptr<IE_Data>> ie_hoisted_params(m_hoisted_params.size());
+  int j = 0;
   for (const auto& it : m_hoisted_params) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
-    m_infer_req.SetBlob(it.first, tv->get_blob());
-  }
-
-  InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
-  if (output_info.size() != outputs.size()) {
-    THROW_IE_EXCEPTION
-        << "Function outputs number differ from number of given outputs";
+    ie_hoisted_params[j] = tv->get_ie_data();
+    ie_hoisted_params[j++]->set_name(it.first);
   }
 
   //  Prepare output blobs
-  auto results = func->get_results();
+  std::vector<std::shared_ptr<IE_Data>> ie_outputs(inputs.size());
+  auto results = m_ng_func->get_results();
   for (int i = 0; i < outputs.size(); i++) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
     // Since IE has no "result" nodes, we set the blob corresponding to the
@@ -169,10 +147,11 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
     if (parent->outputs().size() > 1) {
       name += "." + to_string(results[i]->input_value(0).get_index());
     }
-    m_infer_req.SetBlob(name, tv->get_blob());
+    ie_outputs[i] = tv->get_ie_data();
+    ie_outputs[i]->set_name(name);
   }
 
-  m_infer_req.Infer();
+  m_ie_executor->infer(ie_inputs, ie_outputs, ie_hoisted_params);
   return true;
 }
 
@@ -211,6 +190,10 @@ bool IE_Executable::call_trivial(
     }
   }
   return true;
+}
+
+size_t IE_Executable::get_batch_size(size_t input_batch_size, std::string device) const {
+  return m_ie_executor->getOutputBatchSize(input_batch_size, device);
 }
 }
 }

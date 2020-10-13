@@ -24,6 +24,7 @@
 #include "ngraph/ngraph.hpp"
 
 #include "ngraph_bridge/ngraph_executable.h"
+#include "ngraph_bridge/openvino/ie_executor.h"
 
 using namespace std;
 
@@ -39,17 +40,19 @@ class IE_Executable final : public Executable {
   bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
             const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs) final;
 
+  size_t get_batch_size(size_t input_batch_size, std::string device) const;
+
  private:
   bool call_trivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
                     const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs);
-  InferenceEngine::CNNNetwork m_network;
-  InferenceEngine::InferRequest m_infer_req;
   string m_device;
   // This holds the parameters we insert for functions with no input parameters
   vector<pair<string, shared_ptr<ngraph::runtime::Tensor>>> m_hoisted_params;
   // This keeps track of whether the original function was trivial: either a
   // constant function, an identity function or a zero function
   shared_ptr<ngraph::Function> m_trivial_fn;
+  shared_ptr<IE_Executor> m_ie_executor;
+  shared_ptr<ngraph::Function> m_ng_func;
 };
 }
 }

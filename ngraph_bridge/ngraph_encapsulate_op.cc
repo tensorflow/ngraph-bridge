@@ -236,6 +236,10 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ctx, ng_encap_impl_.AllocateNGTensors(tf_input_tensors, ng_inputs));
   }
 
+  // FIXME: This may not be needed. (Used to get the output batch size)
+  std::string device;
+  BackendManager::GetBackendName(device);
+
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                     "for cluster "
                  << cluster_id;
@@ -254,6 +258,12 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       vector<int64> dims;
       for (auto dim : ng_shape) {
         dims.push_back(dim);
+      }
+      // Get the output batch size based on the input shape, number of requests, and the device.
+      // FIXME: This function call may not be needed. Output batch size can be
+      // known by the input batch size.
+      if (dims.size() > 0 && tf_input_tensors.size() > 0) {
+        dims[0] = ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device);
       }
       TensorShape tf_shape(dims);
       Tensor* output_tensor = nullptr;

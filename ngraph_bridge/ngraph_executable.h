@@ -168,6 +168,13 @@ class Executable {
       size_t output_index, size_t pipeline_depth,
       vector<void*> memory_pointers);
 
+  /// \brief Return the output batch size
+  /// \param input_batch_size The batch size of the input is needed to compute
+  ///                         the output batch size
+  /// \param device The device should be known to compute the output batch size
+  /// \returns Output batch size of the graph
+  virtual size_t get_batch_size(size_t input_batch_size, std::string device) const = 0;
+
  protected:
   /// \brief Called at the end of compile to the values to be returned by
   /// get_parameters
