@@ -203,8 +203,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["MirrorPad"] = SetStaticInputs({1});
     set_attributes_map["Pad"] = SetStaticInputs({1});
     set_attributes_map["PadV2"] = SetStaticInputs({1, 2});
-    set_attributes_map["Slice"] = SetStaticInputs({1, 2});
-    set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
     initialized = true;
   }
   return set_attributes_map;

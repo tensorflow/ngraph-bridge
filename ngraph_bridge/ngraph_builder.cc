@@ -2090,58 +2090,15 @@ static Status TranslateSliceOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input, ng_begin, ng_size;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_begin, ng_size));
-
-  std::vector<int64> begin_vec;
-  std::vector<int64> size_vec;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &begin_vec));
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 2, static_input_map, &size_vec));
-
-  if (begin_vec.size() != size_vec.size())
-    return errors::InvalidArgument(
-        "Cannot translate slice op: size of begin = ", begin_vec.size(),
-        ", size of size_vec = ", size_vec.size(), ". Expected them to match.");
-
-  NGRAPH_VLOG(3) << "Begin input for Slice: " << ng::join(begin_vec);
-  NGRAPH_VLOG(3) << "Size input for Slice: " << ng::join(size_vec);
-
-  std::vector<int64> end_vec(begin_vec.size());
-  const auto ng_input_shape = ng_input.get_shape();
-  stringstream err_stream;
-  string err_msg;
-  for (size_t i = 0; i < size_vec.size(); i++) {
-    if (size_vec[i] != -1) {
-      end_vec[i] = begin_vec[i] + size_vec[i];
-    } else {
-      // support -1 for size_vec, to the end of the tensor
-      end_vec[i] = ng_input_shape[i];
-    }
-
-    // check for this condition: 0 <= begin[i] <= begin[i] + size[i] <= Di
-    if (0 > begin_vec[i])
-      err_stream << "lower < 0: " << begin_vec[i]
-                 << ". It should have been positive.\n";
-    if (begin_vec[i] > end_vec[i])
-      err_stream << "upper < lower: upper = " << end_vec[i]
-                 << ", lower = " << begin_vec[i] << "\n";
-    if (begin_vec[i] > ng_input_shape[i])
-      err_stream << "dim < upper: dim = " << ng_input_shape[i]
-                 << ", upper = " << end_vec[i] << "\n";
-
-    err_msg = err_stream.str();
-    if (!err_msg.empty())
-      return errors::InvalidArgument("Cannot translate slice op at position ",
-                                     i, " of ", size_vec.size(),
-                                     ". The reasons are:\n", err_msg);
-  }
-
-  auto begin = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{begin_vec.size()}, begin_vec);
-  auto end = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{end_vec.size()}, end_vec);
-
+  auto input_shape = ConstructNgNode<opset::ShapeOf>(op->name(), ng_input);
+  auto is_negative = ConstructNgNode<opset::Equal>(op->name(), ng_size,
+    ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{}, std::vector<int64>({-1})));
+  auto ng_add = ConstructNgNode<opset::Add>(op->name(), ng_begin, ng_size);
+  auto ng_end = ConstructNgNode<opset::Select>(op->name(), is_negative, input_shape, ng_add);
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<opset::StridedSlice>(op->name(), ng_input, begin,
-                                                end, std::vector<int64_t>{},
+           ConstructNgNode<opset::StridedSlice>(op->name(), ng_input, ng_begin,
+                                                ng_end, std::vector<int64_t>{},
                                                 std::vector<int64_t>{}));
   return Status::OK();
 }
@@ -2210,77 +2167,13 @@ static Status TranslateSplitVOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input, ng_split_length, ng_split_dim;
 
-  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
-
-  ng::Shape shape = ng_input.get_shape();
-  int rank = shape.size();
-
-  std::vector<int64> split_dim_vec;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 2, static_input_map, &split_dim_vec));
-  // there should be at least one element specified as axis and not more than
-  // one as axis is 0-D
-  if (split_dim_vec.size() != 1) {
-    return errors::InvalidArgument(
-        "split_dim_tensor must have "
-        "exactly one element.");
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_split_length, ng_split_dim));
+  auto ng_split = make_shared<opset::VariadicSplit>(ng_input, ng_split_dim,
+                                                    ng_split_length);
+  for (auto& out : ng_split->outputs()) {
+    Builder::SetTracingInfo(op->name(), out);
+    SaveNgOp(ng_op_map, op->name(), out);
   }
-  TF_RETURN_IF_ERROR(CheckAxisDimInRange(split_dim_vec, rank));
-  int split_dim = split_dim_vec[0] + (split_dim_vec[0] < 0 ? (int64)rank : 0);
-  ng_split_dim = ConstructNgNode<opset::Constant>(op->name(), ng::element::i32,
-                                                  ng::Shape{}, split_dim);
-
-  std::vector<int> split_lengths_vec;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 1, static_input_map, &split_lengths_vec));
-
-  // length: Length of size_splits
-  int length = 0;
-  int idx = -1;
-
-  // Find out the total length of the splits and locate -1 's index, if any
-  bool has_one_neg = false;
-  for (size_t i = 0; i < split_lengths_vec.size(); ++i) {
-    if (split_lengths_vec[i] != -1) {
-      length += split_lengths_vec[i];
-    } else {
-      if (has_one_neg) {
-        return errors::InvalidArgument("size_splits can only have one -1");
-      } else {
-        idx = i;
-        has_one_neg = true;
-      }
-    }
-  }
-
-  // Size splits must sum to the dimension of value along split_dim
-  if (idx > 0) {
-    split_lengths_vec[idx] = shape[split_dim] - length;
-  }
-
-  if ((!has_one_neg && length != shape[split_dim]) ||
-      (has_one_neg && split_lengths_vec[idx] < 0)) {
-    return errors::InvalidArgument(
-        "The length of size_splits must sum to the value of the dimension "
-        "along split_dim");
-  }
-
-  ng_split_length = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i32, ng::Shape{split_lengths_vec.size()},
-      split_lengths_vec);
-
-  if (split_lengths_vec.size() != 1) {
-    auto ng_split = make_shared<opset::VariadicSplit>(ng_input, ng_split_dim,
-                                                      ng_split_length);
-    for (size_t i = 0; i < split_lengths_vec.size(); ++i) {
-      auto out = ng_split->output(i);
-      Builder::SetTracingInfo(op->name(), out);
-      SaveNgOp(ng_op_map, op->name(), out);
-    }
-  } else {
-    SaveNgOp(ng_op_map, op->name(), ng_input);
-  }
-
   return Status::OK();
 }
 

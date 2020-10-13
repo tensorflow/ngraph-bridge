@@ -47,9 +47,6 @@ namespace ngraph_bridge {
 
 int NGraphEncapsulateOp::s_instance_id = 0;
 
-//---------------------------------------------------------------------------
-//  NGraphEncapsulateOp::ctor
-//---------------------------------------------------------------------------
 NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     : OpKernel(ctx) {
   NGRAPH_VLOG(1) << "Create Executor " << name();
@@ -116,9 +113,8 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   std::vector<const Node*> arg_nodes;
 
   for (auto node : ng_encap_impl_.m_graph.nodes()) {
-    if (node->type_string() == "_Arg") {
+    if (node->IsArg()) {
       arg_nodes.push_back(node);
-
       int32 index;
       OP_REQUIRES_OK(ctx, GetNodeAttr(node->attrs(), "index", &index));
       if (index > max_arg_index) max_arg_index = index;
@@ -163,9 +159,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
                           node_def.attr(), &additional_attribute_map));
 }
 
-//---------------------------------------------------------------------------
-//  ~NGraphEncapsulateOp()
-//---------------------------------------------------------------------------
 NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   std::ostringstream oss;
   oss << "Destroy Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
@@ -239,6 +232,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                     "for cluster "
                  << cluster_id;
+
   // Allocate tensors for the output results.
   vector<shared_ptr<ngraph::runtime::Tensor>> ng_outputs;
   int ng_output_tensor_size_in_bytes = 0;
@@ -247,8 +241,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     NG_TRACE("Output: maybe create", name(), "");
     for (auto i = 0; i < ng_exec->get_results().size(); i++) {
       auto ng_element = ng_exec->get_results()[i];
-      auto ng_shape = ng_element->get_shape();
       auto ng_element_type = ng_element->get_element_type();
+      auto ng_shape = ng_element->get_shape();
 
       // Create the TF output tensor
       vector<int64> dims;
