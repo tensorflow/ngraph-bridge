@@ -79,8 +79,8 @@ bool Backend::is_supported_property(const Property /* prop */) const {
   return false;
 }
 
-void Backend::remove_compiled_function(std::shared_ptr<IE_Executable> /* exec */) {
-}
+void Backend::remove_compiled_function(
+    std::shared_ptr<IE_Executable> /* exec */) {}
 
 std::shared_ptr<IE_Executable> Backend::load(istream& /* input_stream */) {
   throw runtime_error("load operation unimplemented.");

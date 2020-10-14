@@ -106,9 +106,9 @@ class Backend {
   /// \param func The function to compile
   /// \param pass_config Configuration object for defining compilation options
   /// \returns compiled function or nullptr on failure
-  virtual shared_ptr<IE_Executable> compile(shared_ptr<ngraph::Function> func,
-                                         ngraph::pass::PassConfig& pass_config,
-                                         bool enable_performance_data = false);
+  virtual shared_ptr<IE_Executable> compile(
+      shared_ptr<ngraph::Function> func, ngraph::pass::PassConfig& pass_config,
+      bool enable_performance_data = false);
 
   /// \brief Loads a previously saved Executable object from a stream.
   /// \param input_stream the opened input stream containing the saved

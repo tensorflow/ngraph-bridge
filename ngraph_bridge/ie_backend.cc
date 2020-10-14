@@ -42,7 +42,7 @@ IE_Backend::IE_Backend(const string& config) {
 IE_Backend::~IE_Backend() { m_exec_map.clear(); }
 
 shared_ptr<IE_Executable> IE_Backend::compile(shared_ptr<ngraph::Function> func,
-                                           bool) {
+                                              bool) {
   shared_ptr<IE_Executable> rc;
   {
     std::lock_guard<std::mutex> guard(m_exec_map_mutex);

@@ -92,7 +92,8 @@ class NGraphEncapsulateImpl {
     m_input_is_static[index] = value;
   }
 
-  std::unordered_map<std::string, std::shared_ptr<IE_Executable>> GetNgExecMap() {
+  std::unordered_map<std::string, std::shared_ptr<IE_Executable>>
+  GetNgExecMap() {
     return m_ng_exec_map;
   }
 

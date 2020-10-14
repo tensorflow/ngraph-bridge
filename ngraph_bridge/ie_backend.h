@@ -35,8 +35,9 @@ class IE_Backend final : public Backend {
   IE_Backend(const string& configuration_string);
   ~IE_Backend() override;
 
-  shared_ptr<IE_Executable> compile(shared_ptr<ngraph::Function> func,
-                                 bool enable_performance_data = false) override;
+  shared_ptr<IE_Executable> compile(
+      shared_ptr<ngraph::Function> func,
+      bool enable_performance_data = false) override;
   void remove_compiled_function(std::shared_ptr<IE_Executable> exec) override;
   bool is_supported(const ngraph::Node& node) const override;
   bool is_supported_property(const Property prop) const override;
