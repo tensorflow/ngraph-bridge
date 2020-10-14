@@ -23,8 +23,6 @@
 #include <ie_core.hpp>
 #include "ngraph/ngraph.hpp"
 
-#include "ngraph_bridge/ngraph_executable.h"
-
 using namespace std;
 
 namespace tensorflow {
@@ -32,12 +30,12 @@ namespace ngraph_bridge {
 
 // A Inference Engine executable object produced by compiling an nGraph
 // function.
-class IE_Executable final : public Executable {
+class IE_Executable {
  public:
   IE_Executable(shared_ptr<ngraph::Function> func, string device);
-  virtual ~IE_Executable() {}
+  ~IE_Executable() {}
   bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
-            const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs) final;
+            const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs);
 
  private:
   bool call_trivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,

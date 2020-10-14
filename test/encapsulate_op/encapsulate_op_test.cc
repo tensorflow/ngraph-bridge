@@ -21,7 +21,6 @@
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_encapsulate_op.h"
-#include "ngraph_bridge/ngraph_executable.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
 
@@ -101,7 +100,7 @@ TEST(EncapsulateOp, GetNgExecutable) {
     }
   }
 
-  std::shared_ptr<Executable> ng_exec;
+  std::shared_ptr<IE_Executable> ng_exec;
   std::shared_ptr<ngraph::Function> ng_function;
 
   ASSERT_OK(ng_encap_impl.GetNgExecutable(

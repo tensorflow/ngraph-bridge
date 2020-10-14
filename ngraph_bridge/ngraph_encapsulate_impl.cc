@@ -84,7 +84,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
-    std::shared_ptr<Executable>& ng_exec,
+    std::shared_ptr<IE_Executable>& ng_exec,
     std::shared_ptr<ngraph::Function>& ng_function) {
   auto backend = BackendManager::GetBackend();
 
@@ -114,7 +114,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     }
 
     // Evict the cache if the number of elements exceeds the limit
-    std::shared_ptr<Executable> evicted_ng_exec;
+    std::shared_ptr<IE_Executable> evicted_ng_exec;
     const char* cache_depth_specified =
         std::getenv("NGRAPH_TF_FUNCTION_CACHE_ITEM_DEPTH");
     if (cache_depth_specified != nullptr) {

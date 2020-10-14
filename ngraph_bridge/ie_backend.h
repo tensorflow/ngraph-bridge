@@ -24,7 +24,6 @@
 #include "ngraph_bridge/ie_executable.h"
 #include "ngraph_bridge/ie_tensor.h"
 #include "ngraph_bridge/ngraph_backend.h"
-#include "ngraph_bridge/ngraph_executable.h"
 
 using namespace std;
 
@@ -36,9 +35,9 @@ class IE_Backend final : public Backend {
   IE_Backend(const string& configuration_string);
   ~IE_Backend() override;
 
-  shared_ptr<Executable> compile(shared_ptr<ngraph::Function> func,
+  shared_ptr<IE_Executable> compile(shared_ptr<ngraph::Function> func,
                                  bool enable_performance_data = false) override;
-  void remove_compiled_function(std::shared_ptr<Executable> exec) override;
+  void remove_compiled_function(std::shared_ptr<IE_Executable> exec) override;
   bool is_supported(const ngraph::Node& node) const override;
   bool is_supported_property(const Property prop) const override;
 
@@ -71,7 +70,7 @@ class IE_Backend final : public Backend {
  private:
   std::mutex m_exec_map_mutex;
   std::unordered_map<std::shared_ptr<ngraph::Function>,
-                     std::shared_ptr<Executable>>
+                     std::shared_ptr<IE_Executable>>
       m_exec_map;
   string m_device;
 };

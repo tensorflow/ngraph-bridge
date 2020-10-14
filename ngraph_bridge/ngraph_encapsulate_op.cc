@@ -35,7 +35,6 @@
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_encapsulate_op.h"
-#include "ngraph_bridge/ngraph_executable.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -195,7 +194,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
-  std::shared_ptr<Executable> ng_exec;
+  std::shared_ptr<IE_Executable> ng_exec;
   std::shared_ptr<ngraph::Function> ng_function;
 
   // TF input tensor
@@ -245,8 +244,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::vector<Tensor> tf_output_tensors;
   {
     NG_TRACE("Output: maybe create", name(), "");
-    for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-      auto ng_element = ng_exec->get_results()[i];
+    for (auto i = 0; i < ng_function->get_results().size(); i++) {
+      auto ng_element = ng_function->get_results()[i];
       auto ng_shape = ng_element->get_shape();
       auto ng_element_type = ng_element->get_element_type();
 

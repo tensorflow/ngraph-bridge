@@ -27,7 +27,7 @@
 #include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_executable.h"
+#include "ngraph_bridge/ie_executable.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -48,7 +48,7 @@ class NGraphEncapsulateImpl {
   Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
                          std::vector<TensorShape>& input_shapes,
                          std::vector<const Tensor*>& static_input_map,
-                         std::shared_ptr<Executable>& ng_exec,
+                         std::shared_ptr<IE_Executable>& ng_exec,
                          std::shared_ptr<ngraph::Function>& ng_function);
 
   // Allocate nGraph tensors for given TF tensors
@@ -92,12 +92,12 @@ class NGraphEncapsulateImpl {
     m_input_is_static[index] = value;
   }
 
-  std::unordered_map<std::string, std::shared_ptr<Executable>> GetNgExecMap() {
+  std::unordered_map<std::string, std::shared_ptr<IE_Executable>> GetNgExecMap() {
     return m_ng_exec_map;
   }
 
   void SetNgExecMap(const std::string& ng_map_key,
-                    const std::shared_ptr<Executable>& exec) {
+                    const std::shared_ptr<IE_Executable>& exec) {
     m_ng_exec_map[ng_map_key] = exec;
   }
 
@@ -124,7 +124,7 @@ class NGraphEncapsulateImpl {
   std::list<std::string> m_lru;
   static int s_instance_count;
 
-  std::unordered_map<std::string, std::shared_ptr<Executable>> m_ng_exec_map;
+  std::unordered_map<std::string, std::shared_ptr<IE_Executable>> m_ng_exec_map;
 };
 
 }  // namespace ngraph_bridge

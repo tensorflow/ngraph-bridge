@@ -56,7 +56,6 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
 
   if (trivial_fn) {
     NGRAPH_VLOG(2) << "Function is trivial and can be short-circuited";
-    set_parameters_and_results(*func);
     m_trivial_fn = func;
     return;
   }
@@ -99,8 +98,6 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
           << "Unable to add a parameter to a function with no parameters!";
     }
   }
-
-  set_parameters_and_results(*func);
 
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
