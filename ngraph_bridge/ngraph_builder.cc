@@ -2091,11 +2091,13 @@ static Status TranslateSliceOp(
   ng::Output<ng::Node> ng_input, ng_begin, ng_size;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_begin, ng_size));
   auto input_shape = ConstructNgNode<opset::ShapeOf>(op->name(), ng_input);
-  auto is_negative = ConstructNgNode<opset::Equal>(op->name(), ng_size,
-    ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{}, std::vector<int64>({-1})));
+  auto is_negative = ConstructNgNode<opset::Equal>(
+      op->name(), ng_size,
+      ConstructNgNode<opset::Constant>(op->name(), ng::element::i64,
+                                       ng::Shape{}, std::vector<int64>({-1})));
   auto ng_add = ConstructNgNode<opset::Add>(op->name(), ng_begin, ng_size);
-  auto ng_end = ConstructNgNode<opset::Select>(op->name(), is_negative, input_shape, ng_add);
+  auto ng_end = ConstructNgNode<opset::Select>(op->name(), is_negative,
+                                               input_shape, ng_add);
   SaveNgOp(ng_op_map, op->name(),
            ConstructNgNode<opset::StridedSlice>(op->name(), ng_input, ng_begin,
                                                 ng_end, std::vector<int64_t>{},
@@ -2167,7 +2169,8 @@ static Status TranslateSplitVOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input, ng_split_length, ng_split_dim;
 
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_split_length, ng_split_dim));
+  TF_RETURN_IF_ERROR(
+      GetInputNodes(ng_op_map, op, ng_input, ng_split_length, ng_split_dim));
   auto ng_split = make_shared<opset::VariadicSplit>(ng_input, ng_split_dim,
                                                     ng_split_length);
   for (auto& out : ng_split->outputs()) {
