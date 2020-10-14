@@ -68,7 +68,8 @@ IETensor::IETensor(const element::Type& element_type, const Shape& shape_,
 
   auto size = shape_size(shape_) * element_type.size();
 
-  m_ie_data = std::make_shared<IE_Data>(memory_pointer, precision, layout, shape, size);
+  m_ie_data =
+      std::make_shared<IE_Data>(memory_pointer, precision, layout, shape, size);
 }
 
 IETensor::IETensor(const element::Type& element_type, const Shape& shape)
@@ -90,8 +91,6 @@ void IETensor::read(void* dst, size_t bytes) const {
   m_ie_data->read(dst, bytes);
 }
 
-const void* IETensor::get_data_ptr() const {
-  return m_ie_data->get_data_ptr();
-}
+const void* IETensor::get_data_ptr() const { return m_ie_data->get_data_ptr(); }
 }
 }

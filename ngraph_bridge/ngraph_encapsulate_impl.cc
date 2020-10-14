@@ -63,8 +63,9 @@ Status NGraphEncapsulateImpl::ComputeSignature(
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     const Tensor& input_tensor = tf_input_tensors[i];
     input_shapes.push_back(input_tensor.shape());
-    //FIXME: Ideally, the whole input shape should be provided by IEManager
-    input_shapes[i].set_dim(0,IEManager::GetInputBatchSize(input_shapes[i].dim_size(0), device));
+    // FIXME: Ideally, the whole input shape should be provided by IEManager
+    input_shapes[i].set_dim(
+        0, IEManager::GetInputBatchSize(input_shapes[i].dim_size(0), device));
     for (const auto& x : input_tensor.shape()) {
       signature_ss << x.size << ",";
     }

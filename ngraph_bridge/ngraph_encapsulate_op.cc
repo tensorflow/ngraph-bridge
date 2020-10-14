@@ -259,11 +259,13 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       for (auto dim : ng_shape) {
         dims.push_back(dim);
       }
-      // Get the output batch size based on the input shape, number of requests, and the device.
+      // Get the output batch size based on the input shape, number of requests,
+      // and the device.
       // FIXME: This function call may not be needed. Output batch size can be
       // known by the input batch size.
       if (dims.size() > 0 && tf_input_tensors.size() > 0) {
-        dims[0] = ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device);
+        dims[0] =
+            ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device);
       }
       TensorShape tf_shape(dims);
       Tensor* output_tensor = nullptr;

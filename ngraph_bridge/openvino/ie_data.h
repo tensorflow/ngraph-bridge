@@ -15,7 +15,6 @@
  * limitations under the License.
  *******************************************************************************/
 
-
 #ifndef IE_DATA_H_
 #define IE_DATA_H_
 
@@ -24,22 +23,16 @@
 #include <string>
 #include <vector>
 
-
 class IE_Data {
  public:
-  IE_Data(const void *data_pointer,
-          InferenceEngine::Precision precision,
-          InferenceEngine::Layout layout,
-          InferenceEngine::SizeVector shape,
-          size_t byte_size,
-	  std::string name);
-  IE_Data(const void *data_pointer,
-          InferenceEngine::Precision precision,
-          InferenceEngine::Layout layout,
-          InferenceEngine::SizeVector shape,
+  IE_Data(const void* data_pointer, InferenceEngine::Precision precision,
+          InferenceEngine::Layout layout, InferenceEngine::SizeVector shape,
+          size_t byte_size, std::string name);
+  IE_Data(const void* data_pointer, InferenceEngine::Precision precision,
+          InferenceEngine::Layout layout, InferenceEngine::SizeVector shape,
           size_t byte_size);
 
-  const void * get_data_pointer() const;
+  const void* get_data_pointer() const;
   InferenceEngine::Precision get_precision() const;
   InferenceEngine::Layout get_layout() const;
   InferenceEngine::SizeVector get_shape() const;
@@ -54,13 +47,12 @@ class IE_Data {
   const void* get_data_ptr() const;
 
  private:
-  const void *m_data_pointer;
+  const void* m_data_pointer;
   InferenceEngine::Precision m_precision;
   InferenceEngine::Layout m_layout;
   InferenceEngine::SizeVector m_shape;
   size_t m_byte_size;
   std::string m_name;
 };
-
 
 #endif  // IE_DATA_H_

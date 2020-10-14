@@ -173,7 +173,8 @@ class Executable {
   ///                         the output batch size
   /// \param device The device should be known to compute the output batch size
   /// \returns Output batch size of the graph
-  virtual size_t get_batch_size(size_t input_batch_size, std::string device) const = 0;
+  virtual size_t get_batch_size(size_t input_batch_size,
+                                std::string device) const = 0;
 
  protected:
   /// \brief Called at the end of compile to the values to be returned by

@@ -125,7 +125,8 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
     ie_inputs[i]->set_name(parameters[i]->get_friendly_name());
   }
 
-  std::vector<std::shared_ptr<IE_Data>> ie_hoisted_params(m_hoisted_params.size());
+  std::vector<std::shared_ptr<IE_Data>> ie_hoisted_params(
+      m_hoisted_params.size());
   int j = 0;
   for (const auto& it : m_hoisted_params) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
@@ -192,7 +193,8 @@ bool IE_Executable::call_trivial(
   return true;
 }
 
-size_t IE_Executable::get_batch_size(size_t input_batch_size, std::string device) const {
+size_t IE_Executable::get_batch_size(size_t input_batch_size,
+                                     std::string device) const {
   return m_ie_executor->getOutputBatchSize(input_batch_size, device);
 }
 }
