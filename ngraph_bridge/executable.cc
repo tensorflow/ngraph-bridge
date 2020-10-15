@@ -19,7 +19,7 @@
 
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
-#include "ngraph_bridge/ie_executable.h"
+#include "ngraph_bridge/executable.h"
 #include "ngraph_bridge/ie_tensor.h"
 
 using namespace std;
@@ -28,7 +28,7 @@ using namespace ngraph;
 namespace tensorflow {
 namespace ngraph_bridge {
 
-IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
+Executable::Executable(shared_ptr<Function> func, string device)
     : m_device{device}, m_trivial_fn{nullptr}, m_function(func) {
   NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
   const auto& opset = ngraph::get_opset3();
@@ -119,8 +119,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
   m_infer_req = exe_network.CreateInferRequest();
 }
 
-bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
-                         const vector<shared_ptr<runtime::Tensor>>& inputs) {
+bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
+                      const vector<shared_ptr<runtime::Tensor>>& inputs) {
   if (m_trivial_fn) {
     NGRAPH_VLOG(2) << "Calling trivial IE function with inputs="
                    << inputs.size() << " outputs=" << outputs.size();
@@ -175,7 +175,7 @@ bool IE_Executable::call(const vector<shared_ptr<runtime::Tensor>>& outputs,
   return true;
 }
 
-bool IE_Executable::call_trivial(
+bool Executable::call_trivial(
     const vector<shared_ptr<runtime::Tensor>>& outputs,
     const vector<shared_ptr<runtime::Tensor>>& inputs) {
   // outputs are in the same order as results

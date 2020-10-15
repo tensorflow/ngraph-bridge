@@ -30,10 +30,10 @@ namespace ngraph_bridge {
 
 // A Inference Engine executable object produced by compiling an nGraph
 // function.
-class IE_Executable {
+class Executable {
  public:
-  IE_Executable(shared_ptr<ngraph::Function> func, string device);
-  ~IE_Executable() {}
+  Executable(shared_ptr<ngraph::Function> func, string device);
+  ~Executable() {}
   bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
             const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs);
 

@@ -29,8 +29,8 @@ message(STATUS "Shared Link Flags: ${CMAKE_SHARED_LINKER_FLAGS}")
 # Compiler-specific logic...
 #-----------------------------------------------------------------------------------------------
 set(SRC
+   executable.cc
    ie_backend.cc
-   ie_executable.cc
    ie_tensor.cc
    ngraph_api.cc
    ngraph_assign_clusters.cc

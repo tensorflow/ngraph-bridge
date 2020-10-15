@@ -22,7 +22,7 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph/pass/pass_config.hpp"
 
-#include "ngraph_bridge/ie_executable.h"
+#include "ngraph_bridge/executable.h"
 
 using namespace std;
 
@@ -98,7 +98,7 @@ class Backend {
   /// \brief Compiles a Function.
   /// \param func The function to compile
   /// \returns compiled function or nullptr on failure
-  virtual shared_ptr<IE_Executable> compile(
+  virtual shared_ptr<Executable> compile(
       shared_ptr<ngraph::Function> func,
       bool enable_performance_data = false) = 0;
 
@@ -106,15 +106,15 @@ class Backend {
   /// \param func The function to compile
   /// \param pass_config Configuration object for defining compilation options
   /// \returns compiled function or nullptr on failure
-  virtual shared_ptr<IE_Executable> compile(
-      shared_ptr<ngraph::Function> func, ngraph::pass::PassConfig& pass_config,
-      bool enable_performance_data = false);
+  virtual shared_ptr<Executable> compile(shared_ptr<ngraph::Function> func,
+                                         ngraph::pass::PassConfig& pass_config,
+                                         bool enable_performance_data = false);
 
   /// \brief Loads a previously saved Executable object from a stream.
   /// \param input_stream the opened input stream containing the saved
   /// Executable
   /// \returns A compiled function or throws an exception on error
-  virtual shared_ptr<IE_Executable> load(istream& input_stream);
+  virtual shared_ptr<Executable> load(istream& input_stream);
 
   /// \brief Test if a backend is capable of supporting an op
   /// \param node is the op to test.
@@ -131,7 +131,7 @@ class Backend {
   /// \returns true if the property is supported, false otherwise.
   virtual bool is_supported_property(const Property prop) const;
 
-  virtual void remove_compiled_function(shared_ptr<IE_Executable> exec);
+  virtual void remove_compiled_function(shared_ptr<Executable> exec);
 
   /// \brief Return a backend specific op (that is not a core ngraph op).
   ///     The string op_name is the requested op, which a backend may or may not

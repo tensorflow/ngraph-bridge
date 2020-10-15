@@ -41,9 +41,9 @@ IE_Backend::IE_Backend(const string& config) {
 
 IE_Backend::~IE_Backend() { m_exec_map.clear(); }
 
-shared_ptr<IE_Executable> IE_Backend::compile(shared_ptr<ngraph::Function> func,
-                                              bool) {
-  shared_ptr<IE_Executable> rc;
+shared_ptr<Executable> IE_Backend::compile(shared_ptr<ngraph::Function> func,
+                                           bool) {
+  shared_ptr<Executable> rc;
   {
     std::lock_guard<std::mutex> guard(m_exec_map_mutex);
     auto it = m_exec_map.find(func);
@@ -53,7 +53,7 @@ shared_ptr<IE_Executable> IE_Backend::compile(shared_ptr<ngraph::Function> func,
     }
   }
 
-  rc = make_shared<IE_Executable>(func, m_device);
+  rc = make_shared<Executable>(func, m_device);
   {
     std::lock_guard<std::mutex> guard(m_exec_map_mutex);
     m_exec_map.insert({func, rc});
@@ -61,7 +61,7 @@ shared_ptr<IE_Executable> IE_Backend::compile(shared_ptr<ngraph::Function> func,
   }
 }
 
-void IE_Backend::remove_compiled_function(shared_ptr<IE_Executable> exec) {
+void IE_Backend::remove_compiled_function(shared_ptr<Executable> exec) {
   std::lock_guard<std::mutex> guard(m_exec_map_mutex);
   for (auto it = m_exec_map.begin(); it != m_exec_map.end(); ++it) {
     if (it->second == exec) {

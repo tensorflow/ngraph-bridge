@@ -194,7 +194,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
-  std::shared_ptr<IE_Executable> ng_exec;
+  std::shared_ptr<Executable> ng_exec;
 
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;

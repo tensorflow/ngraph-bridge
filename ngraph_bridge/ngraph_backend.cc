@@ -62,7 +62,7 @@ std::shared_ptr<ngraph::runtime::Tensor> Backend::create_dynamic_tensor(
   throw std::invalid_argument("This backend does not support dynamic tensors");
 }
 
-std::shared_ptr<IE_Executable> Backend::compile(
+std::shared_ptr<Executable> Backend::compile(
     std::shared_ptr<Function> func, ngraph::pass::PassConfig& /* pass_config */,
     bool enable_performance_data) {
   return compile(func, enable_performance_data);
@@ -79,10 +79,10 @@ bool Backend::is_supported_property(const Property /* prop */) const {
   return false;
 }
 
-void Backend::remove_compiled_function(
-    std::shared_ptr<IE_Executable> /* exec */) {}
+void Backend::remove_compiled_function(std::shared_ptr<Executable> /* exec */) {
+}
 
-std::shared_ptr<IE_Executable> Backend::load(istream& /* input_stream */) {
+std::shared_ptr<Executable> Backend::load(istream& /* input_stream */) {
   throw runtime_error("load operation unimplemented.");
 }
 
