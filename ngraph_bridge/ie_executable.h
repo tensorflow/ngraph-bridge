@@ -37,6 +37,10 @@ class IE_Executable {
   bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
             const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs);
 
+  const ngraph::ResultVector& get_results() {
+    return m_function->get_results();
+  };
+
  private:
   bool call_trivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
                     const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs);
@@ -48,6 +52,8 @@ class IE_Executable {
   // This keeps track of whether the original function was trivial: either a
   // constant function, an identity function or a zero function
   shared_ptr<ngraph::Function> m_trivial_fn;
+  // This is the original nGraph function corresponding to this executable
+  shared_ptr<ngraph::Function> m_function;
 };
 }
 }

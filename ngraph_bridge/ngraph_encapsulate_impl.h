@@ -48,8 +48,7 @@ class NGraphEncapsulateImpl {
   Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
                          std::vector<TensorShape>& input_shapes,
                          std::vector<const Tensor*>& static_input_map,
-                         std::shared_ptr<IE_Executable>& ng_exec,
-                         std::shared_ptr<ngraph::Function>& ng_function);
+                         std::shared_ptr<IE_Executable>& ng_exec);
 
   // Allocate nGraph tensors for given TF tensors
   Status AllocateNGTensors(

@@ -101,10 +101,8 @@ TEST(EncapsulateOp, GetNgExecutable) {
   }
 
   std::shared_ptr<IE_Executable> ng_exec;
-  std::shared_ptr<ngraph::Function> ng_function;
-
-  ASSERT_OK(ng_encap_impl.GetNgExecutable(
-      input_tensors, input_shapes, static_input_map, ng_exec, ng_function));
+  ASSERT_OK(ng_encap_impl.GetNgExecutable(input_tensors, input_shapes,
+                                          static_input_map, ng_exec));
 }
 
 // Test: Allocating ngraph tensors

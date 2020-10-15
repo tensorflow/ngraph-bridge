@@ -195,7 +195,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
   std::shared_ptr<IE_Executable> ng_exec;
-  std::shared_ptr<ngraph::Function> ng_function;
 
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;
@@ -209,9 +208,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     step_id = ctx->step_id();
 
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(ctx, ng_encap_impl_.GetNgExecutable(
-                            tf_input_tensors, input_shapes, static_input_map,
-                            ng_exec, ng_function));
+    OP_REQUIRES_OK(
+        ctx, ng_encap_impl_.GetNgExecutable(tf_input_tensors, input_shapes,
+                                            static_input_map, ng_exec));
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
@@ -244,8 +243,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::vector<Tensor> tf_output_tensors;
   {
     NG_TRACE("Output: maybe create", name(), "");
-    for (auto i = 0; i < ng_function->get_results().size(); i++) {
-      auto ng_element = ng_function->get_results()[i];
+    auto results = ng_exec->get_results();
+    for (auto i = 0; i < results.size(); i++) {
+      auto ng_element = results[i];
       auto ng_shape = ng_element->get_shape();
       auto ng_element_type = ng_element->get_element_type();
 

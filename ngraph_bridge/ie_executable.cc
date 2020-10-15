@@ -29,7 +29,7 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
-    : m_device{device}, m_trivial_fn{nullptr} {
+    : m_device{device}, m_trivial_fn{nullptr}, m_function(func) {
   NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
   const auto& opset = ngraph::get_opset3();
   for (const auto& node : func->get_ops()) {
@@ -98,6 +98,8 @@ IE_Executable::IE_Executable(shared_ptr<Function> func, string device)
           << "Unable to add a parameter to a function with no parameters!";
     }
   }
+
+  m_function = func;
 
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
