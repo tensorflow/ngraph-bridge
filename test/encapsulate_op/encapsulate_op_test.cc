@@ -100,7 +100,7 @@ TEST(EncapsulateOp, GetNgExecutable) {
     }
   }
 
-  std::shared_ptr<IE_Executable> ng_exec;
+  std::shared_ptr<Executable> ng_exec;
   ASSERT_OK(ng_encap_impl.GetNgExecutable(input_tensors, input_shapes,
                                           static_input_map, ng_exec));
 }
