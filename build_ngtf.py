@@ -20,11 +20,10 @@ from tools.build_utils import *
 flag_string_map = {True: 'YES', False: 'NO'}
 
 
-def version_check(use_prebuilt_tensorflow, use_prebuilt_intel_tensorflow,
-                  use_tensorflow_from_location, disable_cpp_api):
+def version_check(use_prebuilt_tensorflow, use_tensorflow_from_location,
+                  disable_cpp_api):
     # Check pre-requisites
-    if (use_prebuilt_tensorflow or
-            use_prebuilt_intel_tensorflow) and not disable_cpp_api:
+    if use_prebuilt_tensorflow and not disable_cpp_api:
         # Check if the gcc version is at least 5.3.0
         if (platform.system() != 'Darwin'):
             gcc_ver = get_gcc_version()
@@ -33,8 +32,7 @@ def version_check(use_prebuilt_tensorflow, use_prebuilt_intel_tensorflow,
                     "Need GCC 5.3.0 or newer to build using prebuilt TensorFlow"
                     " or Intel-Tensorflow\n"
                     "Gcc version installed: " + gcc_ver + "\n"
-                    "To build from source omit `use_prebuilt_tensorflow"
-                    " or use_prebuilt_intel_tensorflow`")
+                    "To build from source omit `use_prebuilt_tensorflow`")
     # Check cmake version
     cmake_ver = get_cmake_version()
     if (int(cmake_ver[0]) < 3 or int(cmake_ver[1]) < 4):
@@ -99,21 +97,10 @@ def main():
 
     parser.add_argument(
         '--use_intel_tensorflow',
-        help="Build using Intel TensorFlow.",
-        action="store_true")
-
-    parser.add_argument(
-        '--use_prebuilt_intel_tensorflow',
-        type=str,
         help=
-        "Skip building Intel TensorFlow and use the specified prebuilt version.\n"
-        + "If prebuilt version isn't specified, TF version " + tf_version +
-        " will be used.\n" +
-        "Note: in this case C++ API, unit tests and examples won't be build for nGraph-TF bridge",
-        const=tf_version,
-        default='',
-        nargs='?',
-        action="store")
+        "Use Intel TensorFlow for either building from source or prebuilt, in \n"
+        + "conjunction with --use_prebuilt_tensorflow.",
+        action="store_true")
 
     parser.add_argument(
         '--use_grappler_optimizer',
@@ -159,19 +146,11 @@ def main():
 
     assert not (
         arguments.use_tensorflow_from_location != '' and
-        (arguments.use_prebuilt_tensorflow != '' or
-         arguments.use_prebuilt_intel_tensorflow != '')
+        (arguments.use_prebuilt_tensorflow != '')
     ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\""
-    "or \" use_prebuilt_intel_tensorflow \""
-    "cannot be used together."
-
-    assert not (arguments.use_prebuilt_tensorflow != '' and
-                arguments.use_prebuilt_intel_tensorflow != '')
-    "\"use_prebuilt_tensorflow\" and \"use_prebuilt_intel_tensorflow\""
     "cannot be used together."
 
     version_check((arguments.use_prebuilt_tensorflow != ''),
-                  (arguments.use_prebuilt_intel_tensorflow != ''),
                   (arguments.use_tensorflow_from_location != ''),
                   arguments.disable_cpp_api)
 
@@ -239,10 +218,7 @@ def main():
     if arguments.use_prebuilt_tensorflow != '':
         tf_version = arguments.use_prebuilt_tensorflow
 
-    if arguments.use_prebuilt_intel_tensorflow != '':
-        tf_version = arguments.use_prebuilt_intel_tensorflow
-
-    if arguments.use_intel_tensorflow != '' or arguments.use_prebuilt_intel_tensorflow != '':
+    if arguments.use_intel_tensorflow != '':
         use_intel_tf = True
 
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
@@ -284,16 +260,16 @@ def main():
         copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc)
         os.chdir(cwd)
     else:
-        if arguments.use_prebuilt_tensorflow != '' or arguments.use_prebuilt_intel_tensorflow != '':
-            print("Using existing TensorFlow version", tf_version)
-            if arguments.use_prebuilt_tensorflow != '':
-                print("Install native Tensorflow")
-                command_executor(
-                    ["pip", "install", "-U", "tensorflow==" + tf_version])
-            else:
+        if arguments.use_prebuilt_tensorflow != '':
+            print("Using TensorFlow version", tf_version)
+            if use_intel_tf:
                 print("Install Intel-Tensorflow")
                 command_executor(
                     ["pip", "install", "-U", "intel-tensorflow==" + tf_version])
+            else:
+                print("Install native Tensorflow")
+                command_executor(
+                    ["pip", "install", "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
 
             tf_src_dir = os.path.join(artifacts_location, "tensorflow")
@@ -438,14 +414,14 @@ def main():
     #
     # There are four possibilities:
     # 1. use_tensorflow_from_location is not defined
-    #   2. In that case use_prebuilt_tensorflow or use_prebuilt_intel_tensorflow is defined
+    #   2. In that case use_prebuilt_tensorflow is defined
     #       In this case we copy the entire tensorflow source to the artifacts
     #       So all we have to do is to create a symbolic link
-    #       3. OR use_prebuilt_tensorflow and use_prebuilt_intel_tensorflow is not defined
+    #       3. OR use_prebuilt_tensorflow is not defined
     # 4. use_tensorflow_from_location is defined
     if arguments.use_tensorflow_from_location == '':
         # Case 1
-        if arguments.use_prebuilt_tensorflow != '' or arguments.use_prebuilt_intel_tensorflow != '':
+        if arguments.use_prebuilt_tensorflow != '':
             # Case 2
             base_dir = None
         else:
