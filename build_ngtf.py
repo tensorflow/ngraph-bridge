@@ -282,10 +282,6 @@ def main():
                           "https://github.com/tensorflow/tensorflow.git",
                           tf_version)
             os.chdir(pwd_now)
-            if not arguments.disable_cpp_api:
-                # Now build the libtensorflow_cc.so - the C++ library
-                build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
-                                    target_arch, verbosity, use_intel_tf)
         else:
             print("Building TensorFlow from source")
             # Download TensorFlow
@@ -381,12 +377,12 @@ def main():
                 arguments.use_tensorflow_from_location + '/tensorflow')
         ])
     else:
-        if not arguments.disable_cpp_api:
+        if not arguments.disable_cpp_api and not arguments.use_prebuilt_tensorflow:
             print("TF_SRC_DIR: ", tf_src_dir)
             ngraph_tf_cmake_flags.extend(["-DTF_SRC_DIR=" + tf_src_dir])
 
     ngraph_tf_cmake_flags.extend(["-DUNIT_TEST_ENABLE=ON"])
-    if not arguments.disable_cpp_api:
+    if not arguments.disable_cpp_api and not arguments.use_prebuilt_tensorflow:
         ngraph_tf_cmake_flags.extend([
             "-DUNIT_TEST_TF_CC_DIR=" + os.path.join(artifacts_location,
                                                     "tensorflow")
