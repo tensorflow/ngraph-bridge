@@ -34,21 +34,18 @@ class Backend {
   Backend(const string& configuration_string);
   ~Backend();
 
-  shared_ptr<Executable> compile(
-      shared_ptr<ngraph::Function> func,
-      bool enable_performance_data = false);
+  shared_ptr<Executable> compile(shared_ptr<ngraph::Function> func,
+                                 bool enable_performance_data = false);
   void remove_compiled_function(std::shared_ptr<Executable> exec);
   bool is_supported(const ngraph::Node& node) const;
 
   shared_ptr<ngraph::runtime::Tensor> create_dynamic_tensor(
-      const ngraph::element::Type& type,
-      const ngraph::PartialShape& shape);
+      const ngraph::element::Type& type, const ngraph::PartialShape& shape);
 
   static vector<string> get_registered_devices();
 
   shared_ptr<ngraph::runtime::Tensor> create_tensor(
-      const ngraph::element::Type& element_type,
-      const ngraph::Shape& shape);
+      const ngraph::element::Type& element_type, const ngraph::Shape& shape);
 
   shared_ptr<ngraph::runtime::Tensor> create_tensor(
       const ngraph::element::Type& element_type, const ngraph::Shape& shape,

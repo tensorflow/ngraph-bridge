@@ -42,7 +42,7 @@ Backend::Backend(const string& config) {
 Backend::~Backend() { m_exec_map.clear(); }
 
 shared_ptr<Executable> Backend::compile(shared_ptr<ngraph::Function> func,
-                                           bool) {
+                                        bool) {
   shared_ptr<Executable> rc;
   {
     std::lock_guard<std::mutex> guard(m_exec_map_mutex);
