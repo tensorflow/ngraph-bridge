@@ -35,7 +35,6 @@
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_encapsulate_op.h"
-#include "ngraph_bridge/ngraph_executable.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -189,7 +188,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
   std::shared_ptr<Executable> ng_exec;
-  std::shared_ptr<ngraph::Function> ng_function;
 
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;
@@ -203,9 +201,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     step_id = ctx->step_id();
 
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(ctx, ng_encap_impl_.GetNgExecutable(
-                            tf_input_tensors, input_shapes, static_input_map,
-                            ng_exec, ng_function));
+    OP_REQUIRES_OK(
+        ctx, ng_encap_impl_.GetNgExecutable(tf_input_tensors, input_shapes,
+                                            static_input_map, ng_exec));
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
