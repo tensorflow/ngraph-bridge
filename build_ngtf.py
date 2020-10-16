@@ -39,7 +39,7 @@ def version_check(use_prebuilt_tensorflow, use_tensorflow_from_location,
         raise Exception("Need minimum cmake version 3.4\n"
                         "Got: " + '.'.join(cmake_ver))
 
-    if not use_tensorflow_from_location and not disable_cpp_api:
+    if not use_tensorflow_from_location and not disable_cpp_api and not use_prebuilt_tensorflow:
         # Check bazel version
         bazel_kind, bazel_ver = get_bazel_version()
         got_correct_bazel_version = bazel_kind == 'Bazelisk version'
