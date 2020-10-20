@@ -151,6 +151,7 @@ conv_ops_test.Conv2DTest.testInputGradientValidPaddingStrideThree
 conv_ops_test.Conv2DTest.testInputGradientValidPaddingStrideTwo
 slice_op_test.SliceTest.testSimple
 
+gather_op_test.GatherTest.testBadAxis
 gather_nd_op_test.GatherNdTest.testGradientsRank2Slices
 gather_nd_op_test.GatherNdTest.testGradientsRank2SlicesWithEmptySpace
 math_ops_test.AddNTest.testGrad
