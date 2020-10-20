@@ -304,9 +304,9 @@ void Compare(const Tensor& T1, const Tensor& T2, float rtol, float atol) {
                             "expected output datatype."
                          << dtype;
   }
-  auto T_size = T1.flat<T>().size();
-  auto T1_data = T1.flat<T>().data();
-  auto T2_data = T2.flat<T>().data();
+  auto T_size = T1.unaligned_flat<T>().size();
+  auto T1_data = T1.unaligned_flat<T>().data();
+  auto T2_data = T2.unaligned_flat<T>().data();
   bool is_comparable = false;
 
   for (int k = 0; k < T_size; k++) {

@@ -237,49 +237,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                     "for cluster "
                  << cluster_id;
-  // Allocate tensors for the output results.
-  vector<shared_ptr<ngraph::runtime::Tensor>> ng_outputs;
-  int ng_output_tensor_size_in_bytes = 0;
-  std::vector<Tensor> tf_output_tensors;
-  {
-    NG_TRACE("Output: maybe create", name(), "");
-    auto results = ng_exec->get_results();
-    for (auto i = 0; i < results.size(); i++) {
-      auto ng_element = results[i];
-      auto ng_shape = ng_element->get_shape();
-      auto ng_element_type = ng_element->get_element_type();
-
-      // Create the TF output tensor
-      vector<int64> dims;
-      for (auto dim : ng_shape) {
-        dims.push_back(dim);
-      }
-      TensorShape tf_shape(dims);
-      Tensor* output_tensor = nullptr;
-      OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
-      tf_output_tensors.push_back(*output_tensor);
-
-      // Make sure the nGraph-inferred element type agrees with what TensorFlow
-      // expected.
-      ngraph::element::Type expected_elem_type;
-      OP_REQUIRES_OK(
-          ctx, TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
-                                             &expected_elem_type));
-      OP_REQUIRES(
-          ctx, ng_element_type == expected_elem_type,
-          errors::Internal("Element type inferred by nGraph does not match "
-                           "the element type expected by TensorFlow"));
-    }
-
-    OP_REQUIRES_OK(
-        ctx, ng_encap_impl_.AllocateNGTensors(tf_output_tensors, ng_outputs));
-  }
-  NGRAPH_VLOG(4)
-      << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
-      << cluster_id;
 
   int time_create_or_lookup_tensors = create_or_lookup_tensors.ElapsedInMS();
-
+  vector<shared_ptr<ngraph::runtime::Tensor>> ng_outputs;
   // Execute the nGraph function.
   int time_execute_function;
   {
@@ -290,7 +250,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           << "NGraphEncapsulateOp::Compute call starting for cluster "
           << cluster_id;
       try {
-        ng_exec->call(ng_outputs, ng_inputs);
+        ng_exec->call(ng_inputs, ng_outputs);
       } catch (const std::exception& exp) {
         string status_string = "Caught exception while executing cluster " +
                                to_string(cluster_id) + string(exp.what());
@@ -304,14 +264,30 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     time_execute_function = execute_function.ElapsedInMS();
   }
 
+  for (auto i = 0; i < ng_outputs.size(); i++) {
+    auto ng_output = ng_outputs[i];
+    auto ng_element_type = ng_output->get_element_type();
+    auto ng_shape = ng_output->get_shape();
+
+    // Create the TF output tensor
+    vector<int64> dims;
+    for (auto dim : ng_shape) {
+      dims.push_back(dim);
+    }
+    TensorShape tf_shape(dims);
+    IETensorBuffer* tf_buffer =
+        new IETensorBuffer(static_pointer_cast<IETensor>(ng_output));
+    Tensor tf_tensor(ctx->expected_output_dtype(i), TensorShape(dims),
+                     tf_buffer);
+    ctx->set_output(i, tf_tensor);
+  }
+
   long vm, rss;
   MemoryProfile(vm, rss);
   NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
                  << ng_encap_impl_.GetInstanceId() << " Step_ID: " << step_id
                  << " Cluster: " << name() << " Input Tensors created: "
                  << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
-                 << " Output Tensors created: "
-                 << ng_output_tensor_size_in_bytes / (1024 * 1024) << " MB"
                  << " Total process memory: " << rss / (1024 * 1024) << " GB";
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
