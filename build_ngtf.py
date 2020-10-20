@@ -30,7 +30,7 @@ def version_check(use_prebuilt_tensorflow, use_tensorflow_from_location,
             if gcc_ver < '5.3.0':
                 raise Exception(
                     "Need GCC 5.3.0 or newer to build using prebuilt TensorFlow"
-                    " or Intel-Tensorflow\n"
+                    " or Intel Tensorflow\n"
                     "Gcc version installed: " + gcc_ver + "\n"
                     "To build from source omit `use_prebuilt_tensorflow`")
     # Check cmake version
@@ -50,7 +50,7 @@ def version_check(use_prebuilt_tensorflow, use_tensorflow_from_location,
 
 def main():
     '''
-    Builds TensorFlow, OpenVino, and ngraph-tf for python 3
+    Builds TensorFlow, OpenVINO, and ngraph-tf for python 3
     '''
 
     # Component versions
@@ -146,7 +146,7 @@ def main():
 
     assert not (
         arguments.use_tensorflow_from_location != '' and
-        (arguments.use_prebuilt_tensorflow != '')
+        arguments.use_prebuilt_tensorflow != ''
     ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\""
     "cannot be used together."
 
@@ -263,11 +263,11 @@ def main():
         if arguments.use_prebuilt_tensorflow != '':
             print("Using TensorFlow version", tf_version)
             if use_intel_tf:
-                print("Install Intel-Tensorflow")
+                print("Install Intel Tensorflow")
                 command_executor(
                     ["pip", "install", "-U", "intel-tensorflow==" + tf_version])
             else:
-                print("Install native Tensorflow")
+                print("Install native TensorFlow")
                 command_executor(
                     ["pip", "install", "-U", "tensorflow==" + tf_version])
             cxx_abi = get_tf_cxxabi()
