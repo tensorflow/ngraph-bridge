@@ -1,0 +1,3 @@
+[submodule "ocm"]
+	path = ocm
+	url = https://gitlab.devtools.intel.com/iot-edge/ocm.git

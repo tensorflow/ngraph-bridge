@@ -72,6 +72,7 @@ target_link_libraries(
         absl_container
         absl_strings
         ${InferenceEngine_LIBRARIES}
+        ocm
     )
 
 target_compile_definitions( 
@@ -100,7 +101,7 @@ message(STATUS "NGTF_INSTALL_LIB_DIR: ${NGTF_INSTALL_LIB_DIR}")
 
 # First install the libngraph_bridge.so and headers
 install(TARGETS ${LIB_NAME} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
-
+install(FILES ${CMAKE_INSTALL_PREFIX}/../ocm/OCM/libocm.so DESTINATION "${NGTF_INSTALL_LIB_DIR}")
 install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 # Next install all the other prerequisites
