@@ -257,7 +257,8 @@ def main():
         # This function copies the .so files from
         # use_tensorflow_from_location/artifacts/tensorflow to
         # artifacts/tensorflow
-        copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc)
+        copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc,
+                             use_intel_tf)
         os.chdir(cwd)
     else:
         if arguments.use_prebuilt_tensorflow != '':
@@ -317,6 +318,7 @@ def main():
         if not os.path.isdir(dst_dir):
             os.mkdir(dst_dir)
         dst = os.path.join(dst_dir, tf_fmwk_lib_name)
+        # import pdb;pdb.set_trace()
         shutil.copyfile(tf_lib_file, dst)
 
     if not arguments.use_prebuilt_openvino:
