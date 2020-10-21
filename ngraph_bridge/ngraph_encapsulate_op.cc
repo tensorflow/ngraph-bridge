@@ -270,16 +270,20 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     auto ng_shape = ng_output->get_shape();
 
     // Create the TF output tensor
-    vector<int64> dims;
+    TensorShape tf_shape;
     for (auto dim : ng_shape) {
-      dims.push_back(dim);
+      tf_shape.AddDim(dim);
     }
-    TensorShape tf_shape(dims);
-    IETensorBuffer* tf_buffer =
-        new IETensorBuffer(static_pointer_cast<IETensor>(ng_output));
-    Tensor tf_tensor(ctx->expected_output_dtype(i), TensorShape(dims),
-                     tf_buffer);
-    ctx->set_output(i, tf_tensor);
+
+    // Zero-copy IE tensor to TF
+    // IETensorBuffer* tf_buffer =
+    //     new IETensorBuffer(static_pointer_cast<IETensor>(ng_output));
+    // Tensor tf_tensor(ctx->expected_output_dtype(i), tf_shape, tf_buffer);
+    // ctx->set_output(i, tf_tensor);
+
+    Tensor* tf_tensor;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &tf_tensor));
+    ng_output->read(tf_tensor->data(), tf_tensor->AllocatedBytes());
   }
 
   long vm, rss;
