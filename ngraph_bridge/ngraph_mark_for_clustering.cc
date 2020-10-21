@@ -14,9 +14,11 @@
  * limitations under the License.
  *******************************************************************************/
 
+#include "tensorflow/core/common_runtime/build_graph_options.h"
 #include "tensorflow/core/graph/graph.h"
 
 #include "ngraph_bridge/default_opset.h"
+#include "ngraph_bridge/grappler/ngraph_add_identityn.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -739,8 +741,7 @@ GetTFToNgOpMap() {
 //
 // Main entry point for the marking pass.
 //
-Status MarkForClustering(Graph* graph,
-                         const std::set<string> skip_these_nodes) {
+Status MarkForClustering(Graph* graph, std::set<string> skip_these_nodes) {
   const TypeConstraintMap& type_constraint_map = GetTypeConstraintMap();
 
   // confirmation_function_map is non-const unlike the other maps
@@ -800,9 +801,50 @@ Status MarkForClustering(Graph* graph,
   vector<Node*> nodes_marked_for_clustering;
 
   shared_ptr<Backend> op_backend = BackendManager::GetBackend();
-  for (auto node : graph->op_nodes()) {
-    bool mark_for_clustering = false;
+#if !defined NGRAPH_TF_USE_GRAPPLER_OPTIMIZER
+  std::set<string> disabled_nodes = {};
+  // Find a list of nodes that are of the types that are disabled
+  for (auto itr : graph->nodes()) {
+    if (disabled_ops_set.find(itr->type_string()) != disabled_ops_set.end()) {
+      disabled_nodes.insert(itr->name());
+    }
+  }
+  // const BuildGraphOptions options;
+  // cout << "trying " << options.callable_options.fetch().size() << endl;
+  // cout << "trying " << options.callable_options.tensor_connection().size()
+  // <<endl;
+  std::set<string> fetch_nodes;
+  for (auto edge : graph->edges()) {
+    Node* src = edge->src();
+    Node* dst = edge->dst();
+    // Skip source/sink
+    if (dst->IsSink()) {
+      cout << "Skip this node " << src->type_string() << endl;
+      fetch_nodes.insert(src->name());
+    }
+  }
+  cout << "Total nodes " << graph->num_nodes() << endl;
+  cout << "OP nodes " << graph->num_op_nodes() << endl;
 
+  // nodes_to_add_identity_to = fetch_nodes - disabled_nodes
+  std::set<string> nodes_to_add_identity_to;
+  std::set_difference(fetch_nodes.begin(), fetch_nodes.end(),
+                      disabled_nodes.begin(), disabled_nodes.end(),
+                      std::inserter(nodes_to_add_identity_to,
+                                    nodes_to_add_identity_to.begin()));
+
+  // Rewrite graph to add IdentityN node so the fetch node can be encapsulated
+  // as well
+  // If the fetch node in question has 0 outputs or any of the outputs
+  // has ref type as a data type then don't add IdentityN node, but the fetch
+  // node will be skipped from marking and clustering.
+  TF_RETURN_IF_ERROR(AddIdentityN(graph, nodes_to_add_identity_to));
+  skip_these_nodes = nodes_to_add_identity_to;
+#endif
+
+  for (auto node : graph->op_nodes()) {
+    cout << node->type_string() << endl;
+    bool mark_for_clustering = false;
     do {
       // check if output node
       bool skip_it = false;
