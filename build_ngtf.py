@@ -100,7 +100,7 @@ def main():
         help=
         "Use Intel TensorFlow for either building from source or prebuilt, in \n"
         + "conjunction with --use_prebuilt_tensorflow.",
-        action="store")
+        action="store_true")
 
     parser.add_argument(
         '--use_grappler_optimizer',
