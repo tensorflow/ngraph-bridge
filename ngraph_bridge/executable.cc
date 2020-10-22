@@ -149,24 +149,43 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
     m_infer_req.SetBlob(it.first, tv->get_blob());
   }
 
-  m_infer_req.Infer();
-
   InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
-  //  Prepare output blobs
-  auto results = func->get_results();
-  for (int i = 0; i < output_info.size(); i++) {
+  if (outputs.size() == 0 && output_info.size() > 0) {
+    outputs.resize(output_info.size(), nullptr);
+  }
+
+  auto get_output_name = [](std::shared_ptr<ngraph::Node> node) {
     // Since IE has no "result" nodes, we set the blob corresponding to the
     // parent of this result node
-    auto parent = results[i]->input_value(0).get_node_shared_ptr();
+    auto parent = node->input_value(0).get_node_shared_ptr();
     auto name = parent->get_friendly_name();
     // if parent has multiple outputs, correctly identify the output feeding
     // into this result
     if (parent->outputs().size() > 1) {
-      name += "." + to_string(results[i]->input_value(0).get_index());
+      name += "." + to_string(node->input_value(0).get_index());
     }
+    return name;
+  };
 
-    auto blob = m_infer_req.GetBlob(name);
-    outputs.push_back(make_shared<IETensor>(blob));
+  //  Prepare output blobs
+  auto results = func->get_results();
+  for (int i = 0; i < results.size(); i++) {
+    if (outputs[i] != nullptr) {
+      NGRAPH_VLOG(4) << "Executable::call() SetBlob()";
+      shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
+      m_infer_req.SetBlob(get_output_name(results[i]), tv->get_blob());
+    }
+  }
+
+  m_infer_req.Infer();
+
+  // Set dynamic output blobs
+  for (int i = 0; i < results.size(); i++) {
+    if (outputs[i] == nullptr) {
+      NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
+      auto blob = m_infer_req.GetBlob(get_output_name(results[i]));
+      outputs[i] = make_shared<IETensor>(blob);
+    }
   }
 
   return true;
@@ -176,11 +195,17 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
                               vector<shared_ptr<runtime::Tensor>>& outputs) {
   // outputs are in the same order as results
   auto results = m_trivial_fn->get_results();
-  outputs.resize(results.size());
+  if (outputs.size() == 0 && results.size() > 0) {
+    outputs.resize(results.size(), nullptr);
+  }
+
   for (int i = 0; i < results.size(); i++) {
     auto& shape = results[i]->get_shape();
     if (count(shape.begin(), shape.end(), 0)) {
-      outputs[i] = make_shared<IETensor>(results[i]->get_element_type(), shape);
+      if (outputs[i] == nullptr) {
+        outputs[i] =
+            make_shared<IETensor>(results[i]->get_element_type(), shape);
+      }
       NGRAPH_VLOG(2) << "Skipping function with zero dim result...";
       continue;
     }
@@ -193,8 +218,10 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
         THROW_IE_EXCEPTION << "Input parameter " << param->get_friendly_name()
                            << " not found in trivial function";
       }
-      outputs[i] = make_shared<IETensor>(inputs[index]->get_element_type(),
-                                         inputs[index]->get_shape());
+      if (outputs[i] == nullptr) {
+        outputs[i] = make_shared<IETensor>(inputs[index]->get_element_type(),
+                                           inputs[index]->get_shape());
+      }
       auto size = inputs[index]->get_size_in_bytes();
       unsigned char* buf_ptr = new unsigned char[size];
       inputs[index]->read(buf_ptr, size);
@@ -203,9 +230,15 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
     } else if (ngraph::is_type<opset::Constant>(parent)) {
       NGRAPH_VLOG(2) << "Calling constant -> result function...";
       auto constant = ngraph::as_type_ptr<opset::Constant>(parent);
-      outputs[i] = make_shared<IETensor>(
-          constant->get_element_type(), constant->get_shape(),
-          const_cast<void*>(constant->get_data_ptr()));
+      if (outputs[i] == nullptr) {
+        outputs[i] = make_shared<IETensor>(
+            constant->get_element_type(), constant->get_shape(),
+            const_cast<void*>(constant->get_data_ptr()));
+      } else {
+        outputs[i]->write(constant->get_data_ptr(),
+                          shape_size(constant->get_shape()) *
+                              constant->get_element_type().size());
+      }
     } else {
       THROW_IE_EXCEPTION << "Expected constant or parameter feeding to a "
                             "result in trivial function";
