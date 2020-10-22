@@ -100,6 +100,7 @@ def main():
         help=
         "Use Intel TensorFlow for either building from source or prebuilt, in \n"
         + "conjunction with --use_prebuilt_tensorflow.",
+        default='',
         action="store_true")
 
     parser.add_argument(
@@ -220,6 +221,7 @@ def main():
 
     if arguments.use_intel_tensorflow != '':
         use_intel_tf = True
+        print("Using Intel Tensorflow")
 
     # The cxx_abi flag is translated to _GLIBCXX_USE_CXX11_ABI
     # For gcc older than 5.3, this flag is set to 0 and for newer ones,
@@ -257,6 +259,7 @@ def main():
         # This function copies the .so files from
         # use_tensorflow_from_location/artifacts/tensorflow to
         # artifacts/tensorflow
+        print(use_intel_tf)
         copy_tf_to_artifacts(tf_version, tf_in_artifacts, tf_whl_loc,
                              use_intel_tf)
         os.chdir(cwd)
