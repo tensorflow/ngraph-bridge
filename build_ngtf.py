@@ -305,21 +305,14 @@ def main():
             # will be 1
             cxx_abi = install_tensorflow(venv_dir, artifacts_location)
 
-        # Finally, copy the libtensorflow_framework.so to the artifacts so that
-        # we can run c++ tests from that location later
-        tf_fmwk_lib_name = 'libtensorflow_framework.so.2'
-        if (platform.system() == 'Darwin'):
-            tf_fmwk_lib_name = 'libtensorflow_framework.2.dylib'
-        import tensorflow as tf
-        tf_lib_dir = tf.sysconfig.get_lib()
-        tf_lib_file = os.path.join(tf_lib_dir, tf_fmwk_lib_name)
-        print("SYSCFG LIB: ", tf_lib_file)
+        # This function copies the .so files from
+        # use_tensorflow_from_location/artifacts/tensorflow to
+        # artifacts/tensorflow
+        cwd = os.getcwd()
+        os.chdir(tf_src_dir)
         dst_dir = os.path.join(artifacts_location, "tensorflow")
-        if not os.path.isdir(dst_dir):
-            os.mkdir(dst_dir)
-        dst = os.path.join(dst_dir, tf_fmwk_lib_name)
-        # import pdb;pdb.set_trace()
-        shutil.copyfile(tf_lib_file, dst)
+        copy_tf_to_artifacts(tf_version, dst_dir, None, use_intel_tf)
+        os.chdir(cwd)
 
     if not arguments.use_prebuilt_openvino:
         openvino_version = "releases/2021/1"
