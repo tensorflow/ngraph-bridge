@@ -293,7 +293,6 @@ def main():
             tf_lib_dir = tf.sysconfig.get_lib()
             tf_lib_file = os.path.join(tf_lib_dir, tf_fmwk_lib_name)
             print("SYSCFG LIB: ", tf_lib_file)
-            import pdb;pdb.set_trace()
             dst_dir = os.path.join(artifacts_location, "tensorflow")
             if not os.path.isdir(dst_dir):
                 os.mkdir(dst_dir)
