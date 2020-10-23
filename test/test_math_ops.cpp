@@ -484,6 +484,10 @@ TEST_F(MathOpsSumFixture, FullSet) {
       }
     }
   }
+  // Add few more tests with axes-combos
+  TestWith({6, 2}, {0, 1}, false);
+  TestWith({6, 2}, {0, 1}, true);
+  TestWith({2, 4, 3}, {0, 1, 2}, false);
 }
 // END MathOpsSumFixture
 
