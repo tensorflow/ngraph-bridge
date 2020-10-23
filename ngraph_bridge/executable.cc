@@ -123,7 +123,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
                       vector<shared_ptr<runtime::Tensor>>& outputs) {
   if (m_trivial_fn) {
     NGRAPH_VLOG(2) << "Calling trivial IE function with inputs="
-                   << inputs.size();
+                   << inputs.size() << " outputs=" << outputs.size();
     return call_trivial(inputs, outputs);
   }
 

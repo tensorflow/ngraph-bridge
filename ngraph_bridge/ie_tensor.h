@@ -58,12 +58,6 @@ class IETensorBuffer : public TensorBuffer {
         size_(tensor->get_size_in_bytes()),
         tensor_(tensor) {}
 
-  // ~IETensorBuffer() override {
-  //   if (data()) {
-  //     delete tensor_;
-  //   }
-  // }
-
   size_t size() const override { return size_; }
 
   TensorBuffer* root_buffer() override { return this; }
