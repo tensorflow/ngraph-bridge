@@ -36,7 +36,8 @@ class Executable {
   Executable(shared_ptr<ngraph::Function> func, string device);
   ~Executable() {}
   bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
-            vector<shared_ptr<ngraph::runtime::Tensor>>& outputs, bool multi_req_execution = false);
+            vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
+            bool multi_req_execution = false);
 
   const ngraph::ResultVector& get_results() {
     return m_function->get_results();

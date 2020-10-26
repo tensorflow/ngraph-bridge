@@ -14,8 +14,8 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/openvino/ie_executor.h"
 #include <iostream>
+#include "ngraph_bridge/openvino/ie_executor.h"
 #include "ngraph_bridge/openvino/ie_manager.h"
 
 IE_Executor::IE_Executor(InferenceEngine::CNNNetwork ie_network,
@@ -36,7 +36,6 @@ IE_Executor::~IE_Executor() {}
 void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
                         std::vector<std::shared_ptr<IE_Data>> outputs,
                         std::vector<std::shared_ptr<IE_Data>> hoisted_params) {
-
   int num_req = 1;
   int batch_size = 0;
 
@@ -47,8 +46,8 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
   // Check if the number of inputs that the CNN network expects is equal to the
   // sum of the
   // inputs specified and the inputs we hoisted, if any.
-  //InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  //if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
+  // InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
+  // if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
   //  THROW_IE_EXCEPTION
   //      << "Function inputs number differ from number of given inputs";
   //}
@@ -56,10 +55,12 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
 
   //  Prepare input blobs
 
-  std::vector<InferenceEngine::MemoryBlob::Ptr> in_blobs(inputs.size()*num_req);
+  std::vector<InferenceEngine::MemoryBlob::Ptr> in_blobs(inputs.size() *
+                                                         num_req);
   std::vector<InferenceEngine::MemoryBlob::Ptr> param_blobs(
       hoisted_params.size());
-  std::vector<InferenceEngine::MemoryBlob::Ptr> out_blobs(outputs.size()*num_req);
+  std::vector<InferenceEngine::MemoryBlob::Ptr> out_blobs(outputs.size() *
+                                                          num_req);
   std::cout << "Execute Inference - C" << std::endl;
   for (int i = 0; i < inputs.size(); i++) {
     InferenceEngine::SizeVector input_shape = inputs[i]->get_shape();
@@ -70,8 +71,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
     std::string input_name = inputs[i]->get_name();
 
     InferenceEngine::SizeVector req_shape(input_shape);
-    if (batch_size != 0)
-      req_shape[0] = batch_size;
+    if (batch_size != 0) req_shape[0] = batch_size;
     InferenceEngine::TensorDesc desc(input_precision, req_shape, input_layout);
     for (int j = 0; j < num_req; j++) {
       size_t req_size = size / num_req;
@@ -85,7 +85,8 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
   }
   for (int i = 0; i < hoisted_params.size(); i++) {
     InferenceEngine::SizeVector param_shape = hoisted_params[i]->get_shape();
-    InferenceEngine::Precision param_precision = hoisted_params[i]->get_precision();
+    InferenceEngine::Precision param_precision =
+        hoisted_params[i]->get_precision();
     InferenceEngine::Layout param_layout = hoisted_params[i]->get_layout();
     const void* param_data_pointer = hoisted_params[i]->get_data_pointer();
     size_t size = hoisted_params[i]->get_byte_size();
@@ -99,7 +100,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
       m_infer_reqs[j].SetBlob(param_name, param_blobs[i]);
     }
   }
-        std::cout << "Execute Inference - G" << std::endl;
+  std::cout << "Execute Inference - G" << std::endl;
   for (int i = 0; i < outputs.size(); i++) {
     InferenceEngine::SizeVector output_shape = outputs[i]->get_shape();
     InferenceEngine::Precision output_precision = outputs[i]->get_precision();
@@ -109,8 +110,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
     std::string output_name = outputs[i]->get_name();
 
     InferenceEngine::SizeVector req_shape(output_shape);
-    if (batch_size != 0)
-      req_shape[0] = batch_size;
+    if (batch_size != 0) req_shape[0] = batch_size;
     InferenceEngine::TensorDesc desc(output_precision, req_shape,
                                      output_layout);
     for (int j = 0; j < num_req; j++) {
@@ -123,10 +123,10 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
       m_infer_reqs[j].SetBlob(output_name, out_blobs[out_idx]);
     }
   }
-        std::cout << "Execute Inference - F" << std::endl;
+  std::cout << "Execute Inference - F" << std::endl;
 
-  //m_infer_req.Infer();
-  //m_ie_executor->infer(ie_inputs, ie_outputs, ie_hoisted_params);
+  // m_infer_req.Infer();
+  // m_ie_executor->infer(ie_inputs, ie_outputs, ie_hoisted_params);
   // Start Inference Requests
   for (int i = 0; i < num_req; i++) {
     start_async_inference(i);
@@ -145,12 +145,13 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
   for (int i = 0; i < param_blobs.size(); i++) {
     param_blobs[i]->deallocate();
   }
-        std::cout << "Execute Inference (check) - END" << std::endl;
+  std::cout << "Execute Inference (check) - END" << std::endl;
 }
 
-//void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
+// void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
 //                        std::vector<std::shared_ptr<IE_Data>> outputs,
-//                        std::vector<std::shared_ptr<IE_Data>> hoisted_params) {
+//                        std::vector<std::shared_ptr<IE_Data>> hoisted_params)
+//                        {
 //        std::cout << "Infer - A" << std::endl;
 //  int batch_size = 0;
 //  int num_req = 1;
@@ -197,7 +198,8 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
 //    InferenceEngine::SizeVector req_shape(input_shape);
 //    if (batch_size != 0)
 //      req_shape[0] = batch_size;
-//    InferenceEngine::TensorDesc desc(input_precision, req_shape, input_layout);
+//    InferenceEngine::TensorDesc desc(input_precision, req_shape,
+//    input_layout);
 //
 //    for (int j = 0; j < num_req; j++) {
 //      size_t req_size = size / num_req;
