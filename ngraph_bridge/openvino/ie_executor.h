@@ -31,7 +31,8 @@ class IE_Executor {
   // Executes the inference
   void infer(std::vector<std::shared_ptr<IE_Data>> inputs,
              std::vector<std::shared_ptr<IE_Data>> outputs,
-             std::vector<std::shared_ptr<IE_Data>> hoisted_params);
+             std::vector<std::shared_ptr<IE_Data>> hoisted_params,
+             bool multi_req_execution = false);
 
   // Returns output batch size based on the input batch size and the device
   // FIXME: This may not be needed

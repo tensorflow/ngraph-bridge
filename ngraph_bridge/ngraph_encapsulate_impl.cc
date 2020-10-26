@@ -36,7 +36,6 @@
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
-
 #include "ngraph_bridge/openvino/ie_manager.h"
 
 using namespace std;
@@ -56,16 +55,19 @@ Status NGraphEncapsulateImpl::ComputeSignature(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
-    std::stringstream& signature_ss) {
+    std::stringstream& signature_ss,
+    bool multi_req_execution) {
   std::string device;
   BackendManager::GetBackendName(device);
   // Get the inputs
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     const Tensor& input_tensor = tf_input_tensors[i];
     input_shapes.push_back(input_tensor.shape());
-    // FIXME: Ideally, the whole input shape should be provided by IEManager
-    input_shapes[i].set_dim(
-        0, IEManager::GetInputBatchSize(input_shapes[i].dim_size(0), device));
+    if (multi_req_execution) {
+      // FIXME: This is a temporary solution to set the input shape.
+      input_shapes[i].set_dim(
+          0, IEManager::GetInputBatchSize(input_shapes[i].dim_size(0), device));
+    }
     for (const auto& x : input_tensor.shape()) {
       signature_ss << x.size << ",";
     }
@@ -92,13 +94,14 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
     std::shared_ptr<Executable>& ng_exec,
-    std::shared_ptr<ngraph::Function>& ng_function) {
+    bool multi_req_execution) {
   auto backend = BackendManager::GetBackend();
 
   // Compute Signature
   std::stringstream signature_ss;
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,
-                                      static_input_map, signature_ss));
+                                      static_input_map, signature_ss,
+                                      multi_req_execution));
   string signature = signature_ss.str();
   NGRAPH_VLOG(5) << "Computed signature: " << signature;
   auto it = m_ng_exec_map.find(signature);
@@ -106,6 +109,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                  << m_ngraph_cluster;
 
   // Translate the TensorFlow graph to nGraph.
+  std::shared_ptr<ngraph::Function> ng_function;
   if (it == m_ng_exec_map.end()) {
     // Measure the current total memory usage
     long vm, rss, vm0, rss0;
@@ -145,7 +149,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
                               ex.what());
     }
 
-    SetNgExecMap(signature, ng_exec);
+    m_ng_exec_map[signature] = ng_exec;
     m_lru.push_front(signature);
 
     // Memory after

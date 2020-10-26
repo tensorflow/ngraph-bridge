@@ -31,18 +31,26 @@ class IE_Data {
   IE_Data(const void* data_pointer, InferenceEngine::Precision precision,
           InferenceEngine::Layout layout, InferenceEngine::SizeVector shape,
           size_t byte_size);
+  IE_Data(std::string name);
+  IE_Data();
 
   const void* get_data_pointer() const;
+  void set_data_pointer(const void *data_ptr);
   InferenceEngine::Precision get_precision() const;
+  void set_precision(InferenceEngine::Precision precision);
   InferenceEngine::Layout get_layout() const;
+  void set_layout(InferenceEngine::Layout layout);
   InferenceEngine::SizeVector get_shape() const;
+  void set_shape(InferenceEngine::SizeVector shape);
   size_t get_byte_size() const;
+  void set_byte_size(size_t byte_size);
   void set_name(std::string name);
   std::string get_name() const;
   bool has_name() const;
 
   void write(const void* src, size_t bytes);
   void read(void* dst, size_t bytes) const;
+  void allocate(size_t bytes);
 
   const void* get_data_ptr() const;
 

@@ -35,7 +35,6 @@
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_encapsulate_op.h"
-#include "ngraph_bridge/ngraph_executable.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
@@ -185,6 +184,11 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       << name();
   NG_TRACE(oss.str(), name(), "");
 
+  // Multi request execution is disabled by default
+  bool multi_req_execution = false;
+  std::string device;
+  BackendManager::GetBackendName(device);
+
   Timer compute_time;
   std::lock_guard<std::mutex> lock(m_compute_lock_);
   int cluster_id = ng_encap_impl_.GetNgraphCluster();
@@ -196,7 +200,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::vector<TensorShape> input_shapes;
   std::vector<const Tensor*> static_input_map;
   std::shared_ptr<Executable> ng_exec;
-  std::shared_ptr<ngraph::Function> ng_function;
 
   // TF input tensor
   std::vector<Tensor> tf_input_tensors;
@@ -209,10 +212,18 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
     step_id = ctx->step_id();
 
+    // If the device is set to HDDL, check the inputs if multi request
+    // execution can be enabled.
+    if (device == "HDDL" && ctx->num_inputs() == 1 && tf_input_tensors[0].shape().dims() > 1) {
+      multi_req_execution = true;
+    }
+
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(ctx, ng_encap_impl_.GetNgExecutable(
-                            tf_input_tensors, input_shapes, static_input_map,
-                            ng_exec, ng_function));
+    OP_REQUIRES_OK(
+        ctx, ng_encap_impl_.GetNgExecutable(tf_input_tensors, input_shapes,
+                                            static_input_map, ng_exec,
+                                            multi_req_execution));
+
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
@@ -236,63 +247,61 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ctx, ng_encap_impl_.AllocateNGTensors(tf_input_tensors, ng_inputs));
   }
 
-  // FIXME: This may not be needed. (Used to get the output batch size)
-  std::string device;
-  BackendManager::GetBackendName(device);
-
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
                     "for cluster "
                  << cluster_id;
+
   // Allocate tensors for the output results.
-  vector<shared_ptr<ngraph::runtime::Tensor>> ng_outputs;
-  int ng_output_tensor_size_in_bytes = 0;
-  std::vector<Tensor> tf_output_tensors;
-  {
-    NG_TRACE("Output: maybe create", name(), "");
-    for (auto i = 0; i < ng_exec->get_results().size(); i++) {
-      auto ng_element = ng_exec->get_results()[i];
-      auto ng_shape = ng_element->get_shape();
-      auto ng_element_type = ng_element->get_element_type();
 
-      // Create the TF output tensor
-      vector<int64> dims;
-      for (auto dim : ng_shape) {
-        dims.push_back(dim);
-      }
-      // Get the output batch size based on the input shape, number of requests,
-      // and the device.
-      // FIXME: This function call may not be needed. Output batch size can be
-      // known by the input batch size.
-      if (dims.size() > 0 && tf_input_tensors.size() > 0) {
-        dims[0] =
-            ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device);
-      }
-      TensorShape tf_shape(dims);
-      Tensor* output_tensor = nullptr;
-      OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
-      tf_output_tensors.push_back(*output_tensor);
-
-      // Make sure the nGraph-inferred element type agrees with what TensorFlow
-      // expected.
-      ngraph::element::Type expected_elem_type;
-      OP_REQUIRES_OK(
-          ctx, TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
-                                             &expected_elem_type));
-      OP_REQUIRES(
-          ctx, ng_element_type == expected_elem_type,
-          errors::Internal("Element type inferred by nGraph does not match "
-                           "the element type expected by TensorFlow"));
+  auto results = ng_exec->get_results();
+  std::vector<shared_ptr<ngraph::runtime::Tensor>> ng_outputs(results.size(),
+                                                              nullptr);
+  std::vector<int> dyn_shape_tensors;
+  for (auto i = 0; i < results.size(); i++) {
+    auto ng_element = results[i];
+    if (ng_element->get_output_partial_shape(0).is_dynamic()) {
+      NGRAPH_VLOG(4)
+          << "NGraphEncapsulateOp::Compute skipping output allocation for "
+             "dynamic tensor at index"
+          << i;
+      dyn_shape_tensors.push_back(i);
+      continue;
     }
 
-    OP_REQUIRES_OK(
-        ctx, ng_encap_impl_.AllocateNGTensors(tf_output_tensors, ng_outputs));
+    // Create the TF output tensor
+    auto ng_shape = ng_element->get_shape();
+    TensorShape tf_shape;
+    for (auto dim : ng_shape) {
+      tf_shape.AddDim(dim);
+    }
+    // Get the output batch size based on the input shape, number of requests,
+    // and the device.
+    if (multi_req_execution) {
+      tf_shape.set_dim(0,
+          ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device));
+    }
+    Tensor* output_tensor = nullptr;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
+
+    // Make sure the nGraph-inferred element type agrees with what TensorFlow
+    // expected.
+    ngraph::element::Type expected_elem_type;
+    auto ng_element_type = ng_element->get_element_type();
+    OP_REQUIRES_OK(ctx,
+                   TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
+                                                 &expected_elem_type));
+    OP_REQUIRES(
+        ctx, ng_element_type == expected_elem_type,
+        errors::Internal("Element type inferred by nGraph does not match "
+                         "the element type expected by TensorFlow"));
+    ng_outputs[i] =
+        make_shared<IETensor>(ng_element_type, ng_shape, output_tensor->data());
   }
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << cluster_id;
 
   int time_create_or_lookup_tensors = create_or_lookup_tensors.ElapsedInMS();
-
   // Execute the nGraph function.
   int time_execute_function;
   {
@@ -303,7 +312,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           << "NGraphEncapsulateOp::Compute call starting for cluster "
           << cluster_id;
       try {
-        ng_exec->call(ng_outputs, ng_inputs);
+        ng_exec->call(ng_inputs, ng_outputs, multi_req_execution);
       } catch (const std::exception& exp) {
         string status_string = "Caught exception while executing cluster " +
                                to_string(cluster_id) + string(exp.what());
@@ -317,14 +326,28 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     time_execute_function = execute_function.ElapsedInMS();
   }
 
+  for (auto i : dyn_shape_tensors) {
+    auto ng_output = ng_outputs[i];
+    // Create the TF output tensor
+    auto ng_shape = ng_output->get_shape();
+    TensorShape tf_shape;
+    for (auto dim : ng_shape) {
+      tf_shape.AddDim(dim);
+    }
+
+    // Zero-copy IE tensor to TF
+    IETensorBuffer* tf_buffer =
+        new IETensorBuffer(static_pointer_cast<IETensor>(ng_output));
+    Tensor tf_tensor(ctx->expected_output_dtype(i), tf_shape, tf_buffer);
+    ctx->set_output(i, tf_tensor);
+  }
+
   long vm, rss;
   MemoryProfile(vm, rss);
   NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
                  << ng_encap_impl_.GetInstanceId() << " Step_ID: " << step_id
                  << " Cluster: " << name() << " Input Tensors created: "
                  << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
-                 << " Output Tensors created: "
-                 << ng_output_tensor_size_in_bytes / (1024 * 1024) << " MB"
                  << " Total process memory: " << rss / (1024 * 1024) << " GB";
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
