@@ -270,14 +270,14 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     // Create the TF output tensor
     auto ng_shape = ng_element->get_shape();
     TensorShape tf_shape;
-    for (auto dim : ng_shape) {
-      tf_shape.AddDim(dim);
-    }
     // Get the output batch size based on the input shape, number of requests,
     // and the device.
     if (multi_req_execution) {
-      tf_shape.set_dim(
-          0, ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device));
+      ng_shape[0] =
+          ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device);
+    }
+    for (auto dim : ng_shape) {
+      tf_shape.AddDim(dim);
     }
     Tensor* output_tensor = nullptr;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));
