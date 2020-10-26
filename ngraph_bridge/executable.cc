@@ -117,9 +117,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
   // Load network to the plugin (m_device) and create an infer request
   m_exe_network = ie.LoadNetwork(m_network, m_device);
 
-  InferenceEngine::CNNNetwork ie_network(func);
-  m_ie_executor = make_shared<IE_Executor>(ie_network, m_device);
-  m_ng_func = ie_network.getFunction();
+  m_ie_executor = make_shared<IE_Executor>(m_network, m_device);
 }
 
 bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
@@ -130,6 +128,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
                    << inputs.size() << " outputs=" << outputs.size();
     return call_trivial(inputs, outputs);
   }
+  shared_ptr<ngraph::Function> func = m_network.getFunction();
 
   // Check if the number of inputs that the CNN network expects is equal to the
   // sum of the
@@ -142,7 +141,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
 
   //  Prepare input blobs
   std::vector<std::shared_ptr<IE_Data>> ie_inputs(inputs.size());
-  auto parameters = m_ng_func->get_parameters();
+  auto parameters = func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
     ie_inputs[i] = tv->get_ie_data();
@@ -178,7 +177,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
 
   //  Prepare output blobs
   std::vector<std::shared_ptr<IE_Data>> ie_outputs(outputs.size());
-  auto results = m_ng_func->get_results();
+  auto results = func->get_results();
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] != nullptr) {
       shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);

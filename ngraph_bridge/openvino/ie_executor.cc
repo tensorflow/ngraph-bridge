@@ -55,20 +55,10 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
     num_req = inputs[0]->get_shape()[0] / batch_size;
   }
 
+  // Create requests
   while (m_infer_reqs.size() < num_req) {
     m_infer_reqs.push_back(m_exe_network.CreateInferRequest());
   }
-
-  // Check if the number of inputs that the CNN network expects is equal to the
-  // sum of the
-  // inputs specified and the inputs we hoisted, if any.
-  InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
-  if (input_info.size() != (inputs.size() + hoisted_params.size())) {
-    THROW_IE_EXCEPTION
-        << "Function inputs number differ from number of given inputs";
-  }
-
-  //  Prepare input blobs
 
   std::vector<InferenceEngine::MemoryBlob::Ptr> in_blobs(inputs.size() *
                                                          num_req);
@@ -76,6 +66,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
       hoisted_params.size());
   std::vector<InferenceEngine::MemoryBlob::Ptr> out_blobs(outputs.size() *
                                                           num_req);
+  //  Prepare input blobs
   for (int i = 0; i < inputs.size(); i++) {
     InferenceEngine::SizeVector input_shape = inputs[i]->get_shape();
     InferenceEngine::Precision input_precision = inputs[i]->get_precision();
@@ -115,11 +106,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
     }
   }
 
-  InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
-  if (output_info.size() != outputs.size()) {
-    THROW_IE_EXCEPTION
-        << "Function outputs number differ from number of given outputs";
-  }
+  // Prepare output blobs
   for (int i = 0; i < out_blobs.size(); i++) {
     out_blobs[i] = nullptr;
   }
