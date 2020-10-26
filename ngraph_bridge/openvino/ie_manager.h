@@ -54,64 +54,65 @@ class IEManager {
                          InferenceEngine::Precision& precision,
                          const void* data_ptr, size_t byte_size,
                          InferenceEngine::MemoryBlob::Ptr& blob_ptr) {
-#define MAKE_IE_BLOB(type_, desc_, ptr_, size_)                               \
-    do {                                                                        \
-      if (ptr_ == nullptr) {                                                    \
-        blob_ptr = std::make_shared<InferenceEngine::TBlob<type_>>(desc);              \
-        blob_ptr->allocate();                                                       \
-      } else {                                                                  \
-        blob_ptr = std::make_shared<InferenceEngine::TBlob<type_>>(desc, (type_*)ptr_, \
-                                                            size_);              \
-      }                                                                         \
-    } while (0)
+#define MAKE_IE_BLOB(type_, desc_, ptr_, size_)                         \
+  do {                                                                  \
+    if (ptr_ == nullptr) {                                              \
+      blob_ptr = std::make_shared<InferenceEngine::TBlob<type_>>(desc); \
+      blob_ptr->allocate();                                             \
+    } else {                                                            \
+      blob_ptr = std::make_shared<InferenceEngine::TBlob<type_>>(       \
+          desc, (type_*)ptr_, size_);                                   \
+    }                                                                   \
+  } while (0)
     switch (precision) {
       case InferenceEngine::Precision::FP32:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<float>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<float>>(
         //    desc, (float*)(data_ptr), byte_size);
         MAKE_IE_BLOB(float, desc, (float*)data_ptr, byte_size);
         break;
       case InferenceEngine::Precision::U8:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<uint8_t>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<uint8_t>>(
         //    desc, (uint8_t*)(data_ptr), byte_size);
         MAKE_IE_BLOB(uint8_t, desc, (uint8_t*)data_ptr, byte_size);
         break;
       case InferenceEngine::Precision::I8:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<int8_t>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<int8_t>>(
         //    desc, (int8_t*)(data_ptr), byte_size);
         MAKE_IE_BLOB(int8_t, desc, (int8_t*)data_ptr, byte_size);
         break;
       case InferenceEngine::Precision::U16:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<uint16_t>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<uint16_t>>(
         //    desc, (uint16_t*)(data_ptr), byte_size);
         MAKE_IE_BLOB(uint16_t, desc, (uint16_t*)data_ptr, byte_size);
         break;
       case InferenceEngine::Precision::I16:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<int16_t>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<int16_t>>(
         //    desc, (int16_t*)(data_ptr), byte_size);
         MAKE_IE_BLOB(int16_t, desc, (int16_t*)data_ptr, byte_size);
         break;
       case InferenceEngine::Precision::I32:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<int32_t>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<int32_t>>(
         //    desc, (int32_t*)(data_ptr), byte_size);
         MAKE_IE_BLOB(int32_t, desc, (int32_t*)data_ptr, byte_size);
         break;
       case InferenceEngine::Precision::U64:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<uint64_t>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<uint64_t>>(
         //    desc, (uint64_t*)(data_ptr), byte_size);
         MAKE_IE_BLOB(uint64_t, desc, (uint64_t*)data_ptr, byte_size);
         break;
       case InferenceEngine::Precision::I64:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<int64_t>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<int64_t>>(
         //    desc, (int64_t*)(data_ptr), byte_size);
         MAKE_IE_BLOB(int64_t, desc, (int64_t*)data_ptr, byte_size);
         break;
       case InferenceEngine::Precision::BOOL:
-        //blob_ptr = std::make_shared<InferenceEngine::TBlob<uint8_t>>(
+        // blob_ptr = std::make_shared<InferenceEngine::TBlob<uint8_t>>(
         //    desc, (uint8_t*)(data_ptr), byte_size);
         MAKE_IE_BLOB(uint8_t, desc, (uint8_t*)data_ptr, byte_size);
         break;
       default:
-        THROW_IE_EXCEPTION << "Can't create IE blob for type " << precision.name();
+        THROW_IE_EXCEPTION << "Can't create IE blob for type "
+                           << precision.name();
     }
   }
 };

@@ -214,16 +214,15 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
     // If the device is set to HDDL, check the inputs if multi request
     // execution can be enabled.
-    if (device == "HDDL" && ctx->num_inputs() == 1 && tf_input_tensors[0].shape().dims() > 1) {
+    if (device == "HDDL" && ctx->num_inputs() == 1 &&
+        tf_input_tensors[0].shape().dims() > 1) {
       multi_req_execution = true;
     }
 
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(
-        ctx, ng_encap_impl_.GetNgExecutable(tf_input_tensors, input_shapes,
-                                            static_input_map, ng_exec,
-                                            multi_req_execution));
-
+    OP_REQUIRES_OK(ctx, ng_encap_impl_.GetNgExecutable(
+                            tf_input_tensors, input_shapes, static_input_map,
+                            ng_exec, multi_req_execution));
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
@@ -277,8 +276,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     // Get the output batch size based on the input shape, number of requests,
     // and the device.
     if (multi_req_execution) {
-      tf_shape.set_dim(0,
-          ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device));
+      tf_shape.set_dim(
+          0, ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0), device));
     }
     Tensor* output_tensor = nullptr;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(i, tf_shape, &output_tensor));

@@ -46,8 +46,8 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
       THROW_IE_EXCEPTION
           << "Multi request execution is not supported with multiple inputs";
     } else if (inputs[0]->get_shape().size() < 2) {
-      THROW_IE_EXCEPTION
-          << "Multi request execution is only supported with input dimensions greater than 1";
+      THROW_IE_EXCEPTION << "Multi request execution is only supported with "
+                            "input dimensions greater than 1";
     }
     // Set the batch size per request and number of requests
     batch_size =
@@ -70,10 +70,12 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
 
   //  Prepare input blobs
 
-  std::vector<InferenceEngine::MemoryBlob::Ptr> in_blobs(inputs.size()*num_req);
+  std::vector<InferenceEngine::MemoryBlob::Ptr> in_blobs(inputs.size() *
+                                                         num_req);
   std::vector<InferenceEngine::MemoryBlob::Ptr> param_blobs(
       hoisted_params.size());
-  std::vector<InferenceEngine::MemoryBlob::Ptr> out_blobs(outputs.size()*num_req);
+  std::vector<InferenceEngine::MemoryBlob::Ptr> out_blobs(outputs.size() *
+                                                          num_req);
   for (int i = 0; i < inputs.size(); i++) {
     InferenceEngine::SizeVector input_shape = inputs[i]->get_shape();
     InferenceEngine::Precision input_precision = inputs[i]->get_precision();
@@ -83,8 +85,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
     std::string input_name = inputs[i]->get_name();
 
     InferenceEngine::SizeVector req_shape(input_shape);
-    if (batch_size != 0)
-      req_shape[0] = batch_size;
+    if (batch_size != 0) req_shape[0] = batch_size;
     InferenceEngine::TensorDesc desc(input_precision, req_shape, input_layout);
     for (int j = 0; j < num_req; j++) {
       size_t req_size = size / num_req;
@@ -98,7 +99,8 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
   }
   for (int i = 0; i < hoisted_params.size(); i++) {
     InferenceEngine::SizeVector param_shape = hoisted_params[i]->get_shape();
-    InferenceEngine::Precision param_precision = hoisted_params[i]->get_precision();
+    InferenceEngine::Precision param_precision =
+        hoisted_params[i]->get_precision();
     InferenceEngine::Layout param_layout = hoisted_params[i]->get_layout();
     const void* param_data_pointer = hoisted_params[i]->get_data_pointer();
     size_t size = hoisted_params[i]->get_byte_size();
@@ -119,7 +121,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
         << "Function outputs number differ from number of given outputs";
   }
   for (int i = 0; i < out_blobs.size(); i++) {
-      out_blobs[i] = nullptr;
+    out_blobs[i] = nullptr;
   }
   for (int i = 0; i < outputs.size(); i++) {
     if (outputs[i]->get_data_ptr() != nullptr) {
@@ -131,8 +133,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
       std::string output_name = outputs[i]->get_name();
 
       InferenceEngine::SizeVector req_shape(output_shape);
-      if (batch_size != 0)
-        req_shape[0] = batch_size;
+      if (batch_size != 0) req_shape[0] = batch_size;
       InferenceEngine::TensorDesc desc(output_precision, req_shape,
                                        output_layout);
       for (int j = 0; j < num_req; j++) {
@@ -159,17 +160,18 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
   // Set dynamic output blobs
   for (int i = 0; i < outputs.size(); i++) {
     if (outputs[i]->get_data_ptr() == nullptr) {
-      auto blob = InferenceEngine::as<InferenceEngine::MemoryBlob>(m_infer_reqs[0].GetBlob(outputs[i]->get_name()));
+      auto blob = InferenceEngine::as<InferenceEngine::MemoryBlob>(
+          m_infer_reqs[0].GetBlob(outputs[i]->get_name()));
       auto lm = blob->rwmap();
       uint8_t* data_ptr = lm.as<uint8_t*>();
-      InferenceEngine::TensorDesc desc = blob->getTensorDesc(); 
+      InferenceEngine::TensorDesc desc = blob->getTensorDesc();
       InferenceEngine::SizeVector shape = desc.getDims();
       InferenceEngine::Precision precision = desc.getPrecision();
       InferenceEngine::Layout layout = desc.getLayout();
       size_t out_size = blob->byteSize();
       if (batch_size != 0) {
-          shape[0] *= num_req;
-          out_size *= num_req;
+        shape[0] *= num_req;
+        out_size *= num_req;
       }
       outputs[i]->set_data_pointer(data_ptr);
       outputs[i]->set_byte_size(out_size);

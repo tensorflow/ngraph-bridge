@@ -115,8 +115,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
 
   InferenceEngine::Core ie;
   // Load network to the plugin (m_device) and create an infer request
-  m_exe_network =
-      ie.LoadNetwork(m_network, m_device);
+  m_exe_network = ie.LoadNetwork(m_network, m_device);
 
   InferenceEngine::CNNNetwork ie_network(func);
   m_ie_executor = make_shared<IE_Executor>(ie_network, m_device);
@@ -190,7 +189,8 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
     }
   }
 
-  m_ie_executor->infer(ie_inputs, ie_outputs, ie_hoisted_params, multi_req_execution);
+  m_ie_executor->infer(ie_inputs, ie_outputs, ie_hoisted_params,
+                       multi_req_execution);
 
   // Set dynamic output blobs
   for (int i = 0; i < results.size(); i++) {
@@ -260,7 +260,7 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
 }
 
 size_t Executable::get_batch_size(size_t input_batch_size,
-                                     std::string device) const {
+                                  std::string device) const {
   return m_ie_executor->getOutputBatchSize(input_batch_size, device);
 }
 }

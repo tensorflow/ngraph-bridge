@@ -55,8 +55,7 @@ Status NGraphEncapsulateImpl::ComputeSignature(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
-    std::stringstream& signature_ss,
-    bool multi_req_execution) {
+    std::stringstream& signature_ss, bool multi_req_execution) {
   std::string device;
   BackendManager::GetBackendName(device);
   // Get the inputs
@@ -93,8 +92,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::vector<TensorShape>& input_shapes,
     std::vector<const Tensor*>& static_input_map,
-    std::shared_ptr<Executable>& ng_exec,
-    bool multi_req_execution) {
+    std::shared_ptr<Executable>& ng_exec, bool multi_req_execution) {
   auto backend = BackendManager::GetBackend();
 
   // Compute Signature

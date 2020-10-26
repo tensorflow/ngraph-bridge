@@ -35,7 +35,7 @@ class IE_Data {
   IE_Data();
 
   const void* get_data_pointer() const;
-  void set_data_pointer(const void *data_ptr);
+  void set_data_pointer(const void* data_ptr);
   InferenceEngine::Precision get_precision() const;
   void set_precision(InferenceEngine::Precision precision);
   InferenceEngine::Layout get_layout() const;

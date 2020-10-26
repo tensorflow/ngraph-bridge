@@ -110,8 +110,8 @@ IETensor::IETensor(const element::Type& element_type, const PartialShape& shape)
 
 IETensor::IETensor(std::shared_ptr<IE_Data> ie_data)
     : runtime::Tensor(make_shared<descriptor::Tensor>(
-          fromPrecision(ie_data->get_precision()),
-          Shape(ie_data->get_shape()), "")),
+          fromPrecision(ie_data->get_precision()), Shape(ie_data->get_shape()),
+          "")),
       m_ie_data(ie_data) {}
 
 IETensor::~IETensor() {}
@@ -127,8 +127,6 @@ void IETensor::read(void* dst, size_t bytes) const {
   m_ie_data->read(dst, bytes);
 }
 
-const void* IETensor::get_data_ptr() const {
-  return m_ie_data->get_data_ptr();
-}
+const void* IETensor::get_data_ptr() const { return m_ie_data->get_data_ptr(); }
 }
 }
