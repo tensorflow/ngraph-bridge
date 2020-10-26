@@ -22,6 +22,7 @@
 
 #include <ie_core.hpp>
 #include "ngraph/ngraph.hpp"
+#include "ngraph_bridge/openvino/ie_executor.h"
 
 using namespace std;
 
@@ -35,18 +36,19 @@ class Executable {
   Executable(shared_ptr<ngraph::Function> func, string device);
   ~Executable() {}
   bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
-            vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);
+            vector<shared_ptr<ngraph::runtime::Tensor>>& outputs, bool multi_req_execution = false);
 
   const ngraph::ResultVector& get_results() {
     return m_function->get_results();
   };
+
+  size_t get_batch_size(size_t input_batch_size, std::string device) const;
 
  private:
   bool call_trivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
                     vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);
 
   InferenceEngine::CNNNetwork m_network;
-  InferenceEngine::InferRequest m_infer_req;
   string m_device;
   // This holds the parameters we insert for functions with no input parameters
   vector<pair<string, shared_ptr<ngraph::runtime::Tensor>>> m_hoisted_params;
@@ -55,6 +57,9 @@ class Executable {
   shared_ptr<ngraph::Function> m_trivial_fn;
   // This is the original nGraph function corresponding to this executable
   shared_ptr<ngraph::Function> m_function;
+  shared_ptr<IE_Executor> m_ie_executor;
+  shared_ptr<ngraph::Function> m_ng_func;
+  InferenceEngine::ExecutableNetwork m_exe_network;
 };
 }
 }

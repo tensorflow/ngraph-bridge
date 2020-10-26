@@ -21,6 +21,7 @@
 
 #include <ie_core.hpp>
 #include "ngraph/ngraph.hpp"
+#include "ngraph_bridge/openvino/ie_data.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -33,20 +34,20 @@ class IETensor : public ngraph::runtime::Tensor {
            const ngraph::PartialShape& shape);
   IETensor(const ngraph::element::Type& element_type,
            const ngraph::Shape& shape, void* memory_pointer);
-  IETensor(InferenceEngine::Blob::Ptr blob);
+  IETensor(std::shared_ptr<IE_Data> ie_data);
   ~IETensor() override;
 
   void write(const void* src, size_t bytes) override;
   void read(void* dst, size_t bytes) const override;
 
   const void* get_data_ptr() const;
-  InferenceEngine::Blob::Ptr get_blob() { return m_blob; }
+  std::shared_ptr<IE_Data> get_ie_data() const { return m_ie_data; };
 
  private:
   IETensor(const IETensor&) = delete;
   IETensor(IETensor&&) = delete;
   IETensor& operator=(const IETensor&) = delete;
-  InferenceEngine::Blob::Ptr m_blob;
+  std::shared_ptr<IE_Data> m_ie_data;
 };
 
 // A simple TensorBuffer implementation that allows us to create Tensors that

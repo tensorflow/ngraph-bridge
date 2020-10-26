@@ -52,6 +52,8 @@ set(SRC
    tf_graphcycles.cc
    tf_deadness_analysis.cc
    version.cc
+   openvino/ie_executor.cc
+   openvino/ie_data.cc
 )
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
