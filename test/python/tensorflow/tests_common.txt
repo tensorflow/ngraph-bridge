@@ -57,11 +57,10 @@ array_ops_test.ShapeSizeRankTest.testSizeDtype
 array_ops_test.ShapeSizeRankTest.testSparseShape
 
 bias_op_test.BiasAddTest.testEmpty 
-#This test was commented out when upgrading from tf 1.13 to tf 1.14rc0
-#bias_op_test.BiasAddTest.testEmptyGradient
+bias_op_test.BiasAddTest.testEmptyGradient
 bias_op_test.BiasAddTest.testFloatTypes 
-#bias_op_test.BiasAddTest.testGradientTensor4D
-#bias_op_test.BiasAddTest.testIntTypes 
+bias_op_test.BiasAddTest.testGradientTensor4D
+bias_op_test.BiasAddTest.testIntTypes 
 
 #bitwise_ops_test.BitwiseOpTest.testBinaryOps
 
@@ -71,7 +70,7 @@ cast_op_test.CastOpTest.testCastToTypeOfVariable
 cast_op_test.CastOpTest.testGradients 
 cast_op_test.CastOpTest.testInfNan 
 cast_op_test.CastOpTest.testIntToFloatBoundary 
-#cast_op_test.CastOpTest.testNotImplemented 
+cast_op_test.CastOpTest.testNotImplemented 
 cast_op_test.CastOpTest.testRandom
 cast_op_test.CastOpTest.testSmallValues
 
@@ -97,7 +96,7 @@ concat_op_test.ConcatOpTest.testTensorConcatDim0Grad
 concat_op_test.ConcatOpTest.testTensorConcatDim1Grad 
 concat_op_test.ConcatOpTest.testVStack 
 concat_op_test.ConcatOpTest.testZeroSize 
-#concat_op_test.ConcatOpTest.testRandom 
+concat_op_test.ConcatOpTest.testRandom 
 
 conv_ops_test.Conv2DTest.testConv2D1x1Filter
 conv_ops_test.Conv2DTest.testConv2D1x2Filter 
@@ -111,13 +110,13 @@ conv_ops_test.Conv2DTest.testConv2D2x2FilterDilation
 conv_ops_test.Conv2DTest.testConv2D2x2FilterStride1x2 
 conv_ops_test.Conv2DTest.testConv2D2x2FilterStride2 
 conv_ops_test.Conv2DTest.testConv2D2x2FilterStride2Same 
-#conv_ops_test.Conv2DTest.testConv2DKernelSizeMatchesInputSize # this is running the next line which is an error, so excluding for now.
-#conv_ops_test.Conv2DTest.testConv2DKernelSizeMatchesInputSizeBackpropFilter
+conv_ops_test.Conv2DTest.testConv2DKernelSizeMatchesInputSize
+conv_ops_test.Conv2DTest.testConv2DKernelSizeMatchesInputSizeBackpropFilter
 conv_ops_test.Conv2DTest.testConv2DKernelSizeMatchesInputSizeBackpropInput 
 conv_ops_test.Conv2DTest.testConv2DKernelSizeMatchesInputSizeDilation 
-#conv_ops_test.Conv2DTest.testConv2DKernelSmallerThanStrideSame 
+conv_ops_test.Conv2DTest.testConv2DKernelSmallerThanStrideSame 
 conv_ops_test.Conv2DTest.testConv2DKernelSmallerThanStrideValid 
-#conv_ops_test.Conv2DTest.testConv2DStrideTwoFilterOneSameBackpropInput 
+conv_ops_test.Conv2DTest.testConv2DStrideTwoFilterOneSameBackpropInput 
 conv_ops_test.Conv2DTest.testInputGradientKernelSizeMatchesInputSize
 conv_ops_test.Conv2DTest.testInputGradientSamePaddingStrideOne 
 conv_ops_test.Conv2DTest.testInputGradientSamePaddingStrideThree
@@ -125,25 +124,25 @@ conv_ops_test.Conv2DTest.testInputGradientSamePaddingStrideTwo
 conv_ops_test.Conv2DTest.testInputGradientValidPaddingStrideOne 
 conv_ops_test.Conv2DTest.testInputGradientValidPaddingStrideThree 
 conv_ops_test.Conv2DTest.testInputGradientValidPaddingStrideTwo 
-#conv_ops_test.Conv2DTest.testConv2D2x2Depth1ValidBackpropFilter 
-#conv_ops_test.Conv2DTest.testConv2D2x2Depth1ValidBackpropFilter 
-#conv_ops_test.Conv2DTest.testConv2D2x2Depth3ValidBackpropFilterStride1x2
-#conv_ops_test.Conv2DTest.testConv2DBackpropFilterWithEmptyInput 
+conv_ops_test.Conv2DTest.testConv2D2x2Depth1ValidBackpropFilter 
+conv_ops_test.Conv2DTest.testConv2D2x2Depth1ValidBackpropFilter 
+conv_ops_test.Conv2DTest.testConv2D2x2Depth3ValidBackpropFilterStride1x2
+conv_ops_test.Conv2DTest.testConv2DBackpropFilterWithEmptyInput 
 #conv_ops_test.Conv2DTest.testConv2DEmpty 
-#conv_ops_test.Conv2DTest.testConv2DEmptyBackpropFilter 
+conv_ops_test.Conv2DTest.testConv2DEmptyBackpropFilter 
 #conv_ops_test.Conv2DTest.testConv2DEmptyBackpropInput 
 #conv_ops_test.Conv2DTest.testConv2DEmptyDilation 
-#conv_ops_test.Conv2DTest.testConv2DEmptyBackpropFilterDilation1x2
-#conv_ops_test.Conv2DTest.testConv2DEmptyBackpropInputDilation1x2
-#conv_ops_test.Conv2DTest.testConv2DStrideTwoFilterOneSameBackpropFilter 
-#conv_ops_test.Conv2DTest.testFilterGradientKernelSizeMatchesInputSize 
-#conv_ops_test.Conv2DTest.testFilterGradientSamePaddingStride2x1 
-#conv_ops_test.Conv2DTest.testFilterGradientSamePaddingStrideOne 
-#conv_ops_test.Conv2DTest.testFilterGradientSamePaddingStrideThree 
-#conv_ops_test.Conv2DTest.testFilterGradientSamePaddingStrideTwo 
-#conv_ops_test.Conv2DTest.testFilterGradientValidPaddingStrideOne 
-#conv_ops_test.Conv2DTest.testFilterGradientValidPaddingStrideThree 
-#conv_ops_test.Conv2DTest.testFilterGradientValidPaddingStrideTwo 
+conv_ops_test.Conv2DTest.testConv2DEmptyBackpropFilterDilation1x2
+conv_ops_test.Conv2DTest.testConv2DEmptyBackpropInputDilation1x2
+conv_ops_test.Conv2DTest.testConv2DStrideTwoFilterOneSameBackpropFilter 
+conv_ops_test.Conv2DTest.testFilterGradientKernelSizeMatchesInputSize 
+conv_ops_test.Conv2DTest.testFilterGradientSamePaddingStride2x1 
+conv_ops_test.Conv2DTest.testFilterGradientSamePaddingStrideOne 
+conv_ops_test.Conv2DTest.testFilterGradientSamePaddingStrideThree 
+conv_ops_test.Conv2DTest.testFilterGradientSamePaddingStrideTwo 
+conv_ops_test.Conv2DTest.testFilterGradientValidPaddingStrideOne 
+conv_ops_test.Conv2DTest.testFilterGradientValidPaddingStrideThree 
+conv_ops_test.Conv2DTest.testFilterGradientValidPaddingStrideTwo 
 #conv_ops_test.Conv2DTest.testOpEdgeCases
 
 conv_ops_3d_test.Conv3DTest.testConv3D1x1x1Filter
@@ -226,10 +225,6 @@ gather_nd_op_test.GatherNdTest.testParamsRankLargerThanIndexSlices
 gather_nd_op_test.GatherNdTest.testSimpleDtype
 gather_nd_op_test.GatherNdTest.testUnknownIndices
 gather_nd_op_test.GatherNdTest.test_session
-
-# Note that all these test will pass on CPU (except testUInt32AndUInt64), because on CPU gather falls back to TF
-# In case of NNPI all except the last pass. But CI wont be tracking it because CI runs on CPU backend only
-gather_op_test.GatherTest.testBadAxis
 #gather_op_test.GatherTest.testBadIndicesCPU ...failing with ngraph error The start corner is out of bounds at axis 0
 #gather_op_test.GatherTest.testEmptySlices  ...failure in backend due to int64
 #gather_op_test.GatherTest.testScalar1D ...failure in backend due to int64
@@ -527,7 +522,7 @@ split_op_test.SplitOpTest.testIdentity
 split_op_test.SplitOpTest.testListOfScalarTensors
 split_op_test.SplitOpTest.testNonexistentDimTensor
 split_op_test.SplitOpTest.testRandom
-split_op_test.SplitOpTest.testShapeInference
+#split_op_test.SplitOpTest.testShapeInference
 #split_op_test.SplitOpTest.testSpecialCasesVariable
 split_op_test.SplitOpTest.testSplitCols
 split_op_test.SplitOpTest.testSplitDim0

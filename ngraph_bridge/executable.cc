@@ -48,7 +48,11 @@ Executable::Executable(shared_ptr<Function> func, string device)
   bool trivial_fn = true;
   for (auto result : func->get_results()) {
     auto parent = result->input_value(0).get_node_shared_ptr();
-    auto& shape = result->get_shape();
+    ngraph::Shape shape = {1};
+    if (result->get_output_partial_shape(0).is_static()) {
+      shape = result->get_shape();
+    }
+
     trivial_fn &= ngraph::is_type<opset::Parameter>(parent) ||
                   ngraph::is_type<opset::Constant>(parent) ||
                   count(shape.begin(), shape.end(), 0);

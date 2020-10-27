@@ -42,6 +42,7 @@ reduction_ops_test.SumReductionTest.testDegenerate
 reduction_ops_test.MeanReductionTest.testDegenerate
 reduction_ops_test.ProdReductionTest.testDegenerate
 cwise_ops_unary_test.UnaryOpTest.testComplexAbsGradGrad 
+slice_op_test.SliceTest.testRandom
 
 #Failed to set Blob with precision not corresponding to user output precision.
 argmax_op_test.ArgMaxTest.testFloat 
@@ -91,6 +92,7 @@ concat_op_test.ConcatOpTest.testIndexedSlicesConcatDim0Grad
 concat_op_test.ConcatOpTest.testIndexedSlicesConcatDim1Grad
 concat_op_test.ConcatOpTest.testIndexedSlicesConcatDim1Grad_UnknownInputDim
 concat_op_test.ConcatOpTest.testIndexedSlicesConcatDim2Grad
+concat_op_test.ConcatOpTest.testRandom
 identity_bijector_test.IdentityBijectorTest.testBijector
 math_ops_test.LogSumExpTest.testInfinity
 math_ops_test.LogSumExpTest.testKeepDims
