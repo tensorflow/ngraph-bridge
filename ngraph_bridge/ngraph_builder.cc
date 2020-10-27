@@ -2076,19 +2076,22 @@ static Status TranslateSliceOp(
   ng::Output<ng::Node> ng_input, ng_begin, ng_size;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_begin, ng_size));
   auto input_shape = ConstructNgNode<opset::ShapeOf>(op->name(), ng_input);
+  auto ng_begin_64 = ConstructNgNode<opset::Convert>(op->name(), ng_begin,
+                                                     ngraph::element::i64);
+  auto ng_size_64 = ConstructNgNode<opset::Convert>(op->name(), ng_size,
+                                                    ngraph::element::i64);
   auto is_negative = ConstructNgNode<opset::Equal>(
-      op->name(), ng_size,
-      ConstructNgNode<opset::Constant>(op->name(), ng::element::i32,
-                                       ng::Shape{}, std::vector<int32>({-1})));
-  auto ng_add = ConstructNgNode<opset::Add>(op->name(), ng_begin, ng_size);
-  auto ng_add_cast =
-      ConstructNgNode<opset::Convert>(op->name(), ng_add, ngraph::element::i64);
+      op->name(), ng_size_64,
+      ConstructNgNode<opset::Constant>(op->name(), ng::element::i64,
+                                       ng::Shape{}, std::vector<int64>({-1})));
+  auto ng_add =
+      ConstructNgNode<opset::Add>(op->name(), ng_begin_64, ng_size_64);
   auto ng_end = ConstructNgNode<opset::Select>(op->name(), is_negative,
-                                               input_shape, ng_add_cast);
+                                               input_shape, ng_add);
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<opset::StridedSlice>(op->name(), ng_input, ng_begin,
-                                                ng_end, std::vector<int64_t>{},
-                                                std::vector<int64_t>{}));
+           ConstructNgNode<opset::StridedSlice>(
+               op->name(), ng_input, ng_begin_64, ng_end,
+               std::vector<int64_t>{}, std::vector<int64_t>{}));
   return Status::OK();
 }
 

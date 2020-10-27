@@ -42,6 +42,7 @@ reduction_ops_test.SumReductionTest.testDegenerate
 reduction_ops_test.MeanReductionTest.testDegenerate
 reduction_ops_test.ProdReductionTest.testDegenerate
 cwise_ops_unary_test.UnaryOpTest.testComplexAbsGradGrad 
+slice_op_test.SliceTest.testRandom
 
 #Failed to set Blob with precision not corresponding to user output precision.
 argmax_op_test.ArgMaxTest.testFloat 
