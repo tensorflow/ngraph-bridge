@@ -15,6 +15,9 @@ if [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-cpu-ubuntu-grappler" ]; then
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-ie-ubuntu" ]; then
    export NGRAPH_TF_BACKEND=CPU
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-ie-ubuntu.yml "
+elif [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-intel-tf" ]; then
+   export NGRAPH_TF_BACKEND=CPU
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-intel-tf.yml "
 else
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/${BUILDKITE_PIPELINE_NAME}.yml "
 fi
