@@ -16,6 +16,8 @@ elif [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-ie-ubuntu" ]; then
    export NGRAPH_TF_BACKEND=CPU
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-ie-ubuntu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "ngtf-intel-tf" ]; then
+   export BUILD_OPTIONS=--use_intel_tensorflow
+   export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_intel_tensorflow
    export NGRAPH_TF_BACKEND=CPU
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/ngtf-intel-tf.yml "
 else
