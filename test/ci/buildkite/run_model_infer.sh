@@ -39,8 +39,11 @@ function get_model_repo {
         cd ${REPO}
         ./model_factory/create.all
     else
-       cd ${LOCALSTORE}
-       git pull || exit 1
+        cd ${LOCALSTORE}
+        git pull || exit 1
+        if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ]; then
+            ./model_factory/create_${MODEL}.sh
+        fi
     fi
     popd
 }
@@ -62,9 +65,9 @@ rm ${TMPFILE}
 
 if [ "${BUILDKITE}" == "true" ]; then
     if [ "${ret_code}" == "0" ]; then
-        echo -e "+++ ... result: \033[33mpassed\033[0m :white_check_mark:"
+        echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark:"
     else
-        echo -e "+++ ... result: \033[33mfailed\033[0m :x:"
+        echo -e "--- ... result: \033[33mfailed\033[0m :x:"
     fi
 fi
 
