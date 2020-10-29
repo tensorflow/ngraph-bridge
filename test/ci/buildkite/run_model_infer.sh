@@ -1,11 +1,11 @@
 #!/bin/bash
 # This script is used by BuildKite CI to fetch/run models from a curated model-repo for OV-IE integration project
-PWD=`pwd` # The infer scripts will run off this dir
+WORKDIR=`pwd` # The infer scripts will run off this dir
 MODEL=$1
 if [ "${BUILDKITE}" == "true" ]; then
     echo "--- Model: ${MODEL}"
 fi
-echo "Dir: ${PWD}"
+echo "Dir: ${WORKDIR}"
 if [ "${MODEL}" == "" ]; then
     echo "Error: model not specified!" && exit 1
 fi
@@ -58,9 +58,9 @@ cd ${LOCALSTORE_PREFIX} || exit 1
 echo "Dir for get_model_repo : `pwd`"
 get_model_repo
 
-TMPFILE=${PWD}/tmp_output
+TMPFILE=${WORKDIR}/tmp_output
 
-cd ${PWD}
+cd ${WORKDIR}
 echo "Dir for running ${LOCALSTORE}/demo/run_infer.sh: `pwd`"
 IMGFILE="${LOCALSTORE}/demo/images/${IMAGE}"
 if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
