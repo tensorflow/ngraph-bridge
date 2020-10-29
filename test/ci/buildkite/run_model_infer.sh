@@ -60,11 +60,11 @@ get_model_repo
 
 TMPFILE=${WORKDIR}/tmp_output
 
-cd ${WORKDIR}
+cd ${LOCALSTORE}
 echo "Dir for running ${LOCALSTORE}/demo/run_infer.sh: `pwd`"
 IMGFILE="${LOCALSTORE}/demo/images/${IMAGE}"
 if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
-${LOCALSTORE}/demo/run_infer.sh ${MODEL} ${IMGFILE}  2>&1 | tee ${TMPFILE}
+./demo/run_infer.sh ${MODEL} ${IMGFILE}  2>&1 | tee ${TMPFILE}
 
 echo
 echo "Checking inference result..."
