@@ -41,14 +41,14 @@ function get_model_repo {
         # init the models...
         cd ${REPO}
         echo "Dir for ./model_factory/create.all : `pwd`"
-        ./model_factory/create.all
+        bash ./model_factory/create.all
     else
         cd ${LOCALSTORE}
         git pull || exit 1
         if [ -d "temp_build" ]; then rm -rf temp_build; fi
         if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ]; then
             echo "Dir for ./model_factory/create_xxx.sh : `pwd`"
-            ./model_factory/create_${MODEL}.sh
+            bash ./model_factory/create_${MODEL}.sh
         fi
     fi
     popd
