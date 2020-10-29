@@ -14,6 +14,7 @@
 
   - wait
   - command: |
+      source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate
       ./test/ci/buildkite/run_model_infer.sh resnet_50 bike 'mountain bike, all-terrain bike'
       ./test/ci/buildkite/run_model_infer.sh resnet_50_v1.5 bike 'mountain bike, all-terrain bike'
       ./test/ci/buildkite/run_model_infer.sh resnet_50_v2 bike 'mountain bike, all-terrain bike'
