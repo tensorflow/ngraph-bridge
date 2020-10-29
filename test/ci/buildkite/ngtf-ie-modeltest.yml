@@ -16,15 +16,16 @@
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate
       pip install Pillow
-      ./test/ci/buildkite/run_model_infer.sh resnet_50 bike 'mountain bike, all-terrain bike'
-      ./test/ci/buildkite/run_model_infer.sh resnet_50_v1.5 bike 'mountain bike, all-terrain bike'
-      ./test/ci/buildkite/run_model_infer.sh resnet_50_v2 bike 'mountain bike, all-terrain bike'
-      ./test/ci/buildkite/run_model_infer.sh resnet_v1_50 bike 'mountain bike, all-terrain bike'
-      ./test/ci/buildkite/run_model_infer.sh resnet_v2_101 bike 'mountain bike, all-terrain bike'
-      ./test/ci/buildkite/run_model_infer.sh resnet_v2_152 bike 'mountain bike, all-terrain bike'
-      ./test/ci/buildkite/run_model_infer.sh resnet_v2_50 bike 'mountain bike, all-terrain bike'
-      ./test/ci/buildkite/run_model_infer.sh inception_v3 bike 'mountain bike, all-terrain bike'
-      ./test/ci/buildkite/run_model_infer.sh inception_v4 bike 'mountain bike, all-terrain bike'
+      cd /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
+      bash ./test/ci/buildkite/run_model_infer.sh resnet_50 bike 'mountain bike, all-terrain bike'
+      bash ./test/ci/buildkite/run_model_infer.sh resnet_50_v1.5 bike 'mountain bike, all-terrain bike'
+      bash ./test/ci/buildkite/run_model_infer.sh resnet_50_v2 bike 'mountain bike, all-terrain bike'
+      bash ./test/ci/buildkite/run_model_infer.sh resnet_v1_50 bike 'mountain bike, all-terrain bike'
+      bash ./test/ci/buildkite/run_model_infer.sh resnet_v2_101 bike 'mountain bike, all-terrain bike'
+      bash ./test/ci/buildkite/run_model_infer.sh resnet_v2_152 bike 'mountain bike, all-terrain bike'
+      bash ./test/ci/buildkite/run_model_infer.sh resnet_v2_50 bike 'mountain bike, all-terrain bike'
+      bash ./test/ci/buildkite/run_model_infer.sh inception_v3 bike 'mountain bike, all-terrain bike'
+      bash ./test/ci/buildkite/run_model_infer.sh inception_v4 bike 'mountain bike, all-terrain bike'
     label: ":bar_chart: Model Inference"
     timeout_in_minutes: 30
     agents:

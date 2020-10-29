@@ -1,20 +1,23 @@
 #!/bin/bash
-PWD=`pwd`
+# This script is used by BuildKite CI to fetch/run models from a curated model-repo for OV-IE integration project
+PWD=`pwd` # The infer scripts will run off this dir
 MODEL=$1
-if [ "${BUILDKITE}" == "true" ]; then echo "--- Model: ${MODEL}"; fi
-
+if [ "${BUILDKITE}" == "true" ]; then
+    echo "--- Model: ${MODEL}"
+fi
+echo "Dir: ${PWD}"
 if [ "${MODEL}" == "" ]; then
     echo "Error: model not specified!" && exit 1
 fi
 IMAGE=$2
 if [ "${IMAGE}" == "" ]; then
-    IMAGE="bike.jpg"
+    echo "Error: image not specified!" && exit 1
 elif [[ ! ${IMAGE} =~ *.* ]]; then
     IMAGE="${IMAGE}.jpg"
 fi
 INFER_PATTERN=$3
 if [ "${INFER_PATTERN}" == "" ]; then
-    INFER_PATTERN="mountain bike, all-terrain bike, off-roader  ( 0.88"
+    echo "Error: expected pattern not specified!" && exit 1
 fi
 
 REPO=tensorflow_openvino_models_public
@@ -41,6 +44,7 @@ function get_model_repo {
     else
         cd ${LOCALSTORE}
         git pull || exit 1
+        if [ -d "temp_build" ]; then rm -rf temp_build; fi
         if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ]; then
             ./model_factory/create_${MODEL}.sh
         fi
@@ -49,13 +53,16 @@ function get_model_repo {
 }
 
 cd ${LOCALSTORE_PREFIX} || exit 1
+echo "Dir: `pwd`"
 get_model_repo
 
-TMPFILE=${LOCALSTORE}/demo/tmp_output
+TMPFILE=${PWD}/tmp_output
 
-cd ${LOCALSTORE}/demo
-if [ ! -f "${LOCALSTORE}/demo/images/${IMAGE}" ]; then echo "Cannot find image ${LOCALSTORE}/demo/images/${IMAGE} !"; exit 1; fi
-./run_infer.sh ${MODEL} ./images/${IMAGE} 2>&1 | tee ${TMPFILE}
+cd ${PWD}
+echo "Dir: `pwd`"
+IMGFILE="${LOCALSTORE}/demo/images/${IMAGE}"
+if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
+${LOCALSTORE}/demo/run_infer.sh ${MODEL} ${IMGFILE}  2>&1 | tee ${TMPFILE}
 
 echo
 echo "Checking inference result..."
