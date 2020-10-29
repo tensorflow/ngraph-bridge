@@ -46,7 +46,7 @@ function get_model_repo {
         cd ${LOCALSTORE}
         git pull || exit 1
         if [ -d "temp_build" ]; then rm -rf temp_build; fi
-        if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ]; then
+        if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" || ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ]; then
             echo "Dir for ./model_factory/create_xxx.sh : `pwd`"
             ./model_factory/create_${MODEL}.sh
         fi
