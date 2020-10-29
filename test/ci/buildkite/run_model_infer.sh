@@ -40,12 +40,14 @@ function get_model_repo {
         if [ ! -d "${LOCALSTORE}" ]; then echo "Failed to clone repo!"; exit 1; fi
         # init the models...
         cd ${REPO}
+        echo "Dir for ./model_factory/create.all : `pwd`"
         ./model_factory/create.all
     else
         cd ${LOCALSTORE}
         git pull || exit 1
         if [ -d "temp_build" ]; then rm -rf temp_build; fi
         if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ]; then
+            echo "Dir for ./model_factory/create_xxx.sh : `pwd`"
             ./model_factory/create_${MODEL}.sh
         fi
     fi
@@ -53,13 +55,13 @@ function get_model_repo {
 }
 
 cd ${LOCALSTORE_PREFIX} || exit 1
-echo "Dir: `pwd`"
+echo "Dir for get_model_repo : `pwd`"
 get_model_repo
 
 TMPFILE=${PWD}/tmp_output
 
 cd ${PWD}
-echo "Dir: `pwd`"
+echo "Dir for running ${LOCALSTORE}/demo/run_infer.sh: `pwd`"
 IMGFILE="${LOCALSTORE}/demo/images/${IMAGE}"
 if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
 ${LOCALSTORE}/demo/run_infer.sh ${MODEL} ${IMGFILE}  2>&1 | tee ${TMPFILE}
