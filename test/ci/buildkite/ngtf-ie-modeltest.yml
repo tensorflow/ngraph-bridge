@@ -28,6 +28,8 @@
         && retcode=0; finalretcode=\$((finalretcode+retcode))
       retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_101 bike 'mountain bike, all-terrain bike' \
         && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh SOME_MODEL bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
       retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_152 bike 'mountain bike, all-terrain bike' \
         && retcode=0; finalretcode=\$((finalretcode+retcode))
       retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_50 bike 'mountain bike, all-terrain bike' \
@@ -46,7 +48,7 @@
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
       finalretcode=$(buildkite-agent meta-data get "finalretcode")
-      if (( $finalretcode > 0 )); then echo "Some mdel testing failed!"; exit 1; fi
+      if (( \$finalretcode > 0 )); then echo "Some model testing failed!"; exit 1; fi
     label: ":wastebasket: Cleanup"
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
