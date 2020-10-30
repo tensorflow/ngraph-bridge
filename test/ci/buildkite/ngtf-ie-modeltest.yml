@@ -3,9 +3,6 @@
       python3 build_ngtf.py ${BUILD_OPTIONS} \
       --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
       --use_tensorflow_from_location /localdisk/buildkite-agent/prebuilt_tensorflow_2_2_0
-      pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-2.2.0-cp36-cp36m-linux_x86_64.whl
-      pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
-
     label: ":hammer_and_wrench: Build/Install ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
     agents:
@@ -18,15 +15,27 @@
       export SRCDIR=`pwd`
       pip install Pillow
       cd /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_50 bike 'mountain bike, all-terrain bike'
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_50_v1.5 bike 'mountain bike, all-terrain bike'
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_50_v2 bike 'mountain bike, all-terrain bike'
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v1_50 bike 'mountain bike, all-terrain bike'
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_101 bike 'mountain bike, all-terrain bike'
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_152 bike 'mountain bike, all-terrain bike'
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_50 bike 'mountain bike, all-terrain bike'
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh inception_v3 bike 'mountain bike, all-terrain bike'
-      bash \$SRCDIR/test/ci/buildkite/run_model_infer.sh inception_v4 bike 'mountain bike, all-terrain bike'
+      export finalretcode=0
+      buildkite-agent meta-data set "finalretcode" "0"
+
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_50 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_50_v1.5 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_50_v2 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v1_50 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_101 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_152 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh resnet_v2_50 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh inception_v3 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
+      retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh inception_v4 bike 'mountain bike, all-terrain bike' \
+        && retcode=0; finalretcode=\$((finalretcode+retcode))
     label: ":bar_chart: Model Inference"
     timeout_in_minutes: 30
     agents:
@@ -36,6 +45,8 @@
   - wait
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
+      finalretcode=$(buildkite-agent meta-data get "finalretcode")
+      if (( $finalretcode > 0 )); then echo "Some mdel testing failed!"; exit 1; fi
     label: ":wastebasket: Cleanup"
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
