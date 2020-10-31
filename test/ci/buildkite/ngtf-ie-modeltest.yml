@@ -3,6 +3,7 @@
       python3 build_ngtf.py ${BUILD_OPTIONS} \
       --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
       --use_tensorflow_from_location /localdisk/buildkite-agent/prebuilt_tensorflow_2_2_0
+      pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-2.2.0-cp36-cp36m-linux_x86_64.whl
     label: ":hammer_and_wrench: Build/Install ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
     agents:
@@ -38,6 +39,8 @@
         && retcode=0; finalretcode=\$((finalretcode+retcode))
       retcode=1; \$SRCDIR/test/ci/buildkite/run_model_infer.sh inception_v4 bike 'mountain bike, all-terrain bike' \
         && retcode=0; finalretcode=\$((finalretcode+retcode))
+
+      buildkite-agent meta-data set "finalretcode" "\$finalretcode"
     label: ":bar_chart: Model Inference"
     timeout_in_minutes: 30
     agents:
