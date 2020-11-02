@@ -87,7 +87,8 @@ cd ${LOCALSTORE}/demo
 echo
 echo "Checking inference result..."
 ret_code=1
-echo grep "${INFER_PATTERN}" ${TMPFILE}
+INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+echo grep \"${INFER_PATTERN}\" ${TMPFILE}
 grep "${INFER_PATTERN}" ${TMPFILE} && echo "TEST PASSED" && ret_code=0
 rm ${TMPFILE}
 
