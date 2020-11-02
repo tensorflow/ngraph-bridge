@@ -33,9 +33,9 @@ from common import NgraphTest
 
 
 class TestMaxpool3DGrad(NgraphTest):
-    INPUT_SIZES = [1,3,5,4,1]
-    OUTPUT_SIZES = [1,3,5,4,1]
-    GRAD_SIZES = [1,3,5,4,1]
+    INPUT_SIZES = [1, 3, 5, 4, 1]
+    OUTPUT_SIZES = [1, 3, 5, 4, 1]
+    GRAD_SIZES = [1, 3, 5, 4, 1]
 
     def test_maxpool3d_grad(self):
         inp_values = np.random.rand(*self.INPUT_SIZES)
@@ -47,13 +47,17 @@ class TestMaxpool3DGrad(NgraphTest):
             out = array_ops.placeholder(dtypes.float32)
             grad = array_ops.placeholder(dtypes.float32)
             return sess.run(
-                    nn_ops.MaxPool3DGrad(
-                        orig_input=inp, orig_output=out, grad=grad, ksize=[1,1,1,1,1], strides=[1, 1, 1, 1, 1], padding="SAME"),
-                {
-                    inp: inp_values,
-                    out: out_values,
-                    grad: grad_values,
-                })
+                nn_ops.MaxPool3DGrad(
+                    orig_input=inp,
+                    orig_output=out,
+                    grad=grad,
+                    ksize=[1, 1, 1, 1, 1],
+                    strides=[1, 1, 1, 1, 1],
+                    padding="SAME"), {
+                        inp: inp_values,
+                        out: out_values,
+                        grad: grad_values,
+                    })
 
         assert np.allclose(
             self.without_ngraph(run_test), self.with_ngraph(run_test))
