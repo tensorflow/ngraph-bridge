@@ -13,7 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 # ==============================================================================
-"""nGraph TensorFlow bridge fusedConv2D tests.
+"""nGraph TensorFlow bridge Maxpool3DGrad tests.
 
 """
 from __future__ import absolute_import
