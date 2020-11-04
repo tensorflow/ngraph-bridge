@@ -68,6 +68,35 @@ function get_model_repo {
     popd
 }
 
+function print_infer_times {
+    NUM_ITER=$1
+    TMPFILE=$2
+    INFER_TIME_FIRST_ITER="?"
+    if (( $NUM_ITER > 1 )); then
+        INFER_TIME_FIRST_ITER=$( grep "Inf Execution Time" ${TMPFILE} | head -n 1 | rev | cut -d' ' -f 1 | rev )
+        INFER_TIME_FIRST_ITER=$( printf %.04f ${INFER_TIME_FIRST_ITER} )
+    fi
+    INFER_TIME=$(get_average_infer_time "${TMPFILE}")
+    echo INFER_TIME Avg = ${INFER_TIME} seconds, 1st = ${INFER_TIME_FIRST_ITER}
+}
+
+function get_average_infer_time {
+    logfile=$1
+    count=0
+    total=0
+    first_infer_time=0
+    for i in $( grep "Inf Execution Time" "$logfile" | rev | cut -d' ' -f 1 | rev )
+    do 
+        total=$(echo $total+$i | bc )
+        (( count == 0 )) && first_infer_time=$i
+        ((count++))
+    done
+    (( count > 1 )) && total=$(echo $total-$first_infer_time | bc )
+    avg=$(echo "scale=4; $total / $count" | bc)
+    avg=$( printf %.04f $avg )
+    echo $avg
+}
+
 ################################################################################
 ################################################################################
 
@@ -82,19 +111,24 @@ TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
 IMGFILE="${LOCALSTORE}/demo/images/${IMAGE}"
 if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
 cd ${LOCALSTORE}/demo
-./run_infer.sh ${MODEL} ${IMGFILE}  2>&1 | tee ${TMPFILE}
+NUM_ITER=20
+export NGRAPH_TF_LOG_PLACEMENT=1
+export NGRAPH_TF_VLOG_LEVEL=-1
+./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER  2>&1 > ${TMPFILE}
 
 echo
 echo "Checking inference result..."
 ret_code=1
 INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-echo grep \"${INFER_PATTERN}\" ${TMPFILE}
-grep "${INFER_PATTERN}" ${TMPFILE} && echo "TEST PASSED" && ret_code=0
+grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+print_infer_times $NUM_ITER "${TMPFILE}"
+echo
+grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
 rm ${TMPFILE}
 
 if [ "${BUILDKITE}" == "true" ]; then
     if [ "${ret_code}" == "0" ]; then
-        echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark:"
+        echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: ${INFER_TIME}"
     else
         echo -e "--- ... result: \033[33mfailed\033[0m :x:"
     fi
