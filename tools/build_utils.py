@@ -27,6 +27,7 @@ import shutil
 import glob
 import platform
 import shlex
+from sysconfig import get_paths
 
 
 def get_tf_cxxabi():

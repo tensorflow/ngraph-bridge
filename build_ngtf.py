@@ -337,6 +337,10 @@ def main():
             openvino_version,
             submodule_update=True)
 
+        python_exe_path = sys.executable
+        info = get_paths()
+        python_include_dir = info["include"]
+
         # Now build OpenVINO
         openvino_cmake_flags = [
             "-DENABLE_V7_SERIALIZE=ON",
@@ -353,10 +357,8 @@ def main():
             "-DCMAKE_INSTALL_PREFIX=" + os.path.join(artifacts_location,
                                                      "openvino"),
             "-DENABLE_PYTHON=ON",
-            "-DPYTHON_EXECUTABLE=" + os.path.join(build_dir_abs, venv_dir,
-                                                  "bin/python3"),
-            "-DPYTHON_INCLUDE_DIR=" + os.path.join(build_dir_abs, venv_dir,
-                                                   "include/python3.6m")
+            "-DPYTHON_EXECUTABLE=" + python_exe_path,
+            "-DPYTHON_INCLUDE_DIR=" + python_include_dir
         ]
 
         if arguments.debug_build:
