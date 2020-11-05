@@ -353,11 +353,12 @@ def main():
             "-DCMAKE_INSTALL_PREFIX=" + os.path.join(artifacts_location,
                                                      "openvino"),
             "-DENABLE_PYTHON=ON",
-            "-DPYTHON_EXECUTABLE=" + os.path.join(build_dir_abs,
-                                                  "venv-tf-py3/bin/python3"),
-            "-DPYTHON_INCLUDE_DIR=" + os.path.join(
-                build_dir_abs, "venv-tf-py3/include/python3.6m")
+            "-DPYTHON_EXECUTABLE=" + os.path.join(build_dir_abs, venv_dir,
+                                                  "bin/python3"),
+            "-DPYTHON_INCLUDE_DIR=" + os.path.join(build_dir_abs, venv_dir,
+                                                   "include/python3.6m")
         ]
+
         if arguments.debug_build:
             openvino_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
 
