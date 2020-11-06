@@ -587,3 +587,37 @@ def get_bazel_version():
     version = version_info[1].strip()
     version_tuple = version.split('.')
     return bazel_kind, version_tuple
+
+
+def build_openvino(build_dir, openvino_src_dir, cxx_abi, target_arch,
+                   artifacts_location, python_module_enabled, debug_enabled,
+                   verbosity):
+    # Now build OpenVINO
+    openvino_cmake_flags = [
+        "-DENABLE_V7_SERIALIZE=ON",
+        "-DENABLE_TESTS=OFF",
+        "-DENABLE_SAMPLES=OFF",
+        "-DENABLE_FUNCTIONAL_TESTS=OFF",
+        "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
+        "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
+        "-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=" + cxx_abi + " -march=" +
+        target_arch,
+        "-DENABLE_CPPLINT=OFF",
+        "-DENABLE_SPEECH_DEMO=FALSE",
+        "-DCMAKE_INSTALL_RPATH=\"$ORIGIN\"",
+        "-DCMAKE_INSTALL_PREFIX=" + os.path.join(artifacts_location, "openvino")
+    ]
+
+    if python_module_enabled:
+        python_exe_path = sys.executable
+        info = get_paths()
+        python_include_dir = info["include"]
+        openvino_cmake_flags.extend([
+            "-DENABLE_PYTHON=ON", "-DPYTHON_EXECUTABLE=" + python_exe_path,
+            "-DPYTHON_INCLUDE_DIR=" + python_include_dir
+        ])
+
+    if debug_enabled:
+        openvino_cmake_flags.extend(["-DCMAKE_BUILD_TYPE=Debug"])
+
+    cmake_build(build_dir, openvino_src_dir, openvino_cmake_flags, verbosity)
