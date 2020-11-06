@@ -19,7 +19,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
-#include "logging/ngraph_log.h"
 
 using namespace std;
 
@@ -47,20 +46,19 @@ bool IsEnvVariableSet(const string& env_var_name) {
 
 string GetEnvVariable(const string& env_var_name) {
   const char* ng_backend_env_value = std::getenv(env_var_name.c_str());
-  NGRAPH_VLOG(5) << "Got Env Variable " << env_var_name << " : "
-                 << std::string(ng_backend_env_value);
+  VLOG(5) << "Got Env Variable " << env_var_name << " : "
+          << std::string(ng_backend_env_value);
   return std::string(ng_backend_env_value);
 }
 
 void UnsetEnvVariable(const string& env_var_name) {
-  NGRAPH_VLOG(5) << "Unsetting " << env_var_name;
+  VLOG(5) << "Unsetting " << env_var_name;
   unsetenv(env_var_name.c_str());
 }
 
 void SetEnvVariable(const string& env_var_name, const string& env_var_val) {
   setenv(env_var_name.c_str(), env_var_val.c_str(), 1);
-  NGRAPH_VLOG(5) << "Setting Env Variable " << env_var_name << " : "
-                 << env_var_val;
+  VLOG(5) << "Setting Env Variable " << env_var_name << " : " << env_var_val;
 }
 
 // Store Env Variables
@@ -99,7 +97,7 @@ unsigned int GetSeedForRandomFunctions() {
   const string& env_name = "NGRAPH_TF_SEED";
   unsigned int seed = static_cast<unsigned>(time(0));
   if (!IsEnvVariableSet(env_name)) {
-    NGRAPH_VLOG(5) << "Got seed " << seed;
+    VLOG(5) << "Got seed " << seed;
     return seed;
   }
 
@@ -115,7 +113,7 @@ unsigned int GetSeedForRandomFunctions() {
                                 seedstr + ", got exception " + exp.what()};
   }
 
-  NGRAPH_VLOG(5) << "Got seed from " << env_name << " : " << seed;
+  VLOG(5) << "Got seed from " << env_name << " : " << seed;
   return seed;
 }
 
@@ -215,7 +213,7 @@ void Compare(const vector<Tensor>& v1, const vector<Tensor>& v2, float rtol,
              float atol) {
   ASSERT_EQ(v1.size(), v2.size()) << "Length of 2 tensor vectors do not match.";
   for (size_t i = 0; i < v1.size(); i++) {
-    NGRAPH_VLOG(3) << "Comparing output at index " << i;
+    VLOG(3) << "Comparing output at index " << i;
     auto expected_dtype = v1[i].dtype();
     switch (expected_dtype) {
       case DT_FLOAT:

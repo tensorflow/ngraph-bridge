@@ -27,7 +27,6 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
@@ -92,10 +91,10 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
   TF_RETURN_IF_ERROR(ComputeSignature(tf_input_tensors, input_shapes,
                                       static_input_map, signature_ss));
   string signature = signature_ss.str();
-  NGRAPH_VLOG(5) << "Computed signature: " << signature;
+  VLOG(5) << "Computed signature: " << signature;
   auto it = m_ng_exec_map.find(signature);
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
-                 << m_ngraph_cluster;
+  VLOG(4) << "NGraphEncapsulateOp::Compute got inputs for cluster "
+          << m_ngraph_cluster;
 
   // Translate the TensorFlow graph to nGraph.
   std::shared_ptr<ngraph::Function> ng_function;
@@ -104,7 +103,7 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     long vm, rss, vm0, rss0;
     MemoryProfile(vm0, rss0);
 
-    NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
+    VLOG(1) << "Compilation cache miss: " << m_name;
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                &m_graph, ng_function));
     ng_function->set_friendly_name(m_name);
@@ -145,12 +144,12 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     MemoryProfile(vm, rss);
     auto delta_vm_mem = vm - vm0;
     auto delta_res_mem = rss - rss0;
-    NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
-                   << " Cache length: " << m_ng_exec_map.size()
-                   << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
-                   << " Delta RSS: " << delta_res_mem
-                   << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
-                   << " VM: " << vm / (1024 * 1024) << " GB" << endl;
+    VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << my_instance_id
+            << " Cache length: " << m_ng_exec_map.size()
+            << " Cluster: " << m_name << " Delta VM: " << delta_vm_mem
+            << " Delta RSS: " << delta_res_mem
+            << " KB Total RSS: " << rss / (1024 * 1024) << " GB "
+            << " VM: " << vm / (1024 * 1024) << " GB" << endl;
   }  // end of input signature not found in m_ng_exec_map
   else {
     // Found the input signature in m_ng_exec_map, use the cached executable
@@ -199,8 +198,8 @@ Status NGraphEncapsulateImpl::ParseNodeAttributes(
       // right now _ngraph_ is used for optional attributes
       auto attr_name = itx.first;
       auto attr_value = itx.second.s();
-      NGRAPH_VLOG(4) << "Attribute: " << attr_name.substr(strlen("_ngraph_"))
-                     << " Value: " << attr_value;
+      VLOG(4) << "Attribute: " << attr_name.substr(strlen("_ngraph_"))
+              << " Value: " << attr_value;
       additional_attribute_map->insert(
           {attr_name.substr(strlen("_ngraph_")), attr_value});
     }

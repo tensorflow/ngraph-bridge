@@ -18,7 +18,6 @@
 #define NGRAPH_TF_BRIDGE_CONVERSIONS_H_
 #pragma once
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/ngraph_builder.h"
 
@@ -34,9 +33,9 @@ void Transpose(ngraph::Output<ngraph::Node>& node) {
   auto& s = node.get_shape();
   ngraph::Shape reshaped_shape{s[a], s[b], s[c], s[d]};
   ngraph::Shape transpose_order{a, b, c, d};
-  NGRAPH_VLOG(3) << "transposing " << ngraph::join(s) << " to "
-                 << ngraph::join(reshaped_shape) << " axis-order "
-                 << ngraph::join(transpose_order);
+  VLOG(3) << "transposing " << ngraph::join(s) << " to "
+          << ngraph::join(reshaped_shape) << " axis-order "
+          << ngraph::join(transpose_order);
   auto input_order = std::make_shared<opset::Constant>(
       ngraph::element::u64, ngraph::Shape{transpose_order.size()},
       transpose_order);
@@ -58,9 +57,9 @@ void Transpose3D(ngraph::Output<ngraph::Node>& node) {
   auto& s = node.get_shape();
   ngraph::Shape reshaped_shape{s[a], s[b], s[c], s[d], s[e]};
   ngraph::Shape transpose_order{a, b, c, d, e};
-  NGRAPH_VLOG(3) << "transposing " << ngraph::join(s) << " to "
-                 << ngraph::join(reshaped_shape) << "axis-order "
-                 << ngraph::join(transpose_order);
+  VLOG(3) << "transposing " << ngraph::join(s) << " to "
+          << ngraph::join(reshaped_shape) << "axis-order "
+          << ngraph::join(transpose_order);
   auto input_order = std::make_shared<opset::Constant>(
       ngraph::element::u64, ngraph::Shape{transpose_order.size()},
       transpose_order);

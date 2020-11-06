@@ -21,8 +21,6 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/graph/graph.h"
 
-#include "logging/ngraph_log.h"
-#include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
@@ -80,7 +78,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
   Status Run(const GraphOptimizationPassOptions& options) override {
     // If we don't get a main graph, log that fact and bail.
     if (options.graph == nullptr) {
-      NGRAPH_VLOG(0) << "NGraphEncapsulationPass: options.graph == nullptr";
+      VLOG(0) << "NGraphEncapsulationPass: options.graph == nullptr";
       return Status::OK();
     }
 
@@ -89,9 +87,10 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // runs of this pass.
     int idx = FreshIndex();
 
+    auto graph = options.graph->get();
     // If requested, dump unmarked graphs.
     if (DumpUnmarkedGraphs()) {
-      DumpGraphs(options, idx, "unmarked", "Unmarked Graph");
+      DumpGraphs(*graph, idx, "unmarked");
     }
 
     // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
@@ -101,12 +100,12 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
     bool already_processed = IsProcessedByNgraphPass(options.graph->get());
     if (!already_processed && ngraph_not_enabled) {
-      NGRAPH_VLOG(0) << "NGraph is available but disabled.";
+      VLOG(0) << "NGraph is available but disabled.";
     }
     if (ngraph_not_enabled || already_processed) {
-      NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
-                            (already_processed ? "graph is already preprocessed"
-                                               : "ngraph is disabled");
+      VLOG(1) << std::string("Rewrite pass will not run because ") +
+                     (already_processed ? "graph is already preprocessed"
+                                        : "ngraph is disabled");
       NGraphClusterManager::EvictAllClusters();
       return Status::OK();
     }
@@ -118,20 +117,19 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     TF_RETURN_IF_ERROR(
         MarkForClustering(options.graph->get(), skip_these_nodes));
     if (DumpMarkedGraphs()) {
-      DumpGraphs(options, idx, "marked", "Graph Marked for Clustering");
+      DumpGraphs(*graph, idx, "marked");
     }
 
     // 2. Assign clusters then, if requested, dump the graphs.
     TF_RETURN_IF_ERROR(AssignClusters(options.graph->get()));
     if (DumpClusteredGraphs()) {
-      DumpGraphs(options, idx, "clustered", "Graph with Clusters Assigned");
+      DumpGraphs(*graph, idx, "clustered");
     }
 
     // 3. Deassign trivial clusters then, if requested, dump the graphs.
     TF_RETURN_IF_ERROR(DeassignClusters(options.graph->get()));
     if (DumpDeclusteredGraphs()) {
-      DumpGraphs(options, idx, "declustered",
-                 "Graph with Trivial Clusters De-Assigned");
+      DumpGraphs(*graph, idx, "declustered");
     }
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
@@ -142,8 +140,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
 
     if (DumpEncapsulatedGraphs()) {
-      DumpGraphs(options, idx, "encapsulated",
-                 "Graph with Clusters Encapsulated");
+      DumpGraphs(*graph, idx, "encapsulated");
     }
     return Status::OK();
   }

@@ -36,7 +36,7 @@ namespace testing {
 // Make allowed_nodes const member of the class, use set
 void OpExecuter::ValidateGraph(const Graph& graph,
                                const vector<string> allowed_nodes) {
-  NGRAPH_VLOG(5) << "Validate graph";
+  VLOG(5) << "Validate graph";
   bool found_test_op = false;
   Node* test_op = nullptr;
   for (Node* node : graph.nodes()) {
@@ -56,7 +56,7 @@ void OpExecuter::ValidateGraph(const Graph& graph,
     }
   }
   ASSERT_TRUE(found_test_op) << "Not found test_op : " << test_op_type_;
-  NGRAPH_VLOG(5) << "Validate graph done";
+  VLOG(5) << "Validate graph done";
 }  // namespace testing
 
 OpExecuter::OpExecuter(const Scope sc, const string test_op,
@@ -93,7 +93,7 @@ void OpExecuter::ExecuteOnTF(vector<Tensor>& tf_outputs) {
   ASSERT_EQ(Status::OK(), session.Run(sess_run_fetchoutputs_, &tf_outputs))
       << "Failed to run opexecutor on TF";
   for (size_t i = 0; i < tf_outputs.size(); i++) {
-    NGRAPH_VLOG(5) << " TF op " << i << " " << tf_outputs[i].DebugString();
+    VLOG(5) << " TF op " << i << " " << tf_outputs[i].DebugString();
   }
   // Activate nGraph again
   ActivateNGraph();
@@ -106,7 +106,8 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs) {
 
   // For debug
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {
-    GraphToPbTextFile(&graph, "unit_test_tf_graph_" + test_op_type_ + ".pbtxt");
+    TFGraphToPbTextFile(&graph,
+                        "unit_test_tf_graph_" + test_op_type_ + ".pbtxt");
   }
 
   ValidateGraph(graph, {"Const"});
@@ -118,12 +119,11 @@ void OpExecuter::ExecuteOnNGraph(vector<Tensor>& ngraph_outputs) {
     ASSERT_EQ(Status::OK(),
               session.Run(sess_run_fetchoutputs_, &ngraph_outputs));
   } catch (const std::exception& e) {
-    NGRAPH_VLOG(0) << "Exception occured while running session " << e.what();
+    VLOG(0) << "Exception occured while running session " << e.what();
     EXPECT_TRUE(false);
   }
   for (size_t i = 0; i < ngraph_outputs.size(); i++) {
-    NGRAPH_VLOG(5) << " NGTF op " << i << " "
-                   << ngraph_outputs[i].DebugString();
+    VLOG(5) << " NGTF op " << i << " " << ngraph_outputs[i].DebugString();
   }
 }
 

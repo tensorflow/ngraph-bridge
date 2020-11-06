@@ -64,9 +64,9 @@ TEST(TFExec, SingleGraphOn2Threads) {
           {inp_tensor_name_0, inp_tensor_val},
           {inp_tensor_name_1, inp_tensor_val}};
 
-      NGRAPH_VLOG(5) << "thread_id: " << thread_id << " started: " << i;
+      VLOG(5) << "thread_id: " << thread_id << " started: " << i;
       ASSERT_OK(session->Run(inputs, {out_tensor_name}, {}, &out_tensor_vals));
-      NGRAPH_VLOG(5) << "thread_id: " << thread_id << " finished: " << i;
+      VLOG(5) << "thread_id: " << thread_id << " finished: " << i;
       Compare(out_tensor_vals, {out_tensor_expected_val});
     }
   };

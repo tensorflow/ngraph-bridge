@@ -24,10 +24,7 @@
 
 #include "ngraph/ngraph.hpp"
 
-#include "logging/ngraph_log.h"
-
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 class Builder {
@@ -100,8 +97,8 @@ class Builder {
       }
     }
 
-    NGRAPH_VLOG(3) << "ng_padding_below: " << ngraph::join(ng_padding_below);
-    NGRAPH_VLOG(3) << "ng_padding_above: " << ngraph::join(ng_padding_above);
+    VLOG(3) << "ng_padding_below: " << ngraph::join(ng_padding_below);
+    VLOG(3) << "ng_padding_above: " << ngraph::join(ng_padding_above);
   }
 
   template <typename T>
@@ -133,8 +130,8 @@ class Builder {
       }
     }
 
-    NGRAPH_VLOG(3) << "ng_padding_below: " << ngraph::join(ng_padding_below);
-    NGRAPH_VLOG(3) << "ng_padding_above: " << ngraph::join(ng_padding_above);
+    VLOG(3) << "ng_padding_below: " << ngraph::join(ng_padding_below);
+    VLOG(3) << "ng_padding_above: " << ngraph::join(ng_padding_above);
   }
 
   using ConstMap = std::map<
@@ -164,7 +161,6 @@ class Builder {
 };
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow
 
 #endif

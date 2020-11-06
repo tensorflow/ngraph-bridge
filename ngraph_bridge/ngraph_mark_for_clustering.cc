@@ -778,7 +778,7 @@ Status MarkForClustering(Graph* graph,
   }
 
   if (op_set_support_has_changed) {
-    NGRAPH_VLOG(5) << "Changing op support";
+    VLOG(5) << "Changing op support";
     disabled_ops_set = disabled_ops_set_current;
     for (auto itr : disabled_ops_set) {
       auto conf_itr = confirmation_function_map.find(itr);
@@ -788,7 +788,7 @@ Status MarkForClustering(Graph* graph,
         // confirmation_function_map
         return errors::Internal("Tried to disable ngraph unsupported op ", itr);
       } else {
-        NGRAPH_VLOG(5) << "Disabling op: " << itr;
+        VLOG(5) << "Disabling op: " << itr;
         confirmation_function_map.erase(conf_itr);
       }
     }
@@ -808,8 +808,8 @@ Status MarkForClustering(Graph* graph,
       bool skip_it = false;
       TF_RETURN_IF_ERROR(CheckIfOutputNode(node, skip_these_nodes, skip_it));
       if (skip_it) {
-        NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: Found Output Node: " << node->name()
-                       << " - skip marking it for clustering";
+        VLOG(5) << "NGTF_OPTIMIZER: Found Output Node: " << node->name()
+                << " - skip marking it for clustering";
         break;
       }
 
@@ -817,7 +817,7 @@ Status MarkForClustering(Graph* graph,
       bool placement_ok = false;
       TF_RETURN_IF_ERROR(NGraphPlacementRequested(node, placement_ok));
       if (!placement_ok) {
-        NGRAPH_VLOG(5) << "Placement not requested: " << node->name();
+        VLOG(5) << "Placement not requested: " << node->name();
         break;
       }
 
@@ -826,8 +826,8 @@ Status MarkForClustering(Graph* graph,
       TF_RETURN_IF_ERROR(ConfirmationOk(node, confirmation_function_map,
                                         confirmation_constraint_ok));
       if (!confirmation_constraint_ok) {
-        NGRAPH_VLOG(5) << "Node does not meet confirmation constraints: "
-                       << node->name();
+        VLOG(5) << "Node does not meet confirmation constraints: "
+                << node->name();
         if (confirmation_function_map.find(node->type_string()) ==
             confirmation_function_map.end()) {
           // not found
@@ -844,8 +844,7 @@ Status MarkForClustering(Graph* graph,
       TF_RETURN_IF_ERROR(
           TypeConstraintOk(node, type_constraint_map, type_constraint_ok));
       if (!type_constraint_ok) {
-        NGRAPH_VLOG(5) << "Inputs do not meet type constraints: "
-                       << node->name();
+        VLOG(5) << "Inputs do not meet type constraints: " << node->name();
         fail_constraint_histogram[node->type_string()]++;
         break;
       }
@@ -858,9 +857,9 @@ Status MarkForClustering(Graph* graph,
       if (!is_supported) {
         string backend;
         BackendManager::GetBackendName(backend);
-        NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
-                       << node->type_string()
-                       << " is not supported by backend: " << backend;
+        VLOG(5) << "TF Op " << node->name() << " of type "
+                << node->type_string()
+                << " is not supported by backend: " << backend;
         break;
       }
 
@@ -871,12 +870,12 @@ Status MarkForClustering(Graph* graph,
     // Set the _ngraph_marked_for_clustering attribute if all constraints
     // are satisfied
     if (mark_for_clustering) {
-      NGRAPH_VLOG(4) << "Accepting: " << node->name() << "["
-                     << node->type_string() << "]";
+      VLOG(4) << "Accepting: " << node->name() << "[" << node->type_string()
+              << "]";
       nodes_marked_for_clustering.push_back(node);
     } else {
-      NGRAPH_VLOG(4) << "Rejecting: " << node->name() << "["
-                     << node->type_string() << "]";
+      VLOG(4) << "Rejecting: " << node->name() << "[" << node->type_string()
+              << "]";
     }
   }
 
@@ -942,11 +941,11 @@ Status GetStaticInputs(Graph* graph, std::vector<int32>* static_input_indexes) {
           continue;
         }
 
-        NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
-                       << edge->DebugString();
+        VLOG(5) << "For arg " << index << " checking edge "
+                << edge->DebugString();
 
         if (InputIsStatic(edge->dst(), edge->dst_input())) {
-          NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
+          VLOG(5) << "Marking edge static: " << edge->DebugString();
           static_input_indexes->push_back(index);
           break;
         }

@@ -22,11 +22,9 @@
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/graph/graph.h"
-#include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/util/device_name_utils.h"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
@@ -255,16 +253,15 @@ void MergeClusters(Edge* edge,
   int dst_index = cluster_map[dst]->index;
 
   // Merge dst cluster into src cluster
-  NGRAPH_VLOG(5) << "Contracting: " << src->name() << "[" << src->type_string()
-                 << " , " << edge->src_output() << "]@" << src_index << " -> "
-                 << dst->name() << "[" << dst->type_string() << " , "
-                 << edge->dst_input() << "]@" << dst_index;
+  VLOG(5) << "Contracting: " << src->name() << "[" << src->type_string()
+          << " , " << edge->src_output() << "]@" << src_index << " -> "
+          << dst->name() << "[" << dst->type_string() << " , "
+          << edge->dst_input() << "]@" << dst_index;
 
 #if !defined(NGRAPH_TF_DISABLE_DEADNESS_CHECK)
   string src_predicate = cluster_map[src]->predicate_string;
   string dst_predicate = cluster_map[dst]->predicate_string;
-  NGRAPH_VLOG(5) << "Src pred: " << src_predicate
-                 << ", Dst pred: " << dst_predicate;
+  VLOG(5) << "Src pred: " << src_predicate << ", Dst pred: " << dst_predicate;
 
   std::string cluster_pred = GetMergedClusterPred(src_predicate, dst_predicate);
 
@@ -309,8 +306,8 @@ Status AssignClusters(Graph* graph) {
     cluster_map[node] = std::make_shared<Cluster>();
     cluster_map[node]->index = new_index;
     cluster_map[node]->nodes.insert(node);
-    NGRAPH_VLOG(5) << "Creating graphcycle Node: " << new_index << " for "
-                   << node->name() << "[" << node->type_string() << "]";
+    VLOG(5) << "Creating graphcycle Node: " << new_index << " for "
+            << node->name() << "[" << node->type_string() << "]";
 
 #if !defined(NGRAPH_TF_DISABLE_DEADNESS_CHECK)
     // get predicate string for the node
@@ -321,8 +318,8 @@ Status AssignClusters(Graph* graph) {
 
     cluster_map[node]->outgoing_edges = std::set<const Edge*>(
         node->out_edges().begin(), node->out_edges().end());
-    NGRAPH_VLOG(5) << node->name() << "[" << node->type_string() << "]"
-                   << "  : Predicate " << pred_string;
+    VLOG(5) << node->name() << "[" << node->type_string() << "]"
+            << "  : Predicate " << pred_string;
 #endif
   }
 
@@ -342,7 +339,7 @@ Status AssignClusters(Graph* graph) {
     }
 
     if (!gc.InsertEdge(cluster_map[src]->index, cluster_map[dst]->index)) {
-      NGRAPH_VLOG(5) << "Failing due to cycle";
+      VLOG(5) << "Failing due to cycle";
       return errors::Unimplemented(
           "Input graph has a cycle (inserting an edge from ",
           src->DebugString(), " to ", dst->DebugString(),
@@ -398,7 +395,7 @@ Status AssignClusters(Graph* graph) {
     }
   }
 
-  NGRAPH_VLOG(2) << "Starting contraction";
+  VLOG(2) << "Starting contraction";
   bool changed;
   bool collect_non_contracting_edge_info = false;  // Must init with false
 
@@ -435,13 +432,11 @@ Status AssignClusters(Graph* graph) {
     changed = false;
 
     auto log_reason = [](EdgeNonContractionReasons reason, Edge* edge) {
-      NGRAPH_VLOG(0) << "NONCONTRACTION: " << reason_string[reason] << ": "
-                     << edge->src()->name() << "<" << edge->src()->type_string()
-                     << ">"
-                     << "[" << edge->src_output() << "] -> "
-                     << edge->dst()->name() << "<" << edge->dst()->type_string()
-                     << ">"
-                     << "[" << edge->dst_input() << "]";
+      VLOG(0) << "NONCONTRACTION: " << reason_string[reason] << ": "
+              << edge->src()->name() << "<" << edge->src()->type_string() << ">"
+              << "[" << edge->src_output() << "] -> " << edge->dst()->name()
+              << "<" << edge->dst()->type_string() << ">"
+              << "[" << edge->dst_input() << "]";
     };
 
     for (auto edge : graph->edges()) {
@@ -461,10 +456,9 @@ Status AssignClusters(Graph* graph) {
       }
 
       if (!NodeIsMarkedForClustering(src) || !NodeIsMarkedForClustering(dst)) {
-        NGRAPH_VLOG(5) << "Skipping (not marked): " << src->name() << "["
-                       << edge->src_output() << "]@" << src_index << " -> "
-                       << dst->name() << "[" << edge->dst_input() << "]@"
-                       << dst_index;
+        VLOG(5) << "Skipping (not marked): " << src->name() << "["
+                << edge->src_output() << "]@" << src_index << " -> "
+                << dst->name() << "[" << edge->dst_input() << "]@" << dst_index;
         if (collect_non_contracting_edge_info) {
           log_reason(EdgeNonContractionReasons::UNSUPPORTED, edge);
           cluster_separation_reason[get_string_key(src_index, dst_index)]
@@ -480,10 +474,9 @@ Status AssignClusters(Graph* graph) {
           CanContractEdgeDeadnessCheck(edge, cluster_map, is_deadness_ok));
       if (!is_deadness_ok) {
         // do not contract, src and dst node cannot be in the same cluster
-        NGRAPH_VLOG(5) << "Skipping (deadness not ok): " << src->name() << "["
-                       << edge->src_output() << "]@" << src_index << " -> "
-                       << dst->name() << "[" << edge->dst_input() << "]@"
-                       << dst_index;
+        VLOG(5) << "Skipping (deadness not ok): " << src->name() << "["
+                << edge->src_output() << "]@" << src_index << " -> "
+                << dst->name() << "[" << edge->dst_input() << "]@" << dst_index;
         if (collect_non_contracting_edge_info) {
           log_reason(EdgeNonContractionReasons::DEADNESS, edge);
           cluster_separation_reason[get_string_key(src_index, dst_index)]
@@ -552,9 +545,9 @@ Status AssignClusters(Graph* graph) {
     }
   } while (changed);
 
-  NGRAPH_VLOG(2) << "Contraction done";
+  VLOG(2) << "Contraction done";
 
-  NGRAPH_VLOG(2) << "Starting tagging";
+  VLOG(2) << "Starting tagging";
   std::set<Cluster*> seen;
   unordered_map<int, int> cluster_to_encapsulate;
   for (auto kv : cluster_map) {
@@ -581,13 +574,12 @@ Status AssignClusters(Graph* graph) {
     }
 
     if (has_ngraph_ops && has_non_ngraph_ops) {
-      NGRAPH_VLOG(2) << "Cluster " << cluster->index
-                     << " has both nGraph and non-nGraph nodes";
+      VLOG(2) << "Cluster " << cluster->index
+              << " has both nGraph and non-nGraph nodes";
       for (auto node : cluster->nodes) {
-        NGRAPH_VLOG(2) << (NodeIsMarkedForClustering(node)
-                               ? "nGraph node: "
-                               : "non-nGraph node: ")
-                       << node->name() << " [" << node->type_string() << "]";
+        VLOG(2) << (NodeIsMarkedForClustering(node) ? "nGraph node: "
+                                                    : "non-nGraph node: ")
+                << node->name() << " [" << node->type_string() << "]";
       }
       return errors::Internal("Cluster ", cluster->index,
                               " has both nGraph and non-nGraph nodes");
@@ -601,10 +593,10 @@ Status AssignClusters(Graph* graph) {
     size_t cluster_idx = NGraphClusterManager::NewCluster();
 
     for (auto node : cluster->nodes) {
-      if (NGRAPH_VLOG_IS_ON(5)) {
-        NGRAPH_VLOG(5) << ">> cluster " << cluster_idx << ": " << node->id()
-                       << " " << node << " :: " << node->name() << " ["
-                       << node->type_string() << "]";
+      if (VLOG_IS_ON(5)) {
+        VLOG(5) << ">> cluster " << cluster_idx << ": " << node->id() << " "
+                << node << " :: " << node->name() << " [" << node->type_string()
+                << "]";
       }
 
       if (!NodeIsMarkedForClustering(node)) {
@@ -624,7 +616,7 @@ Status AssignClusters(Graph* graph) {
 
     seen.insert(cluster);
   }
-  NGRAPH_VLOG(2) << "Tagging done";
+  VLOG(2) << "Tagging done";
 
   if (config::IsLoggingPlacement()) {
     int num_reasons = 6;  // the number of elements in the reasons enum
@@ -744,7 +736,7 @@ Status AssignClusters(Graph* graph) {
                  "connected clusters did not merge\n";
     print_reason_summary(reason_count_clusters,
                          [](EdgeNonContractionReasons x) {
-                           NGRAPH_VLOG(5) << "EdgeNonContractionReasons: " << x;
+                           VLOG(5) << "EdgeNonContractionReasons: " << x;
                            return false;
                          });
   }

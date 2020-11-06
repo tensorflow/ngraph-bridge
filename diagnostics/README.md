@@ -27,7 +27,7 @@ it correctly to capture all logs.
 ### A full dump
 
 To get a **full** dump use the following set of flags
-```NGRAPH_ENABLE_SERIALIZE=1 NGRAPH_CPU_TRACING=1 NGRAPH_TF_VLOG_LEVEL=5 NGRAPH_TF_LOG_PLACEMENT=1 NGRAPH_TF_DUMP_CLUSTERS=1 NGRAPH_TF_DUMP_GRAPHS=1 python run_TF_network.py > log.txt 2>&1```
+```NGRAPH_ENABLE_SERIALIZE=1 NGRAPH_CPU_TRACING=1 TF_OV_MIN_VLOG_LEVEL=5 NGRAPH_TF_LOG_PLACEMENT=1 NGRAPH_TF_DUMP_CLUSTERS=1 NGRAPH_TF_DUMP_GRAPHS=1 python run_TF_network.py > log.txt 2>&1```
 
 
 ## Debug flags
@@ -36,11 +36,11 @@ To get a **full** dump use the following set of flags
 |------------------------------|---------------------------------------|
 | `NGRAPH_ENABLE_SERIALIZE=1`  | Generate nGraph-level serialized graphs|
 | `NGRAPH_CPU_TRACING=1`       | Generate nGraph-level function timelines|
-| `NGRAPH_TF_VLOG_LEVEL=5`     | Generate ngraph-tf logging info for different passes|
 | `NGRAPH_TF_LOG_PLACEMENT=1`  | Generate op placement log at stdout   |
 | `NGRAPH_TF_DUMP_CLUSTERS=1`  | Dump Encapsulated TF Graphs `ngraph_cluster_<cluster_num>` |
 | `NGRAPH_TF_DUMP_GRAPHS=1`    | Dump TF graphs for different passes: precapture, capture, unmarked, marked, clustered, declustered, encapsulated |
 | `TF_CPP_MIN_VLOG_LEVEL=1`    | Enable TF CPP logs                    |
+| `TF_OV_MIN_VLOG_LEVEL=5`     | Enable TF OV bridge logs|
 | `NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS=1` | Dump graphs with final clusters assigned. Use this to view TF computation graph with colored nodes indicating clusters|
 |
 
@@ -102,5 +102,4 @@ Run the following for detailed help:
 * pbtxt to graphdef: ```from ngtf_graph_viewer import load_file; load_file(input_filename, input_binary=False)```
 * modify a graphdef's nodes names: ```from ngtf_graph_viewer import modify_node_names; modify_node_names(graph_def, node_map={"net1/node1":"e1/net1/node1"})```
 
-[nGraph Library documentation]: https://ngraph.nervanasys.com/docs/latest/frameworks/generic-configs.html#activate-logtrace-related-environment-variables
 [ngtf_graph_viewer]: https://github.com/tensorflow/ngraph-bridge/blob/master/diagnostics/ngtf_graph_viewer.py

@@ -26,7 +26,6 @@
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/lib/strings/str_util.h"
-#include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
 
 #include "ngraph_bridge/ngraph_utils.h"
@@ -36,7 +35,6 @@ using namespace std;
 namespace ng = ngraph;
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 vector<int> FindComplement(const int& max_element,
@@ -94,7 +92,7 @@ Status IsNgraphTFLogTensorCopiesEnabled(int graph_id,
 }
 
 void PrintTFTensor(Tensor& T1) {
-  NGRAPH_VLOG(4) << "all tensor values" << (T1).SummarizeValue(64) << endl;
+  VLOG(4) << "all tensor values" << (T1).SummarizeValue(64) << endl;
 }
 std::string DebugNode(Node* node) {
   std::string temp = node->name();
@@ -402,39 +400,19 @@ std::string GraphFilenamePrefix(std::string kind, int idx, int sub_idx) {
   return ss.str();
 }
 
-void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
-                std::string filename_prefix, std::string title) {
-  // If we have a "main" graph, dump that.
-  if (options.graph != nullptr) {
-    auto dot_filename = DotFilename(filename_prefix, idx);
-    auto pbtxt_filename = PbtxtFilename(filename_prefix, idx);
-    NGRAPH_VLOG(0) << "Dumping main graph to " << dot_filename;
-    NGRAPH_VLOG(0) << "Dumping main graph to " << pbtxt_filename;
+void TFGraphToPbTextFile(const Graph* graph, const string& filename) {
+  GraphDef g_def;
+  graph->ToGraphDef(&g_def);
+  string graph_pb_str;
+  protobuf::TextFormat::PrintToString(g_def, &graph_pb_str);
+  std::ofstream ostrm_out(filename, std::ios_base::trunc);
+  ostrm_out << graph_pb_str;
+}
 
-    GraphToDotFile(options.graph->get(), dot_filename, title);
-    GraphToPbTextFile(options.graph->get(), pbtxt_filename);
-  }
-
-  // If we have partition graphs (we shouldn't), dump those.
-  if (options.partition_graphs != nullptr) {
-    int sub_idx = 0;
-
-    for (auto& kv : *options.partition_graphs) {
-      auto dot_filename = DotFilename(filename_prefix, idx, sub_idx);
-      auto pbtxt_filename = PbtxtFilename(filename_prefix, idx, sub_idx);
-      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
-                     << dot_filename;
-      NGRAPH_VLOG(0) << "Dumping subgraph " << sub_idx << " to "
-                     << pbtxt_filename;
-
-      Graph* pg = kv.second.get();
-
-      GraphToDotFile(pg, dot_filename, title);
-      GraphToPbTextFile(pg, pbtxt_filename);
-
-      sub_idx++;
-    }
-  }
+void DumpGraphs(const Graph& graph, int idx, std::string filename_prefix) {
+  auto pbtxt_filename = PbtxtFilename(filename_prefix, idx);
+  VLOG(0) << "Dumping main graph to " << pbtxt_filename;
+  TFGraphToPbTextFile(&graph, pbtxt_filename);
 }
 
 bool DumpAllGraphs() { return std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr; }
@@ -484,5 +462,4 @@ void ClearAttribute(Graph* g,
 }
 
 }  // namespace ngraph_bridge
-
 }  // namespace tensorflow

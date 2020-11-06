@@ -46,7 +46,6 @@ File: tensorflow/tensorflow/compiler/jit/graphcycles/graphcycles.cc
 #include "ngraph_bridge/tf_graphcycles.h"
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
 namespace {

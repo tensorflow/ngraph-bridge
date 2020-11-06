@@ -32,9 +32,6 @@
 #include "ngraph/chrome_trace.hpp"
 #include "ngraph/ngraph.hpp"
 
-#include "logging/ngraph_log.h"
-#include "logging/tf_graph_writer.h"
-
 // Activates event logging until the end of the current code-block scoping;
 // Automatically writes log data as soon as the the current scope expires.
 #define NG_TRACE(name, category, args) \
@@ -172,11 +169,10 @@ Status ValuesFromConstNode(const NodeDef& node,
           if (val_size > 0) val_i = tensor.double_val()[i];
           break;
         default:
-          NGRAPH_VLOG(0)
-              << "Const node has empty tensor and we don't know how to "
-                 "handle this element type";
-          NGRAPH_VLOG(0) << node.DebugString();
-          NGRAPH_VLOG(0) << shape.DebugString();
+          VLOG(0) << "Const node has empty tensor and we don't know how to "
+                     "handle this element type";
+          VLOG(0) << node.DebugString();
+          VLOG(0) << shape.DebugString();
           return errors::Unimplemented("Encountered unknown element type ",
                                        DataType_Name(dt),
                                        " on an empty tensor");
@@ -328,37 +324,24 @@ Status CheckAxisDimInRange(std::vector<int64> axes, size_t rank);
 // Collect the total memory usage through /proc/self/stat
 void MemoryProfile(long&, long&);
 
-std::string DotFilename(std::string, int);
-
-std::string DotFilename(std::string kind, int idx, int sub_idx);
-
+void TFGraphToPbTextFile(const Graph* graph, const string& filename);
 std::string PbtxtFilename(std::string, int);
-
 std::string PbtxtFilename(std::string kind, int idx, int sub_idx);
 
 std::string GraphFilenamePrefix(std::string, int);
-
 std::string GraphFilenamePrefix(std::string, int, int);
 
 void ClearAttribute(Graph*, const std::set<string>&);
 
-void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
-                std::string filename_prefix, std::string title);
+void DumpGraphs(const Graph& graph, int idx, std::string filename_prefix);
 
 bool DumpAllGraphs();
-
 bool DumpPrecaptureGraphs();
-
 bool DumpCapturedGraphs();
-
 bool DumpUnmarkedGraphs();
-
 bool DumpMarkedGraphs();
-
 bool DumpClusteredGraphs();
-
 bool DumpDeclusteredGraphs();
-
 bool DumpEncapsulatedGraphs();
 
 }  // namespace ngraph_bridge

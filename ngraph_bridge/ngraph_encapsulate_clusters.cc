@@ -31,12 +31,9 @@
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/graph/tensor_id.h"
 #include "tensorflow/core/graph/validate.h"
-#include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/util/device_name_utils.h"
 
-#include "logging/ngraph_log.h"
-#include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_builder.h"
@@ -76,9 +73,9 @@ Status EncapsulateClusters(
     Graph* graph, int graph_id,
     const std::unordered_map<std::string, std::string>& device_config) {
   Encapsulator enc(graph);
-  NGRAPH_VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
+  VLOG(3) << "Running AnalysisPass in EncapsulateClusters";
   TF_RETURN_IF_ERROR(enc.AnalysisPass());
-  NGRAPH_VLOG(3) << "Running RewritePass in EncapsulateClusters";
+  VLOG(3) << "Running RewritePass in EncapsulateClusters";
   TF_RETURN_IF_ERROR(enc.RewritePass(graph_id, device_config));
 
   set<int> newly_created_cluster_ids;
@@ -103,9 +100,7 @@ Status EncapsulateClusters(
       ss << "ngraph_cluster_" << cluster_idx;
       std::string filename_prefix = ss.str();
 
-      GraphToPbTextFile(&g, filename_prefix + ".pbtxt");
-      GraphToDotFile(&g, filename_prefix + ".dot",
-                     "nGraph Cluster Dump: " + filename_prefix);
+      TFGraphToPbTextFile(&g, filename_prefix + ".pbtxt");
     }
   }
 
@@ -147,9 +142,8 @@ Status Encapsulator::AnalysisPass() {
         return errors::Internal(ss_err.str());
       }
     } else {
-      NGRAPH_VLOG(3) << "setting cluster " << cluster_idx
-                     << " requested device to '" << node->assigned_device_name()
-                     << "'";
+      VLOG(3) << "setting cluster " << cluster_idx << " requested device to '"
+              << node->assigned_device_name() << "'";
       device_name_map[cluster_idx] = node->assigned_device_name();
     }
   }
@@ -201,10 +195,10 @@ Status Encapsulator::AnalysisPass() {
                                 ? "cross-flow"
                                 : dst_clustered ? "in-flow" : "out-flow";
 
-    NGRAPH_VLOG(4) << "found " << flow_kind << ": " << src->name() << "["
-                   << edge->src_output() << "] in " << src_cluster_idx << " to "
-                   << dst->name() << "[" << edge->dst_input() << "] in "
-                   << dst_cluster_idx << ", datatype: " << dt;
+    VLOG(4) << "found " << flow_kind << ": " << src->name() << "["
+            << edge->src_output() << "] in " << src_cluster_idx << " to "
+            << dst->name() << "[" << edge->dst_input() << "] in "
+            << dst_cluster_idx << ", datatype: " << dt;
 
     bool edge_is_retval = false, edge_is_arg = false;
 
@@ -446,11 +440,10 @@ Status Encapsulator::RewritePass(
                          .Device(device_name_map[cluster_idx])
                          .Input(inputs);
     if (!device_config.empty()) {
-      NGRAPH_VLOG(3) << "Device config is not empty";
+      VLOG(3) << "Device config is not empty";
       for (auto const& i : device_config) {
         // Adding the optional attributes
-        NGRAPH_VLOG(3) << "Attaching Attribute " << i.first << " Val "
-                       << i.second;
+        VLOG(3) << "Attaching Attribute " << i.first << " Val " << i.second;
         nb.Attr(i.first, i.second);
       }
     }
@@ -555,7 +548,7 @@ Status Encapsulator::RewritePass(
   }
 
   for (auto node : nodes_to_remove) {
-    NGRAPH_VLOG(4) << "Removing: " << node->name();
+    VLOG(4) << "Removing: " << node->name();
     graph->RemoveNode(node);
   }
 

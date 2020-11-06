@@ -29,7 +29,6 @@
 
 #include "ngraph/ngraph.hpp"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/backend.h"
 
 using namespace std;

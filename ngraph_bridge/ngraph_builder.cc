@@ -26,7 +26,6 @@
 #include "ngraph/pass/pass_config.hpp"
 #include "ngraph/slice_plan.hpp"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_builder.h"
@@ -491,11 +490,10 @@ static Status TranslateArgMinMax(
 
   // If input dimension is negative, make it positive
   if (tf_dim[0] < 0) {
-    NGRAPH_VLOG(3) << "Input dimension is negative, make it positive "
-                   << tf_dim[0];
+    VLOG(3) << "Input dimension is negative, make it positive " << tf_dim[0];
     tf_dim[0] = (int64)input_rank + tf_dim[0];
   }
-  NGRAPH_VLOG(3) << "Axis along which to compute " << tf_dim[0];
+  VLOG(3) << "Axis along which to compute " << tf_dim[0];
   size_t k_axis = tf_dim[0];
 
   DataType dtype;
@@ -555,10 +553,10 @@ static Status TranslateAvgPoolOp(const Node* op,
 
   bool is_nhwc = (tf_data_format == "NHWC");
 
-  NGRAPH_VLOG(3) << ng::join(tf_strides);
-  NGRAPH_VLOG(3) << ng::join(tf_ksize);
-  NGRAPH_VLOG(3) << tf_padding_type;
-  NGRAPH_VLOG(3) << tf_data_format;
+  VLOG(3) << ng::join(tf_strides);
+  VLOG(3) << ng::join(tf_ksize);
+  VLOG(3) << tf_padding_type;
+  VLOG(3) << tf_data_format;
 
   ng::Strides ng_strides(2);
   ng::Shape ng_image_shape(2);
@@ -567,9 +565,9 @@ static Status TranslateAvgPoolOp(const Node* op,
   BatchedOpParamToNGraph(is_nhwc, ng_input.get_shape(), ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_ksize, ng_kernel_shape);
   BatchToNGraph(op->name(), is_nhwc, ng_input);
-  NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
-  NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
-  NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
+  VLOG(3) << "ng_strides: " << ng::join(ng_strides);
+  VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
+  VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
   // TODO: change this once nGraph supports negative padding
   // (CoordinateDiff) for AvgPool
@@ -590,8 +588,7 @@ static Status TranslateAvgPoolOp(const Node* op,
       ng_kernel_shape, true, ng::op::RoundingType::FLOOR, ng_pad_type);
 
   BatchToTensorflow(op->name(), is_nhwc, ng_avgpool);
-  NGRAPH_VLOG(3) << "avgpool outshape: {" << ng::join(ng_avgpool.get_shape())
-                 << "}";
+  VLOG(3) << "avgpool outshape: {" << ng::join(ng_avgpool.get_shape()) << "}";
 
   SaveNgOp(ng_op_map, op->name(), ng_avgpool);
   return Status::OK();
@@ -760,10 +757,10 @@ static Status TranslateConv2DOp(const Node* op,
         op->type_string());
   }
 
-  NGRAPH_VLOG(3) << ng::join(tf_strides);
-  NGRAPH_VLOG(3) << ng::join(tf_dilations);
-  NGRAPH_VLOG(3) << tf_padding_type;
-  NGRAPH_VLOG(3) << tf_data_format;
+  VLOG(3) << ng::join(tf_strides);
+  VLOG(3) << ng::join(tf_dilations);
+  VLOG(3) << tf_padding_type;
+  VLOG(3) << tf_data_format;
 
   ng::Strides ng_strides(2);
   ng::Strides ng_dilations(2);
@@ -775,9 +772,9 @@ static Status TranslateConv2DOp(const Node* op,
   BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
   BatchToNGraph(op->name(), is_nhwc, ng_input);
 
-  NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
-  NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
-  NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
+  VLOG(3) << "ng_strides: " << ng::join(ng_strides);
+  VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
+  VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
 
   auto& ng_filter_shape = ng_filter.get_shape();
   ng_kernel_shape[0] = ng_filter_shape[0];
@@ -785,7 +782,7 @@ static Status TranslateConv2DOp(const Node* op,
   Transpose<3, 2, 0, 1>(ng_filter);
   Builder::SetTracingInfo(op->name(), ng_filter);
 
-  NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
+  VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
   ng::CoordinateDiff ng_padding_below{0, 0};
   ng::CoordinateDiff ng_padding_above{0, 0};
@@ -843,10 +840,10 @@ static Status TranslateConv2DBackpropInputOp(
 
   bool is_nhwc = (tf_data_format == "NHWC");
 
-  NGRAPH_VLOG(3) << ng::join(tf_strides);
-  NGRAPH_VLOG(3) << ng::join(tf_dilations);
-  NGRAPH_VLOG(3) << tf_padding_type;
-  NGRAPH_VLOG(3) << tf_data_format;
+  VLOG(3) << ng::join(tf_strides);
+  VLOG(3) << ng::join(tf_dilations);
+  VLOG(3) << tf_padding_type;
+  VLOG(3) << tf_data_format;
 
   ng::Strides ng_strides(2);
   ng::Strides ng_dilations(2);
@@ -870,9 +867,9 @@ static Status TranslateConv2DBackpropInputOp(
                       static_cast<unsigned long>(tf_input_sizes[3])};
   }
 
-  NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
-  NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
-  NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
+  VLOG(3) << "ng_strides: " << ng::join(ng_strides);
+  VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
+  VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
 
   auto& ng_filter_shape = ng_filter.get_shape();
   ng_kernel_shape[0] = ng_filter_shape[0];
@@ -880,7 +877,7 @@ static Status TranslateConv2DBackpropInputOp(
   Transpose<3, 2, 0, 1>(ng_filter);
   Builder::SetTracingInfo(op->name(), ng_filter);
 
-  NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
+  VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
   ng::CoordinateDiff ng_padding_below{0, 0};
   ng::CoordinateDiff ng_padding_above{0, 0};
@@ -939,10 +936,10 @@ static Status TranslateConv3DOp(const Node* op,
   //       op->type_string());
   // }
 
-  NGRAPH_VLOG(3) << ng::join(tf_strides);
-  NGRAPH_VLOG(3) << ng::join(tf_dilations);
-  NGRAPH_VLOG(3) << tf_padding_type;
-  NGRAPH_VLOG(3) << tf_data_format;
+  VLOG(3) << ng::join(tf_strides);
+  VLOG(3) << ng::join(tf_dilations);
+  VLOG(3) << tf_padding_type;
+  VLOG(3) << tf_data_format;
 
   ng::Strides ng_strides(3);
   ng::Strides ng_dilations(3);
@@ -954,9 +951,9 @@ static Status TranslateConv3DOp(const Node* op,
   BatchedOpParam3DToNGraph(is_ndhwc, tf_dilations, ng_dilations);
   BatchToNGraph3D(op->name(), is_ndhwc, ng_input);
 
-  NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
-  NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
-  NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
+  VLOG(3) << "ng_strides: " << ng::join(ng_strides);
+  VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
+  VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
 
   auto& ng_filter_shape = ng_filter.get_shape();
   ng_kernel_shape[0] = ng_filter_shape[0];
@@ -965,7 +962,7 @@ static Status TranslateConv3DOp(const Node* op,
   Transpose3D<4, 3, 0, 1, 2>(ng_filter);
   Builder::SetTracingInfo(op->name(), ng_filter);
 
-  NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
+  VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
   ng::CoordinateDiff ng_padding_below{0, 0, 0};
   ng::CoordinateDiff ng_padding_above{0, 0, 0};
@@ -1054,10 +1051,10 @@ static Status TranslateDepthwiseConv2dNativeOp(
 
   bool is_nhwc = (tf_data_format == "NHWC");
 
-  NGRAPH_VLOG(3) << ng::join(tf_strides);
-  NGRAPH_VLOG(3) << ng::join(tf_dilations);
-  NGRAPH_VLOG(3) << tf_padding_type;
-  NGRAPH_VLOG(3) << tf_data_format;
+  VLOG(3) << ng::join(tf_strides);
+  VLOG(3) << ng::join(tf_dilations);
+  VLOG(3) << tf_padding_type;
+  VLOG(3) << tf_data_format;
 
   ng::Strides ng_strides(2);
   ng::Strides ng_dilations(2);
@@ -1069,9 +1066,9 @@ static Status TranslateDepthwiseConv2dNativeOp(
   BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
   BatchToNGraph(op->name(), is_nhwc, ng_input);
 
-  NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
-  NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
-  NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
+  VLOG(3) << "ng_strides: " << ng::join(ng_strides);
+  VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
+  VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
 
   auto& ng_filter_shape = ng_filter.get_shape();
   ng_kernel_shape[0] = ng_filter_shape[0];
@@ -1079,7 +1076,7 @@ static Status TranslateDepthwiseConv2dNativeOp(
   Transpose<3, 2, 0, 1>(ng_filter);
   Builder::SetTracingInfo(op->name(), ng_filter);
 
-  NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
+  VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
   ng::CoordinateDiff ng_padding_below{0, 0};
   ng::CoordinateDiff ng_padding_above{0, 0};
@@ -1126,9 +1123,9 @@ static Status TranslateDepthwiseConv2dNativeOp(
         op->name(), ng_filter, f_lower_bound, f_upper_bound,
         std::vector<int64_t>{}, std::vector<int64_t>{});
 
-    NGRAPH_VLOG(3) << "depthwise conv 2d.";
-    NGRAPH_VLOG(3) << "sliced shape " << ng::join(ng_sliced_input.get_shape());
-    NGRAPH_VLOG(3) << "filter shape " << ng::join(ng_sliced_filter.get_shape());
+    VLOG(3) << "depthwise conv 2d.";
+    VLOG(3) << "sliced shape " << ng::join(ng_sliced_input.get_shape());
+    VLOG(3) << "filter shape " << ng::join(ng_sliced_filter.get_shape());
     auto ng_conv = ConstructNgNode<opset::Convolution>(
         op->name(), ng_sliced_input, ng_sliced_filter, ng_strides,
         ng_padding_below, ng_padding_above, ng_dilations, ng_pad_type);
@@ -1239,16 +1236,16 @@ static Status TranslateFusedBatchNormOp(
 
   bool is_nhwc = (tf_data_format == "NHWC");
 
-  NGRAPH_VLOG(3) << "data_format: " << tf_data_format;
+  VLOG(3) << "data_format: " << tf_data_format;
 
   float tf_epsilon;
   if (GetNodeAttr(op->attrs(), "epsilon", &tf_epsilon) != Status::OK()) {
-    NGRAPH_VLOG(3) << "epsilon attribute not present, setting to 0.0001";
+    VLOG(3) << "epsilon attribute not present, setting to 0.0001";
     // TensorFlow default
     tf_epsilon = 0.0001;
   }
 
-  NGRAPH_VLOG(3) << "epsilon: " << tf_epsilon;
+  VLOG(3) << "epsilon: " << tf_epsilon;
 
   BatchToNGraph(op->name(), is_nhwc, ng_input);
 
@@ -1396,10 +1393,10 @@ static Status TranslateFusedConv2DOp(const Node* op,
           op->type_string());
     }
 
-    NGRAPH_VLOG(3) << ng::join(tf_strides);
-    NGRAPH_VLOG(3) << ng::join(tf_dilations);
-    NGRAPH_VLOG(3) << tf_padding_type;
-    NGRAPH_VLOG(3) << tf_data_format;
+    VLOG(3) << ng::join(tf_strides);
+    VLOG(3) << ng::join(tf_dilations);
+    VLOG(3) << tf_padding_type;
+    VLOG(3) << tf_data_format;
 
     ng::Strides ng_strides(2);
     ng::Strides ng_dilations(2);
@@ -1411,9 +1408,9 @@ static Status TranslateFusedConv2DOp(const Node* op,
     BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
     BatchToNGraph(op->name(), is_nhwc, ng_input);
 
-    NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
-    NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
-    NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
+    VLOG(3) << "ng_strides: " << ng::join(ng_strides);
+    VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
+    VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
 
     auto& ng_filter_shape = ng_filter.get_shape();
     ng_kernel_shape[0] = ng_filter_shape[0];
@@ -1421,7 +1418,7 @@ static Status TranslateFusedConv2DOp(const Node* op,
     Transpose<3, 2, 0, 1>(ng_filter);
     Builder::SetTracingInfo(op->name(), ng_filter);
 
-    NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
+    VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
     ng::CoordinateDiff ng_padding_below{0, 0};
     ng::CoordinateDiff ng_padding_above{0, 0};
@@ -1686,10 +1683,10 @@ static Status TranslateMaxPoolOp(const Node* op,
 
   bool is_nhwc = (tf_data_format == "NHWC");
 
-  NGRAPH_VLOG(3) << ng::join(tf_strides);
-  NGRAPH_VLOG(3) << ng::join(tf_ksize);
-  NGRAPH_VLOG(3) << tf_padding_type;
-  NGRAPH_VLOG(3) << tf_data_format;
+  VLOG(3) << ng::join(tf_strides);
+  VLOG(3) << ng::join(tf_ksize);
+  VLOG(3) << tf_padding_type;
+  VLOG(3) << tf_data_format;
 
   ng::Strides ng_strides(2);
   ng::Shape ng_image_shape(2);
@@ -1699,9 +1696,9 @@ static Status TranslateMaxPoolOp(const Node* op,
   BatchedOpParamToNGraph(is_nhwc, ng_input.get_shape(), ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_ksize, ng_kernel_shape);
   BatchToNGraph(op->name(), is_nhwc, ng_input);
-  NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
-  NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
-  NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
+  VLOG(3) << "ng_strides: " << ng::join(ng_strides);
+  VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
+  VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
   // TODO: change this once nGraph supports negative padding
   // (CoordinateDiff) for MaxPool
@@ -1724,8 +1721,7 @@ static Status TranslateMaxPoolOp(const Node* op,
 
   BatchToTensorflow(op->name(), is_nhwc, ng_maxpool);
 
-  NGRAPH_VLOG(3) << "maxpool outshape: {" << ng::join(ng_maxpool.get_shape())
-                 << "}";
+  VLOG(3) << "maxpool outshape: {" << ng::join(ng_maxpool.get_shape()) << "}";
 
   SaveNgOp(ng_op_map, op->name(), ng_maxpool);
   return Status::OK();
@@ -1753,10 +1749,10 @@ static Status TranslateMaxPool3DOp(const Node* op,
 
   bool is_ndhwc = (tf_data_format == "NDHWC");
 
-  NGRAPH_VLOG(3) << ng::join(tf_strides);
-  NGRAPH_VLOG(3) << ng::join(tf_ksize);
-  NGRAPH_VLOG(3) << tf_padding_type;
-  NGRAPH_VLOG(3) << tf_data_format;
+  VLOG(3) << ng::join(tf_strides);
+  VLOG(3) << ng::join(tf_ksize);
+  VLOG(3) << tf_padding_type;
+  VLOG(3) << tf_data_format;
 
   ng::Strides ng_strides(3);
   ng::Shape ng_image_shape(3);
@@ -1766,9 +1762,9 @@ static Status TranslateMaxPool3DOp(const Node* op,
   BatchedOpParam3DToNGraph(is_ndhwc, ng_input.get_shape(), ng_image_shape);
   BatchedOpParam3DToNGraph(is_ndhwc, tf_ksize, ng_kernel_shape);
   BatchToNGraph3D(op->name(), is_ndhwc, ng_input);
-  NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
-  NGRAPH_VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
-  NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
+  VLOG(3) << "ng_strides: " << ng::join(ng_strides);
+  VLOG(3) << "ng_image_shape: " << ng::join(ng_image_shape);
+  VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
   // TODO: change this once nGraph supports negative padding
   // (CoordinateDiff) for MaxPool
@@ -1791,8 +1787,7 @@ static Status TranslateMaxPool3DOp(const Node* op,
 
   BatchToTensorflow3D(op->name(), is_ndhwc, ng_maxpool);
 
-  NGRAPH_VLOG(3) << "maxpool outshape: {" << ng::join(ng_maxpool.get_shape())
-                 << "}";
+  VLOG(3) << "maxpool outshape: {" << ng::join(ng_maxpool.get_shape()) << "}";
 
   SaveNgOp(ng_op_map, op->name(), ng_maxpool);
   return Status::OK();
@@ -2046,7 +2041,7 @@ static Status TranslatePadOp(const Node* op,
   // Set pads_begin & pads_end (from the pad_val_op)
   std::vector<int64> paddings;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &paddings));
-  NGRAPH_VLOG(3) << op->name() << " pads {" << ng::join(paddings) << "}";
+  VLOG(3) << op->name() << " pads {" << ng::join(paddings) << "}";
   if (paddings.size() % 2 != 0) {
     return errors::InvalidArgument(
         "Constant node for paddings does not have an even number of "
@@ -2122,12 +2117,12 @@ static Status TranslateReshapeOp(
   ng::Output<ng::Node> ng_input, ng_shape_op;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_shape_op));
 
-  NGRAPH_VLOG(3) << "Input shape: " << ng::join(ng_input.get_shape());
+  VLOG(3) << "Input shape: " << ng::join(ng_input.get_shape());
 
   std::vector<int64> shape;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &shape));
 
-  NGRAPH_VLOG(3) << "Requested result shape: " << ng::join(shape);
+  VLOG(3) << "Requested result shape: " << ng::join(shape);
 
   auto ng_shape = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::i64, ng::Shape{shape.size()}, shape);
@@ -2214,8 +2209,8 @@ static Status TranslateSliceOp(
         "Cannot translate slice op: size of begin = ", begin_vec.size(),
         ", size of size_vec = ", size_vec.size(), ". Expected them to match.");
 
-  NGRAPH_VLOG(3) << "Begin input for Slice: " << ng::join(begin_vec);
-  NGRAPH_VLOG(3) << "Size input for Slice: " << ng::join(size_vec);
+  VLOG(3) << "Begin input for Slice: " << ng::join(begin_vec);
+  VLOG(3) << "Size input for Slice: " << ng::join(size_vec);
 
   std::vector<int64> end_vec(begin_vec.size());
   const auto ng_input_shape = ng_input.get_shape();
@@ -2459,11 +2454,11 @@ static Status TranslateStridedSliceOp(
       GetNodeAttr(op->attrs(), "shrink_axis_mask", &shrink_axis_mask));
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "ellipsis_mask", &ellipsis_mask));
 
-  NGRAPH_VLOG(5) << "strided slice attributes: "
-                 << "  begin mask: " << begin_mask << "  end mask: " << end_mask
-                 << "  new axis mask: " << new_axis_mask
-                 << "  shrink axis mask: " << shrink_axis_mask
-                 << "  ellipsis mask: " << ellipsis_mask;
+  VLOG(5) << "strided slice attributes: "
+          << "  begin mask: " << begin_mask << "  end mask: " << end_mask
+          << "  new axis mask: " << new_axis_mask
+          << "  shrink axis mask: " << shrink_axis_mask
+          << "  ellipsis mask: " << ellipsis_mask;
 
   std::vector<int64> begin_vec;
   TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &begin_vec));
@@ -2590,7 +2585,7 @@ static Status TranslateTransposeOp(
     }
   }
 
-  NGRAPH_VLOG(3) << ng::join(permutation);
+  VLOG(3) << ng::join(permutation);
 
   auto input_order = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::u64, ng::Shape{permutation.size()}, permutation);
@@ -2905,8 +2900,8 @@ Status Builder::TranslateGraph(
   // Now create the nGraph ops from TensorFlow ops.
   //
   for (auto op : tf_ops) {
-    NGRAPH_VLOG(2) << "Constructing op " << op->name() << " which is "
-                   << op->type_string();
+    VLOG(2) << "Constructing op " << op->name() << " which is "
+            << op->type_string();
 
     const function<Status(const Node*, const std::vector<const Tensor*>&,
                           Builder::OpMap&)>* op_fun;
@@ -2917,9 +2912,9 @@ Status Builder::TranslateGraph(
       // -----------------------------
       // Catch-all for unsupported ops
       // -----------------------------
-      NGRAPH_VLOG(3) << "No translation handler registered for op: "
-                     << op->name() << " (" << op->type_string() << ")";
-      NGRAPH_VLOG(3) << op->def().DebugString();
+      VLOG(3) << "No translation handler registered for op: " << op->name()
+              << " (" << op->type_string() << ")";
+      VLOG(3) << op->def().DebugString();
       return errors::InvalidArgument(
           "No translation handler registered for op: ", op->name(), " (",
           op->type_string(), ")\n", op->def().DebugString());

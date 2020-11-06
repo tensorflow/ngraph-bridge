@@ -41,8 +41,8 @@ Status NgraphOptimizer::Init(
   const auto params = config->parameter_map();
   for (auto i : params) {
     m_config_map["_ngraph_" + i.first] = i.second.s();
-    NGRAPH_VLOG(3) << "Attribute: " << i.first
-                   << " Value: " << m_config_map["_ngraph_" + i.first];
+    VLOG(3) << "Attribute: " << i.first
+            << " Value: " << m_config_map["_ngraph_" + i.first];
   }
   return Status::OK();
 }
@@ -50,8 +50,8 @@ Status NgraphOptimizer::Init(
 Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
                                  const tensorflow::grappler::GrapplerItem& item,
                                  GraphDef* output) {
-  NGRAPH_VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
-  NGRAPH_VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
+  VLOG(3) << "NGTF_OPTIMIZER: Here at NgraphOptimizer ";
+  VLOG(5) << "NGTF_OPTIMIZER: grappler item id " << item.id;
 
   // Convert the GraphDef to Graph
   GraphConstructorOptions opts;
@@ -71,12 +71,12 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
       (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
   bool already_processed = IsProcessedByNgraphPass(&graph);
   if (!already_processed && ngraph_not_enabled) {
-    NGRAPH_VLOG(0) << "NGraph is available but disabled.";
+    VLOG(0) << "NGraph is available but disabled.";
   }
   if (ngraph_not_enabled || already_processed) {
-    NGRAPH_VLOG(1) << std::string("Rewrite pass will not run because ") +
-                          (already_processed ? "graph is already preprocessed"
-                                             : "ngraph is disabled");
+    VLOG(1) << std::string("Rewrite pass will not run because ") +
+                   (already_processed ? "graph is already preprocessed"
+                                      : "ngraph is disabled");
     NGraphClusterManager::EvictAllClusters();
     graph.ToGraphDef(output);
     return Status::OK();
@@ -156,26 +156,25 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
 
   // If requested, dump unmarked graphs.
   if (DumpUnmarkedGraphs()) {
-    DumpGraphs(graph, idx, "unmarked", "Unmarked Graph");
+    DumpGraphs(graph, idx, "unmarked");
   }
 
   // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(MarkForClustering(&graph, skip_these_nodes));
   if (DumpMarkedGraphs()) {
-    DumpGraphs(graph, idx, "marked", "Graph Marked for Clustering");
+    DumpGraphs(graph, idx, "marked");
   }
 
   // 2. Assign clusters then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(AssignClusters(&graph));
   if (DumpClusteredGraphs()) {
-    DumpGraphs(graph, idx, "clustered", "Graph with Clusters Assigned");
+    DumpGraphs(graph, idx, "clustered");
   }
 
   // 3. Deassign trivial clusters then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(DeassignClusters(&graph));
   if (DumpDeclusteredGraphs()) {
-    DumpGraphs(graph, idx, "declustered",
-               "Graph with Trivial Clusters De-Assigned");
+    DumpGraphs(graph, idx, "declustered");
   }
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
@@ -184,7 +183,7 @@ Status NgraphOptimizer::Optimize(tensorflow::grappler::Cluster* cluster,
     return status;
   }
   if (DumpEncapsulatedGraphs()) {
-    DumpGraphs(graph, idx, "encapsulated", "Graph with Clusters Encapsulated");
+    DumpGraphs(graph, idx, "encapsulated");
   }
 
   // Convert the graph back to Graphdef
@@ -196,19 +195,6 @@ void NgraphOptimizer::Feedback(tensorflow::grappler::Cluster* cluster,
                                const tensorflow::grappler::GrapplerItem& item,
                                const GraphDef& optimize_output, double result) {
   // no-op
-}
-
-void NgraphOptimizer::DumpGraphs(Graph& graph, int idx,
-                                 std::string filename_prefix,
-                                 std::string title) {
-  // If we have a "main" graph, dump that.
-  auto dot_filename = DotFilename(filename_prefix, idx);
-  auto pbtxt_filename = PbtxtFilename(filename_prefix, idx);
-  NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Dumping main graph to " << dot_filename;
-  NGRAPH_VLOG(0) << "NGTF_OPTIMIZER: Dumping main graph to " << pbtxt_filename;
-
-  GraphToDotFile(&graph, dot_filename, title);
-  GraphToPbTextFile(&graph, pbtxt_filename);
 }
 
 int NgraphOptimizer::FreshIndex() {

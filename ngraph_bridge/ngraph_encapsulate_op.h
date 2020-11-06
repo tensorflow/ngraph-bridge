@@ -24,7 +24,6 @@
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/graph/graph.h"
 
-#include "logging/ngraph_log.h"
 #include "ngraph/ngraph.hpp"
 #include "ngraph_bridge/ngraph_encapsulate_impl.h"
 

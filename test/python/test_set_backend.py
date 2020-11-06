@@ -66,7 +66,7 @@ class TestSetBackend(NgraphTest):
 
         # create new session to execute graph
         # If you want to re-confirm which backend the graph was executed
-        # currently the only way is to enable NGRAPH_TF_VLOG_LEVEL=5
+        # currently the only way is to enable TF_OV_MIN_VLOG_LEVEL=5
         with tf.compat.v1.Session() as sess:
             sess.run((out2,), feed_dict={val: ((1.4, -0.5, -1))})
         current_backend = ngraph_bridge.get_backend()

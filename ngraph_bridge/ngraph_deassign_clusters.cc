@@ -23,11 +23,9 @@
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/graph/graph.h"
-#include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/util/device_name_utils.h"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
@@ -191,10 +189,10 @@ Status DeassignClusters(Graph* graph) {
     }
 
     if (non_trivial_count < MIN_NONTRIVIAL_NODES) {
-      NGRAPH_VLOG(2) << "Busting cluster " << cluster_idx;
+      VLOG(2) << "Busting cluster " << cluster_idx;
       for (auto node : nodes) {
-        NGRAPH_VLOG(2) << "Busting node: " << node->name() << " ["
-                       << node->type_string() << "]";
+        VLOG(2) << "Busting node: " << node->name() << " ["
+                << node->type_string() << "]";
 
         // TODO(amprocte): move attr name to a constant
         node->ClearAttr("_ngraph_cluster");

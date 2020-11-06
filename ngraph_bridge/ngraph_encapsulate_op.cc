@@ -29,7 +29,6 @@
 #include "tensorflow/core/graph/graph.h"
 #include "tensorflow/core/graph/graph_constructor.h"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
@@ -51,7 +50,7 @@ int NGraphEncapsulateOp::s_instance_id = 0;
 //---------------------------------------------------------------------------
 NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     : OpKernel(ctx) {
-  NGRAPH_VLOG(1) << "Create Executor " << name();
+  VLOG(1) << "Create Executor " << name();
   ng_encap_impl_.SetName(name());
 
   std::ostringstream oss;
@@ -59,8 +58,8 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 
   NG_TRACE(oss.str(), name(), "");
 
-  NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << ng_encap_impl_.GetInstanceId()
-                 << " Name: " << name();
+  VLOG(1) << "NGraphEncapsulateOp: " << ng_encap_impl_.GetInstanceId()
+          << " Name: " << name();
 
   GraphDef* graph_def;
 
@@ -89,7 +88,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
     Status status =
         FunctionDefToBodyHelper(*fdef, {}, &flib, get_func_sig, &fnbody);
     if (!status.ok()) {
-      NGRAPH_VLOG(2) << "FunctionDefToBodyHelper returned a not ok status.";
+      VLOG(2) << "FunctionDefToBodyHelper returned a not ok status.";
     }
     CopyGraph(*fnbody->graph, &ng_encap_impl_.m_graph);
   } else {
@@ -142,16 +141,16 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
         continue;
       }
 
-      NGRAPH_VLOG(5) << "For arg " << index << " checking edge "
-                     << edge->DebugString();
+      VLOG(5) << "For arg " << index << " checking edge "
+              << edge->DebugString();
 
       if (InputIsStatic(edge->dst(), edge->dst_input())) {
-        NGRAPH_VLOG(5) << "Marking edge static: " << edge->DebugString();
+        VLOG(5) << "Marking edge static: " << edge->DebugString();
         is_static = true;
         break;
       }
     }
-    NGRAPH_VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
+    VLOG(5) << "Marking arg " << index << " is_static: " << is_static;
     ng_encap_impl_.SetStaticInputVector(index, is_static);
   }
 
@@ -170,7 +169,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   oss << "Destroy Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
       << name();
   NG_TRACE(oss.str(), name(), "");
-  NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
+  VLOG(2) << "~NGraphEncapsulateOp::" << name();
   ng_encap_impl_.ClearExecMaps();
 }
 
@@ -178,7 +177,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
-  NGRAPH_VLOG(1) << "Compute using executor " << name();
+  VLOG(1) << "Compute using executor " << name();
   std::ostringstream oss;
   oss << "Execute: Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
       << name();
@@ -187,8 +186,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   Timer compute_time;
   std::lock_guard<std::mutex> lock(m_compute_lock_);
   int cluster_id = ng_encap_impl_.GetNgraphCluster();
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
-                 << cluster_id;
+  VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster " << cluster_id;
   int time_func_create_or_lookup;
   Timer function_lookup_or_create;
 
@@ -212,16 +210,15 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ctx, ng_encap_impl_.GetNgExecutable(tf_input_tensors, input_shapes,
                                             static_input_map, ng_exec));
 
-    NGRAPH_VLOG(1) << " Step_ID: " << step_id;
-    NGRAPH_VLOG(4)
-        << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
-        << cluster_id;
+    VLOG(1) << " Step_ID: " << step_id;
+    VLOG(4) << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
+            << cluster_id;
 
     time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
   }
 
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
-                 << cluster_id;
+  VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
+          << cluster_id;
 
   Timer create_or_lookup_tensors;
 
@@ -234,9 +231,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ctx, ng_encap_impl_.AllocateNGTensors(tf_input_tensors, ng_inputs));
   }
 
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
-                    "for cluster "
-                 << cluster_id;
+  VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
+             "for cluster "
+          << cluster_id;
 
   // Allocate tensors for the output results.
 
@@ -247,10 +244,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   for (auto i = 0; i < results.size(); i++) {
     auto ng_element = results[i];
     if (ng_element->get_output_partial_shape(0).is_dynamic()) {
-      NGRAPH_VLOG(4)
-          << "NGraphEncapsulateOp::Compute skipping output allocation for "
-             "dynamic tensor at index"
-          << i;
+      VLOG(4) << "NGraphEncapsulateOp::Compute skipping output allocation for "
+                 "dynamic tensor at index"
+              << i;
       dyn_shape_tensors.push_back(i);
       continue;
     }
@@ -278,7 +274,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     ng_outputs[i] =
         make_shared<IETensor>(ng_element_type, ng_shape, output_tensor->data());
   }
-  NGRAPH_VLOG(4)
+  VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
       << cluster_id;
 
@@ -289,9 +285,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     NG_TRACE("Execute nGraph", name(), "");
     Timer execute_function;
     {
-      NGRAPH_VLOG(4)
-          << "NGraphEncapsulateOp::Compute call starting for cluster "
-          << cluster_id;
+      VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "
+              << cluster_id;
       try {
         ng_exec->call(ng_inputs, ng_outputs);
       } catch (const std::exception& exp) {
@@ -325,26 +320,24 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   long vm, rss;
   MemoryProfile(vm, rss);
-  NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
-                 << ng_encap_impl_.GetInstanceId() << " Step_ID: " << step_id
-                 << " Cluster: " << name() << " Input Tensors created: "
-                 << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
-                 << " Total process memory: " << rss / (1024 * 1024) << " GB";
+  VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << ng_encap_impl_.GetInstanceId()
+          << " Step_ID: " << step_id << " Cluster: " << name()
+          << " Input Tensors created: "
+          << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
+          << " Total process memory: " << rss / (1024 * 1024) << " GB";
 
-  NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
-                 << ng_encap_impl_.GetNgraphCluster();
+  VLOG(4) << "NGraphEncapsulateOp::Compute call done for cluster "
+          << ng_encap_impl_.GetNgraphCluster();
 
-  NGRAPH_VLOG(4)
-      << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
-      << ng_encap_impl_.GetNgraphCluster();
-  NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: "
-                 << ng_encap_impl_.GetInstanceId() << " Step_ID: " << step_id
-                 << " Cluster: " << name()
-                 << " Time-Compute: " << compute_time.ElapsedInMS()
-                 << " Function-Create-or-Lookup: " << time_func_create_or_lookup
-                 << " Create-and-copy-tensors: "
-                 << time_create_or_lookup_tensors
-                 << " Execute: " << time_execute_function;
+  VLOG(4) << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
+          << ng_encap_impl_.GetNgraphCluster();
+  VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: "
+          << ng_encap_impl_.GetInstanceId() << " Step_ID: " << step_id
+          << " Cluster: " << name()
+          << " Time-Compute: " << compute_time.ElapsedInMS()
+          << " Function-Create-or-Lookup: " << time_func_create_or_lookup
+          << " Create-and-copy-tensors: " << time_create_or_lookup_tensors
+          << " Execute: " << time_execute_function;
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;

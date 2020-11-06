@@ -29,7 +29,6 @@
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/public/session.h"
 
-#include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "test/opexecuter.h"
 #include "test/test_utilities.h"

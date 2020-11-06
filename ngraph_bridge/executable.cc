@@ -17,7 +17,6 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph/opsets/opset.hpp"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
 #include "ngraph_bridge/ie_tensor.h"
@@ -30,12 +29,11 @@ namespace ngraph_bridge {
 
 Executable::Executable(shared_ptr<Function> func, string device)
     : m_device{device}, m_trivial_fn{nullptr}, m_function(func) {
-  NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
+  VLOG(2) << "Checking for unsupported ops in IE backend";
   const auto& opset = ngraph::get_opset4();
   for (const auto& node : func->get_ops()) {
     if (!opset.contains_op_type(node.get())) {
-      NGRAPH_VLOG(0) << "UNSUPPORTED OP DETECTED: "
-                     << node->get_type_info().name;
+      VLOG(0) << "UNSUPPORTED OP DETECTED: " << node->get_type_info().name;
       THROW_IE_EXCEPTION << "Detected op not belonging to opset3!";
     }
   }
@@ -44,7 +42,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
   //  1. constant function (Const -> Result)
   //  2. identity function (Parameter -> Result)
   //  3. zero function (* -> Zero)
-  NGRAPH_VLOG(2) << "Checking for trivial functions in IE backend";
+  VLOG(2) << "Checking for trivial functions in IE backend";
   bool trivial_fn = true;
   for (auto result : func->get_results()) {
     auto parent = result->input_value(0).get_node_shared_ptr();
@@ -55,14 +53,14 @@ Executable::Executable(shared_ptr<Function> func, string device)
   }
 
   if (trivial_fn) {
-    NGRAPH_VLOG(2) << "Function is trivial and can be short-circuited";
+    VLOG(2) << "Function is trivial and can be short-circuited";
     m_trivial_fn = func;
     return;
   }
 
-  NGRAPH_VLOG(2) << "Checking for function parameters in IE backend";
+  VLOG(2) << "Checking for function parameters in IE backend";
   if (func->get_parameters().size() == 0) {
-    NGRAPH_VLOG(1) << "No parameters found in nGraph function!";
+    VLOG(1) << "No parameters found in nGraph function!";
     // Try to find a node that can be converted into a "static input"
     bool param_replaced = false;
     for (const auto& node : func->get_ordered_ops()) {
@@ -87,8 +85,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
                          shape_size(shape) * element_type.size());
         m_hoisted_params.push_back(
             make_pair(param->get_friendly_name(), ie_tensor));
-        NGRAPH_VLOG(1) << "Converted node " << constant << " to a parameter "
-                       << param;
+        VLOG(1) << "Converted node " << constant << " to a parameter " << param;
         param_replaced = true;
         break;
       }
@@ -101,7 +98,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
 
   m_function = func;
 
-  NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
+  VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
 
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
@@ -110,7 +107,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
     ngraph::plot_graph(func, "tf_function_" + name + "_ie.dot");
   }
 
-  NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
+  VLOG(2) << "Loading IE CNN network to device " << m_device;
 
   InferenceEngine::Core ie;
   // Load network to the plugin (m_device) and create an infer request
@@ -122,8 +119,8 @@ Executable::Executable(shared_ptr<Function> func, string device)
 bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
                       vector<shared_ptr<runtime::Tensor>>& outputs) {
   if (m_trivial_fn) {
-    NGRAPH_VLOG(2) << "Calling trivial IE function with inputs="
-                   << inputs.size() << " outputs=" << outputs.size();
+    VLOG(2) << "Calling trivial IE function with inputs=" << inputs.size()
+            << " outputs=" << outputs.size();
     return call_trivial(inputs, outputs);
   }
 
@@ -171,7 +168,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   auto results = func->get_results();
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] != nullptr) {
-      NGRAPH_VLOG(4) << "Executable::call() SetBlob()";
+      VLOG(4) << "Executable::call() SetBlob()";
       shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
       m_infer_req.SetBlob(get_output_name(results[i]), tv->get_blob());
     }
@@ -182,7 +179,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   // Set dynamic output blobs
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] == nullptr) {
-      NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
+      VLOG(4) << "Executable::call() GetBlob()";
       auto blob = m_infer_req.GetBlob(get_output_name(results[i]));
       outputs[i] = make_shared<IETensor>(blob);
     }
@@ -206,12 +203,12 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
         outputs[i] =
             make_shared<IETensor>(results[i]->get_element_type(), shape);
       }
-      NGRAPH_VLOG(2) << "Skipping function with zero dim result...";
+      VLOG(2) << "Skipping function with zero dim result...";
       continue;
     }
     auto parent = results[i]->input_value(0).get_node_shared_ptr();
     if (ngraph::is_type<opset::Parameter>(parent)) {
-      NGRAPH_VLOG(2) << "Calling parameter -> result function...";
+      VLOG(2) << "Calling parameter -> result function...";
       auto param = ngraph::as_type_ptr<opset::Parameter>(parent);
       auto index = m_trivial_fn->get_parameter_index(param);
       if (index < 0) {
@@ -228,7 +225,7 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
       outputs[i]->write(buf_ptr, size);
       delete buf_ptr;
     } else if (ngraph::is_type<opset::Constant>(parent)) {
-      NGRAPH_VLOG(2) << "Calling constant -> result function...";
+      VLOG(2) << "Calling constant -> result function...";
       auto constant = ngraph::as_type_ptr<opset::Constant>(parent);
       if (outputs[i] == nullptr) {
         outputs[i] = make_shared<IETensor>(

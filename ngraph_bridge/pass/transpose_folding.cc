@@ -19,9 +19,10 @@
 #include <iostream>
 #include <sstream>
 
+#include "tensorflow/core/platform/logging.h"
+
 #include "ngraph/ngraph.hpp"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/pass/transpose_folding.h"
 #include "ngraph_bridge/version.h"
@@ -53,10 +54,11 @@ bool TransposeFolding::run_on_function(shared_ptr<ngraph::Function> f) {
 
           // check if the two transposes cancel each other out
           if (default_order == perm_t2) {
-            NGRAPH_VLOG(4)
-                << "TransposeFolding: Eliminating consecutive transposes:"
-                << " t1 i/o = " << ngraph::join(const1->get_axis_vector_val())
-                << " t2 i/o = " << ngraph::join(const2->get_axis_vector_val());
+            VLOG(4) << "TransposeFolding: Eliminating consecutive transposes:"
+                    << " t1 i/o = "
+                    << ngraph::join(const1->get_axis_vector_val())
+                    << " t2 i/o = "
+                    << ngraph::join(const2->get_axis_vector_val());
             ngraph::replace_node(t1, t2->input_value(0).get_node_shared_ptr());
           } else {
             // delete the second transpose first before replacing with the

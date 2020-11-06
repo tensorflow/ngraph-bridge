@@ -26,7 +26,6 @@
 
 #include "ngraph/ngraph.hpp"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/executable.h"
 
 namespace tensorflow {
