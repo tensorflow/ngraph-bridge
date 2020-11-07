@@ -83,6 +83,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
       NGRAPH_VLOG(0) << "NGraphEncapsulationPass: options.graph == nullptr";
       return Status::OK();
     }
+    auto start_rewrite = std::chrono::high_resolution_clock::now();
 
     // For filename generation purposes, grab a fresh index. This is just an
     // arbitrary integer to avoid filename collisions resulting from subsequent
@@ -113,6 +114,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // Now Process the Graph
 
+    auto start_mark = std::chrono::high_resolution_clock::now();
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
     TF_RETURN_IF_ERROR(
@@ -120,23 +122,41 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     if (DumpMarkedGraphs()) {
       DumpGraphs(options, idx, "marked", "Graph Marked for Clustering");
     }
+    auto finish_mark = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_mark = finish_mark - start_mark;
+    std::cout << "MarkForClustering Time: " << elapsed_mark.count() << " s\n";
 
+    auto start_assign = std::chrono::high_resolution_clock::now();
     // 2. Assign clusters then, if requested, dump the graphs.
     TF_RETURN_IF_ERROR(AssignClusters(options.graph->get()));
     if (DumpClusteredGraphs()) {
       DumpGraphs(options, idx, "clustered", "Graph with Clusters Assigned");
     }
+    auto finish_assign = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_assign = finish_assign - start_assign;
+    std::cout << "AssignClusters Time: " << elapsed_assign.count() << " s\n";
 
+    auto start_deassign = std::chrono::high_resolution_clock::now();
     // 3. Deassign trivial clusters then, if requested, dump the graphs.
     TF_RETURN_IF_ERROR(DeassignClusters(options.graph->get()));
     if (DumpDeclusteredGraphs()) {
       DumpGraphs(options, idx, "declustered",
                  "Graph with Trivial Clusters De-Assigned");
     }
+    auto finish_deassign = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_deassign = finish_deassign - start_deassign;
+    std::cout << "DeassignClusters Time: " << elapsed_deassign.count() << " s\n";
 
+    auto start_encap = std::chrono::high_resolution_clock::now();
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     std::unordered_map<std::string, std::string> config_map;
     auto status = EncapsulateClusters(options.graph->get(), idx, config_map);
+    auto finish_encap = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_encap = finish_encap - start_encap;
+    std::cout << "EncapsulateClusters Time: " << elapsed_encap.count() << " s\n";
+    auto finish_rewrite = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_rewrite = finish_rewrite - start_rewrite;
+    std::cout << "Rewrite Pass Time: " << elapsed_rewrite.count() << " s\n";
     if (status != Status::OK()) {
       return status;
     }

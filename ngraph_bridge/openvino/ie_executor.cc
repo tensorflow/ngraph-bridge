@@ -54,6 +54,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
         IEManager::GetInputBatchSize(inputs[0]->get_shape()[0], m_device);
     num_req = inputs[0]->get_shape()[0] / batch_size;
   }
+  std::cout << "Num req: " << num_req << std::endl;
 
   while (m_infer_reqs.size() < num_req) {
     m_infer_reqs.push_back(m_exe_network.CreateInferRequest());
@@ -148,6 +149,7 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
     }
   }
 
+  auto start_ie_inf = std::chrono::high_resolution_clock::now();
   // Start Inference Requests
   for (int i = 0; i < num_req; i++) {
     start_async_inference(i);
@@ -156,6 +158,9 @@ void IE_Executor::infer(std::vector<std::shared_ptr<IE_Data>> inputs,
   for (int i = 0; i < num_req; i++) {
     complete_async_inference(i);
   }
+  auto finish_ie_inf = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_ie_inf = finish_ie_inf - start_ie_inf;
+  std::cout << "IE Execution Time: " << elapsed_ie_inf.count() << " s\n";
 
   // Set dynamic output blobs
   for (int i = 0; i < outputs.size(); i++) {

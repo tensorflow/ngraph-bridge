@@ -114,8 +114,12 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
     MemoryProfile(vm0, rss0);
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
+    auto start_translate = std::chrono::high_resolution_clock::now();
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                &m_graph, ng_function));
+    auto finish_translate = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_translate = finish_translate - start_translate;
+    std::cout << "TranslateGraph Time: " << elapsed_translate.count() << " s\n";
     ng_function->set_friendly_name(m_name);
 
     if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {
@@ -141,7 +145,11 @@ Status NGraphEncapsulateImpl::GetNgExecutable(
 
     NG_TRACE("Compile nGraph", m_name, "");
     try {
+      auto start_compile = std::chrono::high_resolution_clock::now();
       ng_exec = backend->compile(ng_function);
+      auto finish_compile = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> elapsed_compile = finish_compile - start_compile;
+      std::cout << "Graph Compile Time: " << elapsed_compile.count() << " s\n";
     } catch (const std::exception& ex) {
       return errors::Internal("Failed to compile function " + m_name + ": ",
                               ex.what());

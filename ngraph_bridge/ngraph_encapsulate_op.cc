@@ -178,6 +178,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 // OpKernel::Compute
 //---------------------------------------------------------------------------
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
+  auto start_compute = std::chrono::high_resolution_clock::now();
   NGRAPH_VLOG(1) << "Compute using executor " << name();
   std::ostringstream oss;
   oss << "Execute: Encapsulate_" << ng_encap_impl_.GetInstanceId() << ": "
@@ -311,7 +312,11 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           << "NGraphEncapsulateOp::Compute call starting for cluster "
           << cluster_id;
       try {
+        auto start_ngex_call = std::chrono::high_resolution_clock::now();
         ng_exec->call(ng_inputs, ng_outputs, multi_req_execution);
+        auto finish_ngex_call = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_ngex_call = finish_ngex_call - start_ngex_call;
+        std::cout << "NG_Exec Call Time: " << elapsed_ngex_call.count() << " s\n";
       } catch (const std::exception& exp) {
         string status_string = "Caught exception while executing cluster " +
                                to_string(cluster_id) + string(exp.what());
@@ -363,6 +368,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                  << " Create-and-copy-tensors: "
                  << time_create_or_lookup_tensors
                  << " Execute: " << time_execute_function;
+        auto finish_compute = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_compute = finish_compute - start_compute;
+        std::cout << "Compute Time: " << elapsed_compute.count() << " s\n";
 }  // end compute
 
 int NGraphEncapsulateImpl::s_instance_count = 0;

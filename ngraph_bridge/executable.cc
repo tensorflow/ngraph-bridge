@@ -32,6 +32,7 @@ namespace ngraph_bridge {
 Executable::Executable(shared_ptr<Function> func, string device)
     : m_device{device}, m_trivial_fn{nullptr}, m_function(func) {
   NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
+  auto start_unsp = std::chrono::high_resolution_clock::now();
   const auto& opset = ngraph::get_opset3();
   for (const auto& node : func->get_ops()) {
     if (!opset.contains_op_type(node.get())) {
@@ -40,7 +41,11 @@ Executable::Executable(shared_ptr<Function> func, string device)
       THROW_IE_EXCEPTION << "Detected op not belonging to opset3!";
     }
   }
+  auto finish_unsp = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_unsp = finish_unsp - start_unsp;
+  std::cout << "Unsupported Ops Check Time: " << elapsed_unsp.count() << " s\n";
 
+  auto start_trv = std::chrono::high_resolution_clock::now();
   // A trivial function is one of
   //  1. constant function (Const -> Result)
   //  2. identity function (Parameter -> Result)
@@ -54,6 +59,9 @@ Executable::Executable(shared_ptr<Function> func, string device)
                   ngraph::is_type<opset::Constant>(parent) ||
                   count(shape.begin(), shape.end(), 0);
   }
+  auto finish_trv = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_trv = finish_trv - start_trv;
+  std::cout << "Trivial Func Check Time: " << elapsed_trv.count() << " s\n";
 
   if (trivial_fn) {
     NGRAPH_VLOG(2) << "Function is trivial and can be short-circuited";
@@ -63,6 +71,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
 
   NGRAPH_VLOG(2) << "Checking for function parameters in IE backend";
   if (func->get_parameters().size() == 0) {
+    auto start_param = std::chrono::high_resolution_clock::now();
     NGRAPH_VLOG(1) << "No parameters found in nGraph function!";
     // Try to find a node that can be converted into a "static input"
     bool param_replaced = false;
@@ -98,12 +107,19 @@ Executable::Executable(shared_ptr<Function> func, string device)
       THROW_IE_EXCEPTION
           << "Unable to add a parameter to a function with no parameters!";
     }
+    auto finish_param = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_param = finish_param - start_param;
+    std::cout << "Func Parameters Check Time: " << elapsed_param.count() << " s\n";
   }
 
   m_function = func;
 
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
+  auto start_net = std::chrono::high_resolution_clock::now();
   m_network = InferenceEngine::CNNNetwork(func);
+  auto finish_net = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_net = finish_net - start_net;
+  std::cout << "CNNNetwork Time: " << elapsed_net.count() << " s\n";
 
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
     auto& name = m_network.getName();
@@ -113,13 +129,25 @@ Executable::Executable(shared_ptr<Function> func, string device)
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
 
-  InferenceEngine::Core ie;
+  //InferenceEngine::Core ie;
   // Load network to the plugin (m_device) and create an infer request
-  m_exe_network = ie.LoadNetwork(m_network, m_device);
+  //auto start_load = std::chrono::high_resolution_clock::now();
+  //m_exe_network = ie.LoadNetwork(m_network, m_device);
+  //auto finish_load = std::chrono::high_resolution_clock::now();
+  //std::chrono::duration<double> elapsed_load = finish_load - start_load;
+  //std::cout << "LoadNetwork Time: " << elapsed_load.count() << " s\n";
 
-  InferenceEngine::CNNNetwork ie_network(func);
-  m_ie_executor = make_shared<IE_Executor>(ie_network, m_device);
-  m_ng_func = ie_network.getFunction();
+  //auto start_net = std::chrono::high_resolution_clock::now();
+  //InferenceEngine::CNNNetwork ie_network(func);
+  //auto finish_net = std::chrono::high_resolution_clock::now();
+  //std::chrono::duration<double> elapsed_net = finish_net - start_net;
+  //std::cout << "CNNNetwork Time: " << elapsed_net.count() << " s\n";
+  auto start_init_ex = std::chrono::high_resolution_clock::now();
+  m_ie_executor = make_shared<IE_Executor>(m_network, m_device);
+  auto finish_init_ex = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_init_ex = finish_init_ex - start_init_ex;
+  std::cout << "Init Ex Time: " << elapsed_init_ex.count() << " s\n";
+  m_ng_func = m_network.getFunction();
 }
 
 bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
@@ -189,8 +217,12 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
     }
   }
 
+  auto start_executor_inf = std::chrono::high_resolution_clock::now();
   m_ie_executor->infer(ie_inputs, ie_outputs, ie_hoisted_params,
                        multi_req_execution);
+  auto finish_executor_inf = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_executor_inf = finish_executor_inf - start_executor_inf;
+  std::cout << "Executor Call Time: " << elapsed_executor_inf.count() << " s\n";
 
   // Set dynamic output blobs
   for (int i = 0; i < results.size(); i++) {
