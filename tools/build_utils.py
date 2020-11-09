@@ -592,6 +592,9 @@ def get_bazel_version():
 def build_openvino(build_dir, openvino_src_dir, cxx_abi, target_arch,
                    artifacts_location, python_module_enabled, debug_enabled,
                    verbosity):
+    install_location = os.path.join(artifacts_location, "openvino")
+    print("INSTALL location: " + artifacts_location)
+
     # Now build OpenVINO
     openvino_cmake_flags = [
         "-DENABLE_V7_SERIALIZE=ON",
@@ -605,7 +608,7 @@ def build_openvino(build_dir, openvino_src_dir, cxx_abi, target_arch,
         "-DENABLE_CPPLINT=OFF",
         "-DENABLE_SPEECH_DEMO=FALSE",
         "-DCMAKE_INSTALL_RPATH=\"$ORIGIN\"",
-        "-DCMAKE_INSTALL_PREFIX=" + os.path.join(artifacts_location, "openvino")
+        "-DCMAKE_INSTALL_PREFIX=" + install_location
     ]
 
     if python_module_enabled:

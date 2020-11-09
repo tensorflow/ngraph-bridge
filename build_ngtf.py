@@ -334,6 +334,11 @@ def main():
     #TODO
     else:
         print("Building OpenVINO from source")
+        print(
+            "NOTE: OpenVINO python module is not built when building from source."
+        )
+        python_module_enabled = False
+
         # Download OpenVINO
         download_repo(
             "openvino",
@@ -347,7 +352,6 @@ def main():
         if arguments.debug_build:
             debug_enabled = True
 
-        python_module_enabled = False
         build_openvino(build_dir, openvino_src_dir, cxx_abi, target_arch,
                        artifacts_location, python_module_enabled, debug_enabled,
                        verbosity)
