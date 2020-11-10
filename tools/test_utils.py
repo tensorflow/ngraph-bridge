@@ -24,6 +24,7 @@ import shutil
 import glob
 import platform
 import subprocess
+import multiprocessing
 from distutils.sysconfig import get_python_lib
 
 from tools.build_utils import load_venv, command_executor, apply_patch
@@ -139,17 +140,10 @@ def run_ngtf_pytests_from_artifacts(artifacts_dir):
 
     if not os.path.isdir(test_dir):
         raise Exception("test directory doesn't exist: " + test_dir)
-
-    # Change the directory to the test_dir
     os.chdir(test_dir)
 
-    # Next run the ngraph-tensorflow python tests
-    command_executor(["pip", "install", "-U", "pytest"])
-    command_executor(["pip", "install", "-U", "psutil"])
-
-    test_manifest_file = TestEnv.get_test_manifest_filename()
     # export the env-var for pytest to process manifest in conftest.py
-    os.environ['NGRAPH_TF_TEST_MANIFEST'] = test_manifest_file
+    os.environ['NGRAPH_TF_TEST_MANIFEST'] = TestEnv.get_test_manifest_filename()
 
     command_executor([
         "python", "-m", "pytest",
@@ -203,12 +197,10 @@ def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
 
     test_xml_report = './junit_tensorflow_tests.xml'
 
-    import psutil
-    num_cores = int(psutil.cpu_count(logical=False))
-    print("OMP_NUM_THREADS: %s " % str(num_cores))
-    os.environ['OMP_NUM_THREADS'] = str(num_cores)
+    num_cores = str(multiprocessing.cpu_count())
+    print("OMP_NUM_THREADS: %s " % num_cores)
+    os.environ['OMP_NUM_THREADS'] = num_cores
     os.environ['NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS'] = '1'
-
     cmd = [
         "python", test_script, "--tensorflow_path", tf_src_dir,
         "--run_tests_from_file", test_manifest_file
@@ -250,11 +242,9 @@ def run_resnet50_from_artifacts(ngraph_tf_src_dir, artifact_dir, batch_size,
         call(['echo', 'import ngraph_bridge'], stdout=outfile)
 
     # Setup the env flags
-    import psutil
-    num_cores = int(psutil.cpu_count(logical=False))
-    print("OMP_NUM_THREADS: %s " % str(num_cores))
-
-    os.environ['OMP_NUM_THREADS'] = str(num_cores)
+    num_cores = str(multiprocessing.cpu_count())
+    print("OMP_NUM_THREADS: %s " % num_cores)
+    os.environ['OMP_NUM_THREADS'] = num_cores
     os.environ["KMP_AFFINITY"] = 'granularity=fine,compact,1,0'
 
     # Delete the temporary model save directory
@@ -313,10 +303,9 @@ def run_resnet50_infer_from_artifacts(artifact_dir, batch_size, iterations):
         print("Using existing pretrained model file: " + pretrained_model)
 
     # Setup the env flags
-    import psutil
-    num_cores = int(psutil.cpu_count(logical=False))
-    print("OMP_NUM_THREADS: %s " % str(num_cores))
-    os.environ['OMP_NUM_THREADS'] = str(num_cores)
+    num_cores = str(multiprocessing.cpu_count())
+    print("OMP_NUM_THREADS: %s " % num_cores)
+    os.environ['OMP_NUM_THREADS'] = num_cores
     os.environ["KMP_AFFINITY"] = 'granularity=fine,compact,1,0'
 
     os.chdir(root_pwd)
