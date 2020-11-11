@@ -83,12 +83,12 @@ def main():
 
     verbosity = False
     artifacts_location = 'artifacts'
-    artifacts_location = os.path.abspath(artifacts_location)
-    print("ARTIFACTS location: " + artifacts_location)
+    # artifacts_location = os.path.abspath(artifacts_location)
+    # print("ARTIFACTS location: " + artifacts_location)
 
     #If artifacts doesn't exist create
-    if not os.path.isdir(artifacts_location):
-        os.mkdir(artifacts_location)
+    # if not os.path.isdir(artifacts_location):
+    #     os.mkdir(artifacts_location)
 
     # Build OpenVINO
     build_openvino(build_dir, openvino_src_dir, cxx_abi, arguments.target_arch,
