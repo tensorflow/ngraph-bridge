@@ -15,7 +15,6 @@
 # ******************************************************************************
 
 add_subdirectory(python)
-add_subdirectory(model_level_tests)
 
 if (DEFINED NGRAPH_TF_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX ${NGRAPH_TF_INSTALL_PREFIX})
@@ -45,7 +44,6 @@ install(
 )
 
 install(
-    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/model_level_tests
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
 )
 
