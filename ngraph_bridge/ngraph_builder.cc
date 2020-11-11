@@ -1622,13 +1622,13 @@ static Status TranslateLRNOp(const Node* op,
   ng::Output<ng::Node> ng_inp;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_inp));
 
-  float alpha = false;
+  float alpha;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "alpha", &alpha));
-  float beta = false;
+  float beta;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "beta", &beta));
-  float bias = false;
+  float bias;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "bias", &bias));
-  int64 depth_radius = false;
+  int64 depth_radius;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "depth_radius", &depth_radius));
 
   auto ng_output = ConstructNgNode<opset::LRN>(op->name(), ng_inp, alpha, beta,
