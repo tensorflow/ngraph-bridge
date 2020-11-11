@@ -25,26 +25,11 @@ endif()
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-    FILES_MATCHING PATTERN "*.py"
-)
-install(
-    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-    FILES_MATCHING PATTERN "*.pbtxt"
-)
-install(
-    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-    FILES_MATCHING PATTERN "*.pb"
-)
-install(
-    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/python
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-    FILES_MATCHING PATTERN "tests_*.txt"
-)
-
-install(
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test
+    FILES_MATCHING
+    PATTERN "*.py"
+    PATTERN "*.pbtxt"
+    PATTERN "*.pb"
+    PATTERN "tests_*.txt"
 )
 
 # Get this location from the CMAKE variables passed during the cmake time
