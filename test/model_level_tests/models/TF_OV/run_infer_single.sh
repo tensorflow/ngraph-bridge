@@ -121,6 +121,10 @@ if (( $ret_code == 0 )); then
     echo "Checking inference result..."
     ret_code=1
     INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+    echo grep "${INFER_PATTERN}" ${TMPFILE}
+    echo "======"
+    cat ${TMPFILE}
+    echo "======"
     grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
     print_infer_times $NUM_ITER "${TMPFILE}"
 fi
