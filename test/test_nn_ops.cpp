@@ -554,6 +554,25 @@ TEST(NNOps, LogSoftmax) {
   }
 }
 
+// Test Op :"LRN"
+TEST(NNOps, LRN) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 2;
+  int dim2 = 2;
+  int dim3 = 2;
+  int dim4 = 2;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2, dim3, dim4}));
+
+  AssignInputValues(A, 2.1f);
+
+  auto R = ops::LRN(root, A);
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "LRN", sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}
+
 // Test Op :"MaxPool3D"
 TEST(NNOps, MaxPool3DNDHWCSame) {
   std::vector<std::vector<int64>> input_sizes;
