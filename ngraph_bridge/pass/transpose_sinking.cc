@@ -174,8 +174,11 @@ static void insert_transpose(shared_ptr<ngraph::Node> target,
 static void delete_transpose(shared_ptr<ngraph::Node> transpose) {
   NGRAPH_VLOG(4) << "Removing transpose " << transpose->get_name();
   if (!transpose->get_users().empty()) {
-    ngraph::replace_node(transpose,
-                         transpose->input_value(0).get_node_shared_ptr());
+    ngraph::Output<ngraph::Node> output = transpose->output(0);
+    for (auto it = output.get_target_inputs().begin();
+         it != output.get_target_inputs().end(); ++it) {
+      (*it).replace_source_output(transpose->input_value(0));
+    }
   }
 }
 

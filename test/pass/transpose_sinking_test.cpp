@@ -367,6 +367,74 @@ TEST(TransposeSinking, SimpleUnary) {
   EXPECT_EQ(after_count, 0);
 }
 
+//            X (NCHW)
+//            |
+//         Transpose
+//            |
+//         Split (NHWC)
+//           /  \
+//          /    \
+//    Transpose Transpose
+//       |        |
+// Const |        |   Const (NHWC)
+//  \    |        |   /
+//   \   |        |  /
+//    \  |        | /
+//     Add        Add (NHWC)
+//        \       /
+//         \     /
+//          \   /
+//           Add
+//            |
+//          Result
+TEST(TransposeSinking, MultiOutput) {
+  ng::Shape input_shape{1, 1, 4, 4};  // NCHW (N=1, C=1, H=3, W=3)
+
+  auto input_type = ng::element::f32;
+  auto output_type = ng::element::f32;
+
+  auto X = make_shared<ng::opset3::Parameter>(input_type, input_shape);  // NCHW
+
+  auto ng_order1 = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 1, 2, 3});
+  auto transpose1 =
+      make_shared<ng::opset3::Transpose>(X, ng_order1);  // NHWC (1,3,3, 1)
+  auto ng_split_dim =
+      std::make_shared<ng::opset3::Constant>(ng::element::u64, ng::Shape{}, 3);
+
+  auto split = make_shared<ng::opset3::Split>(transpose1, ng_split_dim, 2);
+
+  auto ng_order2 = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 3, 2, 1});
+  auto transpose2 =
+      make_shared<ng::opset3::Transpose>(split, ng_order2);  // (1,4,4,1) NHWC
+
+  auto ng_order3 = std::make_shared<ng::opset3::Constant>(
+      ng::element::u64, ng::Shape{4}, ng::Shape{0, 3, 2, 1});
+  auto transpose3 =
+      make_shared<ng::opset3::Transpose>(split, ng_order3);  // (1,4,4,1) NHWC
+
+  auto const1 = ng::opset3::Constant::create(input_type, ng::Shape{1, 2, 4, 1},
+                                             {3});  // NHWC
+  auto add1 = make_shared<ng::opset3::Add>(transpose2, const1);
+  auto const2 = ng::opset3::Constant::create(input_type, ng::Shape{1, 2, 4, 1},
+                                             {3});  // NHWC
+  auto add2 = make_shared<ng::opset3::Add>(transpose3, const2);
+  auto add3 = make_shared<ng::opset3::Add>(add1, add2);
+  auto func = make_shared<ng::Function>(add3, ng::ParameterVector{X});
+
+  ng::pass::Manager pass_manager;
+  size_t before_count = count_ops_of_type<ng::opset3::Transpose>(func);
+  pass_manager.register_pass<pass::TransposeSinking>();
+  pass_manager.run_passes(func);
+  size_t after_count = count_ops_of_type<ng::opset3::Transpose>(func);
+  ASSERT_LE(before_count, after_count);
+  auto new_transpose = ng::as_type_ptr<ng::opset3::Transpose>(
+      func->get_results().at(0)->input_value(0).get_node_shared_ptr());
+  ASSERT_TRUE(new_transpose);
+  ASSERT_EQ(new_transpose->get_output_shape(0), (ng::Shape{1, 2, 4, 1}));
+}
+
 }  // namespace testing
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
