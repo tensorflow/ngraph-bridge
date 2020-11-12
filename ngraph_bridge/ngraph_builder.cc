@@ -1638,9 +1638,11 @@ static Status TranslateLRNOp(const Node* op,
   //     output = input / (bias + alpha * sqr_sum) ** beta
   int64 size = depth_radius * 2 + 1;
   alpha = alpha * size;
-
+  // nGraph expects the input to be in NCHW format
+  BatchToNGraph(op->name(), true, ng_inp);
   auto ng_output = ConstructNgNode<opset::LRN>(op->name(), ng_inp, alpha, beta,
                                                bias, (size_t)size);
+  BatchToTensorflow(op->name(), true, ng_output);
   SaveNgOp(ng_op_map, op->name(), ng_output);
   return Status::OK();
 }

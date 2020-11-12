@@ -573,6 +573,30 @@ TEST(NNOps, LRN) {
   opexecuter.RunTest();
 }
 
+TEST(NNOps, LRNattr) {
+  Scope root = Scope::NewRootScope();
+  int dim1 = 12;
+  int dim2 = 13;
+  int dim3 = 1;
+  int dim4 = 14;
+
+  Tensor A(DT_FLOAT, TensorShape({dim1, dim2, dim3, dim4}));
+  AssignInputValuesRandom<float>(A, -1, 9);
+  auto attrs = ops::LRN::Attrs();
+  attrs.alpha_ = 0.3222;
+  attrs.beta_ = 0.6875;
+  attrs.bias_ = 1.0059;
+  attrs.depth_radius_ = 1;
+
+  auto R = ops::LRN(root, A, attrs);
+
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "LRN", sess_run_fetchoutputs);
+  float rtol = static_cast<float>(1e-02);
+  float atol = static_cast<float>(1e-02);
+  opexecuter.RunTest(rtol, atol);
+}
+
 // Test Op :"MaxPool3D"
 TEST(NNOps, MaxPool3DNDHWCSame) {
   std::vector<std::vector<int64>> input_sizes;
