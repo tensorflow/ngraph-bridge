@@ -1631,8 +1631,16 @@ static Status TranslateLRNOp(const Node* op,
   int64 depth_radius;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "depth_radius", &depth_radius));
 
+  // OV: Each input value is divided by (bias+(alpha/size)*sum(xi^2 for every xi
+  // in the local region))^beta
+  // TF: sqr_sum[a, b, c, d] = sum(input[a, b, c, d - depth_radius : d +
+  // depth_radius + 1] ** 2)
+  //     output = input / (bias + alpha * sqr_sum) ** beta
+  int64 size = depth_radius * 2 + 1;
+  alpha = alpha * size;
+
   auto ng_output = ConstructNgNode<opset::LRN>(op->name(), ng_inp, alpha, beta,
-                                               bias, (size_t)depth_radius);
+                                               bias, (size_t)size);
   SaveNgOp(ng_op_map, op->name(), ng_output);
   return Status::OK();
 }
