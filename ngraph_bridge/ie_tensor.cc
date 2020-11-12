@@ -112,25 +112,23 @@ IETensor::IETensor(const element::Type& element_type, const PartialShape& shape)
   throw runtime_error("partial shapes not supported.");
 }
 
-IETensor::IETensor(const void* data_pointer, InferenceEngine::Precision precision,
+IETensor::IETensor(const void* data_pointer,
+                   InferenceEngine::Precision precision,
                    InferenceEngine::Layout layout,
                    InferenceEngine::SizeVector shape, size_t byte_size,
                    std::string name)
-    : runtime::Tensor(make_shared<descriptor::Tensor>(
-          fromPrecision(precision), Shape(shape),
-          "")),
+    : runtime::Tensor(make_shared<descriptor::Tensor>(fromPrecision(precision),
+                                                      Shape(shape), "")),
       m_data_pointer(data_pointer),
       m_precision(precision),
       m_layout(layout),
-      m_shape(shape), 
+      m_shape(shape),
       m_byte_size(byte_size),
-      m_name(name) {
-}
+      m_name(name) {}
 
 IETensor::IETensor(std::string name)
-    : runtime::Tensor(make_shared<descriptor::Tensor>(
-        element::Type(), Shape(),
-          name)) {
+    : runtime::Tensor(
+          make_shared<descriptor::Tensor>(element::Type(), Shape(), name)) {
   m_data_pointer = nullptr;
   m_byte_size = 0;
   m_name = name;
@@ -182,6 +180,5 @@ size_t IETensor::get_byte_size() const {
   else
     return m_byte_size;
 }
-
 }
 }

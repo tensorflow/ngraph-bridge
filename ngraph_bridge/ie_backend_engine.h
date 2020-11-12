@@ -32,10 +32,11 @@ class IE_Backend_Engine {
   ~IE_Backend_Engine();
 
   // Executes the inference
-  virtual void infer(std::vector<std::shared_ptr<IETensor>>& inputs,
-                     std::vector<std::shared_ptr<IETensor>>& outputs,
-                     std::vector<std::string>& output_names,
-                     std::vector<std::shared_ptr<IETensor>>& hoisted_params) = 0;
+  virtual void infer(
+      std::vector<std::shared_ptr<IETensor>>& inputs,
+      std::vector<std::shared_ptr<IETensor>>& outputs,
+      std::vector<std::string>& output_names,
+      std::vector<std::shared_ptr<IETensor>>& hoisted_params) = 0;
 
   // Returns output batch size based on the input batch size and the device
   // FIXME: This may not be needed
@@ -45,6 +46,7 @@ class IE_Backend_Engine {
   void enable_multi_req_execution();
   // Disables multi request execution
   void disable_multi_req_execution();
+
  protected:
   InferenceEngine::CNNNetwork m_network;
   std::vector<InferenceEngine::InferRequest> m_infer_reqs;
@@ -54,7 +56,6 @@ class IE_Backend_Engine {
 
   virtual void start_async_inference(const int req_id);
   virtual void complete_async_inference(const int req_id);
-
 };
 }
 }

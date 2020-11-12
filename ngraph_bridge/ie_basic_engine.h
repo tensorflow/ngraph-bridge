@@ -36,7 +36,6 @@ class IE_Basic_Engine : public IE_Backend_Engine {
                      std::vector<std::shared_ptr<IETensor>>& outputs,
                      std::vector<std::string>& output_names,
                      std::vector<std::shared_ptr<IETensor>>& hoisted_params);
-
 };
 }
 }

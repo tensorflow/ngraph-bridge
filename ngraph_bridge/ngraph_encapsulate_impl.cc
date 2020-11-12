@@ -28,6 +28,7 @@
 #include "tensorflow/core/graph/graph_constructor.h"
 
 #include "logging/ngraph_log.h"
+#include "ngraph_bridge/ie_utils.h"
 #include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
@@ -36,7 +37,6 @@
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/ie_utils.h"
 
 using namespace std;
 

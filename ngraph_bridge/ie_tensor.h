@@ -33,11 +33,10 @@ class IETensor : public ngraph::runtime::Tensor {
            const ngraph::PartialShape& shape);
   IETensor(const ngraph::element::Type& element_type,
            const ngraph::Shape& shape, void* memory_pointer);
-  //IETensor(std::shared_ptr<IE_Data> ie_data);
+  // IETensor(std::shared_ptr<IE_Data> ie_data);
   IETensor(const void* data_pointer, InferenceEngine::Precision precision,
-           InferenceEngine::Layout layout,
-           InferenceEngine::SizeVector shape, size_t byte_size,
-           std::string name);
+           InferenceEngine::Layout layout, InferenceEngine::SizeVector shape,
+           size_t byte_size, std::string name);
   IETensor(std::string name);
   ~IETensor() override;
 
@@ -45,7 +44,7 @@ class IETensor : public ngraph::runtime::Tensor {
   void read(void* dst, size_t bytes) const override;
 
   const void* get_data_ptr() const;
-  //std::shared_ptr<IE_Data> get_ie_data() const { return m_ie_data; };
+  // std::shared_ptr<IE_Data> get_ie_data() const { return m_ie_data; };
 
   InferenceEngine::Precision get_precision() const;
   InferenceEngine::Layout get_layout() const;
@@ -58,7 +57,7 @@ class IETensor : public ngraph::runtime::Tensor {
   IETensor(const IETensor&) = delete;
   IETensor(IETensor&&) = delete;
   IETensor& operator=(const IETensor&) = delete;
-  //std::shared_ptr<IE_Data> m_ie_data;
+  // std::shared_ptr<IE_Data> m_ie_data;
 
   const void* m_data_pointer;
   InferenceEngine::Precision m_precision;

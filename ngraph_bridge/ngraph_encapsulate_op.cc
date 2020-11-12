@@ -273,8 +273,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     // Get the output batch size based on the input shape, number of requests,
     // and the device.
     if (multi_req_execution) {
-      ng_shape[0] =
-          ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0));
+      ng_shape[0] = ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0));
     }
     for (auto dim : ng_shape) {
       tf_shape.AddDim(dim);

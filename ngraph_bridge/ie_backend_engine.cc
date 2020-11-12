@@ -14,16 +14,15 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include <iostream>
 #include "ngraph_bridge/ie_backend_engine.h"
+#include <iostream>
 #include "ngraph_bridge/ie_utils.h"
-
 
 namespace tensorflow {
 namespace ngraph_bridge {
 
 IE_Backend_Engine::IE_Backend_Engine(InferenceEngine::CNNNetwork ie_network,
-                         std::string device)
+                                     std::string device)
     : m_network(ie_network), m_device(device), m_multi_req_execution(false) {
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
     auto& name = m_network.getName();
@@ -67,12 +66,11 @@ size_t IE_Backend_Engine::getOutputBatchSize(size_t inputBatchSize) const {
 
 // Enables multi request execution if the execution engine supprts
 void IE_Backend_Engine::enable_multi_req_execution() {
-    m_multi_req_execution = true;
+  m_multi_req_execution = true;
 }
 // Disables multi request execution
 void IE_Backend_Engine::disable_multi_req_execution() {
-    m_multi_req_execution = false;
+  m_multi_req_execution = false;
 }
-
 }
 }

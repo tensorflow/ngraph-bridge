@@ -20,9 +20,9 @@
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
+#include "ngraph_bridge/ie_basic_engine.h"
 #include "ngraph_bridge/ie_tensor.h"
 #include "ngraph_bridge/ie_utils.h"
-#include "ngraph_bridge/ie_basic_engine.h"
 #include "ngraph_bridge/ie_vadm_engine.h"
 
 using namespace std;
@@ -120,7 +120,6 @@ Executable::Executable(shared_ptr<Function> func, string device)
   }
 }
 
-
 bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
                       vector<shared_ptr<runtime::Tensor>>& outputs,
                       bool multi_req_execution) {
@@ -142,23 +141,23 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   }
 
   //  Prepare input blobs
-  //std::vector<std::shared_ptr<IE_Data>> ie_inputs(inputs.size());
+  // std::vector<std::shared_ptr<IE_Data>> ie_inputs(inputs.size());
   std::vector<std::shared_ptr<IETensor>> ie_inputs(inputs.size());
   auto parameters = func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
     ie_inputs[i] = static_pointer_cast<IETensor>(inputs[i]);
-    //ie_inputs[i] = tv->get_ie_data();
+    // ie_inputs[i] = tv->get_ie_data();
     ie_inputs[i]->set_name(parameters[i]->get_friendly_name());
   }
 
-  //std::vector<std::shared_ptr<IE_Data>> ie_hoisted_params(
+  // std::vector<std::shared_ptr<IE_Data>> ie_hoisted_params(
   //    m_hoisted_params.size());
   std::vector<std::shared_ptr<IETensor>> ie_hoisted_params(
       m_hoisted_params.size());
   int j = 0;
   for (const auto& it : m_hoisted_params) {
     ie_hoisted_params[j] = static_pointer_cast<IETensor>(it.second);
-    //ie_hoisted_params[j] = tv->get_ie_data();
+    // ie_hoisted_params[j] = tv->get_ie_data();
     ie_hoisted_params[j++]->set_name(it.first);
   }
 
@@ -198,13 +197,12 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   } else {
     m_ie_executor->disable_multi_req_execution();
   }
-  m_ie_executor->infer(ie_inputs, ie_outputs, output_names,
-                       ie_hoisted_params);
+  m_ie_executor->infer(ie_inputs, ie_outputs, output_names, ie_hoisted_params);
 
   // Set dynamic output blobs
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] == nullptr) {
-      //NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
+      // NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
       outputs[i] = ie_outputs[i];
     }
   }

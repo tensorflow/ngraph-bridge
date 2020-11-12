@@ -15,24 +15,22 @@
  *******************************************************************************/
 
 #include "ngraph_bridge/ie_vadm_engine.h"
-#include "ngraph_bridge/ie_utils.h"
 #include <iostream>
-
+#include "ngraph_bridge/ie_utils.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
 
-
 IE_VADM_Engine::IE_VADM_Engine(InferenceEngine::CNNNetwork ie_network)
-    : IE_Backend_Engine(ie_network, "HDDL") {
-}
+    : IE_Backend_Engine(ie_network, "HDDL") {}
 
 IE_VADM_Engine::~IE_VADM_Engine() {}
 
-void IE_VADM_Engine::infer(std::vector<std::shared_ptr<IETensor>>& inputs,
-                        std::vector<std::shared_ptr<IETensor>>& outputs,
-                        std::vector<std::string>& output_names,
-                        std::vector<std::shared_ptr<IETensor>>& hoisted_params) {
+void IE_VADM_Engine::infer(
+    std::vector<std::shared_ptr<IETensor>>& inputs,
+    std::vector<std::shared_ptr<IETensor>>& outputs,
+    std::vector<std::string>& output_names,
+    std::vector<std::shared_ptr<IETensor>>& hoisted_params) {
   // Batch size is 0 and the number of requests is 1 when
   // multi request execution is disabled.
   int num_req = 1;
@@ -80,7 +78,7 @@ void IE_VADM_Engine::infer(std::vector<std::shared_ptr<IETensor>>& inputs,
           (void*)((uint64_t)(input_data_pointer) + req_size * j);
       int in_idx = i * num_req + j;
       IE_Utils::CreateBlob(desc, input_precision, data_ptr, req_size,
-                            in_blobs[in_idx]);
+                           in_blobs[in_idx]);
       m_infer_reqs[j].SetBlob(input_name, in_blobs[in_idx]);
     }
   }
@@ -96,7 +94,7 @@ void IE_VADM_Engine::infer(std::vector<std::shared_ptr<IETensor>>& inputs,
     InferenceEngine::SizeVector req_shape(param_shape);
     InferenceEngine::TensorDesc desc(param_precision, req_shape, param_layout);
     IE_Utils::CreateBlob(desc, param_precision, param_data_pointer, size,
-                          param_blobs[i]);
+                         param_blobs[i]);
     for (int j = 0; j < num_req; j++) {
       m_infer_reqs[j].SetBlob(param_name, param_blobs[i]);
     }
@@ -125,7 +123,7 @@ void IE_VADM_Engine::infer(std::vector<std::shared_ptr<IETensor>>& inputs,
             (void*)((uint64_t)(output_data_pointer) + req_size * j);
         int out_idx = i * num_req + j;
         IE_Utils::CreateBlob(desc, output_precision, data_ptr, req_size,
-                              out_blobs[out_idx]);
+                             out_blobs[out_idx]);
         m_infer_reqs[j].SetBlob(output_name, out_blobs[out_idx]);
       }
     }
@@ -156,7 +154,8 @@ void IE_VADM_Engine::infer(std::vector<std::shared_ptr<IETensor>>& inputs,
         shape[0] *= num_req;
         out_size *= num_req;
       }
-      outputs[i] = std::make_shared<IETensor>((void*)data_ptr, precision, layout, shape, out_size, output_names[i]);
+      outputs[i] = std::make_shared<IETensor>(
+          (void*)data_ptr, precision, layout, shape, out_size, output_names[i]);
     }
   }
 
@@ -172,6 +171,5 @@ void IE_VADM_Engine::infer(std::vector<std::shared_ptr<IETensor>>& inputs,
     param_blobs[i]->deallocate();
   }
 }
-
 }
 }
