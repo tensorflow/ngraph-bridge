@@ -184,6 +184,11 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
       << name();
   NG_TRACE(oss.str(), name(), "");
 
+  // Multi request execution is disabled by default
+  bool multi_req_execution = false;
+  std::string device;
+  BackendManager::GetBackendName(device);
+
   Timer compute_time;
   std::lock_guard<std::mutex> lock(m_compute_lock_);
   int cluster_id = ng_encap_impl_.GetNgraphCluster();
@@ -207,10 +212,17 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
     step_id = ctx->step_id();
 
+    // If the device is set to HDDL, check the inputs if multi request
+    // execution can be enabled.
+    if (device == "HDDL" && ctx->num_inputs() == 1 &&
+        tf_input_tensors[0].shape().dims() > 1) {
+      multi_req_execution = true;
+    }
+
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(
-        ctx, ng_encap_impl_.GetNgExecutable(tf_input_tensors, input_shapes,
-                                            static_input_map, ng_exec));
+    OP_REQUIRES_OK(ctx, ng_encap_impl_.GetNgExecutable(
+                            tf_input_tensors, input_shapes, static_input_map,
+                            ng_exec, multi_req_execution));
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
@@ -258,6 +270,12 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     // Create the TF output tensor
     auto ng_shape = ng_element->get_shape();
     TensorShape tf_shape;
+    // Get the output batch size based on the input shape, number of requests,
+    // and the device.
+    if (multi_req_execution) {
+      ng_shape[0] =
+          ng_exec->get_batch_size(tf_input_tensors[0].dim_size(0));
+    }
     for (auto dim : ng_shape) {
       tf_shape.AddDim(dim);
     }
@@ -293,7 +311,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
           << "NGraphEncapsulateOp::Compute call starting for cluster "
           << cluster_id;
       try {
-        ng_exec->call(ng_inputs, ng_outputs);
+        ng_exec->call(ng_inputs, ng_outputs, multi_req_execution);
       } catch (const std::exception& exp) {
         string status_string = "Caught exception while executing cluster " +
                                to_string(cluster_id) + string(exp.what());

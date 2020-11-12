@@ -21,6 +21,9 @@
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
 #include "ngraph_bridge/ie_tensor.h"
+#include "ngraph_bridge/ie_utils.h"
+#include "ngraph_bridge/ie_basic_engine.h"
+#include "ngraph_bridge/ie_vadm_engine.h"
 
 using namespace std;
 using namespace ngraph;
@@ -110,22 +113,24 @@ Executable::Executable(shared_ptr<Function> func, string device)
     ngraph::plot_graph(func, "tf_function_" + name + "_ie.dot");
   }
 
-  NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
-
-  InferenceEngine::Core ie;
-  // Load network to the plugin (m_device) and create an infer request
-  InferenceEngine::ExecutableNetwork exe_network =
-      ie.LoadNetwork(m_network, m_device);
-  m_infer_req = exe_network.CreateInferRequest();
+  if (m_device == "HDDL") {
+    m_ie_executor = make_shared<IE_VADM_Engine>(m_network);
+  } else {
+    m_ie_executor = make_shared<IE_Basic_Engine>(m_network, m_device);
+  }
 }
 
+
 bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
-                      vector<shared_ptr<runtime::Tensor>>& outputs) {
+                      vector<shared_ptr<runtime::Tensor>>& outputs,
+                      bool multi_req_execution) {
   if (m_trivial_fn) {
     NGRAPH_VLOG(2) << "Calling trivial IE function with inputs="
                    << inputs.size() << " outputs=" << outputs.size();
     return call_trivial(inputs, outputs);
   }
+
+  shared_ptr<ngraph::Function> func = m_network.getFunction();
 
   // Check if the number of inputs that the CNN network expects is equal to the
   // sum of the
@@ -137,16 +142,24 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   }
 
   //  Prepare input blobs
-  auto func = m_network.getFunction();
+  //std::vector<std::shared_ptr<IE_Data>> ie_inputs(inputs.size());
+  std::vector<std::shared_ptr<IETensor>> ie_inputs(inputs.size());
   auto parameters = func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
-    m_infer_req.SetBlob(parameters[i]->get_friendly_name(), tv->get_blob());
+    ie_inputs[i] = static_pointer_cast<IETensor>(inputs[i]);
+    //ie_inputs[i] = tv->get_ie_data();
+    ie_inputs[i]->set_name(parameters[i]->get_friendly_name());
   }
 
+  //std::vector<std::shared_ptr<IE_Data>> ie_hoisted_params(
+  //    m_hoisted_params.size());
+  std::vector<std::shared_ptr<IETensor>> ie_hoisted_params(
+      m_hoisted_params.size());
+  int j = 0;
   for (const auto& it : m_hoisted_params) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
-    m_infer_req.SetBlob(it.first, tv->get_blob());
+    ie_hoisted_params[j] = static_pointer_cast<IETensor>(it.second);
+    //ie_hoisted_params[j] = tv->get_ie_data();
+    ie_hoisted_params[j++]->set_name(it.first);
   }
 
   InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
@@ -168,23 +181,31 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   };
 
   //  Prepare output blobs
+  std::vector<std::shared_ptr<IETensor>> ie_outputs(outputs.size());
+  std::vector<std::string> output_names(outputs.size());
   auto results = func->get_results();
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] != nullptr) {
-      NGRAPH_VLOG(4) << "Executable::call() SetBlob()";
-      shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
-      m_infer_req.SetBlob(get_output_name(results[i]), tv->get_blob());
+      ie_outputs[i] = static_pointer_cast<IETensor>(outputs[i]);
+      ie_outputs[i]->set_name(get_output_name(results[i]));
+    } else {
+      output_names[i] = get_output_name(results[i]);
     }
   }
 
-  m_infer_req.Infer();
+  if (multi_req_execution) {
+    m_ie_executor->enable_multi_req_execution();
+  } else {
+    m_ie_executor->disable_multi_req_execution();
+  }
+  m_ie_executor->infer(ie_inputs, ie_outputs, output_names,
+                       ie_hoisted_params);
 
   // Set dynamic output blobs
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] == nullptr) {
-      NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
-      auto blob = m_infer_req.GetBlob(get_output_name(results[i]));
-      outputs[i] = make_shared<IETensor>(blob);
+      //NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
+      outputs[i] = ie_outputs[i];
     }
   }
 
@@ -245,6 +266,10 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
     }
   }
   return true;
+}
+
+size_t Executable::get_batch_size(size_t input_batch_size) const {
+  return m_ie_executor->getOutputBatchSize(input_batch_size);
 }
 }
 }
