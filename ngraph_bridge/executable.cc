@@ -21,6 +21,7 @@
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
 #include "ngraph_bridge/ie_tensor.h"
+#include "ngraph_bridge/ie_utils.h"
 
 using namespace std;
 using namespace ngraph;
@@ -137,16 +138,41 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   }
 
   //  Prepare input blobs
+  std::vector<InferenceEngine::MemoryBlob::Ptr> in_blobs(inputs.size());
   auto func = m_network.getFunction();
   auto parameters = func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
-    m_infer_req.SetBlob(parameters[i]->get_friendly_name(), tv->get_blob());
+    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]); 
+    InferenceEngine::SizeVector input_shape = tv->get_dims();
+    InferenceEngine::Precision input_precision = tv->get_precision();
+    InferenceEngine::Layout input_layout = tv->get_layout();
+    const void* input_data_pointer = tv->get_data_ptr();
+    size_t size = tv->get_byte_size();
+
+    InferenceEngine::TensorDesc desc(input_precision, input_shape,
+                                     input_layout);
+    IE_Utils::CreateBlob(desc, input_precision, input_data_pointer, size,
+                         in_blobs[i]);
+    m_infer_req.SetBlob(parameters[i]->get_friendly_name(), in_blobs[i]);
   }
 
+  std::vector<InferenceEngine::MemoryBlob::Ptr> param_blobs(
+      m_hoisted_params.size());
+  int i=0;
   for (const auto& it : m_hoisted_params) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
-    m_infer_req.SetBlob(it.first, tv->get_blob());
+    InferenceEngine::SizeVector param_shape = tv->get_dims();
+    InferenceEngine::Precision param_precision =
+        tv->get_precision();
+    InferenceEngine::Layout param_layout = tv->get_layout();
+    const void* param_data_pointer = tv->get_data_ptr();
+    size_t size = tv->get_byte_size();
+
+    InferenceEngine::TensorDesc desc(param_precision, param_shape,
+                                     param_layout);
+    IE_Utils::CreateBlob(desc, param_precision, param_data_pointer, size,
+                         param_blobs[i]);
+    m_infer_req.SetBlob(it.first, param_blobs[i++]);
   }
 
   InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
@@ -168,12 +194,23 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   };
 
   //  Prepare output blobs
+  std::vector<InferenceEngine::MemoryBlob::Ptr> out_blobs(outputs.size());
   auto results = func->get_results();
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] != nullptr) {
       NGRAPH_VLOG(4) << "Executable::call() SetBlob()";
       shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
-      m_infer_req.SetBlob(get_output_name(results[i]), tv->get_blob());
+      InferenceEngine::SizeVector output_shape = tv->get_dims();
+      InferenceEngine::Precision output_precision = tv->get_precision();
+      InferenceEngine::Layout output_layout = tv->get_layout();
+      const void* output_data_pointer = tv->get_data_ptr();
+      size_t size = tv->get_byte_size();
+
+      InferenceEngine::TensorDesc desc(output_precision, output_shape,
+                                       output_layout);
+      IE_Utils::CreateBlob(desc, output_precision, output_data_pointer, size,
+                           out_blobs[i]);
+      m_infer_req.SetBlob(get_output_name(results[i]), out_blobs[i]);
     }
   }
 
@@ -183,9 +220,30 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] == nullptr) {
       NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
-      auto blob = m_infer_req.GetBlob(get_output_name(results[i]));
-      outputs[i] = make_shared<IETensor>(blob);
+      auto blob = InferenceEngine::as<InferenceEngine::MemoryBlob>(
+          m_infer_req.GetBlob(get_output_name(results[i])));
+      auto lm = blob->rwmap();
+      uint8_t* data_ptr = lm.as<uint8_t*>();
+      InferenceEngine::TensorDesc desc = blob->getTensorDesc();
+      InferenceEngine::SizeVector shape = desc.getDims();
+      InferenceEngine::Precision precision = desc.getPrecision();
+      InferenceEngine::Layout layout = desc.getLayout();
+      size_t out_size = blob->byteSize();
+      outputs[i] = std::make_shared<IETensor>(
+          (void*)data_ptr, precision, layout, shape, out_size, get_output_name(results[i]));
     }
+  }
+
+  for (int i = 0; i < in_blobs.size(); i++) {
+    in_blobs[i]->deallocate();
+  }
+  for (int i = 0; i < out_blobs.size(); i++) {
+    if (out_blobs[i] != nullptr) {
+      out_blobs[i]->deallocate();
+    }
+  }
+  for (int i = 0; i < param_blobs.size(); i++) {
+    param_blobs[i]->deallocate();
   }
 
   return true;
