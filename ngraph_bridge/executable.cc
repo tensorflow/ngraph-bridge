@@ -142,7 +142,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   auto func = m_network.getFunction();
   auto parameters = func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]); 
+    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
     InferenceEngine::SizeVector input_shape = tv->get_dims();
     InferenceEngine::Precision input_precision = tv->get_precision();
     InferenceEngine::Layout input_layout = tv->get_layout();
@@ -158,12 +158,11 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
 
   std::vector<InferenceEngine::MemoryBlob::Ptr> param_blobs(
       m_hoisted_params.size());
-  int i=0;
+  int i = 0;
   for (const auto& it : m_hoisted_params) {
     shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
     InferenceEngine::SizeVector param_shape = tv->get_dims();
-    InferenceEngine::Precision param_precision =
-        tv->get_precision();
+    InferenceEngine::Precision param_precision = tv->get_precision();
     InferenceEngine::Layout param_layout = tv->get_layout();
     const void* param_data_pointer = tv->get_data_ptr();
     size_t size = tv->get_byte_size();
@@ -229,8 +228,9 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
       InferenceEngine::Precision precision = desc.getPrecision();
       InferenceEngine::Layout layout = desc.getLayout();
       size_t out_size = blob->byteSize();
-      outputs[i] = std::make_shared<IETensor>(
-          (void*)data_ptr, precision, layout, shape, out_size, get_output_name(results[i]));
+      outputs[i] =
+          std::make_shared<IETensor>((void*)data_ptr, precision, layout, shape,
+                                     out_size, get_output_name(results[i]));
     }
   }
 

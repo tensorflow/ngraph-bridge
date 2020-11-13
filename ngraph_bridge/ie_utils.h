@@ -28,7 +28,6 @@
 
 class IE_Utils {
  public:
-
   static void CreateBlob(InferenceEngine::TensorDesc& desc,
                          InferenceEngine::Precision& precision,
                          const void* data_ptr, size_t byte_size,
