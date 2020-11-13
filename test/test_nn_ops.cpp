@@ -557,12 +557,8 @@ TEST(NNOps, LogSoftmax) {
 // Test Op :"LRN"
 TEST(NNOps, LRN) {
   Scope root = Scope::NewRootScope();
-  int dim1 = 2;
-  int dim2 = 2;
-  int dim3 = 2;
-  int dim4 = 2;
 
-  Tensor A(DT_FLOAT, TensorShape({dim1, dim2, dim3, dim4}));
+  Tensor A(DT_FLOAT, TensorShape({2, 2, 2, 2}));
 
   AssignInputValues(A, 2.1f);
 
@@ -575,12 +571,8 @@ TEST(NNOps, LRN) {
 
 TEST(NNOps, LRNattr) {
   Scope root = Scope::NewRootScope();
-  int dim1 = 12;
-  int dim2 = 13;
-  int dim3 = 1;
-  int dim4 = 14;
 
-  Tensor A(DT_FLOAT, TensorShape({dim1, dim2, dim3, dim4}));
+  Tensor A(DT_FLOAT, TensorShape({12, 13, 1, 14}));
   AssignInputValuesRandom<float>(A, -1, 9);
   auto attrs = ops::LRN::Attrs();
   attrs.alpha_ = 0.3222;
