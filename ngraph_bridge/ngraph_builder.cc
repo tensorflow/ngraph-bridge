@@ -811,9 +811,9 @@ static Status TranslateConv2DOp(const Node* op,
 static Status TranslateConv2DBackpropInputOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_filter, ng_out_backprop, ng_unused;
+  ng::Output<ng::Node> ng_filter, ng_out_backprop, ng_input_sizes;
   TF_RETURN_IF_ERROR(
-      GetInputNodes(ng_op_map, op, ng_unused, ng_filter, ng_out_backprop));
+      GetInputNodes(ng_op_map, op, ng_input_sizes, ng_filter, ng_out_backprop));
 
   // TODO: refactor me to be less redundant with other convolution ops
   std::vector<int32> tf_strides;
@@ -831,16 +831,6 @@ static Status TranslateConv2DBackpropInputOp(
         tf_data_format);
   }
 
-  std::vector<int64> tf_input_sizes;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 0, static_input_map, &tf_input_sizes));
-
-  if (std::any_of(tf_input_sizes.begin(), tf_input_sizes.end(),
-                  [](int32 size) { return size <= 0; })) {
-    return errors::InvalidArgument(
-        "Conv2DBackpropInput input sizes must be positive integers");
-  }
-
   bool is_nhwc = (tf_data_format == "NHWC");
 
   NGRAPH_VLOG(3) << ng::join(tf_strides);
@@ -855,20 +845,9 @@ static Status TranslateConv2DBackpropInputOp(
   ng::Shape ng_batch_shape(4);
 
   BatchedOpParamToNGraph(is_nhwc, tf_strides, ng_strides);
-  BatchedOpParamToNGraph(is_nhwc, tf_input_sizes, ng_image_shape);
   BatchedOpParamToNGraph(is_nhwc, tf_dilations, ng_dilations);
+  BatchedOpParamToNGraph(is_nhwc, ng_input_sizes.get_shape(), ng_image_shape);
   BatchToNGraph(op->name(), is_nhwc, ng_out_backprop);
-  if (is_nhwc) {
-    ng_batch_shape = {static_cast<unsigned long>(tf_input_sizes[0]),
-                      static_cast<unsigned long>(tf_input_sizes[3]),
-                      static_cast<unsigned long>(tf_input_sizes[1]),
-                      static_cast<unsigned long>(tf_input_sizes[2])};
-  } else {
-    ng_batch_shape = {static_cast<unsigned long>(tf_input_sizes[0]),
-                      static_cast<unsigned long>(tf_input_sizes[1]),
-                      static_cast<unsigned long>(tf_input_sizes[2]),
-                      static_cast<unsigned long>(tf_input_sizes[3])};
-  }
 
   NGRAPH_VLOG(3) << "ng_strides: " << ng::join(ng_strides);
   NGRAPH_VLOG(3) << "ng_dilations: " << ng::join(ng_dilations);
@@ -894,13 +873,9 @@ static Status TranslateConv2DBackpropInputOp(
                          ng_padding_above);
   }
 
-  auto ng_output_shape = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{ng_batch_shape.size() - 2},
-      vector<size_t>(ng_batch_shape.begin() + 2, ng_batch_shape.end()));
-
   auto ng_data = ConstructNgNode<opset::ConvolutionBackpropData>(
-      op->name(), ng_out_backprop, ng_filter, ng_output_shape, ng_strides,
-      ng_padding_below, ng_padding_above, ng_dilations, ng_pad_type);
+      op->name(), ng_out_backprop, ng_filter, ng_strides, ng_padding_below,
+      ng_padding_above, ng_dilations, ng_pad_type);
 
   BatchToTensorflow(op->name(), is_nhwc, ng_data);
   SaveNgOp(ng_op_map, op->name(), ng_data);
