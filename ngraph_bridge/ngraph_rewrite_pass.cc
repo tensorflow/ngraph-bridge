@@ -120,9 +120,14 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // TF_RETURN_IF_ERROR(
         // MarkForClustering(options.graph->get(), skip_these_nodes));
 
-    // OCM bypassing the MarkForClustering function call    
+    // OCM bypassing the MarkForClustering function call 
+    const char* device_id =  std::getenv("NGRAPH_TF_BACKEND");
+    if (device_id==nullptr){
+      device_id = "CPU";
+    }
+    std::string ov_version = "2021_1";
     ocm::Framework_Names fName = ocm::Framework_Names::TF;
-    ocm::FrameworkNodesChecker FC(fName,"CPU", "2021_1", options.graph->get());
+    ocm::FrameworkNodesChecker FC(fName, device_id, ov_version, options.graph->get());
     std::vector<void *> nodes_list = FC.MarkSupportedNodes();
 
     // cast back the nodes in the TF format and mark the nodes for clustering (moved out from MarkForClustering function)
