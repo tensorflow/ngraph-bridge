@@ -105,15 +105,11 @@ static void write_transposemap(TransposeMap& reorders,
 
 static shared_ptr<opset::Transpose> read_transposemap(
     TransposeMap& reorders, ngraph::Output<ngraph::Node> target) {
-  // if(reorders.find(target.get_node_shared_ptr()) != reorders.end()) {
   auto transpose = reorders.at(target.get_node_shared_ptr());
   NGRAPH_VLOG(4) << "Read TransposeMap[" << target.get_node()->get_name()
                  << "]  -> "
                  << describe<opset::Transpose>(transpose[target.get_index()]);
   return transpose[target.get_index()];
-  // } else {
-  //   NGRAPH_VLOG(0) << "Key not found in transpose map";
-  // }
 }
 
 static shared_ptr<opset::Transpose> combine_transposes(
@@ -179,10 +175,10 @@ static void delete_transpose(shared_ptr<ngraph::Node> transpose) {
   NGRAPH_VLOG(4) << "Removing transpose " << transpose->get_name();
   if (!transpose->get_users().empty()) {
     ngraph::Output<ngraph::Node> output = transpose->output(0);
-    NGRAPH_VLOG(4) << "output " << output.get_node_shared_ptr()->get_name();
-    NGRAPH_VLOG(4) << "target input size " << output.get_target_inputs().size();
+    NGRAPH_VLOG(5) << "output " << output.get_node_shared_ptr()->get_name();
+    NGRAPH_VLOG(5) << "target input size " << output.get_target_inputs().size();
     for (auto input : output.get_target_inputs()) {
-      NGRAPH_VLOG(4) << "input " << input.get_node()->get_name();
+      NGRAPH_VLOG(5) << "input " << input.get_node()->get_name();
       input.replace_source_output(transpose->input_value(0));
     }
   }
@@ -469,11 +465,14 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   TransposeMap reorders, reuse_map;
   set<shared_ptr<ngraph::Node>> transposes_to_delete;
   unordered_map<std::string, ngraph::Shape> orig_result_out_shape;
+
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {
-    NGRAPH_VLOG(0) << "Dumping ng_function before TS to Before_TS_"
-                   << f->get_name() << ".dot";
+    NGRAPH_VLOG(0)
+        << "Dumping ng_function before TransposeSinking to Before_TS_"
+        << f->get_name() << ".dot";
     ngraph::plot_graph(f, "Before_TS_" + f->get_name() + ".dot");
   }
+
   // STEP 1 : Sink or Swim transposes away for op clusters
   for (auto n : f->get_ordered_ops()) {
     NGRAPH_VLOG(4) << "-----Start: Processing node----- " << n->get_name();
@@ -524,7 +523,7 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
                  orig_result_out_shape[r->get_name()]);
   }
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {
-    NGRAPH_VLOG(0) << "Dumping ng_function after TS to After_TS_"
+    NGRAPH_VLOG(0) << "Dumping ng_function after TransposeSinking to After_TS_"
                    << f->get_name() << ".dot";
     ngraph::plot_graph(f, "After_TS_" + f->get_name() + ".dot");
   }
