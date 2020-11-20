@@ -349,6 +349,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
 int NGraphEncapsulateImpl::s_instance_count = 0;
 
+}  // namespace ngraph_bridge
+
 REGISTER_OP("_nGraphEncapsulate")
     .Input("args: Targuments")
     .Attr("Targuments: list(type) >= 0")
@@ -358,8 +360,6 @@ REGISTER_OP("_nGraphEncapsulate")
     .Attr("ngraph_graph_id: int")
     .SetIsStateful()
     .Doc("nGraph Encapsulation Op. For use by the nGraph JIT only.");
-
-}  // namespace ngraph_bridge
 
 REGISTER_KERNEL_BUILDER(Name("_nGraphEncapsulate").Device(DEVICE_CPU),
                         ngraph_bridge::NGraphEncapsulateOp);
