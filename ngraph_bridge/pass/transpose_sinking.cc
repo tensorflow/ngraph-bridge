@@ -37,6 +37,21 @@ namespace pass {
 using TransposeMap = unordered_map<shared_ptr<ngraph::Node>,
                                    vector<shared_ptr<opset::Transpose>>>;
 
+static bool can_reuse_transpose(shared_ptr<ngraph::Node> transpose) {
+  auto transpose_users = transpose->get_users();
+  for (auto it = std::begin(transpose_users); it != std::end(transpose_users);
+       ++it) {
+    if (ngraph::op::is_unary_elementwise_arithmetic(*it) ||
+        ngraph::op::is_binary_elementwise_arithmetic(*it) ||
+        ngraph::as_type_ptr<opset::Pad>(*it) ||
+        ngraph::as_type_ptr<opset::Concat>(*it)) {
+      std::cout << "Cannot Sink through";
+      return false;
+    }
+  }
+  return true;
+}
+
 static ngraph::CoordinateDiff apply_permutation(ngraph::CoordinateDiff input,
                                                 ngraph::AxisVector order) {
   ngraph::CoordinateDiff output(input.size());
@@ -148,7 +163,7 @@ static void insert_transpose(shared_ptr<ngraph::Node> target,
 
   auto transpose_users = transpose->get_users().size();
   NGRAPH_VLOG(4) << "Users " << transpose->get_users().size();
-  if (transpose_users > 1) {
+  if (transpose_users > 1 && can_reuse_transpose(transpose)) {
     if (reuse_map.find(transpose) != reuse_map.end()) {
       // use the existing transpose
       auto existing_transpose = reuse_map.at(transpose);
