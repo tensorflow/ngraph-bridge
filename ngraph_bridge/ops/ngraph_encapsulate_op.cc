@@ -14,10 +14,10 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "tensorflow/core/common_runtime/optimization_registry.h"	
+#include "tensorflow/core/common_runtime/optimization_registry.h"
 
-namespace tensorflow {	
-namespace ngraph_bridge {	
+namespace tensorflow {
+namespace ngraph_bridge {
 
 REGISTER_OP("_nGraphEncapsulate")
     .Input("args: Targuments")
@@ -29,5 +29,5 @@ REGISTER_OP("_nGraphEncapsulate")
     .SetIsStateful()
     .Doc("nGraph Encapsulation Op. For use by the nGraph JIT only.");
 
-}  // namespace ngraph_bridge	
-}  // namespace tensorflow 
+}  // namespace ngraph_bridge
+}  // namespace tensorflow

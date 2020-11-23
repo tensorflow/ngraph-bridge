@@ -49,9 +49,8 @@ class NGraphEncapsulateOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override;
 
  private:
-  Status GetNgExecutable(
-      const std::vector<Tensor>& tf_input_tensors,
-      std::shared_ptr<Executable>& ng_exec);
+  Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
+                         std::shared_ptr<Executable>& ng_exec);
 
   std::mutex m_compute_lock_;
   Graph m_graph;
@@ -102,8 +101,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 
   GraphDef* graph_def = NGraphClusterManager::GetClusterGraph(m_cluster_id);
   if (graph_def == nullptr) {
-    string flib_key =
-        "ngraph_cluster_" + to_string(m_cluster_id);
+    string flib_key = "ngraph_cluster_" + to_string(m_cluster_id);
     // Read graphdef from function library
     const FunctionLibraryDefinition flib =
         *ctx->function_library()->GetFunctionLibraryDefinition();
@@ -126,8 +124,7 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   } else {
     GraphConstructorOptions opts;
     opts.allow_internal_ops = true;
-    OP_REQUIRES_OK(
-        ctx, ConvertGraphDefToGraph(opts, *graph_def, &m_graph));
+    OP_REQUIRES_OK(ctx, ConvertGraphDefToGraph(opts, *graph_def, &m_graph));
   }
 
   //
@@ -185,14 +182,13 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   // Get the optional attributes
   std::unordered_map<std::string, std::string> additional_attribute_map;
   auto node_def = ctx->def();
-  OP_REQUIRES_OK(ctx, ParseNodeAttributes(
-                          node_def.attr(), &additional_attribute_map));
+  OP_REQUIRES_OK(
+      ctx, ParseNodeAttributes(node_def.attr(), &additional_attribute_map));
 }
 
 NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   std::ostringstream oss;
-  oss << "Destroy Encapsulate_" << m_cluster_id << ": "
-      << name();
+  oss << "Destroy Encapsulate_" << m_cluster_id << ": " << name();
   NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
   m_ng_exec_map.clear();
@@ -201,8 +197,7 @@ NGraphEncapsulateOp::~NGraphEncapsulateOp() {
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(1) << "Compute using executor " << name();
   std::ostringstream oss;
-  oss << "Execute: Encapsulate_" << m_cluster_id << ": "
-      << name();
+  oss << "Execute: Encapsulate_" << m_cluster_id << ": " << name();
   NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
                  << m_cluster_id;
@@ -225,8 +220,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     step_id = ctx->step_id();
 
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(
-        ctx, GetNgExecutable(tf_input_tensors, ng_exec));
+    OP_REQUIRES_OK(ctx, GetNgExecutable(tf_input_tensors, ng_exec));
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
@@ -251,12 +245,13 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ng_shape[j] = tf_input_tensors[i].shape().dim_size(j);
       }
       ngraph::element::Type ng_element_type;
-      OP_REQUIRES_OK(ctx,
-          TFDataTypeToNGraphElementType(tf_input_tensors[i].dtype(), &ng_element_type));
+      OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(
+                              tf_input_tensors[i].dtype(), &ng_element_type));
 
       auto backend = BackendManager::GetBackend();
       std::shared_ptr<ngraph::runtime::Tensor> ng_tensor =
-          backend->create_tensor(ng_element_type, ng_shape, tf_input_tensors[i].data());
+          backend->create_tensor(ng_element_type, ng_shape,
+                                 tf_input_tensors[i].data());
       ng_inputs.push_back(ng_tensor);
     }
   }
@@ -326,8 +321,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                                to_string(m_cluster_id) + string(exp.what());
         OP_REQUIRES(ctx, false, errors::Internal(status_string));
       } catch (...) {
-        string status_string =
-            "Caught exception while executing cluster " + to_string(m_cluster_id);
+        string status_string = "Caught exception while executing cluster " +
+                               to_string(m_cluster_id);
         OP_REQUIRES(ctx, false, errors::Internal(status_string));
       }
     }
@@ -352,9 +347,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 
   long vm, rss;
   MemoryProfile(vm, rss);
-  NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: "
-                 << m_cluster_id << " Step_ID: " << step_id
-                 << " Cluster: " << name() << " Input Tensors created: "
+  NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << m_cluster_id
+                 << " Step_ID: " << step_id << " Cluster: " << name()
+                 << " Input Tensors created: "
                  << ng_input_tensor_size_in_bytes / (1024 * 1024) << " MB"
                  << " Total process memory: " << rss / (1024 * 1024) << " GB";
 
@@ -364,9 +359,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute done marking fresh for cluster "
       << m_cluster_id;
-  NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: "
-                 << m_cluster_id << " Step_ID: " << step_id
-                 << " Cluster: " << name()
+  NGRAPH_VLOG(1) << "NGRAPH_TF_TIMING_PROFILE: OP_ID: " << m_cluster_id
+                 << " Step_ID: " << step_id << " Cluster: " << name()
                  << " Time-Compute: " << compute_time.ElapsedInMS()
                  << " Function-Create-or-Lookup: " << time_func_create_or_lookup
                  << " Create-and-copy-tensors: "
@@ -375,7 +369,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
 }  // end compute
 
 // Calls ComputeSignature and gets ngraph executable
- Status NGraphEncapsulateOp::GetNgExecutable(
+Status NGraphEncapsulateOp::GetNgExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::shared_ptr<Executable>& ng_exec) {
   auto backend = BackendManager::GetBackend();
