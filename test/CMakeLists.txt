@@ -82,6 +82,7 @@ set(SRC
     test_nn_ops.cpp
     test_array_ops.cpp
     opexecuter.cpp
+    test_thread_safe_queue.cc
     pass/transpose_sinking_test.cpp
 )
 
