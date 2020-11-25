@@ -147,7 +147,6 @@ static void insert_transpose(shared_ptr<ngraph::Node> target,
                  << target->get_name() << " input index " << input_index;
 
   target->input(input_index).replace_source_output(new_transpose->output(0));
-
 }
 
 static void delete_transpose(shared_ptr<ngraph::Node> transpose) {
