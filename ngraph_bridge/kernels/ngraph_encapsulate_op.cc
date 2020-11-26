@@ -375,6 +375,7 @@ Status NGraphEncapsulateOp::GetNgExecutable(
   auto backend = BackendManager::GetBackend();
 
   // Compute Signature
+  std::vector<const Tensor*> static_input_map;
   std::vector<TensorShape> input_shapes;
   std::stringstream signature_ss;
   for (int i = 0; i < tf_input_tensors.size(); i++) {
@@ -386,8 +387,11 @@ Status NGraphEncapsulateOp::GetNgExecutable(
     signature_ss << ";";
   }
   signature_ss << "/";
+
+  static_input_map.resize(tf_input_tensors.size());
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     if (m_input_is_static[i]) {
+      static_input_map[i] = &tf_input_tensors[i];
       TF_RETURN_IF_ERROR(TensorToStream(signature_ss, tf_input_tensors[i]));
       signature_ss << ";";
     }
@@ -407,10 +411,6 @@ Status NGraphEncapsulateOp::GetNgExecutable(
     MemoryProfile(vm0, rss0);
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
-    std::vector<const Tensor*> static_input_map;
-    for (auto t : tf_input_tensors) {
-      static_input_map.push_back(&t);
-    }
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                &m_graph, ng_function));
     ng_function->set_friendly_name(m_name);
