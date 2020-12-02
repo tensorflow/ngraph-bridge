@@ -22,21 +22,21 @@ fi
 
 echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN
 
-REPO=tensorflow_openvino_models_public
+REPO=https://gitlab.devtools.intel.com/mcavus/tensorflow_openvino_models_public
+COMMIT=68505638
 
 if [ "${BUILDKITE}" == "true" ]; then
     LOCALSTORE_PREFIX=/localdisk/buildkite/artifacts
 else
     LOCALSTORE_PREFIX=/tmp
 fi
-LOCALSTORE=${LOCALSTORE_PREFIX}/${REPO}
-
+LOCALSTORE=${LOCALSTORE_PREFIX}/$(basename $REPO)
 
 function gen_frozen_models {
     script=$1
 
     initdir=`pwd`
-    VENVTMP=venv_temp # to ensure no side-efefcts of any pip installs
+    VENVTMP=venv_temp # to ensure no side-effects of any pip installs
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
     $script || exit 1
@@ -49,7 +49,7 @@ function get_model_repo {
     pushd .
     if [ ! -d "${LOCALSTORE}" ]; then
         cd ${LOCALSTORE_PREFIX} || exit 1
-        git clone https://gitlab.devtools.intel.com/mcavus/${REPO}.git
+        git clone ${REPO} && git checkout ${COMMIT}
         # check if successful...
         if [ ! -d "${LOCALSTORE}" ]; then echo "Failed to clone repo!"; exit 1; fi
         # init the models...
