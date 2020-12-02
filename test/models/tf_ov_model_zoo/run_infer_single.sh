@@ -58,7 +58,7 @@ function get_model_repo {
         echo Downloaded all models; echo
     else
         cd ${LOCALSTORE} || exit 1
-        git pull || exit 1
+        git checkout ${COMMIT}
         if [ -d "temp_build" ]; then rm -rf temp_build; fi
         if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ]; then
             gen_frozen_models ./model_factory/create_${MODEL}.sh
