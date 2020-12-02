@@ -2893,16 +2893,13 @@ Status Builder::TranslateGraph(
   //
   {
     ngraph::pass::Manager passes;
-    ngraph::pass::PassConfig pass_config;
-    // set/honor the defaults, unless specified via env var
-    if (!std::strcmp(std::getenv("TF_OV_CONSTANT_FOLDING"), "1")) {
+    passes.register_pass<pass::TransposeSinking>();
+    if (GetEnv("TF_OV_CONSTANT_FOLDING") == "1") {
       passes.register_pass<ngraph::pass::ConstantFolding>();
     }
-    if (!std::getenv("TF_OV_TRANSPOSE_SINKING") ||
-        !std::strcmp(std::getenv("TF_OV_TRANSPOSE_SINKING"), "1")) {
-      passes.register_pass<pass::TransposeSinking>();
+    if (GetEnv("TF_OV_TRANSPOSE_SINKING") != "0") {
+      passes.run_passes(ng_function);
     }
-    passes.run_passes(ng_function);
   }
   NGRAPH_VLOG(5) << "Done with passes";
   //
