@@ -54,12 +54,12 @@ scan_ops_test.CumsumTest.test1D
 scan_ops_test.CumsumTest.test2D
 scan_ops_test.CumsumTest.test3D
 
-
 #Unable to add a parameter to a function with no parameters!
 argmax_op_test.ArgMaxTest.testInt64
 array_ops_test.StridedSliceGradTest.testInt64Indices
 cast_op_test.CastOpTest.testIntToFloatBoundary
 math_ops_test.AddNTest.testInt
+math_ops_test.ModTest.testFixed
 math_ops_test.SquaredDifferenceTest.testSquaredDifference
 transpose_op_test.TransposeTest.test1D
 transpose_op_test.TransposeTest.testInt64
