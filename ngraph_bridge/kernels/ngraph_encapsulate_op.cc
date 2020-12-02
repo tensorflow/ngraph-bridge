@@ -49,8 +49,8 @@ class NGraphEncapsulateOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override;
 
  private:
-  Status GetNgExecutable(const std::vector<Tensor>& tf_input_tensors,
-                         std::shared_ptr<Executable>& ng_exec);
+  Status GetExecutable(const std::vector<Tensor>& tf_input_tensors,
+                       std::shared_ptr<Executable>& ng_exec);
 
   std::mutex m_compute_lock_;
   Graph m_graph;
@@ -220,7 +220,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     step_id = ctx->step_id();
 
     // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(ctx, GetNgExecutable(tf_input_tensors, ng_exec));
+    OP_REQUIRES_OK(ctx, GetExecutable(tf_input_tensors, ng_exec));
 
     NGRAPH_VLOG(1) << " Step_ID: " << step_id;
     NGRAPH_VLOG(4)
@@ -368,8 +368,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
                  << " Execute: " << time_execute_function;
 }  // end compute
 
-// Calls ComputeSignature and gets ngraph executable
-Status NGraphEncapsulateOp::GetNgExecutable(
+// Computes signature and gets executable
+Status NGraphEncapsulateOp::GetExecutable(
     const std::vector<Tensor>& tf_input_tensors,
     std::shared_ptr<Executable>& ng_exec) {
   auto backend = BackendManager::GetBackend();
