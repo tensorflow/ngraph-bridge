@@ -2501,8 +2501,8 @@ static Status TranslateUnpackOp(const Node* op,
   auto input_shape = ng_input.get_shape();
   auto rank = input_shape.size();
   for (int i = 0; i < num_outputs; ++i) {
-    std::vector<size_t> lower_bound_vec(rank, 0);
-    std::vector<size_t> upper_bound_vec(rank);
+    std::vector<int64_t> lower_bound_vec(rank, 0);
+    std::vector<int64_t> upper_bound_vec(rank);
     for (size_t i = 0; i < rank; i++) {
       upper_bound_vec[i] = input_shape[i];
     }
