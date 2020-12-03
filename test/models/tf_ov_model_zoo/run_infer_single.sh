@@ -23,7 +23,7 @@ fi
 echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN
 
 REPO=https://gitlab.devtools.intel.com/mcavus/tensorflow_openvino_models_public
-COMMIT=68505638
+COMMIT=14eff8ce # 2020-Dec-02
 
 if [ "${BUILDKITE}" == "true" ]; then
     LOCALSTORE_PREFIX=/localdisk/buildkite/artifacts
@@ -49,16 +49,17 @@ function get_model_repo {
     pushd .
     if [ ! -d "${LOCALSTORE}" ]; then
         cd ${LOCALSTORE_PREFIX} || exit 1
-        git clone ${REPO} && git checkout ${COMMIT}
+        git clone ${REPO}
         # check if successful...
         if [ ! -d "${LOCALSTORE}" ]; then echo "Failed to clone repo!"; exit 1; fi
         # init the models...
         cd ${LOCALSTORE} || exit 1
+        git checkout ${COMMIT} || exit 1
         gen_frozen_models ./model_factory/create.all
         echo Downloaded all models; echo
     else
         cd ${LOCALSTORE} || exit 1
-        git checkout ${COMMIT}
+        git checkout ${COMMIT} || exit 1
         if [ -d "temp_build" ]; then rm -rf temp_build; fi
         if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ]; then
             gen_frozen_models ./model_factory/create_${MODEL}.sh
