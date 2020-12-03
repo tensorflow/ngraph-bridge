@@ -1994,6 +1994,18 @@ static Status TranslatePadOp(const Node* op,
   return Status::OK();
 }
 
+static Status TranslateRangeOp(const Node* op, const std::vector<const Tensor*>&,
+                              Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_start, ng_stop, ng_step;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_start, ng_stop, ng_step));
+
+  auto ng_range = ConstructNgNode<opset::Range>(
+      op->name(), ng_start, ng_stop, ng_step, ng_start.get_element_type());
+
+  SaveNgOp(ng_op_map, op->name(), ng_range);
+  return Status::OK();
+}
+
 static Status TranslateRankOp(const Node* op, const std::vector<const Tensor*>&,
                               Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input;
@@ -2711,6 +2723,7 @@ const static std::map<
         // PreventGradient is just Identity in dataflow terms, so reuse that.
         {"PreventGradient", TranslateIdentityOp},
         {"Prod", TranslateDirectReduceOp<opset::ReduceProd>},
+        {"Range", TranslateRangeOp},
         {"Rank", TranslateRankOp},
         {"RealDiv", TranslateBinaryOp<opset::Divide>},
         {"Reciprocal", TranslateReciprocalOp},
