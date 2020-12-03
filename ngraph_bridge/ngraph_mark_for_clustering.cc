@@ -452,8 +452,8 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Exp"]["T"] = NGraphNumericDTypes();
     type_constraint_map["ExpandDims"]["T"] = NGraphDTypes();
     type_constraint_map["Floor"]["T"] = NGraphNumericDTypes();
-    type_constraint_map["FloorDiv"]["T"] = NGraphRealDTypes();
-    type_constraint_map["FloorMod"]["T"] = NGraphRealDTypes();
+    type_constraint_map["FloorDiv"]["T"] = {DT_FLOAT};
+    type_constraint_map["FloorMod"]["T"] = {DT_FLOAT};
     type_constraint_map["FusedBatchNorm"]["T"] = NGraphNumericDTypes();
     // TODO (mingshan): FusedBatchNormV2, V3 supports DT_HALF,DT_BFLOAT16,
     // DT_FLOAT
