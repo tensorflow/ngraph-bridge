@@ -66,6 +66,7 @@ function get_model_repo {
             echo Downloaded model ${MODEL}; echo
         fi
     fi
+    [ -d "${LOCALSTORE}/demo/outputs" ] || mkdir "${LOCALSTORE}/demo/outputs"
     popd
 }
 
