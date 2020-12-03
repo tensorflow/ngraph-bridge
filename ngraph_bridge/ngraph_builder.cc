@@ -2878,13 +2878,13 @@ Status Builder::TranslateGraph(
   //
   {
     ngraph::pass::Manager passes;
-    passes.register_pass<pass::TransposeSinking>();
     if (GetEnv("TF_OV_CONSTANT_FOLDING") == "1") {
       passes.register_pass<ngraph::pass::ConstantFolding>();
     }
     if (GetEnv("TF_OV_TRANSPOSE_SINKING") != "0") {
-      passes.run_passes(ng_function);
+      passes.register_pass<pass::TransposeSinking>();
     }
+    passes.run_passes(ng_function);
   }
   NGRAPH_VLOG(5) << "Done with passes";
   //
