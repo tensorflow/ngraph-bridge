@@ -29,6 +29,7 @@ import numpy as np
 
 from common import NgraphTest
 
+
 class TestGatherOperations(NgraphTest):
 
     # Scalar indices

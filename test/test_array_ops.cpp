@@ -180,10 +180,10 @@ TEST(ArrayOps, ExpandDims) {
 }  // end of test op ExpandDims
 
 TEST(ArrayOps, GatherVector) {
-  Tensor A(DT_FLOAT, TensorShape({5})); // input
+  Tensor A(DT_FLOAT, TensorShape({5}));  // input
   AssignInputValues<float>(A, {10.1, 20.2, 30.3, 40.4, 50.5});
 
-  Tensor B(DT_INT32, TensorShape({2})); // indices
+  Tensor B(DT_INT32, TensorShape({2}));  // indices
   AssignInputValues<int>(B, {2, 1});
 
   Scope root = Scope::NewRootScope();
@@ -207,7 +207,7 @@ TEST(ArrayOps, GatherTensor) {
 
   OpExecuter opexecuter(root, "Gather", sess_run_fetchoutputs);
   opexecuter.RunTest();
-} 
+}
 
 // Test op: Gather. vector indices
 TEST(ArrayOps, GatherV2Vector) {
