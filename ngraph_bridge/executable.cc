@@ -21,6 +21,7 @@
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
 #include "ngraph_bridge/ie_tensor.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 using namespace ngraph;
@@ -104,7 +105,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
 
-  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
+  if (DumpAllGraphs()) {
     auto& name = m_network.getName();
     m_network.serialize(name + ".xml", name + ".bin");
     ngraph::plot_graph(func, "tf_function_" + name + "_ie.dot");

@@ -422,41 +422,14 @@ void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
                      << pbtxt_filename;
 
       Graph* pg = kv.second.get();
-
       GraphToDotFile(pg, dot_filename, title);
       GraphToPbTextFile(pg, pbtxt_filename);
-
       sub_idx++;
     }
   }
 }
 
-bool DumpAllGraphs() { return std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr; }
-
-bool DumpUnmarkedGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_UNMARKED_GRAPHS") != nullptr;
-}
-
-bool DumpMarkedGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_MARKED_GRAPHS") != nullptr;
-}
-
-bool DumpClusteredGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_CLUSTERED_GRAPHS") != nullptr;
-}
-
-bool DumpDeclusteredGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS") != nullptr;
-}
-
-bool DumpEncapsulatedGraphs() {
-  return DumpAllGraphs() ||
-         std::getenv("NGRAPH_TF_DUMP_ENCAPSULATED_GRAPHS") != nullptr;
-}
+bool DumpAllGraphs() { return GetEnv("TF_OV_DUMP_GRAPHS") == "1"; }
 
 bool IsProcessedByNgraphPass(Graph* g) {
   // TODO: place a dummy node as a marker

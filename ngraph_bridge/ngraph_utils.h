@@ -344,20 +344,6 @@ void DumpGraphs(const GraphOptimizationPassOptions& options, int idx,
 
 bool DumpAllGraphs();
 
-bool DumpPrecaptureGraphs();
-
-bool DumpCapturedGraphs();
-
-bool DumpUnmarkedGraphs();
-
-bool DumpMarkedGraphs();
-
-bool DumpClusteredGraphs();
-
-bool DumpDeclusteredGraphs();
-
-bool DumpEncapsulatedGraphs();
-
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
 
