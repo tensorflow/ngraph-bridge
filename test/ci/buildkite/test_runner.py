@@ -26,6 +26,7 @@ from distutils.sysconfig import get_python_lib
 
 from tools.test_utils import *
 
+
 def main():
     '''
     Runs bridge tests. This script needs to be run after 
@@ -111,6 +112,7 @@ def main():
         raise Exception("No tests specified")
 
     os.chdir(root_pwd)
+
 
 if __name__ == '__main__':
     main()
