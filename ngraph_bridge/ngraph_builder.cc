@@ -2501,22 +2501,24 @@ static Status TranslateUnpackOp(const Node* op,
   auto input_shape = ng_input.get_shape();
   auto rank = input_shape.size();
   for (int i = 0; i < num_outputs; ++i) {
-    std::vector<int64_t> lower_bound_vec(rank, 0);
-    std::vector<int64_t> upper_bound_vec(rank);
-    for (size_t i = 0; i < rank; i++) {
-      upper_bound_vec[i] = input_shape[i];
-    }
-    lower_bound_vec[tf_axis] = i;
-    upper_bound_vec[tf_axis] = i + 1;
-    auto lower_bound = ConstructNgNode<opset::Constant>(
-        op->name(), ng::element::i64, ng::Shape{lower_bound_vec.size()},
-        lower_bound_vec);
-    auto upper_bound = ConstructNgNode<opset::Constant>(
-        op->name(), ng::element::i64, ng::Shape{upper_bound_vec.size()},
-        upper_bound_vec);
+    std::vector<int64_t> begin(rank, 0);
+    std::vector<int64_t> end(rank, 0);
+    begin[tf_axis] = i;
+    end[tf_axis] = i + 1;
+    auto ng_begin = ConstructNgNode<opset::Constant>(
+        op->name(), ng::element::i64, ng::Shape{begin.size()}, begin);
+    auto ng_end = ConstructNgNode<opset::Constant>(op->name(), ng::element::i64,
+                                                   ng::Shape{end.size()}, end);
+    std::vector<int64_t> begin_mask(rank, 1);
+    begin_mask[tf_axis] = 0;
+    std::vector<int64_t> end_mask(rank, 1);
+    end_mask[tf_axis] = 0;
+    std::vector<int64_t> new_axis_mask(rank, 0);
+    std::vector<int64_t> shrink_axis_mask(rank, 0);
+    shrink_axis_mask[tf_axis] = 1;
     auto slice = ConstructNgNode<opset::StridedSlice>(
-        op->name(), ng_input, lower_bound, upper_bound, std::vector<int64_t>{},
-        lower_bound_vec);
+        op->name(), ng_input, ng_begin, ng_end, begin_mask, end_mask,
+        new_axis_mask, shrink_axis_mask);
     SaveNgOp(ng_op_map, op->name(), slice);
   }
   return Status::OK();
