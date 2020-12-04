@@ -1348,9 +1348,9 @@ TEST(MathOps, Pow0D1D) {
 TEST(MathOps, RangeFloat) {
   Scope root = Scope::NewRootScope();
 
-  Tensor start(DT_FLOAT, TensorShape({})); // scalar == rank 0 (no axes)
-  Tensor limit(DT_FLOAT, TensorShape({})); // scalar == rank 0 (no axes)
-  Tensor delta(DT_FLOAT, TensorShape({})); // scalar == rank 0 (no axes)
+  Tensor start(DT_FLOAT, TensorShape({}));  // scalar == rank 0 (no axes)
+  Tensor limit(DT_FLOAT, TensorShape({}));  // scalar == rank 0 (no axes)
+  Tensor delta(DT_FLOAT, TensorShape({}));  // scalar == rank 0 (no axes)
 
   AssignInputValues(start, 2.0f);
   AssignInputValues(limit, 7.5f);
@@ -1367,9 +1367,9 @@ TEST(MathOps, RangeFloat) {
 TEST(MathOps, RangeInt) {
   Scope root = Scope::NewRootScope();
 
-  Tensor start(DT_INT32, TensorShape({})); // scalar == rank 0 (no axes)
-  Tensor limit(DT_INT32, TensorShape({})); // scalar == rank 0 (no axes)
-  Tensor delta(DT_INT32, TensorShape({})); // scalar == rank 0 (no axes)
+  Tensor start(DT_INT32, TensorShape({}));  // scalar == rank 0 (no axes)
+  Tensor limit(DT_INT32, TensorShape({}));  // scalar == rank 0 (no axes)
+  Tensor delta(DT_INT32, TensorShape({}));  // scalar == rank 0 (no axes)
 
   AssignInputValues(start, 2);
   AssignInputValues(limit, 7);

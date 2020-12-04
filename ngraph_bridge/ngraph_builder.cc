@@ -1997,8 +1997,9 @@ static Status TranslatePadOp(const Node* op,
   return Status::OK();
 }
 
-static Status TranslateRangeOp(const Node* op, const std::vector<const Tensor*>&,
-                              Builder::OpMap& ng_op_map) {
+static Status TranslateRangeOp(const Node* op,
+                               const std::vector<const Tensor*>&,
+                               Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_start, ng_stop, ng_step;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_start, ng_stop, ng_step));
 
