@@ -1708,11 +1708,12 @@ static Status TranslateMaxPoolOp(const Node* op,
   return Status::OK();
 }
 
-static Status TranslateNonMaxSuppressionV4Op(
+static Status TranslateNonMaxSuppressionOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_boxes, ng_scores;
+  ng::Output<ng::Node> ng_boxes, ng_scores, ng_nmsv;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_boxes, ng_scores));
+  bool is_v4 = op->type_string() == "NonMaxSuppressionV4";
 
   std::vector<int> max_output_size;
   TF_RETURN_IF_ERROR(
@@ -1720,10 +1721,6 @@ static Status TranslateNonMaxSuppressionV4Op(
   std::vector<float> iou_threshold;
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 3, static_input_map, &iou_threshold));
-
-  std::vector<float> score_threshold;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 4, static_input_map, &score_threshold));
 
   bool pad_to_max_output_size;
   if (GetNodeAttr(op->attrs(), "pad_to_max_output_size",
@@ -1733,39 +1730,48 @@ static Status TranslateNonMaxSuppressionV4Op(
   // max_output_size must be scalar
   if (max_output_size.size() != 1) {
     return errors::InvalidArgument(
-        "NonMaxSuppressionV4 Op: max_output_size of nms must be scalar ",
+        "NonMaxSuppression Op: max_output_size of nms must be scalar ",
         max_output_size.size());
   }
   // iou_threshold must be scalar
   if (iou_threshold.size() != 1) {
     return errors::InvalidArgument(
-        "NonMaxSuppressionV4 Op: iou_threshold of nms must be scalar ",
+        "NonMaxSuppression Op: iou_threshold of nms must be scalar ",
         iou_threshold.size());
-  }
-
-  // score_threshold must be scalar
-  if (score_threshold.size() != 1) {
-    return errors::InvalidArgument(
-        "NonMaxSuppressionV4 Op: score_threshold of nms must be scalar ",
-        score_threshold.size());
   }
 
   auto ng_max_output_size = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::i64, ng::Shape{}, max_output_size[0]);
   auto ng_iou_threshold = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::f32, ng::Shape{}, iou_threshold[0]);
-  auto ng_score_threshold = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::f32, ng::Shape{}, score_threshold[0]);
 
-  auto ng_nmsv4 = ConstructNgNode<opset::NonMaxSuppression>(
-      op->name(), ng_boxes, ng_scores, ng_max_output_size, ng_iou_threshold,
-      ng_score_threshold);
+  if (is_v4) {
+    std::vector<float> score_threshold;
+    TF_RETURN_IF_ERROR(
+        GetStaticInputVector(op, 4, static_input_map, &score_threshold));
+    // score_threshold must be scalar
+    if (score_threshold.size() != 1) {
+      return errors::InvalidArgument(
+          "NonMaxSuppressionV4 Op: score_threshold of nms must be scalar ",
+          score_threshold.size());
+    }
+    auto ng_score_threshold = ConstructNgNode<opset::Constant>(
+        op->name(), ng::element::f32, ng::Shape{}, score_threshold[0]);
+    ng_nmsv = ConstructNgNode<opset::NonMaxSuppression>(
+        op->name(), ng_boxes, ng_scores, ng_max_output_size, ng_iou_threshold,
+        ng_score_threshold);
+  } else {
+    ng_nmsv = ConstructNgNode<opset::NonMaxSuppression>(
+        op->name(), ng_boxes, ng_scores, ng_max_output_size, ng_iou_threshold);
+  }
 
-  Builder::SetTracingInfo(op->name(), ng_nmsv4);
-  auto ng_selected_indices = ng_nmsv4.get_node_shared_ptr()->output(0);
-  auto ng_valid_output = ng_nmsv4.get_node_shared_ptr()->output(1);
+  Builder::SetTracingInfo(op->name(), ng_nmsv);
+  auto ng_selected_indices = ng_nmsv.get_node_shared_ptr()->output(0);
   SaveNgOp(ng_op_map, op->name(), ng_selected_indices);
-  SaveNgOp(ng_op_map, op->name(), ng_valid_output);
+  if (is_v4) {
+    auto ng_valid_output = ng_nmsv.get_node_shared_ptr()->output(1);
+    SaveNgOp(ng_op_map, op->name(), ng_valid_output);
+  }
   return Status::OK();
 }
 
@@ -2619,7 +2625,8 @@ const static std::map<
         {"Maximum", TranslateBinaryOp<opset::Maximum>},
         {"MaxPool", TranslateMaxPoolOp<2>},
         {"MaxPool3D", TranslateMaxPoolOp<3>},
-        {"NonMaxSuppressionV4", TranslateNonMaxSuppressionV4Op},
+        {"NonMaxSuppressionV2", TranslateNonMaxSuppressionOp},
+        {"NonMaxSuppressionV4", TranslateNonMaxSuppressionOp},
         {"Mean", TranslateDirectReduceOp<opset::ReduceMean>},
         {"Min", TranslateDirectReduceOp<opset::ReduceMin>},
         {"Minimum", TranslateBinaryOp<opset::Minimum>},
