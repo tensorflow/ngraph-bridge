@@ -557,16 +557,17 @@ Status AssignClusters(Graph* graph) {
   // Remove Const with outputs to another cluster from being clustered
   NGRAPH_VLOG(2) << "Check for Const->Result ";
   for (auto node : graph->op_nodes()) {
-    // TODO: Other nodes (such as those with static inputs) may also require deassignment here
+    // TODO: Other nodes (such as those with static inputs) may also require
+    // deassignment here
     if (node->type_string() == "Const") {
       auto src_index = cluster_map.at(node)->index;
-      NGRAPH_VLOG(2) << "Cluster index of constant node " << node->name() << ": "
-           << src_index << endl;
+      NGRAPH_VLOG(2) << "Cluster index of constant node " << node->name()
+                     << ": " << src_index << endl;
       for (auto edge : node->out_edges()) {
         auto dst = edge->dst();
         auto dst_index = cluster_map.at(dst)->index;
         NGRAPH_VLOG(2) << "Cluster index of out edge " << dst->name() << ": "
-             << dst_index << endl;
+                       << dst_index << endl;
         if (src_index != -1 && src_index != dst_index) {
           NGRAPH_VLOG(2) << "Deassigning node: " << node->name() << endl;
           // Remove it from its current cluster
