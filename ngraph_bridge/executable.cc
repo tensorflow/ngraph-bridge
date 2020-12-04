@@ -17,10 +17,13 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph/opsets/opset.hpp"
 
+#include <ie_plugin_config.hpp>
+
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
 #include "ngraph_bridge/ie_tensor.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 using namespace ngraph;
@@ -31,12 +34,12 @@ namespace ngraph_bridge {
 Executable::Executable(shared_ptr<Function> func, string device)
     : m_device{device}, m_trivial_fn{nullptr}, m_function(func) {
   NGRAPH_VLOG(2) << "Checking for unsupported ops";
-  const auto& opset = ngraph::get_opset4();
+  const auto& opset = ngraph::get_opset5();
   for (const auto& node : func->get_ops()) {
     if (!opset.contains_op_type(node.get())) {
       NGRAPH_VLOG(0) << "UNSUPPORTED OP DETECTED: "
                      << node->get_type_info().name;
-      THROW_IE_EXCEPTION << "Detected op not belonging to opset3!";
+      THROW_IE_EXCEPTION << "Detected op not belonging to opset5!";
     }
   }
 
@@ -121,18 +124,22 @@ Executable::Executable(shared_ptr<Function> func, string device)
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
 
-  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
+  InferenceEngine::Core ie;
+  std::map<string, string> options;
+
+  if (DumpAllGraphs()) {
     auto& name = m_network.getName();
     m_network.serialize(name + ".xml", name + ".bin");
     ngraph::plot_graph(func, "tf_function_" + name + "_ie.dot");
+    options[InferenceEngine::PluginConfigParams::KEY_DUMP_EXEC_GRAPH_AS_DOT] =
+        "ie_" + m_device + "_" + name;
   }
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
 
-  InferenceEngine::Core ie;
   // Load network to the plugin (m_device) and create an infer request
   InferenceEngine::ExecutableNetwork exe_network =
-      ie.LoadNetwork(m_network, m_device);
+      ie.LoadNetwork(m_network, m_device, options);
   m_infer_req = exe_network.CreateInferRequest();
 }
 
