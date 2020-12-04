@@ -22,6 +22,10 @@ elif [ "${BUILDKITE_PIPELINE_NAME}" == "cpu-intel-tf" ]; then
    export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_intel_tensorflow
    export NGRAPH_TF_BACKEND=CPU
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/cpu.yml "
+elif [ "${BUILDKITE_PIPELINE_NAME}" == "igpu" ]; then
+   export NGRAPH_TF_BACKEND=GPU
+   export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_tensorflow_2_2_0
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/cpu.yml "
 else
    export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_tensorflow_2_2_0
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/${BUILDKITE_PIPELINE_NAME}.yml "
