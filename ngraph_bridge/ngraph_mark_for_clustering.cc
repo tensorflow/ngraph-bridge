@@ -202,7 +202,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
     set_attributes_map["ExpandDims"] = SetStaticInputs({1});
-    set_attributes_map["Fill"] = SetStaticInputs({0});
     set_attributes_map["GatherV2"] = SetStaticInputs({2});
     set_attributes_map["Max"] = SetStaticInputs({1});
     set_attributes_map["Mean"] = SetStaticInputs({1});
@@ -219,9 +218,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["SplitV"] = SetStaticInputs({1, 2});
     set_attributes_map["StridedSlice"] = SetStaticInputs({1, 2, 3});
     set_attributes_map["Sum"] = SetStaticInputs({1});
-    set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
-    set_attributes_map["Transpose"] = SetStaticInputs({1});
     initialized = true;
   }
   return set_attributes_map;
