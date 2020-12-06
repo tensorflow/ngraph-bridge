@@ -1122,7 +1122,8 @@ static Status TranslateExpandDimsOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input, ng_dim;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_dim));
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Unsqueeze>(op->name(), ng_input, ng_dim));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Unsqueeze>(op->name(), ng_input, ng_dim));
   return Status::OK();
 }
 
