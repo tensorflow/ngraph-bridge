@@ -390,6 +390,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     };
     confirmation_function_map["Transpose"] = SimpleConfirmationFunction();
     confirmation_function_map["Unpack"] = SimpleConfirmationFunction();
+    confirmation_function_map["Where"] = SimpleConfirmationFunction();
     confirmation_function_map["Xdivy"] = SimpleConfirmationFunction();
     confirmation_function_map["ZerosLike"] = SimpleConfirmationFunction();
     initialized = true;
@@ -555,6 +556,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Transpose"]["T"] = NGraphDTypes();
     type_constraint_map["Transpose"]["Tperm"] = NGraphIndexDTypes();
     type_constraint_map["Unpack"]["T"] = NGraphDTypes();
+    type_constraint_map["Where"]["T"] = {DT_BOOL};
     type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
     type_constraint_map["ZerosLike"]["T"] = NGraphNumericDTypes();
     initialized = true;
@@ -731,6 +733,7 @@ GetTFToNgOpMap() {
       {"Tile", {std::make_shared<opset::Tile>()}},
       {"TopKV2", {std::make_shared<opset::TopK>(), constant}},
       {"Transpose", {std::make_shared<opset::Transpose>()}},
+      {"Where", {std::make_shared<opset::Select>()}},
       {"Xdivy",
        {constant, std::make_shared<opset::Divide>(),
         std::make_shared<opset::Equal>(), std::make_shared<opset::Select>()}},

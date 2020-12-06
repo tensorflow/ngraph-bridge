@@ -2675,6 +2675,7 @@ const static std::map<
         {"TopKV2", TranslateTopKV2Op},
         {"Transpose", TranslateTransposeOp},
         {"Unpack", TranslateUnpackOp},
+        {"Where", TranslateSelectOp},
         {"Xdivy", TranslateXdivyOp},
         {"ZerosLike", TranslateZerosLikeOp}};
 
