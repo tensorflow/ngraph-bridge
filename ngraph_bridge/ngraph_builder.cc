@@ -1987,18 +1987,8 @@ static Status TranslateRelu6Op(const Node* op,
 static Status TranslateReshapeOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_input, ng_shape_op;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_shape_op));
-
-  NGRAPH_VLOG(3) << "Input shape: " << ng::join(ng_input.get_shape());
-
-  std::vector<int64> shape;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &shape));
-
-  NGRAPH_VLOG(3) << "Requested result shape: " << ng::join(shape);
-
-  auto ng_shape = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{shape.size()}, shape);
+  ng::Output<ng::Node> ng_input, ng_shape;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_shape));
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Reshape>(
                                       op->name(), ng_input, ng_shape, false));
   return Status::OK();
@@ -2376,14 +2366,8 @@ static Status TranslateTileOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input, ng_multiples;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_multiples));
-
-  std::vector<int64> multiples;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &multiples));
-
-  auto ng_repeats = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{multiples.size()}, multiples);
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<opset::Tile>(op->name(), ng_input, ng_repeats));
+           ConstructNgNode<opset::Tile>(op->name(), ng_input, ng_multiples));
   return Status::OK();
 }
 
