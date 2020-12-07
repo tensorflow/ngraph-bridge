@@ -227,8 +227,6 @@ int main(int argc, char** argv) {
   thread2.join();
   benchmark_timer.Stop();
 
-  sleep(5);
-
   // Adjust the total images with the batch size
   total_images_processed = total_images_processed * batch_size;
 

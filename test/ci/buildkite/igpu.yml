@@ -30,6 +30,8 @@
       ./test/ci/buildkite/run_inception_v3.sh /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":bar_chart: C++ Inference Example"
     timeout_in_minutes: 5
+    soft_fail:
+      - exit_status: "*"
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
@@ -42,6 +44,8 @@
       
     label: ":gear: Install"
     timeout_in_minutes: 30
+    soft_fail:
+      - exit_status: "*"
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
@@ -53,6 +57,8 @@
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_python
     label: ":python:  Python Tests ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
+    soft_fail:
+      - exit_status: "*"
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
@@ -65,6 +71,8 @@
     
     label: ":python: TF Python Tests ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
+    soft_fail:
+      - exit_status: "*"
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
@@ -76,6 +84,8 @@
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_resnet50_infer
     label: ":bar_chart: ResNet50 Inference"
     timeout_in_minutes: 30
+    soft_fail:
+      - exit_status: "*"
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
