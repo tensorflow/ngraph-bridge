@@ -92,7 +92,7 @@
 
   - wait
   - command: |
-      rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
+      echo skip rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
     label: ":wastebasket: Cleanup"
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
