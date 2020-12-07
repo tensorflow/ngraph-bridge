@@ -301,9 +301,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ctx, ng_element_type == expected_elem_type,
         errors::Internal("Element type inferred by nGraph does not match "
                          "the element type expected by TensorFlow"));
-    ng_outputs[i] = make_shared<IETensor>(ng_element_type, ng_shape);
-    size_t size = shape_size(ng_shape);
-    ng_outputs[i]->write(output_tensor->data(), size * sizeof(void*));
+    ng_outputs[i] =
+        make_shared<IETensor>(ng_element_type, ng_shape, output_tensor->data());
   }
   NGRAPH_VLOG(4)
       << "NGraphEncapsulateOp::Compute allocated result tensors for cluster "
