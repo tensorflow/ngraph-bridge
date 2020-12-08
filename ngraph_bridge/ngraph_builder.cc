@@ -2586,11 +2586,7 @@ static Status TranslateWhereOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_cond;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_cond));
-  std::vector<int64> input;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 0, static_input_map, &input));
-  auto ng_input = ConstructNgNode<opset::Constant>(
-      op->name(), ngraph::element::i64, ng_cond.get_shape(), input);
-  auto non_zero = ConstructNgNode<opset::NonZero>(op->name(), ng_input);
+  auto non_zero = ConstructNgNode<opset::NonZero>(op->name(), ng_cond);
   auto transpose_order = ConstructNgNode<opset::Constant>(
       op->name(), ngraph::element::i64, ngraph::Shape{2},
       std::vector<int64_t>({1, 0}));
