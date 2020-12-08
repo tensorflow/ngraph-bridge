@@ -202,7 +202,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["ConcatV2"] = SetStaticInputs({-1});
     set_attributes_map["Conv2DBackpropInput"] = SetStaticInputs({0});
     set_attributes_map["ExpandDims"] = SetStaticInputs({1});
-    set_attributes_map["Fill"] = SetStaticInputs({0});
     set_attributes_map["GatherV2"] = SetStaticInputs({2});
     set_attributes_map["Max"] = SetStaticInputs({1});
     set_attributes_map["Mean"] = SetStaticInputs({1});
@@ -221,7 +220,6 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Sum"] = SetStaticInputs({1});
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
-    set_attributes_map["Transpose"] = SetStaticInputs({1});
     initialized = true;
   }
   return set_attributes_map;
@@ -613,13 +611,10 @@ GetTFToNgOpMap() {
       {"Cumsum", {std::make_shared<opset::CumSum>()}},
       {"DepthToSpace", {std::make_shared<opset::DepthToSpace>()}},
       {"DepthwiseConv2dNative",
-       {std::make_shared<opset::StridedSlice>(),
-        std::make_shared<opset::Convolution>(),
-        std::make_shared<opset::Concat>(), std::make_shared<opset::Transpose>(),
-        constant}},
+       {std::make_shared<opset::GroupConvolution>(), constant}},
       {"Equal", {std::make_shared<opset::Equal>()}},
       {"Exp", {std::make_shared<opset::Exp>()}},
-      {"ExpandDims", {constant, std::make_shared<opset::Reshape>()}},
+      {"ExpandDims", {std::make_shared<opset::Unsqueeze>()}},
       {"Fill", {constant, std::make_shared<opset::Broadcast>()}},
       {"Floor", {std::make_shared<opset::Floor>()}},
       {"FloorDiv",
