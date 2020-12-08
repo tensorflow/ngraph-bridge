@@ -59,15 +59,6 @@ void PrintAvailableBackends() {
   }
 }
 
-// Sets the specified backend. This backend must be set BEFORE running
-// the computation
-tf::Status SetNGraphBackend(const string& backend_name) {
-  // Select a backend
-  tf::Status status =
-      tf::ngraph_bridge::BackendManager::SetBackend(backend_name);
-  return status;
-}
-
 void PrintVersion() {
   // Tensorflow version info
   std::cout << "Tensorflow version: " << tensorflow::ngraph_bridge::tf_version()
@@ -170,8 +161,7 @@ int main(int argc, char** argv) {
       input_layer, output_layer, use_NCHW, preload_images, input_channels));
 
   unique_ptr<Session> the_session;
-  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, "UNKNOWN", "0",
-                                                        the_session));
+  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, the_session));
 
   Tensor next_image;
   std::vector<Tensor> outputs;

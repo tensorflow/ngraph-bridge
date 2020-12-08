@@ -97,8 +97,6 @@ InferenceEngine::~InferenceEngine() {
 }
 
 Status InferenceEngine::CreateSession(const string& graph_filename,
-                                      const string& backend,
-                                      const string& dev_id,
                                       unique_ptr<Session>& session) {
   SessionOptions options;
   options.config.mutable_graph_options()
