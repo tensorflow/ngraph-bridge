@@ -155,7 +155,6 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-
   std::cout << "Component versions\n";
   PrintVersion();
 
@@ -171,8 +170,8 @@ int main(int argc, char** argv) {
       input_layer, output_layer, use_NCHW, preload_images, input_channels));
 
   unique_ptr<Session> the_session;
-  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, "UNKNOWN",
-                                                        "0", the_session));
+  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, "UNKNOWN", "0",
+                                                        the_session));
 
   Tensor next_image;
   std::vector<Tensor> outputs;
