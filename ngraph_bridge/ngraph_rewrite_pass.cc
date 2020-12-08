@@ -88,7 +88,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // passes become a no-op.
     bool ngraph_not_enabled =
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
-    bool already_processed = util::IsAlreadyProcessed(options.graph->get());
+    bool already_processed = util::IsAlreadyProcessed(graph);
     if (!already_processed && ngraph_not_enabled) {
       NGRAPH_VLOG(0) << "NGraph is available but disabled.";
     }
@@ -104,21 +104,20 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
-    TF_RETURN_IF_ERROR(
-        MarkForClustering(options.graph->get(), skip_these_nodes));
+    TF_RETURN_IF_ERROR(MarkForClustering(graph, skip_these_nodes));
     util::DumpTFGraph(graph, idx, "marked");
 
     // 2. Assign clusters then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(AssignClusters(options.graph->get()));
+    TF_RETURN_IF_ERROR(AssignClusters(graph));
     util::DumpTFGraph(graph, idx, "clustered");
 
     // 3. Deassign trivial clusters then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(DeassignClusters(options.graph->get()));
+    TF_RETURN_IF_ERROR(DeassignClusters(graph));
     util::DumpTFGraph(graph, idx, "declustered");
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     std::unordered_map<std::string, std::string> config_map;
-    auto status = EncapsulateClusters(options.graph->get(), idx, config_map);
+    auto status = EncapsulateClusters(graph, idx, config_map);
     if (status != Status::OK()) {
       return status;
     }
