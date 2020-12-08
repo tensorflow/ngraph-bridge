@@ -69,10 +69,10 @@ Executable::Executable(shared_ptr<Function> func, string device)
   bool trivial_fn = true;
   for (auto result : func->get_results()) {
     auto parent = result->input_value(0).get_node_shared_ptr();
-    auto rank = result->get_output_partial_shape(0).rank();
+    auto& shape = result->get_shape();
     trivial_fn &= ngraph::is_type<opset::Parameter>(parent) ||
                   ngraph::is_type<opset::Constant>(parent) ||
-                  (rank.is_static() && rank.get_length() == 0);
+                  count(shape.begin(), shape.end(), 0);
   }
 
   if (trivial_fn) {
