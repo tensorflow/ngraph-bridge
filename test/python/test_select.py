@@ -67,8 +67,8 @@ class TestSelect(NgraphTest):
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
 
     def test_select_complexshape1(self):
-        a = np.random.randint(2, size=[7])
-        x = np.random.randint(0, 11, [7, 3, 2, 1])
+        a = np.random.random(size=[7]).astype(np.float32)
+        x = np.random.random(size=[7, 3, 2, 1]).astype(np.float32)
 
         p = tf.compat.v1.placeholder(dtype=tf.bool)
         out = tf.where(p, x, x)
@@ -80,8 +80,8 @@ class TestSelect(NgraphTest):
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
 
     def test_select_complexshape2(self):
-        a = np.random.randint(2, size=[7])
-        x = np.random.randint(0, 11, [7, 3, 2, 7])
+        a = np.random.random(size=[7]).astype(np.float32)
+        x = np.random.random(size=[7, 3, 2, 7]).astype(np.float32)
 
         p = tf.compat.v1.placeholder(dtype=tf.bool)
         out = tf.where(p, x, x)
@@ -93,8 +93,8 @@ class TestSelect(NgraphTest):
             self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
 
     def test_select_complexshape3(self):
-        a = np.random.randint(2, size=[5])
-        x = np.random.randint(0, 11, [5, 3, 1])
+        a = np.random.random(size=[5]).astype(np.float32)
+        x = np.random.random(size=[5, 3, 1]).astype(np.float32)
 
         p = tf.compat.v1.placeholder(dtype=tf.bool)
         out = tf.where(p, x, x)
