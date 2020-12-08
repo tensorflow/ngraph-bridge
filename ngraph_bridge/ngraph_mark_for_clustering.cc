@@ -220,6 +220,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Sum"] = SetStaticInputs({1});
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
+    set_attributes_map["Where"] = SetStaticInputs({0});
     initialized = true;
   }
   return set_attributes_map;
@@ -728,7 +729,9 @@ GetTFToNgOpMap() {
       {"Tile", {std::make_shared<opset::Tile>()}},
       {"TopKV2", {std::make_shared<opset::TopK>(), constant}},
       {"Transpose", {std::make_shared<opset::Transpose>()}},
-      {"Where", {std::make_shared<opset::Select>()}},
+      {"Where",
+       {std::make_shared<opset::NonZero>(),
+        std::make_shared<opset::Transpose>()}},
       {"Xdivy",
        {constant, std::make_shared<opset::Divide>(),
         std::make_shared<opset::Equal>(), std::make_shared<opset::Select>()}},
