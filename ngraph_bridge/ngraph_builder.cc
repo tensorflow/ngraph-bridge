@@ -1185,8 +1185,6 @@ static Status TranslateDepthwiseConv2dNativeOp(
   auto& ng_filter_shape = ng_filter.get_shape();
   ng_kernel_shape[0] = ng_filter_shape[0];
   ng_kernel_shape[1] = ng_filter_shape[1];
-  Transpose<3, 2, 0, 1>(ng_filter);
-  Builder::SetTracingInfo(op->name(), ng_filter);
 
   NGRAPH_VLOG(3) << "ng_kernel_shape: " << ng::join(ng_kernel_shape);
 
@@ -1196,55 +1194,26 @@ static Status TranslateDepthwiseConv2dNativeOp(
                        ng_strides, ng_dilations, ng_padding_below,
                        ng_padding_above);
 
-  // ng input shape is NCHW
-  auto& input_shape = ng_input.get_shape();
-  // ng filter shape is OIHW
-  auto& filter_shape = ng_filter.get_shape();
-  ng::OutputVector ng_args;
+  // H W I M -> H W I 1 M
+  auto filter_shape = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::u64, ng::Shape{5},
+      ngraph::Shape{ng_filter_shape[0], ng_filter_shape[1], ng_filter_shape[2],
+                    1, ng_filter_shape[3]});
+  auto reshaped_filter = ConstructNgNode<opset::Reshape>(op->name(), ng_filter,
+                                                         filter_shape, false);
 
-  for (size_t i = 0; i < input_shape[1]; i++) {
-    const std::vector<size_t> lower_bound_vec{0, i, 0, 0};
-    const std::vector<size_t> upper_bound_vec{input_shape[0], i + 1,
-                                              input_shape[2], input_shape[3]};
-    auto lower_bound = ConstructNgNode<opset::Constant>(
-        op->name(), ng::element::i64, ng::Shape{lower_bound_vec.size()},
-        lower_bound_vec);
-    auto upper_bound = ConstructNgNode<opset::Constant>(
-        op->name(), ng::element::i64, ng::Shape{upper_bound_vec.size()},
-        upper_bound_vec);
-    auto ng_sliced_input = ConstructNgNode<opset::StridedSlice>(
-        op->name(), ng_input, lower_bound, upper_bound, std::vector<int64_t>{},
-        std::vector<int64_t>{});
+  // H W I 1 M -> I M 1 H W
+  auto order = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{5}, vector<int64>{2, 4, 3, 0, 1});
+  auto transposed_filter =
+      ConstructNgNode<opset::Transpose>(op->name(), reshaped_filter, order);
 
-    const std::vector<size_t> f_lower_bound_vec{0, i, 0, 0};
-    const std::vector<size_t> f_upper_bound_vec{
-        filter_shape[0], i + 1, filter_shape[2], filter_shape[3]};
-    auto f_lower_bound = ConstructNgNode<opset::Constant>(
-        op->name(), ng::element::i64, ng::Shape{f_lower_bound_vec.size()},
-        f_lower_bound_vec);
-    auto f_upper_bound = ConstructNgNode<opset::Constant>(
-        op->name(), ng::element::i64, ng::Shape{f_upper_bound_vec.size()},
-        f_upper_bound_vec);
-    auto ng_sliced_filter = ConstructNgNode<opset::StridedSlice>(
-        op->name(), ng_filter, f_lower_bound, f_upper_bound,
-        std::vector<int64_t>{}, std::vector<int64_t>{});
+  auto ng_conv = ConstructNgNode<opset::GroupConvolution>(
+      op->name(), ng_input, transposed_filter, ng_strides, ng_padding_below,
+      ng_padding_above, ng_dilations);
 
-    NGRAPH_VLOG(3) << "depthwise conv 2d.";
-    NGRAPH_VLOG(3) << "sliced shape " << ng::join(ng_sliced_input.get_shape());
-    NGRAPH_VLOG(3) << "filter shape " << ng::join(ng_sliced_filter.get_shape());
-    auto ng_conv = ConstructNgNode<opset::Convolution>(
-        op->name(), ng_sliced_input, ng_sliced_filter, ng_strides,
-        ng_padding_below, ng_padding_above, ng_dilations);
-
-    ng_args.push_back(ng_conv);
-  }
-
-  size_t ng_concatenation_axis = 1;  // channel axis
-  auto ng_concat = ConstructNgNode<opset::Concat>(op->name(), ng_args,
-                                                  ng_concatenation_axis);
-
-  NCHWtoNHWC(op->name(), is_nhwc, ng_concat);
-  SaveNgOp(ng_op_map, op->name(), ng_concat);
+  NCHWtoNHWC(op->name(), is_nhwc, ng_conv);
+  SaveNgOp(ng_op_map, op->name(), ng_conv);
   return Status::OK();
 }
 
@@ -1253,48 +1222,18 @@ static Status TranslateExpandDimsOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input, ng_dim;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_dim));
-
-  std::vector<int64> dim_vec;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 1, static_input_map, &dim_vec));
-
-  if (dim_vec.size() != 1) {
-    return errors::InvalidArgument(
-        "The size of argument dim is not 1 for ExpandDims");
-  }
-
-  auto& shape = ng_input.get_shape();
-  if (dim_vec[0] < 0) {
-    // allow range [-rank(input) - 1, rank(input)]
-    // where -1 append new axis at the end
-    dim_vec[0] = shape.size() + dim_vec[0] + 1;
-  }
-  auto out_shape = shape;
-  out_shape.insert(out_shape.begin() + size_t(dim_vec[0]), 1);
-
-  auto ng_shape = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::u64, ng::Shape{out_shape.size()}, out_shape);
-
-  ng::Output<ng::Node> ng_expand_dim =
-      ConstructNgNode<opset::Reshape>(op->name(), ng_input, ng_shape, false);
-
-  SaveNgOp(ng_op_map, op->name(), ng_expand_dim);
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Unsqueeze>(op->name(), ng_input, ng_dim));
   return Status::OK();
 }
 
 static Status TranslateFillOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_value, ng_unused;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_unused, ng_value));
-
-  std::vector<int64> dims_vec;
-  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 0, static_input_map, &dims_vec));
-
-  auto ng_output_shape = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::i64, ng::Shape{dims_vec.size()}, dims_vec);
-
-  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Broadcast>(
-                                      op->name(), ng_value, ng_output_shape));
+  ng::Output<ng::Node> ng_value, ng_dims;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_dims, ng_value));
+  SaveNgOp(ng_op_map, op->name(),
+           ConstructNgNode<opset::Broadcast>(op->name(), ng_value, ng_dims));
   return Status::OK();
 }
 
@@ -2572,36 +2511,8 @@ static Status TranslateTransposeOp(
     Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input, ng_permutation;
   TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_permutation));
-
-  std::vector<int64> permutation;
-  TF_RETURN_IF_ERROR(
-      GetStaticInputVector(op, 1, static_input_map, &permutation));
-
-  // Check to make sure that the permutation requested for transpose
-  // is valid for example:
-  // - it should not have duplicates,
-  // - it should have all the dimensions.
-
-  int ng_input_rank = ng_input.get_shape().size();
-  vector<bool> count(ng_input_rank, false);
-  for (auto p : permutation) {
-    if (0 <= p && p < ng_input_rank) {
-      count[p] = true;
-    }
-  }
-  for (int i = 0; i < ng_input_rank; i++) {
-    if (!count[i]) {
-      return errors::InvalidArgument(i, " is missing from {",
-                                     ng::join(permutation), "}.");
-    }
-  }
-
-  NGRAPH_VLOG(3) << ng::join(permutation);
-
-  auto input_order = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::u64, ng::Shape{permutation.size()}, permutation);
   SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Transpose>(
-                                      op->name(), ng_input, input_order));
+                                      op->name(), ng_input, ng_permutation));
   return Status::OK();
 }
 
