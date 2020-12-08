@@ -556,7 +556,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Transpose"]["T"] = NGraphDTypes();
     type_constraint_map["Transpose"]["Tperm"] = NGraphIndexDTypes();
     type_constraint_map["Unpack"]["T"] = NGraphDTypes();
-    type_constraint_map["Where"]["T"] = {DT_BOOL};
+    type_constraint_map["Where"]["T"] = NGraphDTypes();
     type_constraint_map["Xdivy"]["T"] = NGraphRealDTypes();
     type_constraint_map["ZerosLike"]["T"] = NGraphNumericDTypes();
     initialized = true;
