@@ -29,4 +29,5 @@ tests_linux_cpu.txt
 ###################################################
 [SKIP]
 
+scan_ops_test.CumsumTest.testLarge # takes very long in GPU
 
