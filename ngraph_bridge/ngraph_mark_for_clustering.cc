@@ -770,7 +770,6 @@ GetTFToNgOpMap() {
           {"ZerosLike", {constant}},
           {"NoOp", {}},
       };
->>>>>>> master
 
   return TFtoNgraphOpMap;
 }
