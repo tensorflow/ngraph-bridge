@@ -1708,12 +1708,24 @@ static Status TranslateMaxPoolOp(const Node* op,
   return Status::OK();
 }
 
-static Status TranslateNonMaxSuppressionOp(
+static Status TranslateNonMaxSuppressionV2Op(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_boxes, ng_scores, ng_nmsv;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_boxes, ng_scores));
-  bool is_v4 = op->type_string() == "NonMaxSuppressionV4";
+  ng::Output<ng::Node> ng_boxes, ng_scores, ng_unused1, ng_unused2;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_boxes, ng_scores,
+                                   ng_unused1, ng_unused2));
+
+  auto ng_axis_boxes = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{1}, std::vector<int64>({0}));
+  auto ng_boxes_unsqueezed =
+      ConstructNgNode<opset::Unsqueeze>(op->name(), ng_boxes, ng_axis_boxes);
+
+  auto ng_axis_scores = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{1}, std::vector<int64>({0}));
+  auto ng_scores_unsqueezed1 =
+      ConstructNgNode<opset::Unsqueeze>(op->name(), ng_scores, ng_axis_scores);
+  auto ng_scores_unsqueezed2 = ConstructNgNode<opset::Unsqueeze>(
+      op->name(), ng_scores_unsqueezed1, ng_axis_scores);
 
   std::vector<int> max_output_size;
   TF_RETURN_IF_ERROR(
@@ -1722,11 +1734,6 @@ static Status TranslateNonMaxSuppressionOp(
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 3, static_input_map, &iou_threshold));
 
-  bool pad_to_max_output_size;
-  if (GetNodeAttr(op->attrs(), "pad_to_max_output_size",
-                  &pad_to_max_output_size) != Status::OK()) {
-    pad_to_max_output_size = false;
-  }
   // max_output_size must be scalar
   if (max_output_size.size() != 1) {
     return errors::InvalidArgument(
@@ -1742,36 +1749,33 @@ static Status TranslateNonMaxSuppressionOp(
 
   auto ng_max_output_size = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::i64, ng::Shape{}, max_output_size[0]);
+  NGRAPH_VLOG(5) << "ng_max_output_size " << max_output_size[0];
+
   auto ng_iou_threshold = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::f32, ng::Shape{}, iou_threshold[0]);
 
-  if (is_v4) {
-    std::vector<float> score_threshold;
-    TF_RETURN_IF_ERROR(
-        GetStaticInputVector(op, 4, static_input_map, &score_threshold));
-    // score_threshold must be scalar
-    if (score_threshold.size() != 1) {
-      return errors::InvalidArgument(
-          "NonMaxSuppressionV4 Op: score_threshold of nms must be scalar ",
-          score_threshold.size());
-    }
-    auto ng_score_threshold = ConstructNgNode<opset::Constant>(
-        op->name(), ng::element::f32, ng::Shape{}, score_threshold[0]);
-    ng_nmsv = ConstructNgNode<opset::NonMaxSuppression>(
-        op->name(), ng_boxes, ng_scores, ng_max_output_size, ng_iou_threshold,
-        ng_score_threshold);
-  } else {
-    ng_nmsv = ConstructNgNode<opset::NonMaxSuppression>(
-        op->name(), ng_boxes, ng_scores, ng_max_output_size, ng_iou_threshold);
-  }
+  auto ng_nmsv = ConstructNgNode<opset::NonMaxSuppression>(
+      op->name(), ng_boxes_unsqueezed, ng_scores_unsqueezed2,
+      ng_max_output_size, ng_iou_threshold,
+      opset::NonMaxSuppression::BoxEncodingType::CORNER, false,
+      ngraph::element::Type_t::i32);
 
-  Builder::SetTracingInfo(op->name(), ng_nmsv);
-  auto ng_selected_indices = ng_nmsv.get_node_shared_ptr()->output(0);
-  SaveNgOp(ng_op_map, op->name(), ng_selected_indices);
-  if (is_v4) {
-    auto ng_valid_output = ng_nmsv.get_node_shared_ptr()->output(1);
-    SaveNgOp(ng_op_map, op->name(), ng_valid_output);
-  }
+  std::vector<int64> begin_vec{0, 2};
+  std::vector<int64> end_vec{max_output_size[0], 3};
+  auto begin = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{begin_vec.size()}, begin_vec);
+  auto end = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{end_vec.size()}, end_vec);
+  auto ng_nmsv_slice = ConstructNgNode<opset::StridedSlice>(
+      op->name(), ng_nmsv, begin, end, std::vector<int64_t>{},
+      std::vector<int64_t>{});
+  auto ng_axis = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ng::Shape{1}, std::vector<int64>({1}));
+  auto ng_nmsv_squeeze =
+      ConstructNgNode<opset::Squeeze>(op->name(), ng_nmsv_slice, ng_axis);
+
+  Builder::SetTracingInfo(op->name(), ng_nmsv_squeeze);
+  SaveNgOp(ng_op_map, op->name(), ng_nmsv_squeeze);
   return Status::OK();
 }
 
@@ -2134,9 +2138,9 @@ static Status TranslateSliceOp(
       op->name(), ng::element::i64, ng::Shape{end_vec.size()}, end_vec);
 
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<opset::StridedSlice>(op->name(), ng_input, begin,
-                                                end, std::vector<int64_t>{},
-                                                std::vector<int64_t>{}));
+           ConstructNgNode<opset::StridedSlice>(
+               op->name(), ng_input, begin, end, std::vector<int64_t>{},
+               std::vector<int64_t>{}, std::vector<int64_t>{1}));
   return Status::OK();
 }
 
@@ -2625,8 +2629,7 @@ const static std::map<
         {"Maximum", TranslateBinaryOp<opset::Maximum>},
         {"MaxPool", TranslateMaxPoolOp<2>},
         {"MaxPool3D", TranslateMaxPoolOp<3>},
-        {"NonMaxSuppressionV2", TranslateNonMaxSuppressionOp},
-        {"NonMaxSuppressionV4", TranslateNonMaxSuppressionOp},
+        {"NonMaxSuppressionV2", TranslateNonMaxSuppressionV2Op},
         {"Mean", TranslateDirectReduceOp<opset::ReduceMean>},
         {"Min", TranslateDirectReduceOp<opset::ReduceMin>},
         {"Minimum", TranslateBinaryOp<opset::Minimum>},
