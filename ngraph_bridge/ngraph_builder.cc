@@ -2208,9 +2208,9 @@ static Status TranslateSliceOp(
       op->name(), ng::element::i64, ng::Shape{end_vec.size()}, end_vec);
 
   SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<opset::StridedSlice>(
-               op->name(), ng_input, begin, end, std::vector<int64_t>{},
-               std::vector<int64_t>{}, std::vector<int64_t>{1}));
+           ConstructNgNode<opset::StridedSlice>(op->name(), ng_input, begin,
+                                                end, std::vector<int64_t>{},
+                                                std::vector<int64_t>{}));
   return Status::OK();
 }
 
