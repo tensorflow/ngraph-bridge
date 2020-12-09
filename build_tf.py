@@ -71,7 +71,7 @@ def main():
         os.chdir(pwd)
 
     use_intel_tf = False
-    if arguments.use_intel_tensorflow != '':
+    if arguments.use_intel_tensorflow:
         use_intel_tf = True
 
     # Build TensorFlow
