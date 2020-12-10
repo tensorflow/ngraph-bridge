@@ -36,12 +36,10 @@ void IE_Basic_Engine::infer(
     std::vector<std::shared_ptr<IETensor>>& hoisted_params,
     std::vector<std::string>& param_names) {
 
-
   load_network();
   if (m_infer_reqs.empty()) {
     m_infer_reqs.push_back(m_exe_network.CreateInferRequest());
   }
-
 
   //  Prepare input blobs
   auto func = m_network.getFunction();
