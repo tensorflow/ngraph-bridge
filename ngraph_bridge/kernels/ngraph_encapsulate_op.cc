@@ -249,13 +249,13 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ng_shape[j] = tf_input_tensors[i].shape().dim_size(j);
       }
       ngraph::element::Type ng_element_type;
-      OP_REQUIRES_OK(ctx, TFDataTypeToNGraphElementType(
+      OP_REQUIRES_OK(ctx, util::TFDataTypeToNGraphElementType(
                               tf_input_tensors[i].dtype(), &ng_element_type));
 
       auto backend = BackendManager::GetBackend();
       std::shared_ptr<ngraph::runtime::Tensor> ng_tensor =
-          backend->create_tensor(ng_element_type, ng_shape,
-                                 tf_input_tensors[i].data());
+          make_shared<IETensor>(ng_element_type, ng_shape,
+                                tf_input_tensors[i].data());
       ng_inputs.push_back(ng_tensor);
     }
   }
@@ -294,8 +294,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     // expected.
     ngraph::element::Type expected_elem_type;
     auto ng_element_type = ng_element->get_element_type();
-    OP_REQUIRES_OK(ctx,
-                   TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
+    OP_REQUIRES_OK(
+        ctx, util::TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
                                                  &expected_elem_type));
     OP_REQUIRES(
         ctx, ng_element_type == expected_elem_type,
@@ -322,7 +322,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ng_exec->call(ng_inputs, ng_outputs);
       } catch (const std::exception& exp) {
         string status_string = "Caught exception while executing cluster " +
-                               to_string(m_cluster_id) + string(exp.what());
+                               to_string(m_cluster_id) + ": " +
+                               string(exp.what());
         OP_REQUIRES(ctx, false, errors::Internal(status_string));
       } catch (...) {
         string status_string = "Caught exception while executing cluster " +
@@ -350,7 +351,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   }
 
   long vm, rss;
-  MemoryProfile(vm, rss);
+  util::MemoryProfile(vm, rss);
   NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << m_cluster_id
                  << " Step_ID: " << step_id << " Cluster: " << name()
                  << " Input Tensors created: "
@@ -396,7 +397,8 @@ Status NGraphEncapsulateOp::GetExecutable(
   for (int i = 0; i < tf_input_tensors.size(); i++) {
     if (m_input_is_static[i]) {
       static_input_map[i] = &tf_input_tensors[i];
-      TF_RETURN_IF_ERROR(TensorToStream(signature_ss, tf_input_tensors[i]));
+      TF_RETURN_IF_ERROR(
+          util::TensorToStream(signature_ss, tf_input_tensors[i]));
       signature_ss << ";";
     }
   }
@@ -412,16 +414,13 @@ Status NGraphEncapsulateOp::GetExecutable(
   if (it == m_ng_exec_map.end()) {
     // Measure the current total memory usage
     long vm, rss, vm0, rss0;
-    MemoryProfile(vm0, rss0);
+    util::MemoryProfile(vm0, rss0);
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                &m_graph, ng_function));
     ng_function->set_friendly_name(m_name);
-
-    if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {
-      ngraph::plot_graph(ng_function, "tf_function_" + m_name + ".dot");
-    }
+    util::DumpNGGraph(ng_function, "tf_function_" + m_name);
 
     // Evict the cache if the number of elements exceeds the limit
     std::shared_ptr<Executable> evicted_ng_exec;
@@ -433,9 +432,6 @@ Status NGraphEncapsulateOp::GetExecutable(
     if (m_ng_exec_map.size() >= m_function_cache_depth_in_items) {
       evicted_ng_exec = m_ng_exec_map[m_lru.back()];
       m_ng_exec_map.erase(m_lru.back());
-
-      // Call delete function here for the erased func
-      backend->remove_compiled_function(evicted_ng_exec);
 
       m_lru.pop_back();
     }  // cache eviction if cache size greater than cache depth
@@ -452,7 +448,7 @@ Status NGraphEncapsulateOp::GetExecutable(
     m_lru.push_front(signature);
 
     // Memory after
-    MemoryProfile(vm, rss);
+    util::MemoryProfile(vm, rss);
     auto delta_vm_mem = vm - vm0;
     auto delta_res_mem = rss - rss0;
     NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << m_cluster_id

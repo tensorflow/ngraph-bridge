@@ -26,6 +26,7 @@
 
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
+#include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/pass/transpose_sinking.h"
 
 using namespace std;
@@ -442,11 +443,11 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   set<shared_ptr<ngraph::Node>> transposes_to_delete;
   unordered_map<std::string, ngraph::Shape> orig_result_out_shape;
 
-  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {
+  if (util::DumpAllGraphs()) {
     NGRAPH_VLOG(0)
-        << "Dumping ng_function before TransposeSinking to Before_TS_"
+        << "Dumping nGraph function before TransposeSinking to before_TS_"
         << f->get_name() << ".dot";
-    ngraph::plot_graph(f, "Before_TS_" + f->get_name() + ".dot");
+    util::DumpNGGraph(f, "before_TS_" + f->get_name());
   }
 
   // STEP 1 : Sink or Swim transposes away for op clusters
@@ -498,10 +499,12 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
                  " op::Result = ", *r, " expected output shape = ",
                  orig_result_out_shape[r->get_name()]);
   }
-  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS") != nullptr) {
-    NGRAPH_VLOG(0) << "Dumping ng_function after TransposeSinking to After_TS_"
-                   << f->get_name() << ".dot";
-    ngraph::plot_graph(f, "After_TS_" + f->get_name() + ".dot");
+
+  if (util::DumpAllGraphs()) {
+    NGRAPH_VLOG(0)
+        << "Dumping nGraph function after TransposeSinking to after_TS_"
+        << f->get_name() << ".dot";
+    util::DumpNGGraph(f, "after_TS_" + f->get_name());
   }
   return true;
 }
