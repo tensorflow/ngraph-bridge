@@ -24,6 +24,9 @@
 #include "ngraph_bridge/executable.h"
 #include "ngraph_bridge/ie_tensor.h"
 #include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/ie_basic_engine.h"
+#include "ngraph_bridge/ie_utils.h"
+#include "ngraph_bridge/ie_vadm_engine.h"
 
 using namespace std;
 using namespace ngraph;
@@ -138,19 +141,25 @@ Executable::Executable(shared_ptr<Function> func, string device)
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
 
-  // Load network to the plugin (m_device) and create an infer request
-  InferenceEngine::ExecutableNetwork exe_network =
-      ie.LoadNetwork(m_network, m_device, options);
-  m_infer_req = exe_network.CreateInferRequest();
+  // Create the Backend Engine to handle IE execution 
+  NGRAPH_VLOG(2) << "Creating IE Execution Engine";
+  if (m_device == "HDDL") {
+    m_ie_engine = make_shared<IE_VADM_Engine>(m_network);
+  } else {
+    m_ie_engine = make_shared<IE_Basic_Engine>(m_network, m_device);
+  }
 }
 
 bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
-                      vector<shared_ptr<runtime::Tensor>>& outputs) {
+                      vector<shared_ptr<runtime::Tensor>>& outputs,
+                      bool multi_req_execution) {
   if (m_trivial_fn) {
     NGRAPH_VLOG(2) << "Calling trivial IE function with inputs="
                    << inputs.size() << " outputs=" << outputs.size();
     return call_trivial(inputs, outputs);
   }
+
+  shared_ptr<ngraph::Function> func = m_network.getFunction();
 
   // Check if the number of inputs that the CNN network expects is equal to the
   // sum of the
@@ -164,16 +173,21 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   }
 
   //  Prepare input blobs
-  auto func = m_network.getFunction();
+  std::vector<std::shared_ptr<IETensor>> ie_inputs(inputs.size());
+  std::vector<std::string> input_names(inputs.size());
   auto parameters = func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(inputs[i]);
-    m_infer_req.SetBlob(parameters[i]->get_friendly_name(), tv->get_blob());
+    ie_inputs[i] = static_pointer_cast<IETensor>(inputs[i]);
+    input_names[i] = parameters[i]->get_friendly_name();
   }
 
+  std::vector<std::shared_ptr<IETensor>> ie_hoisted_params(
+      m_hoisted_params.size());
+  std::vector<std::string> param_names(m_hoisted_params.size());
+  int j = 0;
   for (const auto& it : m_hoisted_params) {
-    shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(it.second);
-    m_infer_req.SetBlob(it.first, tv->get_blob());
+    ie_hoisted_params[j] = static_pointer_cast<IETensor>(it.second);
+    param_names[j++] = it.first;
   }
 
   InferenceEngine::OutputsDataMap output_info = m_network.getOutputsInfo();
@@ -196,22 +210,28 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
 
   //  Prepare output blobs
   auto results = func->get_results();
+  std::vector<std::shared_ptr<IETensor>> ie_outputs(outputs.size());
+  std::vector<std::string> output_names(outputs.size());
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] != nullptr) {
-      NGRAPH_VLOG(4) << "Executable::call() SetBlob()";
-      shared_ptr<IETensor> tv = static_pointer_cast<IETensor>(outputs[i]);
-      m_infer_req.SetBlob(get_output_name(results[i]), tv->get_blob());
+      ie_outputs[i] = static_pointer_cast<IETensor>(outputs[i]);
     }
+    output_names[i] = get_output_name(results[i]);
   }
 
-  m_infer_req.Infer();
+  if (multi_req_execution) {
+    m_ie_engine->enable_multi_req_execution();
+  } else {
+    m_ie_engine->disable_multi_req_execution();
+  }
+
+  m_ie_engine->infer(ie_inputs, input_names, ie_outputs, output_names, ie_hoisted_params, param_names);
 
   // Set dynamic output blobs
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] == nullptr) {
-      NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
-      auto blob = m_infer_req.GetBlob(get_output_name(results[i]));
-      outputs[i] = make_shared<IETensor>(blob);
+      // NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
+      outputs[i] = ie_outputs[i];
     }
   }
 
