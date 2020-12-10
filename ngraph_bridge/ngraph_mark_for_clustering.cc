@@ -232,7 +232,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Mean"] = SetStaticInputs({1});
     set_attributes_map["Min"] = SetStaticInputs({1});
     set_attributes_map["MirrorPad"] = SetStaticInputs({1});
-    set_attributes_map["NonMaxSuppressionV2"] = SetStaticInputs({2, 3});
+    set_attributes_map["NonMaxSuppressionV2"] = SetStaticInputs({2});
     set_attributes_map["OneHot"] = SetStaticInputs({1});
     set_attributes_map["Pad"] = SetStaticInputs({1});
     set_attributes_map["PadV2"] = SetStaticInputs({1, 2});
@@ -715,8 +715,7 @@ GetTFToNgOpMap() {
           {"NonMaxSuppressionV2",
            {std::make_shared<opset::NonMaxSuppression>(), constant,
             std::make_shared<opset::Unsqueeze>(),
-            std::make_shared<opset::StridedSlice>(),
-            std::make_shared<opset::Squeeze>()}},
+            std::make_shared<opset::StridedSlice>()}},
           {"OneHot", {std::make_shared<opset::OneHot>(), constant}},
           {"Pack",
            {constant, std::make_shared<opset::Concat>(),

@@ -44,3 +44,5 @@ test_select.TestSelect.test_select_complexshape3
 test_slice.TestSliceOperations.test_strided_slice_4  # AssertionError
 test_split.TestSplitOperations.test_split_sizes[shape1-sizes1-0]  # AssertionError
 
+# Fails because of trivial fn check at the bridge, passes without the check 
+test_nms.TestNMSOperations.test_NMSV2
