@@ -26,6 +26,7 @@ tests_common.txt
 [RUN]
 # Specify tests/patterns/regex that should be included
 
+
 ###################################################
 [SKIP]
 
@@ -53,7 +54,6 @@ spacetodepth_op_test.SpaceToDepthTest.testBasic
 scan_ops_test.CumsumTest.test1D
 scan_ops_test.CumsumTest.test2D
 scan_ops_test.CumsumTest.test3D
-
 
 #Unable to add a parameter to a function with no parameters!
 argmax_op_test.ArgMaxTest.testInt64
@@ -142,13 +142,6 @@ pooling_test.Pooling3DTest.test_maxpooling_3d
 cast_op_test.CastOpTest.testBfloat16
 
 # cannot find blob with name <xxx>
-conv_ops_test.Conv2DTest.testInputGradientKernelSizeMatchesInputSize
-conv_ops_test.Conv2DTest.testInputGradientSamePaddingStrideOne
-conv_ops_test.Conv2DTest.testInputGradientSamePaddingStrideThree
-conv_ops_test.Conv2DTest.testInputGradientSamePaddingStrideTwo
-conv_ops_test.Conv2DTest.testInputGradientValidPaddingStrideOne
-conv_ops_test.Conv2DTest.testInputGradientValidPaddingStrideThree
-conv_ops_test.Conv2DTest.testInputGradientValidPaddingStrideTwo
 slice_op_test.SliceTest.testSimple
 
 gather_nd_op_test.GatherNdTest.testGradientsRank2Slices
@@ -210,3 +203,11 @@ reduction_ops_test.ReducedShapeTest.testNegAxes
 # Gradient tests fail with Intel TF
 relu_op_test.Relu6Test.testGradientFloat32
 pool_test.PoolingTest.testGradient3D
+
+# Results don't match between TF and OV
+lrn_op_test.LRNOpTest.testGradients
+lrn_op_test.LRNOpTest.testCompute
+
+# This passes for NMSV2 but fails for others because the constants get encapsulated
+# leading to wrong results
+image_ops_test.NonMaxSuppressionTest.testDataTypes

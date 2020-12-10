@@ -64,17 +64,7 @@ mutex NGraphRewritePass::s_serial_counter_mutex;
 //   2. Cluster Assignment [ngraph_assign_clusters.cc]
 //   3. Cluster Deassignment [ngraph_deassign_clusters.cc]
 //   4. Cluster Encapsulation [ngraph_encapsulate_clusters.cc]
-//
-// Between phases, graph dumps (in both .dot and .pbtxt format) may be
-// requested by setting the following environment variables:
-//
-//   NGRAPH_TF_DUMP_UNMARKED_GRAPHS=1      dumps graphs before phase 1
-//   NGRAPH_TF_DUMP_MARKED_GRAPHS=1        dumps graphs after phase 1
-//   NGRAPH_TF_DUMP_CLUSTERED_GRAPHS=1     dumps graphs after phase 2
-//   NGRAPH_TF_DUMP_DECLUSTERED_GRAPHS=1   dumps graphs after phase 3
-//   NGRAPH_TF_DUMP_ENCAPSULATED_GRAPHS=1  dumps graphs after phase 4
-//   NGRAPH_TF_DUMP_GRAPHS=1               all of the above
-//
+
 class NGraphEncapsulationPass : public NGraphRewritePass {
  public:
   Status Run(const GraphOptimizationPassOptions& options) override {
@@ -89,17 +79,16 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // runs of this pass.
     int idx = FreshIndex();
 
+    tensorflow::Graph* graph = options.graph->get();
     // If requested, dump unmarked graphs.
-    if (DumpUnmarkedGraphs()) {
-      DumpGraphs(options, idx, "unmarked", "Unmarked Graph");
-    }
+    util::DumpTFGraph(graph, idx, "unmarked");
 
     // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
     // we will not do anything; all subsequent
     // passes become a no-op.
     bool ngraph_not_enabled =
         (!config::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
-    bool already_processed = IsProcessedByNgraphPass(options.graph->get());
+    bool already_processed = util::IsAlreadyProcessed(graph);
     if (!already_processed && ngraph_not_enabled) {
       NGRAPH_VLOG(0) << "NGraph is available but disabled.";
     }
@@ -115,36 +104,25 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
-    TF_RETURN_IF_ERROR(
-        MarkForClustering(options.graph->get(), skip_these_nodes));
-    if (DumpMarkedGraphs()) {
-      DumpGraphs(options, idx, "marked", "Graph Marked for Clustering");
-    }
+    TF_RETURN_IF_ERROR(MarkForClustering(graph, skip_these_nodes));
+    util::DumpTFGraph(graph, idx, "marked");
 
     // 2. Assign clusters then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(AssignClusters(options.graph->get()));
-    if (DumpClusteredGraphs()) {
-      DumpGraphs(options, idx, "clustered", "Graph with Clusters Assigned");
-    }
+    TF_RETURN_IF_ERROR(AssignClusters(graph));
+    util::DumpTFGraph(graph, idx, "clustered");
 
     // 3. Deassign trivial clusters then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(DeassignClusters(options.graph->get()));
-    if (DumpDeclusteredGraphs()) {
-      DumpGraphs(options, idx, "declustered",
-                 "Graph with Trivial Clusters De-Assigned");
-    }
+    TF_RETURN_IF_ERROR(DeassignClusters(graph));
+    util::DumpTFGraph(graph, idx, "declustered");
 
     // 4. Encapsulate clusters then, if requested, dump the graphs.
     std::unordered_map<std::string, std::string> config_map;
-    auto status = EncapsulateClusters(options.graph->get(), idx, config_map);
+    auto status = EncapsulateClusters(graph, idx, config_map);
     if (status != Status::OK()) {
       return status;
     }
 
-    if (DumpEncapsulatedGraphs()) {
-      DumpGraphs(options, idx, "encapsulated",
-                 "Graph with Clusters Encapsulated");
-    }
+    util::DumpTFGraph(graph, idx, "encapsulated");
     return Status::OK();
   }
 };

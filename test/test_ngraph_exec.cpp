@@ -42,6 +42,16 @@ namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
 
+static int FindNumberOfNodes(const Graph* graph, const string op_type) {
+  int count = 0;
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == op_type) {
+      count++;
+    }
+  }
+  return count;
+}
+
 class NGraphExecTest : public ::testing::Test {
  protected:
   // Loads the .pbtxt into a graph object
@@ -166,11 +176,11 @@ TEST_F(NGraphExecTest, Axpy) {
     ng_shape_y[i] = y.shape().dim_size(i);
   }
 
-  auto t_x = backend->create_tensor(ng::element::f32, ng_shape_x);
+  auto t_x = make_shared<IETensor>(ng::element::f32, ng_shape_x);
   float v_x[2][3] = {{1, 1, 1}, {1, 1, 1}};
   t_x->write(&v_x, sizeof(v_x));
 
-  auto t_y = backend->create_tensor(ng::element::f32, ng_shape_y);
+  auto t_y = make_shared<IETensor>(ng::element::f32, ng_shape_y);
   t_y->write(&v_x, sizeof(v_x));
 
   // Execute the nGraph function.
@@ -221,11 +231,11 @@ TEST_F(NGraphExecTest, Axpy8bit) {
     ng_shape_y[i] = y.shape().dim_size(i);
   }
 
-  auto t_x = backend->create_tensor(ng::element::i8, ng_shape_x);
+  auto t_x = make_shared<IETensor>(ng::element::i8, ng_shape_x);
   int8 v_x[2][2] = {{1, 1}, {1, 1}};
   t_x->write(&v_x, sizeof(v_x));
 
-  auto t_y = backend->create_tensor(ng::element::i8, ng_shape_y);
+  auto t_y = make_shared<IETensor>(ng::element::i8, ng_shape_y);
   t_y->write(&v_x, sizeof(v_x));
 
   // Execute the nGraph function.
@@ -277,13 +287,13 @@ TEST_F(NGraphExecTest, NGraphPassConstantFolding1) {
   Graph input_graph(OpRegistry::Global());
   ASSERT_OK(LoadGraph("test_graph1.pbtxt", &input_graph));
 
-  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:1", true);
+  setenv("TF_OV_CONSTANT_FOLDING", "1", true);
   expect_const_count_ngfunc(input_graph, 1);
-  unsetenv("NGRAPH_PASS_ENABLES");
+  unsetenv("TF_OV_CONSTANT_FOLDING");
 
-  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:0", true);
+  setenv("TF_OV_CONSTANT_FOLDING", "0", true);
   expect_const_count_ngfunc(input_graph, 3);
-  unsetenv("NGRAPH_PASS_ENABLES");
+  unsetenv("TF_OV_CONSTANT_FOLDING");
 }
 
 TEST_F(NGraphExecTest, NGraphPassConstantFolding2) {
@@ -298,13 +308,13 @@ TEST_F(NGraphExecTest, NGraphPassConstantFolding2) {
   // attach _Retval node
   auto pgraph_new = attach_retval_node(root, pgraph, add2.node());
 
-  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:1", true);
+  setenv("TF_OV_CONSTANT_FOLDING", "1", true);
   expect_const_count_ngfunc(*pgraph_new, 1);
-  unsetenv("NGRAPH_PASS_ENABLES");
+  unsetenv("TF_OV_CONSTANT_FOLDING");
 
-  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:0", true);
+  setenv("TF_OV_CONSTANT_FOLDING", "0", true);
   expect_const_count_ngfunc(*pgraph_new, 3);
-  unsetenv("NGRAPH_PASS_ENABLES");
+  unsetenv("TF_OV_CONSTANT_FOLDING");
 }
 
 }  // namespace testing

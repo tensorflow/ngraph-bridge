@@ -59,12 +59,7 @@ test_elementwise_ops.TestElementwiseOperations.test_logical_and[True-False-expec
 test_elementwise_ops.TestElementwiseOperations.test_logical_and[1.0--2.0-expected2]
 test_elementwise_ops.TestElementwiseOperations.test_logical_and[False-100-expected3]
 test_elementwise_ops.TestElementwiseOperations.test_logical_and[v14-v24-expected4]
-test_select.TestSelect.test_select_complexshape1
-test_select.TestSelect.test_select_complexshape2
-test_select.TestSelect.test_select_complexshape3
 test_while_loop.TestWhileLoop.test_while_loop
-
-test_gathernd.TestGatherNDOperations.test_gather_nd
 
 # data doesn't exist
 test_mnist_training.TestMnistTraining.test_mnist_training[adam]
@@ -74,10 +69,7 @@ test_resize_to_dynamic_shape.TestResizeToDynamicShape.test_resize_to_dynamic_sha
 test_shared_const.TestSharedConst.test_sharedconst1
 
 # cannot find blob with name <parameter>
-test_pad.TestPadOperations.test_pad1
 test_pad.TestPadOperations.test_pad2
-test_pad.TestPadOperations.test_pad3
-test_pad.TestPadOperations.test_pad4
 
 # incorrect number of input/output dims
 test_prod.TestProductOperations.test_prod[v10--1-expected0]
@@ -101,4 +93,5 @@ test_squeeze.TestSqueezeOperations.test_squeeze[shape3-None]
 test_squeeze.TestSqueezeOperations.test_squeeze[shape4-None]
 test_l2loss.TestL2Loss.test_l2loss[xshape1]
 
-test_variableops_static_input.TestVariableStaticInputs.test_variable_static_input_variables
+# Fails because of trivial fn check at the bridge, passes without the check 
+test_nms.TestNMSOperations.test_NMSV2

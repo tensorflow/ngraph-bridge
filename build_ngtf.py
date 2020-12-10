@@ -56,7 +56,7 @@ def main():
     # Component versions
     tf_version = "v2.2.0"
     use_intel_tf = False
-    openvino_version = "releases/2021/1"
+    openvino_version = "releases/2021/2"
 
     # Command line parser options
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
@@ -116,7 +116,7 @@ def main():
         default='')
 
     parser.add_argument(
-        '--use_prebuilt_openvino',
+        '--use_openvino_from_location',
         help=
         "Use OpenVINO from a directory where it was already built and stored..\n",
         action="store",
@@ -329,9 +329,8 @@ def main():
             copy_tf_to_artifacts(tf_version, dst_dir, None, use_intel_tf)
             os.chdir(cwd)
 
-    if arguments.use_prebuilt_openvino != "":
-        print("Using OpenVINO from " + arguments.use_prebuilt_openvino)
-    #TODO
+    if arguments.use_openvino_from_location != "":
+        print("Using OpenVINO from " + arguments.use_openvino_from_location)
     else:
         print("Building OpenVINO from source")
         print(
@@ -363,12 +362,12 @@ def main():
     ]
 
     openvino_artifacts_dir = ""
-    if arguments.use_prebuilt_openvino == '':
+    if arguments.use_openvino_from_location == '':
         openvino_artifacts_dir = os.path.join(artifacts_location, "openvino")
     else:
         openvino_artifacts_dir = os.path.abspath(
-            arguments.use_prebuilt_openvino)
-        ngraph_tf_cmake_flags.extend(["-DUSE_PREBUILT_OPENVINO=TRUE"])
+            arguments.use_openvino_from_location)
+        ngraph_tf_cmake_flags.extend(["-DUSE_OPENVINO_FROM_LOCATION=TRUE"])
 
     ngraph_tf_cmake_flags.extend(
         ["-DOPENVINO_ARTIFACTS_DIR=" + openvino_artifacts_dir])

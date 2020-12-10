@@ -17,10 +17,13 @@
 #include "ngraph/ngraph.hpp"
 #include "ngraph/opsets/opset.hpp"
 
+#include <ie_plugin_config.hpp>
+
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
 #include "ngraph_bridge/ie_tensor.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 using namespace ngraph;
@@ -30,21 +33,39 @@ namespace ngraph_bridge {
 
 Executable::Executable(shared_ptr<Function> func, string device)
     : m_device{device}, m_trivial_fn{nullptr}, m_function(func) {
-  NGRAPH_VLOG(2) << "Checking for unsupported ops in IE backend";
-  const auto& opset = ngraph::get_opset4();
+  NGRAPH_VLOG(2) << "Checking for unsupported ops";
+  const auto& opset = ngraph::get_opset5();
   for (const auto& node : func->get_ops()) {
     if (!opset.contains_op_type(node.get())) {
       NGRAPH_VLOG(0) << "UNSUPPORTED OP DETECTED: "
                      << node->get_type_info().name;
-      THROW_IE_EXCEPTION << "Detected op not belonging to opset3!";
+      throw runtime_error("Detected op " + node->get_name() +
+                          " not belonging to opset5!");
     }
+  }
+
+  NGRAPH_VLOG(2) << "Checking for unused parameters";
+  auto parameters = func->get_parameters();
+  ngraph::ParameterVector used_parameters;
+  for (int i = 0; i < parameters.size(); ++i) {
+    NGRAPH_VLOG(2) << parameters[i];
+    if (parameters[i]->get_users().size() == 0) {
+      NGRAPH_VLOG(2) << "Removing unused parameter "
+                     << parameters[i]->get_name();
+    } else {
+      used_parameters.push_back(parameters[i]);
+    }
+  }
+  if (parameters.size() != used_parameters.size()) {
+    func = make_shared<Function>(func->get_results(), used_parameters,
+                                 func->get_name());
   }
 
   // A trivial function is one of
   //  1. constant function (Const -> Result)
   //  2. identity function (Parameter -> Result)
   //  3. zero function (* -> Zero)
-  NGRAPH_VLOG(2) << "Checking for trivial functions in IE backend";
+  NGRAPH_VLOG(2) << "Checking for trivial functions";
   bool trivial_fn = true;
   for (auto result : func->get_results()) {
     auto parent = result->input_value(0).get_node_shared_ptr();
@@ -60,7 +81,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
     return;
   }
 
-  NGRAPH_VLOG(2) << "Checking for function parameters in IE backend";
+  NGRAPH_VLOG(2) << "Checking for function parameters";
   if (func->get_parameters().size() == 0) {
     NGRAPH_VLOG(1) << "No parameters found in nGraph function!";
     // Try to find a node that can be converted into a "static input"
@@ -94,8 +115,8 @@ Executable::Executable(shared_ptr<Function> func, string device)
       }
     }
     if (!param_replaced) {
-      THROW_IE_EXCEPTION
-          << "Unable to add a parameter to a function with no parameters!";
+      throw runtime_error(
+          "Unable to add a parameter to a function with no parameterss");
     }
   }
 
@@ -104,18 +125,22 @@ Executable::Executable(shared_ptr<Function> func, string device)
   NGRAPH_VLOG(2) << "Creating IE CNN network using nGraph function";
   m_network = InferenceEngine::CNNNetwork(func);
 
-  if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
+  InferenceEngine::Core ie;
+  std::map<string, string> options;
+
+  if (util::DumpAllGraphs()) {
     auto& name = m_network.getName();
     m_network.serialize(name + ".xml", name + ".bin");
-    ngraph::plot_graph(func, "tf_function_" + name + "_ie.dot");
+    util::DumpNGGraph(func, "tf_function_" + name + "_ie");
+    options[InferenceEngine::PluginConfigParams::KEY_DUMP_EXEC_GRAPH_AS_DOT] =
+        "ie_" + m_device + "_" + name;
   }
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
 
-  InferenceEngine::Core ie;
   // Load network to the plugin (m_device) and create an infer request
   InferenceEngine::ExecutableNetwork exe_network =
-      ie.LoadNetwork(m_network, m_device);
+      ie.LoadNetwork(m_network, m_device, options);
   m_infer_req = exe_network.CreateInferRequest();
 }
 
@@ -132,8 +157,10 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   // inputs specified and the inputs we hoisted, if any.
   InferenceEngine::InputsDataMap input_info = m_network.getInputsInfo();
   if (input_info.size() != (inputs.size() + m_hoisted_params.size())) {
-    THROW_IE_EXCEPTION
-        << "Function inputs number differ from number of given inputs";
+    throw runtime_error("Function inputs (" + to_string(input_info.size()) +
+                        ") number differ from number of given inputs (" +
+                        to_string(inputs.size() + m_hoisted_params.size()) +
+                        ")");
   }
 
   //  Prepare input blobs
@@ -215,8 +242,8 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
       auto param = ngraph::as_type_ptr<opset::Parameter>(parent);
       auto index = m_trivial_fn->get_parameter_index(param);
       if (index < 0) {
-        THROW_IE_EXCEPTION << "Input parameter " << param->get_friendly_name()
-                           << " not found in trivial function";
+        throw runtime_error("Input parameter " + param->get_friendly_name() +
+                            " not found in trivial function");
       }
       if (outputs[i] == nullptr) {
         outputs[i] = make_shared<IETensor>(inputs[index]->get_element_type(),
@@ -240,8 +267,9 @@ bool Executable::call_trivial(const vector<shared_ptr<runtime::Tensor>>& inputs,
                               constant->get_element_type().size());
       }
     } else {
-      THROW_IE_EXCEPTION << "Expected constant or parameter feeding to a "
-                            "result in trivial function";
+      throw runtime_error(
+          "Expected constant or parameter feeding to a "
+          "result in trivial function");
     }
   }
   return true;

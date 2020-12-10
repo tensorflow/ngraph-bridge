@@ -270,8 +270,6 @@ math_ops_test.DivAndModTest.testFloorModFloat
 math_ops_test.DivAndModTest.testRealDiv 
 math_ops_test.DivAndModTest.testTruncateModFloat 
 math_ops_test.DivAndModTest.testTruncateModInt
-#math_ops_test.DivAndModTest.testDivideInt 
-#math_ops_test.DivAndModTest.testFloorModInt
 
 math_ops_test.LogSumExpTest.testInfinity 
 math_ops_test.LogSumExpTest.testKeepDims 
@@ -584,6 +582,13 @@ xent_op_test.XentTest.testSingleClass
 xent_op_test.XentTest.testWrapper
 xent_op_test.XentTest.testZeroDimension
 xent_op_test.XentTest.test_session
+
+lrn_op_test.LRNOpTest.testGradientsZeroInput
+lrn_op_test.LRNOpTest.test_session
+
+image_ops_test.NonMaxSuppressionTest.test_session
+image_ops_test.NonMaxSuppressionTest.testInvalidShape
+image_ops_test.NonMaxSuppressionTest.testDataTypes
 
 ###################################################
 [SKIP]
