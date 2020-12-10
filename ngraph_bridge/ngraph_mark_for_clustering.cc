@@ -726,6 +726,7 @@ GetTFToNgOpMap() {
           {"PadV2", {constant, std::make_shared<opset::Pad>()}},
           {"Pow", {std::make_shared<opset::Power>()}},
           {"Prod", {std::make_shared<opset::ReduceProd>(), constant}},
+          {"Range", {std::make_shared<opset::Range>()}},
           {"Rank", {constant}},
           {"RealDiv", {std::make_shared<opset::Divide>()}},
           {"Reciprocal", {constant, std::make_shared<opset::Power>()}},
