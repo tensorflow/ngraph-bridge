@@ -597,11 +597,14 @@ def build_openvino(build_dir, openvino_src_dir, cxx_abi, target_arch,
 
     # Now build OpenVINO
     openvino_cmake_flags = [
-        "-DENABLE_V7_SERIALIZE=ON",
+        "-DENABLE_V10_SERIALIZE=ON",
         "-DENABLE_TESTS=OFF",
         "-DENABLE_SAMPLES=OFF",
         "-DENABLE_FUNCTIONAL_TESTS=OFF",
         "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
+        "-DENABLE_GNA=OFF",
+        "-DNGRAPH_ONNX_IMPORT_ENABLE=OFF",
+        "-DNGRAPH_TEST_UTIL_ENABLE=OFF",
         "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
         "-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=" + cxx_abi + " -march=" +
         target_arch,

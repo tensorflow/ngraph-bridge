@@ -21,9 +21,10 @@ import argparse
 
 
 def main():
-    openvino_version = "releases/2021/1"
+    openvino_version = "releases/2021/2"
     build_dir = 'build_cmake'
     cxx_abi = "1"
+    print("openVINO version: ", openvino_version)
 
     # Command line parser options
     parser = argparse.ArgumentParser(
@@ -82,13 +83,7 @@ def main():
         debug_enabled = True
 
     verbosity = False
-    artifacts_location = 'artifacts'
-    # artifacts_location = os.path.abspath(artifacts_location)
-    # print("ARTIFACTS location: " + artifacts_location)
-
-    #If artifacts doesn't exist create
-    # if not os.path.isdir(artifacts_location):
-    #     os.mkdir(artifacts_location)
+    artifacts_location = os.path.abspath(arguments.output_dir) + '/artifacts'
 
     # Build OpenVINO
     build_openvino(build_dir, openvino_src_dir, cxx_abi, arguments.target_arch,
@@ -98,7 +93,7 @@ def main():
     print('\033[1;35mOpenVINO Build finished\033[0m')
 
     print('When building ngraph-bridge using this prebuilt OpenVINO, use:')
-    print('\033[3;34mpython3 build_ngtf.py --use_prebuilt_openvino ' +
+    print('\033[3;34mpython3 build_ngtf.py --use_openvino_from_location ' +
           os.path.abspath(arguments.output_dir) + '/artifacts/openvino' +
           '\033[1;0m')
 
@@ -112,7 +107,7 @@ if __name__ == '__main__':
     # Reuse OV in different ngraph-bridge builds
     # mkdir ngtf_1; cd ngtf_1
     # git clone https://github.com/tensorflow/ngraph-bridge.git
-    # ./build_ngtf.py --use_prebuilt_openvino /prebuilt/ov/dir/artifacts/openvino
+    # ./build_ngtf.py --use_openvino_from_location /prebuilt/ov/dir/artifacts/openvino
     # cd ..; mkdir ngtf_2; cd ngtf_2
     # git clone https://github.com/tensorflow/ngraph-bridge.git
-    # ./build_ngtf.py --use_prebuilt_openvino /prebuilt/ov/dir/artifacts/openvino
+    # ./build_ngtf.py --use_openvino_from_location /prebuilt/ov/dir/artifacts/openvino
