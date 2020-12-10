@@ -22,11 +22,11 @@
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
-#include "ngraph_bridge/ie_tensor.h"
-#include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/ie_basic_engine.h"
+#include "ngraph_bridge/ie_tensor.h"
 #include "ngraph_bridge/ie_utils.h"
 #include "ngraph_bridge/ie_vadm_engine.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 using namespace ngraph;
@@ -141,7 +141,7 @@ Executable::Executable(shared_ptr<Function> func, string device)
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
 
-  // Create the Backend Engine to handle IE execution 
+  // Create the Backend Engine to handle IE execution
   NGRAPH_VLOG(2) << "Creating IE Execution Engine";
   if (m_device == "HDDL") {
     m_ie_engine = make_shared<IE_VADM_Engine>(m_network);
@@ -225,7 +225,8 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
     m_ie_engine->disable_multi_req_execution();
   }
 
-  m_ie_engine->infer(ie_inputs, input_names, ie_outputs, output_names, ie_hoisted_params, param_names);
+  m_ie_engine->infer(ie_inputs, input_names, ie_outputs, output_names,
+                     ie_hoisted_params, param_names);
 
   // Set dynamic output blobs
   for (int i = 0; i < results.size(); i++) {

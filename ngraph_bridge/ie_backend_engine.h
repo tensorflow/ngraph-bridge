@@ -32,13 +32,12 @@ class IE_Backend_Engine {
   ~IE_Backend_Engine();
 
   // Executes the inference
-  virtual void infer(
-      std::vector<std::shared_ptr<IETensor>>& inputs,
-      std::vector<std::string>& input_names,
-      std::vector<std::shared_ptr<IETensor>>& outputs,
-      std::vector<std::string>& output_names,
-      std::vector<std::shared_ptr<IETensor>>& hoisted_params,
-      std::vector<std::string>& param_names) = 0;
+  virtual void infer(std::vector<std::shared_ptr<IETensor>>& inputs,
+                     std::vector<std::string>& input_names,
+                     std::vector<std::shared_ptr<IETensor>>& outputs,
+                     std::vector<std::string>& output_names,
+                     std::vector<std::shared_ptr<IETensor>>& hoisted_params,
+                     std::vector<std::string>& param_names) = 0;
 
   // Returns output batch size based on the input batch size and the device
   // FIXME: This may not be needed

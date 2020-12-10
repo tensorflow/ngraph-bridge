@@ -39,10 +39,11 @@ void IE_VADM_Engine::infer(
   int batch_size = 0;
   int orig_batch = m_network.getBatchSize();
 
-  if (m_multi_req_execution && inputs.size() == 1 && inputs[0]->get_blob()->getTensorDesc().getDims().size() > 1) {
+  if (m_multi_req_execution && inputs.size() == 1 &&
+      inputs[0]->get_blob()->getTensorDesc().getDims().size() > 1) {
     // Set the batch size per request and number of requests
-    batch_size =
-        IE_Utils::GetInputBatchSize(inputs[0]->get_blob()->getTensorDesc().getDims()[0], m_device);
+    batch_size = IE_Utils::GetInputBatchSize(
+        inputs[0]->get_blob()->getTensorDesc().getDims()[0], m_device);
     num_req = inputs[0]->get_blob()->getTensorDesc().getDims()[0] / batch_size;
     m_network.setBatchSize(batch_size);
   }
@@ -77,21 +78,20 @@ void IE_VADM_Engine::infer(
       const void* data_ptr =
           (void*)((uint64_t)(input_data_pointer) + req_size * j);
       int in_idx = i * num_req + j;
-      IE_Utils::CreateBlob(desc, prec, data_ptr, req_size,
-                           in_blobs[in_idx]);
+      IE_Utils::CreateBlob(desc, prec, data_ptr, req_size, in_blobs[in_idx]);
       m_infer_reqs[j].SetBlob(input_name, in_blobs[in_idx]);
     }
   }
   for (int i = 0; i < hoisted_params.size(); i++) {
-    InferenceEngine::TensorDesc desc = hoisted_params[i]->get_blob()->getTensorDesc();
+    InferenceEngine::TensorDesc desc =
+        hoisted_params[i]->get_blob()->getTensorDesc();
     InferenceEngine::Precision prec = desc.getPrecision();
     const void* param_data_pointer = hoisted_params[i]->get_data_ptr();
     std::string param_name = param_names[i];
     size_t size = hoisted_params[i]->get_blob()->byteSize();
 
     InferenceEngine::SizeVector req_shape(desc.getDims());
-    IE_Utils::CreateBlob(desc, prec, param_data_pointer, size,
-                         param_blobs[i]);
+    IE_Utils::CreateBlob(desc, prec, param_data_pointer, size, param_blobs[i]);
     for (int j = 0; j < num_req; j++) {
       m_infer_reqs[j].SetBlob(param_name, param_blobs[i]);
     }
@@ -101,7 +101,8 @@ void IE_VADM_Engine::infer(
   for (int i = 0; i < outputs.size(); i++) {
     out_blobs[i] = nullptr;
     if (outputs[i] != nullptr) {
-      InferenceEngine::TensorDesc desc = outputs[i]->get_blob()->getTensorDesc();
+      InferenceEngine::TensorDesc desc =
+          outputs[i]->get_blob()->getTensorDesc();
       InferenceEngine::Precision prec = desc.getPrecision();
       InferenceEngine::Layout layout = desc.getLayout();
       const void* output_data_pointer = outputs[i]->get_data_ptr();

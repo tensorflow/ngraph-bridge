@@ -35,7 +35,7 @@ class Executable {
  public:
   Executable(shared_ptr<ngraph::Function> func, string device);
   ~Executable() {}
-  //bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
+  // bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
   //          vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);
   bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
             vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,

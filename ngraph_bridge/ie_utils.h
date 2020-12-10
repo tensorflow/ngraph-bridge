@@ -50,13 +50,9 @@ class IE_Utils {
     return inputBatchSize / GetInputBatchSize(inputBatchSize, device);
   }
 
-  static bool VPUConfigEnabled() {
-    return true;
-  } 
+  static bool VPUConfigEnabled() { return true; }
 
-  static bool VPUFastCompileEnabled() {
-    return true;
-  } 
+  static bool VPUFastCompileEnabled() { return true; }
 
   // Creates a MemoryBlob for InferenceEngine
   static void CreateBlob(InferenceEngine::TensorDesc& desc,

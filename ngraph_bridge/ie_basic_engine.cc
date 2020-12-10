@@ -16,8 +16,8 @@
 
 #include "ngraph_bridge/ie_basic_engine.h"
 #include <iostream>
-#include "ngraph_bridge/ie_utils.h"
 #include "logging/ngraph_log.h"
+#include "ngraph_bridge/ie_utils.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
@@ -35,7 +35,6 @@ void IE_Basic_Engine::infer(
     std::vector<std::string>& output_names,
     std::vector<std::shared_ptr<IETensor>>& hoisted_params,
     std::vector<std::string>& param_names) {
-
   load_network();
   if (m_infer_reqs.empty()) {
     m_infer_reqs.push_back(m_exe_network.CreateInferRequest());
@@ -72,7 +71,7 @@ void IE_Basic_Engine::infer(
     }
   }
 
-  //return true;
+  // return true;
 }
 }
 }

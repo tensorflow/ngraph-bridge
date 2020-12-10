@@ -208,7 +208,8 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   Timer function_lookup_or_create;
 
   bool multi_req_execution = false;
-  if (std::getenv("NGRAPH_TF_BATCHING") && NGraphClusterManager::NumberOfClusters() == 1) {
+  if (std::getenv("NGRAPH_TF_BATCHING") &&
+      NGraphClusterManager::NumberOfClusters() == 1) {
     multi_req_execution = true;
   }
 

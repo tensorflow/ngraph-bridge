@@ -23,7 +23,10 @@ namespace ngraph_bridge {
 
 IE_Backend_Engine::IE_Backend_Engine(InferenceEngine::CNNNetwork ie_network,
                                      std::string device)
-    : m_network(ie_network), m_device(device), m_multi_req_execution(false), m_network_ready(false) {
+    : m_network(ie_network),
+      m_device(device),
+      m_multi_req_execution(false),
+      m_network_ready(false) {
   if (std::getenv("NGRAPH_TF_DUMP_GRAPHS")) {
     auto& name = m_network.getName();
     m_network.serialize(name + ".xml", name + ".bin");
@@ -33,18 +36,17 @@ IE_Backend_Engine::IE_Backend_Engine(InferenceEngine::CNNNetwork ie_network,
 IE_Backend_Engine::~IE_Backend_Engine() {}
 
 void IE_Backend_Engine::load_network() {
-  if (m_network_ready)
-    return;
+  if (m_network_ready) return;
 
   std::map<std::string, std::string> config;
 
   if (m_device == "MYRIAD") {
     // Set MYRIAD configurations
-    if(IE_Utils::VPUConfigEnabled()) {                                                                                                                                                                                                                               
+    if (IE_Utils::VPUConfigEnabled()) {
       config["MYRIAD_DETECT_NETWORK_BATCH"] = "NO";
     }
-    
-    if(IE_Utils::VPUFastCompileEnabled()) {
+
+    if (IE_Utils::VPUFastCompileEnabled()) {
       config["MYRIAD_HW_INJECT_STAGES"] = "NO";
       config["MYRIAD_COPY_OPTIMIZATION"] = "NO";
     }
