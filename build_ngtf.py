@@ -118,7 +118,8 @@ def main():
     parser.add_argument(
         '--use_openvino_from_location',
         help=
-        "Use OpenVINO from a directory where it was already built and stored..\n",
+        "Use OpenVINO from a directory where it was already built and stored.\n"
+        "NOTE: This location is expected to be populated by build_ov.py\n",
         action="store",
         default='')
 
@@ -336,7 +337,6 @@ def main():
         print(
             "NOTE: OpenVINO python module is not built when building from source."
         )
-        python_module_enabled = False
 
         # Download OpenVINO
         download_repo(
@@ -347,13 +347,8 @@ def main():
         openvino_src_dir = os.path.join(os.getcwd(), "openvino")
         print("OV_SRC_DIR: ", openvino_src_dir)
 
-        debug_enabled = False
-        if arguments.debug_build:
-            debug_enabled = True
-
         build_openvino(build_dir, openvino_src_dir, cxx_abi, target_arch,
-                       artifacts_location, python_module_enabled, debug_enabled,
-                       verbosity)
+                       artifacts_location, arguments.debug_build, verbosity)
 
     # Next build CMAKE options for the bridge
     ngraph_tf_cmake_flags = [

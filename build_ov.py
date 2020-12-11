@@ -41,10 +41,6 @@ def main():
         "Architecture flag to use (e.g., haswell, core-avx2 etc. Default \'native\'\n",
         default="native")
     parser.add_argument(
-        '--disable_python_module',
-        help="Build OpenVINO python module.",
-        action="store_true")
-    parser.add_argument(
         '--debug_build',
         help="Builds a debug version of the components\n",
         action="store_true")
@@ -72,23 +68,12 @@ def main():
     openvino_src_dir = os.path.join(arguments.output_dir, "openvino")
     print("OV_SRC_DIR: ", openvino_src_dir)
 
-    python_module_enabled = True
-    if arguments.disable_python_module:
-        print("Building without the python module.\n")
-        python_module_enabled = False
-
-    debug_enabled = False
-    if arguments.debug_build:
-        print("Building in debug mode.\n")
-        debug_enabled = True
-
     verbosity = False
     artifacts_location = os.path.abspath(arguments.output_dir) + '/artifacts'
 
     # Build OpenVINO
     build_openvino(build_dir, openvino_src_dir, cxx_abi, arguments.target_arch,
-                   artifacts_location, python_module_enabled, debug_enabled,
-                   verbosity)
+                   artifacts_location, arguments.debug_build, verbosity)
 
     print('\033[1;35mOpenVINO Build finished\033[0m')
 
