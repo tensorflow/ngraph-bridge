@@ -537,7 +537,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["Prod"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Prod"]["Tidx"] = NGraphIndexDTypes();
     type_constraint_map["Range"]["Tidx"] =
-        NGraphNumericDTypes();  //{DT_INT32, DT_INT64}; // IE expects int types
+        NGraphIndexDTypes();  //{DT_INT32, DT_INT64}; // IE expects int types
     type_constraint_map["Rank"]["T"] = NGraphNumericDTypes();
     type_constraint_map["RealDiv"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Reciprocal"]["T"] = NGraphNumericDTypes();
