@@ -245,6 +245,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Sum"] = SetStaticInputs({1});
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
+    set_attributes_map["Range"] = SetStaticInputs({0, 1, 2});
     initialized = true;
   }
   return set_attributes_map;
@@ -536,8 +537,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["PreventGradient"]["T"] = NGraphDTypes();
     type_constraint_map["Prod"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Prod"]["Tidx"] = NGraphIndexDTypes();
-    type_constraint_map["Range"]["Tidx"] =
-        NGraphIndexDTypes();  //{DT_INT32, DT_INT64}; // IE expects int types
+    type_constraint_map["Range"]["Tidx"] = NGraphNumericDTypes();
     type_constraint_map["Rank"]["T"] = NGraphNumericDTypes();
     type_constraint_map["RealDiv"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Reciprocal"]["T"] = NGraphNumericDTypes();
