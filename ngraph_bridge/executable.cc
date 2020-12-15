@@ -168,12 +168,13 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   //  Prepare input blobs
   auto func = m_network.getFunction();
   auto parameters = func->get_parameters();
+  int j = 0;
   for (int i = 0; i < inputs.size(); i++) {
     if (find(m_skipped_inputs.begin(), m_skipped_inputs.end(), i) !=
         m_skipped_inputs.end()) {
       continue;
     }
-    auto input_name = parameters[i]->get_friendly_name();
+    auto input_name = parameters[j++]->get_friendly_name();
     if (input_info.find(input_name) == input_info.end()) {
       NGRAPH_VLOG(1) << "Skipping unused input " << input_name;
       continue;
