@@ -22,11 +22,11 @@
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/executable.h"
-#include "ngraph_bridge/ie_tensor.h"
-#include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/ie_utils.h"
 #include "ngraph_bridge/ie_basic_engine.h"
+#include "ngraph_bridge/ie_tensor.h"
+#include "ngraph_bridge/ie_utils.h"
 #include "ngraph_bridge/ie_vadm_engine.h"
+#include "ngraph_bridge/ngraph_utils.h"
 
 using namespace std;
 using namespace ngraph;
