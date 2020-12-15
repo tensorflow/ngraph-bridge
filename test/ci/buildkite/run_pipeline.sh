@@ -30,6 +30,7 @@ elif [ "${BUILDKITE_PIPELINE_NAME}" == "models-gpu" ]; then
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/models-cpu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "myriad" ]; then
    export NGRAPH_TF_BACKEND=MYRIAD
+   export NGRAPH_TF_UTEST_RTOL=0.0001
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/cpu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "models-myriad" ]; then
    export NGRAPH_TF_BACKEND=MYRIAD
