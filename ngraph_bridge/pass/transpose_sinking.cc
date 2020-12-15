@@ -189,7 +189,7 @@ static void convert_binary_to_default_order(
     shared_ptr<ngraph::Node> binary, const ngraph::Input<ngraph::Node>& input,
     ngraph::Output<ngraph::Node> right, TransposeMap& reorders,
     set<shared_ptr<ngraph::Node>>& transposes_to_delete) {
-  auto left = input.get_source_output().get_node_shared_ptr();
+  auto left = input.get_source_output();
   auto right_t = read_transposemap(reorders, right);
   auto right_const = ngraph::as_type_ptr<opset::Constant>(
       right_t->input_value(1).get_node_shared_ptr());
@@ -200,7 +200,7 @@ static void convert_binary_to_default_order(
   // if right input is being implicitly broadcasted, insert a reshape
   // instead of a transpose
   shared_ptr<ngraph::Node> new_node;
-  auto left_shape = left->get_shape();
+  auto left_shape = left.get_shape();
   if (left_shape.size() < perm_to_def.size()) {
     left_shape.insert(left_shape.begin(),
                       perm_to_def.size() - left_shape.size(), 1);
