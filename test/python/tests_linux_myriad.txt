@@ -11,13 +11,18 @@
 
 tests_common.txt
 
-###################################################
-[RUN]
-# Specify tests/patterns/regex that should be included
-
-# None
 
 ###################################################
 [SKIP]
 
 test*
+
+###################################################
+[RUN]
+
+test_api.*
+test_cast.*
+test_const.*
+test_conv2D_KernelChecks.*
+test_conv2dbackpropinput.*
+
