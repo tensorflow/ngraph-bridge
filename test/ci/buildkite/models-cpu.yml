@@ -16,6 +16,9 @@
   - wait
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate
+      device=${NGRAPH_TF_BACKEND:-"CPU"}
+      device=$(echo "\$device" | tr '[:upper:]' '[:lower:]')
+      MODELFILENAME=models_\${device}.txt
       retcode=1
       test/models/tf_ov_model_zoo/run_infer_multiple.sh \
         -d /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
