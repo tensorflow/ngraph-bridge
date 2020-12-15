@@ -156,7 +156,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
     return call_trivial(inputs, outputs);
   }
 
-  shared_ptr<ngraph::Function> func = m_network.getFunction();
+  shared_ptr<ngraph::Function> func = m_ie_engine->get_func();
 
   // Check if the number of inputs that the CNN network expects is equal to the
   // sum of the

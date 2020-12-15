@@ -24,6 +24,7 @@ namespace ngraph_bridge {
 IE_Backend_Engine::IE_Backend_Engine(InferenceEngine::CNNNetwork ie_network,
                                      std::string device)
     : m_network(ie_network),
+      m_func(ie_network.getFunction()),
       m_device(device),
       m_multi_req_execution(false),
       m_network_ready(false) {
@@ -93,6 +94,10 @@ void IE_Backend_Engine::enable_multi_req_execution() {
 // Disables multi request execution
 void IE_Backend_Engine::disable_multi_req_execution() {
   m_multi_req_execution = false;
+}
+
+std::shared_ptr<ngraph::Function> IE_Backend_Engine::get_func() {
+    return m_func;
 }
 }
 }

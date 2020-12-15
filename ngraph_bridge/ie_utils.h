@@ -33,7 +33,7 @@ class IE_Utils {
   // This should dynamically look at the underlying architecture
   // and compute the best performing number of requests.
   static size_t GetMaxReq(std::string device) {
-    int max_req = 8;
+    int max_req = 1;
     if (device == "HDDL") max_req = 8;
     return max_req;
   }
