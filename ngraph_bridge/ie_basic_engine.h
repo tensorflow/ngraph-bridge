@@ -13,32 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#ifndef NGRAPH_LIBRARY_MANAGER_H_
-#define NGRAPH_LIBRARY_MANAGER_H_
 
-#include <mutex>
+#ifndef IE_BASIC_ENGINE_H_
+#define IE_BASIC_ENGINE_H_
+
+#include <ie_core.hpp>
+#include <memory>
+#include <string>
 #include <vector>
-
-#include "tensorflow/core/framework/graph.pb.h"
+#include "ngraph_bridge/ie_backend_engine.h"
 
 namespace tensorflow {
-
 namespace ngraph_bridge {
 
-class NGraphClusterManager {
+class IE_Basic_Engine : public IE_Backend_Engine {
  public:
-  static size_t NewCluster();
-  static tensorflow::GraphDef* GetClusterGraph(size_t idx);
-  static void EvictAllClusters();
-  static size_t NumberOfClusters();
+  IE_Basic_Engine(InferenceEngine::CNNNetwork ie_network, std::string device);
+  ~IE_Basic_Engine();
 
- private:
-  static std::vector<tensorflow::GraphDef*> s_cluster_graphs;
-  static std::mutex s_cluster_graphs_mutex;
+  // Executes the inference
+  virtual void infer(std::vector<std::shared_ptr<IETensor>>& inputs,
+                     std::vector<std::string>& input_names,
+                     std::vector<std::shared_ptr<IETensor>>& outputs,
+                     std::vector<std::string>& output_names,
+                     std::vector<std::shared_ptr<IETensor>>& hoisted_params,
+                     std::vector<std::string>& param_names);
 };
+}
+}
 
-}  // namespace ngraph_bridge
-
-}  // namespace tensorflow
-
-#endif
+#endif  // IE_BASIC_ENGINE_H_
