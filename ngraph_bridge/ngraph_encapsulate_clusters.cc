@@ -42,7 +42,6 @@
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
-#include "ngraph_bridge/ngraph_encapsulate_impl.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
@@ -438,7 +437,7 @@ Status Encapsulator::RewritePass(
     }
 
     Node* n;
-    NodeBuilder nb = NodeBuilder(encap_node_name, "NGraphEncapsulate")
+    NodeBuilder nb = NodeBuilder(encap_node_name, "_nGraphEncapsulate")
                          .Attr("ngraph_cluster", cluster_idx)
                          .Attr("Targuments", input_types)
                          .Attr("Tresults", cluster_output_dt_map[cluster_idx])

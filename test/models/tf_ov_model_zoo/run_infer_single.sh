@@ -22,21 +22,21 @@ fi
 
 echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN
 
-REPO=tensorflow_openvino_models_public
+REPO=https://gitlab.devtools.intel.com/mcavus/tensorflow_openvino_models_public
+COMMIT=14eff8ce # 2020-Dec-02
 
 if [ "${BUILDKITE}" == "true" ]; then
     LOCALSTORE_PREFIX=/localdisk/buildkite/artifacts
 else
     LOCALSTORE_PREFIX=/tmp
 fi
-LOCALSTORE=${LOCALSTORE_PREFIX}/${REPO}
-
+LOCALSTORE=${LOCALSTORE_PREFIX}/$(basename $REPO)
 
 function gen_frozen_models {
     script=$1
 
     initdir=`pwd`
-    VENVTMP=venv_temp # to ensure no side-efefcts of any pip installs
+    VENVTMP=venv_temp # to ensure no side-effects of any pip installs
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
     $script || exit 1
@@ -49,22 +49,24 @@ function get_model_repo {
     pushd .
     if [ ! -d "${LOCALSTORE}" ]; then
         cd ${LOCALSTORE_PREFIX} || exit 1
-        git clone https://gitlab.devtools.intel.com/mcavus/${REPO}.git
+        git clone ${REPO}
         # check if successful...
         if [ ! -d "${LOCALSTORE}" ]; then echo "Failed to clone repo!"; exit 1; fi
         # init the models...
         cd ${LOCALSTORE} || exit 1
+        git checkout ${COMMIT} || exit 1
         gen_frozen_models ./model_factory/create.all
         echo Downloaded all models; echo
     else
         cd ${LOCALSTORE} || exit 1
-        git pull || exit 1
+        git checkout ${COMMIT} || exit 1
         if [ -d "temp_build" ]; then rm -rf temp_build; fi
         if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ]; then
             gen_frozen_models ./model_factory/create_${MODEL}.sh
             echo Downloaded model ${MODEL}; echo
         fi
     fi
+    [ -d "${LOCALSTORE}/demo/outputs" ] || mkdir "${LOCALSTORE}/demo/outputs"
     popd
 }
 
@@ -114,14 +116,16 @@ cd ${LOCALSTORE}/demo
 NUM_ITER=20
 export NGRAPH_TF_LOG_PLACEMENT=1
 export NGRAPH_TF_VLOG_LEVEL=-1
-./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER  2>&1 > ${TMPFILE}
-
-echo
-echo "Checking inference result..."
-ret_code=1
-INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
-print_infer_times $NUM_ITER "${TMPFILE}"
+./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" 2>&1 > ${TMPFILE}
+ret_code=$?
+if (( $ret_code == 0 )); then
+    echo
+    echo "Checking inference result..."
+    ret_code=1
+    INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+    grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+    print_infer_times $NUM_ITER "${TMPFILE}"
+fi
 echo
 grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
 rm ${TMPFILE}
