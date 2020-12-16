@@ -22,7 +22,9 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 IE_VADM_Engine::IE_VADM_Engine(InferenceEngine::CNNNetwork ie_network)
-    : IE_Backend_Engine(ie_network, "HDDL") {}
+    : IE_Backend_Engine(ie_network, "HDDL"),
+      m_orig_batch_size(ie_network.getBatchSize()) {
+  }
 
 IE_VADM_Engine::~IE_VADM_Engine() {}
 
@@ -37,7 +39,6 @@ void IE_VADM_Engine::infer(
   // multi request execution is disabled.
   int num_req = 1;
   int batch_size = 0;
-  int orig_batch = m_network.getBatchSize();
 
   if (m_multi_req_execution && inputs.size() == 1 &&
       inputs[0]->get_blob()->getTensorDesc().getDims().size() > 1) {
@@ -45,7 +46,8 @@ void IE_VADM_Engine::infer(
     batch_size = IE_Utils::GetInputBatchSize(
         inputs[0]->get_blob()->getTensorDesc().getDims()[0], m_device);
     num_req = inputs[0]->get_blob()->getTensorDesc().getDims()[0] / batch_size;
-    m_network.setBatchSize(batch_size);
+    if (m_network.getBatchSize() != batch_size)
+      m_network.setBatchSize(batch_size);
   }
 
   // Create requests
@@ -53,7 +55,6 @@ void IE_VADM_Engine::infer(
   while (m_infer_reqs.size() < num_req) {
     m_infer_reqs.push_back(m_exe_network.CreateInferRequest());
   }
-
   std::vector<InferenceEngine::MemoryBlob::Ptr> in_blobs(inputs.size() *
                                                          num_req);
   std::vector<InferenceEngine::MemoryBlob::Ptr> param_blobs(
@@ -156,9 +157,6 @@ void IE_VADM_Engine::infer(
   }
   for (int i = 0; i < param_blobs.size(); i++) {
     param_blobs[i]->deallocate();
-  }
-  if (batch_size != 0) {
-    m_network.setBatchSize(orig_batch);
   }
 }
 }

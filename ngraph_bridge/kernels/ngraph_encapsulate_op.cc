@@ -284,7 +284,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     }
 
     // Create the TF output tensor
-    auto ng_shape = ng_element->get_shape();
+    auto ng_shape = ng_exec->get_output_shape(i);
     TensorShape tf_shape;
     for (auto dim : ng_shape) {
       tf_shape.AddDim(dim);

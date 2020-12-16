@@ -43,6 +43,10 @@ class Executable {
     return m_function->get_results();
   };
 
+  const vector<size_t> get_output_shape(const int i) {
+    return m_ie_engine->get_output_shape(i);
+  }
+
  private:
   bool call_trivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
                     vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);

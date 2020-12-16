@@ -38,6 +38,17 @@ class IE_VADM_Engine : public IE_Backend_Engine {
                      std::vector<std::string>& output_names,
                      std::vector<std::shared_ptr<IETensor>>& hoisted_params,
                      std::vector<std::string>& param_names);
+
+  virtual const std::vector<size_t> get_output_shape(const int i) {
+    std::vector<size_t> shape = m_func->get_results()[i]->get_shape();
+    if (m_multi_req_execution && shape.size() > 1) {
+      shape[0] = m_orig_batch_size;	
+    }
+    return shape;
+  };
+
+ private:
+  int m_orig_batch_size;
 };
 }
 }

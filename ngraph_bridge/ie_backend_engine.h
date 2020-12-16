@@ -51,6 +51,8 @@ class IE_Backend_Engine {
   // Returns the NGraph Function from the CNNNetwork
   std::shared_ptr<ngraph::Function> get_func();
 
+  virtual const std::vector<size_t> get_output_shape(const int i) = 0;
+
  protected:
   InferenceEngine::CNNNetwork m_network;
   std::shared_ptr<ngraph::Function> m_func;
