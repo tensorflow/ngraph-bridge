@@ -2,7 +2,8 @@
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       python3 build_ngtf.py ${BUILD_OPTIONS} \
       --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
-      --use_tensorflow_from_location ${TF_LOCATION}
+      --use_tensorflow_from_location ${TF_LOCATION} \
+      --use_openvino_from_location ${OV_LOCATION}
       
     label: ":hammer_and_wrench: Build"
     timeout_in_minutes: 60
@@ -73,6 +74,7 @@
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID --test_resnet50_infer
     label: ":bar_chart: ResNet50 Inference"
+    if: "'${NGRAPH_TF_BACKEND}' != 'MYRIAD'"
     timeout_in_minutes: 30
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}

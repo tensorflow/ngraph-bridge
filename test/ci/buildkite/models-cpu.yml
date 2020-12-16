@@ -2,7 +2,9 @@
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       python3 build_ngtf.py ${BUILD_OPTIONS} \
       --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
-      --use_tensorflow_from_location /localdisk/buildkite-agent/prebuilt_tensorflow_2_2_0
+      --use_tensorflow_from_location ${TF_LOCATION} \
+      --use_openvino_from_location ${OV_LOCATION}
+
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-2.2.0-cp36-cp36m-linux_x86_64.whl
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
     label: ":hammer_and_wrench: Build/Install ${NGRAPH_TF_BACKEND}"
@@ -16,8 +18,7 @@
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate
       retcode=1
       test/models/tf_ov_model_zoo/run_infer_multiple.sh \
-        test/models/tf_ov_model_zoo/models_cpu.txt \
-        /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
+        -d /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
         && retcode=0
       cd /localdisk/buildkite/artifacts && rm -rf ./$BUILDKITE_BUILD_ID
       if (( \$retcode > 0 )); then echo "Some model testing failed!"; exit 1; fi
