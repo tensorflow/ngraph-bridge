@@ -34,13 +34,13 @@ while read -r line; do
     line=$( echo $line | sed -e 's/#.*//g' )
     [ -z "$line" ] && continue
     envs=$( echo $line | grep '\[' | sed -e 's/^\s*\[\(.*\)\].*$/\1/' )
+    eval envs=($envs) && declare -p envs >/dev/null # params might have quoted strings with spaces
     line=$( echo $line | sed -e 's/^.*]\s*//g' )
     [ -z "$line" ] && continue
     eval args=($line) && declare -p args >/dev/null # params might have quoted strings with spaces
     echo; echo Running model: "${args[@]}" ...
-    echo ${args[0]},${args[1]},${args[2]}
     retcode=1
-    eval ${envs} "${SCRIPT_DIR}/run_infer_single.sh" "${args[@]}" && retcode=0; finalretcode=$((finalretcode+retcode))
+    env "${envs[@]}" "${SCRIPT_DIR}/run_infer_single.sh" "${args[@]}" && retcode=0; finalretcode=$((finalretcode+retcode))
     (( $retcode == 1 )) && failed_models+=("${args[0]}")
 done < "$MANIFEST"
 
