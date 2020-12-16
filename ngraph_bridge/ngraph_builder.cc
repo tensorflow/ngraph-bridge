@@ -346,6 +346,8 @@ static Status GetStaticInputNode(
                                                vec_i64[0]);
     } break;
     default:
+      return errors::Internal("GetStaticInputNode: TF data type ",
+                              DataType_Name(dt), " not supported.");
       break;
   }
   return Status::OK();
