@@ -44,7 +44,11 @@ class Executable {
   };
 
   const vector<size_t> get_output_shape(const int i) {
-    return m_ie_engine->get_output_shape(i);
+    if (m_trivial_fn) {
+      return get_results()[i]->get_shape();
+    } else {
+      return m_ie_engine->get_output_shape(i);
+    }
   }
 
  private:
