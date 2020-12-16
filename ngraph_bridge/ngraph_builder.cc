@@ -2122,21 +2122,15 @@ static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
 
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
-
-  // Size has an attribute to specify output, int32 or int64
   ng::element::Type type;
   TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dtype, &type));
 
-  auto ng_input_shape = ng_input.get_shape();
-  int64 result = 1;
-  for (auto dim : ng_input_shape) {
-    result *= dim;
-  }
-
-  // make a scalar with value equals to result
-  auto ng_result = ConstructNgNode<opset::Constant>(
-      op->name(), type, ng::Shape(0), std::vector<int64>({result}));
-
+  auto ng_input_shape =
+      ConstructNgNode<opset::ShapeOf>(op->name(), ng_input, type);
+  auto ng_axis = ConstructNgNode<opset::Constant>(
+      op->name(), ngraph::element::i64, ngraph::Shape{1}, vector<int64_t>{0});
+  auto ng_result =
+      ConstructNgNode<opset::ReduceProd>(op->name(), ng_input_shape, ng_axis);
   SaveNgOp(ng_op_map, op->name(), ng_result);
   return Status::OK();
 }
