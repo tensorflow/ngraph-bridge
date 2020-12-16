@@ -1234,10 +1234,15 @@ static Status TranslateExpandDimsOp(
 static Status TranslateFillOp(
     const Node* op, const std::vector<const Tensor*>& static_input_map,
     Builder::OpMap& ng_op_map) {
-  ng::Output<ng::Node> ng_value, ng_dims;
-  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_dims, ng_value));
-  SaveNgOp(ng_op_map, op->name(),
-           ConstructNgNode<opset::Broadcast>(op->name(), ng_value, ng_dims));
+  ng::Output<ng::Node> ng_value, ng_unused;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_unused, ng_value));
+  std::vector<int64> dims_vec;
+  TF_RETURN_IF_ERROR(GetStaticInputVector(op, 0, static_input_map, &dims_vec));
+  auto ng_output_shape = ConstructNgNode<opset::Constant>(
+      op->name(), ng::element::i64, ngraph::Shape{dims_vec.size()}, dims_vec);
+
+  SaveNgOp(ng_op_map, op->name(), ConstructNgNode<opset::Broadcast>(
+                                      op->name(), ng_value, ng_output_shape));
   return Status::OK();
 }
 
