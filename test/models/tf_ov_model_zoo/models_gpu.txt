@@ -28,7 +28,7 @@ nasnet_mobile bike  '.*'
 nasnet_large  bike  '.*'
 
 [TF_OV_DISABLED_OPS="Squeeze,Greater,Gather" TF_OV_MIN_NONTRIVIAL_NODES=50] ssd_mobilenet_v1  bike  '.*'
-[TF_OV_DISABLED_OPS="Squeeze,Greater,GatherV2" TF_OV_MIN_NONTRIVIAL_NODES=40] ssd_mobilenet_v1_fpn  bike  '.*'
+# [TF_OV_DISABLED_OPS="Squeeze,Greater,GatherV2" TF_OV_MIN_NONTRIVIAL_NODES=40] ssd_mobilenet_v1_fpn  bike  '.*'
 [TF_OV_DISABLED_OPS="Squeeze,Greater,Gather" TF_OV_MIN_NONTRIVIAL_NODES=50] ssd_mobilenet_v2  bike  '.*'
 [TF_OV_DISABLED_OPS="Squeeze,Greater,Gather" TF_OV_MIN_NONTRIVIAL_NODES=50] ssd_inception_v2  bike  '.*'
 [TF_OV_DISABLED_OPS="Squeeze,Greater,GatherV2" TF_OV_MIN_NONTRIVIAL_NODES=40] ssd_resnet_50_fpn  bike  '.*'
