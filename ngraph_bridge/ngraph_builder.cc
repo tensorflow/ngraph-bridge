@@ -26,9 +26,9 @@
 #include "ngraph/pass/pass_config.hpp"
 #include "ngraph/slice_plan.hpp"
 
+#include "api.h"
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
-#include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_conversions.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -105,7 +105,7 @@ void Builder::SetTracingInfo(const std::string& op_name,
   auto node = ng_node.get_node_shared_ptr();
   node->set_friendly_name(op_name + "/" + node->get_name());
   node->add_provenance_tag(op_name);
-  if (config::IsLoggingPlacement()) {
+  if (api::IsLoggingPlacement()) {
     cout << "TF_to_NG: " << op_name << " --> " << node << "\n";
   }
 }
@@ -307,6 +307,49 @@ static Status GetStaticInputVector(
   TF_RETURN_IF_ERROR(
       GetStaticNodeTensor(input_node, static_input_map, &input_tensor));
   TF_RETURN_IF_ERROR(TensorDataToVector(input_tensor, vector));
+  return Status::OK();
+}
+
+static Status GetStaticInputNode(
+    const Node* op, int64 input_index,
+    const std::vector<const Tensor*>& static_input_map, DataType dt,
+    ng::Output<ng::Node>& node_) {
+  ng::element::Type type;
+  TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dt, &type));
+  switch (dt) {
+    case DataType::DT_FLOAT: {
+      std::vector<float> vec_float;
+      TF_RETURN_IF_ERROR(
+          GetStaticInputVector(op, input_index, static_input_map, &vec_float));
+      node_ = ConstructNgNode<opset::Constant>(op->name(), type, ng::Shape{},
+                                               vec_float[0]);
+    } break;
+    case DataType::DT_DOUBLE: {
+      std::vector<double> vec_double;
+      TF_RETURN_IF_ERROR(
+          GetStaticInputVector(op, input_index, static_input_map, &vec_double));
+      node_ = ConstructNgNode<opset::Constant>(op->name(), type, ng::Shape{},
+                                               vec_double[0]);
+    } break;
+    case DataType::DT_INT32: {
+      std::vector<int32> vec_i32;
+      TF_RETURN_IF_ERROR(
+          GetStaticInputVector(op, input_index, static_input_map, &vec_i32));
+      node_ = ConstructNgNode<opset::Constant>(op->name(), type, ng::Shape{},
+                                               vec_i32[0]);
+    } break;
+    case DataType::DT_INT64: {
+      std::vector<int64> vec_i64;
+      TF_RETURN_IF_ERROR(
+          GetStaticInputVector(op, input_index, static_input_map, &vec_i64));
+      node_ = ConstructNgNode<opset::Constant>(op->name(), type, ng::Shape{},
+                                               vec_i64[0]);
+    } break;
+    default:
+      return errors::Internal("GetStaticInputNode: TF data type ",
+                              DataType_Name(dt), " not supported.");
+      break;
+  }
   return Status::OK();
 }
 
@@ -2015,6 +2058,32 @@ static Status TranslatePadOp(const Node* op,
   return Status::OK();
 }
 
+static Status TranslateRangeOp(
+    const Node* op, const std::vector<const Tensor*>& static_input_map,
+    Builder::OpMap& ng_op_map) {
+  ng::Output<ng::Node> ng_start, ng_stop, ng_step;
+  TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_start, ng_stop, ng_step));
+
+  DataType start_type = op->input_type(0);
+  DataType stop_type = op->input_type(1);
+  DataType step_type = op->input_type(2);
+  ng::element::Type out_type;
+  TF_RETURN_IF_ERROR(
+      util::TFDataTypeToNGraphElementType(op->output_type(0), &out_type));
+  ng::Output<ng::Node> start_node, stop_node, step_node;
+  TF_RETURN_IF_ERROR(
+      GetStaticInputNode(op, 0, static_input_map, start_type, start_node));
+  TF_RETURN_IF_ERROR(
+      GetStaticInputNode(op, 1, static_input_map, stop_type, stop_node));
+  TF_RETURN_IF_ERROR(
+      GetStaticInputNode(op, 2, static_input_map, step_type, step_node));
+  auto ng_range = ConstructNgNode<opset::Range>(op->name(), start_node,
+                                                stop_node, step_node, out_type);
+
+  SaveNgOp(ng_op_map, op->name(), ng_range);
+  return Status::OK();
+}
+
 static Status TranslateRankOp(const Node* op, const std::vector<const Tensor*>&,
                               Builder::OpMap& ng_op_map) {
   ng::Output<ng::Node> ng_input;
@@ -2694,6 +2763,7 @@ const static std::map<
         // PreventGradient is just Identity in dataflow terms, so reuse that.
         {"PreventGradient", TranslateIdentityOp},
         {"Prod", TranslateDirectReduceOp<opset::ReduceProd>},
+        {"Range", TranslateRangeOp},
         {"Rank", TranslateRankOp},
         {"RealDiv", TranslateBinaryOp<opset::Divide>},
         {"Reciprocal", TranslateReciprocalOp},
@@ -2736,7 +2806,8 @@ const static std::map<
 Status Builder::TranslateGraph(
     const std::vector<TensorShape>& inputs,
     const std::vector<const Tensor*>& static_input_map,
-    const Graph* input_graph, shared_ptr<ng::Function>& ng_function) {
+    const Graph* input_graph, const string name,
+    shared_ptr<ng::Function>& ng_function) {
   //
   // We will visit ops in topological order.
   //
@@ -2870,17 +2941,18 @@ Status Builder::TranslateGraph(
   //
   // Create the nGraph function.
   //
-  ng_function = make_shared<ng::Function>(ng_result_list, ng_parameter_list);
+  ng_function =
+      make_shared<ng::Function>(ng_result_list, ng_parameter_list, name);
 
   //
   // Apply additional passes on the nGraph function here.
   //
   {
     ngraph::pass::Manager passes;
-    if (util::GetEnv("TF_OV_CONSTANT_FOLDING") == "1") {
+    if (util::GetEnv("NGRAPH_TF_CONSTANT_FOLDING") == "1") {
       passes.register_pass<ngraph::pass::ConstantFolding>();
     }
-    if (util::GetEnv("TF_OV_TRANSPOSE_SINKING") != "0") {
+    if (util::GetEnv("NGRAPH_TF_TRANSPOSE_SINKING") != "0") {
       passes.register_pass<pass::TransposeSinking>();
     }
     passes.run_passes(ng_function);

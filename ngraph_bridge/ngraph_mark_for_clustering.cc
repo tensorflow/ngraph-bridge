@@ -16,9 +16,9 @@
 
 #include "tensorflow/core/graph/graph.h"
 
+#include "api.h"
+#include "backend_manager.h"
 #include "ngraph_bridge/default_opset.h"
-#include "ngraph_bridge/ngraph_api.h"
-#include "ngraph_bridge/ngraph_backend_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/ngraph_version_utils.h"
@@ -245,6 +245,7 @@ const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
     set_attributes_map["Sum"] = SetStaticInputs({1});
     set_attributes_map["TopKV2"] = SetStaticInputs({1});
     set_attributes_map["Tile"] = SetStaticInputs({1});
+    set_attributes_map["Range"] = SetStaticInputs({0, 1, 2});
     initialized = true;
   }
   return set_attributes_map;
@@ -367,6 +368,7 @@ const std::map<std::string, ConfirmationFunction>& GetConfirmationMap() {
     confirmation_function_map["Pow"] = SimpleConfirmationFunction();
     confirmation_function_map["PreventGradient"] = SimpleConfirmationFunction();
     confirmation_function_map["Prod"] = SimpleConfirmationFunction();
+    confirmation_function_map["Range"] = SimpleConfirmationFunction();
     confirmation_function_map["Rank"] = SimpleConfirmationFunction();
     confirmation_function_map["RealDiv"] = SimpleConfirmationFunction();
     confirmation_function_map["Reciprocal"] = SimpleConfirmationFunction();
@@ -535,6 +537,7 @@ const TypeConstraintMap& GetTypeConstraintMap() {
     type_constraint_map["PreventGradient"]["T"] = NGraphDTypes();
     type_constraint_map["Prod"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Prod"]["Tidx"] = NGraphIndexDTypes();
+    type_constraint_map["Range"]["Tidx"] = NGraphNumericDTypes();
     type_constraint_map["Rank"]["T"] = NGraphNumericDTypes();
     type_constraint_map["RealDiv"]["T"] = NGraphNumericDTypes();
     type_constraint_map["Reciprocal"]["T"] = NGraphNumericDTypes();
@@ -723,6 +726,7 @@ GetTFToNgOpMap() {
           {"PadV2", {constant, std::make_shared<opset::Pad>()}},
           {"Pow", {std::make_shared<opset::Power>()}},
           {"Prod", {std::make_shared<opset::ReduceProd>(), constant}},
+          {"Range", {std::make_shared<opset::Range>()}},
           {"Rank", {constant}},
           {"RealDiv", {std::make_shared<opset::Divide>()}},
           {"Reciprocal", {constant, std::make_shared<opset::Power>()}},
@@ -803,8 +807,7 @@ Status MarkForClustering(Graph* graph,
 
   static bool initialized = false;
 
-  std::set<string> disabled_ops_set_current = config::GetDisabledOps();
-
+  std::set<string> disabled_ops_set_current = api::GetDisabledOps();
   bool op_set_support_has_changed =
       disabled_ops_set_current != disabled_ops_set;
 
@@ -916,7 +919,7 @@ Status MarkForClustering(Graph* graph,
     }
   }
 
-  if (config::IsLoggingPlacement()) {
+  if (api::IsLoggingPlacement()) {
     std::cout << "\n=============New sub-graph logs=============\n";
     // print summary for nodes failed to be marked
     std::cout << "NGTF_SUMMARY: Op_not_supported: ";

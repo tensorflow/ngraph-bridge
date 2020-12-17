@@ -27,8 +27,8 @@
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/util/device_name_utils.h"
 
+#include "api.h"
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -55,7 +55,7 @@ unordered_map<string, int> deassigned_histogram;
 int num_nodes_marked_before_deassign = 0;
 
 static void MaybeLogPlacement(const Graph* graph) {
-  if (!config::IsLoggingPlacement()) return;
+  if (!api::IsLoggingPlacement()) return;
 
   std::map<int, std::set<const Node*>> final_cluster_map;
   int number_of_nodes = 0, nodes_marked_for_clustering = 0,
@@ -188,9 +188,9 @@ Status DeassignClusters(Graph* graph) {
     }
 
     int min_non_trivial_nodes = 6;
-    if (std::getenv("TF_OV_MIN_NONTRIVIAL_NODES") != nullptr) {
+    if (std::getenv("NGRAPH_TF_MIN_NONTRIVIAL_NODES") != nullptr) {
       min_non_trivial_nodes =
-          std::stoi(std::getenv("TF_OV_MIN_NONTRIVIAL_NODES"));
+          std::stoi(std::getenv("NGRAPH_TF_MIN_NONTRIVIAL_NODES"));
     }
     NGRAPH_VLOG(1) << "MIN_NONTRIVIAL_NODES set to " << min_non_trivial_nodes;
 
