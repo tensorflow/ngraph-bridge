@@ -200,7 +200,7 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
       NGRAPH_VLOG(1) << "Skipping unused hoisted param " << input_name;
       continue;
     }
-    ie_hoisted_params = nullptr;
+    ie_hoisted_params[j] = nullptr;
     ie_hoisted_params[j] = static_pointer_cast<IETensor>(it.second);
     param_names[j++] = input_name;
   }
