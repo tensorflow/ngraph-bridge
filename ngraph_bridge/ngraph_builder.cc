@@ -2949,7 +2949,7 @@ Status Builder::TranslateGraph(
   //
   {
     ngraph::pass::Manager passes;
-    if (util::GetEnv("TF_OV_CONSTANT_FOLDING") == "1") {
+    if (util::GetEnv("NGRAPH_TF_CONSTANT_FOLDING") == "1") {
       passes.register_pass<ngraph::pass::ConstantFolding>();
     }
     if (util::GetEnv("TF_OV_TRANSPOSE_SINKING") != "0") {
