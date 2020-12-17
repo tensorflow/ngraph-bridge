@@ -110,8 +110,9 @@ class NgraphTest(object):
 
     # unset the env variable
     def unset_env_variable(self, env_var):
-        os.environ.pop(env_var)
-        print("Unset env variable ", env_var)
+        if self.is_env_variable_set(env_var):
+            os.environ.pop(env_var)
+            print("Unset env variable ", env_var)
 
     # get the env variable
     def get_env_variable(self, env_var):
