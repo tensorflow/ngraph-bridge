@@ -97,7 +97,7 @@ void IE_Backend_Engine::disable_multi_req_execution() {
 }
 
 std::shared_ptr<ngraph::Function> IE_Backend_Engine::get_func() {
-    return m_func;
+  return m_func;
 }
 }
 }

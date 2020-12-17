@@ -38,6 +38,10 @@ class IE_Basic_Engine : public IE_Backend_Engine {
                      std::vector<std::string>& output_names,
                      std::vector<std::shared_ptr<IETensor>>& hoisted_params,
                      std::vector<std::string>& param_names);
+
+  virtual const std::vector<size_t> get_output_shape(const int i) {
+    return m_func->get_results()[i]->get_shape();
+  };
 };
 }
 }

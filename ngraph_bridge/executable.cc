@@ -132,12 +132,6 @@ Executable::Executable(shared_ptr<Function> func, string device)
 
   NGRAPH_VLOG(2) << "Loading IE CNN network to device " << m_device;
 
-  //InferenceEngine::Core ie;
-  //// Load network to the plugin (m_device) and create an infer request
-  //InferenceEngine::ExecutableNetwork exe_network =
-  //    ie.LoadNetwork(m_network, m_device);
-  //m_infer_req = exe_network.CreateInferRequest();
-
   // Create the Backend Engine to handle IE execution
   NGRAPH_VLOG(2) << "Creating IE Execution Engine";
   if (m_device == "HDDL") {

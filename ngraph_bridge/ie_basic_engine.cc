@@ -44,11 +44,13 @@ void IE_Basic_Engine::infer(
   auto func = m_network.getFunction();
   auto parameters = func->get_parameters();
   for (int i = 0; i < inputs.size(); i++) {
-    m_infer_reqs[0].SetBlob(input_names[i], inputs[i]->get_blob());
+    if (inputs[i] != nullptr)
+      m_infer_reqs[0].SetBlob(input_names[i], inputs[i]->get_blob());
   }
 
   for (int i = 0; i < hoisted_params.size(); i++) {
-    m_infer_reqs[0].SetBlob(param_names[i], hoisted_params[i]->get_blob());
+    if (hoisted_params[i] != nullptr)
+      m_infer_reqs[0].SetBlob(param_names[i], hoisted_params[i]->get_blob());
   }
 
   //  Prepare output blobs
