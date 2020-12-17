@@ -121,9 +121,9 @@ if ngraph_classic_loaded:
     ngraph_bridge_lib.get_backend.restype = ctypes.c_bool
     ngraph_bridge_lib.is_logging_placement.restype = ctypes.c_bool
     ngraph_bridge_lib.tf_version.restype = ctypes.c_char_p
-    ngraph_bridge_lib.lib_version.restype = ctypes.c_char_p
-    ngraph_bridge_lib.tf_cxx11_abi_flag.restype = ctypes.c_int
-    ngraph_bridge_lib.tf_is_grappler_enabled.restype = ctypes.c_bool
+    ngraph_bridge_lib.ngraph_version.restype = ctypes.c_char_p
+    ngraph_bridge_lib.cxx11_abi_flag.restype = ctypes.c_int
+    ngraph_bridge_lib.is_grappler_enabled.restype = ctypes.c_bool
     ngraph_bridge_lib.set_disabled_ops.argtypes = [ctypes.c_char_p]
     ngraph_bridge_lib.get_disabled_ops.restype = ctypes.c_char_p
 
@@ -169,7 +169,7 @@ if ngraph_classic_loaded:
         return ngraph_bridge_lib.is_logging_placement()
 
     def cxx11_abi_flag():
-        return ngraph_bridge_lib.tf_cxx11_abi_flag()
+        return ngraph_bridge_lib.cxx11_abi_flag()
 
     def is_grappler_enabled():
         return ngraph_bridge_lib.is_grappler_enabled()
@@ -215,5 +215,5 @@ if ngraph_classic_loaded:
     "nGraph bridge version: " + str(ngraph_bridge_lib.version()) + "\n" + \
     "nGraph version used for this build: " + str(ngraph_bridge_lib.ngraph_version()) + "\n" + \
     "TensorFlow version used for this build: " + TF_GIT_VERSION_BUILT_WITH + "\n" \
-    "CXX11_ABI flag used for this build: " + str(ngraph_bridge_lib.tf_cxx11_abi_flag()) + "\n" \
-    "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.tf_is_grappler_enabled()) + "\n" \
+    "CXX11_ABI flag used for this build: " + str(ngraph_bridge_lib.cxx11_abi_flag()) + "\n" \
+    "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.is_grappler_enabled()) + "\n" \
