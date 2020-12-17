@@ -68,6 +68,7 @@ mutex NGraphRewritePass::s_serial_counter_mutex;
 class NGraphEncapsulationPass : public NGraphRewritePass {
  public:
   Status Run(const GraphOptimizationPassOptions& options) override {
+    // cout << "trying " << options.sessioncallable_options.fetch().size();
     // If we don't get a main graph, log that fact and bail.
     if (options.graph == nullptr) {
       NGRAPH_VLOG(0) << "NGraphEncapsulationPass: options.graph == nullptr";
@@ -129,6 +130,6 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
 
 }  // namespace ngraph_bridge
 
-REGISTER_OPTIMIZATION(OptimizationPassRegistry::POST_REWRITE_FOR_EXEC, 0,
+REGISTER_OPTIMIZATION(OptimizationPassRegistry::POST_PLACEMENT, 0,
                       ngraph_bridge::NGraphEncapsulationPass);
 }  // namespace tensorflow
