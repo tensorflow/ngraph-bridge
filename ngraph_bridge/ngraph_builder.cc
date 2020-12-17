@@ -2268,7 +2268,7 @@ static Status TranslateSplitOp(
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 0, static_input_map, &split_dim_vec));
   auto ng_split_dim = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::u64, ng::Shape{}, split_dim_vec[0]);
+      op->name(), ng::element::i32, ng::Shape{}, split_dim_vec[0]);
   auto ng_split = make_shared<opset::Split>(ng_input, ng_split_dim, num_split);
 
   for (int i = 0; i < num_split; ++i) {
