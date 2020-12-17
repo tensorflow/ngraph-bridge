@@ -55,8 +55,8 @@ shared_ptr<Executable> Backend::compile(shared_ptr<ngraph::Function> func,
 
   rc = make_shared<Executable>(func, m_device);
   {
-    std::lock_guard<std::mutex> guard(m_exec_map_mutex);
-    m_exec_map.insert({func, rc});
+    //std::lock_guard<std::mutex> guard(m_exec_map_mutex);
+    //m_exec_map.insert({func, rc});
     return rc;
   }
 }
