@@ -26,8 +26,8 @@
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/util/device_name_utils.h"
 
+#include "api.h"
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_cluster_manager.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -541,7 +541,7 @@ Status AssignClusters(Graph* graph) {
       }
     }
 
-    if (!changed && config::IsLoggingPlacement()) {
+    if (!changed && api::IsLoggingPlacement()) {
       // This will be entered only once if logging is enabled
       // When entered, it will force the do-while to run one last time,
       // collecting information
@@ -553,37 +553,6 @@ Status AssignClusters(Graph* graph) {
   } while (changed);
 
   NGRAPH_VLOG(2) << "Contraction done";
-
-  // Remove Const with outputs to another cluster from being clustered
-  NGRAPH_VLOG(2) << "Check for Const->Result ";
-  for (auto node : graph->op_nodes()) {
-    // TODO: Other nodes (such as those with static inputs) may also require
-    // deassignment here
-    if (node->type_string() == "Const" && NodeIsMarkedForClustering(node)) {
-      auto src_index = cluster_map.at(node)->index;
-      NGRAPH_VLOG(2) << "Cluster index of constant node " << node->name()
-                     << ": " << src_index << endl;
-      for (auto edge : node->out_edges()) {
-        auto dst = edge->dst();
-        auto dst_index = cluster_map.at(dst)->index;
-        NGRAPH_VLOG(2) << "Cluster index of out edge " << dst->name() << ": "
-                       << dst_index << endl;
-        if (src_index != -1 && src_index != dst_index) {
-          NGRAPH_VLOG(2) << "Deassigning node: " << node->name() << endl;
-          // Remove it from its current cluster
-          auto& cluster_info = cluster_map.at(node);
-          cluster_info->nodes.erase(node);
-
-          // Assign it to TF cluster (index =-1), which is not really a cluster
-          // just a collection of nodes
-          node->ClearAttr("_ngraph_marked_for_clustering");
-          cluster_map[node] = std::make_shared<Cluster>();
-          cluster_map.at(node)->index = -1;
-          break;
-        }
-      }
-    }
-  }
 
   NGRAPH_VLOG(2) << "Starting tagging";
   std::set<Cluster*> seen;
@@ -647,7 +616,7 @@ Status AssignClusters(Graph* graph) {
       // TODO(amprocte): move attr name to a constant
       node->AddAttr("_ngraph_cluster", (int)cluster_idx);
 
-      if (config::IsLoggingPlacement()) {
+      if (api::IsLoggingPlacement()) {
         // map from cluster id to ngraph_cluster id
         cluster_to_encapsulate[cluster->index] = cluster_idx;
       }
@@ -657,7 +626,7 @@ Status AssignClusters(Graph* graph) {
   }
   NGRAPH_VLOG(2) << "Tagging done";
 
-  if (config::IsLoggingPlacement()) {
+  if (api::IsLoggingPlacement()) {
     int num_reasons = 6;  // the number of elements in the reasons enum
     // histogram of reasons of non-contraction of clusters
     vector<int> reason_count_clusters(num_reasons, 0);
