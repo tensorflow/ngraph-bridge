@@ -14,10 +14,10 @@
 // limitations under the License.
 //*****************************************************************************
 
+#include <ie_plugin_config.hpp>
+
 #include "ngraph/ngraph.hpp"
 #include "ngraph/opsets/opset.hpp"
-
-#include <ie_plugin_config.hpp>
 
 #include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
@@ -236,8 +236,6 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
 
   if (multi_req_execution) {
     m_ie_engine->enable_multi_req_execution();
-  } else {
-    m_ie_engine->disable_multi_req_execution();
   }
 
   m_ie_engine->infer(ie_inputs, input_names, ie_outputs, output_names,
@@ -246,7 +244,6 @@ bool Executable::call(const vector<shared_ptr<runtime::Tensor>>& inputs,
   // Set dynamic output blobs
   for (int i = 0; i < results.size(); i++) {
     if (outputs[i] == nullptr) {
-      // NGRAPH_VLOG(4) << "Executable::call() GetBlob()";
       outputs[i] = ie_outputs[i];
     }
   }

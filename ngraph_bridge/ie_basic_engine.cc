@@ -14,9 +14,10 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/ie_basic_engine.h"
 #include <iostream>
+
 #include "logging/ngraph_log.h"
+#include "ngraph_bridge/ie_basic_engine.h"
 #include "ngraph_bridge/ie_utils.h"
 
 namespace tensorflow {

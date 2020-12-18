@@ -208,8 +208,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   Timer function_lookup_or_create;
 
   bool multi_req_execution = false;
-  if (std::getenv("NGRAPH_TF_BATCHING") &&
+  if (std::getenv("NGRAPH_TF_ENABLE_BATCHING") &&
       NGraphClusterManager::NumberOfClusters() == 1) {
+    NGRAPH_VLOG(2) << "Batching is enabled" << name();
     multi_req_execution = true;
   }
 
@@ -284,7 +285,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     }
 
     // Create the TF output tensor
-    // auto ng_shape = ng_element->get_shape();
     auto ng_shape = ng_exec->get_output_shape(i);
     TensorShape tf_shape;
     for (auto dim : ng_shape) {

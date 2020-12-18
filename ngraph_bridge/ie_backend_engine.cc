@@ -14,8 +14,9 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/ie_backend_engine.h"
 #include <iostream>
+
+#include "ngraph_bridge/ie_backend_engine.h"
 #include "ngraph_bridge/ie_utils.h"
 
 namespace tensorflow {
@@ -82,7 +83,7 @@ void IE_Backend_Engine::complete_async_inference(const int req_id) {
   }
 }
 
-size_t IE_Backend_Engine::getOutputBatchSize(size_t inputBatchSize) const {
+size_t IE_Backend_Engine::get_output_batch_size(size_t inputBatchSize) const {
   return m_network.getBatchSize() *
          IE_Utils::GetNumRequests(inputBatchSize, m_device);
 }

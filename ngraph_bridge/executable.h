@@ -21,6 +21,7 @@
 #include <vector>
 
 #include <ie_core.hpp>
+
 #include "ngraph/ngraph.hpp"
 #include "ngraph_bridge/ie_backend_engine.h"
 

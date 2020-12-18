@@ -17,10 +17,12 @@
 #ifndef IE_BACKEND_ENGINE_H_
 #define IE_BACKEND_ENGINE_H_
 
-#include <ie_core.hpp>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <ie_core.hpp>
+
 #include "ngraph_bridge/ie_tensor.h"
 
 namespace tensorflow {
@@ -41,7 +43,7 @@ class IE_Backend_Engine {
 
   // Returns output batch size based on the input batch size and the device
   // FIXME: This may not be needed
-  virtual size_t getOutputBatchSize(size_t inputBatchSize) const;
+  virtual size_t get_output_batch_size(size_t inputBatchSize) const;
 
   // Enables multi request execution if the execution engine supprts
   void enable_multi_req_execution();

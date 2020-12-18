@@ -17,10 +17,12 @@
 #ifndef IE_VADM_ENGINE_H_
 #define IE_VADM_ENGINE_H_
 
-#include <ie_core.hpp>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <ie_core.hpp>
+
 #include "ngraph_bridge/ie_backend_engine.h"
 
 namespace tensorflow {

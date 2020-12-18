@@ -14,9 +14,10 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "ngraph_bridge/ie_vadm_engine.h"
 #include <iostream>
+
 #include "ngraph_bridge/ie_utils.h"
+#include "ngraph_bridge/ie_vadm_engine.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {

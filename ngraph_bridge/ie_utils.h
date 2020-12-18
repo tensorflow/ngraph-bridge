@@ -21,10 +21,11 @@
 #define IE_UTILS_H_
 
 #include <atomic>
-#include <ie_core.hpp>
 #include <mutex>
 #include <ostream>
 #include <vector>
+
+#include <ie_core.hpp>
 
 class IE_Utils {
  public:
