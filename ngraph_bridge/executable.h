@@ -21,7 +21,9 @@
 #include <vector>
 
 #include <ie_core.hpp>
+
 #include "ngraph/ngraph.hpp"
+#include "ngraph_bridge/ie_backend_engine.h"
 
 using namespace std;
 
@@ -35,11 +37,20 @@ class Executable {
   Executable(shared_ptr<ngraph::Function> func, string device);
   ~Executable() {}
   bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
-            vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);
+            vector<shared_ptr<ngraph::runtime::Tensor>>& outputs,
+            bool multi_req_execution = false);
 
   const ngraph::ResultVector& get_results() {
     return m_function->get_results();
   };
+
+  const vector<size_t> get_output_shape(const int i) {
+    if (m_trivial_fn) {
+      return get_results()[i]->get_shape();
+    } else {
+      return m_ie_engine->get_output_shape(i);
+    }
+  }
 
  private:
   bool call_trivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
@@ -56,6 +67,7 @@ class Executable {
   shared_ptr<ngraph::Function> m_trivial_fn;
   // This is the original nGraph function corresponding to this executable
   shared_ptr<ngraph::Function> m_function;
+  shared_ptr<IE_Backend_Engine> m_ie_engine;
 };
 }
 }
