@@ -156,7 +156,7 @@ Use `infer_image.py` in the [examples] directory to classify an image.
 
 Note: The script downloads the inceptionV3 model and sample image.
 
-    python infer_image.py
+    python examples/infer_image.py
 
 This will print the following results:
 
