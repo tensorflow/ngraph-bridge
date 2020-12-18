@@ -31,11 +31,11 @@ Backend::Backend(const string& config) {
   InferenceEngine::Core core;
   auto devices = core.GetAvailableDevices();
   // TODO: Handle multiple devices
-  if (find(devices.begin(), devices.end(), device) == devices.end()) {
-    stringstream ss;
-    ss << "Device '" << config << "' not found.";
-    throw runtime_error(ss.str());
-  }
+  // if (find(devices.begin(), devices.end(), device) == devices.end()) {
+  //  stringstream ss;
+  //  ss << "Device '" << config << "' not found.";
+  //  throw runtime_error(ss.str());
+  //}
   m_device = config;
 }
 
@@ -55,8 +55,8 @@ shared_ptr<Executable> Backend::compile(shared_ptr<ngraph::Function> func,
 
   rc = make_shared<Executable>(func, m_device);
   {
-    //std::lock_guard<std::mutex> guard(m_exec_map_mutex);
-    //m_exec_map.insert({func, rc});
+    // std::lock_guard<std::mutex> guard(m_exec_map_mutex);
+    // m_exec_map.insert({func, rc});
     return rc;
   }
 }

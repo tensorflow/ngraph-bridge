@@ -24,7 +24,7 @@ namespace tensorflow {
 
 namespace ngraph_bridge {
 
-Status DeassignClusters(Graph* graph);
+Status DeassignClusters(Graph* graph, const char* device_id);
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

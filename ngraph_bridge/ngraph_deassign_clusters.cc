@@ -144,7 +144,7 @@ static void MaybeLogPlacement(const Graph* graph) {
   std::cout << endl;
 }
 
-Status DeassignClusters(Graph* graph) {
+Status DeassignClusters(Graph* graph, const char* device_id) {
   //
   // When running unit tests, we do not want to see trivial clusters
   // deassigned. This flag (used by the Python tests) makes this possible.
@@ -177,6 +177,8 @@ Status DeassignClusters(Graph* graph) {
     cluster_map[cluster_idx].insert(node);
   }
 
+  int num_clusters = cluster_map.size();
+
   for (auto& kv : cluster_map) {
     int cluster_idx = kv.first;
     std::set<Node*>& nodes = kv.second;
@@ -202,6 +204,46 @@ Status DeassignClusters(Graph* graph) {
         node->ClearAttr("_ngraph_marked_for_clustering");
 
         deassigned_histogram[node->type_string()]++;
+      }
+      num_clusters--;
+    }
+  }
+
+  if (std::strcmp(device_id, "HDDL") == 0) {
+    bool fallback = false;
+    if (num_clusters == 1) {
+      for (auto node : graph->nodes()) {
+        int cluster_idx;
+
+        if (GetNodeCluster(node, &cluster_idx) != Status::OK()) {
+          if (node->type_string() != "_Arg" &&
+              node->type_string() != "_Retval" &&
+              node->type_string() != "NoOp") {
+            fallback = true;
+            break;
+          }
+        }
+      }
+    } else if (num_clusters > 1) {
+      fallback = true;
+    }
+    if (fallback) {
+      for (auto& kv : cluster_map) {
+        int cluster_idx = kv.first;
+        std::set<Node*>& nodes = kv.second;
+
+        NGRAPH_VLOG(2) << "Busting cluster " << cluster_idx;
+        for (auto node : nodes) {
+          NGRAPH_VLOG(2) << "Busting node: " << node->name() << " ["
+                         << node->type_string() << "]";
+
+          // TODO(amprocte): move attr name to a constant
+          node->ClearAttr("_ngraph_cluster");
+          // TODO(amprocte): move attr name to a constant
+          node->ClearAttr("_ngraph_marked_for_clustering");
+
+          deassigned_histogram[node->type_string()]++;
+        }
       }
     }
   }

@@ -118,29 +118,32 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     // 1. Mark for clustering then, if requested, dump the graphs.
     std::set<string> skip_these_nodes = {};
     // TF_RETURN_IF_ERROR(
-        // MarkForClustering(options.graph->get(), skip_these_nodes));
+    // MarkForClustering(options.graph->get(), skip_these_nodes));
 
-    // OCM bypassing the MarkForClustering function call 
-    const char* device_id =  std::getenv("NGRAPH_TF_BACKEND");
-    if (device_id==nullptr){
+    // OCM bypassing the MarkForClustering function call
+    const char* device_id = std::getenv("NGRAPH_TF_BACKEND");
+    if (device_id == nullptr) {
       device_id = "CPU";
     }
     std::string ov_version = "2021_1";
     ocm::Framework_Names fName = ocm::Framework_Names::TF;
-    ocm::FrameworkNodesChecker FC(fName, device_id, ov_version, options.graph->get());
-    std::vector<void *> nodes_list = FC.MarkSupportedNodes();
+    ocm::FrameworkNodesChecker FC(fName, device_id, ov_version,
+                                  options.graph->get());
+    std::vector<void*> nodes_list = FC.MarkSupportedNodes();
 
-    // cast back the nodes in the TF format and mark the nodes for clustering (moved out from MarkForClustering function)
-    const std::map<std::string, SetAttributesFunction>& set_attributes_map = GetAttributeSetters();
+    // cast back the nodes in the TF format and mark the nodes for clustering
+    // (moved out from MarkForClustering function)
+    const std::map<std::string, SetAttributesFunction>& set_attributes_map =
+        GetAttributeSetters();
     for (auto void_node : nodes_list) {
-    // TODO(amprocte): move attr name to a constant
-      tensorflow::Node* node = (tensorflow::Node *)void_node;
+      // TODO(amprocte): move attr name to a constant
+      tensorflow::Node* node = (tensorflow::Node*)void_node;
       node->AddAttr("_ngraph_marked_for_clustering", true);
-        auto it = set_attributes_map.find(node->type_string());
-        if (it != set_attributes_map.end()) {
-          it->second(node);
-        }
-    } 
+      auto it = set_attributes_map.find(node->type_string());
+      if (it != set_attributes_map.end()) {
+        it->second(node);
+      }
+    }
 
     if (DumpMarkedGraphs()) {
       DumpGraphs(options, idx, "marked", "Graph Marked for Clustering");
@@ -153,7 +156,7 @@ class NGraphEncapsulationPass : public NGraphRewritePass {
     }
 
     // 3. Deassign trivial clusters then, if requested, dump the graphs.
-    TF_RETURN_IF_ERROR(DeassignClusters(options.graph->get()));
+    TF_RETURN_IF_ERROR(DeassignClusters(options.graph->get(), device_id));
     if (DumpDeclusteredGraphs()) {
       DumpGraphs(options, idx, "declustered",
                  "Graph with Trivial Clusters De-Assigned");
