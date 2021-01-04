@@ -116,7 +116,8 @@ def run_ngtf_cpp_gtests(artifacts_dir, log_dir, filters):
     # First run the C++ gtests
     lib_dir = TestEnv.get_platform_lib_dir()
 
-    os.environ['LD_LIBRARY_PATH'] = os.path.join(artifacts_dir, lib_dir)
+    os.environ['LD_LIBRARY_PATH'] = os.getenv(
+        "LD_LIBRARY_PATH", "") + ':' + os.path.join(artifacts_dir, lib_dir)
     os.chdir(os.path.join(artifacts_dir, "test"))
     if (filters != None):
         gtest_filters = "--gtest_filter=" + filters
@@ -331,43 +332,4 @@ def run_resnet50_infer_from_artifacts(artifact_dir, batch_size, iterations):
         str(batch_size * iterations),
     ]
     command_executor(cmd, verbose=True)
-    os.chdir(root_pwd)
-
-
-def run_cpp_example_test(build_dir):
-    root_pwd = os.getcwd()
-    build_dir = os.path.abspath(build_dir)
-    os.chdir(build_dir)
-
-    # Create the example workspace directory and chdir there
-    path = 'cpp_example'
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-    os.chdir(path)
-
-    # Copy the files
-    files = [
-        '../../examples/tf_cpp_examples/hello_tf.cpp',
-        '../../examples/tf_cpp_examples/Makefile'
-    ]
-    command_executor(['cp', files[0], './'])
-    command_executor(['cp', files[1], './'])
-
-    # Now execute Make
-    command_executor(['make'])
-
-    # Now run the hello_tf example
-    # First setup the LD_LIB_PATH
-    if (platform.system() == 'Darwin'):
-        ld_path_name = 'DYLD_LIBRARY_PATH'
-    else:
-        ld_path_name = 'LD_LIBRARY_PATH'
-
-    os.environ[ld_path_name] = '../artifacts/lib:../artifacts/tensorflow'
-    command_executor('./hello_tf')
-
-    # Return to the original directory
     os.chdir(root_pwd)

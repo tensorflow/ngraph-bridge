@@ -34,22 +34,23 @@ class Executable {
  public:
   Executable(shared_ptr<ngraph::Function> func, string device);
   ~Executable() {}
-  bool call(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
+  bool Call(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
             vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);
 
-  const ngraph::ResultVector& get_results() {
+  const ngraph::ResultVector& GetResults() {
     return m_function->get_results();
   };
 
  private:
-  bool call_trivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
-                    vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);
+  bool CallTrivial(const vector<shared_ptr<ngraph::runtime::Tensor>>& inputs,
+                   vector<shared_ptr<ngraph::runtime::Tensor>>& outputs);
 
   InferenceEngine::CNNNetwork m_network;
   InferenceEngine::InferRequest m_infer_req;
   string m_device;
   // This holds the parameters we insert for functions with no input parameters
   vector<pair<string, shared_ptr<ngraph::runtime::Tensor>>> m_hoisted_params;
+  vector<int> m_skipped_inputs;
   // This keeps track of whether the original function was trivial: either a
   // constant function, an identity function or a zero function
   shared_ptr<ngraph::Function> m_trivial_fn;

@@ -29,24 +29,22 @@ message(STATUS "Shared Link Flags: ${CMAKE_SHARED_LINKER_FLAGS}")
 # Compiler-specific logic...
 #-----------------------------------------------------------------------------------------------
 set(SRC
+   api.cc
    backend.cc
+   backend_manager.cc
    executable.cc
    ie_tensor.cc
-   ngraph_api.cc
+   kernels/ngraph_encapsulate_op.cc
    ngraph_assign_clusters.cc
    ngraph_builder.cc
-   ngraph_backend_manager.cc
    ngraph_cluster_manager.cc
    ngraph_conversions.cc
    ngraph_deassign_clusters.cc
    ngraph_encapsulate_clusters.cc
-   ngraph_encapsulate_impl.cc
-   ngraph_encapsulate_op.cc
    ngraph_mark_for_clustering.cc
-   ngraph_register_stub_kernels.cc   
    ngraph_rewrite_pass.cc
    ngraph_utils.cc
-   pass/transpose_folding.cc
+   ops/ngraph_encapsulate_op.cc
    pass/transpose_sinking.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
@@ -100,8 +98,6 @@ message(STATUS "NGTF_INSTALL_LIB_DIR: ${NGTF_INSTALL_LIB_DIR}")
 # First install the libngraph_bridge.so and headers
 install(TARGETS ${LIB_NAME} DESTINATION "${NGTF_INSTALL_LIB_DIR}")  
 
-install(FILES ngraph_backend_manager.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
-
 # Next install all the other prerequisites
 if(OS_VERSION STREQUAL "\"centos\"")
 	install(DIRECTORY ${NGRAPH_INSTALL_DIR}/lib64/ DESTINATION "${NGTF_INSTALL_LIB_DIR}" )
@@ -114,7 +110,7 @@ set(IE_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/lib/inte
 set(TBB_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/external/tbb/lib/)
 install(DIRECTORY ${IE_LIBS} DESTINATION "${NGTF_INSTALL_LIB_DIR}" )
 install(DIRECTORY ${TBB_LIBS} DESTINATION "${NGTF_INSTALL_LIB_DIR}" )
-if(USE_PREBUILT_OPENVINO)
+if(USE_OPENVINO_FROM_LOCATION)
     file(GLOB NGRAPH_LIB_FILES "${IE_LIBS}/lib*" "${TBB_LIBS}/lib*")
     foreach(LIB_FILE ${NGRAPH_LIB_FILES})
         get_filename_component(lib_file_real_path ${LIB_FILE} ABSOLUTE)

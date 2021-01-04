@@ -13,28 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#pragma once
 
-#include <fstream>
-#include <ostream>
-#include <sstream>
-
-#include "ngraph/ngraph.hpp"
-#include "ngraph/pass/pass.hpp"
+#include "tensorflow/core/common_runtime/optimization_registry.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
-namespace pass {
 
-// TODO: change to graph-rewrite pass
-class TransposeFolding : public ngraph::pass::FunctionPass {
- public:
-  TransposeFolding() {
-    set_property(ngraph::pass::PassProperty::REQUIRE_STATIC_SHAPE, true);
-  }
-  bool run_on_function(std::shared_ptr<ngraph::Function> function) override;
-};
+REGISTER_OP("_nGraphEncapsulate")
+    .Input("args: Targuments")
+    .Attr("Targuments: list(type) >= 0")
+    .Output("results: Tresults")
+    .Attr("Tresults: list(type) >= 0")
+    .Attr("ngraph_cluster: int")
+    .Attr("ngraph_graph_id: int")
+    .SetIsStateful()
+    .Doc("nGraph Encapsulation Op. For use by the nGraph JIT only.");
 
-}  // namespace pass
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

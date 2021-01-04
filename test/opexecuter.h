@@ -31,11 +31,6 @@
 
 #include "ngraph/ngraph.hpp"
 
-#include "logging/tf_graph_writer.h"
-#include "ngraph_bridge/ngraph_backend_manager.h"
-#include "ngraph_bridge/ngraph_builder.h"
-#include "ngraph_bridge/ngraph_mark_for_clustering.h"
-#include "ngraph_bridge/ngraph_utils.h"
 #include "test/test_utilities.h"
 
 using namespace std;
@@ -83,8 +78,6 @@ class OpExecuter {
   Scope tf_scope_;
   const string test_op_type_;
   const std::vector<Output> sess_run_fetchoutputs_;
-
-  void ValidateGraph(const Graph& graph, const vector<string> allowed_nodes);
 };
 
 }  // namespace testing

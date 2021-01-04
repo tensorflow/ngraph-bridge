@@ -33,7 +33,7 @@
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/core/util/command_line_flags.h"
 
-#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/backend_manager.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
@@ -76,16 +76,14 @@ void PrintVersion() {
   std::cout << "Tensorflow version: " << tensorflow::ngraph_bridge::tf_version()
             << std::endl;
   // nGraph Bridge version info
-  std::cout << "Bridge version: " << tf::ngraph_bridge::ngraph_tf_version()
+  std::cout << "Bridge version: " << tf::ngraph_bridge::version() << std::endl;
+  std::cout << "nGraph version: " << tf::ngraph_bridge::ngraph_version()
             << std::endl;
-  std::cout << "nGraph version: " << tf::ngraph_bridge::ngraph_lib_version()
+  std::cout << "CXX11_ABI Used: " << tf::ngraph_bridge::cxx11_abi_flag()
             << std::endl;
-  std::cout << "CXX11_ABI Used: "
-            << tf::ngraph_bridge::ngraph_tf_cxx11_abi_flag() << std::endl;
   std::cout << "Grappler Enabled? "
-            << (tf::ngraph_bridge::ngraph_tf_is_grappler_enabled()
-                    ? std::string("Yes")
-                    : std::string("No"))
+            << (tf::ngraph_bridge::is_grappler_enabled() ? std::string("Yes")
+                                                         : std::string("No"))
             << std::endl;
   PrintAvailableBackends();
 }
@@ -180,28 +178,20 @@ int main(int argc, char** argv) {
       graph, image_files, input_width, input_height, input_mean, input_std,
       input_layer, output_layer, use_NCHW, preload_images, input_channels));
 
-  string backend_name = "CPU";
-  if (std::getenv("NGRAPH_TF_BACKEND") != nullptr) {
-    backend_name = std::getenv("NGRAPH_TF_BACKEND");
-  }
-
   //
   // Create the sessions
   //
   map<Session*, string> session_db;
   unique_ptr<Session> session_one;
-  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
-                                                        "0", session_one));
+  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, session_one));
   session_db[session_one.get()] = "One";
 
   unique_ptr<Session> session_two;
-  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
-                                                        "0", session_two));
+  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, session_two));
   session_db[session_two.get()] = "Two";
 
   unique_ptr<Session> session_three;
-  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, backend_name,
-                                                        "0", session_three));
+  TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, session_three));
   session_db[session_three.get()] = "Three";
   std::vector<Tensor> outputs;
   {

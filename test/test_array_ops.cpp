@@ -179,6 +179,36 @@ TEST(ArrayOps, ExpandDims) {
 
 }  // end of test op ExpandDims
 
+TEST(ArrayOps, GatherVector) {
+  Tensor A(DT_FLOAT, TensorShape({5}));  // input
+  AssignInputValues<float>(A, {10.1, 20.2, 30.3, 40.4, 50.5});
+
+  Tensor B(DT_INT32, TensorShape({2}));  // indices
+  AssignInputValues<int>(B, {2, 1});
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::Gather(root, A, B);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "Gather", sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}
+
+TEST(ArrayOps, GatherTensor) {
+  Tensor A(DT_FLOAT, TensorShape({5, 5, 5, 5}));
+  AssignInputValuesRandom(A);
+
+  Tensor B(DT_INT32, TensorShape({10}));
+  AssignInputValues<int>(B, {0, 4, 2, 2, 3, 1, 3, 0, 3, 3});
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::Gather(root, A, B);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+
+  OpExecuter opexecuter(root, "Gather", sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}
+
 // Test op: Gather. vector indices
 TEST(ArrayOps, GatherV2Vector) {
   int dim = 5;
@@ -892,7 +922,6 @@ TEST(ArrayOps, Tile) {
 
   input_sizes.push_back({2, 3, 4});
   input_sizes.push_back({10, 10, 10});
-  input_sizes.push_back({1, 5});
   input_sizes.push_back({0});
 
   for (auto const& input_size : input_sizes) {
@@ -914,7 +943,26 @@ TEST(ArrayOps, Tile) {
 
     opexecuter.RunTest();
   }
-}  // end of test op Tile
+}
+
+TEST(ArrayOps, Tile2) {  // Not working with OV GPU
+  std::vector<int64> input_size{1, 3};
+  Tensor input_data(DT_FLOAT, TensorShape(input_size));
+  AssignInputValues(input_data, 2.1f);
+
+  // Must be of type int32 or int64,
+  // 1-D. Length must be the same as the number of dimensions in input
+  int input_dim = input_size.size();
+  Tensor multiples(DT_INT32, TensorShape({input_dim}));
+  AssignInputValues(multiples, vector<int>{1, 2});
+
+  Scope root = Scope::NewRootScope();
+  auto R = ops::Tile(root, input_data, multiples);
+  std::vector<Output> sess_run_fetchoutputs = {R};
+  OpExecuter opexecuter(root, "Tile", sess_run_fetchoutputs);
+  opexecuter.RunTest();
+}
+// end of test op Tile
 
 // Test op: Transpose
 TEST(ArrayOps, Transpose) {

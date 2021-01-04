@@ -28,7 +28,6 @@
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
 #include "ngraph_bridge/grappler/ngraph_add_identityn.h"
-#include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
 #include "ngraph_bridge/ngraph_encapsulate_clusters.h"
@@ -72,8 +71,6 @@ class NgraphOptimizer : public tensorflow::grappler::CustomGraphOptimizer {
 
  private:
   std::unordered_map<std::string, std::string> m_config_map;
-
-  void DumpGraphs(Graph&, int, std::string, std::string);
   static int FreshIndex();
 
   static int s_serial_counter GUARDED_BY(s_serial_counter_mutex);

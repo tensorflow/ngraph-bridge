@@ -20,43 +20,30 @@ tests_common.txt
 ###################################################
 [SKIP]
 # Specify tests/patterns/regex that should be excluded/skipped
+ArrayOps.Tile2 # accuracy
+NGraphExecTest.Axpy8bit # Tensor type f32 is not integral but passed template is integral
 
-# [PARAMETER_MISMATCH] Failed to set Blob with precision not corresponding to user output precision
-NGraphExecTest.Axpy8bit
+# [PARAMETER_MISMATCH] Failed to set output blob with precision: BOOL, if CNNNetwork output blob precision is: FP32
 MathOps.AnyKeepDims
 MathOps.AnyNegativeAxis
 MathOps.AnyPositiveAxis
 MathOps.AllKeepDims
 MathOps.AllNegativeAxis
 MathOps.AllPositiveAxis
-
-NGraphExecTest.MixedTensors
-
-# mismatch between TF and NG outputs
-MathOps.Mean 
 MathOps.IsFinite
 MathOps.LogicalOr
 MathOps.LogicalNot
 MathOps.NotEqual
-MathOps.FloorModNegInt
 
-MathOps.Ceil # Unsupported primitive of type: Ceiling
+MathOps.Mean # accuracy
+MathOps.SqueezeNoAttributes # Const layer Squeeze/Constant_66948 has incorrect dimensions in the output data 0
 
-# The output blob size is not equal to the network output size
-MathOps.Pow0D1D
+NNOps.L2Loss # Const/Const/Constant_124777 has zero dimension which is not allowed
 
-# Const layer Squeeze/Constant_3544 has incorrect dimensions in the output data 0
-MathOps.SqueezeNoAttributes
-
-# Const/Const/Constant_1260 has zero dimension which is not allowed
-NNOps.L2Loss
-
-# data doesn't exist
+# MKLDNNGraph::CreateGraph: No inputs for the topology
 ArrayOps.Shape2D
 ArrayOps.Shape3D
 
-# zero dimension
+# SplitV/VariadicSplit_174733.1 has zero dimension which is not allowed
 ArrayOps.SplitVZeroSizeSplit
 ArrayOps.SplitVZeroSizeNegSplit
-
-MathOps.FloorModNegFloat #Floor_mod supports only I32 precision of inputs

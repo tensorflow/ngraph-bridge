@@ -27,8 +27,8 @@
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/util/device_name_utils.h"
 
+#include "api.h"
 #include "logging/ngraph_log.h"
-#include "ngraph_bridge/ngraph_api.h"
 #include "ngraph_bridge/ngraph_assign_clusters.h"
 #include "ngraph_bridge/ngraph_deassign_clusters.h"
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
@@ -51,13 +51,11 @@ namespace ngraph_bridge {
 // NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS=1.
 //
 
-static const int MIN_NONTRIVIAL_NODES = 6;
-
 unordered_map<string, int> deassigned_histogram;
 int num_nodes_marked_before_deassign = 0;
 
 static void MaybeLogPlacement(const Graph* graph) {
-  if (!config::IsLoggingPlacement()) return;
+  if (!api::IsLoggingPlacement()) return;
 
   std::map<int, std::set<const Node*>> final_cluster_map;
   int number_of_nodes = 0, nodes_marked_for_clustering = 0,
@@ -123,8 +121,7 @@ static void MaybeLogPlacement(const Graph* graph) {
 
   // log the ops gets deassigned
   std::cout << "NGTF_SUMMARY: Op_deassigned: ";
-  print_node_histogram(deassigned_histogram);
-  std::cout << "\n" << endl;  // insert a line between summary and op placement
+  util::PrintNodeHistogram(deassigned_histogram);
 
   for (auto kv : final_cluster_map) {
     int cluster_idx = kv.first;
@@ -190,7 +187,14 @@ Status DeassignClusters(Graph* graph) {
       }
     }
 
-    if (non_trivial_count < MIN_NONTRIVIAL_NODES) {
+    int min_non_trivial_nodes = 6;
+    if (std::getenv("NGRAPH_TF_MIN_NONTRIVIAL_NODES") != nullptr) {
+      min_non_trivial_nodes =
+          std::stoi(std::getenv("NGRAPH_TF_MIN_NONTRIVIAL_NODES"));
+    }
+    NGRAPH_VLOG(1) << "MIN_NONTRIVIAL_NODES set to " << min_non_trivial_nodes;
+
+    if (non_trivial_count < min_non_trivial_nodes) {
       NGRAPH_VLOG(2) << "Busting cluster " << cluster_idx;
       for (auto node : nodes) {
         NGRAPH_VLOG(2) << "Busting node: " << node->name() << " ["

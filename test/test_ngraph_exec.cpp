@@ -25,7 +25,7 @@
 #include "tensorflow/core/graph/graph_def_builder.h"
 #include "tensorflow/core/platform/env.h"
 
-#include "ngraph_bridge/ngraph_backend_manager.h"
+#include "ngraph_bridge/backend_manager.h"
 #include "ngraph_bridge/ngraph_builder.h"
 #include "ngraph_bridge/ngraph_utils.h"
 
@@ -41,6 +41,16 @@ namespace ng = ngraph;
 namespace tensorflow {
 namespace ngraph_bridge {
 namespace testing {
+
+static int FindNumberOfNodes(const Graph* graph, const string op_type) {
+  int count = 0;
+  for (auto node : graph->nodes()) {
+    if (node->type_string() == op_type) {
+      count++;
+    }
+  }
+  return count;
+}
 
 class NGraphExecTest : public ::testing::Test {
  protected:
@@ -66,7 +76,8 @@ class NGraphExecTest : public ::testing::Test {
     std::vector<const Tensor*> static_input_map(tf_input_shapes.size(),
                                                 nullptr);
     TF_RETURN_IF_ERROR(ngraph_bridge::Builder::TranslateGraph(
-        tf_input_shapes, static_input_map, &input_graph, ng_function));
+        tf_input_shapes, static_input_map, &input_graph, "test_ngraph_exec",
+        ng_function));
     return Status::OK();
   }
 
@@ -166,17 +177,17 @@ TEST_F(NGraphExecTest, Axpy) {
     ng_shape_y[i] = y.shape().dim_size(i);
   }
 
-  auto t_x = backend->create_tensor(ng::element::f32, ng_shape_x);
+  auto t_x = make_shared<IETensor>(ng::element::f32, ng_shape_x);
   float v_x[2][3] = {{1, 1, 1}, {1, 1, 1}};
   t_x->write(&v_x, sizeof(v_x));
 
-  auto t_y = backend->create_tensor(ng::element::f32, ng_shape_y);
+  auto t_y = make_shared<IETensor>(ng::element::f32, ng_shape_y);
   t_y->write(&v_x, sizeof(v_x));
 
   // Execute the nGraph function.
-  auto exec = backend->compile(ng_function);
+  auto exec = backend->Compile(ng_function);
   vector<shared_ptr<ng::runtime::Tensor>> outputs;
-  exec->call({t_x, t_y}, outputs);
+  exec->Call({t_x, t_y}, outputs);
 
   for (size_t i = 0; i < ng_function->get_output_size(); i++) {
     DumpNGTensor<float>(cout, ng_function->get_output_op(i)->get_name(),
@@ -221,17 +232,17 @@ TEST_F(NGraphExecTest, Axpy8bit) {
     ng_shape_y[i] = y.shape().dim_size(i);
   }
 
-  auto t_x = backend->create_tensor(ng::element::i8, ng_shape_x);
+  auto t_x = make_shared<IETensor>(ng::element::i8, ng_shape_x);
   int8 v_x[2][2] = {{1, 1}, {1, 1}};
   t_x->write(&v_x, sizeof(v_x));
 
-  auto t_y = backend->create_tensor(ng::element::i8, ng_shape_y);
+  auto t_y = make_shared<IETensor>(ng::element::i8, ng_shape_y);
   t_y->write(&v_x, sizeof(v_x));
 
   // Execute the nGraph function.
-  auto exec = backend->compile(ng_function);
+  auto exec = backend->Compile(ng_function);
   vector<shared_ptr<ng::runtime::Tensor>> outputs;
-  exec->call({t_x, t_y}, outputs);
+  exec->Call({t_x, t_y}, outputs);
 
   for (size_t i = 0; i < ng_function->get_output_size(); i++) {
     DumpNGTensor<int8>(cout, ng_function->get_output_op(i)->get_name(),
@@ -277,13 +288,13 @@ TEST_F(NGraphExecTest, NGraphPassConstantFolding1) {
   Graph input_graph(OpRegistry::Global());
   ASSERT_OK(LoadGraph("test_graph1.pbtxt", &input_graph));
 
-  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:1", true);
+  setenv("NGRAPH_TF_CONSTANT_FOLDING", "1", true);
   expect_const_count_ngfunc(input_graph, 1);
-  unsetenv("NGRAPH_PASS_ENABLES");
+  unsetenv("NGRAPH_TF_CONSTANT_FOLDING");
 
-  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:0", true);
+  setenv("NGRAPH_TF_CONSTANT_FOLDING", "0", true);
   expect_const_count_ngfunc(input_graph, 3);
-  unsetenv("NGRAPH_PASS_ENABLES");
+  unsetenv("NGRAPH_TF_CONSTANT_FOLDING");
 }
 
 TEST_F(NGraphExecTest, NGraphPassConstantFolding2) {
@@ -298,13 +309,13 @@ TEST_F(NGraphExecTest, NGraphPassConstantFolding2) {
   // attach _Retval node
   auto pgraph_new = attach_retval_node(root, pgraph, add2.node());
 
-  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:1", true);
+  setenv("NGRAPH_TF_CONSTANT_FOLDING", "1", true);
   expect_const_count_ngfunc(*pgraph_new, 1);
-  unsetenv("NGRAPH_PASS_ENABLES");
+  unsetenv("NGRAPH_TF_CONSTANT_FOLDING");
 
-  setenv("NGRAPH_PASS_ENABLES", "ConstantFolding:0", true);
+  setenv("NGRAPH_TF_CONSTANT_FOLDING", "0", true);
   expect_const_count_ngfunc(*pgraph_new, 3);
-  unsetenv("NGRAPH_PASS_ENABLES");
+  unsetenv("NGRAPH_TF_CONSTANT_FOLDING");
 }
 
 }  // namespace testing
