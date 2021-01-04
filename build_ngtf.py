@@ -343,7 +343,7 @@ def main():
             "-DENABLE_TESTS=OFF",
             "-DENABLE_SAMPLES=OFF",
             "-DENABLE_FUNCTIONAL_TESTS=OFF",
-            "-DENABLE_VPU=OFF",  # TODO: Fix OpenVINO VPU build
+            "-DENABLE_VPU=ON",  # TODO: Fix OpenVINO VPU build
             "-DNGRAPH_USE_CXX_ABI=" + cxx_abi,
             "-DCMAKE_CXX_FLAGS=-D_GLIBCXX_USE_CXX11_ABI=" + cxx_abi + " -march="
             + target_arch,

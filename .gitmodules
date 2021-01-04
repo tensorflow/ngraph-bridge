@@ -1,1 +1,4 @@
 
+[submodule "ocm"]
+	path = ocm
+	url = https://github.com/intel/ocm
