@@ -1580,8 +1580,8 @@ static Status TranslateFusedConv2DOp(const Node* op,
           "FusedConv2DBiasAddAdd has incompatible num_args");
     }
     ng::Output<ng::Node> ng_input, ng_input_add, ng_filter, ng_bias, ng_conv;
-    TF_RETURN_IF_ERROR(
-        GetInputNodes(ng_op_map, op, ng_input, ng_filter, ng_bias, ng_input_add));
+    TF_RETURN_IF_ERROR(GetInputNodes(ng_op_map, op, ng_input, ng_filter,
+                                     ng_bias, ng_input_add));
 
     TF_RETURN_IF_ERROR(CreateNgConv(ng_input, ng_filter, ng_conv));
 
@@ -1604,11 +1604,11 @@ static Status TranslateFusedConv2DOp(const Node* op,
         op->name() + "_FusedConv2D_BiasAdd", ng_conv, ng_bias_reshaped);
 
     NHWCtoNCHW(op->name(), is_nhwc, ng_input_add);
-    auto ng_add = ConstructNgNode<opset::Add>(
-        op->name() + "_FusedConv2D_Add", ng_bias_add, ng_input_add);
+    auto ng_add = ConstructNgNode<opset::Add>(op->name() + "_FusedConv2D_Add",
+                                              ng_bias_add, ng_input_add);
 
-    auto ng_relu = ConstructNgNode<opset::Relu>(
-        op->name() + "_FusedConv2D_Relu", ng_add);
+    auto ng_relu =
+        ConstructNgNode<opset::Relu>(op->name() + "_FusedConv2D_Relu", ng_add);
     NCHWtoNHWC(op->name(), is_nhwc, ng_relu);
     SaveNgOp(ng_op_map, op->name(), ng_relu);
   } else if (VecStrCmp(fused_ops, {"FusedBatchNorm"}) ||
