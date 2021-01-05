@@ -1574,6 +1574,43 @@ static Status TranslateFusedConv2DOp(const Node* op,
       NCHWtoNHWC(op->name(), is_nhwc, ng_add);
       SaveNgOp(ng_op_map, op->name(), ng_add);
     }
+  } else if (VecStrCmp(fused_ops, {"BiasAdd", "Add", "Relu"})) {
+    if (num_args != 2) {
+      return errors::InvalidArgument(
+          "FusedConv2DBiasAddAdd has incompatible num_args");
+    }
+    ng::Output<ng::Node> ng_input, ng_input_add, ng_filter, ng_bias, ng_conv;
+    TF_RETURN_IF_ERROR(
+        GetInputNodes(ng_op_map, op, ng_input, ng_filter, ng_bias, ng_input_add));
+
+    TF_RETURN_IF_ERROR(CreateNgConv(ng_input, ng_filter, ng_conv));
+
+    auto ng_conv_shape = ng_conv.get_shape();
+    auto ng_bias_shape = ng_bias.get_shape();
+    if (ng_bias_shape.size() != 1) {
+      return errors::InvalidArgument(
+          "Bias argument to BiasAdd does not have one dimension");
+    }
+
+    std::vector<size_t> reshape_pattern_values(ng_conv_shape.size(), 1U);
+    reshape_pattern_values[1] = ng_bias.get_shape().front();
+    auto reshape_pattern = make_shared<opset::Constant>(
+        ng::element::u64, ng::Shape{reshape_pattern_values.size()},
+        reshape_pattern_values);
+    auto ng_bias_reshaped = ConstructNgNode<opset::Reshape>(
+        op->name(), ng_bias, reshape_pattern, false);
+
+    auto ng_bias_add = ConstructNgNode<opset::Add>(
+        op->name() + "_FusedConv2D_BiasAdd", ng_conv, ng_bias_reshaped);
+
+    NHWCtoNCHW(op->name(), is_nhwc, ng_input_add);
+    auto ng_add = ConstructNgNode<opset::Add>(
+        op->name() + "_FusedConv2D_Add", ng_bias_add, ng_input_add);
+
+    auto ng_relu = ConstructNgNode<opset::Relu>(
+        op->name() + "_FusedConv2D_Relu", ng_add);
+    NCHWtoNHWC(op->name(), is_nhwc, ng_relu);
+    SaveNgOp(ng_op_map, op->name(), ng_relu);
   } else if (VecStrCmp(fused_ops, {"FusedBatchNorm"}) ||
              VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu"}) ||
              VecStrCmp(fused_ops, {"FusedBatchNorm", "Relu6"})) {
