@@ -18,6 +18,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "tensorflow/compiler/jit/graphcycles/graphcycles.h"
 #include "tensorflow/core/framework/attr_value_util.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/node_def_util.h"
@@ -33,7 +34,6 @@
 #include "ngraph_bridge/ngraph_mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/tf_deadness_analysis.h"
-#include "ngraph_bridge/tf_graphcycles.h"
 
 using namespace std;
 

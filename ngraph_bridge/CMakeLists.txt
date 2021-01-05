@@ -46,7 +46,6 @@ set(SRC
    ngraph_utils.cc
    ops/ngraph_encapsulate_op.cc
    pass/transpose_sinking.cc
-   tf_graphcycles.cc
    tf_deadness_analysis.cc
    version.cc
 )
