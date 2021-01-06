@@ -1576,28 +1576,31 @@ static Status TranslateFusedConv2DOp(const Node* op,
   }
 
   // Conv2D
-  ng::Output<ng::Node> ng_input, ng_filter, ng_bias, ng_conv;
-  TF_RETURN_IF_ERROR(
-      GetInputNodes(ng_op_map, op, ng_input, ng_filter, ng_bias));
-
+  ng::Output<ng::Node> ng_input, ng_filter, ng_conv;
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 0, ng_input));
+  TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 1, ng_filter));
   TF_RETURN_IF_ERROR(CreateNgConv(ng_input, ng_filter, ng_conv));
 
   // BiasAdd or BatchNorm
-  ng::Output<ng::Node> ng_fused_op_0, ng_scale, ng_offset, ng_mean, ng_variance;
+  ng::Output<ng::Node> ng_fused_op_0, ng_bias, ng_scale, ng_offset, ng_mean,
+      ng_variance;
   if (fused_ops[0] == "BiasAdd") {
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 2, ng_bias));
     TF_RETURN_IF_ERROR(CreateNgBiasAdd(ng_conv, ng_bias, ng_fused_op_0));
   } else if (fused_ops[0] == "FusedBatchNorm") {
-    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 3, ng_scale));
-    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 4, ng_offset));
-    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 5, ng_mean));
-    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 6, ng_variance));
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 2, ng_scale));
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 3, ng_offset));
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 4, ng_mean));
+    TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 5, ng_variance));
     float tf_epsilon;
     TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "epsilon", &tf_epsilon));
     ng_fused_op_0 = ConstructNgNode<opset::BatchNormInference>(
         op->name() + "_FusedConv2D_BatchNorm", ng_conv, ng_scale, ng_offset,
         ng_mean, ng_variance, tf_epsilon);
   } else {
-    // shouldn't come here
+    // shouldn't come
+    return errors::Unimplemented("Unsupported _FusedConv2D " +
+                                 absl::StrJoin(fused_ops, ","));
   }
 
   ng::Output<ng::Node> ng_input_add, ng_fused_op_1;
@@ -1606,7 +1609,7 @@ static Status TranslateFusedConv2DOp(const Node* op,
     SaveNgOp(ng_op_map, op->name(), ng_fused_op_0);
     return Status::OK();
   } else {
-    // Add, Relu, Relu6
+    // Add or Relu or Relu6
     if (fused_ops[1] == "Add") {
       TF_RETURN_IF_ERROR(GetInputNode(ng_op_map, op, 3, ng_input_add));
       NHWCtoNCHW(op->name(), is_nhwc, ng_input_add);
@@ -1620,6 +1623,8 @@ static Status TranslateFusedConv2DOp(const Node* op,
           op->name() + "_FusedConv2D_Relu6", ng_fused_op_0, 0, 6);
     } else {
       // shouldn't come here
+      return errors::Unimplemented("Unsupported _FusedConv2D " +
+                                   absl::StrJoin(fused_ops, ","));
     }
   }
 
@@ -1629,7 +1634,7 @@ static Status TranslateFusedConv2DOp(const Node* op,
     SaveNgOp(ng_op_map, op->name(), ng_fused_op_1);
     return Status::OK();
   } else {
-    if (fused_ops.size() == 3 && fused_ops[2] == "Relu") {
+    if (fused_ops[2] == "Relu") {
       // Relu
       ng_fused_op_2 = ConstructNgNode<opset::Relu>(
           op->name() + "_FusedConv2D_Relu", ng_fused_op_1);
