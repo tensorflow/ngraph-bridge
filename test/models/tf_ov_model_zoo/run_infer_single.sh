@@ -19,8 +19,12 @@ INFER_PATTERN=$3
 if [ "${INFER_PATTERN}" == "" ]; then
     echo "Error: expected pattern not specified!" && exit 1
 fi
+BENCHMARK=$4 # YES or NO
+if [ "${BENCHMARK}" == "" ]; then
+    echo "Error: benchmark flag (YES/NO) not specified!" && exit 1
+fi
 
-echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN
+echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN BENCHMARK=$BENCHMARK
 
 REPO=https://gitlab.devtools.intel.com/mcavus/tensorflow_openvino_models_public
 COMMIT=14eff8ce # 2020-Dec-02
@@ -72,31 +76,56 @@ function get_model_repo {
 
 function print_infer_times {
     NUM_ITER=$1
-    TMPFILE=$2
+    WARMUP_ITERS=$2
+    TMPFILE=$3
     INFER_TIME_FIRST_ITER="?"
     if (( $NUM_ITER > 1 )); then
         INFER_TIME_FIRST_ITER=$( grep "Inf Execution Time" ${TMPFILE} | head -n 1 | rev | cut -d' ' -f 1 | rev )
         INFER_TIME_FIRST_ITER=$( printf %.04f ${INFER_TIME_FIRST_ITER} )
     fi
-    INFER_TIME=$(get_average_infer_time "${TMPFILE}")
-    echo INFER_TIME Avg = ${INFER_TIME} seconds, 1st = ${INFER_TIME_FIRST_ITER}
+    INFER_TIME=$(get_average_infer_time "${WARMUP_ITERS}" "${TMPFILE}")
+    echo INFER_TIME Avg of $((NUM_ITER - WARMUP_ITERS)) iters = ${INFER_TIME} seconds, 1st = ${INFER_TIME_FIRST_ITER}
 }
 
 function get_average_infer_time {
-    logfile=$1
+    num_warmup_iters=$1
+    logfile=$2
     count=0
     total=0
-    first_infer_time=0
+    warmup_iters_time=0
     for i in $( grep "Inf Execution Time" "$logfile" | rev | cut -d' ' -f 1 | rev )
     do 
         total=$(echo $total+$i | bc )
-        (( count == 0 )) && first_infer_time=$i
+        (( count < $num_warmup_iters )) && warmup_iters_time=$(echo $warmup_iters_time+$i | bc )
         ((count++))
     done
-    (( count > 1 )) && total=$(echo $total-$first_infer_time | bc )
+    (( count > $num_warmup_iters )) && total=$(echo $total-$warmup_iters_time | bc )
     avg=$(echo "scale=4; $total / $count" | bc)
     avg=$( printf %.04f $avg )
     echo $avg
+}
+
+function run_bench_stocktf {
+    pushd .
+    cd ${LOCALSTORE}/demo
+    TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
+    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    ret_code=$?
+    if (( $ret_code == 0 )); then
+        echo
+        echo "Stock Tensorflow: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        ret_code=1
+        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+    fi
+    echo
+    rm ${TMPFILE}
+    popd
+}
+
+function run_bench_stockov {
+    echo "Not implemented run_bench_stockov"
 }
 
 ################################################################################
@@ -108,24 +137,34 @@ if (( ! $found )); then pip install Pillow; fi
 cd ${LOCALSTORE_PREFIX} || exit 1
 get_model_repo
 
-TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
-
 IMGFILE="${LOCALSTORE}/demo/images/${IMAGE}"
 if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
-cd ${LOCALSTORE}/demo
-NUM_ITER=20
-[ -z "$NGRAPH_TF_LOG_PLACEMENT" ] && export NGRAPH_TF_LOG_PLACEMENT=1
-[ -z "$NGRAPH_TF_VLOG_LEVEL" ] && export NGRAPH_TF_VLOG_LEVEL=-1
 device=${NGRAPH_TF_BACKEND:-"CPU"}
+
+if [ "${BENCHMARK}" == "YES" ]; then
+    NUM_ITER=150
+    WARMUP_ITERS=50
+    export NGRAPH_TF_VLOG_LEVEL=-1
+    run_bench_stocktf
+    run_bench_stockov
+else
+    NUM_ITER=20
+    WARMUP_ITERS=1
+    [ -z "$NGRAPH_TF_LOG_PLACEMENT" ] && export NGRAPH_TF_LOG_PLACEMENT=1
+    [ -z "$NGRAPH_TF_VLOG_LEVEL" ] && export NGRAPH_TF_VLOG_LEVEL=-1
+fi
+
+cd ${LOCALSTORE}/demo
+TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
 ret_code=$?
 if (( $ret_code == 0 )); then
     echo
-    echo "Checking inference result..."
+    echo "TF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
     ret_code=1
     INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
     grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
-    print_infer_times $NUM_ITER "${TMPFILE}"
+    print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
 fi
 echo
 grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
