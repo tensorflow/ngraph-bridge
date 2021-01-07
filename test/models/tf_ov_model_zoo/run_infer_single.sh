@@ -49,8 +49,21 @@ function gen_frozen_models {
     rm -rf $VENVTMP
 }
 
+function file_newer_than_commit {
+    # Returns 1 if passed file/dir has newer timestamp than COMMIT-timestamp
+    # Returns 0 otherwise
+    filepath=$1
+    [ -e "$filepath" ] || ( echo "0"; return; )
+    file_ts=$(stat -c %Y $filepath)
+    # must be already under the git repo
+    commit_ts=$(git show -s --format=%at $COMMIT 2>/dev/null)
+    (( $? == 0 )) || ( echo "0"; return; )
+    (( file_ts > commit_ts )) && ( echo "1"; return; )
+    echo "0"
+}
+
 function get_model_repo {
-    pushd .
+    pushd . >/dev/null
     if [ ! -d "${LOCALSTORE}" ]; then
         cd ${LOCALSTORE_PREFIX} || exit 1
         git clone ${REPO}
@@ -64,12 +77,14 @@ function get_model_repo {
     fi
 
     cd ${LOCALSTORE} || exit 1
-    git pull
-    git checkout ${COMMIT} || exit 1
+    commit_check=$(git cat-file -t $COMMIT 2>/dev/null)
+    [ "$commit_check" == "commit" ] || ( git fetch; git checkout ${COMMIT} || exit 1; )
+    
     if [ -d "temp_build" ]; then rm -rf temp_build; fi
+
     if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || \
        [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ] || \
-       [ ! -d "${LOCALSTORE}/frozen/${MODEL}_config" ]; then
+       [ "$(file_newer_than_commit ${LOCALSTORE}/frozen/${MODEL}.pb)" == "0" ]; then
         gen_frozen_models ./model_factory/create_${MODEL}.sh
         echo Downloaded model ${MODEL}; echo
     fi
@@ -84,7 +99,7 @@ function get_model_repo {
         fi
     fi
     [ -d "${LOCALSTORE}/demo/outputs" ] || mkdir "${LOCALSTORE}/demo/outputs"
-    popd
+    popd  >/dev/null
 }
 
 function print_infer_times {
@@ -119,7 +134,7 @@ function get_average_infer_time {
 }
 
 function run_bench_stocktf {
-    pushd .
+    pushd . >/dev/null
     cd ${LOCALSTORE}/demo
     TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
     ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
@@ -134,24 +149,11 @@ function run_bench_stocktf {
     fi
     echo
     rm ${TMPFILE}
-    popd
-}
-
-function gen_ov_ir_models {
-    script=$1
-
-    initdir=`pwd`
-    VENVTMP=venv_temp # to ensure no side-effects of any pip installs
-    virtualenv -p python3 $VENVTMP
-    source $VENVTMP/bin/activate
-    $script || exit 1
-    deactivate
-    cd ${initdir}
-    rm -rf $VENVTMP
+    popd >/dev/null
 }
 
 function run_bench_stockov {
-    pushd .
+    pushd . >/dev/null
     cd ${LOCALSTORE}/demo
     TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
     ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
@@ -166,7 +168,7 @@ function run_bench_stockov {
     fi
     echo
     rm ${TMPFILE}
-    popd
+    popd >/dev/null
 }
 
 ################################################################################
