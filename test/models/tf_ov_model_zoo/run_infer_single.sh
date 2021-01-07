@@ -27,7 +27,7 @@ fi
 echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN BENCHMARK=$BENCHMARK
 
 REPO=https://gitlab.devtools.intel.com/mcavus/tensorflow_openvino_models_public
-COMMIT=14eff8ce # 2020-Dec-02
+COMMIT=d12f2d57 # 2021-Jan-06
 
 if [ "${BUILDKITE}" == "true" ]; then
     LOCALSTORE_PREFIX=/localdisk/buildkite/artifacts
@@ -61,13 +61,26 @@ function get_model_repo {
         git checkout ${COMMIT} || exit 1
         gen_frozen_models ./model_factory/create.all
         echo Downloaded all models; echo
-    else
-        cd ${LOCALSTORE} || exit 1
-        git checkout ${COMMIT} || exit 1
-        if [ -d "temp_build" ]; then rm -rf temp_build; fi
-        if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ]; then
-            gen_frozen_models ./model_factory/create_${MODEL}.sh
-            echo Downloaded model ${MODEL}; echo
+    fi
+
+    cd ${LOCALSTORE} || exit 1
+    git pull
+    git checkout ${COMMIT} || exit 1
+    if [ -d "temp_build" ]; then rm -rf temp_build; fi
+    if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || \
+       [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ] || \
+       [ ! -d "${LOCALSTORE}/frozen/${MODEL}_config" ]; then
+        gen_frozen_models ./model_factory/create_${MODEL}.sh
+        echo Downloaded model ${MODEL}; echo
+    fi
+    
+    if [ "${BENCHMARK}" == "YES" ]; then
+        if [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch1.xml" ] || [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch1.bin" ]; then
+            opv_root=${INTEL_OPENVINO_DIR:-"/opt/intel/openvino"}
+            mo_tf_path="${opv_root}/deployment_tools/model_optimizer/mo_tf.py"
+            [ -f "${mo_tf_path}" ] || ( echo "${mo_tf_path} not found!"; exit 1 )
+            export INTEL_OPENVINO_DIR="${opv_root}"
+            ./model_factory/generate_ir.sh ${MODEL} 1 || exit 1
         fi
     fi
     [ -d "${LOCALSTORE}/demo/outputs" ] || mkdir "${LOCALSTORE}/demo/outputs"
@@ -124,8 +137,36 @@ function run_bench_stocktf {
     popd
 }
 
+function gen_ov_ir_models {
+    script=$1
+
+    initdir=`pwd`
+    VENVTMP=venv_temp # to ensure no side-effects of any pip installs
+    virtualenv -p python3 $VENVTMP
+    source $VENVTMP/bin/activate
+    $script || exit 1
+    deactivate
+    cd ${initdir}
+    rm -rf $VENVTMP
+}
+
 function run_bench_stockov {
-    echo "Not implemented run_bench_stockov"
+    pushd .
+    cd ${LOCALSTORE}/demo
+    TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
+    ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
+    ret_code=$?
+    if (( $ret_code == 0 )); then
+        echo
+        echo "Stock OpenVINO: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        ret_code=1
+        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+    fi
+    echo
+    rm ${TMPFILE}
+    popd
 }
 
 ################################################################################

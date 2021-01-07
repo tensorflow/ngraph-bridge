@@ -2,7 +2,7 @@
 # This script is used by BuildKite CI to fetch/run multiple models from a curated model-repo for OV-IE integration project
 # Invoke locally: .../run_infer_multiple.sh [ -m ./models_cpu.txt ]  [ -d .../working_dir ]
 
-usage() { echo "Usage: $0 [-m .../manifest.txt] [-d .../working_dir]" 1>&2; exit 1; }
+usage() { echo "Usage: $0 [-m .../manifest.txt] [-d .../working_dir] [-b YES]" 1>&2; exit 1; }
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 WORKDIR=`pwd`
