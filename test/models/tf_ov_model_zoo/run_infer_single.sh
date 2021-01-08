@@ -29,6 +29,8 @@ echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN BENCHMARK=$BENCHMARK
 REPO=https://gitlab.devtools.intel.com/mcavus/tensorflow_openvino_models_public
 COMMIT=d12f2d57 # 2021-Jan-06
 
+WORKDIR=`pwd`
+
 if [ "${BUILDKITE}" == "true" ]; then
     LOCALSTORE_PREFIX=/localdisk/buildkite/artifacts
 else
@@ -40,7 +42,8 @@ function gen_frozen_models {
     script=$1
 
     initdir=`pwd`
-    VENVTMP=venv_temp # to ensure no side-effects of any pip installs
+    VENVTMP="$WORKDIR/venv_temp" # to ensure no side-effects of any pip installs
+    [ -d $VENVTMP ] && rm -rf $VENVTMP
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
     $script || exit 1
@@ -83,9 +86,11 @@ function get_model_repo {
     if [ -d "temp_build" ]; then rm -rf temp_build; fi
 
     if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || \
-       [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ] || \
-       [ "$(file_newer_than_commit ${LOCALSTORE}/frozen/${MODEL}.pb)" == "0" ]; then
+    [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ] || \
+    [ "$(file_newer_than_commit ${LOCALSTORE}/frozen/${MODEL}.pb)" == "0" ]; then
         gen_frozen_models ./model_factory/create_${MODEL}.sh
+        touch "${LOCALSTORE}/frozen/${MODEL}.pb"
+        touch "${LOCALSTORE}/frozen/${MODEL}.txt"
         echo Downloaded model ${MODEL}; echo
     fi
     
@@ -136,7 +141,7 @@ function get_average_infer_time {
 function run_bench_stocktf {
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
-    TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
+    TMPFILE=${WORKDIR}/tmp_output$$
     ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
@@ -155,15 +160,17 @@ function run_bench_stocktf {
 
 function run_bench_stockov {
     pushd . >/dev/null
-    VENVTMP=venv_temp_stockov # to ensure no side-effects of any pip installs
+    VENVTMP="$WORKDIR/venv_temp_stockov" # to ensure no side-effects of any pip installs
+    [ -d $VENVTMP ] && rm -rf $VENVTMP
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
     pip list | grep 'opencv-python' 2>&1 >/dev/null; (($?==0)) || pip install opencv-python;
     pip list | grep 'openvino' 2>&1 >/dev/null; (($?==0)) || pip install openvino;
 
     cd ${LOCALSTORE}/demo
-    TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
-    pythonlib=$(echo $(which python3)/../../lib)
+    TMPFILE=${WORKDIR}/tmp_output$$
+    pythonlib=$(echo $(dirname $(which python3))/../lib)
+    echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib \
         ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
     ret_code=$?
@@ -177,7 +184,6 @@ function run_bench_stockov {
         INFER_TIME_STOCKOV=$INFER_TIME
     fi
     echo
-
     deactivate # venv
     rm ${TMPFILE}
     rm -rf $VENVTMP
@@ -205,8 +211,6 @@ if [ "${BENCHMARK}" == "YES" ]; then
     NUM_ITER=150
     WARMUP_ITERS=50
     export NGRAPH_TF_VLOG_LEVEL=-1
-    run_bench_stocktf
-    run_bench_stockov
 else
     NUM_ITER=20
     WARMUP_ITERS=1
@@ -215,7 +219,7 @@ else
 fi
 
 cd ${LOCALSTORE}/demo
-TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
+TMPFILE=${WORKDIR}/tmp_output$$
 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
 ret_code=$?
 if (( $ret_code == 0 )); then
@@ -230,6 +234,11 @@ fi
 echo
 grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
 rm ${TMPFILE}
+
+if [ "${BENCHMARK}" == "YES" ]; then
+    run_bench_stocktf
+    run_bench_stockov
+fi
 
 if [ "${BUILDKITE}" == "true" ]; then
     if [ "${ret_code}" == "0" ]; then
