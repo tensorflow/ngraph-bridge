@@ -157,8 +157,8 @@ function run_bench_stockov {
     VENVTMP=venv_temp_stockov # to ensure no side-effects of any pip installs
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
-    pip list | grep 'opencv-python' 2>&1 >/dev/null; $(( $? )) || pip install opencv-python;
-    pip list | grep 'openvino' 2>&1 >/dev/null; $(( $? )) || pip install openvino;
+    pip list | grep 'opencv-python' 2>&1 >/dev/null; (($?==0)) || pip install opencv-python;
+    pip list | grep 'openvino' 2>&1 >/dev/null; (($?==0)) || pip install openvino;
 
     cd ${LOCALSTORE}/demo
     TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
@@ -183,11 +183,11 @@ function run_bench_stockov {
 ################################################################################
 ################################################################################
 
-pip list | grep 'Pillow' 2>&1 >/dev/null; $(( $? )) || pip install Pillow;
+pip list | grep 'Pillow' 2>&1 >/dev/null; (($?==0)) || pip install Pillow;
 if [ "${BENCHMARK}" == "YES" ]; then
-    pip list | grep 'networkx' 2>&1 >/dev/null; $(( $? )) || pip install networkx;
-    pip list | grep 'defusedxml' 2>&1 >/dev/null; $(( $? )) || pip install defusedxml;
-    pip list | grep 'test-generator' 2>&1 >/dev/null; $(( $? )) || pip install test-generator==0.1.1;
+    pip list | grep 'networkx' 2>&1 >/dev/null; (($?==0)) || pip install networkx;
+    pip list | grep 'defusedxml' 2>&1 >/dev/null; (($?==0)) || pip install defusedxml;
+    pip list | grep 'test-generator' 2>&1 >/dev/null; (($?==0)) || pip install test-generator==0.1.1;
 fi
 
 cd ${LOCALSTORE_PREFIX} || exit 1
