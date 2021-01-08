@@ -1,8 +1,8 @@
-# Manifest to specify included & excluded tests
+# Manifest to specify included & excludedtests
 # Comment lines start with #
-# This manifest is consumed by nGraph-Bridge PyTest framework via .../test/python/conftest.py
+# This manifest is consumed by nGraph-Bridge PyTest framework via .../test/python/conftest
 
-# Read comments in tests_common.txt for allowed regex/patterns
+# Read comments intests_common.txt for allowed regex/patterns
 
 ###################################################
 [IMPORT]
@@ -16,6 +16,63 @@ tests_common.txt
 [SKIP]
 
 test*
+test_abs.TestAbsOperations.* #Unsupported layer type "Abs"
+
+# Param has unexpected layout C
+test_biasadd.TestBiasAddOperations.* 
+test_conv2d.TestConv2D.test_conv2d_multiply
+test_fusedConv2D.TestFusedConv2D.*
+test_fusedMatMul.TestFusedMatMul.*
+
+#  to queue inference: NC_ERROR
+test_depthwiseconv2d.TestDepthwiseConv2dOperations.test_depthwise_conv2d[tensor_in_sizes2-filter_in_sizes2-VALID]
+test_depthwiseconv2d.TestDepthwiseConv2dOperations.test_depthwise_conv2d[tensor_in_sizes2-filter_in_sizes2-VALID]
+
+# Failed to set Blob with precision not corresponding to user output precision
+test_elementwise_ops.TestElementwiseOperations.test_less_equal[1.4-1.0-expected0]
+test_elementwise_ops.TestElementwiseOperations.test_less_equal[-1.0--1.0-expected1]
+test_elementwise_ops.TestElementwiseOperations.test_less_equal[-1.0-1000-expected2]
+test_elementwise_ops.TestElementwiseOperations.test_less_equal[200-200-expected3]
+test_elementwise_ops.TestElementwiseOperations.test_less_equal[v14-v24-expected4]
+test_elementwise_ops.TestElementwiseOperations.test_less_equal[v15-v25-expected5]
+test_elementwise_ops.TestElementwiseOperations.test_less[1.4-1.0-expected0]
+test_elementwise_ops.TestElementwiseOperations.test_less[-1.0--1.0-expected1]
+test_elementwise_ops.TestElementwiseOperations.test_less[-1.0-1000-expected2]
+test_elementwise_ops.TestElementwiseOperations.test_less[200-200-expected3]
+test_elementwise_ops.TestElementwiseOperations.test_less[v14-v24-expected4]
+test_elementwise_ops.TestElementwiseOperations.test_less[v15-v25-expected5]
+test_elementwise_ops.TestElementwiseOperations.test_greater_equal[1.4-1.0-expected0]
+test_elementwise_ops.TestElementwiseOperations.test_greater_equal[-1.0--1.0-expected1]
+test_elementwise_ops.TestElementwiseOperations.test_greater_equal[-1.0-1000-expected2]
+test_elementwise_ops.TestElementwiseOperations.test_greater_equal[200-200-expected3]
+test_elementwise_ops.TestElementwiseOperations.test_greater_equal[v14-v24-expected4]
+test_elementwise_ops.TestElementwiseOperations.test_greater_equal[v15-v25-expected5]
+test_elementwise_ops.TestElementwiseOperations.test_greater[1.4-1.0-expected0]
+test_elementwise_ops.TestElementwiseOperations.test_greater[-1.0--1.0-expected1]
+test_elementwise_ops.TestElementwiseOperations.test_greater[-1.0-1000-expected2]
+test_elementwise_ops.TestElementwiseOperations.test_greater[200-200-expected3]
+test_elementwise_ops.TestElementwiseOperations.test_greater[v14-v24-expected4]
+test_elementwise_ops.TestElementwiseOperations.test_greater[v15-v25-expected5]
+
+# types check error: output #0 has type FP16, but one of [S32] is expected
+test_elementwise_ops.TestElementwiseOperations.test_logical_and[True-True-expected0]
+test_elementwise_ops.TestElementwiseOperations.test_logical_and[True-False-expected1]
+test_elementwise_ops.TestElementwiseOperations.test_logical_and[1.0--2.0-expected2]
+test_elementwise_ops.TestElementwiseOperations.test_logical_and[False-100-expected3]
+test_elementwise_ops.TestElementwiseOperations.test_logical_and[v14-v24-expected4]
+test_elementwise_ops.TestElementwiseOperations.test_logicalnot_1d[False-True]
+test_elementwise_ops.TestElementwiseOperations.test_logicalnot_1d[True-False]
+test_elementwise_ops.TestElementwiseOperations.test_logicalnot_2d
+
+# gets stuck; needs to manually stopped
+test_floor.TestFloorOperations.*
+
+# Output blob size is not equal network output size (1!=0)
+test_gather.TestGatherOperations.test_gather_0
+test_gather.TestGatherV2Operations.test_gather_0
+
+
+
 
 ###################################################
 [RUN]
