@@ -80,14 +80,16 @@ function get_model_repo {
     fi
 
     cd ${LOCALSTORE} || exit 1
+    prev_commit=$(git rev-parse HEAD)
     commit_check=$(git cat-file -t $COMMIT 2>/dev/null)
     [ "$commit_check" == "commit" ] || ( git fetch; git checkout ${COMMIT} || exit 1; )
+    desired_commit=$(git rev-parse $COMMIT)
     
     if [ -d "temp_build" ]; then rm -rf temp_build; fi
 
     if [ ! -f "${LOCALSTORE}/frozen/${MODEL}.pb" ] || \
     [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ] || \
-    [ "$(file_newer_than_commit ${LOCALSTORE}/frozen/${MODEL}.pb)" == "0" ]; then
+    [ "$desired_commit" != "$prev_commit" ]; then
         gen_frozen_models ./model_factory/create_${MODEL}.sh
         touch "${LOCALSTORE}/frozen/${MODEL}.pb"
         touch "${LOCALSTORE}/frozen/${MODEL}.txt"
