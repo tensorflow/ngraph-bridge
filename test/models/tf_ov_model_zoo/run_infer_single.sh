@@ -177,9 +177,6 @@ function run_bench_stockov {
     if (( $ret_code == 0 )); then
         echo
         echo "Stock OpenVINO: Checking inference result (warmups=$WARMUP_ITERS) ..."
-        ret_code=1
-        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
         print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
         INFER_TIME_STOCKOV=$INFER_TIME
     fi
@@ -220,6 +217,7 @@ fi
 
 cd ${LOCALSTORE}/demo
 TMPFILE=${WORKDIR}/tmp_output$$
+INFER_TIME_TFOV="?"
 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
 ret_code=$?
 if (( $ret_code == 0 )); then
@@ -236,14 +234,14 @@ grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
 rm ${TMPFILE}
 
 if [ "${BENCHMARK}" == "YES" ]; then
-    run_bench_stocktf
-    run_bench_stockov
+    INFER_TIME_STOCKTF="?"; run_bench_stocktf
+    INFER_TIME_STOCKOV="?"; run_bench_stockov
 fi
 
 if [ "${BUILDKITE}" == "true" ]; then
     if [ "${ret_code}" == "0" ]; then
         if [ "${BENCHMARK}" == "YES" ]; then
-            echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKTF}, TFOV ${INFER_TIME_TFOV}"
+            echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}"
         else
             echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: ${INFER_TIME_TFOV}"
         fi
