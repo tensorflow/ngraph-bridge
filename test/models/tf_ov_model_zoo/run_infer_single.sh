@@ -146,6 +146,7 @@ function run_bench_stocktf {
         INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
         grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
         print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+        INFER_TIME_STOCKTF=$INFER_TIME
     fi
     echo
     rm ${TMPFILE}
@@ -162,7 +163,9 @@ function run_bench_stockov {
 
     cd ${LOCALSTORE}/demo
     TMPFILE=${LOCALSTORE_PREFIX}/tmp_output$$
-    ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
+    pythonlib=$(echo $(which python3)/../../lib)
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib \
+        ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -171,6 +174,7 @@ function run_bench_stockov {
         INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
         grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
         print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+        INFER_TIME_STOCKOV=$INFER_TIME
     fi
     echo
 
@@ -221,6 +225,7 @@ if (( $ret_code == 0 )); then
     INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
     grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
     print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+    INFER_TIME_TFOV=$INFER_TIME
 fi
 echo
 grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
@@ -228,7 +233,11 @@ rm ${TMPFILE}
 
 if [ "${BUILDKITE}" == "true" ]; then
     if [ "${ret_code}" == "0" ]; then
-        echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: ${INFER_TIME}"
+        if [ "${BENCHMARK}" == "YES" ]; then
+            echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKTF}, TFOV ${INFER_TIME_TFOV}"
+        else
+            echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: ${INFER_TIME_TFOV}"
+        fi
     else
         echo -e "--- ... result: \033[33mfailed\033[0m :x:"
     fi
