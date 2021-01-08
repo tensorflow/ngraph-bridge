@@ -138,6 +138,12 @@ function get_average_infer_time {
     echo $avg
 }
 
+function pip_install {
+    pattern_with_ver=$1
+    pattern=$(echo $pattern_with_ver | cut -d"=" -f1)
+    pip list 2>/dev/null | grep -E "^$pattern " 2>&1 >/dev/null; (($?==0)) || pip install $pattern_with_ver;
+}
+
 function run_bench_stocktf {
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
@@ -164,8 +170,8 @@ function run_bench_stockov {
     [ -d $VENVTMP ] && rm -rf $VENVTMP
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
-    pip list | grep 'opencv-python' 2>&1 >/dev/null; (($?==0)) || pip install opencv-python;
-    pip list | grep 'openvino' 2>&1 >/dev/null; (($?==0)) || pip install openvino;
+    pip_install opencv-python
+    pip_install openvino
 
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
@@ -190,11 +196,12 @@ function run_bench_stockov {
 ################################################################################
 ################################################################################
 
-pip list | grep 'Pillow' 2>&1 >/dev/null; (($?==0)) || pip install Pillow;
+pip_install Pillow
 if [ "${BENCHMARK}" == "YES" ]; then
-    pip list | grep 'networkx' 2>&1 >/dev/null; (($?==0)) || pip install networkx;
-    pip list | grep 'defusedxml' 2>&1 >/dev/null; (($?==0)) || pip install defusedxml;
-    pip list | grep 'test-generator' 2>&1 >/dev/null; (($?==0)) || pip install test-generator==0.1.1;
+    # For Stock-OV mo_tf.py called within get_model_repo
+    pip_install networkx
+    pip_install defusedxml
+    pip_install test-generator==0.1.1
 fi
 
 cd ${LOCALSTORE_PREFIX} || exit 1
@@ -205,8 +212,8 @@ if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
 device=${NGRAPH_TF_BACKEND:-"CPU"}
 
 if [ "${BENCHMARK}" == "YES" ]; then
-    NUM_ITER=150
-    WARMUP_ITERS=50
+    NUM_ITER=105
+    WARMUP_ITERS=5
     export NGRAPH_TF_VLOG_LEVEL=-1
 else
     NUM_ITER=20
