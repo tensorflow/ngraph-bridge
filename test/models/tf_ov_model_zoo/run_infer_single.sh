@@ -52,19 +52,6 @@ function gen_frozen_models {
     rm -rf $VENVTMP
 }
 
-function file_newer_than_commit {
-    # Returns 1 if passed file/dir has newer timestamp than COMMIT-timestamp
-    # Returns 0 otherwise
-    filepath=$1
-    [ -e "$filepath" ] || ( echo "0"; return; )
-    file_ts=$(stat -c %Y $filepath)
-    # must be already under the git repo
-    commit_ts=$(git show -s --format=%at $COMMIT 2>/dev/null)
-    (( $? == 0 )) || ( echo "0"; return; )
-    (( file_ts > commit_ts )) && ( echo "1"; return; )
-    echo "0"
-}
-
 function get_model_repo {
     pushd . >/dev/null
     if [ ! -d "${LOCALSTORE}" ]; then
