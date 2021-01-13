@@ -2,6 +2,9 @@ env:
   NGRAPH_TF_BACKEND: ${NGRAPH_TF_BACKEND:-CPU}
 
 steps:
+  - plugins:
+      - thedyrt/skip-checkout#v0.1.1: ~
+
   - command: |
       rm -rf /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID
       virtualenv -p python3 /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv 
