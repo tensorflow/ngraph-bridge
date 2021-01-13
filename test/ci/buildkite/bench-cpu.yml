@@ -1,4 +1,8 @@
   - command: |
+      export BUILDKITE_REPO=""
+
+  - wait
+  - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       python3 build_ngtf.py ${BUILD_OPTIONS} \
       --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
@@ -16,19 +20,20 @@
 
   - command: |
       VENV=venv_inteltf
-      export VENV_INTELTFOVBLD=/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/\$VENV
+      ARTIFACTS_PREFIX=/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/inteltf
+      export VENV_INTELTFOVBLD=\$ARTIFACTS_PREFIX/\$VENV
       virtualenv -p python3 \$VENV_INTELTFOVBLD 
       source \$VENV_INTELTFOVBLD/bin/activate 
       pip install -U pip yapf==0.26.0 pytest psutil keras==2.3.1
       export BUILD_OPTIONS=--use_intel_tensorflow
       export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_intel_tensorflow_2_3_0
       python3 build_ngtf.py ${BUILD_OPTIONS} \
-      --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
+      --artifacts \$ARTIFACTS_PREFIX \
       --use_tensorflow_from_location ${TF_LOCATION} \
       --use_openvino_from_location ${OV_LOCATION}
 
-      pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
-      pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
+      pip install -U \$ARTIFACTS_PREFIX/tensorflow/tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
+      pip install -U \$ARTIFACTS_PREFIX/ngraph_tensorflow_bridge-*.whl
       pip install Pillow
     label: ":hammer_and_wrench: Build/Install IntelTF-OV ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
