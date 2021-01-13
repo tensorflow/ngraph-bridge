@@ -84,7 +84,6 @@ function get_model_repo {
     [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ] || \
     [ "$desired_commit" != "$prev_commit" ]; then
         git checkout ${COMMIT} || exit 1
-        pip_install Pillow
         gen_frozen_models ./model_factory/create_${MODEL}.sh
         touch "${LOCALSTORE}/frozen/${MODEL}.pb"
         touch "${LOCALSTORE}/frozen/${MODEL}.txt"
@@ -234,6 +233,7 @@ function run_bench_inteltfov {
 
 ################################################################################
 ################################################################################
+pip_install Pillow
 
 cd ${LOCALSTORE_PREFIX} || exit 1
 get_model_repo
