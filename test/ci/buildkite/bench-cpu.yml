@@ -16,13 +16,12 @@
 
   - command: |
       VENV=venv_inteltf
-      export VENV_INTELTFOVBLD=/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/$VENV
-      virtualenv -p python3 $VENV_INTELTFOVBLD 
-      source $VENV_INTELTFOVBLD/bin/activate 
+      export VENV_INTELTFOVBLD=/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/\$VENV
+      virtualenv -p python3 \$VENV_INTELTFOVBLD 
+      source \$VENV_INTELTFOVBLD/bin/activate 
       pip install -U pip yapf==0.26.0 pytest psutil keras==2.3.1
       export BUILD_OPTIONS=--use_intel_tensorflow
       export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_intel_tensorflow_2_3_0
-      source $VENV_INTELTFOVBLD/bin/activate 
       python3 build_ngtf.py ${BUILD_OPTIONS} \
       --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
       --use_tensorflow_from_location ${TF_LOCATION} \
