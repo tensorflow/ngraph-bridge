@@ -158,36 +158,6 @@ function run_bench_stocktf {
     popd >/dev/null
 }
 
-function run_bench_inteltf {
-    initdir=`pwd`
-    VENVTMP="$WORKDIR/venv_temp" # to ensure no side-effects of any pip installs
-    [ -d $VENVTMP ] && rm -rf $VENVTMP
-    virtualenv -p python3 $VENVTMP
-    source $VENVTMP/bin/activate
-
-    pip_install intel-tensorflow
-    pip_install Pillow
-    
-    cd ${LOCALSTORE}/demo
-    TMPFILE=${WORKDIR}/tmp_output$$
-    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
-    ret_code=$?
-    if (( $ret_code == 0 )); then
-        echo
-        echo "Stock Tensorflow: Checking inference result (warmups=$WARMUP_ITERS) ..."
-        ret_code=1
-        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
-        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
-        INFER_TIME_INTELTF=$INFER_TIME
-    fi
-    echo
-    
-    deactivate
-    cd ${initdir}
-    rm -rf $VENVTMP
-}
-
 function run_bench_stockov {
     pushd . >/dev/null
     VENVTMP="$WORKDIR/venv_temp_stockov" # to ensure no side-effects of any pip installs
@@ -239,6 +209,29 @@ function run_bench_tfov {
     cd ${initdir}
 }
 
+function run_bench_inteltfov {
+    pip_install intel-tensorflow
+    initdir=`pwd`
+    cd ${LOCALSTORE}/demo
+    TMPFILE=${WORKDIR}/tmp_output$$
+    INFER_TIME_INTELTFOV="?"
+    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    ret_code=$?
+    if (( $ret_code == 0 )); then
+        echo
+        echo "TF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        ret_code=1
+        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+        INFER_TIME_INTELTFOV=$INFER_TIME
+    fi
+    echo
+    grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
+    rm ${TMPFILE}
+    cd ${initdir}
+}
+
 ################################################################################
 ################################################################################
 
@@ -270,10 +263,10 @@ fi
 
 INFER_TIME_TFOV="?"; run_bench_tfov
 if [ "${BENCHMARK}" == "YES" ]; then
+    INFER_TIME_INTELTFOV="?"; run_bench_inteltfov
     INFER_TIME_STOCKTF="?"; run_bench_stocktf
-    INFER_TIME_INTELTF="?"; run_bench_inteltf
     INFER_TIME_STOCKOV="?"; run_bench_stockov
-    echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Intel-TF ${INFER_TIME_INTELTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}"
+    echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}, IntelTFOV ${INFER_TIME_INTELTFOV}"
 else
     if [ "${ret_code}" == "0" ]; then
         echo -e "${prefix_pass} ${INFER_TIME_TFOV}"
