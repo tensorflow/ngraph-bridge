@@ -8,6 +8,8 @@
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
       pip install Pillow
+    plugins:
+      - thedyrt/skip-checkout#v0.1.1: ~
     label: ":hammer_and_wrench: Build/Install TFOV ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
     agents:
@@ -18,7 +20,6 @@
       VENV=venv
       ARTIFACTS_PREFIX=/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/inteltf
       VENV_INTELTFOVBLD=\$ARTIFACTS_PREFIX/\$VENV
-      buildkite-agent meta-data set "VENV_INTELTFOVBLD" "\$VENV_INTELTFOVBLD"
       virtualenv -p python3 \$VENV_INTELTFOVBLD 
       source \$VENV_INTELTFOVBLD/bin/activate 
       pip install -U pip yapf==0.26.0 pytest psutil keras==2.3.1
@@ -32,6 +33,8 @@
       pip install -U \$ARTIFACTS_PREFIX/tensorflow/tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
       pip install -U \$ARTIFACTS_PREFIX/ngraph_tensorflow_bridge-*.whl
       pip install Pillow
+    plugins:
+      - thedyrt/skip-checkout#v0.1.1: ~
     label: ":hammer_and_wrench: Build/Install IntelTF-OV ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
     agents:
@@ -42,13 +45,14 @@
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate
       export INTEL_OPENVINO_DIR=${OV_LOCATION}
-      export VENV_INTELTFOVBLD=\$( buildkite-agent meta-data get "VENV_INTELTFOVBLD" --default "" )
       retcode=1
       test/models/tf_ov_model_zoo/run_infer_multiple.sh \
         -d /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID -b YES \
         && retcode=0
       cd /localdisk/buildkite/artifacts && rm -rf ./$BUILDKITE_BUILD_ID
       if (( \$retcode > 0 )); then echo "Some model testing failed!"; exit 1; fi
+    plugins:
+      - thedyrt/skip-checkout#v0.1.1: ~
     label: ":bar_chart: Model Inference"
     timeout_in_minutes: 60
     agents:
