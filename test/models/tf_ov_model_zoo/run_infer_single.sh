@@ -209,8 +209,9 @@ function run_bench_tfov {
 }
 
 function run_bench_inteltfov {
-    pip_install intel-tensorflow
+    [ "$VENV_INTELTFOVBLD" != "" ] || ( echo 'Cannot run benchmark with Intel-TF! Please set VENV_INTELTFOVBLD env var.'; return; )
     initdir=`pwd`
+    source $VENV_INTELTFOVBLD/bin/activate
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_INTELTFOV="?"
@@ -218,7 +219,7 @@ function run_bench_inteltfov {
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
-        echo "TF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        echo "IntelTF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
         ret_code=1
         INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
         grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
@@ -228,12 +229,13 @@ function run_bench_inteltfov {
     echo
     grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
     rm ${TMPFILE}
+    deactivate
     cd ${initdir}
 }
 
 ################################################################################
 ################################################################################
-pip_install Pillow
+
 
 cd ${LOCALSTORE_PREFIX} || exit 1
 get_model_repo
