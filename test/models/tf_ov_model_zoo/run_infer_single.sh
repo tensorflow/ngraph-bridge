@@ -154,6 +154,35 @@ function run_bench_stocktf {
     popd >/dev/null
 }
 
+function run_bench_inteltf {
+    initdir=`pwd`
+    VENVTMP="$WORKDIR/venv_temp" # to ensure no side-effects of any pip installs
+    [ -d $VENVTMP ] && rm -rf $VENVTMP
+    virtualenv -p python3 $VENVTMP
+    source $VENVTMP/bin/activate
+
+    pip_install intel-tensorflow
+    
+    cd ${LOCALSTORE}/demo
+    TMPFILE=${WORKDIR}/tmp_output$$
+    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    ret_code=$?
+    if (( $ret_code == 0 )); then
+        echo
+        echo "Stock Tensorflow: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        ret_code=1
+        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+        INFER_TIME_INTELTF=$INFER_TIME
+    fi
+    echo
+    
+    deactivate
+    cd ${initdir}
+    rm -rf $VENVTMP
+}
+
 function run_bench_stockov {
     pushd . >/dev/null
     VENVTMP="$WORKDIR/venv_temp_stockov" # to ensure no side-effects of any pip installs
@@ -181,6 +210,28 @@ function run_bench_stockov {
     rm ${TMPFILE}
     rm -rf $VENVTMP
     popd >/dev/null
+}
+
+function run_bench_tfov {
+    initdir=`pwd`
+    cd ${LOCALSTORE}/demo
+    TMPFILE=${WORKDIR}/tmp_output$$
+    INFER_TIME_TFOV="?"
+    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    ret_code=$?
+    if (( $ret_code == 0 )); then
+        echo
+        echo "TF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        ret_code=1
+        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+        INFER_TIME_TFOV=$INFER_TIME
+    fi
+    echo
+    grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
+    rm ${TMPFILE}
+    cd ${initdir}
 }
 
 ################################################################################
@@ -212,39 +263,25 @@ else
     [ -z "$NGRAPH_TF_VLOG_LEVEL" ] && export NGRAPH_TF_VLOG_LEVEL=-1
 fi
 
-cd ${LOCALSTORE}/demo
-TMPFILE=${WORKDIR}/tmp_output$$
-INFER_TIME_TFOV="?"
-./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
-ret_code=$?
-if (( $ret_code == 0 )); then
-    echo
-    echo "TF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
-    ret_code=1
-    INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-    grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
-    print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
-    INFER_TIME_TFOV=$INFER_TIME
+if [ "${BUILDKITE}" == "true" ]; then
+    prefix_pass="--- ... result: \033[33mpassed\033[0m :white_check_mark:"
+    prefix_fail="--- ... result: \033[33mfailed\033[0m :x:"
+else
+    prefix_pass=" ... result: passed"
+    prefix_fail=" ... result: failed"
 fi
-echo
-grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
-rm ${TMPFILE}
 
+INFER_TIME_TFOV="?"; run_bench_tfov
 if [ "${BENCHMARK}" == "YES" ]; then
     INFER_TIME_STOCKTF="?"; run_bench_stocktf
+    INFER_TIME_INTELTF="?"; run_bench_inteltf
     INFER_TIME_STOCKOV="?"; run_bench_stockov
-fi
-
-if [ "${BUILDKITE}" == "true" ]; then
+    echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Intel-TF ${INFER_TIME_INTELTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}"
+else
     if [ "${ret_code}" == "0" ]; then
-        if [ "${BENCHMARK}" == "YES" ]; then
-            echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}"
-        else
-            echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: ${INFER_TIME_TFOV}"
-        fi
+        echo -e "${prefix_pass} ${INFER_TIME_TFOV}"
     else
-        echo -e "--- ... result: \033[33mfailed\033[0m :x:"
+        echo -e "${prefix_fail}"
     fi
+    exit $((ret_code))
 fi
-
-exit $((ret_code))
