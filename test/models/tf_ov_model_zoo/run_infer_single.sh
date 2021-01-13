@@ -38,6 +38,12 @@ else
 fi
 LOCALSTORE=${LOCALSTORE_PREFIX}/$(basename $REPO)
 
+function pip_install {
+    pattern_with_ver=$1
+    pattern=$(echo $pattern_with_ver | cut -d"=" -f1)
+    pip list 2>/dev/null | grep -E "^$pattern " 2>&1 >/dev/null; (($?==0)) || pip install $pattern_with_ver;
+}
+
 function gen_frozen_models {
     script=$1
 
@@ -78,6 +84,7 @@ function get_model_repo {
     [ ! -f "${LOCALSTORE}/frozen/${MODEL}.txt" ] || \
     [ "$desired_commit" != "$prev_commit" ]; then
         git checkout ${COMMIT} || exit 1
+        pip_install Pillow
         gen_frozen_models ./model_factory/create_${MODEL}.sh
         touch "${LOCALSTORE}/frozen/${MODEL}.pb"
         touch "${LOCALSTORE}/frozen/${MODEL}.txt"
@@ -86,6 +93,9 @@ function get_model_repo {
     
     if [ "${BENCHMARK}" == "YES" ]; then
         if [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch1.xml" ] || [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch1.bin" ]; then
+            pip_install networkx
+            pip_install defusedxml
+            pip_install test-generator==0.1.1
             opv_root=${INTEL_OPENVINO_DIR:-"/opt/intel/openvino"}
             mo_tf_path="${opv_root}/deployment_tools/model_optimizer/mo_tf.py"
             [ -f "${mo_tf_path}" ] || ( echo "${mo_tf_path} not found!"; exit 1 )
@@ -128,12 +138,6 @@ function get_average_infer_time {
     echo $avg
 }
 
-function pip_install {
-    pattern_with_ver=$1
-    pattern=$(echo $pattern_with_ver | cut -d"=" -f1)
-    pip list 2>/dev/null | grep -E "^$pattern " 2>&1 >/dev/null; (($?==0)) || pip install $pattern_with_ver;
-}
-
 function run_bench_stocktf {
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
@@ -162,6 +166,7 @@ function run_bench_inteltf {
     source $VENVTMP/bin/activate
 
     pip_install intel-tensorflow
+    pip_install Pillow
     
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
@@ -236,14 +241,6 @@ function run_bench_tfov {
 
 ################################################################################
 ################################################################################
-
-pip_install Pillow
-if [ "${BENCHMARK}" == "YES" ]; then
-    # For Stock-OV mo_tf.py called within get_model_repo
-    pip_install networkx
-    pip_install defusedxml
-    pip_install test-generator==0.1.1
-fi
 
 cd ${LOCALSTORE_PREFIX} || exit 1
 get_model_repo
