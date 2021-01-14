@@ -8,14 +8,13 @@
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
       pip install Pillow
-    plugins:
-      - thedyrt/skip-checkout#v0.1.1: ~
     label: ":hammer_and_wrench: Build/Install TFOV ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
     agents:
       queue: ${BUILDKITE_AGENT_META_DATA_QUEUE}
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
 
+  - wait
   - command: |
       VENV=venv
       ARTIFACTS_PREFIX=/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/inteltf
@@ -33,8 +32,6 @@
       pip install -U \$ARTIFACTS_PREFIX/tensorflow/tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
       pip install -U \$ARTIFACTS_PREFIX/ngraph_tensorflow_bridge-*.whl
       pip install Pillow
-    plugins:
-      - thedyrt/skip-checkout#v0.1.1: ~
     label: ":hammer_and_wrench: Build/Install IntelTF-OV ${NGRAPH_TF_BACKEND}"
     timeout_in_minutes: 30
     agents:
@@ -52,8 +49,6 @@
         && retcode=0
       cd /localdisk/buildkite/artifacts && rm -rf ./$BUILDKITE_BUILD_ID
       if (( \$retcode > 0 )); then echo "Some model testing failed!"; exit 1; fi
-    plugins:
-      - thedyrt/skip-checkout#v0.1.1: ~
     label: ":bar_chart: Model Inference"
     timeout_in_minutes: 60
     agents:
