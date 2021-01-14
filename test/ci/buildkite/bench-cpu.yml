@@ -42,7 +42,7 @@
   - command: |
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate
       export INTEL_OPENVINO_DIR=${OV_LOCATION}
-      VENV_INTELTFOVBLD=/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/inteltf/venv
+      export VENV_INTELTFOVBLD=/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/inteltf/venv
       retcode=1
       test/models/tf_ov_model_zoo/run_infer_multiple.sh \
         -d /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID -b YES \
