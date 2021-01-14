@@ -23,6 +23,8 @@
 #include <ie_core.hpp>
 #include "ngraph/ngraph.hpp"
 
+#include "ngraph_bridge/ie_backend_engine.h"
+
 using namespace std;
 
 namespace tensorflow {
@@ -56,6 +58,7 @@ class Executable {
   shared_ptr<ngraph::Function> m_trivial_fn;
   // This is the original nGraph function corresponding to this executable
   shared_ptr<ngraph::Function> m_function;
+  shared_ptr<IEBackendEngine> m_ie_engine;
 };
 }
 }
