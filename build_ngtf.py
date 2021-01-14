@@ -56,7 +56,7 @@ def main():
     # Component versions
     tf_version = "v2.3.0"
     use_intel_tf = False
-    openvino_version = "releases/2021/2"
+    openvino_version = "master"
 
     # Command line parser options
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
