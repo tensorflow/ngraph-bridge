@@ -186,7 +186,7 @@ function run_bench_stockov {
     popd >/dev/null
 }
 
-function run_bench_tfov {
+function run_bench_tfov_common_with_pipinteltf {
     initdir=`pwd`
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
@@ -194,7 +194,6 @@ function run_bench_tfov {
     ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
-        echo
         echo "TF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
         ret_code=1
         INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
@@ -208,32 +207,18 @@ function run_bench_tfov {
     cd ${initdir}
 }
 
+function run_bench_tfov {
+    export TF_DISABLE_MKL=1
+    echo; echo "Running benchmark for TF-OV-Bridge ..."
+    run_bench_tfov_common_with_pipinteltf
+    INFER_TIME_TFOV=$INFER_TIME_TFOV
+}
+
 function run_bench_inteltfov {
-    if [ "$VENV_INTELTFOVBLD" == "" ]; then
-        echo 'Cannot run benchmark with Intel-TF! Please set VENV_INTELTFOVBLD env var.';
-        return 0
-    fi
-    initdir=`pwd`
-    source $VENV_INTELTFOVBLD/bin/activate
-    cd ${LOCALSTORE}/demo
-    TMPFILE=${WORKDIR}/tmp_output$$
-    INFER_TIME_INTELTFOV="?"
-    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
-    ret_code=$?
-    if (( $ret_code == 0 )); then
-        echo
-        echo "IntelTF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
-        ret_code=1
-        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
-        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
-        INFER_TIME_INTELTFOV=$INFER_TIME
-    fi
-    echo
-    grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
-    rm ${TMPFILE}
-    deactivate
-    cd ${initdir}
+    export TF_DISABLE_MKL=0
+    echo; echo "Running benchmark for INTELTF-OV-Bridge ..."
+    run_bench_tfov_common_with_pipinteltf
+    INFER_TIME_INTELTFOV=$INFER_TIME_TFOV
 }
 
 ################################################################################
