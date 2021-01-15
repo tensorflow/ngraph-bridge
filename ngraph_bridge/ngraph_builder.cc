@@ -2219,21 +2219,27 @@ static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
 
   DataType dtype;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
-
-  // Size has an attribute to specify output, int32 or int64
   ng::element::Type type;
   TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dtype, &type));
 
-  auto ng_input_shape = ng_input.get_shape();
-  int64 result = 1;
-  for (auto dim : ng_input_shape) {
-    result *= dim;
+  ngraph::Output<ngraph::Node> ng_result;
+  if (ng_input.get_partial_shape().is_static()) {
+    auto ng_input_shape = ng_input.get_shape();
+    int64 result = 1;
+    for (auto dim : ng_input_shape) {
+      result *= dim;
+    }
+    // make a scalar with value equals to result
+    ng_result = ConstructNgNode<opset::Constant>(op->name(), type, ng::Shape(0),
+                                                 std::vector<int64>({result}));
+  } else {
+    auto ng_input_shape =
+        ConstructNgNode<opset::ShapeOf>(op->name(), ng_input, type);
+    auto ng_axis = ConstructNgNode<opset::Constant>(
+        op->name(), ngraph::element::i64, ngraph::Shape{1}, vector<int64_t>{0});
+    ng_result =
+        ConstructNgNode<opset::ReduceProd>(op->name(), ng_input_shape, ng_axis);
   }
-
-  // make a scalar with value equals to result
-  auto ng_result = ConstructNgNode<opset::Constant>(
-      op->name(), type, ng::Shape(0), std::vector<int64>({result}));
-
   SaveNgOp(ng_op_map, op->name(), ng_result);
   return Status::OK();
 }
@@ -2355,15 +2361,11 @@ static Status TranslateSplitOp(
   int32 num_split;
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "num_split", &num_split));
 
-  ng::Shape shape = ng_input.get_shape();
-  int rank = shape.size();
-
   std::vector<int> split_dim_vec;
   TF_RETURN_IF_ERROR(
       GetStaticInputVector(op, 0, static_input_map, &split_dim_vec));
-  int split_dim = split_dim_vec[0] + (split_dim_vec[0] < 0 ? (int64)rank : 0);
   auto ng_split_dim = ConstructNgNode<opset::Constant>(
-      op->name(), ng::element::u64, ng::Shape{}, split_dim);
+      op->name(), ng::element::i32, ng::Shape{}, split_dim_vec[0]);
   auto ng_split = make_shared<opset::Split>(ng_input, ng_split_dim, num_split);
 
   for (int i = 0; i < num_split; ++i) {
