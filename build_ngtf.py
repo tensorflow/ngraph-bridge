@@ -149,8 +149,11 @@ def main():
     assert not (
         arguments.use_tensorflow_from_location != '' and
         arguments.use_prebuilt_tensorflow != ''
-    ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\""
-    "cannot be used together."
+    ), "\"use_tensorflow_from_location\" and \"use_prebuilt_tensorflow\" cannot be used together."
+    assert not (
+        arguments.use_openvino_from_location != '' and
+        arguments.use_prebuilt_tensorflow != ''
+    ), "\"use_openvino_from_location\" and \"use_prebuilt_tensorflow\" cannot be used together."
 
     version_check((arguments.use_prebuilt_tensorflow != ''),
                   (arguments.use_tensorflow_from_location != ''),
