@@ -38,6 +38,12 @@ else
 fi
 LOCALSTORE=${LOCALSTORE_PREFIX}/$(basename $REPO)
 
+function pip_install {
+    pattern_with_ver=$1
+    pattern=$(echo $pattern_with_ver | cut -d"=" -f1)
+    pip list 2>/dev/null | grep -E "^$pattern " 2>&1 >/dev/null; (($?==0)) || pip install $pattern_with_ver;
+}
+
 function gen_frozen_models {
     script=$1
 
@@ -86,6 +92,9 @@ function get_model_repo {
     
     if [ "${BENCHMARK}" == "YES" ]; then
         if [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch1.xml" ] || [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch1.bin" ]; then
+            pip_install networkx
+            pip_install defusedxml
+            pip_install test-generator==0.1.1
             opv_root=${INTEL_OPENVINO_DIR:-"/opt/intel/openvino"}
             mo_tf_path="${opv_root}/deployment_tools/model_optimizer/mo_tf.py"
             [ -f "${mo_tf_path}" ] || ( echo "${mo_tf_path} not found!"; exit 1 )
@@ -126,12 +135,6 @@ function get_average_infer_time {
     avg=$(echo "scale=4; $total / $count" | bc)
     avg=$( printf %.04f $avg )
     echo $avg
-}
-
-function pip_install {
-    pattern_with_ver=$1
-    pattern=$(echo $pattern_with_ver | cut -d"=" -f1)
-    pip list 2>/dev/null | grep -E "^$pattern " 2>&1 >/dev/null; (($?==0)) || pip install $pattern_with_ver;
 }
 
 function run_bench_stocktf {
@@ -183,16 +186,60 @@ function run_bench_stockov {
     popd >/dev/null
 }
 
+function run_bench_tfov {
+    initdir=`pwd`
+    cd ${LOCALSTORE}/demo
+    TMPFILE=${WORKDIR}/tmp_output$$
+    INFER_TIME_TFOV="?"
+    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    ret_code=$?
+    if (( $ret_code == 0 )); then
+        echo
+        echo "TF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        ret_code=1
+        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+        INFER_TIME_TFOV=$INFER_TIME
+    fi
+    echo
+    grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
+    rm ${TMPFILE}
+    cd ${initdir}
+}
+
+function run_bench_inteltfov {
+    if [ "$VENV_INTELTFOVBLD" == "" ]; then
+        echo 'Cannot run benchmark with Intel-TF! Please set VENV_INTELTFOVBLD env var.';
+        return 0
+    fi
+    initdir=`pwd`
+    source $VENV_INTELTFOVBLD/bin/activate
+    cd ${LOCALSTORE}/demo
+    TMPFILE=${WORKDIR}/tmp_output$$
+    INFER_TIME_INTELTFOV="?"
+    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    ret_code=$?
+    if (( $ret_code == 0 )); then
+        echo
+        echo "IntelTF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        ret_code=1
+        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+        INFER_TIME_INTELTFOV=$INFER_TIME
+    fi
+    echo
+    grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
+    rm ${TMPFILE}
+    deactivate
+    cd ${initdir}
+}
+
 ################################################################################
 ################################################################################
 
 pip_install Pillow
-if [ "${BENCHMARK}" == "YES" ]; then
-    # For Stock-OV mo_tf.py called within get_model_repo
-    pip_install networkx
-    pip_install defusedxml
-    pip_install test-generator==0.1.1
-fi
 
 cd ${LOCALSTORE_PREFIX} || exit 1
 get_model_repo
@@ -212,39 +259,25 @@ else
     [ -z "$NGRAPH_TF_VLOG_LEVEL" ] && export NGRAPH_TF_VLOG_LEVEL=-1
 fi
 
-cd ${LOCALSTORE}/demo
-TMPFILE=${WORKDIR}/tmp_output$$
-INFER_TIME_TFOV="?"
-./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
-ret_code=$?
-if (( $ret_code == 0 )); then
-    echo
-    echo "TF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
-    ret_code=1
-    INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-    grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
-    print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
-    INFER_TIME_TFOV=$INFER_TIME
+if [ "${BUILDKITE}" == "true" ]; then
+    prefix_pass="--- ... result: \033[33mpassed\033[0m :white_check_mark:"
+    prefix_fail="--- ... result: \033[33mfailed\033[0m :x:"
+else
+    prefix_pass=" ... result: passed"
+    prefix_fail=" ... result: failed"
 fi
-echo
-grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
-rm ${TMPFILE}
 
+INFER_TIME_TFOV="?"; run_bench_tfov
 if [ "${BENCHMARK}" == "YES" ]; then
+    INFER_TIME_INTELTFOV="?"; run_bench_inteltfov
     INFER_TIME_STOCKTF="?"; run_bench_stocktf
     INFER_TIME_STOCKOV="?"; run_bench_stockov
-fi
-
-if [ "${BUILDKITE}" == "true" ]; then
+    echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}, IntelTFOV ${INFER_TIME_INTELTFOV}"
+else
     if [ "${ret_code}" == "0" ]; then
-        if [ "${BENCHMARK}" == "YES" ]; then
-            echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}"
-        else
-            echo -e "--- ... result: \033[33mpassed\033[0m :white_check_mark: ${INFER_TIME_TFOV}"
-        fi
+        echo -e "${prefix_pass} ${INFER_TIME_TFOV}"
     else
-        echo -e "--- ... result: \033[33mfailed\033[0m :x:"
+        echo -e "${prefix_fail}"
     fi
+    exit $((ret_code))
 fi
-
-exit $((ret_code))
