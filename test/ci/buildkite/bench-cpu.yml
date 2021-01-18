@@ -2,8 +2,7 @@
       source /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/venv/bin/activate 
       python3 build_ngtf.py ${BUILD_OPTIONS} \
       --artifacts /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID \
-      --use_prebuilt_tensorflow v2.3.0 --use_intel_tensorflow \
-      --use_openvino_from_location ${OV_LOCATION}
+      --use_prebuilt_tensorflow v2.3.0 --use_intel_tensorflow 
 
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/tensorflow/tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
       pip install -U /localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID/ngraph_tensorflow_bridge-*.whl
