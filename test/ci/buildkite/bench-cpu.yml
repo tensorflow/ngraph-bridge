@@ -24,9 +24,9 @@
       pip install -U pip yapf==0.26.0 pytest psutil keras==2.3.1
       export BUILD_OPTIONS=--use_intel_tensorflow
       export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_intel_tensorflow_2_3_0
-      python3 build_ngtf.py ${BUILD_OPTIONS} \
+      python3 build_ngtf.py \${BUILD_OPTIONS} \
       --artifacts \$ARTIFACTS_PREFIX \
-      --use_tensorflow_from_location ${TF_LOCATION} \
+      --use_tensorflow_from_location \${TF_LOCATION} \
       --use_openvino_from_location ${OV_LOCATION}
 
       pip install -U \$ARTIFACTS_PREFIX/tensorflow/tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
