@@ -113,10 +113,10 @@ function print_infer_times {
     INFER_TIME_FIRST_ITER="?"
     if (( $NUM_ITER > 1 )); then
         INFER_TIME_FIRST_ITER=$( grep "Inf Execution Time" ${TMPFILE} | head -n 1 | rev | cut -d' ' -f 1 | rev )
-        INFER_TIME_FIRST_ITER=$( printf %.04f ${INFER_TIME_FIRST_ITER} )
+        INFER_TIME_FIRST_ITER=$( printf %.03f ${INFER_TIME_FIRST_ITER} )
     fi
     INFER_TIME=$(get_average_infer_time "${WARMUP_ITERS}" "${TMPFILE}")
-    echo INFER_TIME Avg of $((NUM_ITER - WARMUP_ITERS)) iters = ${INFER_TIME} seconds, 1st = ${INFER_TIME_FIRST_ITER}
+    echo INFER_TIME Avg of $((NUM_ITER - WARMUP_ITERS)) iters = ${INFER_TIME} ms, 1st = ${INFER_TIME_FIRST_ITER} sec
 }
 
 function get_average_infer_time {
@@ -132,8 +132,8 @@ function get_average_infer_time {
         ((count++))
     done
     (( count > $num_warmup_iters )) && total=$(echo $total-$warmup_iters_time | bc )
-    avg=$(echo "scale=4; $total / $count" | bc)
-    avg=$( printf %.04f $avg )
+    avg=$(echo "scale=6; $total * 1000 / $count" | bc) # msecs
+    avg=$( printf %.0f $avg ) # only show rounded msecs
     echo $avg
 }
 
