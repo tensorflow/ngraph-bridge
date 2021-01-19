@@ -23,18 +23,23 @@ BENCHMARK=$4 # YES or NO
 if [ "${BENCHMARK}" == "" ]; then
     echo "Error: benchmark flag (YES/NO) not specified!" && exit 1
 fi
+BATCH=$5
+if [ "${BATCH}" == "" ]; then
+    BATCH=1
+    echo "Setting batch size = 1"
+fi
 
-echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN BENCHMARK=$BENCHMARK
+echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN BENCHMARK=$BENCHMARK BATCH=$BATCH
 
 REPO=https://gitlab.devtools.intel.com/mcavus/tensorflow_openvino_models_public
-COMMIT=d12f2d57 # 2021-Jan-06
+COMMIT=51cdb693 # 2021-Jan-06
 
 WORKDIR=`pwd`
 
 if [ "${BUILDKITE}" == "true" ]; then
     LOCALSTORE_PREFIX=/localdisk/buildkite/artifacts
 else
-    LOCALSTORE_PREFIX=/tmp
+    LOCALSTORE_PREFIX=/localdisk/kkhanna/cifarnet-trials
 fi
 LOCALSTORE=${LOCALSTORE_PREFIX}/$(basename $REPO)
 
@@ -85,12 +90,12 @@ function get_model_repo {
     fi
     
     if [ "${BENCHMARK}" == "YES" ]; then
-        if [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch1.xml" ] || [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch1.bin" ]; then
+        if [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch${BATCH}.xml" ] || [ ! -f "${LOCALSTORE}/IR/${MODEL}_batch${BATCH}.bin" ]; then
             opv_root=${INTEL_OPENVINO_DIR:-"/opt/intel/openvino"}
             mo_tf_path="${opv_root}/deployment_tools/model_optimizer/mo_tf.py"
             [ -f "${mo_tf_path}" ] || ( echo "${mo_tf_path} not found!"; exit 1 )
             export INTEL_OPENVINO_DIR="${opv_root}"
-            ./model_factory/generate_ir.sh ${MODEL} 1 || exit 1
+            ./model_factory/generate_ir.sh ${MODEL} ${BATCH} || exit 1
         fi
     fi
     [ -d "${LOCALSTORE}/demo/outputs" ] || mkdir "${LOCALSTORE}/demo/outputs"
@@ -138,7 +143,7 @@ function run_bench_stocktf {
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
-    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device ${BATCH} 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -168,7 +173,7 @@ function run_bench_stockov {
     pythonlib=$(echo $(dirname $(which python3))/../lib)
     echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib \
-        ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
+        ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device ${BATCH} 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -197,8 +202,11 @@ fi
 cd ${LOCALSTORE_PREFIX} || exit 1
 get_model_repo
 
-IMGFILE="${LOCALSTORE}/demo/images/${IMAGE}"
-if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
+IMGFILE="${LOCALSTORE}/demo/images/"
+if [ "${BATCH}" == 1 ]; then
+    IMGFILE="${LOCALSTORE}/demo/images/${IMAGE}"
+    if [ ! -f "${IMGFILE}" ]; then echo "Cannot find image ${IMGFILE} !"; exit 1; fi
+fi
 device=${NGRAPH_TF_BACKEND:-"CPU"}
 
 if [ "${BENCHMARK}" == "YES" ]; then
@@ -215,7 +223,7 @@ fi
 cd ${LOCALSTORE}/demo
 TMPFILE=${WORKDIR}/tmp_output$$
 INFER_TIME_TFOV="?"
-./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device ${BATCH} 2>&1 > ${TMPFILE}
 ret_code=$?
 if (( $ret_code == 0 )); then
     echo
