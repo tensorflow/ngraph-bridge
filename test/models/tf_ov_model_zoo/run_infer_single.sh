@@ -218,7 +218,7 @@ function run_bench_inteltfov {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_INTELTFOV="?"
-    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
