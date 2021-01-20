@@ -141,7 +141,7 @@ function run_bench_stocktf {
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
-    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -191,7 +191,7 @@ function run_bench_tfov {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_TFOV="?"
-    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -218,7 +218,7 @@ function run_bench_inteltfov {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_INTELTFOV="?"
-    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
