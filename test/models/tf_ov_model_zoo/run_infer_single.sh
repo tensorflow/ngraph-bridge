@@ -143,7 +143,7 @@ function run_bench_stocktf {
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
-    $RUNTIME_OPT_PREFIX ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    env "$RUNTIME_OPT_PREFIX" ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -173,7 +173,7 @@ function run_bench_stockov {
     pythonlib=$(echo $(dirname $(which python3))/../lib)
     echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib \
-        $RUNTIME_OPT_PREFIX ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
+        env "$RUNTIME_OPT_PREFIX" ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -193,7 +193,7 @@ function run_bench_tfov {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_TFOV="?"
-    $RUNTIME_OPT_PREFIX ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    env "$RUNTIME_OPT_PREFIX" ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -220,7 +220,7 @@ function run_bench_inteltf {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_INTELTF="?"
-    $RUNTIME_OPT_PREFIX ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    env "$RUNTIME_OPT_PREFIX" ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -248,7 +248,7 @@ function run_bench_inteltfov {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_INTELTFOV="?"
-    $RUNTIME_OPT_PREFIX ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    env "$RUNTIME_OPT_PREFIX" ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
