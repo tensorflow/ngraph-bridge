@@ -38,6 +38,8 @@ else
 fi
 LOCALSTORE=${LOCALSTORE_PREFIX}/$(basename $REPO)
 
+RUNTIME_OPT_PREFIX="KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 inter_op_parallelism_threads=1 numactl --cpunodebind=0 --membind=0"
+
 function pip_install {
     pattern_with_ver=$1
     pattern=$(echo $pattern_with_ver | cut -d"=" -f1)
@@ -133,7 +135,7 @@ function get_average_infer_time {
     done
     (( count > $num_warmup_iters )) && total=$(echo $total-$warmup_iters_time | bc )
     avg=$(echo "scale=6; $total * 1000 / $count" | bc) # msecs
-    avg=$( printf %.0f $avg ) # only show rounded msecs
+    avg=$( printf %.3f $avg ) # show xx.yyy msecs
     echo $avg
 }
 
@@ -141,7 +143,7 @@ function run_bench_stocktf {
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
-    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    $RUNTIME_OPT_PREFIX ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -171,7 +173,7 @@ function run_bench_stockov {
     pythonlib=$(echo $(dirname $(which python3))/../lib)
     echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib \
-        ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
+        $RUNTIME_OPT_PREFIX ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -191,7 +193,7 @@ function run_bench_tfov {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_TFOV="?"
-    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    $RUNTIME_OPT_PREFIX ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -218,7 +220,7 @@ function run_bench_inteltf {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_INTELTF="?"
-    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    $RUNTIME_OPT_PREFIX ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -246,7 +248,7 @@ function run_bench_inteltfov {
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
     INFER_TIME_INTELTFOV="?"
-    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
+    $RUNTIME_OPT_PREFIX ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
