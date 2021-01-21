@@ -29,6 +29,8 @@ MANIFEST="$(cd "$(dirname "$MANIFEST")"; pwd)/$(basename "$MANIFEST")" # absolut
 
 cd ${WORKDIR} || ( echo "Not found: $WORKDIR !"; exit 1 )
 echo "Dir: ${WORKDIR}"
+CSVFILE=${WORKDIR}/benchmark.csv
+[ -f "$CSVFILE" ] && rm $CSVFILE
 
 failed_models=()
 finalretcode=0
@@ -45,6 +47,8 @@ while read -r line; do
     env "${envs[@]}" "${SCRIPT_DIR}/run_infer_single.sh" "${args[@]}" "${BENCHMARK}" && retcode=0; finalretcode=$((finalretcode+retcode))
     (( $retcode == 1 )) && failed_models+=("${args[0]}")
 done < "$MANIFEST"
+
+[ "$BENCHMARK" == "YES" ] && [ -f "$CSVFILE" ] && cat $CSVFILE
 
 if (( $finalretcode > 0 )); then
     echo; echo "$finalretcode model(s) testing failed!"
