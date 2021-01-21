@@ -232,8 +232,9 @@ def main():
     # this is set to 1
     # The specific value is determined from the TensorFlow build
     # Normally the shipped TensorFlow going forward is built with gcc 7.3
-    # and thus this flag is set to 1
-    cxx_abi = "1"
+    # and thus this flag should be set to 1
+    # But, tensorflow still uses cxx_abi=0 for backward compatibility
+    cxx_abi = "0"
 
     if arguments.use_tensorflow_from_location != "":
         # Some asserts to make sure the directory structure of
@@ -313,11 +314,11 @@ def main():
 
             # Build TensorFlow
             build_tensorflow(tf_version, "tensorflow", artifacts_location,
-                             target_arch, verbosity, use_intel_tf)
+                             target_arch, verbosity, use_intel_tf, cxx_abi)
 
             # Now build the libtensorflow_cc.so - the C++ library
             build_tensorflow_cc(tf_version, tf_src_dir, artifacts_location,
-                                target_arch, verbosity, use_intel_tf)
+                                target_arch, verbosity, use_intel_tf, cxx_abi)
 
             # Install tensorflow to our own virtual env
             # Note that if gcc 7.3 is used for building TensorFlow this flag
