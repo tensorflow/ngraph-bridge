@@ -29,16 +29,16 @@
 #include "tensorflow/core/platform/tensor_coding.h"
 #include "tensorflow/core/util/saved_tensor_slice_util.h"
 
+#include "ngraph/chrome_trace.hpp"
 #include "ngraph/ngraph.hpp"
 
 #include "logging/ngraph_log.h"
 #include "logging/tf_graph_writer.h"
-#include "ngraph_bridge/chrome_trace.h"
 
 // Activates event logging until the end of the current code-block scoping;
 // Automatically writes log data as soon as the the current scope expires.
 #define NG_TRACE(name, category, args) \
-  trace::event::Duration dx__ { (name), (category), (args) }
+  ngraph::event::Duration dx__ { (name), (category), (args) }
 
 using namespace std;
 

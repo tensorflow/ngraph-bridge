@@ -34,7 +34,6 @@
 
 #include "inference_engine.h"
 #include "ngraph_bridge/backend_manager.h"
-#include "ngraph_bridge/chrome_trace.h"
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"

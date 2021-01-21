@@ -24,7 +24,6 @@
 #include "../examples/cpp/thread_safe_queue.h"
 #include "gtest/gtest.h"
 #include "ngraph_bridge/ngraph_utils.h"
-// #include "ngraph_bridge/chrome_trace.h"
 
 using namespace std;
 

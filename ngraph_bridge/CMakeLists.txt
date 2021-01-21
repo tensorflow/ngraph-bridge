@@ -49,7 +49,6 @@ set(SRC
    tf_graphcycles.cc
    tf_deadness_analysis.cc
    version.cc
-   chrome_trace.cc
 )
 
 message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")

@@ -37,7 +37,6 @@
 #include "ngraph_bridge/ngraph_timer.h"
 #include "ngraph_bridge/ngraph_utils.h"
 #include "ngraph_bridge/version.h"
-// #include "ngraph_bridge/chrome_trace.h"
 
 #include "inference_engine.h"
 #include "thread_safe_queue.h"
