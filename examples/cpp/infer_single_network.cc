@@ -164,8 +164,6 @@ int main(int argc, char** argv) {
   Tensor next_image;
   std::vector<Tensor> outputs;
   {
-    NG_TRACE("Compilation", "Compilation", "");
-
     // Call it onces to get the nGraph compilation done
     TF_CHECK_OK(inference_engine.GetNextImage(next_image));
     // Run inference once. This will trigger a compilation
@@ -182,10 +180,7 @@ int main(int argc, char** argv) {
   atomic<int> total_images_processed{0};
 
   auto worker = [&](int worker_id) {
-    ostringstream oss;
-    oss << "Worker_" << worker_id;
     for (int i = 0; i < iteration_count; i++) {
-      NG_TRACE(oss.str(), to_string(i), "");
       tf::ngraph_bridge::Timer iteration_timer;
       // Get the image
       Tensor next_image;

@@ -92,9 +92,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   m_name = name();
 
   OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster", &m_cluster_id));
-  std::ostringstream oss;
-  oss << "Encapsulate_" << m_cluster_id << ": " << name();
-  NG_TRACE(oss.str(), name(), "");
 
   NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << m_cluster_id
                  << " Name: " << name();
@@ -187,18 +184,12 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 }
 
 NGraphEncapsulateOp::~NGraphEncapsulateOp() {
-  std::ostringstream oss;
-  oss << "Destroy Encapsulate_" << m_cluster_id << ": " << name();
-  NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
   m_ng_exec_map.clear();
 }
 
 void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(1) << "Compute using executor " << name();
-  std::ostringstream oss;
-  oss << "Execute: Encapsulate_" << m_cluster_id << ": " << name();
-  NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
                  << m_cluster_id;
 
@@ -212,7 +203,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::shared_ptr<Executable> ng_exec;
   int step_id;
   {
-    NG_TRACE("FunctionMaybeCreate", name(), "");
     for (int i = 0; i < ctx->num_inputs(); i++) {
       tf_input_tensors.push_back(ctx->input(i));
     }
@@ -237,7 +227,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   vector<shared_ptr<ngraph::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
   {
-    NG_TRACE("Input: maybe create", name(), "");
     // Allocate tensors for input arguments.
     for (int i = 0; i < tf_input_tensors.size(); i++) {
       ngraph::Shape ng_shape(tf_input_tensors[i].shape().dims());
@@ -308,7 +297,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Execute the nGraph function.
   int time_execute_function;
   {
-    NG_TRACE("Execute nGraph", name(), "");
     Timer execute_function;
     {
       NGRAPH_VLOG(4)
@@ -431,7 +419,6 @@ Status NGraphEncapsulateOp::GetExecutable(
       m_lru.pop_back();
     }  // cache eviction if cache size greater than cache depth
 
-    NG_TRACE("Compile nGraph", m_name, "");
     try {
       ng_exec = backend->Compile(ng_function);
     } catch (const std::exception& ex) {

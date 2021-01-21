@@ -195,8 +195,6 @@ int main(int argc, char** argv) {
   session_db[session_three.get()] = "Three";
   std::vector<Tensor> outputs;
   {
-    NG_TRACE("Compilation", "Compilation", "");
-
     //
     // Warm-up i.e., Call it onces to get the nGraph compilation done
     //
@@ -230,8 +228,6 @@ int main(int argc, char** argv) {
   // Worker thread function
   //------------------------------------
   auto worker = [&](int worker_id) {
-    ostringstream oss;
-    oss << "Worker" << worker_id;
     std::vector<Tensor> output_each_thread;
 
     unordered_map<Session*, pair<float, float>> local_stats;
@@ -241,8 +237,6 @@ int main(int argc, char** argv) {
     // Run the inference loop
     //-----------------------------------------
     for (int i = 0; i < iteration_count; i++) {
-      NG_TRACE(oss.str(), to_string(i), "");
-
       tf::ngraph_bridge::Timer get_image_timer;
       //
       // Get the image
@@ -256,16 +250,12 @@ int main(int argc, char** argv) {
       //
       tf::ngraph_bridge::Timer execute_inference_timer;
       unique_ptr<Session> next_available_session;
-      {
-        NG_TRACE("Get Session", string("Iteration") + to_string(i), "");
-        next_available_session = session_queue.GetNextAvailable();
-      }
+      { next_available_session = session_queue.GetNextAvailable(); }
 
       //
       // Run inference on this network model (i.e., session)
       //
       {
-        NG_TRACE("Run Session", string("Iteration") + to_string(i), "");
         TF_CHECK_OK(next_available_session->Run({{input_layer, next_image}},
                                                 {output_layer}, {},
                                                 &output_each_thread));
