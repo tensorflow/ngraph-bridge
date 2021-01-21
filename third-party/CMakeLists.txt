@@ -12,9 +12,6 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.4)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
-message(STATUS "Compile Flags for third party: ${CMAKE_CXX_FLAGS}")
 
 if(NOT DEFINED EXTERNAL_PROJECTS_ROOT)
     set(EXTERNAL_PROJECTS_ROOT ${CMAKE_CURRENT_BINARY_DIR})
