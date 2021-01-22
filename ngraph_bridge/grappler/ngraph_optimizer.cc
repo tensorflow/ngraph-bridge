@@ -26,9 +26,15 @@
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/platform/protobuf.h"
 
+#include "ngraph_add_identityn.h"
 #include "ngraph_bridge/api.h"
-#include "ngraph_bridge/grappler/ngraph_optimizer.h"
-#include "ngraph_bridge/ngraph_cluster_manager.h"
+#include "ngraph_bridge/assign_clusters.h"
+#include "ngraph_bridge/cluster_manager.h"
+#include "ngraph_bridge/deassign_clusters.h"
+#include "ngraph_bridge/encapsulate_clusters.h"
+#include "ngraph_bridge/mark_for_clustering.h"
+#include "ngraph_bridge/utils.h"
+#include "ngraph_optimizer.h"
 
 #include <iostream>
 
