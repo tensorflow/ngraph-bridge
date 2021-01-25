@@ -208,62 +208,6 @@ function run_bench_tfov {
     cd ${initdir}
 }
 
-function run_bench_inteltf {
-    if [ "$VENV_INTELTFOVBLD" == "" ]; then
-        echo 'Cannot run benchmark with Intel-TF! Please set VENV_INTELTFOVBLD env var.';
-        return 0
-    fi
-    initdir=`pwd`
-    source $VENV_INTELTFOVBLD/bin/activate
-    cd ${LOCALSTORE}/demo
-    TMPFILE=${WORKDIR}/tmp_output$$
-    INFER_TIME_INTELTF="?"
-    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 inter_op_parallelism_threads=1 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
-    ret_code=$?
-    if (( $ret_code == 0 )); then
-        echo
-        echo "IntelTF: Checking inference result (warmups=$WARMUP_ITERS) ..."
-        ret_code=1
-        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
-        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
-        INFER_TIME_INTELTF=$INFER_TIME
-    fi
-    echo
-    grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
-    rm ${TMPFILE}
-    deactivate
-    cd ${initdir}
-}
-
-function run_bench_inteltfov {
-    if [ "$VENV_INTELTFOVBLD" == "" ]; then
-        echo 'Cannot run benchmark with Intel-TF! Please set VENV_INTELTFOVBLD env var.';
-        return 0
-    fi
-    initdir=`pwd`
-    source $VENV_INTELTFOVBLD/bin/activate
-    cd ${LOCALSTORE}/demo
-    TMPFILE=${WORKDIR}/tmp_output$$
-    INFER_TIME_INTELTFOV="?"
-    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 inter_op_parallelism_threads=1 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "ngtf" $device 2>&1 > ${TMPFILE}
-    ret_code=$?
-    if (( $ret_code == 0 )); then
-        echo
-        echo "IntelTF-OV-Bridge: Checking inference result (warmups=$WARMUP_ITERS) ..."
-        ret_code=1
-        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
-        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
-        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
-        INFER_TIME_INTELTFOV=$INFER_TIME
-    fi
-    echo
-    grep -oP "^NGTF_SUMMARY: (Number|Nodes|Size).*" ${TMPFILE}
-    rm ${TMPFILE}
-    deactivate
-    cd ${initdir}
-}
-
 ################################################################################
 ################################################################################
 
@@ -297,13 +241,11 @@ fi
 
 INFER_TIME_TFOV="?"; run_bench_tfov
 if [ "${BENCHMARK}" == "YES" ]; then
-    INFER_TIME_INTELTF="?"; run_bench_inteltf
-    INFER_TIME_INTELTFOV="?"; run_bench_inteltfov
     INFER_TIME_STOCKTF="?"; run_bench_stocktf
     INFER_TIME_STOCKOV="?"; run_bench_stockov
-    str_bench_info_hdr="Model,Stock-TF,Stock-OV,TFOV,IntelTF,IntelTFOV"
-    str_bench_info_row="${MODEL},${INFER_TIME_STOCKTF},${INFER_TIME_STOCKOV},${INFER_TIME_TFOV},${INFER_TIME_INTELTF},${INFER_TIME_INTELTFOV}"
-    echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}, IntelTF ${INFER_TIME_INTELTF}, IntelTFOV ${INFER_TIME_INTELTFOV}"
+    str_bench_info_hdr="Model,Stock-TF,Stock-OV,TFOV"
+    str_bench_info_row="${MODEL},${INFER_TIME_STOCKTF},${INFER_TIME_STOCKOV},${INFER_TIME_TFOV}"
+    echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}"
     CSVFILE=${WORKDIR}/benchmark.csv
     [ -f "$CSVFILE" ] || echo "$str_bench_info_hdr" > $CSVFILE
     echo "$str_bench_info_row" >> $CSVFILE

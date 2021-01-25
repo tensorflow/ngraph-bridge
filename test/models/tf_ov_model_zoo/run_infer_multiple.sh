@@ -38,7 +38,8 @@ function inline_image {
   printf '\033]1338;url='"$1"';alt='"$2"'\a\n'
 }
 
-
+#==============================================================================
+#==============================================================================
 
 [ -f "$MANIFEST" ] || ( echo "Manifest not found: $MANIFEST !"; exit 1 )
 MANIFEST="$(cd "$(dirname "$MANIFEST")"; pwd)/$(basename "$MANIFEST")" # absolute path
@@ -65,7 +66,7 @@ while read -r line; do
 done < "$MANIFEST"
 
 if [ "$BENCHMARK" == "YES" ] && [ -f "$CSVFILE" ]; then
-  echo; echo "--- CSV Info..."; cat $CSVFILE )
+  echo; echo "--- CSV Info..."; cat $CSVFILE
   echo "--- Comparison Chart...";
   #inline_link 'https://buildkite.com/' 'Buildkite'
   #inline_link 'artifact://tmp/images/omg.gif'
