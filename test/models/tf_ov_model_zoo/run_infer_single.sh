@@ -301,8 +301,8 @@ if [ "${BENCHMARK}" == "YES" ]; then
     INFER_TIME_INTELTFOV="?"; run_bench_inteltfov
     INFER_TIME_STOCKTF="?"; run_bench_stocktf
     INFER_TIME_STOCKOV="?"; run_bench_stockov
-    str_bench_info_hdr="Stock-TF,Stock-OV,TFOV,IntelTF,IntelTFOV"
-    str_bench_info_row="${INFER_TIME_STOCKTF},${INFER_TIME_STOCKOV},${INFER_TIME_TFOV},${INFER_TIME_INTELTF},${INFER_TIME_INTELTFOV}"
+    str_bench_info_hdr="Model,Stock-TF,Stock-OV,TFOV,IntelTF,IntelTFOV"
+    str_bench_info_row="${MODEL},${INFER_TIME_STOCKTF},${INFER_TIME_STOCKOV},${INFER_TIME_TFOV},${INFER_TIME_INTELTF},${INFER_TIME_INTELTFOV}"
     echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}, IntelTF ${INFER_TIME_INTELTF}, IntelTFOV ${INFER_TIME_INTELTFOV}"
     CSVFILE=${WORKDIR}/benchmark.csv
     [ -f "$CSVFILE" ] || echo "$str_bench_info_hdr" > $CSVFILE
