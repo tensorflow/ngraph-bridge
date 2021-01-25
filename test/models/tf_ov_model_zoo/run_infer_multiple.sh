@@ -46,8 +46,10 @@ MANIFEST="$(cd "$(dirname "$MANIFEST")"; pwd)/$(basename "$MANIFEST")" # absolut
 
 cd ${WORKDIR} || ( echo "Not found: $WORKDIR !"; exit 1 )
 echo "Dir: ${WORKDIR}"
-CSVFILE=${WORKDIR}/benchmark.csv
+CSVFILE=benchmark_avg_infer_msec.csv
 [ -f "$CSVFILE" ] && rm $CSVFILE
+CSVFILE2=benchmark_infer_speedup.csv
+[ -f "$CSVFILE2" ] && rm $CSVFILE2
 
 failed_models=()
 finalretcode=0
@@ -66,14 +68,10 @@ while read -r line; do
 done < "$MANIFEST"
 
 if [ "$BENCHMARK" == "YES" ] && [ -f "$CSVFILE" ]; then
-  echo; echo "--- CSV Info..."; cat $CSVFILE
-  echo "--- Comparison Chart...";
-  #inline_link 'https://buildkite.com/' 'Buildkite'
-  #inline_link 'artifact://tmp/images/omg.gif'
-  #inline_image 'https://media0.giphy.com/media/8Ry7iAVwKBQpG/giphy.gif' 'Rainbows'
   if [ "${BUILDKITE}" == "true" ]; then
-    buildkite-agent artifact upload "benchmark.csv"
-    inline_link 'artifact://benchmark.csv'
+    buildkite-agent artifact upload "benchmark*.csv"
+  else
+    echo; echo "CSV Info..."; cat $CSVFILE
   fi
 fi
 

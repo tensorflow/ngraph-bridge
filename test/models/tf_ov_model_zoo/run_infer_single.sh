@@ -245,10 +245,16 @@ if [ "${BENCHMARK}" == "YES" ]; then
     INFER_TIME_STOCKOV="?"; run_bench_stockov
     str_bench_info_hdr="Model,Stock-TF,Stock-OV,TFOV"
     str_bench_info_row="${MODEL},${INFER_TIME_STOCKTF},${INFER_TIME_STOCKOV},${INFER_TIME_TFOV}"
+    stockov_speedup=$(echo "scale=2; $INFER_TIME_STOCKOV/$INFER_TIME_STOCKTF" | bc )
+    tfov_speedup=$(echo "scale=2; $INFER_TIME_TFOV/$INFER_TIME_STOCKTF" | bc )
+    str_bench_info2_row="${MODEL},1,$stockov_speedup,$tfov_speedup"
     echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Stock-OV ${INFER_TIME_STOCKOV}, TFOV ${INFER_TIME_TFOV}"
-    CSVFILE=${WORKDIR}/benchmark.csv
+    CSVFILE=${WORKDIR}/benchmark_avg_infer_msec.csv
     [ -f "$CSVFILE" ] || echo "$str_bench_info_hdr" > $CSVFILE
     echo "$str_bench_info_row" >> $CSVFILE
+    CSVFILE=${WORKDIR}/benchmark_infer_speedup.csv
+    [ -f "$CSVFILE" ] || echo "$str_bench_info_hdr" > $CSVFILE
+    echo "$str_bench_info2_row" >> $CSVFILE
 else
     if [ "${ret_code}" == "0" ]; then
         echo -e "${prefix_pass} ${INFER_TIME_TFOV}"
