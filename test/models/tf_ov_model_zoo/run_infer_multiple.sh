@@ -24,11 +24,29 @@ while getopts “:m:b:d:h” opt; do
 done
 shift $((OPTIND-1))
 
+# Display link in BuildKite CI Web
+function inline_link {
+  LINK=$(printf "url='%s'" "$1")
+  if [ $# -gt 1 ]; then
+    LINK=$(printf "$LINK;content='%s'" "$2")
+  fi
+  printf '\033]1339;%s\a\n' "$LINK"
+}
+
+# Display image in BuildKite CI Web
+function inline_image {
+  printf '\033]1338;url='"$1"';alt='"$2"'\a\n'
+}
+
+
+
 [ -f "$MANIFEST" ] || ( echo "Manifest not found: $MANIFEST !"; exit 1 )
 MANIFEST="$(cd "$(dirname "$MANIFEST")"; pwd)/$(basename "$MANIFEST")" # absolute path
 
 cd ${WORKDIR} || ( echo "Not found: $WORKDIR !"; exit 1 )
 echo "Dir: ${WORKDIR}"
+CSVFILE=${WORKDIR}/benchmark.csv
+[ -f "$CSVFILE" ] && rm $CSVFILE
 
 failed_models=()
 finalretcode=0
@@ -45,6 +63,18 @@ while read -r line; do
     env "${envs[@]}" "${SCRIPT_DIR}/run_infer_single.sh" "${args[@]}" "${BENCHMARK}" && retcode=0; finalretcode=$((finalretcode+retcode))
     (( $retcode == 1 )) && failed_models+=("${args[0]}")
 done < "$MANIFEST"
+
+if [ "$BENCHMARK" == "YES" ] && [ -f "$CSVFILE" ]; then
+  echo; echo "--- CSV Info..."; cat $CSVFILE )
+  echo "--- Comparison Chart...";
+  #inline_link 'https://buildkite.com/' 'Buildkite'
+  #inline_link 'artifact://tmp/images/omg.gif'
+  #inline_image 'https://media0.giphy.com/media/8Ry7iAVwKBQpG/giphy.gif' 'Rainbows'
+  if [ "${BUILDKITE}" == "true" ]; then
+    buildkite-agent artifact upload "benchmark.csv"
+    inline_link 'artifact://benchmark.csv'
+  fi
+fi
 
 if (( $finalretcode > 0 )); then
     echo; echo "$finalretcode model(s) testing failed!"
