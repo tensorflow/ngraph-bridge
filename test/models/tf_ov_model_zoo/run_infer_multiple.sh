@@ -71,8 +71,8 @@ if [ "$BENCHMARK" == "YES" ] && [ -f "$CSVFILE" ]; then
   if [ "${BUILDKITE}" == "true" ]; then
     buildkite-agent artifact upload "benchmark*.csv"
     pip install numpy pandas matplotlib
-    python ${SCRIPT_DIR}/gen_plot.py --csv $CSVFILE
-    python ${SCRIPT_DIR}/gen_plot.py --csv $CSVFILE2
+    python ${SCRIPT_DIR}/gen_plot.py --csv $CSVFILE --ylabel "msec (Lower is Faster)" --title "Average Inference Time"
+    python ${SCRIPT_DIR}/gen_plot.py --csv $CSVFILE2 --ylabel "Speedup (Higher is Faster)" --title "Inference Speedup wrt Stock-TF"
     buildkite-agent artifact upload "benchmark*.png"
   else
     echo; echo "CSV Info..."; cat $CSVFILE

@@ -29,6 +29,18 @@ def main():
         type=str,
         help="Input CSV file for genearting chart.\n",
         action="store")
+    parser.add_argument(
+        '--title',
+        type=str,
+        help="Optional title for chart.\n",
+        default="Chart",
+        action="store")
+    parser.add_argument(
+        '--ylabel',
+        type=str,
+        help="Optional ylabel chart.\n",
+        default="",
+        action="store")
 
     arguments = parser.parse_args()
 
@@ -42,9 +54,10 @@ def main():
     benchmark_data = pd.read_csv(csv_filepath)
 
     plt.figure(figsize=(16, 6))
+    plt.gcf().subplots_adjust(bottom=0.15)
     plt.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.3)
-    plt.title('Inference Speedup wrt Stock-TF')
-    plt.ylabel('Speedup')
+    plt.title(arguments.title)
+    plt.ylabel(arguments.ylabel)
     width = 0.2
     xdata = benchmark_data['Model']
     xaxis = np.arange(len(xdata))
