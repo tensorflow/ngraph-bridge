@@ -13,14 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#ifndef NGRAPH_TF_BRIDGE_VERSION_UTILS_H_
-#define NGRAPH_TF_BRIDGE_VERSION_UTILS_H_
 
-#include "tensorflow/core/public/version.h"
+#pragma once
 
-#define TF_VERSION_GEQ(REQ_TF_MAJ_VER, REQ_TF_MIN_VER) \
-  ((TF_MAJOR_VERSION > REQ_TF_MAJ_VER) ||              \
-   ((TF_MAJOR_VERSION == REQ_TF_MAJ_VER) &&            \
-    (TF_MINOR_VERSION >= REQ_TF_MIN_VER)))
+#include <mutex>
+#include <vector>
 
-#endif  // NGRAPH_TF_BRIDGE_VERSION_UTILS_H_
+#include "tensorflow/core/framework/graph.pb.h"
+
+namespace tensorflow {
+namespace ngraph_bridge {
+
+class ClusterManager {
+ public:
+  static size_t NewCluster();
+  static tensorflow::GraphDef* GetClusterGraph(size_t idx);
+  static void EvictAllClusters();
+
+ private:
+  static std::vector<tensorflow::GraphDef*> s_cluster_graphs;
+  static std::mutex s_cluster_graphs_mutex;
+};
+
+}  // namespace ngraph_bridge
+}  // namespace tensorflow

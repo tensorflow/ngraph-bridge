@@ -14,19 +14,31 @@
  * limitations under the License.
  *******************************************************************************/
 
-#ifndef NGRAPH_TF_BRIDGE_ASSIGN_CLUSTERS_H_
-#define NGRAPH_TF_BRIDGE_ASSIGN_CLUSTERS_H_
-#pragma once
+#include "cluster_manager.h"
 
-#include "tensorflow/core/graph/graph.h"
+using namespace std;
 
 namespace tensorflow {
 namespace ngraph_bridge {
 
-Status AssignClusters(Graph* graph);
-Status GetNodeCluster(const Node* node, int* cluster);
+// Static initializers
+std::vector<GraphDef*> ClusterManager::s_cluster_graphs;
+std::mutex ClusterManager::s_cluster_graphs_mutex;
+
+size_t ClusterManager::NewCluster() {
+  std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
+
+  size_t new_idx = s_cluster_graphs.size();
+  s_cluster_graphs.push_back(new GraphDef());
+  return new_idx;
+}
+
+GraphDef* ClusterManager::GetClusterGraph(size_t idx) {
+  std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
+  return idx < s_cluster_graphs.size() ? s_cluster_graphs[idx] : nullptr;
+}
+
+void ClusterManager::EvictAllClusters() { s_cluster_graphs.clear(); }
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
-
-#endif  // NGRAPH_TF_BRIDGE_ASSIGN_CLUSTERS_H_

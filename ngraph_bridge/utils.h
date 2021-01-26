@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#pragma once
 
-#ifndef NGRAPH_TF_BRIDGE_UTILS_H_
-#define NGRAPH_TF_BRIDGE_UTILS_H_
+#pragma once
 
 #include <fstream>
 #include <ostream>
@@ -32,8 +30,7 @@
 #include "ngraph/chrome_trace.hpp"
 #include "ngraph/ngraph.hpp"
 
-#include "logging/ngraph_log.h"
-#include "logging/tf_graph_writer.h"
+#include "log.h"
 
 // Activates event logging until the end of the current code-block scoping;
 // Automatically writes log data as soon as the the current scope expires.
@@ -85,5 +82,3 @@ void SetEnv(const char* env, const char* val);
 }  // namespace util
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
-
-#endif

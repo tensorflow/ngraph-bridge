@@ -24,10 +24,10 @@
 #include "ngraph/pattern/op/label.hpp"
 #include "ngraph/util.hpp"
 
-#include "logging/ngraph_log.h"
 #include "ngraph_bridge/default_opset.h"
-#include "ngraph_bridge/ngraph_utils.h"
+#include "ngraph_bridge/log.h"
 #include "ngraph_bridge/pass/transpose_sinking.h"
+#include "ngraph_bridge/utils.h"
 
 using namespace std;
 

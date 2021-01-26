@@ -14,11 +14,9 @@
  * limitations under the License.
  *******************************************************************************/
 
-#ifndef NGRAPH_TF_BRIDGE_CONVERSIONS_H_
-#define NGRAPH_TF_BRIDGE_CONVERSIONS_H_
 #pragma once
 
-#include "logging/ngraph_log.h"
+#include "log.h"
 #include "ngraph_bridge/default_opset.h"
 #include "ngraph_bridge/ngraph_builder.h"
 
@@ -114,5 +112,3 @@ void NHWCtoHW(bool is_nhwc, const std::vector<T>& src,
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
-
-#endif  // NGRAPH_TF_BRIDGE_CONVERSIONS_H_

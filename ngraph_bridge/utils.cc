@@ -29,8 +29,8 @@
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/protobuf.h"
 
-#include "ngraph_bridge/ngraph_utils.h"
-#include "ngraph_bridge/version.h"
+#include "utils.h"
+#include "version.h"
 
 using namespace std;
 
@@ -231,7 +231,14 @@ void DumpTFGraph(tensorflow::Graph* graph, int idx, std::string filename) {
   std::stringstream ss;
   ss << filename << "_" << std::setfill('0') << std::setw(4) << idx;
   NGRAPH_VLOG(0) << "Dumping TF graph to " << ss.str() + ".pbtxt";
-  GraphToPbTextFile(graph, ss.str() + ".pbtxt");
+
+  GraphDef g_def;
+  graph->ToGraphDef(&g_def);
+
+  string graph_pb_str;
+  protobuf::TextFormat::PrintToString(g_def, &graph_pb_str);
+  std::ofstream ostrm_out(ss.str() + ".pbtxt", std::ios_base::trunc);
+  ostrm_out << graph_pb_str;
 }
 
 void DumpNGGraph(std::shared_ptr<ngraph::Function> function,
