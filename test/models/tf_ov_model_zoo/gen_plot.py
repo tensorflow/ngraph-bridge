@@ -54,7 +54,7 @@ def main():
     benchmark_data = pd.read_csv(csv_filepath)
 
     plt.figure(figsize=(16, 6))
-    plt.gcf().subplots_adjust(bottom=0.15)
+    plt.gcf().subplots_adjust(bottom=0.2)
     plt.grid(color='#95a5a6', linestyle='--', linewidth=1, axis='y', alpha=0.3)
     plt.title(arguments.title)
     plt.ylabel(arguments.ylabel)
