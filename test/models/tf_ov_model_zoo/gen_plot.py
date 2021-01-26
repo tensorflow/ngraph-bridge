@@ -69,7 +69,6 @@ def main():
 
     plt.xticks(xaxis, xdata, rotation=90)  # Create names on the x-axis
     plt.legend(handles=[bar_tf, bar_stockov, bar_tfov])
-    plt.show()
 
     image_filename = os.path.splitext(csv_filepath)[0] + ".png"
     plt.savefig(image_filename)  # saved as <same-prefix-as-csv>.png

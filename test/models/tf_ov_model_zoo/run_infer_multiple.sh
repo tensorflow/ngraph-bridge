@@ -71,8 +71,8 @@ if [ "$BENCHMARK" == "YES" ] && [ -f "$CSVFILE" ]; then
   if [ "${BUILDKITE}" == "true" ]; then
     buildkite-agent artifact upload "benchmark*.csv"
     pip install numpy pandas matplotlib
-    python gen_plot.py --csv $CSVFILE
-    python gen_plot.py --csv $CSVFILE2
+    python ${SCRIPT_DIR}/gen_plot.py --csv $CSVFILE
+    python ${SCRIPT_DIR}/gen_plot.py --csv $CSVFILE2
     buildkite-agent artifact upload "benchmark*.png"
   else
     echo; echo "CSV Info..."; cat $CSVFILE
