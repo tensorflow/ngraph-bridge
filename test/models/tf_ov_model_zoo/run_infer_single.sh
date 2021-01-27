@@ -164,11 +164,13 @@ function run_bench_stockov {
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
     pip_install opencv-python
+    pip_install openvino==2021.2
 
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
-    . ${INTEL_OPENVINO_DIR}/bin/setupvars.sh
-    ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
+    pythonlib=$(echo $(dirname $(which python3))/../lib)
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pythonlib:${INTEL_OPENVINO_DIR}/deployment_tools/inference_engine/lib/intel64/ \ 
+        ./run_ov_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
