@@ -52,6 +52,9 @@ mutex NGraphRewritePass::s_serial_counter_mutex;
 Status NGraphRewritePass::Rewrite(
     Graph* graph, std::set<string> skip_these_nodes,
     std::unordered_map<std::string, std::string> config_map) {
+  // For filename generation purposes, grab a fresh index. This is just an
+  // arbitrary integer to avoid filename collisions resulting from subsequent
+  // runs of this pass.
   int idx = FreshIndex();
   // If requested, dump unmarked graphs.
   util::DumpTFGraph(graph, idx, "unmarked");
@@ -103,10 +106,6 @@ Status NGraphRewritePass::Run(const GraphOptimizationPassOptions& options) {
     NGRAPH_VLOG(0) << "NGraphRewritePass: options.graph == nullptr";
     return Status::OK();
   }
-
-  // For filename generation purposes, grab a fresh index. This is just an
-  // arbitrary integer to avoid filename collisions resulting from subsequent
-  // runs of this pass.
   return Rewrite(options.graph->get());
 }
 
