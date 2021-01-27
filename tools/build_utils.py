@@ -511,7 +511,10 @@ def install_ngraph_tf(tf_version, venv_dir, ngtf_pip_whl):
 
 def download_repo(target_name, repo, version, submodule_update=False):
     # First download to a temp folder
-    call(["git", "clone", "--single-branch", "--branch", version, repo, target_name])
+    call([
+        "git", "clone", "--single-branch", "--branch", version, repo,
+        target_name
+    ])
 
     pwd = os.getcwd()
     os.chdir(target_name)
