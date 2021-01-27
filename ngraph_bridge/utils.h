@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#pragma once
 
-#ifndef NGRAPH_TF_BRIDGE_UTILS_H_
-#define NGRAPH_TF_BRIDGE_UTILS_H_
+#pragma once
 
 #include <fstream>
 #include <ostream>
@@ -31,8 +29,7 @@
 
 #include "ngraph/ngraph.hpp"
 
-#include "logging/ngraph_log.h"
-#include "logging/tf_graph_writer.h"
+#include "log.h"
 
 using namespace std;
 
@@ -79,5 +76,3 @@ void SetEnv(const char* env, const char* val);
 }  // namespace util
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
-
-#endif

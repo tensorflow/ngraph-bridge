@@ -196,7 +196,6 @@ INCLUDE_DIRECTORIES("${BASEPATH}")
 
 # Add the directories to be built
 add_subdirectory(third-party)
-add_subdirectory(logging)
 add_subdirectory(ngraph_bridge)
 add_subdirectory(tools)
 

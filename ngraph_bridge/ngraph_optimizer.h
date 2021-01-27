@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#pragma once
 
-#ifndef NGRAPH_TF_NGRAPHOPTIMIZER_H_
-#define NGRAPH_TF_NGRAPHOPTIMIZER_H_
+#pragma once
 
 #include "tensorflow/core/common_runtime/graph_constructor.h"
 #include "tensorflow/core/framework/op.h"
@@ -24,15 +22,6 @@
 #include "tensorflow/core/graph/graph_def_builder.h"
 #include "tensorflow/core/graph/node_builder.h"
 #include "tensorflow/core/grappler/optimizers/custom_graph_optimizer.h"
-
-#include "logging/ngraph_log.h"
-#include "logging/tf_graph_writer.h"
-#include "ngraph_bridge/grappler/ngraph_add_identityn.h"
-#include "ngraph_bridge/ngraph_assign_clusters.h"
-#include "ngraph_bridge/ngraph_deassign_clusters.h"
-#include "ngraph_bridge/ngraph_encapsulate_clusters.h"
-#include "ngraph_bridge/ngraph_mark_for_clustering.h"
-#include "ngraph_bridge/ngraph_utils.h"
 
 #include <iomanip>
 
@@ -45,7 +34,7 @@ class NgraphOptimizer : public tensorflow::grappler::CustomGraphOptimizer {
   NgraphOptimizer() = default;
   ~NgraphOptimizer() override = default;
 
-  string name() const override { return "NgraphOptimizer"; };
+  string name() const override { return "ngraph-optimizer"; };
 
   bool UsesFunctionLibrary() const override { return true; }
 
@@ -71,15 +60,7 @@ class NgraphOptimizer : public tensorflow::grappler::CustomGraphOptimizer {
 
  private:
   std::unordered_map<std::string, std::string> m_config_map;
-  static int FreshIndex();
-
-  static int s_serial_counter GUARDED_BY(s_serial_counter_mutex);
-  static mutex s_serial_counter_mutex;
 };
-
-int NgraphOptimizer::s_serial_counter = 0;
-mutex NgraphOptimizer::s_serial_counter_mutex;
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
-#endif  // NGRAPH_TF_NGRAPHOPTIMIZER_H_

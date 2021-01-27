@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017-2020 Intel Corporation
+ * Copyright 2019-2020 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,31 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-#include "ngraph_bridge/ngraph_cluster_manager.h"
 
-using namespace std;
+#pragma once
+
+#include "tensorflow/core/common_runtime/optimization_registry.h"
 
 namespace tensorflow {
 namespace ngraph_bridge {
 
-// Static initializers
-std::vector<GraphDef*> NGraphClusterManager::s_cluster_graphs;
-std::mutex NGraphClusterManager::s_cluster_graphs_mutex;
+class NGraphRewritePass : public GraphOptimizationPass {
+ public:
+  NGraphRewritePass() = default;
+  ~NGraphRewritePass() override = default;
 
-size_t NGraphClusterManager::NewCluster() {
-  std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
+  Status Rewrite(Graph* graph, std::set<string> skip_these_nodes = {},
+                 std::unordered_map<std::string, std::string> = {});
+  Status Run(const GraphOptimizationPassOptions& options);
 
-  size_t new_idx = s_cluster_graphs.size();
-  s_cluster_graphs.push_back(new GraphDef());
-  return new_idx;
-}
+ private:
+  // Returns a fresh "serial number" to avoid filename collisions in the graph
+  // dumps.
+  static int FreshIndex() {
+    mutex_lock l(s_serial_counter_mutex);
+    return s_serial_counter++;
+  }
 
-GraphDef* NGraphClusterManager::GetClusterGraph(size_t idx) {
-  std::lock_guard<std::mutex> guard(s_cluster_graphs_mutex);
-  return idx < s_cluster_graphs.size() ? s_cluster_graphs[idx] : nullptr;
-}
-
-void NGraphClusterManager::EvictAllClusters() { s_cluster_graphs.clear(); }
+  static int s_serial_counter GUARDED_BY(s_serial_counter_mutex);
+  static mutex s_serial_counter_mutex;
+};
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow

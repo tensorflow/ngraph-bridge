@@ -14,8 +14,6 @@
  * limitations under the License.
  *******************************************************************************/
 
-#ifndef NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
-#define NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
 #pragma once
 
 #include <iostream>
@@ -24,7 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "ngraph/ngraph.hpp"
 #include "tensorflow/core/graph/graph.h"
 
 namespace tensorflow {
@@ -105,5 +102,3 @@ class Encapsulator {
 
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
-
-#endif  // NGRAPH_TF_BRIDGE_ENCAPSULATE_CLUSTERS_H_
