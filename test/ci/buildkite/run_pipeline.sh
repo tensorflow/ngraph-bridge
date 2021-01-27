@@ -23,7 +23,7 @@ elif [ "${BUILDKITE_PIPELINE_NAME}" == "cpu-intel-tf" ]; then
    export BUILD_OPTIONS=--use_intel_tensorflow
    export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_intel_tensorflow_2_3_0
    export OV_LOCATION=/localdisk/buildkite-agent/prebuilt_openvino_2021_2/artifacts/openvino
-   export TF_WHL = tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
+   export TF_WHL=tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/cpu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "gpu" ]; then
    export NGRAPH_TF_BACKEND=GPU
