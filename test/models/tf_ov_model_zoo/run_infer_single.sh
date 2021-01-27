@@ -163,6 +163,7 @@ function run_bench_stockov {
     [ -d $VENVTMP ] && rm -rf $VENVTMP
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
+    pip_install opencv-python
 
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
