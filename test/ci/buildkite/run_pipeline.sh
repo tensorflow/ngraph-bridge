@@ -10,7 +10,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_tensorflow_2_4_1_abi_0
 export OV_LOCATION=/localdisk/buildkite-agent/prebuilt_openvino_2021_2_abi_0/artifacts/openvino
 export NGRAPH_TF_BACKEND=CPU
-export TF_WHL = tensorflow-2.4.1-cp36-cp36m-linux_x86_64.whl
+export TF_WHL=tensorflow-2.4.1-cp36-cp36m-linux_x86_64.whl
 
 # Always run setup for now
 PIPELINE_STEPS=" ${SCRIPT_DIR}/setup.yml "
