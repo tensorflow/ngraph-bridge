@@ -14,6 +14,8 @@ export TF_WHL=tensorflow-2.4.1-cp36-cp36m-linux_x86_64.whl
 
 # Always run setup for now
 PIPELINE_STEPS=" ${SCRIPT_DIR}/setup.yml "
+
+### CPU unit test pipelines
 if [ "${BUILDKITE_PIPELINE_NAME}" == "cpu-grappler" ]; then
    export BUILD_OPTIONS=--use_grappler
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/cpu.yml "
@@ -25,19 +27,35 @@ elif [ "${BUILDKITE_PIPELINE_NAME}" == "cpu-intel-tf" ]; then
    export OV_LOCATION=/localdisk/buildkite-agent/prebuilt_openvino_2021_2/artifacts/openvino
    export TF_WHL = tensorflow-2.3.0-cp36-cp36m-linux_x86_64.whl
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/cpu.yml "
+### GPU/VPU unit test pipelines
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "gpu" ]; then
    export NGRAPH_TF_BACKEND=GPU
+   export NGRAPH_TF_UTEST_RTOL=0.0001
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/cpu.yml "
-elif [ "${BUILDKITE_PIPELINE_NAME}" == "models-gpu" ]; then
-   export NGRAPH_TF_BACKEND=GPU
-   PIPELINE_STEPS+=" ${SCRIPT_DIR}/models-cpu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "myriad" ]; then
    export NGRAPH_TF_BACKEND=MYRIAD
    export NGRAPH_TF_UTEST_RTOL=0.0001
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/cpu.yml "
+### Model verification pipelines
+elif [ "${BUILDKITE_PIPELINE_NAME}" == "models-cpu" ]; then
+   export NGRAPH_TF_BACKEND=CPU
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/models-cpu.yml "
+elif [ "${BUILDKITE_PIPELINE_NAME}" == "models-gpu" ]; then
+   export NGRAPH_TF_BACKEND=GPU
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/models-cpu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "models-myriad" ]; then
    export NGRAPH_TF_BACKEND=MYRIAD
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/models-cpu.yml "
+# Benchmarking pipelines
+elif [ "${BUILDKITE_PIPELINE_NAME}" == "bench-cpu" ]; then
+   export NGRAPH_TF_BACKEND=CPU
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/bench-cpu.yml "
+elif [ "${BUILDKITE_PIPELINE_NAME}" == "bench-gpu" ]; then
+   export NGRAPH_TF_BACKEND=GPU
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/bench-cpu.yml "
+elif [ "${BUILDKITE_PIPELINE_NAME}" == "bench-myriad" ]; then
+   export NGRAPH_TF_BACKEND=MYRIAD
+   PIPELINE_STEPS+=" ${SCRIPT_DIR}/bench-cpu.yml "
 else
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/${BUILDKITE_PIPELINE_NAME}.yml "
 fi
