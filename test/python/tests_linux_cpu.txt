@@ -26,7 +26,7 @@ test_maxpool3dgrad.TestMaxpool3DGrad.test_maxpool3d_grad
 test_bfloat16.TestBfloat16.test_conv2d_bfloat16
 test_bfloat16.TestBfloat16.test_conv2d_cast_bfloat16
 
-# Failed to set Blob with precision not corresponding to user output precision
+#[PARAMETER_MISMATCH] Failed to set output blob with precision: BOOL, if CNNNetwork output blob precision is: FP32
 test_elementwise_ops.TestElementwiseOperations.test_less_equal[1.4-1.0-expected0]
 test_elementwise_ops.TestElementwiseOperations.test_less_equal[-1.0--1.0-expected1]
 test_elementwise_ops.TestElementwiseOperations.test_less_equal[-1.0-1000-expected2]
@@ -68,15 +68,8 @@ test_mnist_training.TestMnistTraining.test_mnist_training[momentum]
 test_resize_to_dynamic_shape.TestResizeToDynamicShape.test_resize_to_dynamic_shape
 test_shared_const.TestSharedConst.test_sharedconst1
 
-# cannot find blob with name <parameter>
-test_pad.TestPadOperations.test_pad2
-
-# incorrect number of input/output dims
-test_prod.TestProductOperations.test_prod[v10--1-expected0]
-test_prod.TestProductOperations.test_prod[v11-0-expected1]
-test_prod.TestProductOperations.test_prod[v15-axis5-expected5]
+# Unsupported dynamic op v4::Range
 test_prod.TestProductOperations.test_prod_no_axis[v10-expected0]
-test_prod.TestProductOperations.test_dynamic_axis_fallback[v10-0-expected0]
 
 # Segmentation fault
 test_slice.TestSliceOperations.test_strided_slice
