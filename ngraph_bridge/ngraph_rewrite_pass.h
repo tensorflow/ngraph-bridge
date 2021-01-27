@@ -18,8 +18,6 @@
 
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 
-#include <iomanip>
-
 namespace tensorflow {
 namespace ngraph_bridge {
 

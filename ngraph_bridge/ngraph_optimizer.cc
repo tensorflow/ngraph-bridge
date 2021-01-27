@@ -15,6 +15,7 @@
  *******************************************************************************/
 
 #include <iomanip>
+#include <iostream>
 
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
@@ -33,8 +34,6 @@
 #include "log.h"
 #include "ngraph_optimizer.h"
 #include "ngraph_rewrite_pass.h"
-
-#include <iostream>
 
 using namespace std;
 
