@@ -511,15 +511,10 @@ def install_ngraph_tf(tf_version, venv_dir, ngtf_pip_whl):
 
 def download_repo(target_name, repo, version, submodule_update=False):
     # First download to a temp folder
-    call(["git", "clone", repo, target_name])
+    call(["git", "clone", "--single-branch", "--branch", version, repo, target_name])
 
     pwd = os.getcwd()
     os.chdir(target_name)
-
-    # checkout the specified branch and get the latest changes
-    call(["git", "fetch"])
-    command_executor(["git", "checkout", version])
-    call(["git", "pull"])
 
     if submodule_update:
         call(["git", "submodule", "update", "--init", "--recursive"])
