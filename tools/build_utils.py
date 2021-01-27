@@ -519,6 +519,11 @@ def download_repo(target_name, repo, version, submodule_update=False):
     pwd = os.getcwd()
     os.chdir(target_name)
 
+    # checkout the specified branch and get the latest changes
+    call(["git", "fetch"])
+    command_executor(["git", "checkout", version])
+    call(["git", "pull"])
+
     if submodule_update:
         call(["git", "submodule", "update", "--init", "--recursive"])
 
