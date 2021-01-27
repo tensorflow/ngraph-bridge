@@ -33,9 +33,9 @@ MANIFEST="$(cd "$(dirname "$MANIFEST")"; pwd)/$(basename "$MANIFEST")" # absolut
 cd ${WORKDIR} || ( echo "Not found: $WORKDIR !"; exit 1 )
 echo "Dir: ${WORKDIR}"
 CSVFILE=benchmark_avg_infer_msec.csv
-rm $CSVFILE
+[ -f "$CSVFILE" ] && rm $CSVFILE
 CSVFILE2=benchmark_infer_speedup.csv
-rm $CSVFILE2
+[ -f "$CSVFILE2" ] && rm $CSVFILE2
 
 failed_models=()
 finalretcode=0
