@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ==============================================================================
-#  Copyright 2018-2020 Intel Corporation
+#  Copyright 2018-2021 Intel Corporation
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -27,18 +27,18 @@ def main():
     parser.add_argument(
         '--csv',
         type=str,
-        help="Input CSV file for genearting chart.\n",
+        help="Input CSV file for generating plot.\n",
         action="store")
     parser.add_argument(
         '--title',
         type=str,
-        help="Optional title for chart.\n",
-        default="Chart",
+        help="Optional title for plot.\n",
+        default="Plot",
         action="store")
     parser.add_argument(
         '--ylabel',
         type=str,
-        help="Optional ylabel chart.\n",
+        help="Optional ylabel for plot.\n",
         default="",
         action="store")
 
@@ -69,16 +69,16 @@ def main():
         label="Stock-TF")
     bar_stockov = plt.bar(
         x=xaxis + width,
-        height=benchmark_data['Stock-OV'],
+        height=benchmark_data['OV'],
         width=width,
         color='orange',
-        label="Stock-OV")
+        label="OV")
     bar_tfov = plt.bar(
         x=xaxis + 2 * width,
-        height=benchmark_data['TFOV'],
+        height=benchmark_data['TF-OV'],
         width=width,
         color='royalblue',
-        label="TFOV")
+        label="TF-OV")
 
     plt.xticks(xaxis, xdata, rotation=90)  # Create names on the x-axis
     plt.legend(handles=[bar_tf, bar_stockov, bar_tfov])

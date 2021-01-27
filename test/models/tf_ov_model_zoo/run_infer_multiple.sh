@@ -24,20 +24,6 @@ while getopts “:m:b:d:h” opt; do
 done
 shift $((OPTIND-1))
 
-# Display link in BuildKite CI Web
-function inline_link {
-  LINK=$(printf "url='%s'" "$1")
-  if [ $# -gt 1 ]; then
-    LINK=$(printf "$LINK;content='%s'" "$2")
-  fi
-  printf '\033]1339;%s\a\n' "$LINK"
-}
-
-# Display image in BuildKite CI Web
-function inline_image {
-  printf '\033]1338;url='"$1"';alt='"$2"'\a\n'
-}
-
 #==============================================================================
 #==============================================================================
 
@@ -47,9 +33,9 @@ MANIFEST="$(cd "$(dirname "$MANIFEST")"; pwd)/$(basename "$MANIFEST")" # absolut
 cd ${WORKDIR} || ( echo "Not found: $WORKDIR !"; exit 1 )
 echo "Dir: ${WORKDIR}"
 CSVFILE=benchmark_avg_infer_msec.csv
-[ -f "$CSVFILE" ] && rm $CSVFILE
+rm $CSVFILE
 CSVFILE2=benchmark_infer_speedup.csv
-[ -f "$CSVFILE2" ] && rm $CSVFILE2
+rm $CSVFILE2
 
 failed_models=()
 finalretcode=0
