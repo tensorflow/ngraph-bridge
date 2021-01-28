@@ -40,9 +40,10 @@ steps:
   - wait
   - command: |
       source ${ARTIFACTS_DIR}/venv/bin/activate 
+      set -x
       echo "Enabling all C++ tests in manifest..."
-      echo "[RUN]" > ./test/$MANIFEST
-      echo "*" >> ./test/$MANIFEST
+      echo "[IMPORT]" > ./test/$MANIFEST
+      echo "tests_common.txt" >> ./test/$MANIFEST
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts ${ARTIFACTS_DIR} --test_cpp
     soft_fail:
@@ -81,8 +82,8 @@ steps:
   - command: |
       source ${ARTIFACTS_DIR}/venv/bin/activate 
       echo "Enabling all Py tests in manifest..."
-      echo "[IMPORT]" > ./test/python/$MANIFEST
-      echo "tests_common.txt" >> ./test/python/$MANIFEST
+      echo "[IMPORT]" > ${ARTIFACTS_DIR}/test/python/$MANIFEST
+      echo "tests_common.txt" >> ${ARTIFACTS_DIR}/test/python/$MANIFEST
       PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
         --artifacts ${ARTIFACTS_DIR} --test_python
     soft_fail:
