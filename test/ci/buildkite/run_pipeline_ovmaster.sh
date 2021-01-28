@@ -20,7 +20,6 @@ env:
 
 steps:
   - command: |
-      set -xeu -o pipefail
       rm -rf ${ARTIFACTS_DIR}
       virtualenv -p python3 ${ARTIFACTS_DIR}/venv 
       source ${ARTIFACTS_DIR}/venv/bin/activate 
