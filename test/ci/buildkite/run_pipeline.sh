@@ -49,12 +49,15 @@ elif [ "${BUILDKITE_PIPELINE_NAME}" == "models-myriad" ]; then
 # Benchmarking pipelines
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "bench-cpu" ]; then
    export NGRAPH_TF_BACKEND=CPU
+   export OV_LOCATION=/localdisk/buildkite-agent/prebuilt_openvino_2021_2/artifacts/openvino
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/bench-cpu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "bench-gpu" ]; then
    export NGRAPH_TF_BACKEND=GPU
+   export OV_LOCATION=/localdisk/buildkite-agent/prebuilt_openvino_2021_2/artifacts/openvino
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/bench-cpu.yml "
 elif [ "${BUILDKITE_PIPELINE_NAME}" == "bench-myriad" ]; then
    export NGRAPH_TF_BACKEND=MYRIAD
+   export OV_LOCATION=/localdisk/buildkite-agent/prebuilt_openvino_2021_2/artifacts/openvino
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/bench-cpu.yml "
 else
    PIPELINE_STEPS+=" ${SCRIPT_DIR}/${BUILDKITE_PIPELINE_NAME}.yml "
