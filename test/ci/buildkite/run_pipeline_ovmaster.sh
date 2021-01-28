@@ -14,6 +14,10 @@ export NGRAPH_TF_BACKEND=CPU
 export TF_WHL=tensorflow-2.4.1-cp36-cp36m-linux_x86_64.whl
 ARTIFACTS_DIR="/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID"
 
+device="${NGRAPH_TF_BACKEND,,}" # lowercase
+osname="$( uname )"; osname="${osname,,}"
+MANIFEST="tests_${osname}_${device}.txt"
+
 read -r -d '' YML_SCRIPT << END_OF_YML
 env:
   NGRAPH_TF_BACKEND: ${NGRAPH_TF_BACKEND:-CPU}
@@ -36,6 +40,9 @@ steps:
   - wait
   - command: |
       source ${ARTIFACTS_DIR}/venv/bin/activate 
+      echo "Enabling all C++ tests in manifest..."
+      echo "[RUN]" > ./test/$MANIFEST
+      echo "*" >> ./test/$MANIFEST
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts ${ARTIFACTS_DIR} --test_cpp
     soft_fail:
@@ -73,6 +80,9 @@ steps:
   - wait
   - command: |
       source ${ARTIFACTS_DIR}/venv/bin/activate 
+      echo "Enabling all Py tests in manifest..."
+      echo "[IMPORT]" > ./test/python/$MANIFEST
+      echo "tests_common.txt" >> ./test/python/$MANIFEST
       PYTHONPATH=`pwd`:`pwd`/tools:`pwd`/examples:`pwd`/examples/mnist python3 test/ci/buildkite/test_runner.py \
         --artifacts ${ARTIFACTS_DIR} --test_python
     soft_fail:
@@ -86,6 +96,9 @@ steps:
   - wait
   - command: |
       source ${ARTIFACTS_DIR}/venv/bin/activate 
+      echo "Enabling all TF-Py tests in manifest..."
+      echo "[IMPORT]" > ./test/python/tensorflow/$MANIFEST
+      echo "tests_common.txt" >> ./test/python/tensorflow/$MANIFEST
       PYTHONPATH=`pwd` python3 test/ci/buildkite/test_runner.py \
         --artifacts ${ARTIFACTS_DIR} --test_tf_python
     soft_fail:
@@ -119,5 +132,9 @@ steps:
       name: ${BUILDKITE_AGENT_META_DATA_NAME}
 
 END_OF_YML
+
+
+
+#######################################################################
 
 echo "$YML_SCRIPT" | buildkite-agent pipeline upload
