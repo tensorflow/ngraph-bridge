@@ -11,6 +11,9 @@ export TF_LOCATION=/localdisk/buildkite-agent/prebuilt_tensorflow_2_4_1_abi_0
 export OV_LOCATION=
 export BUILD_OPTIONS=
 export NGRAPH_TF_BACKEND=CPU
+[[ "${BUILDKITE_PIPELINE_NAME}" =~ "gpu" ]] && export NGRAPH_TF_BACKEND=GPU
+[[ "${BUILDKITE_PIPELINE_NAME}" =~ "myriad" ]] && export NGRAPH_TF_BACKEND=MYRIAD
+
 export TF_WHL=tensorflow-2.4.1-cp36-cp36m-linux_x86_64.whl
 ARTIFACTS_DIR="/localdisk/buildkite/artifacts/$BUILDKITE_BUILD_ID"
 
