@@ -23,8 +23,6 @@
 #include <string>
 #include <vector>
 
-#include "tensorflow/core/lib/core/status.h"
-
 #include "backend.h"
 
 using namespace std;
@@ -38,20 +36,19 @@ class BackendManager {
   static vector<string> GetSupportedBackends();
 
   // Set the BackendManager backend ng_backend_name_
-  static Status SetBackend(const string& backend_name = "CPU");
+  static void SetBackend(const string& backend_name = "CPU");
 
   // Returns the currently set backend
   static shared_ptr<Backend> GetBackend();
 
   // Returns the currently set backend's name
-  static Status GetBackendName(string& backend_name);
+  static void GetBackendName(string& backend_name);
 
   ~BackendManager();
 
  private:
   // Creates backend of backend_name type
-  static Status CreateBackend(shared_ptr<Backend>& backend,
-                              string& backend_name);
+  static void CreateBackend(shared_ptr<Backend>& backend, string& backend_name);
 
   static shared_ptr<Backend> m_backend;
   static string m_backend_name;

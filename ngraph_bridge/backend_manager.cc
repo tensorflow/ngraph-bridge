@@ -14,8 +14,6 @@
  * limitations under the License.
  *******************************************************************************/
 
-#include "tensorflow/core/lib/core/errors.h"
-
 #include <ie_core.hpp>
 
 #include "backend_manager.h"
@@ -34,52 +32,51 @@ BackendManager::~BackendManager() {
   NGRAPH_VLOG(2) << "BackendManager::~BackendManager()";
 }
 
-Status BackendManager::SetBackend(const string& backend_name) {
+void BackendManager::SetBackend(const string& backend_name) {
   NGRAPH_VLOG(2) << "BackendManager::SetBackend(" << backend_name << ")";
   shared_ptr<Backend> backend;
   string bname(backend_name);
-  auto status = CreateBackend(backend, bname);
-  if (!status.ok() || backend == nullptr) {
-    return errors::Internal("Failed to set backend: ", status.error_message());
+  try {
+    CreateBackend(backend, bname);
+  } catch (const std::exception& e) {
+    throw runtime_error("Failed to set backend: " + string(e.what()));
   }
 
   lock_guard<mutex> lock(m_backend_mutex);
   m_backend = backend;
   m_backend_name = bname;
-  return Status::OK();
 }
 
 shared_ptr<Backend> BackendManager::GetBackend() {
   NGRAPH_VLOG(2) << "BackendManager::GetBackend()";
   if (m_backend == nullptr) {
-    auto status = SetBackend();
-    if (!status.ok()) {
-      NGRAPH_VLOG(0) << "Failed to get backend: " << status.error_message();
-      throw errors::Internal("Failed to get backend: ", status.error_message());
+    try {
+      SetBackend();
+    } catch (const std::exception& e) {
+      NGRAPH_VLOG(0) << "Failed to get backend: " << e.what();
+      throw runtime_error("Failed to get backend: " + string(e.what()));
     }
   }
   lock_guard<mutex> lock(m_backend_mutex);
   return m_backend;
 }
 
-Status BackendManager::GetBackendName(string& backend_name) {
+void BackendManager::GetBackendName(string& backend_name) {
   NGRAPH_VLOG(2) << "BackendManager::GetBackendName()";
   if (m_backend == nullptr) {
-    auto status = SetBackend();
-    if (!status.ok()) {
-      NGRAPH_VLOG(0) << "Failed to get backend name: "
-                     << status.error_message();
-      return errors::Internal("Failed to get backend name: ",
-                              status.error_message());
+    try {
+      SetBackend();
+    } catch (const std::exception& e) {
+      NGRAPH_VLOG(0) << "Failed to get backend name: " << e.what();
+      throw runtime_error("Failed to get backend name: " + string(e.what()));
     }
   }
   lock_guard<mutex> lock(m_backend_mutex);
   backend_name = m_backend_name;
-  return Status::OK();
 }
 
-Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
-                                     string& backend_name) {
+void BackendManager::CreateBackend(shared_ptr<Backend>& backend,
+                                   string& backend_name) {
   const char* env = std::getenv("NGRAPH_TF_BACKEND");
   if (env != nullptr && strlen(env) > 0) {
     backend_name = string(env);
@@ -88,16 +85,15 @@ Status BackendManager::CreateBackend(shared_ptr<Backend>& backend,
   try {
     backend = make_shared<Backend>(backend_name);
   } catch (const std::exception& e) {
-    return errors::Internal("Could not create backend of type ", backend_name,
-                            ". Got exception: ", e.what());
+    throw runtime_error("Could not create backend of type " + backend_name +
+                        ". Got exception: " + e.what());
   }
   if (backend == nullptr) {
-    return errors::Internal("Could not create backend of type ", backend_name,
-                            " got nullptr");
+    throw runtime_error("Could not create backend of type " + backend_name +
+                        " got nullptr");
   }
 
   NGRAPH_VLOG(2) << "BackendManager::CreateBackend(): " << backend_name;
-  return Status::OK();
 }
 
 // Returns the supported backend names
