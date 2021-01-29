@@ -52,8 +52,5 @@ const TypeConstraintMap& GetTypeConstraintMap();
 using ConfirmationFunction = std::function<Status(Node*, bool*)>;
 const std::map<std::string, ConfirmationFunction>& GetConfirmationMap();
 
-const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
-GetTFToNgOpMap();
-
 }  // namespace ngraph_bridge
 }  // namespace tensorflow
