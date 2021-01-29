@@ -33,6 +33,7 @@
 #include "ngraph_builder.h"
 #include "ngraph_conversions.h"
 #include "pass/transpose_sinking.h"
+#include "tf_utils.h"
 #include "utils.h"
 
 using tensorflow::int32;
