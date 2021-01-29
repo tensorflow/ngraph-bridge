@@ -96,7 +96,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx, ctx->GetAttr<int>("ngraph_cluster", &m_cluster_id));
   std::ostringstream oss;
   oss << "Encapsulate_" << m_cluster_id << ": " << name();
-  NG_TRACE(oss.str(), name(), "");
 
   NGRAPH_VLOG(1) << "NGraphEncapsulateOp: " << m_cluster_id
                  << " Name: " << name();
@@ -191,7 +190,6 @@ NGraphEncapsulateOp::NGraphEncapsulateOp(OpKernelConstruction* ctx)
 NGraphEncapsulateOp::~NGraphEncapsulateOp() {
   std::ostringstream oss;
   oss << "Destroy Encapsulate_" << m_cluster_id << ": " << name();
-  NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(2) << "~NGraphEncapsulateOp::" << name();
   m_ng_exec_map.clear();
 }
@@ -200,7 +198,6 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   NGRAPH_VLOG(1) << "Compute using executor " << name();
   std::ostringstream oss;
   oss << "Execute: Encapsulate_" << m_cluster_id << ": " << name();
-  NG_TRACE(oss.str(), name(), "");
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute starting for cluster "
                  << m_cluster_id;
 
@@ -213,24 +210,21 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   std::vector<Tensor> tf_input_tensors;
   std::shared_ptr<Executable> ng_exec;
   int step_id;
-  {
-    NG_TRACE("FunctionMaybeCreate", name(), "");
-    for (int i = 0; i < ctx->num_inputs(); i++) {
-      tf_input_tensors.push_back(ctx->input(i));
-    }
-
-    step_id = ctx->step_id();
-
-    // Get ngraph executable and inputs information
-    OP_REQUIRES_OK(ctx, GetExecutable(tf_input_tensors, ng_exec));
-
-    NGRAPH_VLOG(1) << " Step_ID: " << step_id;
-    NGRAPH_VLOG(4)
-        << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
-        << m_cluster_id;
-
-    time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
+  for (int i = 0; i < ctx->num_inputs(); i++) {
+    tf_input_tensors.push_back(ctx->input(i));
   }
+
+  step_id = ctx->step_id();
+
+  // Get ngraph executable and inputs information
+  OP_REQUIRES_OK(ctx, GetExecutable(tf_input_tensors, ng_exec));
+
+  NGRAPH_VLOG(1) << " Step_ID: " << step_id;
+  NGRAPH_VLOG(4)
+      << "NGraphEncapsulateOp::Compute got ngraph executable for cluster "
+      << m_cluster_id;
+
+  time_func_create_or_lookup = function_lookup_or_create.ElapsedInMS();
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute got graph for cluster "
                  << m_cluster_id;
@@ -238,24 +232,20 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   Timer create_or_lookup_tensors;
   vector<shared_ptr<ngraph::runtime::Tensor>> ng_inputs;
   int ng_input_tensor_size_in_bytes = 0;
-  {
-    NG_TRACE("Input: maybe create", name(), "");
-    // Allocate tensors for input arguments.
-    for (int i = 0; i < tf_input_tensors.size(); i++) {
-      ngraph::Shape ng_shape(tf_input_tensors[i].shape().dims());
-      for (int j = 0; j < tf_input_tensors[i].shape().dims(); ++j) {
-        ng_shape[j] = tf_input_tensors[i].shape().dim_size(j);
-      }
-      ngraph::element::Type ng_element_type;
-      OP_REQUIRES_OK(ctx, tf_utils::TFDataTypeToNGraphElementType(
-                              tf_input_tensors[i].dtype(), &ng_element_type));
-
-      auto backend = BackendManager::GetBackend();
-      std::shared_ptr<ngraph::runtime::Tensor> ng_tensor =
-          make_shared<IETensor>(ng_element_type, ng_shape,
-                                tf_input_tensors[i].data());
-      ng_inputs.push_back(ng_tensor);
+  // Allocate tensors for input arguments.
+  for (int i = 0; i < tf_input_tensors.size(); i++) {
+    ngraph::Shape ng_shape(tf_input_tensors[i].shape().dims());
+    for (int j = 0; j < tf_input_tensors[i].shape().dims(); ++j) {
+      ng_shape[j] = tf_input_tensors[i].shape().dim_size(j);
     }
+    ngraph::element::Type ng_element_type;
+    OP_REQUIRES_OK(ctx, tf_utils::TFDataTypeToNGraphElementType(
+                            tf_input_tensors[i].dtype(), &ng_element_type));
+
+    auto backend = BackendManager::GetBackend();
+    std::shared_ptr<ngraph::runtime::Tensor> ng_tensor = make_shared<IETensor>(
+        ng_element_type, ng_shape, tf_input_tensors[i].data());
+    ng_inputs.push_back(ng_tensor);
   }
 
   NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute allocated argument tensors "
@@ -310,24 +300,20 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   // Execute the nGraph function.
   int time_execute_function;
   {
-    NG_TRACE("Execute nGraph", name(), "");
     Timer execute_function;
-    {
-      NGRAPH_VLOG(4)
-          << "NGraphEncapsulateOp::Compute call starting for cluster "
-          << m_cluster_id;
-      try {
-        ng_exec->Call(ng_inputs, ng_outputs);
-      } catch (const std::exception& exp) {
-        string status_string = "Caught exception while executing cluster " +
-                               to_string(m_cluster_id) + ": " +
-                               string(exp.what());
-        OP_REQUIRES(ctx, false, errors::Internal(status_string));
-      } catch (...) {
-        string status_string = "Caught exception while executing cluster " +
-                               to_string(m_cluster_id);
-        OP_REQUIRES(ctx, false, errors::Internal(status_string));
-      }
+    NGRAPH_VLOG(4) << "NGraphEncapsulateOp::Compute call starting for cluster "
+                   << m_cluster_id;
+    try {
+      ng_exec->Call(ng_inputs, ng_outputs);
+    } catch (const std::exception& exp) {
+      string status_string = "Caught exception while executing cluster " +
+                             to_string(m_cluster_id) + ": " +
+                             string(exp.what());
+      OP_REQUIRES(ctx, false, errors::Internal(status_string));
+    } catch (...) {
+      string status_string =
+          "Caught exception while executing cluster " + to_string(m_cluster_id);
+      OP_REQUIRES(ctx, false, errors::Internal(status_string));
     }
     time_execute_function = execute_function.ElapsedInMS();
   }
@@ -433,7 +419,6 @@ Status NGraphEncapsulateOp::GetExecutable(
       m_lru.pop_back();
     }  // cache eviction if cache size greater than cache depth
 
-    NG_TRACE("Compile nGraph", m_name, "");
     try {
       ng_exec = backend->Compile(ng_function);
     } catch (const std::exception& ex) {
