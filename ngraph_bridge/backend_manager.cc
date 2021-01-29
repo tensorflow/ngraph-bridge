@@ -25,7 +25,6 @@ namespace tensorflow {
 namespace ngraph_bridge {
 
 shared_ptr<Backend> BackendManager::m_backend;
-string BackendManager::m_backend_name;
 mutex BackendManager::m_backend_mutex;
 
 BackendManager::~BackendManager() {
@@ -44,7 +43,6 @@ void BackendManager::SetBackend(const string& backend_name) {
 
   lock_guard<mutex> lock(m_backend_mutex);
   m_backend = backend;
-  m_backend_name = bname;
 }
 
 shared_ptr<Backend> BackendManager::GetBackend() {
@@ -59,20 +57,6 @@ shared_ptr<Backend> BackendManager::GetBackend() {
   }
   lock_guard<mutex> lock(m_backend_mutex);
   return m_backend;
-}
-
-void BackendManager::GetBackendName(string& backend_name) {
-  NGRAPH_VLOG(2) << "BackendManager::GetBackendName()";
-  if (m_backend == nullptr) {
-    try {
-      SetBackend();
-    } catch (const std::exception& e) {
-      NGRAPH_VLOG(0) << "Failed to get backend name: " << e.what();
-      throw runtime_error("Failed to get backend name: " + string(e.what()));
-    }
-  }
-  lock_guard<mutex> lock(m_backend_mutex);
-  backend_name = m_backend_name;
 }
 
 void BackendManager::CreateBackend(shared_ptr<Backend>& backend,

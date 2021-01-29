@@ -893,11 +893,10 @@ Status MarkForClustering(Graph* graph,
                                               is_supported));
 
       if (!is_supported) {
-        string backend;
-        BackendManager::GetBackendName(backend);
         NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
                        << node->type_string()
-                       << " is not supported by backend: " << backend;
+                       << " is not supported by backend: "
+                       << op_backend->name();
         break;
       }
 

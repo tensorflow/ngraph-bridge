@@ -41,9 +41,6 @@ class BackendManager {
   // Returns the currently set backend
   static shared_ptr<Backend> GetBackend();
 
-  // Returns the currently set backend's name
-  static void GetBackendName(string& backend_name);
-
   ~BackendManager();
 
  private:
@@ -51,7 +48,6 @@ class BackendManager {
   static void CreateBackend(shared_ptr<Backend>& backend, string& backend_name);
 
   static shared_ptr<Backend> m_backend;
-  static string m_backend_name;
   static mutex m_backend_mutex;
 };
 

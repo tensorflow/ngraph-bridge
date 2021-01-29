@@ -85,13 +85,12 @@ bool SetBackend(const string& type) {
 }
 
 string GetBackend() {
-  string backend;
   try {
-    BackendManager::GetBackendName(backend);
+    auto backend = BackendManager::GetBackend();
+    return backend->name();
   } catch (...) {
     return "";
   }
-  return backend;
 }
 
 void StartLoggingPlacement() { _is_logging_placement = true; }
