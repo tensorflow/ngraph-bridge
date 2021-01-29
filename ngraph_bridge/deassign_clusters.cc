@@ -32,7 +32,7 @@
 #include "deassign_clusters.h"
 #include "log.h"
 #include "mark_for_clustering.h"
-#include "utils.h"
+#include "tf_utils.h"
 
 using namespace std;
 
@@ -121,7 +121,7 @@ static void MaybeLogPlacement(const Graph* graph) {
 
   // log the ops gets deassigned
   std::cout << "NGTF_SUMMARY: Op_deassigned: ";
-  util::PrintNodeHistogram(deassigned_histogram);
+  tf_utils::PrintNodeHistogram(deassigned_histogram);
 
   for (auto kv : final_cluster_map) {
     int cluster_idx = kv.first;

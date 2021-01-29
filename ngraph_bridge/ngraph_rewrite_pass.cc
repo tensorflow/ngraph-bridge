@@ -29,7 +29,7 @@
 #include "log.h"
 #include "mark_for_clustering.h"
 #include "ngraph_rewrite_pass.h"
-#include "utils.h"
+#include "tf_utils.h"
 
 using namespace std;
 
@@ -57,14 +57,14 @@ Status NGraphRewritePass::Rewrite(
   // runs of this pass.
   int idx = FreshIndex();
   // If requested, dump unmarked graphs.
-  util::DumpTFGraph(graph, idx, "unmarked");
+  tf_utils::DumpTFGraph(graph, idx, "unmarked");
 
   // If ngraph is disabled via ngraph_bridge api or NGRAPH_TF_DISABLE is set
   // we will not do anything; all subsequent
   // passes become a no-op.
   bool ngraph_not_enabled =
       (!api::IsEnabled()) || (std::getenv("NGRAPH_TF_DISABLE") != nullptr);
-  bool already_processed = util::IsAlreadyProcessed(graph);
+  bool already_processed = tf_utils::IsAlreadyProcessed(graph);
   if (!already_processed && ngraph_not_enabled) {
     NGRAPH_VLOG(0) << "NGraph is available but disabled.";
   }
@@ -78,17 +78,17 @@ Status NGraphRewritePass::Rewrite(
 
   // Now Process the Graph
 
-  // 1. Mark for clustering then, if requested, dump the graphs.
+  // // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(MarkForClustering(graph, skip_these_nodes));
-  util::DumpTFGraph(graph, idx, "marked");
+  tf_utils::DumpTFGraph(graph, idx, "marked");
 
   // 2. Assign clusters then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(AssignClusters(graph));
-  util::DumpTFGraph(graph, idx, "clustered");
+  tf_utils::DumpTFGraph(graph, idx, "clustered");
 
   // 3. Deassign trivial clusters then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(DeassignClusters(graph));
-  util::DumpTFGraph(graph, idx, "declustered");
+  tf_utils::DumpTFGraph(graph, idx, "declustered");
 
   // 4. Encapsulate clusters then, if requested, dump the graphs.
   auto status = EncapsulateClusters(graph, idx, config_map);
@@ -96,7 +96,7 @@ Status NGraphRewritePass::Rewrite(
     return status;
   }
 
-  util::DumpTFGraph(graph, idx, "encapsulated");
+  tf_utils::DumpTFGraph(graph, idx, "encapsulated");
   return Status::OK();
 }
 

@@ -436,8 +436,8 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
   set<shared_ptr<ngraph::Node>> transposes_to_delete;
   unordered_map<std::string, ngraph::Shape> orig_result_out_shape;
 
-  if (util::DumpAllGraphs()) {
-    util::DumpNGGraph(f, f->get_friendly_name() + "_before_TS");
+  if (utils::DumpAllGraphs()) {
+    utils::DumpNGGraph(f, f->get_friendly_name() + "_before_TS");
   }
 
   // STEP 1 : Sink or Swim transposes away for op clusters
@@ -489,8 +489,8 @@ bool TransposeSinking::run_on_function(shared_ptr<ngraph::Function> f) {
                  orig_result_out_shape[r->get_name()]);
   }
 
-  if (util::DumpAllGraphs()) {
-    util::DumpNGGraph(f, f->get_friendly_name() + "_after_TS");
+  if (utils::DumpAllGraphs()) {
+    utils::DumpNGGraph(f, f->get_friendly_name() + "_after_TS");
   }
   return true;
 }

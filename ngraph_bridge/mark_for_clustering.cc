@@ -18,7 +18,8 @@
 #include "api.h"
 #include "backend_manager.h"
 #include "default_opset.h"
-#include "utils.h"
+#include "log.h"
+#include "tf_utils.h"
 
 using namespace std;
 
@@ -920,11 +921,11 @@ Status MarkForClustering(Graph* graph,
     std::cout << "\n=============New sub-graph logs=============\n";
     // print summary for nodes failed to be marked
     std::cout << "NGTF_SUMMARY: Op_not_supported: ";
-    util::PrintNodeHistogram(no_support_histogram);
+    tf_utils::PrintNodeHistogram(no_support_histogram);
     std::cout << "NGTF_SUMMARY: Op_failed_confirmation: ";
-    util::PrintNodeHistogram(fail_confirmation_histogram);
+    tf_utils::PrintNodeHistogram(fail_confirmation_histogram);
     std::cout << "NGTF_SUMMARY: Op_failed_type_constraint: ";
-    util::PrintNodeHistogram(fail_constraint_histogram);
+    tf_utils::PrintNodeHistogram(fail_constraint_histogram);
   }
 
   for (auto node : nodes_marked_for_clustering) {

@@ -35,6 +35,7 @@
 #include "ngraph_bridge/log.h"
 #include "ngraph_bridge/mark_for_clustering.h"
 #include "ngraph_bridge/ngraph_builder.h"
+#include "ngraph_bridge/tf_utils.h"
 #include "ngraph_bridge/timer.h"
 #include "ngraph_bridge/utils.h"
 
@@ -246,7 +247,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
         ng_shape[j] = tf_input_tensors[i].shape().dim_size(j);
       }
       ngraph::element::Type ng_element_type;
-      OP_REQUIRES_OK(ctx, util::TFDataTypeToNGraphElementType(
+      OP_REQUIRES_OK(ctx, tf_utils::TFDataTypeToNGraphElementType(
                               tf_input_tensors[i].dtype(), &ng_element_type));
 
       auto backend = BackendManager::GetBackend();
@@ -291,9 +292,9 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
     // expected.
     ngraph::element::Type expected_elem_type;
     auto ng_element_type = ng_element->get_element_type();
-    OP_REQUIRES_OK(
-        ctx, util::TFDataTypeToNGraphElementType(ctx->expected_output_dtype(i),
-                                                 &expected_elem_type));
+    OP_REQUIRES_OK(ctx,
+                   tf_utils::TFDataTypeToNGraphElementType(
+                       ctx->expected_output_dtype(i), &expected_elem_type));
     OP_REQUIRES(
         ctx, ng_element_type == expected_elem_type,
         errors::Internal("Element type inferred by nGraph does not match "
@@ -348,7 +349,7 @@ void NGraphEncapsulateOp::Compute(OpKernelContext* ctx) {
   }
 
   long vm, rss;
-  util::MemoryProfile(vm, rss);
+  utils::MemoryProfile(vm, rss);
   NGRAPH_VLOG(1) << "NGRAPH_TF_MEM_PROFILE:  OP_ID: " << m_cluster_id
                  << " Step_ID: " << step_id << " Cluster: " << name()
                  << " Input Tensors created: "
@@ -395,7 +396,7 @@ Status NGraphEncapsulateOp::GetExecutable(
     if (m_input_is_static[i]) {
       static_input_map[i] = &tf_input_tensors[i];
       TF_RETURN_IF_ERROR(
-          util::TensorToStream(signature_ss, tf_input_tensors[i]));
+          tf_utils::TensorToStream(signature_ss, tf_input_tensors[i]));
       signature_ss << ";";
     }
   }
@@ -411,12 +412,12 @@ Status NGraphEncapsulateOp::GetExecutable(
   if (it == m_ng_exec_map.end()) {
     // Measure the current total memory usage
     long vm, rss, vm0, rss0;
-    util::MemoryProfile(vm0, rss0);
+    utils::MemoryProfile(vm0, rss0);
 
     NGRAPH_VLOG(1) << "Compilation cache miss: " << m_name;
     TF_RETURN_IF_ERROR(Builder::TranslateGraph(input_shapes, static_input_map,
                                                &m_graph, m_name, ng_function));
-    util::DumpNGGraph(ng_function, m_name);
+    utils::DumpNGGraph(ng_function, m_name);
 
     // Evict the cache if the number of elements exceeds the limit
     std::shared_ptr<Executable> evicted_ng_exec;
@@ -444,7 +445,7 @@ Status NGraphEncapsulateOp::GetExecutable(
     m_lru.push_front(signature);
 
     // Memory after
-    util::MemoryProfile(vm, rss);
+    utils::MemoryProfile(vm, rss);
     auto delta_vm_mem = vm - vm0;
     auto delta_res_mem = rss - rss0;
     NGRAPH_VLOG(1) << "NGRAPH_TF_CACHE_PROFILE: OP_ID: " << m_cluster_id

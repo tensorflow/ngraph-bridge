@@ -130,10 +130,10 @@ Executable::Executable(shared_ptr<Function> func, string device)
   InferenceEngine::Core ie;
   std::map<string, string> options;
 
-  if (util::DumpAllGraphs()) {
+  if (utils::DumpAllGraphs()) {
     auto& name = m_function->get_friendly_name();
     m_network.serialize(name + ".xml", name + ".bin");
-    util::DumpNGGraph(func, name + "_executable");
+    utils::DumpNGGraph(func, name + "_executable");
     if (m_device == "CPU") {
       options[InferenceEngine::PluginConfigParams::KEY_DUMP_EXEC_GRAPH_AS_DOT] =
           name + "_IE_" + m_device;
