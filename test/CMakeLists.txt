@@ -72,8 +72,9 @@ set(SRC
     graph_rewrites/assign_clusters.cc
     graph_rewrites/deadness_test.cc
     graph_rewrites/backend_manager_test.cc
-    graph_rewrites/encapsulate_clusters_test.cc
+    graph_rewrites/config_for_grappler_test.cc
     graph_rewrites/disable_ops_test.cc
+    graph_rewrites/encapsulate_clusters_test.cc
     graph_rewrites/mark_for_clustering_test.cc
     graph_rewrites/op_by_op_capability_test.cc
     test_utilities.cpp
@@ -84,10 +85,6 @@ set(SRC
     test_thread_safe_queue.cc
     pass/transpose_sinking_test.cpp
 )
-
-if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
-    list(APPEND SRC graph_rewrites/config_for_grappler_test.cc)
-endif()
 
 # The compile flag -DNDEBUG is required since
 # tensorflow::Core::RefCounted is error prone as explained here:

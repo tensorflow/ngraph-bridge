@@ -33,8 +33,6 @@ import ngraph_bridge
 
 class TestUpdateConfig(NgraphTest):
 
-    @pytest.mark.skipif(
-        not ngraph_bridge.is_grappler_enabled(), reason='Only for Grappler')
     def test_update_config_adds_optimizer_only_once(self):
 
         # Helper function to count the number of occurances in a config

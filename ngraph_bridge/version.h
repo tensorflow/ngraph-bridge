@@ -37,10 +37,6 @@ const char* ngraph_version();
 // _GLIBCXX_USE_CXX11_ABI set during the compilation time
 int cxx11_abi_flag();
 
-// Returns true when nGraph is using Grappler optimizer APIs for
-// graph rewriting
-bool is_grappler_enabled();
-
 // Returns the tensorflow version
 const char* tf_version();
 }

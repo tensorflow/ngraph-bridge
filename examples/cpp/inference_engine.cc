@@ -106,26 +106,8 @@ Status InferenceEngine::CreateSession(const string& graph_filename,
       ->set_constant_folding(RewriterConfig::OFF);
   options.config.set_inter_op_parallelism_threads(2);
 
-  // The following is related to Grappler - which we are turning off
-  // Until we get a library fully running
-  if (tf::ngraph_bridge::is_grappler_enabled()) {
-    auto* custom_config = options.config.mutable_graph_options()
-                              ->mutable_rewrite_options()
-                              ->add_custom_optimizers();
-
-    custom_config->set_name("ngraph-optimizer");
-    options.config.mutable_graph_options()
-        ->mutable_rewrite_options()
-        ->set_min_graph_nodes(-1);
-
-    options.config.mutable_graph_options()
-        ->mutable_rewrite_options()
-        ->set_meta_optimizer_iterations(tensorflow::RewriterConfig::ONE);
-  }
-
   // Load the network
-  Status load_graph_status = LoadGraph(graph_filename, &session, options);
-  return load_graph_status;
+  return LoadGraph(graph_filename, &session, options);
 }
 
 }  // namespace benchmark

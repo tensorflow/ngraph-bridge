@@ -45,7 +45,7 @@ __all__ = [
     'set_backend', 'get_backend',
     'start_logging_placement', 'stop_logging_placement',
     'is_logging_placement', '__version__', 'cxx11_abi_flag'
-    'is_grappler_enabled', 'update_config',
+    'update_config',
     'set_disabled_ops', 'get_disabled_ops',
 ]
 
@@ -123,7 +123,6 @@ if ngraph_classic_loaded:
     ngraph_bridge_lib.version.restype = ctypes.c_char_p
     ngraph_bridge_lib.ngraph_version.restype = ctypes.c_char_p
     ngraph_bridge_lib.cxx11_abi_flag.restype = ctypes.c_int
-    ngraph_bridge_lib.is_grappler_enabled.restype = ctypes.c_bool
     ngraph_bridge_lib.set_disabled_ops.argtypes = [ctypes.c_char_p]
     ngraph_bridge_lib.get_disabled_ops.restype = ctypes.c_char_p
 
@@ -171,38 +170,33 @@ if ngraph_classic_loaded:
     def cxx11_abi_flag():
         return ngraph_bridge_lib.cxx11_abi_flag()
 
-    def is_grappler_enabled():
-        return ngraph_bridge_lib.is_grappler_enabled()
-
     def update_config(config, backend_name = "CPU", device_id = ""):
-        #updating session config if grappler is enabled
-        if(ngraph_bridge_lib.is_grappler_enabled()):
-            opt_name = 'ngraph-optimizer'
-            # If the config already has ngraph-optimizer, then do not update it
-            if config.HasField('graph_options'):
-                if config.graph_options.HasField('rewrite_options'):
-                    custom_opts = config.graph_options.rewrite_options.custom_optimizers
-                    for i in range(len(custom_opts)):
-                        if custom_opts[i].name == opt_name:
-                            return config
-            rewriter_options = rewriter_config_pb2.RewriterConfig()
-            rewriter_options.meta_optimizer_iterations=(rewriter_config_pb2.RewriterConfig.ONE)
-            rewriter_options.min_graph_nodes=-1
-            ngraph_optimizer = rewriter_options.custom_optimizers.add()
-            ngraph_optimizer.name = opt_name
-            ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
-            config.MergeFrom(tf.compat.v1.ConfigProto(graph_options=tf.compat.v1.GraphOptions(rewrite_options=rewriter_options)))
-            # For reference, if we want to provide configuration support(backend parameters)
-            # in a python script using the ngraph-optimizer
-            # rewriter_options = rewriter_config_pb2.RewriterConfig()
-            # rewriter_options.meta_optimizer_iterations=(rewriter_config_pb2.RewriterConfig.ONE)
-            # rewriter_options.min_graph_nodes=-1
-            # ngraph_optimizer = rewriter_options.custom_optimizers.add()
-            # ngraph_optimizer.name = "ngraph-optimizer"
-            # ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
-            # ngraph_optimizer.parameter_map["max_batch_size"].s = b'64'
-            # ngraph_optimizer.parameter_map["ice_cores"].s = b'12'
-            # config.MergeFrom(tf.compat.v1.ConfigProto(graph_options=tf.compat.v1.GraphOptions(rewrite_options=rewriter_options)))
+        opt_name = 'ngraph-optimizer'
+        # If the config already has ngraph-optimizer, then do not update it
+        if config.HasField('graph_options'):
+            if config.graph_options.HasField('rewrite_options'):
+                custom_opts = config.graph_options.rewrite_options.custom_optimizers
+                for i in range(len(custom_opts)):
+                    if custom_opts[i].name == opt_name:
+                        return config
+        rewriter_options = rewriter_config_pb2.RewriterConfig()
+        rewriter_options.meta_optimizer_iterations=(rewriter_config_pb2.RewriterConfig.ONE)
+        rewriter_options.min_graph_nodes=-1
+        ngraph_optimizer = rewriter_options.custom_optimizers.add()
+        ngraph_optimizer.name = opt_name
+        ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
+        config.MergeFrom(tf.compat.v1.ConfigProto(graph_options=tf.compat.v1.GraphOptions(rewrite_options=rewriter_options)))
+        # For reference, if we want to provide configuration support(backend parameters)
+        # in a python script using the ngraph-optimizer
+        # rewriter_options = rewriter_config_pb2.RewriterConfig()
+        # rewriter_options.meta_optimizer_iterations=(rewriter_config_pb2.RewriterConfig.ONE)
+        # rewriter_options.min_graph_nodes=-1
+        # ngraph_optimizer = rewriter_options.custom_optimizers.add()
+        # ngraph_optimizer.name = "ngraph-optimizer"
+        # ngraph_optimizer.parameter_map["device_id"].s = device_id.encode()
+        # ngraph_optimizer.parameter_map["max_batch_size"].s = b'64'
+        # ngraph_optimizer.parameter_map["ice_cores"].s = b'12'
+        # config.MergeFrom(tf.compat.v1.ConfigProto(graph_options=tf.compat.v1.GraphOptions(rewrite_options=rewriter_options)))
         return config
 
     def set_disabled_ops(unsupported_ops):
@@ -215,5 +209,4 @@ if ngraph_classic_loaded:
     "nGraph bridge version: " + str(ngraph_bridge_lib.version()) + "\n" + \
     "nGraph version used for this build: " + str(ngraph_bridge_lib.ngraph_version()) + "\n" + \
     "TensorFlow version used for this build: " + TF_GIT_VERSION_BUILT_WITH + "\n" \
-    "CXX11_ABI flag used for this build: " + str(ngraph_bridge_lib.cxx11_abi_flag()) + "\n" \
-    "nGraph bridge built with Grappler: " + str(ngraph_bridge_lib.is_grappler_enabled()) + "\n" \
+    "CXX11_ABI flag used for this build: " + str(ngraph_bridge_lib.cxx11_abi_flag()) + "\n"

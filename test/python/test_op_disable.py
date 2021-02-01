@@ -51,30 +51,25 @@ class TestOpDisableOperations(NgraphTest):
     @pytest.mark.parametrize(("invalid_op_list",), (('Add,_InvalidOp',),
                                                     ('_nGraphEncapsulate',)))
     def test_disable_op_2(self, invalid_op_list):
-        # This test is disabled for grappler because grappler fails silently and
-        # TF continues to run with the unoptimized graph
-        # Note, tried setting fail_on_optimizer_errors, but grappler still failed silently
-        # TODO: enable this test for grappler as well.
-        if (not ngraph_bridge.is_grappler_enabled()):
-            ngraph_bridge.set_disabled_ops(invalid_op_list)
-            a = tf.compat.v1.placeholder(tf.int32, shape=(5,))
-            b = tf.constant(np.ones((5,)), dtype=tf.int32)
-            c = a + b
+        ngraph_bridge.set_disabled_ops(invalid_op_list)
+        a = tf.compat.v1.placeholder(tf.int32, shape=(5,))
+        b = tf.constant(np.ones((5,)), dtype=tf.int32)
+        c = a + b
 
-            def run_test(sess):
-                return sess.run(c, feed_dict={a: np.ones((5,))})
+        def run_test(sess):
+            return sess.run(c, feed_dict={a: np.ones((5,))})
 
-            assert (self.without_ngraph(run_test) == np.ones(5,) * 2).all()
-            #import pdb; pdb.set_trace()
-            try:
-                # This test is expected to fail,
-                # since all the strings passed to set_disabled_ops have invalid ops in them
-                res = self.with_ngraph(run_test)
-            except:
-                # Clean up
-                ngraph_bridge.set_disabled_ops('')
-                return
-            assert False, 'Had expected test to raise error'
+        assert (self.without_ngraph(run_test) == np.ones(5,) * 2).all()
+        #import pdb; pdb.set_trace()
+        try:
+            # This test is expected to fail,
+            # since all the strings passed to set_disabled_ops have invalid ops in them
+            res = self.with_ngraph(run_test)
+        except:
+            # Clean up
+            ngraph_bridge.set_disabled_ops('')
+            return
+        assert False, 'Had expected test to raise error'
 
     def test_disable_op_env(self):
         op_list = 'Select,Where'
