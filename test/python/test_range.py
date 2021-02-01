@@ -40,5 +40,5 @@ class TestRangeOperations(NgraphTest):
         def run_test(sess):
             return sess.run(out)
 
-        assert (self.with_ngraph(run_test) == self.without_ngraph(run_test)
-                ).all()
+        assert (
+            self.with_ngraph(run_test) == self.without_ngraph(run_test)).all()
