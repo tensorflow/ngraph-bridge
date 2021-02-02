@@ -62,14 +62,14 @@ class TestOpDisableOperations(NgraphTest):
         assert (self.without_ngraph(run_test) == np.ones(5,) * 2).all()
         #import pdb; pdb.set_trace()
         try:
-            # This test is expected to fail,
-            # since all the strings passed to set_disabled_ops have invalid ops in them
+            # This test is expected to pass even though
+            # all the strings passed to set_disabled_ops have invalid ops in them
             res = self.with_ngraph(run_test)
         except:
-            # Clean up
-            ngraph_bridge.set_disabled_ops('')
-            return
-        assert False, 'Had expected test to raise error'
+            assert False, 'Had expected test to raise error'
+
+        ngraph_bridge.set_disabled_ops('')
+        return
 
     def test_disable_op_env(self):
         op_list = 'Select,Where'
