@@ -58,7 +58,7 @@ extern void StartLoggingPlacement();
 extern void StopLoggingPlacement();
 extern bool IsLoggingPlacement();
 
-__attribute((abi_tag("cxx11"))) extern std::set<string> GetDisabledOps();
+extern std::set<string> GetDisabledOps();
 
 extern void SetDisabledOps(std::set<string>);
 extern void SetDisabledOps(string);
