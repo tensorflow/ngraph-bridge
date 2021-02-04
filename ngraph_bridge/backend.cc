@@ -14,12 +14,12 @@
 // limitations under the License.
 //*****************************************************************************
 
+#include <ie_core.hpp>
+#include "ngraph/ngraph.hpp"
+
 #include "backend.h"
 #include "default_opset.h"
 #include "log.h"
-
-#include <ie_core.hpp>
-#include "ngraph/ngraph.hpp"
 
 using namespace std;
 using namespace ngraph;

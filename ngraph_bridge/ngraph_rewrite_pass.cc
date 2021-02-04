@@ -78,7 +78,7 @@ Status NGraphRewritePass::Rewrite(
 
   // Now Process the Graph
 
-  // // 1. Mark for clustering then, if requested, dump the graphs.
+  // 1. Mark for clustering then, if requested, dump the graphs.
   TF_RETURN_IF_ERROR(MarkForClustering(graph, skip_these_nodes));
   tf_utils::DumpTFGraph(graph, idx, "marked");
 
