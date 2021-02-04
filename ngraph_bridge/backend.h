@@ -37,7 +37,7 @@ class Backend {
                                  bool enable_performance_data = false);
 
   bool IsSupported(const char*) const;
-  string& name() { return m_device; }
+  string& Name() { return m_device; }
 
  private:
   string m_device;

@@ -678,7 +678,7 @@ Status MarkForClustering(Graph* graph,
         NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
                        << node->type_string()
                        << " is not supported by backend: "
-                       << op_backend->name();
+                       << op_backend->Name();
         break;
       }
 

@@ -43,7 +43,7 @@ TEST(BackendManager, SetBackend) {
 
   EXPECT_NO_THROW(BackendManager::SetBackend("CPU"));
   auto backend = BackendManager::GetBackend();
-  ASSERT_EQ(backend->name(), "CPU");
+  ASSERT_EQ(backend->Name(), "CPU");
   EXPECT_ANY_THROW(BackendManager::SetBackend("temp"));
 
   // Clean Up
@@ -57,30 +57,30 @@ TEST(BackendManager, GetBackend) {
 
   EXPECT_NO_THROW(BackendManager::SetBackend("CPU"));
   auto backend = BackendManager::GetBackend();
-  ASSERT_EQ(backend->name(), "CPU");
+  ASSERT_EQ(backend->Name(), "CPU");
 
   // expected ERROR
   SetBackendUsingEnvVar("DUMMY");
   backend = BackendManager::GetBackend();
-  ASSERT_EQ(backend->name(), "CPU");
+  ASSERT_EQ(backend->Name(), "CPU");
 
   // set env variable to ""
   SetBackendUsingEnvVar("");
   backend = BackendManager::GetBackend();
-  ASSERT_EQ(backend->name(), "CPU");
+  ASSERT_EQ(backend->Name(), "CPU");
 
   // set backend to dummy and env variable to CPU
   // expected CPU
   EXPECT_ANY_THROW(BackendManager::SetBackend("DUMMY"));
   SetBackendUsingEnvVar("CPU");
   backend = BackendManager::GetBackend();
-  ASSERT_EQ(backend->name(), "CPU");
+  ASSERT_EQ(backend->Name(), "CPU");
 
   // unset env variable
   // expected interpreter
   UnsetBackendUsingEnvVar();
   backend = BackendManager::GetBackend();
-  ASSERT_EQ(backend->name(), "CPU");
+  ASSERT_EQ(backend->Name(), "CPU");
 
   // Clean up
   UnsetBackendUsingEnvVar();

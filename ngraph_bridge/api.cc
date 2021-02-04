@@ -87,7 +87,7 @@ bool SetBackend(const string& type) {
 string GetBackend() {
   try {
     auto backend = BackendManager::GetBackend();
-    return backend->name();
+    return backend->Name();
   } catch (...) {
     return "";
   }
