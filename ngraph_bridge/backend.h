@@ -35,7 +35,9 @@ class Backend {
 
   shared_ptr<Executable> Compile(shared_ptr<ngraph::Function> func,
                                  bool enable_performance_data = false);
-  bool IsSupported(const ngraph::Node& node) const;
+
+  bool IsSupported(const char*) const;
+  string& Name() { return m_device; }
 
  private:
   string m_device;

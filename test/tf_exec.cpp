@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+#include <thread>
 #include "gtest/gtest.h"
 
 #include "tensorflow/cc/client/client_session.h"

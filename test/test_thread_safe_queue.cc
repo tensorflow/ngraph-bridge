@@ -23,7 +23,6 @@
 
 #include "../examples/cpp/thread_safe_queue.h"
 #include "gtest/gtest.h"
-#include "ngraph_bridge/utils.h"
 
 using namespace std;
 
@@ -47,20 +46,15 @@ TEST(ThreadSafeQueue, Simple) {
   // Create two threads
   auto consumer = [&]() {
     while (item_count < 3) {
-      {
-        NG_TRACE("Consumer", "Do Wait", "");
-        while (consumer_do_wait) {
-          // cout << "\033[1;32mConsumer waiting\033[0m\n";
-          absl::SleepFor(absl::Milliseconds(1));
-        }
+      while (consumer_do_wait) {
+        // cout << "\033[1;32mConsumer waiting\033[0m\n";
+        absl::SleepFor(absl::Milliseconds(1));
       }
 
-      {
-        NG_TRACE("Consumer", "Waiting", "");
-        consumer_state = WAITING_FOR_ITEM;
-        // cout << "\033[1;32mWaiting\033[0m" << endl;
-        queue.GetNextAvailable();
-      }
+      consumer_state = WAITING_FOR_ITEM;
+      // cout << "\033[1;32mWaiting\033[0m" << endl;
+      queue.GetNextAvailable();
+
       // cout << "\033[1;32mGot Item: " << item_count << "\033[0m\n";
       item_count++;
       consumer_state = GOT_ITEM;
@@ -73,22 +67,16 @@ TEST(ThreadSafeQueue, Simple) {
   };
 
   std::thread thread0(consumer);
-  {
-    NG_TRACE("Producer", "Waiting", "");
-    // Ensure that the consumer is in waiting state
-    ASSERT_TRUE(consumer_do_wait);
+  // Ensure that the consumer is in waiting state
+  ASSERT_TRUE(consumer_do_wait);
 
-    consumer_do_wait = false;
-    while (consumer_state != WAITING_FOR_ITEM) {
-      absl::SleepFor(absl::Milliseconds(1));
-    }
+  consumer_do_wait = false;
+  while (consumer_state != WAITING_FOR_ITEM) {
+    absl::SleepFor(absl::Milliseconds(1));
   }
 
   // cout << "Now adding an item\n";
-  {
-    NG_TRACE("Producer", "Add", "");
-    queue.Add(nullptr);
-  }
+  queue.Add(nullptr);
   // Wait until the consumer has a chance to move forward
   // cout << "Producer: Waiting for consumer to get ready" << endl;
 
@@ -100,11 +88,8 @@ TEST(ThreadSafeQueue, Simple) {
   // The consumer is now waiting again until consumer_do_wait is signaled
   // Add two more items
   // //cout << "Now adding two items\n";
-  {
-    NG_TRACE("Producer", "Add-2", "");
-    queue.Add(nullptr);
-    queue.Add(nullptr);
-  }
+  queue.Add(nullptr);
+  queue.Add(nullptr);
 
   // cout << "Producer: Waiting for consumer to get ready" << endl;
 

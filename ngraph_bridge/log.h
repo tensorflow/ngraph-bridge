@@ -18,7 +18,6 @@
 
 #include <sstream>
 #include <string>
-#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/default/logging.h"
 #include "tensorflow/core/platform/macros.h"
 

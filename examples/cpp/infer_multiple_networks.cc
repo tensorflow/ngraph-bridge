@@ -35,7 +35,6 @@
 
 #include "ngraph_bridge/backend_manager.h"
 #include "ngraph_bridge/timer.h"
-#include "ngraph_bridge/utils.h"
 #include "ngraph_bridge/version.h"
 
 #include "inference_engine.h"
@@ -60,15 +59,6 @@ void PrintAvailableBackends() {
   for (auto& backend_name : backends) {
     cout << "Backend: " << backend_name << std::endl;
   }
-}
-
-// Sets the specified backend. This backend must be set BEFORE running
-// the computation
-tf::Status SetNGraphBackend(const string& backend_name) {
-  // Select a backend
-  tf::Status status =
-      tf::ngraph_bridge::BackendManager::SetBackend(backend_name);
-  return status;
 }
 
 void PrintVersion() {
@@ -154,12 +144,6 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  const char* backend = "CPU";
-  if (SetNGraphBackend(backend) != tf::Status::OK()) {
-    std::cout << "Error: Cannot set the backend: " << backend << std::endl;
-    return -1;
-  }
-
   std::cout << "Component versions\n";
   PrintVersion();
 
@@ -190,27 +174,23 @@ int main(int argc, char** argv) {
   TF_CHECK_OK(benchmark::InferenceEngine::CreateSession(graph, session_three));
   session_db[session_three.get()] = "Three";
   std::vector<Tensor> outputs;
-  {
-    NG_TRACE("Compilation", "Compilation", "");
-
-    //
-    // Warm-up i.e., Call it onces to get the nGraph compilation done
-    //
-    Tensor next_image;
-    TF_CHECK_OK(inference_engine.GetNextImage(next_image));
-    // Run inference once. This will trigger a compilation
-    tf::ngraph_bridge::Timer compilation_time;
-    TF_CHECK_OK(session_one->Run({{input_layer, next_image}}, {output_layer},
+  //
+  // Warm-up i.e., Call it onces to get the nGraph compilation done
+  //
+  Tensor next_image;
+  TF_CHECK_OK(inference_engine.GetNextImage(next_image));
+  // Run inference once. This will trigger a compilation
+  tf::ngraph_bridge::Timer compilation_time;
+  TF_CHECK_OK(session_one->Run({{input_layer, next_image}}, {output_layer}, {},
+                               &outputs));
+  TF_CHECK_OK(session_two->Run({{input_layer, next_image}}, {output_layer}, {},
+                               &outputs));
+  TF_CHECK_OK(session_three->Run({{input_layer, next_image}}, {output_layer},
                                  {}, &outputs));
-    TF_CHECK_OK(session_two->Run({{input_layer, next_image}}, {output_layer},
-                                 {}, &outputs));
-    TF_CHECK_OK(session_three->Run({{input_layer, next_image}}, {output_layer},
-                                   {}, &outputs));
-    compilation_time.Stop();
+  compilation_time.Stop();
 
-    cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
-         << endl;
-  }
+  cout << "Compilation took: " << compilation_time.ElapsedInMS() << " ms"
+       << endl;
   //
   // Add these sessions to the queue
   //
@@ -237,8 +217,6 @@ int main(int argc, char** argv) {
     // Run the inference loop
     //-----------------------------------------
     for (int i = 0; i < iteration_count; i++) {
-      NG_TRACE(oss.str(), to_string(i), "");
-
       tf::ngraph_bridge::Timer get_image_timer;
       //
       // Get the image
@@ -251,21 +229,15 @@ int main(int argc, char** argv) {
       // Get the next available network model (i.e., session)
       //
       tf::ngraph_bridge::Timer execute_inference_timer;
-      unique_ptr<Session> next_available_session;
-      {
-        NG_TRACE("Get Session", string("Iteration") + to_string(i), "");
-        next_available_session = session_queue.GetNextAvailable();
-      }
+      unique_ptr<Session> next_available_session =
+          session_queue.GetNextAvailable();
 
       //
       // Run inference on this network model (i.e., session)
       //
-      {
-        NG_TRACE("Run Session", string("Iteration") + to_string(i), "");
-        TF_CHECK_OK(next_available_session->Run({{input_layer, next_image}},
-                                                {output_layer}, {},
-                                                &output_each_thread));
-      }
+      TF_CHECK_OK(next_available_session->Run({{input_layer, next_image}},
+                                              {output_layer}, {},
+                                              &output_each_thread));
       Session* next_session_ptr = next_available_session.get();
       session_queue.Add(move(next_available_session));
       execute_inference_timer.Stop();

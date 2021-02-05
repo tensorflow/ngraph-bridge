@@ -18,7 +18,8 @@
 #include "api.h"
 #include "backend_manager.h"
 #include "default_opset.h"
-#include "utils.h"
+#include "log.h"
+#include "tf_utils.h"
 
 using namespace std;
 
@@ -168,32 +169,6 @@ static ConfirmationFunction FusedBatchNormConfirmationFunction() {
   };
   return cf;
 };
-
-// Check if op is supported by backend using is_supported API
-Status IsSupportedByBackend(
-    const Node* node, const shared_ptr<Backend> op_backend,
-    const std::map<std::string, std::set<shared_ptr<ngraph::Node>>>&
-        TFtoNgraphOpMap,
-    bool& is_supported) {
-  is_supported = true;
-
-  auto ng_op = TFtoNgraphOpMap.find(node->type_string());
-  if (ng_op == TFtoNgraphOpMap.end()) {
-    return errors::Internal("TF Op is not found in the map: ",
-                            node->type_string());
-  }
-
-  // Loop through the ngraph op list to query
-  for (auto it = ng_op->second.begin(); it != ng_op->second.end(); it++) {
-    // Pass ngraph node to check if backend supports this op
-    auto ret = op_backend->IsSupported(**it);
-    if (!ret) {
-      is_supported = false;
-      return Status::OK();
-    }
-  }
-  return Status::OK();
-}
 
 const std::map<std::string, SetAttributesFunction>& GetAttributeSetters() {
   //
@@ -587,192 +562,6 @@ const TypeConstraintMap& GetTypeConstraintMap() {
   return type_constraint_map;
 }
 
-const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
-GetTFToNgOpMap() {
-  // Constant Op does not have default Constructor
-  // in ngraph, so passing a dummy node
-  auto constant =
-      opset::Constant::create(ngraph::element::f32, ngraph::Shape{}, {2.0f});
-  // Map:: TF ops to NG Ops to track if all the Ngraph ops
-  // are supported by backend
-  // Update this Map if a new TF Op translation is
-  // implemented or a new Ngraph Op has been added
-  static std::map<std::string, std::set<shared_ptr<ngraph::Node>>>
-      TFtoNgraphOpMap{
-          {"Abs", {std::make_shared<opset::Abs>()}},
-          {"Acos", {std::make_shared<opset::Acos>()}},
-          {"Acosh", {std::make_shared<opset::Acosh>()}},
-          {"Add", {std::make_shared<opset::Add>()}},
-          {"AddN", {std::make_shared<opset::Add>()}},
-          {"AddV2", {std::make_shared<opset::Add>()}},
-          {"Any", {std::make_shared<opset::ReduceLogicalOr>(), constant}},
-          {"All", {std::make_shared<opset::ReduceLogicalAnd>(), constant}},
-          {"ArgMax",
-           {std::make_shared<opset::TopK>(), std::make_shared<opset::Squeeze>(),
-            constant}},
-          {"ArgMin",
-           {std::make_shared<opset::TopK>(), std::make_shared<opset::Squeeze>(),
-            constant}},
-          {"Asin", {std::make_shared<opset::Asin>()}},
-          {"Asinh", {std::make_shared<opset::Asinh>()}},
-          {"Atan", {std::make_shared<opset::Atan>()}},
-          {"Atanh", {std::make_shared<opset::Atanh>()}},
-          {"AvgPool", {std::make_shared<opset::AvgPool>()}},
-          {"BiasAdd",
-           {constant, std::make_shared<opset::Add>(),
-            std::make_shared<opset::Reshape>()}},
-          {"Cast", {std::make_shared<opset::Convert>()}},
-          {"Ceil", {std::make_shared<opset::Ceiling>()}},
-          {"ConcatV2", {std::make_shared<opset::Concat>()}},
-          {"Const", {constant}},
-          {"Conv2D",
-           {std::make_shared<opset::Transpose>(),
-            std::make_shared<opset::Convolution>()}},
-          {"Conv2DBackpropInput",
-           {std::make_shared<opset::ConvolutionBackpropData>(),
-            std::make_shared<opset::Transpose>(), constant}},
-          {"Conv3D",
-           {constant, std::make_shared<opset::Convolution>(),
-            std::make_shared<opset::Transpose>()}},
-          {"Cos", {std::make_shared<opset::Cos>()}},
-          {"Cosh", {std::make_shared<opset::Cosh>()}},
-          {"Cumsum", {std::make_shared<opset::CumSum>()}},
-          {"DepthToSpace", {std::make_shared<opset::DepthToSpace>()}},
-          {"DepthwiseConv2dNative",
-           {std::make_shared<opset::GroupConvolution>(), constant}},
-          {"Equal", {std::make_shared<opset::Equal>()}},
-          {"Exp", {std::make_shared<opset::Exp>()}},
-          {"ExpandDims", {std::make_shared<opset::Unsqueeze>()}},
-          {"Fill", {constant, std::make_shared<opset::Broadcast>()}},
-          {"Floor", {std::make_shared<opset::Floor>()}},
-          {"FloorDiv",
-           {std::make_shared<opset::Divide>(), std::make_shared<opset::Floor>(),
-            std::make_shared<opset::Broadcast>()}},
-          {"FloorMod", {std::make_shared<opset::FloorMod>()}},
-          {"FusedBatchNorm", {std::make_shared<opset::BatchNormInference>()}},
-          {"FusedBatchNormV2",
-           {constant, std::make_shared<opset::BatchNormInference>(),
-            std::make_shared<opset::Transpose>()}},
-          {"FusedBatchNormV3",
-           {constant, std::make_shared<opset::BatchNormInference>(),
-            std::make_shared<opset::Transpose>()}},
-          {"Gather", {constant, std::make_shared<opset::Gather>()}},
-          {"GatherV2", {constant, std::make_shared<opset::Gather>()}},
-          {"_FusedConv2D",
-           {std::make_shared<opset::Convolution>(), constant,
-            std::make_shared<opset::Minimum>(), std::make_shared<opset::Relu>(),
-            std::make_shared<opset::Add>(),
-            std::make_shared<opset::BatchNormInference>()}},
-          {"_FusedMatMul",
-           {std::make_shared<opset::MatMul>(), std::make_shared<opset::Relu>(),
-            std::make_shared<opset::Add>(), constant,
-            std::make_shared<opset::Minimum>()}},
-          {"Greater", {std::make_shared<opset::Greater>()}},
-          {"GreaterEqual", {std::make_shared<opset::GreaterEqual>()}},
-          {"Identity", {}},
-          {"IsFinite",
-           {constant, std::make_shared<opset::NotEqual>(),
-            std::make_shared<opset::Equal>(),
-            std::make_shared<opset::LogicalAnd>()}},
-          {"L2Loss",
-           {constant, std::make_shared<opset::Multiply>(),
-            std::make_shared<opset::ReduceSum>(),
-            std::make_shared<opset::Divide>()}},
-          {"LogSoftmax",
-           {constant, std::make_shared<opset::Exp>(),
-            std::make_shared<opset::ReduceMax>(),
-            std::make_shared<opset::ReduceSum>(),
-            std::make_shared<opset::Subtract>(),
-            std::make_shared<opset::Log>()}},
-          {"Less", {std::make_shared<opset::Less>()}},
-          {"LessEqual", {std::make_shared<opset::LessEqual>()}},
-          {"Log", {std::make_shared<opset::Log>()}},
-          {"Log1p",
-           {constant, std::make_shared<opset::Add>(),
-            std::make_shared<opset::Log>()}},
-          {"LogicalAnd", {std::make_shared<opset::LogicalAnd>()}},
-          {"LogicalNot", {std::make_shared<opset::LogicalNot>()}},
-          {"LogicalOr", {std::make_shared<opset::LogicalOr>()}},
-          {"LRN", {std::make_shared<opset::LRN>()}},
-          {"MatMul", {std::make_shared<opset::MatMul>()}},
-          {"Max", {std::make_shared<opset::ReduceMax>(), constant}},
-          {"Maximum", {std::make_shared<opset::Maximum>()}},
-          {"MaxPool",
-           {constant, std::make_shared<opset::Transpose>(),
-            std::make_shared<opset::MaxPool>()}},
-          {"MaxPool3D",
-           {constant, std::make_shared<opset::Transpose>(),
-            std::make_shared<opset::MaxPool>()}},
-          {"Mean", {std::make_shared<opset::ReduceMean>(), constant}},
-          {"Min", {std::make_shared<opset::ReduceMin>(), constant}},
-          {"Minimum", {std::make_shared<opset::Minimum>()}},
-          {"MirrorPad", {constant, std::make_shared<opset::Pad>()}},
-          {"Mul", {std::make_shared<opset::Multiply>()}},
-          {"Mod", {std::make_shared<opset::Mod>()}},
-          {"Neg", {std::make_shared<opset::Negative>()}},
-          {"NotEqual", {std::make_shared<opset::NotEqual>()}},
-          {"NonMaxSuppressionV2",
-           {std::make_shared<opset::NonMaxSuppression>(), constant,
-            std::make_shared<opset::Unsqueeze>(),
-            std::make_shared<opset::StridedSlice>()}},
-          {"OneHot", {std::make_shared<opset::OneHot>(), constant}},
-          {"Pack",
-           {constant, std::make_shared<opset::Concat>(),
-            std::make_shared<opset::Unsqueeze>()}},
-          {"Pad", {constant, std::make_shared<opset::Pad>()}},
-          {"PadV2", {constant, std::make_shared<opset::Pad>()}},
-          {"Pow", {std::make_shared<opset::Power>()}},
-          {"Prod", {std::make_shared<opset::ReduceProd>(), constant}},
-          {"Range", {std::make_shared<opset::Range>()}},
-          {"Rank", {constant}},
-          {"RealDiv", {std::make_shared<opset::Divide>()}},
-          {"Reciprocal", {constant, std::make_shared<opset::Power>()}},
-          {"Relu", {std::make_shared<opset::Relu>()}},
-          {"Relu6", {std::make_shared<opset::Clamp>()}},
-          {"Rsqrt", {constant, std::make_shared<opset::Power>()}},
-          {"Select", {std::make_shared<opset::Select>()}},
-          {"SelectV2", {std::make_shared<opset::Select>()}},
-          {"Reshape", {std::make_shared<opset::Reshape>()}},
-          {"Shape", {std::make_shared<opset::ShapeOf>()}},
-          {"Sigmoid", {std::make_shared<opset::Sigmoid>()}},
-          {"Sin", {std::make_shared<opset::Sin>()}},
-          {"Sinh", {std::make_shared<opset::Sinh>()}},
-          {"Size", {constant}},
-          {"Sign", {std::make_shared<opset::Sign>()}},
-          {"Slice", {constant, std::make_shared<opset::StridedSlice>()}},
-          {"Snapshot", {}},
-          {"Softmax", {std::make_shared<opset::Softmax>()}},
-          {"Softplus", {std::make_shared<opset::SoftPlus>()}},
-          {"SpaceToDepth", {std::make_shared<opset::SpaceToDepth>()}},
-          {"Split", {std::make_shared<opset::Split>(), constant}},
-          {"SplitV", {std::make_shared<opset::VariadicSplit>(), constant}},
-          {"Sqrt", {std::make_shared<opset::Sqrt>()}},
-          {"Square", {std::make_shared<opset::Multiply>()}},
-          {"SquaredDifference", {std::make_shared<opset::SquaredDifference>()}},
-          {"Squeeze", {std::make_shared<opset::Squeeze>(), constant}},
-          {"StridedSlice", {constant, std::make_shared<opset::StridedSlice>()}},
-          {"Sub", {std::make_shared<opset::Subtract>()}},
-          {"Sum", {std::make_shared<opset::ReduceSum>(), constant}},
-          {"Tan", {std::make_shared<opset::Tan>()}},
-          {"Tanh", {std::make_shared<opset::Tanh>()}},
-          {"Tile", {std::make_shared<opset::Tile>()}},
-          {"TopKV2", {std::make_shared<opset::TopK>(), constant}},
-          {"Transpose", {std::make_shared<opset::Transpose>()}},
-          {"Where",
-           {std::make_shared<opset::NonZero>(),
-            std::make_shared<opset::Transpose>()}},
-          {"Xdivy",
-           {constant, std::make_shared<opset::Divide>(),
-            std::make_shared<opset::Equal>(),
-            std::make_shared<opset::Select>()}},
-          {"Unpack", {constant, std::make_shared<opset::StridedSlice>()}},
-          {"ZerosLike", {constant}},
-          {"NoOp", {}},
-      };
-
-  return TFtoNgraphOpMap;
-}
-
 //
 // Main entry point for the marking pass.
 //
@@ -786,9 +575,6 @@ Status MarkForClustering(Graph* graph,
 
   const std::map<std::string, SetAttributesFunction>& set_attributes_map =
       GetAttributeSetters();
-
-  const std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>&
-      TFtoNgraphOpMap = GetTFToNgOpMap();
 
   //
   // IF YOU ARE ADDING A NEW OP IMPLEMENTATION, YOU MUST ADD A CONFIRMATION
@@ -887,16 +673,12 @@ Status MarkForClustering(Graph* graph,
       }
 
       // Check if op is supported by backend
-      bool is_supported = false;
-      TF_RETURN_IF_ERROR(IsSupportedByBackend(node, op_backend, TFtoNgraphOpMap,
-                                              is_supported));
-
+      bool is_supported = op_backend->IsSupported(node->type_string().c_str());
       if (!is_supported) {
-        string backend;
-        BackendManager::GetBackendName(backend);
         NGRAPH_VLOG(5) << "TF Op " << node->name() << " of type "
                        << node->type_string()
-                       << " is not supported by backend: " << backend;
+                       << " is not supported by backend: "
+                       << op_backend->Name();
         break;
       }
 
@@ -920,11 +702,11 @@ Status MarkForClustering(Graph* graph,
     std::cout << "\n=============New sub-graph logs=============\n";
     // print summary for nodes failed to be marked
     std::cout << "NGTF_SUMMARY: Op_not_supported: ";
-    util::PrintNodeHistogram(no_support_histogram);
+    tf_utils::PrintNodeHistogram(no_support_histogram);
     std::cout << "NGTF_SUMMARY: Op_failed_confirmation: ";
-    util::PrintNodeHistogram(fail_confirmation_histogram);
+    tf_utils::PrintNodeHistogram(fail_confirmation_histogram);
     std::cout << "NGTF_SUMMARY: Op_failed_type_constraint: ";
-    util::PrintNodeHistogram(fail_constraint_histogram);
+    tf_utils::PrintNodeHistogram(fail_constraint_histogram);
   }
 
   for (auto node : nodes_marked_for_clustering) {

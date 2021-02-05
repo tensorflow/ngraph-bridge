@@ -60,18 +60,8 @@ TEST(OpByOpCapability, Backend) {
 
   auto constant = ngraph::op::Constant::create(ngraph::element::f32,
                                                ngraph::Shape{}, {2.0f});
-  std::map<std::string, std::set<std::shared_ptr<ngraph::Node>>>
-      TFtoNgraphOpMap{
-          {"Const", {constant}},
-          {"Add", {std::make_shared<opset::Add>()}},
-          {"Mul",
-           {std::make_shared<opset::Multiply>(),
-            std::make_shared<opset::Subtract>()}},
-      };
-
   for (auto node : graph.op_nodes()) {
-    ASSERT_OK(
-        IsSupportedByBackend(node, backend, TFtoNgraphOpMap, is_supported));
+    is_supported = backend->IsSupported(node->type_string().c_str());
     ASSERT_EQ(is_supported, true);
   }
 }

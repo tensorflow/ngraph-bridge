@@ -48,6 +48,7 @@ set(SRC
    pass/transpose_sinking.cc
    tf_graphcycles.cc
    tf_deadness_analysis.cc
+   tf_utils.cc
    utils.cc
    version.cc
 )
