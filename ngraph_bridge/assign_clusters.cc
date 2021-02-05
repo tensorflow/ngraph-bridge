@@ -18,6 +18,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "absl/strings/str_join.h"
+#include "absl/strings/str_split.h"
 #include "tensorflow/core/framework/attr_value_util.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/node_def_util.h"
@@ -33,7 +35,6 @@
 #include "mark_for_clustering.h"
 #include "tf_deadness_analysis.h"
 #include "tf_graphcycles.h"
-#include "utils.h"
 
 using namespace std;
 
@@ -650,7 +651,8 @@ Status AssignClusters(Graph* graph) {
            "assigned an encapsulate)\n";
     for (auto it : cluster_separation_reason) {
       num_non_contracted += it.second.size();
-      auto cluster_id_vector = ngraph::split(it.first, ',');
+      std::vector<std::string> cluster_id_vector =
+          absl::StrSplit(it.first, ',');
       // function to find if this cluster became an ngraph_cluster
       // returns ngraph_cluster id if yes, else returns -1
       auto find_in_map = [&cluster_to_encapsulate, &cluster_id_vector](int x) {
@@ -688,7 +690,7 @@ Status AssignClusters(Graph* graph) {
                  to_string(dst_encapsulate) + "] predicate: " +
                  std::get<1>(deadness_predicates_tpl) +
                  " Neighbours predicates: " +
-                 ngraph::join(std::get<2>(deadness_predicates_tpl)) + "\n");
+                 absl::StrJoin(std::get<2>(deadness_predicates_tpl), "\n"));
           }
         }
         reason_count_clusters[inner_itr]++;

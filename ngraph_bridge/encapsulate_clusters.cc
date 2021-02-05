@@ -42,7 +42,7 @@
 #include "log.h"
 #include "mark_for_clustering.h"
 #include "ngraph_builder.h"
-#include "utils.h"
+#include "tf_utils.h"
 #include "version.h"
 
 using namespace std;
@@ -97,7 +97,7 @@ Status EncapsulateClusters(
       TF_RETURN_IF_ERROR(ConvertGraphDefToGraph(
           opts, *ClusterManager::GetClusterGraph(cluster_idx), &g));
 
-      util::DumpTFGraph(&g, cluster_idx, "ngraph_cluster_");
+      tf_utils::DumpTFGraph(&g, cluster_idx, "ngraph_cluster_");
     }
   }
 

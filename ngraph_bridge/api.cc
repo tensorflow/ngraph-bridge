@@ -76,15 +76,21 @@ bool IsEnabled() { return _is_enabled; }
 vector<string> ListBackends() { return BackendManager::GetSupportedBackends(); }
 
 bool SetBackend(const string& type) {
-  return (BackendManager::SetBackend(type) == Status::OK());
+  try {
+    BackendManager::SetBackend(type);
+  } catch (...) {
+    return false;
+  }
+  return true;
 }
 
 string GetBackend() {
-  string backend;
-  if (BackendManager::GetBackendName(backend) != Status::OK()) {
+  try {
+    auto backend = BackendManager::GetBackend();
+    return backend->Name();
+  } catch (...) {
     return "";
   }
-  return backend;
 }
 
 void StartLoggingPlacement() { _is_logging_placement = true; }

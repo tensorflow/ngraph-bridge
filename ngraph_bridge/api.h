@@ -59,6 +59,7 @@ extern void StopLoggingPlacement();
 extern bool IsLoggingPlacement();
 
 extern std::set<string> GetDisabledOps();
+
 extern void SetDisabledOps(std::set<string>);
 extern void SetDisabledOps(string);
 

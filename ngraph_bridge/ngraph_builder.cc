@@ -33,6 +33,7 @@
 #include "ngraph_builder.h"
 #include "ngraph_conversions.h"
 #include "pass/transpose_sinking.h"
+#include "tf_utils.h"
 #include "utils.h"
 
 using tensorflow::int32;
@@ -315,7 +316,7 @@ static Status GetStaticInputNode(
     const std::vector<const Tensor*>& static_input_map, DataType dt,
     ng::Output<ng::Node>& node_) {
   ng::element::Type type;
-  TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dt, &type));
+  TF_RETURN_IF_ERROR(tf_utils::TFDataTypeToNGraphElementType(dt, &type));
   switch (dt) {
     case DataType::DT_FLOAT: {
       std::vector<float> vec_float;
@@ -483,7 +484,8 @@ static Status MakeConstOp(const Node* op, ng::element::Type et,
   TensorShape const_shape(shape_proto);
 
   ng::Shape ng_shape;
-  TF_RETURN_IF_ERROR(util::TFTensorShapeToNGraphShape(const_shape, &ng_shape));
+  TF_RETURN_IF_ERROR(
+      tf_utils::TFTensorShapeToNGraphShape(const_shape, &ng_shape));
 
   ng_node =
       ConstructNgNode<opset::Constant>(op->name(), et, ng_shape, const_values);
@@ -675,7 +677,7 @@ static Status TranslateArgMinMax(
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "output_type", &dtype));
 
   ng::element::Type ng_et;
-  TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dtype, &ng_et));
+  TF_RETURN_IF_ERROR(tf_utils::TFDataTypeToNGraphElementType(dtype, &ng_et));
 
   auto ng_k = ConstructNgNode<opset::Constant>(
       op->name(), ng::element::i64, ng::Shape{}, std::vector<int64>({1}));
@@ -826,7 +828,7 @@ static Status TranslateCastOp(const Node* op, const std::vector<const Tensor*>&,
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "DstT", &dtype));
 
   ng::element::Type ng_et;
-  TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dtype, &ng_et));
+  TF_RETURN_IF_ERROR(tf_utils::TFDataTypeToNGraphElementType(dtype, &ng_et));
 
   try {
     SaveNgOp(ng_op_map, op->name(),
@@ -2099,7 +2101,7 @@ static Status TranslateRangeOp(
   DataType step_type = op->input_type(2);
   ng::element::Type out_type;
   TF_RETURN_IF_ERROR(
-      util::TFDataTypeToNGraphElementType(op->output_type(0), &out_type));
+      tf_utils::TFDataTypeToNGraphElementType(op->output_type(0), &out_type));
   ng::Output<ng::Node> start_node, stop_node, step_node;
   TF_RETURN_IF_ERROR(
       GetStaticInputNode(op, 0, static_input_map, start_type, start_node));
@@ -2206,7 +2208,7 @@ static Status TranslateShapeOp(const Node* op,
   TF_RETURN_IF_ERROR(GetNodeAttr(op->attrs(), "out_type", &dtype));
 
   ng::element::Type type;
-  TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dtype, &type));
+  TF_RETURN_IF_ERROR(tf_utils::TFDataTypeToNGraphElementType(dtype, &type));
 
   // default output_type = element::i64
   SaveNgOp(ng_op_map, op->name(),
@@ -2224,7 +2226,7 @@ static Status TranslateSizeOp(const Node* op, const std::vector<const Tensor*>&,
 
   // Size has an attribute to specify output, int32 or int64
   ng::element::Type type;
-  TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dtype, &type));
+  TF_RETURN_IF_ERROR(tf_utils::TFDataTypeToNGraphElementType(dtype, &type));
 
   auto ng_input_shape = ng_input.get_shape();
   int64 result = 1;
@@ -2895,11 +2897,11 @@ Status Builder::TranslateGraph(
     }
 
     ng::element::Type ng_et;
-    TF_RETURN_IF_ERROR(util::TFDataTypeToNGraphElementType(dtype, &ng_et));
+    TF_RETURN_IF_ERROR(tf_utils::TFDataTypeToNGraphElementType(dtype, &ng_et));
 
     ng::Shape ng_shape;
     TF_RETURN_IF_ERROR(
-        util::TFTensorShapeToNGraphShape(inputs[index], &ng_shape));
+        tf_utils::TFTensorShapeToNGraphShape(inputs[index], &ng_shape));
 
     string prov_tag;
     GetNodeAttr(parm->attrs(), "_prov_tag", &prov_tag);
@@ -2979,10 +2981,10 @@ Status Builder::TranslateGraph(
   //
   {
     ngraph::pass::Manager passes;
-    if (util::GetEnv("NGRAPH_TF_CONSTANT_FOLDING") == "1") {
+    if (utils::GetEnv("NGRAPH_TF_CONSTANT_FOLDING") == "1") {
       passes.register_pass<ngraph::pass::ConstantFolding>();
     }
-    if (util::GetEnv("NGRAPH_TF_TRANSPOSE_SINKING") != "0") {
+    if (utils::GetEnv("NGRAPH_TF_TRANSPOSE_SINKING") != "0") {
       passes.register_pass<pass::TransposeSinking>();
     }
     passes.run_passes(ng_function);
