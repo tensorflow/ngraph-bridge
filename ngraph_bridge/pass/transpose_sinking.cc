@@ -262,7 +262,7 @@ static void sink_transpose(
   // should be safe to remove an already detached node
   mark_transpose_for_deletion(orig_transpose, transposes_to_delete);
   // replace transpose with combined one
-  ngraph::replace_node(transpose, new_transpose);
+  ngraph::replace_node_update_name(transpose, new_transpose);
   mark_transpose_for_deletion(new_transpose, transposes_to_delete);
   write_transposemap(reorders, new_transpose, new_transpose);
 }
@@ -355,11 +355,11 @@ static void sink_pad(
   auto new_pad =
       make_shared<opset::Pad>(dummy_correct_shape, new_begin, new_end,
                               n->input_value(3), n->get_pad_mode());
-  ngraph::replace_node(dummy_correct_shape,
-                       n->input_value(0).get_node_shared_ptr());
+  ngraph::replace_node_update_name(dummy_correct_shape,
+                                   n->input_value(0).get_node_shared_ptr());
   NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
                  << new_pad->get_name();
-  ngraph::replace_node(n, new_pad);
+  ngraph::replace_node_update_name(n, new_pad);
   auto new_transpose = make_transpose(new_pad, order);
   NGRAPH_VLOG(4) << "Propagating " << describe<opset::Transpose>(new_transpose)
                  << " for " << n->get_name();
@@ -415,7 +415,7 @@ static void sink_concat(shared_ptr<opset::Concat> n, TransposeMap& reorders,
   }
   NGRAPH_VLOG(4) << "Replacing " << n->get_name() << " with "
                  << new_concat->get_name();
-  ngraph::replace_node(n, new_concat);
+  ngraph::replace_node_update_name(n, new_concat);
   auto new_transpose = make_transpose(new_concat, order);
   NGRAPH_VLOG(4) << "Propagating " << describe<opset::Transpose>(new_transpose)
                  << " for " << n->get_name();
