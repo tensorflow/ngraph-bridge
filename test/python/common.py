@@ -53,9 +53,8 @@ class NgraphTest(object):
         # because mutable objects should not be used as defaults in python
         if config is None:
             config = tf.compat.v1.ConfigProto()
-        # TODO: Stop grappler on failure (Add fail_on_optimizer_errors=True)
-        config = ngraph_bridge.update_config(config)
 
+        # config = ngraph_bridge.update_config(config)
         ngraph_tf_disable_deassign_clusters = os.environ.pop(
             'NGRAPH_TF_DISABLE_DEASSIGN_CLUSTERS', None)
 
