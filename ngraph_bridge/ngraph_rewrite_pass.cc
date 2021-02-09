@@ -20,6 +20,7 @@
 #include "tensorflow/core/common_runtime/optimization_registry.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/graph/graph.h"
+#include "tensorflow/core/public/session_options.h"
 
 #include "api.h"
 #include "assign_clusters.h"
@@ -101,6 +102,16 @@ Status NGraphRewritePass::Rewrite(
 }
 
 Status NGraphRewritePass::Run(const GraphOptimizationPassOptions& options) {
+  auto& rewriter_config =
+      options.session_options->config.graph_options().rewrite_options();
+  for (int i = 0; i < rewriter_config.custom_optimizers_size(); ++i) {
+    if (rewriter_config.custom_optimizers(i).name() == "ngraph-optimizer") {
+      NGRAPH_VLOG(3) << "ngraph-optimizer custom optimizer enabled; Disabling "
+                        "nGraph rewrite-pass";
+      return Status::OK();
+    }
+  }
+
   // If we don't get a main graph, log that fact and bail.
   if (options.graph == nullptr) {
     NGRAPH_VLOG(0) << "NGraphRewritePass: options.graph == nullptr";
@@ -111,8 +122,6 @@ Status NGraphRewritePass::Run(const GraphOptimizationPassOptions& options) {
 
 }  // namespace ngraph_bridge
 
-#ifndef NGRAPH_TF_USE_GRAPPLER_OPTIMIZER
 REGISTER_OPTIMIZATION(OptimizationPassRegistry::POST_REWRITE_FOR_EXEC, 0,
                       ngraph_bridge::NGraphRewritePass);
-#endif
 }  // namespace tensorflow

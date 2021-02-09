@@ -42,6 +42,7 @@ set(SRC
    mark_for_clustering.cc
    ngraph_builder.cc
    ngraph_conversions.cc
+   ngraph_optimizer.cc
    ngraph_rewrite_pass.cc
    ops/ngraph_encapsulate_op.cc
    pass/transpose_sinking.cc
@@ -51,12 +52,6 @@ set(SRC
    utils.cc
    version.cc
 )
-
-message(STATUS "NGRAPH_TF_USE_GRAPPLER_OPTIMIZER: ${NGRAPH_TF_USE_GRAPPLER_OPTIMIZER}")
-if(NGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
-    list(APPEND SRC ngraph_optimizer.cc)
-    add_definitions(-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER)
-endif()
 
 add_library(${LIB_NAME} SHARED ${SRC})
 target_link_libraries(

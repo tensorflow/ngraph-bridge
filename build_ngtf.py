@@ -97,11 +97,6 @@ def main():
         action="store_true")
 
     parser.add_argument(
-        '--use_grappler_optimizer',
-        help="Use Grappler optimizer instead of the optimization passes\n",
-        action="store_true")
-
-    parser.add_argument(
         '--artifacts_dir',
         type=str,
         help="Copy the artifacts to the given directory\n",
@@ -387,11 +382,6 @@ def main():
                                                     "tensorflow")
         ])
 
-    ngraph_tf_cmake_flags.extend([
-        "-DNGRAPH_TF_USE_GRAPPLER_OPTIMIZER=" +
-        flag_string_map[arguments.use_grappler_optimizer]
-    ])
-
     # Now build the bridge
     ng_tf_whl = build_ngraph_tf(build_dir, artifacts_location,
                                 ngraph_tf_src_dir, venv_dir,
@@ -441,13 +431,6 @@ def main():
     # Run a quick test
     install_ngraph_tf(tf_version, venv_dir,
                       os.path.join(artifacts_location, ng_tf_whl))
-
-    if arguments.use_grappler_optimizer:
-        import tensorflow as tf
-        import ngraph_bridge
-        if not ngraph_bridge.is_grappler_enabled():
-            raise Exception(
-                "Build failed: 'use_grappler_optimizer' specified but not used")
 
     print('\033[1;32mBuild successful\033[0m')
     os.chdir(pwd)

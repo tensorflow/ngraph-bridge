@@ -167,9 +167,7 @@ def run_tensorflow_pytests_from_artifacts(ngraph_tf_src_dir, tf_src_dir,
 
     # Check to see if we need to apply the patch for Grappler
     import ngraph_bridge
-    patch_file_name = "test/python/tensorflow/tf_unittest_ngraph" + (
-        "_with_grappler"
-        if ngraph_bridge.is_grappler_enabled() else "") + ".patch"
+    patch_file_name = "test/python/tensorflow/tf_unittest_ngraph.patch"
     patch_file = os.path.abspath(
         os.path.join(ngraph_tf_src_dir, patch_file_name))
 

@@ -41,6 +41,7 @@ namespace testing {
 // etc.,etc.
 
 TEST(GrapplerConfig, RConfig1) {
+  ActivateNGraph();
   // Create Graph
   Scope root = Scope::NewRootScope();
   auto A = ops::Const(root.WithOpName("A"), {3.f, 2.f});
@@ -72,7 +73,6 @@ TEST(GrapplerConfig, RConfig1) {
   // Run grappler
   tensorflow::grappler::MetaOptimizer optimizer(nullptr, config_proto);
   GraphDef output;
-  // const Status status = optimizer.Optimize(nullptr, item, &output);
   ASSERT_OK(optimizer.Optimize(nullptr, item, &output));
 
   // GraphDef to Graph
@@ -91,9 +91,11 @@ TEST(GrapplerConfig, RConfig1) {
     ng_encap = node;
   }
   ASSERT_NE(ng_encap, nullptr);
+  DeactivateNGraph();
 }
 
 TEST(GrapplerConfig, RConfig4) {
+  ActivateNGraph();
   // Create Graph
   Scope root = Scope::NewRootScope();
   auto A = ops::Const(root.WithOpName("A"), {3.f, 2.f});
@@ -152,11 +154,13 @@ TEST(GrapplerConfig, RConfig4) {
   string ng_test_echo;
   ASSERT_OK(GetNodeAttr(ng_encap->attrs(), "_ngraph_test_echo", &ng_test_echo));
   ASSERT_EQ(ng_test_echo, "hi");
+  DeactivateNGraph();
 }
 
 // Test the failure case where the compulsory attribute device_id
 // is not provided using the rewriter config
 TEST(GrapplerConfig, RConfig5) {
+  ActivateNGraph();
   // Create Graph
   Scope root = Scope::NewRootScope();
   auto A = ops::Const(root.WithOpName("A"), {3.f, 2.f});
@@ -192,6 +196,7 @@ TEST(GrapplerConfig, RConfig5) {
   GraphDef output;
 
   ASSERT_OK(optimizer.Optimize(nullptr, item, &output));
+  DeactivateNGraph();
 }
 
 }  // namespace testing

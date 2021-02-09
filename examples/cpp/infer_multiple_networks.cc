@@ -71,10 +71,6 @@ void PrintVersion() {
             << std::endl;
   std::cout << "CXX11_ABI Used: " << tf::ngraph_bridge::cxx11_abi_flag()
             << std::endl;
-  std::cout << "Grappler Enabled? "
-            << (tf::ngraph_bridge::is_grappler_enabled() ? std::string("Yes")
-                                                         : std::string("No"))
-            << std::endl;
   PrintAvailableBackends();
 }
 
