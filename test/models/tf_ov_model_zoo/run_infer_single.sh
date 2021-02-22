@@ -27,7 +27,7 @@ fi
 echo MODEL=$MODEL IMAGE=$IMAGE INFER_PATTERN=$INFER_PATTERN BENCHMARK=$BENCHMARK
 
 REPO=https://gitlab.devtools.intel.com/mcavus/tensorflow_openvino_models_public
-COMMIT=d12f2d57 # 2021-Jan-06
+COMMIT=91fed623 # 2021-Feb-03
 
 WORKDIR=`pwd`
 
