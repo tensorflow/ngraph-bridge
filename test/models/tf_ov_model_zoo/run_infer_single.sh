@@ -139,10 +139,11 @@ function get_average_infer_time {
 }
 
 function run_bench_stocktf {
+    PREFIX=$*
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
-    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    eval ${PREFIX} ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -156,6 +157,13 @@ function run_bench_stocktf {
     echo
     rm ${TMPFILE}
     popd >/dev/null
+}
+
+function run_bench_inteltf {
+    INTEL_TF_VENV=${LOCALSTORE_PREFIX}/${BUILDKITE_BUILD_ID}/inteltf/venv
+    source $INTEL_TF_VENV/bin/activate
+    run_bench_stocktf KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 inter_op_parallelism_threads=1 numactl --cpunodebind=0 --membind=0
+    deactivate
 }
 
 function run_bench_stockov {
@@ -241,13 +249,14 @@ fi
 INFER_TIME_TFOV="?"; run_bench_tfov
 if [ "${BENCHMARK}" == "YES" ]; then
     INFER_TIME_STOCKTF="?"; run_bench_stocktf
+    INFER_TIME_INTELTF="?"; run_bench_inteltf
     INFER_TIME_STOCKOV="?"; run_bench_stockov
     str_bench_info_hdr="Model,Stock-TF,OV,TF-OV"
     str_bench_info_row="${MODEL},${INFER_TIME_STOCKTF},${INFER_TIME_STOCKOV},${INFER_TIME_TFOV}"
     stockov_speedup=$(echo "scale=2; $INFER_TIME_STOCKTF/$INFER_TIME_STOCKOV" | bc )
     tfov_speedup=$(echo "scale=2; $INFER_TIME_STOCKTF/$INFER_TIME_TFOV" | bc )
     str_bench_info2_row="${MODEL},1,$stockov_speedup,$tfov_speedup"
-    echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, OV ${INFER_TIME_STOCKOV}, TF-OV ${INFER_TIME_TFOV}"
+    echo -e "${prefix_pass} Stock-TF ${INFER_TIME_STOCKTF}, Intel-TF ${INFER_TIME_INTELTF}, OV ${INFER_TIME_STOCKOV}, TF-OV ${INFER_TIME_TFOV}"
     CSVFILE=${WORKDIR}/benchmark_avg_infer_msec.csv
     [ -f "$CSVFILE" ] || echo "$str_bench_info_hdr" > $CSVFILE
     echo "$str_bench_info_row" >> $CSVFILE
