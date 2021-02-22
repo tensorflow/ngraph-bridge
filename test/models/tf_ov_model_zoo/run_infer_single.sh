@@ -139,11 +139,10 @@ function get_average_infer_time {
 }
 
 function run_bench_stocktf {
-    PREFIX=$*
     pushd . >/dev/null
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
-    eval ${PREFIX} ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
         echo
@@ -162,7 +161,25 @@ function run_bench_stocktf {
 function run_bench_inteltf {
     INTEL_TF_VENV=${LOCALSTORE_PREFIX}/${BUILDKITE_BUILD_ID}/inteltf/venv
     source $INTEL_TF_VENV/bin/activate
-    run_bench_stocktf KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 inter_op_parallelism_threads=1 numactl --cpunodebind=0 --membind=0
+
+    pushd . >/dev/null
+    cd ${LOCALSTORE}/demo
+    TMPFILE=${WORKDIR}/tmp_output$$
+    KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 inter_op_parallelism_threads=1 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
+    ret_code=$?
+    if (( $ret_code == 0 )); then
+        echo
+        echo "Intel Tensorflow: Checking inference result (warmups=$WARMUP_ITERS) ..."
+        ret_code=1
+        INFER_PATTERN=$( echo $INFER_PATTERN | sed -e 's/"/\\\\"/g' )
+        grep "${INFER_PATTERN}" ${TMPFILE} >/dev/null && echo "TEST PASSED" && ret_code=0
+        print_infer_times $NUM_ITER $WARMUP_ITERS "${TMPFILE}"
+        INFER_TIME_INTELTF=$INFER_TIME
+    fi
+    echo
+    rm ${TMPFILE}
+    popd >/dev/null
+
     deactivate
 }
 
