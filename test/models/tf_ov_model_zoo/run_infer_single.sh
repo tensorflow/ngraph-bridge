@@ -159,12 +159,16 @@ function run_bench_stocktf {
 }
 
 function run_bench_inteltf {
-    INTEL_TF_VENV=${LOCALSTORE_PREFIX}/${BUILDKITE_BUILD_ID}/inteltf/venv
-    source $INTEL_TF_VENV/bin/activate
-
     pushd . >/dev/null
+    VENVTMP="$WORKDIR/venv_inteltf"
+    [ -d $VENVTMP ] && rm -rf $VENVTMP
+    virtualenv -p python3 $VENVTMP
+    source $VENVTMP/bin/activate
+    pip_install intel-tensorflow
+
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
+
     KMP_BLOCKTIME=1 OMP_NUM_THREADS=28 inter_op_parallelism_threads=1 numactl --cpunodebind=0 --membind=0 ./run_infer.sh ${MODEL} ${IMGFILE} $NUM_ITER "tf" $device 2>&1 > ${TMPFILE}
     ret_code=$?
     if (( $ret_code == 0 )); then
@@ -177,10 +181,10 @@ function run_bench_inteltf {
         INFER_TIME_INTELTF=$INFER_TIME
     fi
     echo
-    rm ${TMPFILE}
-    popd >/dev/null
-
     deactivate
+    rm ${TMPFILE}
+    rm -rf $VENVTMP
+    popd >/dev/null
 }
 
 function run_bench_stockov {
