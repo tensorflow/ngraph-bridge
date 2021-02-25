@@ -165,6 +165,7 @@ function run_bench_inteltf {
     virtualenv -p python3 $VENVTMP
     source $VENVTMP/bin/activate
     pip_install intel-tensorflow
+    pip_install Pillow
 
     cd ${LOCALSTORE}/demo
     TMPFILE=${WORKDIR}/tmp_output$$
